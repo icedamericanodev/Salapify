@@ -102,6 +102,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
   String? _highlightId;
   Timer? _fade;
 
+  /// Account-group categories the person has collapsed, by category id. Empty
+  /// by default, so every group opens expanded and nothing a user already sees
+  /// moves behind a wall; collapsing is a scan aid they opt into. Kept in
+  /// memory only (not persisted), so it resets on a fresh open, which is the
+  /// safe non-regressing choice until a settings key is worth adding.
+  final Set<String> _collapsedGroups = {};
+
   /// Loaded once and passed down to the flipped card's QR shortcut, so the
   /// carousel does not re-read the documents directory per card. Best effort:
   /// off a device (web, tests) this stays null and the QR button simply does
@@ -161,17 +168,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
       );
       return;
     }
-    // This reaches a match far down a long list, and the comment that used to
-    // sit here saying it did NOT was wrong. It claimed the lazy ListView leaves
-    // a far-down row unbuilt, so currentContext is null and the scroll no-ops.
-    // But every account renders inside ONE eager Column (the "Cash and
-    // e-wallets" section, anchored at the top of the list), and a Column builds
-    // all its children, so the row's element exists even when painted well below
-    // the fold. ensureVisible finds it and scrolls it in. The old note was a
-    // code-reading guess about a lazy per-row list that this tree is not.
+    // This reaches a match far down a long list. It works because the account
+    // rows within a group render inside ONE eager Column (a Card's child), so
+    // the searched row's element exists even when painted well below the fold,
+    // and because every group opens EXPANDED (Phase 4): the reveal fires from
+    // initState's post-frame callback, before the user can collapse anything,
+    // so _collapsedGroups is empty and the target row is built. Two caveats a
+    // future change must respect, or this scroll dies SILENTLY (no snackbar,
+    // because the account was confirmed present above): the groups are now
+    // direct children of a lazy ListView, and a COLLAPSED group replaces its
+    // rows with a zero-size box. If a reveal ever has to reach a row inside a
+    // collapsed group, expand that group before calling ensureVisible.
     // accounts_focus_scroll_test.dart proves the 40th of 40 accounts is scrolled
-    // onto the screen; if the rows are ever moved to a lazy per-row builder that
-    // guard reddens, and only then would a scroll loop be needed.
+    // onto the screen on today's expanded-at-init path.
     final ctx = _focusKey.currentContext;
     if (ctx != null) {
       Scrollable.ensureVisible(
@@ -391,19 +400,21 @@ class _AccountsScreenState extends State<AccountsScreen> {
                           ),
                         ),
                       ),
-                    _section(
-                      c.label.toUpperCase(),
+                    _accountGroup(
+                      id: c.id,
+                      label: c.label,
+                      count: groups[c.id]!.length,
                       // Counts exactly what the total above counts: base
                       // currency rows, plus any foreign row the app can price.
                       // A subtotal that used a different rule from the total
                       // is the "two versions of one number" bug, and it is
                       // easy to write by accident because each rule looks
                       // right on its own.
-                      groups[c.id]!.fold(
+                      subtotal: groups[c.id]!.fold(
                         0.0,
                         (t, e) => t + _countedAmount(e, amountOfRow(e)),
                       ),
-                      [
+                      children: [
                         for (final e in groups[c.id]!) _taxonomyRow(context, e),
                         // Once, under the last debt section, not under each.
                         if (c.store == AccountStore.debts &&
@@ -867,44 +878,136 @@ class _AccountsScreenState extends State<AccountsScreen> {
     },
   );
 
-  Widget _section(
-    String title,
-    double subtotal,
-    List<Widget> children, {
+  /// The Material glyph for an account-group category. Salapify-authored, so it
+  /// is a themed icon (never an emoji), resolved through the one icon map.
+  String _categoryGlyph(String id) => switch (id) {
+    'cash_equivalents' => 'wallet',
+    'investments' => 'growth',
+    'property' => 'house',
+    'credit' => 'card',
+    'loans' => 'document',
+    'installments' => 'calendar',
+    _ => 'wallet',
+  };
+
+  /// One account group: a tappable header (icon, name, account count, total,
+  /// chevron) over the rows, which collapse and expand.
+  ///
+  /// Expanded by default, always. Collapsing is a scan aid the person opts
+  /// into; nothing they already see is hidden behind a wall on open. The header
+  /// carries the whole meaning to a screen reader in one sentence, and the
+  /// visual parts are excluded so it reads as one button, then the rows
+  /// underneath keep their own semantics when open.
+  Widget _accountGroup({
+    required String id,
+    required String label,
+    required int count,
+    required double subtotal,
+    required List<Widget> children,
     Color? subtotalColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
+    final expanded = !_collapsedGroups.contains(id);
+    final countLabel = '$count ${count == 1 ? 'account' : 'accounts'}';
+    final header = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: Gap.sm),
+      // LayoutBuilder so the subtotal can be CAPPED at half the row: normally
+      // the money figure is far narrower than that, so it draws at natural size
+      // and the greedy label keeps all the rest (the longest name, "Property
+      // and things", stays whole). Only when a wide figure at a large system
+      // font would push past the cap does the FittedBox scale it down, so the
+      // row can never overflow and the name is never starved by the number.
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          children: [
+            SalapifyGlyph(_categoryGlyph(id), size: IconSizes.dense),
+            const SizedBox(width: Gap.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Barako.kickerStyle,
+                    style: AppText.bodyLg.w7,
                   ),
-                ),
-                const SizedBox(width: 8),
-                // The strict row face, tint only: the 13pt resize was one of
-                // the forks amountRow's rule exists to end.
-                Text(
+                  Text(countLabel, style: AppText.caption),
+                ],
+              ),
+            ),
+            const SizedBox(width: Gap.sm),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.5),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
                   formatMoneyText(subtotal),
                   style: AppText.amountRow.tint(
                     subtotalColor ?? Barako.textSecondary,
                   ),
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(width: Gap.sm),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: Motion.of(context, Motion.state),
+              curve: Motion.curve,
+              child: Icon(
+                salapifyIcon('expand'),
+                size: IconSizes.inline,
+                color: Barako.faint,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            button: true,
+            label:
+                '$label, $countLabel, ${formatMoneyText(subtotal)}. '
+                '${expanded ? 'Expanded' : 'Collapsed'}. '
+                'Tap to ${expanded ? 'collapse' : 'expand'}.',
+            child: ExcludeSemantics(
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(Radii.control),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(Radii.control),
+                  onTap: () {
+                    Haptics.select();
+                    setState(() {
+                      if (expanded) {
+                        _collapsedGroups.add(id);
+                      } else {
+                        _collapsedGroups.remove(id);
+                      }
+                    });
+                  },
+                  child: header,
+                ),
+              ),
             ),
           ),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(children: children),
+          // topCenter so the rows reveal downward from under the header, and
+          // Motion.of so the reduce-motion setting turns the slide into a cut.
+          AnimatedSize(
+            duration: Motion.of(context, Motion.reveal),
+            curve: Motion.curve,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(children: children),
+                  )
+                : const SizedBox(width: double.infinity),
           ),
         ],
       ),

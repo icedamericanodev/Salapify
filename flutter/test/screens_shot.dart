@@ -2659,6 +2659,68 @@ void main() {
     }
   });
 
+  testWidgets('the account groups, expanded and collapsed', (tester) async {
+    // The Phase 4 change: each taxonomy section is now a collapsible group with
+    // an icon, name, account count, total and a chevron. Rendered light first,
+    // expanded (the default, so nothing a user has is hidden), then a collapsed
+    // group to show the affordance, then dark.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    Future<void> pump(Brightness b) async {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AccountsScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pump(Brightness.light);
+    // Scroll the WHAT YOU OWN groups into view.
+    await tester.scrollUntilVisible(
+      find.text('Investments'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/account-groups-light.png'),
+    );
+
+    // Collapse the Investments group and capture the collapsed affordance.
+    await tester.tap(find.text('Investments'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/account-groups-collapsed-light.png'),
+    );
+
+    await pump(Brightness.dark);
+    await tester.scrollUntilVisible(
+      find.text('Investments'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/account-groups-dark.png'),
+    );
+  });
+
   testWidgets('the transfer sheet, dark', (tester) async {
     // A write path with money in it, so it gets looked at before it ships.
     await loadRealFonts(tester);

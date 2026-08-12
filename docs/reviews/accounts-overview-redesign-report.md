@@ -1,4 +1,11 @@
-# Accounts overview redesign, increment 1 (stamp f4.02)
+# Accounts redesign, increments 1-2 (stamps f4.02-f4.03)
+
+Increment 1 (f4.02): the net worth card and quick actions, below.
+Increment 2 (f4.03): collapsible account groups, at the end of this file.
+
+---
+
+## Increment 1 (f4.02): net worth card + quick actions
 
 Part of the Accounts experience redesign (coffee-inspired, premium personal
 finance UX). This is increment 1 of a larger, phased effort. Founder direction
@@ -127,3 +134,73 @@ preserved.
   like coffee in Barako light and still works in every theme, but does NOT
   change the global default appearance (that is an app-wide behaviour change
   worth its own scoped step, not bundled into an Accounts-overview PR).
+
+---
+
+## Increment 2 (f4.03): collapsible account groups (Phase 4)
+
+### Scope
+
+The taxonomy sections in the account list became collapsible groups, so a long
+repetitive list becomes scannable. The WHAT YOU OWN / WHAT YOU OWE class
+kickers, the subtotals, the rows, and the "manage debts" note are unchanged.
+
+### What changed
+
+- `_section(title, subtotal, children)` became `_accountGroup({id, label, count,
+  subtotal, children})`, plus a `_categoryGlyph(id)` helper mapping each
+  category to a themed Material glyph (wallet, growth, house, card, document,
+  calendar).
+- Each group now has a tappable header: an icon disc, the title-case group name,
+  an "N accounts" count, the group total, and a chevron that rotates on
+  toggle. Tapping collapses or expands the rows with an `AnimatedSize`
+  (reduced-motion aware via `Motion.of`) and a light selection haptic.
+- New in-memory state `_collapsedGroups` (a set of collapsed category ids).
+
+### Behaviour and the never-regress rule
+
+- **Every group opens EXPANDED by default.** Collapsing is a scan aid the user
+  opts into; nothing they already see is hidden behind a wall on open.
+- **The group total stays in the header when collapsed**, so collapsing hides
+  detail but never the money summary. No figure the totals count is hidden.
+- Collapse state is in-memory only (resets on a fresh open). No settings key,
+  no stored-data or backup change. Persistence is a possible later enhancement.
+
+### What did NOT change
+
+- No money math, schema, stored data, or classification. The subtotal is the
+  same FX-aware `_countedAmount` fold as before, and rows keep their tap/edit
+  behaviour and semantics.
+
+### Visual evidence
+
+Rendered on the lived-in fixture: `shots/account-groups-light.png` (expanded),
+`shots/account-groups-collapsed-light.png` (Investments collapsed, total still
+shown), and `shots/account-groups-dark.png`. Looked at and sent to the founder.
+
+### Validation
+
+- `flutter analyze`: 0 issues.
+- New tests in `accounts_overview_test.dart`: a group collapses and expands its
+  rows (with the total staying visible when collapsed), and a header names its
+  account count (singular/plural). The collapse test was proven to fail
+  (forced `expanded` always true, watched the row stay visible, restored).
+- Regression set green: own/owe, accounts screen, focus-scroll (the searched
+  row still builds inside the expanded group), readability, palette, design
+  foundation, transfer.
+- Independent QA (qa-tester): 0 must-fix, two should-fix APPLIED: (1) the header
+  could overflow at a narrow width + large font + wide subtotal, now the
+  subtotal is capped at half the row (LayoutBuilder) and scales within a
+  FittedBox, so it never overflows and the longest name stays whole at normal
+  sizes; (2) a stale `_revealFocus` comment overstated the row-tree guarantee
+  and was corrected to name the lazy ListView and the collapsed-group caveat.
+
+### Deferred
+
+Card carousel/flip polish (Phases 5-7), account detail (Phase 8), assets-vs
+-liabilities donut (Phase 9), net worth trend (Phase 10), transfer polish
+(Phases 11-12), and group-collapse persistence. Two QA nice-to-haves are
+deferred (nothing hidden either way): pruning a collapsed-group id when its
+category empties and refills in one session, and the header count including an
+unpriced foreign row the subtotal omits (consistent with net worth excluding
+unpriced currencies).
