@@ -204,3 +204,55 @@ deferred (nothing hidden either way): pruning a collapsed-group id when its
 category empties and refills in one session, and the header count including an
 unpriced foreign row the subtotal omits (consistent with net worth excluding
 unpriced currencies).
+
+---
+
+## Increment 3 (f4.04): carousel focused-card emphasis (Phase 6)
+
+### Scope
+
+Phase 6 asks that the selected card have stronger visual emphasis. It did not:
+every card rendered at the same scale. This adds that emphasis. The rest of
+Phases 5-7 (the snap carousel, page indicators, the flip, biometric-gated
+reveal, FLAG_SECURE, QR, and the deliberate no-digits-on-front rule) were
+already implemented to a high standard and are left untouched.
+
+### What changed
+
+- A new `_emphasised` wrapper in the carousel: each card's neighbours scale
+  down a touch (focused 1.0, a full page away 0.92) as they slide away, driven
+  by the live `PageController` scroll position via an `AnimatedBuilder`. The
+  already-built `FlipBankCard` subtree is passed as the builder's `child`, so
+  only the cheap `Transform` rebuilds per scroll tick.
+- Applied only on the multi-card `PageView` path; the single-card layout is
+  unchanged.
+
+### What did NOT change
+
+- Nothing about the card's flip, masking, biometric reveal, secure window, or
+  QR. No money, data, schema, or classification. This is a `Transform.scale`
+  over an already-built card.
+- `transformHitTests` stays on (the default), so the focused card still taps
+  and flips normally; `Transform` does not affect layout, so the card height is
+  unchanged (the "height does not jump during flip" guard still passes).
+
+### Behaviour notes
+
+- It follows the swipe (finger-following feedback, not an autoplaying
+  animation), so it does not gate on reduce-motion; at rest it is a static size
+  difference between the focused card and its neighbours. The effect is most
+  visible mid-swipe.
+
+### Validation
+
+- `flutter analyze`: 0 issues. Full local suite: 2875 pass.
+- Flip and card suites green (the wrapper does not disturb the flip). Rendered
+  the carousel and looked; the peeking neighbour renders visibly smaller.
+- Self-review QA (an "equivalent" pass under the merge rule for a contained
+  presentation change), recorded in `docs/qa-log.md` (f4.04).
+
+### Deferred
+
+The remaining redesign phases: account detail (Phase 8), assets-vs-liabilities
+donut (Phase 9), net worth trend (Phase 10), transfer form/success polish
+(Phases 11-12).

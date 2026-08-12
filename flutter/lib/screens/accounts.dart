@@ -2831,7 +2831,11 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
                               horizontal: 6,
                               vertical: 4,
                             ),
-                            child: _card(items[i], i, focus),
+                            child: _emphasised(
+                              i,
+                              focus,
+                              _card(items[i], i, focus),
+                            ),
                           ),
                         ),
                 ),
@@ -2883,6 +2887,37 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
       onEdit: () => widget.onEdit(it),
     ),
   );
+
+  /// Give the focused card stronger presence: the neighbours it sits between
+  /// scale down a touch as they slide away, so the card in focus reads as the
+  /// one you are holding. Pure presentation over the card that is already
+  /// built, so nothing about its flip, masking or secure reveal is touched.
+  ///
+  /// It follows the swipe (a Transform driven by the live scroll position),
+  /// which is finger-following feedback rather than an autoplaying animation,
+  /// so it does not gate on reduce-motion; at rest it is simply a static size
+  /// difference between the focused card and its neighbours.
+  Widget _emphasised(int i, int focus, Widget child) {
+    return AnimatedBuilder(
+      animation: _controller,
+      // The card subtree is passed as `child` so the AnimatedBuilder rebuilds
+      // only the cheap Transform on each scroll tick, never the card itself.
+      child: child,
+      builder: (context, built) {
+        // Before the PageView has laid out, `page` is null; fall back to the
+        // settled index so the first frame is not unscaled-then-jump.
+        final page =
+            (_controller.hasClients && _controller.position.haveDimensions)
+            ? (_controller.page ?? _index.toDouble())
+            : _index.toDouble();
+        final distance = (page - i).abs().clamp(0.0, 1.0);
+        // Focused 1.0, a full page away 0.92. Subtle on purpose: enough to
+        // pick out the card in focus, not so much it looks like a bug.
+        final scale = 1.0 - distance * 0.08;
+        return Transform.scale(scale: scale, child: built);
+      },
+    );
+  }
 
   /// Dots for a handful of cards, a compact "n of m" once there are enough that
   /// a row of dots would overflow a narrow phone.
