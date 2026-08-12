@@ -571,3 +571,46 @@ here. No production code was changed. Once you pick a phase direction
 approved block runs autonomously under the Tier 1 and Tier 2 model, with the
 app's existing working rules (stamp discipline, golden locks, QA log, delivery
 log, no em or en dashes) still binding.
+
+---
+
+## Block 1 outcome (executed 2026-08-12, founder approved)
+
+Block 1 was approved as "money-correctness cleanup." On investigation the
+proposed consolidations split into three kinds, and only one was safe routine
+work:
+
+1. A machine-enforced invariant guard (SHIPPED, behaviour preserving). The one
+   real correctness gap the audit named is that two code paths compute the
+   month's savings rate: analytics.savingsRate and monthlySeries feed Insights,
+   coach, recap and Pan, while statements.incomeStatement feeds Reports. Both
+   carry the same income and expense classification rule, copied into two
+   golden-locked 1:1 RN ports, so a future edit to one and not the other would
+   make two screens disagree on the same data. flutter/test/savings_rate_consistency_test.dart
+   now locks that they always agree (proven by breaking the rule and watching
+   it fail). This changes no money code.
+
+2. The rounding helpers are NOT safe to merge (deferred, founder gated). The
+   _jsRound copies are not all identical: phtax.dart and thirteenth.dart use the
+   fractional form (v - floor(v) >= 0.5) which differs from the one-liner
+   (x + 0.5).floorToDouble() at the sub-ULP floating-point boundary (for example
+   0.49999999999999994, where the one-liner yields 1 and the fractional form
+   yields 0). Unifying them is a money-rounding change that golden vectors would
+   almost certainly not catch, because no vector probes that exact boundary. The
+   tax engines chose the safer form deliberately. This is a money-methodology
+   decision, not routine cleanup.
+
+3. The savings-rate percentage is already rendered two ways (deferred, founder
+   gated): Reports rounds with Dart's .round() (half away from zero) while
+   Insights, coach, recap and Pan round with the engine's JS-parity _jsRound
+   (half up). They differ only at a negative half-boundary, a rare but real
+   present inconsistency. reports_calc.savingsRatePct using Dart .round() looks
+   like a porting slip from RN's Math.round; aligning it to _jsRound would
+   restore RN parity but changes a visible number in that edge, so it is a
+   money-methodology decision (recommendation: align Reports to _jsRound, with a
+   golden vector that actually probes the boundary).
+
+Net: the correctness guarantee the audit wanted is delivered with zero risk to
+the money math and no break of the golden-locked RN parity, and the two genuine
+rounding decisions are surfaced for a deliberate founder call rather than made
+silently.
