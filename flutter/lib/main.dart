@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.05 · Guard so Insights and Reports never disagree on savings rate.';
+    'f4.06 · Coffee palette: espresso brand, cream light, near-black dark, one look.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
