@@ -51,7 +51,7 @@ void main() {
     );
   });
 
-  double _rgbDistance(Color a, Color b) {
+  double rgbDistance(Color a, Color b) {
     final ai = a.toARGB32(), bi = b.toARGB32();
     final dr = ((ai >> 16) & 0xFF) - ((bi >> 16) & 0xFF);
     final dg = ((ai >> 8) & 0xFF) - ((bi >> 8) & 0xFF);
@@ -68,7 +68,7 @@ void main() {
     final failures = <String>[];
     for (var i = 0; i < Barako.dataSeries.length; i++) {
       for (var j = i + 1; j < Barako.dataSeries.length; j++) {
-        final d = _rgbDistance(Barako.dataSeries[i], Barako.dataSeries[j]);
+        final d = rgbDistance(Barako.dataSeries[i], Barako.dataSeries[j]);
         if (d < 60) {
           failures.add(
             'slice $i and $j are ${d.toStringAsFixed(0)} apart in RGB, too close',
@@ -102,5 +102,22 @@ void main() {
       }
     }
     expect(failures, isEmpty, reason: failures.join('\n'));
+  });
+
+  test('the income green passes WCAG AA as small text on its own card', () {
+    // Income amounts are small text, so they are held to 4.5, not the graphical
+    // 3.0. The token is per-brightness precisely so both can clear it: a deep
+    // green on the white light card, a bright green on the near-black dark card.
+    // These are the two private constants behind Barako.income.
+    expect(
+      _contrast(const Color(0xFF15803D), lightCard),
+      greaterThanOrEqualTo(4.5),
+      reason: 'the light income green is unreadable on the white card',
+    );
+    expect(
+      _contrast(const Color(0xFF34D058), darkCard),
+      greaterThanOrEqualTo(4.5),
+      reason: 'the dark income green is unreadable on the near-black card',
+    );
   });
 }

@@ -483,7 +483,7 @@ class OverviewScreen extends StatelessWidget {
                                 role: AmountRole.lg,
                                 signed: true,
                                 tint: net >= 0
-                                    ? Barako.primary
+                                    ? Barako.income
                                     : Barako.warning,
                               );
                             },

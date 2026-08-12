@@ -636,6 +636,17 @@ class Barako {
     Color(0xFFF472B6), // soft rose
   ];
 
+  /// Positive money: income, a gain, a surplus, where the founder's spec wants
+  /// green. Per-brightness because a single green cannot pass WCAG AA as small
+  /// text on BOTH a white card and a near-black one: light needs a deep green,
+  /// dark a bright one. Direction is still carried by the sign (a '+' or a real
+  /// negative), never by colour alone, so a colour-blind reader keeps the
+  /// meaning. Contrast is guarded by data_palette_test.
+  static const Color _incomeLight = Color(0xFF15803D);
+  static const Color _incomeDark = Color(0xFF34D058);
+  static Color get income =>
+      current.brightness == Brightness.dark ? _incomeDark : _incomeLight;
+
   /// The face for THE ONE NUMBER on a screen, at 30 or larger.
   ///
   /// It is Plus Jakarta Sans, the same family as everything else, and the

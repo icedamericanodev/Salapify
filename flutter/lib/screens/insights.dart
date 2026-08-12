@@ -1442,7 +1442,7 @@ class InsightsScreen extends StatelessWidget {
       ),
       legend: Row(
         children: [
-          ChartFrame.legendDot(Barako.primary, 'Income'),
+          ChartFrame.legendDot(Barako.income, 'Income'),
           const SizedBox(width: 14),
           ChartFrame.legendDot(Barako.warning, 'Spending'),
         ],
@@ -2219,9 +2219,9 @@ class _TrendPainter extends CustomPainter {
     // drawn last, so a month where spending rose above income shows more red.
     // Spending is also DASHED, so the two series differ by more than hue for
     // a color-blind reader; the legend dots alone cannot carry that.
-    _drawSeries(canvas, size, income, max, Barako.primary, fill: true);
+    _drawSeries(canvas, size, income, max, Barako.income, fill: true);
     _drawSeries(canvas, size, expenses, max, Barako.warning, fill: true);
-    _drawSeries(canvas, size, income, max, Barako.primary);
+    _drawSeries(canvas, size, income, max, Barako.income);
     _drawSeries(canvas, size, expenses, max, Barako.warning, dashed: true);
     _drawSelection(canvas, size, max);
     // Y axis magnitude: the top grid line is the shared max, the bottom is

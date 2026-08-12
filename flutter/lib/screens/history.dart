@@ -549,7 +549,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   amount,
                   role: AmountRole.row,
                   signed: true,
-                  tint: Barako.primary,
+                  tint: Barako.income,
                 )
               : AmountText(
                   -amount,
