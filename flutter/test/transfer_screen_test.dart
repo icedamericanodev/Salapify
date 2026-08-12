@@ -43,16 +43,11 @@ Future<SalapifyStore> _open(
 }
 
 Future<void> _openSheet(WidgetTester tester) async {
-  // The card carousel (shown with two or more accounts) can push this button
-  // past the lazy list's built region on a short surface, so it is not merely
-  // off screen, it is unbuilt: scroll the list until it exists and is visible,
-  // then tap. The outer list, not the carousel's PageView, is the scrollable.
-  final button = find.text('Move money between accounts');
-  await tester.scrollUntilVisible(
-    button,
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
+  // Transfer now lives in the quick-actions row, directly under the net worth
+  // card, so it sits near the top of the list. ensureVisible scrolls it into
+  // view on a short or scaled surface before the tap.
+  final button = find.text('Transfer');
+  await tester.ensureVisible(button);
   await tester.pumpAndSettle();
   await tester.tap(button);
   await tester.pumpAndSettle();
@@ -277,7 +272,12 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
-    expect(find.text('Move money between accounts'), findsNothing);
+    // The Transfer quick action is still visible, but tapping it does not open
+    // a sheet that could not save. It says why, and no move-money sheet opens.
+    await tester.tap(find.text('Transfer'));
+    await tester.pump();
+    expect(find.textContaining('Saving is off'), findsOneWidget);
+    expect(find.text('Move money'), findsNothing);
   });
 
   testWidgets('a write landing mid-transfer refuses instead of crashing', (
@@ -329,8 +329,11 @@ void main() {
     expect(_balanceOf(store, 'bpi'), 0);
   });
 
-  testWidgets('one account means no transfer button at all', (tester) async {
-    // Offering it would be offering a dead end: there is nowhere to move to.
+  testWidgets('one account: Transfer says there is nowhere to move to', (
+    tester,
+  ) async {
+    // Moving money needs two accounts. With one, the Transfer quick action
+    // points the way forward (add another) instead of opening a dead-end sheet.
     await _open(
       tester,
       blob: _blob(
@@ -339,7 +342,10 @@ void main() {
         ],
       ),
     );
-    expect(find.text('Move money between accounts'), findsNothing);
+    await tester.tap(find.text('Transfer'));
+    await tester.pump();
+    expect(find.textContaining('Add a second account'), findsOneWidget);
+    expect(find.text('Move money'), findsNothing);
   });
 
   testWidgets('a transfer is invisible to income and spending', (tester) async {

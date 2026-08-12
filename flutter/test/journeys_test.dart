@@ -382,7 +382,8 @@ void main() {
 
     await _tap(tester, find.byTooltip('Menu'));
     await _tap(tester, find.text('Accounts'));
-    await _tap(tester, find.text('Move money between accounts'));
+    // Transfer now lives in the quick-actions row under the net worth card.
+    await _tap(tester, find.text('Transfer'));
 
     // The sheet defaults its SOURCE to the first account, Cash, so the
     // destination chip to press is Bank. The chips read "Bank  ₱20,000", hence

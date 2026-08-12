@@ -24,10 +24,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
 
-    // Add. The two buttons became one, and it now asks what is being added
-    // before it opens the form (screens/add_account_flow.dart), so this walks
-    // the same path a person does.
-    await tester.tap(find.text('+ Add an account'));
+    // Add. On an empty book the quick-actions row is hidden, so the way
+    // forward is the empty state's own "Add an account" button. It asks what is
+    // being added before it opens the form (screens/add_account_flow.dart), so
+    // this walks the same path a person does.
+    await tester.tap(find.text('Add an account'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cash and e-wallets'));
     await tester.pumpAndSettle();
