@@ -10,6 +10,187 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-12, session 39: f4.04 delivered clean and confirmed, but the delivery LOG had silently stalled at f4.01 (patch published, row never landed), and the two-launch Shorebird behaviour turned confirmation into a false "still old stamp"
+
+**What we believed / What was true.**
+
+The delivery that prompted this session is clean on the phone, and that half is
+over fast. Three Accounts-redesign increments shipped in one pull request
+(PR #389), merged to `main` as commit `606e557`, and delivered as a SINGLE
+Shorebird patch. Shorebird is the tool that ships Dart changes over the air as
+numbered patches on top of one installed base APK. The publisher wrote the row
+on `origin/main`:
+
+    | 2026-08-12 14:03 UTC | f4.04 | 95 | patch | 0.9.0+15 | 606e5577 |
+
+The founder confirmed `f4.04`, patch 95, on the phone after a restart. Stamp on
+the phone equals stamp in the log equals stamp in the code
+(`flutter/lib/main.dart` at `606e557` reads `f4.04 . Accounts card carousel
+focused emphasis. Same app.`). On this delivery, belief and reality match, and
+no finding is invented to justify the session.
+
+Two real gaps sit behind that clean row, and both are worth the blameless look.
+
+The first belief that failed: "the log is complete, so f4.01 must have shipped
+the same way every other stamp does." It did not have a row. The delivery log
+on `origin/main` jumps straight from `f4.00 | patch 93` (2026-08-10 01:43 UTC)
+to `f4.04 | patch 95` (2026-08-12 14:03 UTC). Stamp `f4.01` and patch number 94
+appear NOWHERE in it. Yet `f4.01` was a real merge to main: PR #386, the
+Insights v2 chart and motion foundation, merged as commit `cb4133d` on
+2026-08-10, and that commit's `flutter/lib/main.dart` reads
+`f4.01 . Insights chart and motion foundation. Same app.` (the stamp was bumped
+in commit `869f240`, "Bump Flutter delivery stamp for Insights foundation").
+That merge touched `flutter/`, so the publisher ran and consumed patch 94
+(patch 93 was f4.00, patch 95 was f4.04, so 94 is the one f4.01 used). The
+patch went out to Shorebird; the one artifact this whole project treats as
+proof of delivery, the delivery-log row, never landed. So for about two days
+there was no way to CONFIRM on the phone that the Insights work had shipped,
+because the log said the newest delivery was still f4.00.
+
+The second belief that failed belonged to the confirmation conversation, not
+the code: "reopen the app once and you will see the new stamp." Shorebird boots
+the patch that is ALREADY installed and downloads the new one in the
+background, applying it only on the NEXT full restart. So the founder's first
+reopen correctly showed the OLD stamp (f4.01), and it took a second full close
+and reopen to reveal f4.04. Nothing was broken; the guidance was just missing a
+sentence about how Shorebird updates arrive.
+
+**Timeline, with evidence.**
+
+- 2026-08-10 01:43 UTC. `f4.00`, patch 93, delivered and logged
+  (`origin/main:docs/delivery-log.md`, last complete row before the gap;
+  delivery commit `e07234a`).
+- 2026-08-10, PR #386 (Insights v2) merges to main as `cb4133d`, carrying stamp
+  `f4.01`. The publisher (`.github/workflows/flutter-preview.yml`) triggers on
+  `flutter/**`, so it ran, and Shorebird consumed patch 94. NO `Delivery: f4.01`
+  commit exists on main: `git log origin/main e07234a..523ee59 --grep=Delivery`
+  returns only the f4.04 delivery commit and the f4.01 stamp bump, never an
+  f4.01 delivery row.
+- Between then and 2026-08-12, the repo's own machinery knew something was
+  wrong: a "Preview build failed, nothing shipped to the phone" issue was OPEN.
+  Today's f4.04 run's step "Close the nothing-shipped issue now that delivery
+  works again" (`flutter-preview.yml` lines 356 to 366) ran and closed it, which
+  only happens when such an issue was open to begin with.
+- 2026-08-12 14:03 UTC. `f4.04`, patch 95, delivered AND logged (delivery
+  commit `523ee59`, row above). Founder confirmed on the phone after a second
+  restart.
+- Note on evidence limits, stated rather than hidden: the `gh` CLI is not
+  installed in this session, so the exact per-step conclusion of the f4.01 run
+  and the precise moment the nothing-shipped issue opened could not be pulled
+  from the Actions API. What is certain from the repository alone is the shape:
+  patch 94 was consumed by an f4.01 merge that reached main, and no f4.01 row
+  was ever committed. Whether the f4.01 run reported "success" with a swallowed
+  push failure, or reported failure on one attempt and opened the issue, the
+  same hole and the same guard apply, which is why the uncertainty does not
+  change the conclusion.
+
+**Root cause.**
+
+Only one place writes a delivery-log row: the "Record what actually shipped"
+step, `flutter-preview.yml` lines 201 to 260. It runs AFTER the patch is already
+published. It builds the row, commits it locally, then pushes it to main through
+a best-effort rebase loop (lines 257 to 260):
+
+    for i in 1 2 3; do
+      git pull --rebase origin main && git push origin HEAD:main && break
+      sleep 5
+    done
+
+If the push loses its race three times (main moved while the build ran, or the
+delivery-log rebase conflicts with a parallel delivery commit, or a transient
+push rejection), `break` is never reached, and the LAST command actually
+executed in the final iteration is `sleep 5`, which exits 0. So the loop exits
+0, the step exits 0, and the run stays GREEN with the patch live on Shorebird
+and no row on main. This is the exact "published something, recorded nothing"
+shape.
+
+The existing "Prove something actually shipped" guard
+(`.github/scripts/verify-shipped.sh`, invoked at line 164) does not catch it,
+and structurally cannot: it runs BEFORE the record step (line 164 is above line
+201) and it only checks that Shorebird published a patch, not that the row
+describing that patch ever reached main. It was built to close the opposite
+hole, a green run that shipped NOTHING. The hole here is a green run that
+shipped something and then failed to record it, and nothing asserts the record
+landed.
+
+"Claude should have run the three-command delivery check after the f4.01 merge"
+is not the root cause, because the fix would be "check harder", which fails the
+next busy day. The root cause is structural: the step that produces the one
+proof-of-delivery artifact treats writing that artifact as best-effort and
+reports success even when it fails. That has a machine fix.
+
+**Lessons, each with its guard and the guard's strength.**
+
+Lesson one: the publisher can publish a patch and then silently fail to write
+its delivery-log row, staying green, so the log can fall behind the phone with
+no signal.
+
+- Guard (proposed, STRONGEST, automated and committed, not applied in this
+  retro): make the record step FAIL when its push does not land. Track a
+  success flag inside the loop and, after it, `exit 1` if all three attempts
+  failed, or re-fetch `origin/main` and assert that a row for the current stamp
+  now exists before the step is allowed to succeed. A non-zero exit here trips
+  the workflow's existing `if: failure()` path ("Say plainly that nothing
+  shipped", lines 314 to 328), which opens the nothing-shipped issue, so the
+  founder is told immediately and the next green run auto-closes it. This turns
+  today's silent two-day gap into a loud notification, reuses machinery already
+  proven, and works while nobody is watching because CI runs it unconditionally.
+  It should be proven the standard way before it is trusted: break the push so
+  the row cannot land, watch the step redden and the issue open, then restore
+  only after the run reports. Strength STRONGEST, and stated as PROPOSED because
+  code was deliberately not changed in this retrospective.
+
+Lesson two: Shorebird shows the currently-installed patch on the first reopen
+and only applies the downloaded one on the NEXT full restart, so a single
+reopen can correctly show the OLD stamp and read like a delivery failure when
+delivery actually worked.
+
+- Guard (GUIDANCE, MEDIUM, a rule and not a machine, honestly so): the
+  founder-facing confirmation guidance must say upfront that the first reopen
+  shows the previous patch while the new one downloads in the background, and
+  that a SECOND full close and reopen (swipe the app away from recents, not just
+  send it to the background) is what reveals the new stamp. This belongs in
+  CLAUDE.md's delivery-check section, near "The delivery check, in three
+  commands", so it is read at the moment a delivery is being confirmed. Strength
+  MEDIUM and no pretence otherwise: it depends on the sentence being read at the
+  right moment, and no test can read a sentence to a person. It is placed here
+  rather than made a test because the thing that went wrong was a confirmation
+  conversation, not code.
+
+**Open lessons carried forward.**
+
+Session 38's strong guard is still in place and still doing its job. Verified
+today: `WidgetController.hitTestWarningShouldBeFatal = true` still sits in
+`flutter/test/screens_shot.dart` (line 662), so any bare `tester.tap` that
+misses an off-screen target in the render harness still throws loudly at the
+tap on CI instead of failing illegibly downstream. Session 38's optional
+pre-push complement was, as recorded, never added, and that remains a deliberate
+smaller follow-up rather than a regression.
+
+Session 39's own lesson-one guard is OPEN until it is implemented and proven: as
+of this entry the record step can still exit 0 without landing its row. The
+next delivery-touching session should implement it and paste the break-then-fail
+line into the commit, per the "prove a new test can fail before trusting it"
+rule.
+
+CLAUDE.md factual re-check, done as a step and not a favor. Every delivery-path
+claim this session touched still matches the repository: the publisher lives at
+`.github/workflows/flutter-preview.yml` and triggers on `flutter/**` plus its
+own file (lines 18 to 26); its record step is the only writer of
+`docs/delivery-log.md` (lines 201 to 260); the "three commands" delivery check
+reads the log's last row as the proof, which is exactly what caught this gap;
+and every script and file CLAUDE.md names on the delivery path exists where it
+says: `.github/scripts/check-stamp-unique.sh`, `.github/scripts/verify-shipped.sh`,
+`.githooks/pre-push`, `flutter/lib/main.dart`, `flutter/test/qa_record_test.dart`,
+and `flutter/shorebird.yaml` all present. One claim is worth flagging as
+INCOMPLETE rather than false: CLAUDE.md rule 1 and the merge rules describe the
+publisher's "nothing-shipped" issue as the backstop for a build that ships
+nothing, and it is, but this session shows that backstop does not currently fire
+for the "shipped but unrecorded" case, because the record step can swallow its
+own push failure. That is the gap lesson-one's guard closes.
+
+---
+
 ## 2026-08-07, session 38: f3.64 clean, f3.65 reddened CI on a harness tap that silently missed because a taller screen pushed the button below the fold
 
 **What we believed / What was true.**
