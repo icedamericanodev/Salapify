@@ -168,7 +168,7 @@ void main() {
         tester,
         name: 'transfer-sheet-normal',
         home: AccountsScreen(store: store),
-        interact: (t) => t.tap(find.text('Move money between accounts')),
+        interact: (t) => t.tap(find.text('Transfer')),
       );
     });
 
@@ -180,19 +180,13 @@ void main() {
         home: AccountsScreen(store: store),
         size: const Size(360, 600),
         textScale: 1.5,
-        // The card carousel now sits above these buttons, so on a short screen
-        // at large text the button starts below the fold: scroll it in before
-        // tapping. The captured golden is the transfer SHEET, unaffected by how
-        // far the list behind it scrolled.
+        // Transfer sits in the quick-actions row near the top; ensureVisible
+        // brings it on screen at large text. The captured golden is the
+        // transfer SHEET, unaffected by how far the list behind it scrolled.
         interact: (t) async {
-          final finder = find.text('Move money between accounts');
-          // The outer account list, not the carousel's PageView, which is also
-          // a Scrollable.
-          await t.scrollUntilVisible(
-            finder,
-            150,
-            scrollable: find.byType(Scrollable).first,
-          );
+          final finder = find.text('Transfer');
+          await t.ensureVisible(finder);
+          await t.pumpAndSettle();
           await t.tap(finder);
         },
       );

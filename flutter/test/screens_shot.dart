@@ -2624,6 +2624,41 @@ void main() {
     );
   });
 
+  testWidgets('the Accounts overview, light and dark', (tester) async {
+    // The redesigned top of Accounts: the net worth card with its owned-versus
+    // -owed ratio bar, and the quick-actions row beneath it. Rendered LIGHT
+    // first, because the coffee light palette is the look this redesign was
+    // aimed at, then dark, which is what the founder runs day to day. The same
+    // lived-in person as every other shot, so this can be compared across
+    // screens.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AccountsScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/accounts-overview-${b.name}.png'),
+      );
+    }
+  });
+
   testWidgets('the transfer sheet, dark', (tester) async {
     // A write path with money in it, so it gets looked at before it ships.
     await loadRealFonts(tester);
@@ -2668,13 +2703,11 @@ void main() {
     );
     await tester.drag(find.byType(ListView).first, const Offset(0, 1400));
     await tester.pumpAndSettle();
-    // Scroll the button into view before tapping: the Cash on hand section
-    // above the carousel makes the list taller, so the button can sit below the
-    // fold and a bare tap would miss it. ensureVisible actually brings it on
-    // screen (scrollUntilVisible only guarantees it is built).
-    await tester.ensureVisible(find.text('Move money between accounts'));
+    // Transfer lives in the quick-actions row under the net worth card.
+    // ensureVisible brings it on screen on a tall list before the tap.
+    await tester.ensureVisible(find.text('Transfer'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Move money between accounts'));
+    await tester.tap(find.text('Transfer'));
     await tester.pumpAndSettle();
     expect(find.text('Move money'), findsOneWidget);
     await expectLater(
@@ -2710,7 +2743,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('+ Add an account'));
+    // Empty book: the way in is the empty state's own Add button.
+    await tester.tap(find.text('Add an account'));
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),

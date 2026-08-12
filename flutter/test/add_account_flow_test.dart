@@ -85,14 +85,14 @@ void main() {
     // Salapify's internal split before they could record anything, and a car
     // loan had no button at all.
     await _open(tester, await _store());
-    expect(find.text('+ Add an account'), findsOneWidget);
+    expect(find.text('Add an account'), findsOneWidget);
     expect(find.text('+ Account'), findsNothing);
     expect(find.text('+ Asset'), findsNothing);
   });
 
   testWidgets('the sheet offers both sides of net worth', (tester) async {
     await _open(tester, await _store());
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     expect(find.text('What are you adding?'), findsOneWidget);
     expect(find.text('WHAT YOU HAVE'), findsOneWidget);
     expect(find.text('WHAT YOU OWE'), findsOneWidget);
@@ -122,7 +122,7 @@ void main() {
     // safe-to-spend figure.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Property and things'));
     await _tap(tester, find.text('Vehicle'));
 
@@ -155,7 +155,7 @@ void main() {
     // 'payroll_account' separately, or its subtype vanishes permanently.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('Payroll account'));
     await _type(tester, 'e.g. GCash', 'Salary');
@@ -176,7 +176,7 @@ void main() {
     // recorded as an account would RAISE net worth by what you owe.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     // One subtype, so it should skip the second pane entirely rather than
     // showing a list of one.
     await _tap(tester, find.text('Credit cards'));
@@ -210,7 +210,7 @@ void main() {
   ) async {
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Loans'));
     await _tap(tester, find.text('Car or motorcycle loan'));
     await _type(tester, 'Name, like BPI card or a family loan', 'Car loan');
@@ -254,7 +254,7 @@ void main() {
   testWidgets('backing out of the sheet writes nothing', (tester) async {
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     // Back returns to the category list rather than closing, which is what a
     // two-pane sheet should do.
@@ -289,7 +289,7 @@ void main() {
     // explain and no engine would ever notice.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('Payroll account'));
     expect(find.text('Kind'), findsNothing);
@@ -317,7 +317,7 @@ void main() {
     // words, with two different answers and nothing saying which one counts.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('E-wallet'));
     expect(find.text('Bank or wallet (optional)'), findsOneWidget);
@@ -335,7 +335,7 @@ void main() {
     // stored value, and the row would have to guess which.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('E-wallet'));
     await _tap(tester, find.text('Choose'));
@@ -359,7 +359,7 @@ void main() {
     // picked an emoji keeps it, whatever bank they also chose.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('E-wallet'));
     await _tap(tester, find.text('Choose'));
@@ -406,7 +406,7 @@ void main() {
     // feature is visible where a wrong total is not.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('Savings account'));
     expect(find.text('Currency'), findsOneWidget);
@@ -442,7 +442,7 @@ void main() {
     // is what every row in every existing backup already means.
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('Savings account'));
     await _tap(tester, find.text('PHP  ₱'));
@@ -554,7 +554,7 @@ void main() {
   testWidgets('cash on hand is not asked which bank it is in', (tester) async {
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('Cash on hand'));
     expect(find.text('Bank or wallet (optional)'), findsNothing);
@@ -563,7 +563,7 @@ void main() {
   testWidgets('an e-wallet IS asked, and the answer is stored', (tester) async {
     final store = await _store();
     await _open(tester, store);
-    await _tap(tester, find.text('+ Add an account'));
+    await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Cash and e-wallets'));
     await _tap(tester, find.text('E-wallet'));
     expect(find.text('Bank or wallet (optional)'), findsOneWidget);

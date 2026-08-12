@@ -296,6 +296,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
                       ],
                     ),
                   ),
+                // The compact command row: the four things a person opens this
+                // screen to do, one tap from the number they just read. Shown
+                // only once there is anything on the book; a fresh install
+                // meets the empty state below, which carries its own Add
+                // button, so an all-disabled action row never appears.
+                if (anyRows) ...[
+                  const SizedBox(height: Gap.lg),
+                  _quickActions(
+                    context,
+                    canTransfer: groups['cash_equivalents']!.length > 1,
+                  ),
+                ],
                 if (showHero && cashItems.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Padding(
@@ -348,24 +360,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     onFirstFlip: () => store.setSetting('flipHintSeen', true),
                   ),
                 ],
-                const SizedBox(height: 16),
-                // ONE button. It used to be two, "+ Account" and "+ Asset",
-                // which asked people to know Salapify's internal split before
-                // they could record anything, and offered nothing at all for a
-                // car loan, which lives on a different tab.
-                _addButton(context, '+ Add an account', () => _add(context)),
-                // Only with somewhere to move money from AND to. One account
-                // cannot transfer to itself, so offering the button then
-                // would be offering a dead end.
-                if (store.canWrite &&
-                    groups['cash_equivalents']!.length > 1) ...[
-                  const SizedBox(height: 10),
-                  _addButton(
-                    context,
-                    'Move money between accounts',
-                    () => _openTransfer(context),
-                  ),
-                ],
+                // Add and Move money now live in the quick-actions row above,
+                // one tap from the net worth number rather than a scroll past
+                // every account. The single Add path (ask what it is, then open
+                // the form that can record it) is unchanged; only its home moved.
                 const SizedBox(height: 20),
                 // An EMPTY section is not shown. Six headings over six "nothing
                 // here yet" lines is a screen that looks like a chore list, and
@@ -415,14 +413,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     ),
                   ],
                 if (!anyRows)
-                  // The shared empty-state shape. No button here, because the
-                  // Add an account button already sits right above.
+                  // The shared empty-state shape. It carries the Add button
+                  // itself now, because the quick-actions row is hidden until
+                  // there is something on the book, so this is the only way
+                  // forward on a fresh install.
                   EmptyState(
                     icon: 'wallet',
                     title: 'Nothing recorded yet',
                     body:
-                        'Tap Add an account above and Salapify will ask what '
-                        'it is.',
+                        'Add the places where you keep your money and Salapify '
+                        'will ask what each one is.',
+                    actionLabel: 'Add an account',
+                    onAction: () => _add(context),
                   ),
               ],
             );
@@ -482,48 +484,148 @@ class _AccountsScreenState extends State<AccountsScreen> {
     await store.setManualRate(code, entered > 0 ? entered : null);
   }
 
-  Widget _summary(Map<String, dynamic> parts) => Card(
-    color: Barako.surfaceRaised,
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('NET WORTH', style: Barako.kickerStyle),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formatMoneyText(parts['netWorth'] as double),
-              maxLines: 1,
-              style: AppText.amountLg.w7,
+  Widget _summary(Map<String, dynamic> parts) {
+    final assets = parts['assets'] as double;
+    final liabilities = parts['liabilities'] as double;
+    // The ratio splits owned against owed. Only POSITIVE money counts as owned
+    // or owed: an overdrawn account can drive the assets total negative, and
+    // counting that as "owned" would announce a positive owned share over
+    // money the reader does not have. A negative assets book reads 0% owned,
+    // which is the honest answer.
+    final ownedValue = assets > 0 ? assets : 0.0;
+    final owedValue = liabilities > 0 ? liabilities : 0.0;
+    final gross = ownedValue + owedValue;
+    // Ownership share, rounded. Null when there is nothing on the book yet, so
+    // the bar is hidden rather than dividing by zero on a fresh install. A side
+    // that holds real money never rounds away to 0%: that would let the bar
+    // deny a peso figure shown in the mini-stats right above it.
+    int? ownedPct;
+    if (gross > 0) {
+      var p = (ownedValue / gross * 100).round();
+      if (ownedValue > 0 && p == 0) p = 1;
+      if (owedValue > 0 && p == 100) p = 99;
+      ownedPct = p;
+    }
+    return Card(
+      color: Barako.surfaceRaised,
+      child: Padding(
+        padding: Insets.hero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('NET WORTH', style: Barako.kickerStyle),
+            const SizedBox(height: Gap.xs),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                formatMoneyText(parts['netWorth'] as double),
+                maxLines: 1,
+                style: AppText.amountLg.w8,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Flexible(
-                child: _miniStat(
-                  'Total assets',
-                  parts['assets'] as double,
-                  Barako.primaryText,
+            const SizedBox(height: Gap.lg),
+            Row(
+              children: [
+                Flexible(
+                  child: _miniStat('Total assets', assets, Barako.primaryText),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: _miniStat(
-                  'Total owed',
-                  parts['liabilities'] as double,
-                  Barako.warningStrong,
+                const SizedBox(width: Gap.lg),
+                Flexible(
+                  child: _miniStat(
+                    'Total owed',
+                    liabilities,
+                    Barako.warningStrong,
+                  ),
                 ),
-              ),
+              ],
+            ),
+            if (ownedPct != null) ...[
+              const SizedBox(height: Gap.lg),
+              _ownershipBar(ownedPct),
             ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  /// The owned-versus-owed split of the whole position, as one glanceable bar.
+  ///
+  /// Two segments in the same two colours the mini-stats already use (assets in
+  /// the brand accent, owed in the warning ink), so the bar and the figures
+  /// above it read as one thought. The percentages are spelled out in words
+  /// beside the bar, so the meaning never rides on colour alone: a colourblind
+  /// reader gets "68% owned" and "32% owed", not just two shapes.
+  Widget _ownershipBar(int ownedPct) {
+    final owedPct = 100 - ownedPct;
+    final segments = <Widget>[
+      if (ownedPct > 0)
+        Expanded(
+          flex: ownedPct,
+          child: ColoredBox(color: Barako.primary),
+        ),
+      if (ownedPct > 0 && owedPct > 0) const SizedBox(width: 3),
+      if (owedPct > 0)
+        Expanded(
+          flex: owedPct,
+          child: ColoredBox(color: Barako.warningStrong),
+        ),
+    ];
+    return Semantics(
+      label: '$ownedPct percent owned, $owedPct percent owed.',
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.pill),
+              child: SizedBox(
+                height: 10,
+                // stretch: a childless ColoredBox has no intrinsic height, so
+                // without this the segments collapse to a zero-height (and so
+                // invisible) bar. Caught by looking at the render, not a test.
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: segments,
+                ),
+              ),
+            ),
+            const SizedBox(height: Gap.sm),
+            // Scale down, never overflow: at a large system font the two labels
+            // together can exceed the card, so each shrinks within its half
+            // rather than pushing off the edge. The peso figures above stay full
+            // size; these are the secondary, reinforcing read.
+            Row(
+              children: [
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '$ownedPct% owned',
+                      style: AppText.caption.tint(Barako.primaryText).w6,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Gap.md),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '$owedPct% owed',
+                      style: AppText.caption.tint(Barako.warningStrong).w6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _miniStat(String label, double value, Color color) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,35 +647,225 @@ class _AccountsScreenState extends State<AccountsScreen> {
     ],
   );
 
-  Widget _addButton(BuildContext context, String label, VoidCallback onTap) =>
-      PressableScale(
+  /// The four things a person opens Accounts to do, as one compact row under
+  /// the net worth number. Icons carry the meaning, one short word confirms it.
+  /// Every action routes to a flow that already exists: nothing here fakes a
+  /// capability the app does not have.
+  Widget _quickActions(BuildContext context, {required bool canTransfer}) {
+    final items = <_QuickAction>[
+      _QuickAction(
+        'swap',
+        'Transfer',
+        'Move money between accounts',
+        () => _onTransfer(context, canTransfer),
+      ),
+      _QuickAction('add', 'Add', 'Add an account', () => _add(context)),
+      _QuickAction(
+        'receipt',
+        'Pay',
+        'Record a payment',
+        () => _onRecordPayment(context),
+      ),
+      _QuickAction(
+        'more',
+        'More',
+        'More account actions',
+        () => _openMoreActions(context, canTransfer),
+      ),
+    ];
+    // IntrinsicHeight so all four tiles match the tallest, which keeps the row
+    // even when one label wraps at a large system font.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: Gap.md),
+            Expanded(child: _quickActionButton(items[i])),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionButton(_QuickAction a) => PressableScale(
+    child: Semantics(
+      button: true,
+      label: a.semantic,
+      child: ExcludeSemantics(
         child: Material(
           color: Barako.card,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.field),
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.field),
+            onTap: a.onTap,
             child: Container(
-              // Min height, not fixed: at 2.0x text on a narrow phone the
-              // label wraps, and a fixed 48 clipped the second line.
-              constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              alignment: Alignment.center,
+              constraints: const BoxConstraints(minHeight: 78),
+              padding: const EdgeInsets.symmetric(
+                vertical: Gap.md,
+                horizontal: Gap.xs,
+              ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Radii.field),
                 border: Border.all(color: Barako.border),
               ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: Barako.primaryText,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      salapifyIcon(a.icon),
+                      size: IconSizes.inline,
+                      color: Barako.primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: Gap.sm),
+                  Text(
+                    a.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.small.w6.tint(Barako.text),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+      ),
+    ),
+  );
+
+  /// Transfer, or a calm reason it cannot happen yet. Moving money needs two
+  /// accounts to move between, so with one (or none) this points the way
+  /// forward instead of opening a sheet with nothing to pick.
+  void _onTransfer(BuildContext context, bool canTransfer) {
+    // Writes off (data could not be read): do not open a sheet that could not
+    // save the move. The old design hid the button entirely here; the quick
+    // action stays visible but says why instead of leading to a dead end.
+    if (!store.canWrite) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Saving is off because your data could not be read. Import a '
+              'backup to recover first.',
+            ),
+          ),
+        );
+      return;
+    }
+    if (!canTransfer) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Add a second account, then you can move money between them.',
+            ),
+          ),
+        );
+      return;
+    }
+    _openTransfer(context);
+  }
+
+  /// Payments live on the Utang "I owe" tab, which owns interest, due dates and
+  /// payment history. When this screen was opened with that jump wired, go
+  /// there; otherwise say where payments are recorded rather than opening a
+  /// form here that cannot do the job.
+  void _onRecordPayment(BuildContext context) {
+    final open = widget.onOpenPayables;
+    if (open != null) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      open();
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Record credit card and loan payments under the "I owe" tab.',
+          ),
+        ),
       );
+  }
+
+  /// The overflow menu: the same real actions, spelled out with a line of
+  /// context each. It stays honest by listing only flows that exist; an
+  /// "import statement" or "categories" row waits until there is one to open.
+  void _openMoreActions(BuildContext context, bool canTransfer) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Barako.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Gap.gutter,
+                Gap.gutter,
+                Gap.gutter,
+                Gap.sm,
+              ),
+              child: Text('Account actions', style: AppText.subtitle),
+            ),
+            _moreTile(
+              ctx,
+              'add',
+              'Add account',
+              'Link a bank, e-wallet, or cash',
+              () => _add(context),
+            ),
+            _moreTile(
+              ctx,
+              'swap',
+              'Move money',
+              'Transfer between accounts',
+              () => _onTransfer(context, canTransfer),
+            ),
+            _moreTile(
+              ctx,
+              'receipt',
+              'Record payment',
+              'Pay a credit card or loan',
+              () => _onRecordPayment(context),
+            ),
+            const SizedBox(height: Gap.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _moreTile(
+    BuildContext sheetContext,
+    String icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) => ListTile(
+    leading: SalapifyGlyph(icon, size: IconSizes.inline),
+    title: Text(title, style: AppText.body.w6),
+    subtitle: Text(subtitle, style: AppText.caption),
+    onTap: () {
+      Navigator.of(sheetContext).pop();
+      onTap();
+    },
+  );
 
   Widget _section(
     String title,
@@ -1096,6 +1388,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
       ),
     );
   }
+}
+
+/// One entry in the quick-actions row: the glyph, the short visible word, the
+/// full sentence a screen reader announces, and the tap. A tiny view model so
+/// the row and its buttons stay declarative.
+class _QuickAction {
+  final String icon;
+  final String label;
+  final String semantic;
+  final VoidCallback onTap;
+  const _QuickAction(this.icon, this.label, this.semantic, this.onTap);
 }
 
 /// The add/edit sheet for an account or an asset.
