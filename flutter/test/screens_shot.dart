@@ -1710,6 +1710,42 @@ void main() {
     );
   });
 
+  testWidgets('Reports category donut and dopamine legend, dark and light', (
+    tester,
+  ) async {
+    // The f4.07 "Where it went" donut and its colour-matched category rows.
+    // Rendered both brightnesses because this is where the dopamine palette
+    // first shows, and the founder reviews the colour by eye.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.dark, Brightness.light]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: ReportsScreen(store: store, onSwitchTab: (_) {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'shots/reports-categories-${b == Brightness.dark ? 'dark' : 'light'}.png',
+        ),
+      );
+    }
+  });
+
   testWidgets('appearance at 1.4x system font on a narrow phone', (
     tester,
   ) async {

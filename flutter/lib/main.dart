@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.06 · Coffee palette: espresso brand, cream light, near-black dark, one look.';
+    'f4.07 · Spending by category is now a colourful donut with the dopamine palette.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -617,6 +617,25 @@ class Barako {
   static Color get positiveBorder => current.positiveBorder;
   static Color get overlay => current.overlay;
 
+  /// Categorical data colours for charts and category breakdowns: donut slices,
+  /// legend dots, per-category bars. THEME-INVARIANT by rule, the same reasoning
+  /// as the win gold and Pan's orange. A category should read as the same colour
+  /// in every theme, so a screenshot of Food spending is Food spending whatever
+  /// palette is chosen. These are the founder's "dopamine" palette. They are
+  /// DATA colours, used only as fills and dots beside a printed label and
+  /// amount, never as body text, so meaning never rides on colour alone. On a
+  /// light card the brighter hues carry a hairline stroke for definition; on the
+  /// near-black dark card they are already crisp. Distinctness and dark-surface
+  /// visibility are enforced by data_palette_test.dart, not by this comment.
+  static const List<Color> dataSeries = [
+    Color(0xFFFF7A45), // dopamine orange
+    Color(0xFF14B8A6), // dopamine teal
+    Color(0xFF60A5FA), // soft blue
+    Color(0xFF22C55E), // dopamine green
+    Color(0xFFA78BFA), // soft violet
+    Color(0xFFF472B6), // soft rose
+  ];
+
   /// The face for THE ONE NUMBER on a screen, at 30 or larger.
   ///
   /// It is Plus Jakarta Sans, the same family as everything else, and the
