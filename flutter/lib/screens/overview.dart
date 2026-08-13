@@ -116,6 +116,9 @@ class OverviewScreen extends StatelessWidget {
     final now = clock();
     final parts = netWorthParts(data, fx: store.fxTable);
     final istmt = incomeStatement(data, now);
+    // Cash flow (net change in cash this month) powers the Quick Overview's
+    // fourth tile. Read-only, from the golden-locked engine; never summed here.
+    final cash = cashFlowStatement(data, now);
     final accounts = (data['accounts'] as List).cast<Map<String, dynamic>>();
     // The Home tail PREVIEWS accounts, the top three by balance, and the card
     // opens the full Accounts screen. Comparison only, never a widget-side
@@ -337,6 +340,21 @@ class OverviewScreen extends StatelessWidget {
                   _checkInCard(context, checkIn, now),
                   const SizedBox(height: Gap.lg),
                 ],
+                // DASHBOARD-FIRST (founder direction, 2026-08-13): a started
+                // user opens Home to the Net Worth hero and a Quick Overview of
+                // the month, matching the approved mockup. This sits ABOVE Your
+                // Number now, but BELOW the urgent check-in above it, so a money
+                // crunch still leads: the safety order the old layout protected
+                // is kept, only the healthy-state order is inverted. Net worth
+                // moved up from the old tail footer, and the month's income and
+                // spending, once the THIS MONTH tail card, are the first two
+                // Quick Overview tiles.
+                if (hasStarted) ...[
+                  _netWorthHero(context, parts),
+                  const SizedBox(height: Gap.lg),
+                  _quickOverview(context, istmt, cash),
+                  const SizedBox(height: Gap.lg),
+                ],
                 if (cycle.show) ...[
                   _yourNumberCard(
                     context,
@@ -438,69 +456,9 @@ class OverviewScreen extends StatelessWidget {
                   // headlines competing with the money cards above (the
                   // audit's Phase 3).
                   ..._nextLessonCard(context, now),
-                  // Tappable: THIS MONTH is made of Activity's rows, so the
-                  // card leads there. It was a dead surface between two
-                  // tappable siblings, the last cards on Home that informed
-                  // without leading anywhere.
-                  Semantics(
-                    button: true,
-                    label: 'This month, open Activity',
-                    child: _tailCard(
-                      onTap: onSwitchTab == null
-                          ? null
-                          : () => onSwitchTab!(Destination.history),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Kicker('THIS MONTH'),
-                              const Spacer(),
-                              if (onSwitchTab != null)
-                                ExcludeSemantics(
-                                  child: Icon(
-                                    salapifyIcon('forward'),
-                                    size: 18,
-                                    color: Barako.muted,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          // The ANSWER first, its two parts underneath. This was
-                          // three equal rows and a divider, which made the reader
-                          // do the subtraction with their eyes before learning
-                          // whether the month was up or down. The net is the only
-                          // figure most people want, so it gets the headline.
-                          Builder(
-                            builder: (context) {
-                              final net = istmt['netIncome'] as double;
-                              // The sign is explicit on a gain. Without it a
-                              // good month and a bad month look identical
-                              // until you notice the minus.
-                              return AmountText(
-                                net,
-                                role: AmountRole.lg,
-                                signed: true,
-                                tint: net >= 0 ? Barako.income : Barako.warning,
-                              );
-                            },
-                          ),
-                          const SizedBox(height: Gap.md),
-                          StatPair(
-                            leftLabel: 'Money in',
-                            leftValue: formatMoney(istmt['income'] as double),
-                            leftColor: Barako.income,
-                            rightLabel: 'Money out',
-                            rightValue: formatMoney(
-                              istmt['expenses'] as double,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: Gap.sm),
+                  // (THIS MONTH's net, income and spending moved UP into the
+                  // dashboard-first Quick Overview at the top of Home, and net
+                  // worth into the hero above it, on the 2026-08-13 direction.)
                   if (accounts.isNotEmpty) ...[
                     // Tappable for the same reason: the rows ARE accounts, so
                     // the card opens the Accounts screen.
@@ -621,10 +579,6 @@ class OverviewScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: Gap.sm),
                   ],
-                  // The month, then what it is made of, then the whole picture.
-                  // Net worth is the least urgent figure on Home and the slowest
-                  // to change, so it reads as a footer rather than a headline.
-                  _netWorthFooter(parts),
                 ],
               ],
             ),
@@ -1393,62 +1347,183 @@ class OverviewScreen extends StatelessWidget {
     );
   }
 
-  /// The tail's closing row. Net worth is the least urgent figure on Home and
-  /// the slowest to change, so it wears the same quiet tinted surface as its
-  /// tail neighbours rather than a bordered card, let alone the raised hero
-  /// it once was (that surface belongs to Your Number now). Numbers come
-  /// straight from the golden-locked netWorthParts, this only restyles them.
-  Widget _netWorthFooter(Map<String, dynamic> parts) {
+  /// The Net Worth HERO: Home's dashboard-first headline (founder direction,
+  /// 2026-08-13). Numbers come straight from the golden-locked netWorthParts,
+  /// this only restyles them. It moved from the old quiet tail footer up to the
+  /// top of Home and back into a raised card, the treatment the mockup shows.
+  ///
+  /// The "from last month" trend the mockup draws needs a stored monthly
+  /// net-worth snapshot the app does not keep yet; that is a data change flagged
+  /// to the founder, so this card shows the position (assets and owed) honestly
+  /// rather than a fabricated change figure until the snapshot lands.
+  Widget _netWorthHero(BuildContext context, Map<String, dynamic> parts) {
     final nw = parts['netWorth'] as double;
-    return _tailCard(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Kicker('NET WORTH'),
+            const SizedBox(height: 8),
+            // Colour: a negative net worth is honest, not an emergency, so it
+            // stays in plain ink, not alarm red. Red is reserved for urgent,
+            // time-bound things like an overdue utang.
+            AmountText(
+              nw,
+              role: AmountRole.hero,
+              tint: nw < 0 ? Barako.text : Barako.primary,
+            ),
+            const SizedBox(height: Gap.md),
+            StatPair(
+              leftLabel: 'Total assets',
+              leftValue: formatMoney(parts['assets'] as double),
+              leftColor: Barako.primary,
+              rightLabel: 'Total owed',
+              rightValue: formatMoney(parts['liabilities'] as double),
+              // Warning ONLY when something is actually owed. Owing nothing is
+              // good news; rendering a zero in the alarm colour makes the best
+              // state look like a problem.
+              rightColor: (parts['liabilities'] as double) > 0
+                  ? Barako.warning
+                  : Barako.text,
+            ),
+            if (nw < 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
+                style: AppText.small.copyWith(height: 1.4),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The Quick Overview: the month at a glance in four tiles, the mockup's
+  /// dashboard row. Income and spending were the old THIS MONTH card; savings
+  /// (net income) and cash flow (net change in cash) are what the mockup adds.
+  /// Every figure is a golden-locked engine read, never summed here. Savings
+  /// and cash flow are DIFFERENT numbers on purpose: savings is income minus
+  /// spending, cash flow is what actually moved through the accounts, so a
+  /// transfer or a debt payment can part them.
+  Widget _quickOverview(
+    BuildContext context,
+    Map<String, dynamic> istmt,
+    Map<String, dynamic> cash,
+  ) {
+    final income = istmt['income'] as double;
+    final expenses = istmt['expenses'] as double;
+    final savings = istmt['netIncome'] as double;
+    final flow = cash['netChange'] as double;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Kicker('QUICK OVERVIEW'),
+            const Spacer(),
+            Text(
+              'This month',
+              style: AppText.caption.tint(Barako.textSecondary),
+            ),
+          ],
+        ),
+        const SizedBox(height: Gap.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _quickTile(
+                'incoming',
+                'Income',
+                income,
+                Barako.income,
+                valueTint: income > 0 ? Barako.income : Barako.text,
+              ),
+            ),
+            const SizedBox(width: Gap.sm),
+            Expanded(
+              child: _quickTile(
+                'outgoing',
+                'Expenses',
+                expenses,
+                Barako.primary,
+                valueTint: Barako.text,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Gap.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _quickTile(
+                'savings',
+                'Savings',
+                savings,
+                Barako.income,
+                signed: true,
+                valueTint: savings >= 0 ? Barako.income : Barako.warning,
+              ),
+            ),
+            const SizedBox(width: Gap.sm),
+            Expanded(
+              child: _quickTile(
+                'flow',
+                'Cash flow',
+                flow,
+                Barako.primary,
+                signed: true,
+                valueTint: flow >= 0 ? Barako.income : Barako.warning,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// One Quick Overview tile: a soft colour-chipped icon, a label, and the
+  /// figure. The chip is the colour at a wash so the glyph stays readable in
+  /// both themes, the same pattern the data palette guards for contrast.
+  Widget _quickTile(
+    String icon,
+    String label,
+    double value,
+    Color chip, {
+    bool signed = false,
+    required Color valueTint,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Kicker('NET WORTH'),
-          const SizedBox(height: 6),
-          // Colour: a negative net worth is honest, not an emergency. It
-          // stays in plain ink, not alarm red, so a user who owes more
-          // than they hold is not shamed by the biggest number on the
-          // screen. Red is reserved for urgent, time-bound things like
-          // an overdue utang.
-          //
-          // The ladder's tabular digits now apply here too. The old literal
-          // cleared them on the grounds that a lone number has no column to
-          // line up with, which was true and also not a reason to keep a
-          // second face: tnum on a lone figure changes nothing visible, and
-          // one shared style is the whole point of the ladder.
-          AmountText(
-            nw,
-            role: AmountRole.lg,
-            tint: nw < 0 ? Barako.text : Barako.primary,
-          ),
-          const SizedBox(height: Gap.md),
-          // Net worth is one number made of two, so both halves get a name
-          // and a column. This was a single 13pt muted caption reading
-          // "Assets X  ·  Owed Y": present, and unreadable, because a middle
-          // dot is not a column and grey is not a label.
-          StatPair(
-            leftLabel: 'Total assets',
-            leftValue: formatMoney(parts['assets'] as double),
-            leftColor: Barako.primary,
-            rightLabel: 'Total owed',
-            rightValue: formatMoney(parts['liabilities'] as double),
-            // Warning ONLY when something is actually owed. Owing nothing is
-            // good news, and rendering "₱0" in the alarm colour makes the
-            // best possible state look like a problem. Same rule the
-            // headline above already follows: colour is reserved for a fact
-            // that warrants attention, not for a category of number.
-            rightColor: (parts['liabilities'] as double) > 0
-                ? Barako.warning
-                : Barako.text,
-          ),
-          if (nw < 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              'You owe more than you hold right now. That is common early on, and the steps in Insights are how you turn it around.',
-              style: AppText.small.copyWith(height: 1.4),
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: chip.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
+            child: Icon(salapifyIcon(icon), size: 19, color: chip),
+          ),
+          const SizedBox(height: 10),
+          Text(label, style: AppText.caption.tint(Barako.textSecondary)),
+          const SizedBox(height: 3),
+          AmountText(
+            value,
+            role: AmountRole.card,
+            signed: signed,
+            tint: valueTint,
+          ),
         ],
       ),
     );

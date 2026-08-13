@@ -10,6 +10,12 @@
 // and none of them sits inside a Card (the de-bordered half). The money
 // cards above the tail keep their Cards, asserted too, so this can never
 // "pass harder" by the whole screen losing its borders.
+//
+// UPDATED (founder direction, 2026-08-13): Home went dashboard-first. NET WORTH
+// GRADUATED out of this quiet tail and became the hero card at the top, and
+// THIS MONTH's figures moved into the Quick Overview above. So the tail this
+// test pins is now just ACCOUNTS (still de-bordered), and net worth living in a
+// Card is the new intent rather than the regression it once was.
 
 import 'dart:convert';
 
@@ -57,23 +63,34 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    // The did-anything-happen half: every tail row is actually on screen.
-    // Without this, the de-bordered assertions below would pass hardest if
-    // the tail were simply deleted.
-    for (final kicker in ['THIS MONTH', 'ACCOUNTS', 'NET WORTH']) {
-      expect(find.text(kicker), findsOneWidget, reason: '$kicker missing');
-      expect(
-        find.ancestor(of: find.text(kicker), matching: find.byType(Card)),
-        findsNothing,
-        reason:
-            '$kicker is wrapped in a Card again. The tail is a borderless '
-            'tinted band, Phase 3 of the design audit.',
-      );
-    }
+    // The did-anything-happen half: the surviving tail row is actually on
+    // screen. Without this, the de-bordered assertion below would pass hardest
+    // if the tail were simply deleted. ACCOUNTS is the tail now: THIS MONTH's
+    // figures moved up into the dashboard-first Quick Overview, and NET WORTH
+    // moved up into the hero, on the 2026-08-13 founder direction.
+    expect(find.text('ACCOUNTS'), findsOneWidget, reason: 'ACCOUNTS missing');
+    expect(
+      find.ancestor(of: find.text('ACCOUNTS'), matching: find.byType(Card)),
+      findsNothing,
+      reason:
+          'ACCOUNTS is wrapped in a Card again. The tail is a borderless '
+          'tinted band, Phase 3 of the design audit.',
+    );
 
-    // The counter-check: the screen as a whole still uses Cards above the
-    // tail (the chain, the treat card, and friends), so a change that
-    // stripped every border from Home cannot read as "the tail is fine".
+    // NET WORTH, by contrast, is now the dashboard-first HERO: it DOES wear a
+    // raised Card and it OPENS the screen rather than closing it. This is the
+    // deliberate reversal of the old "net worth is a quiet footer" rule, chosen
+    // by the founder after the incremental recolor read as too timid. The guard
+    // flips with it: net worth in a Card is now correct, not a regression.
+    expect(find.text('NET WORTH'), findsOneWidget, reason: 'NET WORTH missing');
+    expect(
+      find.ancestor(of: find.text('NET WORTH'), matching: find.byType(Card)),
+      findsOneWidget,
+      reason: 'Net worth is the hero card now; it belongs inside a Card.',
+    );
+
+    // The counter-check: the screen as a whole still uses Cards, so a change
+    // that stripped every border from Home cannot read as "the tail is fine".
     expect(find.byType(Card), findsWidgets);
   });
 }

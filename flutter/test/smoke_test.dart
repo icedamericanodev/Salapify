@@ -105,6 +105,13 @@ void main() {
         'settings': {'monthlyLimit': 5000},
       }),
     });
+    // Tall view so the lazily built Home ListView reaches the check-in card,
+    // which now sits below the dashboard-first Net Worth hero and Quick
+    // Overview. Non-urgent decisions render below the dashboard by design; a
+    // money crunch still leads (home_order_test's urgent group).
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
@@ -145,6 +152,13 @@ void main() {
         'settings': <String, dynamic>{},
       }),
     });
+    // Tall view so the lazily built Home ListView reaches the check-in card,
+    // which now sits below the dashboard-first Net Worth hero and Quick
+    // Overview. Non-urgent decisions render below the dashboard by design; a
+    // money crunch still leads (home_order_test's urgent group).
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();

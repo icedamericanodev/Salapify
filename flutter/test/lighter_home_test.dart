@@ -66,6 +66,13 @@ Map<String, Object> _storage({
 }
 
 Future<void> _pumpHome(WidgetTester tester, Map<String, Object> storage) async {
+  // Tall view so the lazily built Home ListView reaches the number and the
+  // tail, which now sit below the dashboard-first Net Worth hero and Quick
+  // Overview (same reason home_order_test pumps tall). Harmless to the
+  // scroll-based tests below: their targets are simply already built.
+  tester.view.physicalSize = const Size(1200, 4600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues(storage);
   final store = SalapifyStore();
   await tester.pumpWidget(SalapifyApp(store: store));
