@@ -5,6 +5,29 @@ Gen Z, millennials, and working corporate adults. React Native with Expo
 SDK 54 lives in mobile/. There is no backend; all data stays on the device
 in AsyncStorage under the key salapify_data_v2.
 
+## Canonical masterfile (founder direction, 2026-08-12)
+
+The governing product and engineering masterfile is
+docs/Salapify_Master_Constitution.md (Master Constitution v2), adopted by
+founder direction on 2026-08-12. It supersedes previous Salapify master
+plans, implementation frameworks, package plans, UI and UX plans, connector
+plans, and architectural guidance, and it is the top authority below direct
+founder direction. These working rules stay fully in force as the concrete
+enforcement of that constitution (stamp discipline, golden locks,
+delivery-log truth, the guard hooks, the merge rules, no em or en dashes,
+and the rest); where a genuine conflict exists, the constitution wins. The
+constitution runs an autonomous-by-default Tier 1 and Tier 2 model: routine
+engineering proceeds without asking, and the founder-gated categories
+(money methodology, data or migration, security or privacy, material
+product or UX forks, cloud, external cost, irreversible changes, merge or
+release) still stop for the founder. That model layers on top of, and does
+not loosen, the specific STOP conditions already written below.
+
+The constitution file is a verbatim reproduction of the founder's document,
+so its own punctuation is preserved exactly as delivered. Do NOT normalize
+it. The no em or en dash rule in this file governs Salapify authored text
+(code, commits, PR text, UI copy, ads), not that canonical reproduction.
+
 ## Flutter rebuild (founder decision, 2026-07-13)
 
 The founder chose to rebuild Salapify from scratch in Flutter. The rebuild

@@ -19,6 +19,7 @@ import '../money/period.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/chart_frame.dart';
+import '../widgets/salapify_chart.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/segmented.dart';
@@ -315,7 +316,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Net income',
           net,
           total: true,
-          color: net >= 0 ? Barako.primary : Barako.warningStrong,
+          color: net >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (interest > 0)
           Padding(
@@ -464,9 +465,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   : 'Your biggest spending this month',
               style: AppText.caption,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+            Center(
+              child: SalapifyDonutChart(
+                size: 150,
+                slices: [
+                  for (var i = 0; i < rows.length; i++)
+                    SalapifyDonutSlice(
+                      rows[i]['label'] as String,
+                      amountOf(rows[i]['now']),
+                      Barako.dataSeries[i % Barako.dataSeries.length],
+                    ),
+                ],
+                semanticLabel:
+                    'Donut chart of spending by category. '
+                    '${rows.length} ${rows.length == 1 ? 'category' : 'categories'} '
+                    'shown, largest is ${rows.first['label']}. '
+                    'The amounts are listed below.',
+              ),
+            ),
+            const SizedBox(height: 18),
             for (var i = 0; i < rows.length; i++) ...[
-              _moverRow(context, rows[i], scale, i == 0, canFlag, history),
+              _moverRow(context, rows[i], scale, i, canFlag, history),
               if (i < rows.length - 1) const SizedBox(height: 12),
             ],
             const SizedBox(height: 12),
@@ -502,10 +522,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     BuildContext context,
     Map<String, dynamic> r,
     double scale,
-    bool biggest,
+    int rank,
     bool canFlag,
     CategoryHistory history,
   ) {
+    final biggest = rank == 0;
+    final catColor = Barako.dataSeries[rank % Barako.dataSeries.length];
     final label = r['label'] as String;
     final spent = amountOf(r['now']);
     // Flag against the FULL-month average, not a paced figure, so a category
@@ -520,9 +542,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         spent > avg * 1.3 &&
         (spent - avg) >= 500;
     final fill = (spent / scale).clamp(0.0, 1.0);
-    final barColor = over
-        ? Barako.warningStrong
-        : (biggest ? Barako.primary : Barako.primary.withValues(alpha: 0.32));
+    final barColor = over ? Barako.warningStrong : catColor;
 
     return InkWell(
       onTap: () => _openCategory(context, label),
@@ -534,6 +554,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             Row(
               children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: barColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Barako.border, width: 0.5),
+                  ),
+                ),
                 Expanded(
                   child: Text(
                     label,
@@ -706,7 +736,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           name,
           bnet,
           total: true,
-          color: bnet >= 0 ? Barako.primary : Barako.warningStrong,
+          color: bnet >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (bin > 0) _line('Cash in', bin, sub: true),
         if (bout > 0) _line('Cash out', bout, sub: true),
@@ -728,7 +758,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Net change in cash',
           netChange,
           total: true,
-          color: netChange >= 0 ? Barako.primary : Barako.warningStrong,
+          color: netChange >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (!reconciles)
           Padding(

@@ -92,15 +92,15 @@ class BarakoTheme {
 
 const _barakoDark = BarakoPalette(
   brightness: Brightness.dark,
-  background: Color(0xFF1A130E),
-  card: Color(0xFF251A13),
-  surfaceRaised: Color(0xFF2E211A),
-  border: Color(0xFF3A2A20),
-  primary: Color(0xFFFF8A3D),
-  primaryText: Color(0xFFFF8A3D),
+  background: Color(0xFF0F0F0F),
+  card: Color(0xFF1C1A17),
+  surfaceRaised: Color(0xFF2A231D),
+  border: Color(0xFF3D3126),
+  primary: Color(0xFFFF7A45),
+  primaryText: Color(0xFFFF7A45),
   caramel: Color(0xFFE9BC8E),
-  text: Color(0xFFFBF3E9),
-  textSecondary: Color(0xFFE0CEBB),
+  text: Color(0xFFF5EDE1),
+  textSecondary: Color(0xFFD9C8B6),
   muted: Color(0xFFA99182),
   faint: Color(0xFF97806F),
   warning: Color(0xFFFF5D73),
@@ -111,31 +111,31 @@ const _barakoDark = BarakoPalette(
   // It matters because warningStrong carries the 13pt section subtotals on
   // Accounts, which are small enough that the 4.5 bar genuinely applies.
   warningStrong: Color(0xFFF73A51),
-  onPrimary: Color(0xFF2A1305),
+  onPrimary: Color(0xFF241708),
   celebrate: Color(0xFFFFC24D),
-  positiveSurface: Color(0xFF2E2114),
-  positiveBorder: Color(0xFF55402C),
+  positiveSurface: Color(0xFF231F18),
+  positiveBorder: Color(0xFF3D3126),
   overlay: Color.fromRGBO(10, 7, 5, 0.64),
 );
 const _barakoLight = BarakoPalette(
   brightness: Brightness.light,
-  background: Color(0xFFF7F1E7),
-  card: Color(0xFFFFFDF7),
+  background: Color(0xFFFFF8F0),
+  card: Color(0xFFFFFFFF),
   surfaceRaised: Color(0xFFFFFFFF),
-  border: Color(0xFFE7DCC9),
-  primary: Color(0xFFAE5019),
-  primaryText: Color(0xFFAE5019),
+  border: Color(0xFFEDE1D0),
+  primary: Color(0xFF6F4E37),
+  primaryText: Color(0xFF6F4E37),
   caramel: Color(0xFF8A5A2E),
-  text: Color(0xFF241812),
-  textSecondary: Color(0xFF4A382E),
+  text: Color(0xFF241C15),
+  textSecondary: Color(0xFF7A6A5C),
   muted: Color(0xFF6E5A4C),
   faint: Color(0xFF7D695B),
   warning: Color(0xFFB01E38),
   warningStrong: Color(0xFF8C1329),
   onPrimary: Color(0xFFFFFFFF),
   celebrate: Color(0xFF8A5A00),
-  positiveSurface: Color(0xFFF3E7D5),
-  positiveBorder: Color(0xFFE2CBAF),
+  positiveSurface: Color(0xFFF4E9D8),
+  positiveBorder: Color(0xFFE3D3BC),
   overlay: Color.fromRGBO(28, 16, 8, 0.42),
 );
 const _tidalDark = BarakoPalette(
@@ -616,6 +616,36 @@ class Barako {
   static Color get positiveSurface => current.positiveSurface;
   static Color get positiveBorder => current.positiveBorder;
   static Color get overlay => current.overlay;
+
+  /// Categorical data colours for charts and category breakdowns: donut slices,
+  /// legend dots, per-category bars. THEME-INVARIANT by rule, the same reasoning
+  /// as the win gold and Pan's orange. A category should read as the same colour
+  /// in every theme, so a screenshot of Food spending is Food spending whatever
+  /// palette is chosen. These are the founder's "dopamine" palette. They are
+  /// DATA colours, used only as fills and dots beside a printed label and
+  /// amount, never as body text, so meaning never rides on colour alone. On a
+  /// light card the brighter hues carry a hairline stroke for definition; on the
+  /// near-black dark card they are already crisp. Distinctness and dark-surface
+  /// visibility are enforced by data_palette_test.dart, not by this comment.
+  static const List<Color> dataSeries = [
+    Color(0xFFFF7A45), // dopamine orange
+    Color(0xFF14B8A6), // dopamine teal
+    Color(0xFF60A5FA), // soft blue
+    Color(0xFF22C55E), // dopamine green
+    Color(0xFFA78BFA), // soft violet
+    Color(0xFFF472B6), // soft rose
+  ];
+
+  /// Positive money: income, a gain, a surplus, where the founder's spec wants
+  /// green. Per-brightness because a single green cannot pass WCAG AA as small
+  /// text on BOTH a white card and a near-black one: light needs a deep green,
+  /// dark a bright one. Direction is still carried by the sign (a '+' or a real
+  /// negative), never by colour alone, so a colour-blind reader keeps the
+  /// meaning. Contrast is guarded by data_palette_test.
+  static const Color _incomeLight = Color(0xFF15803D);
+  static const Color _incomeDark = Color(0xFF34D058);
+  static Color get income =>
+      current.brightness == Brightness.dark ? _incomeDark : _incomeLight;
 
   /// The face for THE ONE NUMBER on a screen, at 30 or larger.
   ///
