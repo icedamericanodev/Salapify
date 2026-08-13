@@ -55,24 +55,25 @@ void main() {
     );
   });
 
-  testWidgets('once a lesson is done the hero says CONTINUE with the next one', (
-    tester,
-  ) async {
-    final store = await _store();
-    // Finish the first lesson; the deterministic next core lesson is the
-    // second one in the cushion track.
-    store.setLessonState('see-it-first', LessonState.completed);
-    await _pump(tester, store);
+  testWidgets(
+    'once a lesson is done the hero says CONTINUE with the next one',
+    (tester) async {
+      final store = await _store();
+      // Finish the first lesson; the deterministic next core lesson is the
+      // second one in the cushion track.
+      store.setLessonState('see-it-first', LessonState.completed);
+      await _pump(tester, store);
 
-    expect(find.text('CONTINUE'), findsOneWidget);
-    expect(find.text('START HERE'), findsNothing);
-    expect(
-      find.bySemanticsLabel(
-        RegExp(r'CONTINUE\. Needs, wants, and the 24-hour rule\.'),
-      ),
-      findsOneWidget,
-    );
-  });
+      expect(find.text('CONTINUE'), findsOneWidget);
+      expect(find.text('START HERE'), findsNothing);
+      expect(
+        find.bySemanticsLabel(
+          RegExp(r'CONTINUE\. Needs, wants, and the 24-hour rule\.'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   test('lesson one teaches net worth in plain words, once', () {
     final first = lessons.firstWhere((l) => l['id'] == 'see-it-first');

@@ -17,6 +17,7 @@ import '../money/account_taxonomy.dart' show AccountStore, taxonomyKeys;
 import '../money/base_currency_scope.dart' show manualRatesOf;
 import '../money/expansion_progress.dart' show parseExpansionProgress;
 import '../money/greeting.dart' show normalizeDisplayName;
+import '../money/net_worth_history.dart' show maxNetWorthMonths;
 
 const int schemaVersion = 12;
 
@@ -86,6 +87,39 @@ final _isoDatePrefix = RegExp(r'^\d{4}-\d{2}-\d{2}');
 final _isoDateFull = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 final _receiptShape = RegExp(r'^receipts/receipt_[a-z0-9]+\.[A-Za-z0-9]+$');
 final _personM3 = RegExp(r'^person_m3_(\d+)$');
+final _monthKeyShape = RegExp(r'^\d{4}-\d{2}$');
+
+// Clean the monthly net worth history into [{month:'YYYY-MM', value:double}],
+// dropping any row that is not a well-formed month plus a finite number,
+// collapsing duplicate months (last wins, matching how a re-save overwrites the
+// current month), sorting oldest to newest, and capping to the most recent 24
+// so this one feature can never grow an unbounded blob. Kept in step with
+// money/net_worth_history.dart (maxNetWorthMonths).
+List<Map<String, dynamic>> _netWorthHistoryClean(dynamic list) {
+  if (list is! List) return const [];
+  final byMonth = <String, double>{};
+  for (final row in list) {
+    final m = _asObj(row);
+    if (m == null) continue;
+    final month = m['month'];
+    if (month is! String || !_monthKeyShape.hasMatch(month)) continue;
+    // Require a real finite number, the SAME test the runtime reader
+    // netWorthHistoryOf uses. Not _num here: _num coerces a missing or
+    // non-numeric value to 0, which would KEEP the row as a fabricated 0-peso
+    // snapshot, and a 0 prior turns the hero's "from last month" line into
+    // "Up <your whole net worth>". A malformed row is dropped, not zeroed.
+    final value = m['value'];
+    if (value is! num || !value.isFinite) continue;
+    byMonth[month] = value.toDouble();
+  }
+  final months = byMonth.keys.toList()..sort();
+  final capped = months.length > maxNetWorthMonths
+      ? months.sublist(months.length - maxNetWorthMonths)
+      : months;
+  return [
+    for (final month in capped) {'month': month, 'value': byMonth[month]},
+  ];
+}
 
 // ---- normalizeCategoryTree (from mobile/lib/categories.js) ----
 // Keep the tree at most two levels: self parents, orphans, third levels, and
@@ -597,6 +631,19 @@ Map<String, dynamic> sanitizeData(
         };
       } else {
         s.remove('steadyPay');
+      }
+      // Monthly net worth history (settings.netWorthHistory) is Flutter-era and
+      // CONDITIONAL for the same reason as the keys above: RN-generated golden
+      // fixtures never carry it and must not gain the key here. Cleaned to
+      // [{month:'YYYY-MM', value:double}], de-duplicated by month (last wins),
+      // sorted oldest to newest, and capped to the most recent 24, so a
+      // hand-edited backup cannot grow an unbounded or malformed trail into a
+      // confident wrong "from last month" line on the hero.
+      final nwh = _netWorthHistoryClean(settings['netWorthHistory']);
+      if (nwh.isEmpty) {
+        s.remove('netWorthHistory');
+      } else {
+        s['netWorthHistory'] = nwh;
       }
       // Expansion learning-path progress (settings.expansionProgress) is
       // Flutter-era and unpublished-content-only so far, and the same

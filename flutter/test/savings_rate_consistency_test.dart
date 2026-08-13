@@ -34,12 +34,7 @@ void main() {
     num amount, {
     String type = 'expense',
     String? source,
-  }) => {
-    'date': date,
-    'amount': amount,
-    'type': type,
-    'source': ?source,
-  };
+  }) => {'date': date, 'amount': amount, 'type': type, 'source': ?source};
 
   // Every scenario is a named data blob plus what we expect the ONE shared
   // classification to produce for the ref month, so a broken rule fails with a

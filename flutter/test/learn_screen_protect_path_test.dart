@@ -56,9 +56,7 @@ void main() {
 
       expect(find.text('Protect Your Future'), findsOneWidget);
       expect(
-        find.textContaining(
-          'Insurance, plus SSS, PhilHealth, and Pag-IBIG',
-        ),
+        find.textContaining('Insurance, plus SSS, PhilHealth, and Pag-IBIG'),
         findsOneWidget,
       );
       // Six from Insurance Decoded (Phase 9), six from SSS & PhilHealth

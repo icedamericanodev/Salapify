@@ -43,6 +43,8 @@ import 'package:salapify/money/format.dart' show formatMoney;
 import 'package:salapify/money/goal_plan.dart' show debtGoalFigures;
 import 'package:salapify/money/ledger.dart' show amountOf;
 import 'package:salapify/money/milestones.dart' show milestoneFor;
+import 'package:salapify/money/net_worth_history.dart'
+    show netWorthHistoryOf, netWorthMonthKey, priorNetWorthValue;
 import 'package:salapify/money/pan/respond.dart' show planLine;
 import 'package:salapify/money/plan.dart' show activePlanOf, planStatus;
 import 'package:salapify/money/statements.dart' show netWorthParts;
@@ -1594,6 +1596,161 @@ void main() {
         reason:
             'reloaded from disk, the goal no longer shows the payment; the '
             'debt write never persisted',
+      );
+    },
+  );
+
+  // The monthly net worth snapshot journey. The Net Worth hero's "from last
+  // month" line is only as honest as the trail behind it, and that trail is
+  // written by one path (recordNetWorthSnapshot, on open and resume) and read
+  // by another (the hero, Reports) and carried across a phone by a third (the
+  // backup file). The invariant it all rests on: a snapshot only ever REMEMBERS
+  // the net worth the app was already showing, so the month-to-month change the
+  // trail records must be exactly the money that actually moved between the two
+  // snapshots, and it must survive an export and re-import to the centavo, or a
+  // person restoring onto a new phone loses the history the hero speaks from.
+  testWidgets(
+    'the net worth trail records exactly what was spent, and survives a backup',
+    (tester) async {
+      final store = await _openApp(tester);
+
+      // Two fixed dates through the now: parameter the method already accepts,
+      // so no global clock is faked and the guard has nothing to catch. They are
+      // derived from today rather than hardcoded ON PURPOSE: main.dart records a
+      // snapshot for the REAL current month at startup (see _openApp pumping the
+      // app), so a hardcoded month collides with it on some calendar dates and
+      // not others. Anchoring "this month" to the real current month means the
+      // startup row and my own current-month row are always the SAME key, which
+      // upsert collapses to one, leaving exactly the two months below whenever
+      // the suite runs. Day 15 avoids any end-of-month rollover.
+      final now = DateTime.now();
+      final thisMonth = DateTime(now.year, now.month, 15);
+      final lastMonth = DateTime(now.year, now.month - 1, 15);
+      final thisKey = netWorthMonthKey(thisMonth);
+      final lastKey = netWorthMonthKey(lastMonth);
+
+      // Snapshot LAST month while nothing has moved yet. worthBefore is the
+      // engine's own figure (netWorthParts), not a literal, so the stored value
+      // is checked against the golden-locked source, never a number typed here.
+      final worthBefore = _netWorth(store);
+      await store.recordNetWorthSnapshot(now: lastMonth);
+
+      final afterFirst = netWorthHistoryOf(store.data);
+      final lastRow = afterFirst.firstWhere(
+        (r) => r['month'] == lastKey,
+        orElse: () => fail('last month never reached settings.netWorthHistory'),
+      );
+      expect(
+        lastRow['value'] as double,
+        closeTo(worthBefore, 0.001),
+        reason:
+            'the stored last-month figure is not the net worth the engine '
+            'showed the moment it was taken',
+      );
+
+      // A real money action through the normal write path: log an expense from
+      // Cash the way a person does. 250.75 rather than a round number, so a leg
+      // that floors or rounds centavos cannot pass unnoticed.
+      final cashBefore = _balance(store, 'cash');
+      await _logExpense(
+        tester,
+        amount: '250.75',
+        label: 'Groceries',
+        account: 'Cash',
+      );
+
+      // The money invariant that fits the action: spending reduces net worth by
+      // exactly what was spent. DIRECTIONAL companion, per account, because the
+      // invariant also holds if the tap silently did nothing: the cash actually
+      // fell by exactly 250.75, which inaction cannot satisfy.
+      final worthAfter = _netWorth(store);
+      expect(
+        worthAfter,
+        closeTo(worthBefore - 250.75, 0.001),
+        reason:
+            'spending moved net worth by something other than what was spent',
+      );
+      expect(
+        _balance(store, 'cash'),
+        closeTo(cashBefore - 250.75, 0.001),
+        reason:
+            'the 250.75 never left the account, so nothing was really spent',
+      );
+
+      // Snapshot THIS month, after the spend, with the other fixed date. This
+      // key equals the startup row's key, so upsert overwrites that row with the
+      // post-spend figure rather than adding a third month.
+      await store.recordNetWorthSnapshot(now: thisMonth);
+
+      final history = netWorthHistoryOf(store.data);
+      // Exactly two months stored, in order, each holding the engine's figure AT
+      // THAT POINT: last month the worth before the spend, this month after it.
+      expect(
+        history.map((r) => r['month']).toList(),
+        [lastKey, thisKey],
+        reason: 'the trail is not exactly last month then this month',
+      );
+      final lastValue = history.first['value'] as double;
+      final thisValue = history.last['value'] as double;
+      expect(
+        lastValue,
+        closeTo(worthBefore, 0.001),
+        reason:
+            'the last-month snapshot drifted from the net worth it captured',
+      );
+      expect(
+        thisValue,
+        closeTo(worthAfter, 0.001),
+        reason: 'the this-month snapshot is not the net worth after the spend',
+      );
+
+      // The directional, did-anything-happen half of the history assertion: the
+      // trail's month-to-month change is EXACTLY the money that moved between
+      // the two snapshots, and it moved DOWN. A trail that recorded the same
+      // figure twice (a snapshot that silently no-op'd on the second month)
+      // would preserve two-months-stored and still fail here.
+      expect(
+        thisValue - lastValue,
+        closeTo(-250.75, 0.001),
+        reason:
+            'the trail did not record the spend: the step from last month to '
+            'this month is not the 250.75 that actually left',
+      );
+      expect(
+        priorNetWorthValue(history, thisKey),
+        closeTo(worthBefore, 0.001),
+        reason:
+            "the hero's \"last month\" figure is not the last-month snapshot the "
+            'trail holds, so the from-last-month line would be computed off the '
+            'wrong base',
+      );
+
+      // The data-safety heart of the feature: export the whole store to the
+      // same backup text the Backup screen writes, wipe the device, restore from
+      // that text on a fresh store, and the trail must come back to the centavo.
+      // A history that lived only in memory (or was dropped at the backup seam)
+      // is the from-last-month line gone the day a person moves phones.
+      final historyBefore = netWorthHistoryOf(store.data);
+      final exported = store.exportBackupText();
+
+      SharedPreferences.setMockInitialValues({});
+      final restored = SalapifyStore();
+      await restored.load();
+      expect(
+        netWorthHistoryOf(restored.data),
+        isEmpty,
+        reason:
+            'a truly clean device before the restore, so the trail below can '
+            'only have come from the backup text',
+      );
+
+      await restored.importBackupText(exported);
+      expect(
+        netWorthHistoryOf(restored.data),
+        equals(historyBefore),
+        reason:
+            'the net worth history did not survive export and re-import; a '
+            'restore onto a new phone loses the from-last-month history',
       );
     },
   );

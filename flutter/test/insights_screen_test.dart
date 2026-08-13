@@ -435,10 +435,7 @@ void main() {
       findsOneWidget,
     );
     // The honesty footer is always present.
-    expect(
-      find.textContaining('Your call always wins'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Your call always wins'), findsOneWidget);
   });
 
   testWidgets('spoken-for card shows the committed share of income', (
