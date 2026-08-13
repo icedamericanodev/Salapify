@@ -125,6 +125,26 @@ void main() {
       expect(t['delta'], closeTo(1000.0, 1e-9));
     });
 
+    test('omits an absurd percent off a rounding-level base', () {
+      // First month recorded at a couple of pesos, now a real balance: the
+      // ratio explodes to millions of percent, so pct is suppressed and the
+      // peso delta stands alone.
+      final t = netWorthTrend([
+        {'month': '2026-07', 'value': 2.0},
+      ], '2026-08', 100000.0);
+      expect(t!['pct'], isNull);
+      expect(t['delta'], closeTo(99998.0, 1e-9));
+    });
+
+    test('keeps the percent for a large-but-real month (up to 10x)', () {
+      // A genuine doubling still shows its percent; the guard only trips past a
+      // ten-fold change, where the base was not a real figure.
+      final t = netWorthTrend([
+        {'month': '2026-07', 'value': 5000.0},
+      ], '2026-08', 10000.0);
+      expect(t!['pct'], closeTo(100.0, 1e-9));
+    });
+
     test('a fall gives a negative delta', () {
       final t = netWorthTrend([
         {'month': '2026-07', 'value': 5000.0},

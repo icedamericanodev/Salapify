@@ -93,9 +93,13 @@ double? priorNetWorthValue(
 /// compare against, so the hero can fall back to its honest position-only view.
 ///
 /// - delta is always the peso change (live minus prior).
-/// - pct is populated ONLY when the prior value was positive. A percentage off
-///   a zero or negative base is meaningless or misleading (you cannot be "50%
-///   better off" than a debt), so the hero shows the peso figure alone there.
+/// - pct is populated ONLY when the prior value was positive AND the change is
+///   within a sane bound. A percentage off a zero or negative base is
+///   meaningless or misleading (you cannot be "50% better off" than a debt), and
+///   a base so tiny that the change dwarfs it (a first month recorded at a few
+///   pesos) produces an absurd figure like "9,999,900%". In both cases the peso
+///   change is the honest signal, so pct is left null and the hero shows the
+///   amount alone.
 Map<String, dynamic>? netWorthTrend(
   List<Map<String, dynamic>> history,
   String currentMonth,
@@ -104,9 +108,12 @@ Map<String, dynamic>? netWorthTrend(
   final prior = priorNetWorthValue(history, currentMonth);
   if (prior == null) return null;
   final delta = liveNetWorth - prior;
+  // A change beyond ten times the base (>1000%) is not a real monthly move, it
+  // means the base was a rounding-level figure; the peso amount reads truer.
+  final pctIsMeaningful = prior > 0 && (delta / prior).abs() <= 10;
   return {
     'delta': delta,
-    'pct': prior > 0 ? (delta / prior) * 100 : null,
+    'pct': pctIsMeaningful ? (delta / prior) * 100 : null,
     'prior': prior,
   };
 }

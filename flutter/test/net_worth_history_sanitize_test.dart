@@ -32,15 +32,18 @@ void main() {
             {'month': '2026-07', 'value': 100.0},
             {'month': '2026-07', 'value': 200.0}, // duplicate month
             {'month': 'nope', 'value': 5.0}, // bad month shape
-            {'month': '2026-08', 'value': 'x'}, // non-numeric -> _num -> 0
+            {'month': '2026-08', 'value': 'x'}, // non-numeric value -> DROPPED
+            {'month': '2026-09'}, // missing value -> DROPPED (not zeroed)
             'garbage',
           ],
         },
       });
       final history = (clean['settings'] as Map)['netWorthHistory'] as List;
-      // 2026-07 kept once (last value), 2026-08 kept with value coerced to 0.
-      expect(history.map((r) => r['month']).toList(), ['2026-07', '2026-08']);
-      expect(history.first['value'], 200.0);
+      // Only 2026-07 survives, kept once at its last value. The non-numeric and
+      // missing-value rows are DROPPED, not coerced to a fabricated 0-peso
+      // snapshot, matching the runtime reader netWorthHistoryOf.
+      expect(history.map((r) => r['month']).toList(), ['2026-07']);
+      expect(history.single['value'], 200.0);
     });
 
     test('caps to 24 months, keeping the most recent', () {

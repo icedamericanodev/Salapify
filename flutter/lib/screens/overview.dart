@@ -1426,8 +1426,10 @@ class OverviewScreen extends StatelessWidget {
   Widget _netWorthTrendLine(Map<String, dynamic> trend) {
     final delta = trend['delta'] as double;
     final pct = trend['pct'] as double?;
+    // Sub-centavo movement reads as flat, not "Down PHP 0": formatMoney would
+    // round the amount to zero while the word still said Down.
+    final flat = delta.abs() < 0.005;
     final up = delta > 0;
-    final flat = delta == 0;
     final color = up ? Barako.primary : Barako.muted;
     final iconName = flat ? 'forward' : (up ? 'growth' : 'decline');
     final pctText = pct == null ? '' : ' (${pct.abs().toStringAsFixed(1)}%)';

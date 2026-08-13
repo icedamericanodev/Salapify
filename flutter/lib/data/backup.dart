@@ -17,6 +17,7 @@ import '../money/account_taxonomy.dart' show AccountStore, taxonomyKeys;
 import '../money/base_currency_scope.dart' show manualRatesOf;
 import '../money/expansion_progress.dart' show parseExpansionProgress;
 import '../money/greeting.dart' show normalizeDisplayName;
+import '../money/net_worth_history.dart' show maxNetWorthMonths;
 
 const int schemaVersion = 12;
 
@@ -102,13 +103,18 @@ List<Map<String, dynamic>> _netWorthHistoryClean(dynamic list) {
     if (m == null) continue;
     final month = m['month'];
     if (month is! String || !_monthKeyShape.hasMatch(month)) continue;
-    final value = _num(m['value']);
-    if (!value.isFinite) continue;
-    byMonth[month] = value;
+    // Require a real finite number, the SAME test the runtime reader
+    // netWorthHistoryOf uses. Not _num here: _num coerces a missing or
+    // non-numeric value to 0, which would KEEP the row as a fabricated 0-peso
+    // snapshot, and a 0 prior turns the hero's "from last month" line into
+    // "Up <your whole net worth>". A malformed row is dropped, not zeroed.
+    final value = m['value'];
+    if (value is! num || !value.isFinite) continue;
+    byMonth[month] = value.toDouble();
   }
   final months = byMonth.keys.toList()..sort();
-  final capped = months.length > 24
-      ? months.sublist(months.length - 24)
+  final capped = months.length > maxNetWorthMonths
+      ? months.sublist(months.length - maxNetWorthMonths)
       : months;
   return [
     for (final month in capped) {'month': month, 'value': byMonth[month]},
