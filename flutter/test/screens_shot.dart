@@ -150,11 +150,9 @@ String? _walkUpToFlutterRoot(String exe) {
 /// anything is pumped.
 Future<void> loadPanFaces(WidgetTester tester) async {
   await tester.runAsync(() async {
-    // Both the four legacy mood faces AND the rendered emotion faces: the app
-    // now draws emotion art, so priming only the moods would leave every Pan on
-    // every shot rendering the code-drawn fallback instead of the real face.
+    // The rendered emotion faces the app draws. Priming these means every Pan on
+    // every shot renders the real face, not the code-drawn fallback.
     final paths = <String>[
-      for (final mood in PanMood.values) panAssetFor(mood),
       for (final e in PanEmotion.values) panEmotionAsset(e),
     ];
     for (final path in paths) {
@@ -2551,7 +2549,7 @@ void main() {
                       Barako.currentTheme = theme;
                       Barako.current = theme.resolve(Brightness.dark);
                       return Image.asset(
-                        panAssetFor(PanMood.calm),
+                        panEmotionAsset(PanEmotion.content),
                         width: 72,
                         height: 72,
                         filterQuality: FilterQuality.medium,

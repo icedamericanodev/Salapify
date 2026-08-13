@@ -53,13 +53,6 @@ const String kPanRivAsset = 'assets/pan/pan.riv';
 /// nothing else. Per-image cropping would resize Pan between moods, and a
 /// character who grows when he smiles reads as a glitch rather than a
 /// reaction.
-String panAssetFor(PanMood mood) => switch (mood) {
-  PanMood.calm => 'assets/pan/pan-calm.png',
-  PanMood.nudge => 'assets/pan/pan-nudge.png',
-  PanMood.worried => 'assets/pan/pan-worried.png',
-  PanMood.happy => 'assets/pan/pan-happy.png',
-};
-
 /// Pan's emotional vocabulary: rendered feeling faces, the way Pan actually
 /// reacts to your money. The reaction machine speaks in [PanMood] (calm, nudge,
 /// worried, happy) and maps into this set, but ANY screen, and Pan the
@@ -71,9 +64,17 @@ String panAssetFor(PanMood mood) => switch (mood) {
 enum PanEmotion {
   content, // a soft, pleased smile: on track, all is well
   worried, // brows up, a bead of sweat: money getting tight
-  sad, // teary: a real setback, held gently and rarely
+  // teary. NEVER a verdict on the user's own money (a missed payment, a blown
+  // budget): performing pity at someone who just slipped is unkind and worried
+  // already covers money-at-risk. Reserved for non-verdict moments only, a
+  // recovered backup or a genuine goodbye, or authored lesson narrative.
+  sad,
   angry, // frustrated, never AT you: reserved for a rip-off on your side
-  tired, // heavy-lidded, weary: a heavy load of bills or debt
+  // heavy-lidded, weary. NEVER tied to the SIZE of a balance, bill, or debt,
+  // which would read as "your debt tires even me" to exactly the most indebted
+  // user. If it ever ships, gate it on a neutral context (a very late-night
+  // log), never a judgement on the numbers.
+  tired,
 }
 
 /// Where each feeling's rendered art lives. One file per emotion, transparent
@@ -97,7 +98,10 @@ PanEmotion emotionForMood(PanMood mood) => switch (mood) {
 /// where a rendered asset fails to load (assets are bundled, so this is the
 /// belt-and-braces case, never the everyday one).
 PanMood _moodForEmotion(PanEmotion e) => switch (e) {
-  PanEmotion.content => PanMood.happy,
+  // calm, not happy: the fallback cup's calm face is a soft, sleepy smile,
+  // which matches content far better than happy's big beaming grin. This only
+  // shows on the rare path where a bundled emotion PNG fails to load.
+  PanEmotion.content => PanMood.calm,
   PanEmotion.worried || PanEmotion.sad || PanEmotion.tired => PanMood.worried,
   PanEmotion.angry => PanMood.worried,
 };

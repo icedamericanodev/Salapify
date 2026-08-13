@@ -820,15 +820,22 @@ class OverviewScreen extends StatelessWidget {
                       ),
                       child: ExcludeSemantics(
                         // A reaction to what the user JUST did wins over the
-                        // ambient coach mood, briefly. Logging an expense is
-                        // the most common thing anyone does in this app and it
-                        // used to change Pan's face not at all.
+                        // ambient coach mood, briefly. Logging an expense is the
+                        // most common thing anyone does in this app, so it earns
+                        // an acknowledging bob every time.
+                        //
+                        // The key is the action timestamp: a fresh action remounts
+                        // Pan, which fires the one-shot bob on mount. Without it,
+                        // a positive action and the calm resting state both map to
+                        // the same content face, so the emotion never changes and
+                        // the bob would never fire, the exact silence this feature
+                        // exists to break.
                         //
                         // The override expires by itself, so Pan cannot end up
-                        // grinning about an old log while the coach is trying
-                        // to say a bill is due. That would read as a bug, not
-                        // as warmth.
+                        // acknowledging an old log while the coach is trying to say
+                        // a bill is due. That would read as a bug, not as warmth.
                         child: PanMascot(
+                          key: ValueKey(store.lastActionAt),
                           // The build's one clock, threaded in, never a second
                           // DateTime.now(): the comment at the top of build
                           // exists precisely so a midnight straddle cannot

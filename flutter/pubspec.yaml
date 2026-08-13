@@ -52,11 +52,9 @@ flutter:
   uses-material-design: true
   assets:
     - shorebird.yaml
-    # Pan's mood faces and his twelve rendered expressions. Both listed as
-    # directories so a new face or expression is a file drop rather than
-    # another pubspec edit, which is the kind of edit that gets forgotten and
-    # ships a missing asset.
-    - assets/pan/
+    # Pan's rendered emotion faces, listed as a directory so a new feeling is a
+    # file drop rather than another pubspec edit, which is the kind of edit that
+    # gets forgotten and ships a missing asset.
     - assets/pan/emotions/
   fonts:
     - family: Fraunces
