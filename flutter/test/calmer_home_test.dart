@@ -115,6 +115,12 @@ void main() {
   testWidgets('the all-good check-in is one quiet row without Pan', (
     tester,
   ) async {
+    // Tall view so the lazily built Home ListView reaches the number and the
+    // calm check-in row, which now sit below the dashboard-first Net Worth hero
+    // and Quick Overview (the same reason home_order_test pumps tall).
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues(_calmStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
@@ -133,6 +139,11 @@ void main() {
   testWidgets('one pulse per screen: the good row mutes the fitting pace', (
     tester,
   ) async {
+    // Tall view so the lazily built Home ListView reaches the number, which now
+    // sits below the dashboard-first Net Worth hero and Quick Overview.
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues(_calmStorage());
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));

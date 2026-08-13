@@ -65,6 +65,9 @@ Future<SalapifyStore> _storeWithSomeMoney() async {
 void main() {
   testWidgets('tapping Pan on Home opens Ask Pan', (tester) async {
     final store = await _storeWithSomeMoney();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
@@ -97,6 +100,9 @@ void main() {
   ) async {
     final handle = tester.ensureSemantics();
     final store = await _storeWithSomeMoney();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),

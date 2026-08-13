@@ -61,23 +61,12 @@ void main() {
     );
   });
 
-  testWidgets('THIS MONTH leads to Activity, ACCOUNTS leads to Accounts', (
-    tester,
-  ) async {
+  testWidgets('ACCOUNTS leads to Accounts', (tester) async {
     final _ = await _boot(tester);
-    await tester.tap(find.text('THIS MONTH'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Activity'),
-      findsWidgets,
-      reason:
-          'Tapping THIS MONTH must switch to the Activity tab; the card '
-          'is made of its rows.',
-    );
-    // The Activity screen header is on screen, meaning the tab switched.
-    expect(find.text('Jollibee'), findsOneWidget);
-
-    await goToTab(tester, 'Home');
+    // THIS MONTH's tap-to-Activity affordance moved with its figures: they are
+    // the dashboard-first Quick Overview tiles now, and a tap-through to
+    // Activity returns with the Recent Transactions "See all" in the next
+    // increment. ACCOUNTS still opens the Accounts screen from its tail preview.
     await tester.tap(find.text('ACCOUNTS'));
     await tester.pumpAndSettle();
     expect(
@@ -107,7 +96,10 @@ void main() {
   testWidgets('an empty month says so instead of leaving a void', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1200, 3000);
+    // 4600, not 3000: the dashboard-first Net Worth hero and Quick Overview
+    // added height above the tail, so the taller view keeps the tail (ACCOUNTS)
+    // built in this lazy Home ListView.
+    tester.view.physicalSize = const Size(1200, 4600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues({

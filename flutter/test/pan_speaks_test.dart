@@ -81,6 +81,9 @@ void main() {
     tester,
   ) async {
     final store = await _storeWithADecision();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(_home(store));
     await tester.pumpAndSettle();
 
@@ -106,6 +109,9 @@ void main() {
     // The regression that would be invisible: this card renders perfectly
     // whether or not it does anything when tapped.
     final store = await _storeWithSomeMoney();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(_home(store));
     await tester.pumpAndSettle();
 
@@ -135,6 +141,9 @@ void main() {
     // The older promise, re-pinned because the layout around him moved. Pan
     // appears on tones with something to say, so the fixture carries one.
     final store = await _storeWithADecision();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(_home(store));
     await tester.pumpAndSettle();
 
@@ -146,6 +155,9 @@ void main() {
   testWidgets('Pan is still announced to a screen reader', (tester) async {
     final handle = tester.ensureSemantics();
     final store = await _storeWithADecision();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(_home(store));
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Ask Pan'), findsOneWidget);
@@ -159,6 +171,9 @@ void main() {
     // for screen reader users just because it dropped the picture.
     final handle = tester.ensureSemantics();
     final store = await _storeWithSomeMoney();
+    tester.view.physicalSize = const Size(1200, 4600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(_home(store));
     await tester.pumpAndSettle();
     final node = tester.getSemantics(find.text('You are on track this week'));

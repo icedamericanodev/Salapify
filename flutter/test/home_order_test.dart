@@ -26,6 +26,14 @@
 // introduced. It is fixed now and the details are on _crunch. The general
 // lesson is the one CLAUDE.md keeps relearning: when a comment describes what
 // the code does, read the code, not the comment.
+//
+// SUPERSEDED IN PART (founder direction, 2026-08-13): Home is now
+// dashboard-first. The Net Worth hero and the Quick Overview open the screen,
+// and the coaching number sits below them, matching the approved mockup. The
+// half of this file that still holds, and the reason the inversion is safe, is
+// the urgent group below: a money crunch still outranks everything and still
+// hides the number. So "the number comes first" became "the dashboard comes
+// first, unless money is tight".
 
 import 'dart:convert';
 
@@ -140,7 +148,7 @@ double _y(WidgetTester tester, String text) =>
     tester.getTopLeft(find.text(text)).dy;
 
 void main() {
-  group('the number comes first', () {
+  group('the dashboard comes first', () {
     testWidgets('a positive check-in sits BELOW Your Number', (tester) async {
       await _pump(tester, _healthy());
       expect(find.text('SAFE TO SPEND'), findsOneWidget);
@@ -157,30 +165,53 @@ void main() {
       );
     });
 
-    testWidgets('and so does This month, My money and Net worth', (
-      tester,
-    ) async {
-      await _pump(tester, _healthy());
-      final n = _y(tester, 'SAFE TO SPEND');
-      for (final below in ['THIS MONTH', 'ACCOUNTS', 'NET WORTH']) {
-        expect(find.text(below), findsOneWidget, reason: '$below vanished');
-        expect(_y(tester, below), greaterThan(n), reason: '$below is above it');
-      }
-    });
+    testWidgets(
+      'the dashboard leads: net worth and quick overview OUTRANK the number',
+      (tester) async {
+        await _pump(tester, _healthy());
+        final n = _y(tester, 'SAFE TO SPEND');
+        // Dashboard-first (founder direction, 2026-08-13): the mockup opens on
+        // the Net Worth hero and a Quick Overview of the month, so both sit
+        // ABOVE the number now. This is the exact inversion of the old order,
+        // chosen after the founder saw the incremental recolor and called it
+        // too timid. The crunch group below is UNCHANGED: a money crunch still
+        // outranks the dashboard, which is what keeps this inversion safe.
+        for (final above in ['NET WORTH', 'QUICK OVERVIEW']) {
+          expect(find.text(above), findsOneWidget, reason: '$above vanished');
+          expect(
+            _y(tester, above),
+            lessThan(n),
+            reason: '$above must open the screen, above the number',
+          );
+        }
+        // Accounts still CLOSES the screen, below the number: it is a preview
+        // that leads to the full Accounts tab, not a headline.
+        expect(
+          _y(tester, 'ACCOUNTS'),
+          greaterThan(n),
+          reason: 'ACCOUNTS is a tail preview, it stays below the number',
+        );
+      },
+    );
 
-    testWidgets('the tail reads month, then accounts, then net worth', (
-      tester,
-    ) async {
-      await _pump(tester, _healthy());
-      expect(_y(tester, 'THIS MONTH'), lessThan(_y(tester, 'ACCOUNTS')));
-      expect(
-        _y(tester, 'ACCOUNTS'),
-        lessThan(_y(tester, 'NET WORTH')),
-        reason:
-            'Net worth is the slowest figure on Home to change and the least '
-            'urgent, so it closes the screen rather than opening it.',
-      );
-    });
+    testWidgets(
+      'the dashboard reads net worth, then quick overview, then the number',
+      (tester) async {
+        await _pump(tester, _healthy());
+        expect(
+          _y(tester, 'NET WORTH'),
+          lessThan(_y(tester, 'QUICK OVERVIEW')),
+          reason: 'Net worth is the dashboard headline, so it comes first.',
+        );
+        expect(
+          _y(tester, 'QUICK OVERVIEW'),
+          lessThan(_y(tester, 'SAFE TO SPEND')),
+          reason:
+              'The month at a glance sits under the net worth headline and '
+              'above the coaching number, matching the approved mockup.',
+        );
+      },
+    );
   });
 
   group('an urgent warning still outranks everything', () {

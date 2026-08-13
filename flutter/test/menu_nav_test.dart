@@ -40,13 +40,11 @@ void main() {
 
     // Home shows status, not the nav cards that used to clutter it.
     //
-    // SAFE TO SPEND rather than NET WORTH as the "populated dashboard" marker.
-    // Net worth used to sit fourth and now closes the screen, so in a default
-    // test viewport it falls below the fold and the lazy ListView never builds
-    // it. That is the reorder working, not a regression: this assertion only
-    // ever meant "the real dashboard rendered", and the safe-to-spend number
-    // is what leads it now.
-    expect(find.text('SAFE TO SPEND'), findsOneWidget);
+    // NET WORTH as the "populated dashboard" marker: it LEADS the screen now
+    // (the dashboard-first hero, founder direction 2026-08-13), so it is the
+    // populated-state element guaranteed to build first in a default test
+    // viewport. This assertion only ever meant "the real dashboard rendered".
+    expect(find.text('NET WORTH'), findsOneWidget);
     expect(find.text('Calculators'), findsNothing);
     expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
