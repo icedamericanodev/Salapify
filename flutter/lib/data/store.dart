@@ -21,6 +21,7 @@ import '../money/ledger.dart' as ledger;
 import '../money/debts.dart' as debts;
 import '../money/receivables.dart' as receivables;
 import '../money/recurring.dart' as recurring;
+import '../money/net_worth_history.dart' as nwh;
 import '../money/treats.dart' as treats;
 import '../money/quick_adds.dart';
 import 'encrypted_store_coordinator.dart'
@@ -465,6 +466,12 @@ class SalapifyStore extends ChangeNotifier {
     // Post any recurring bills and income that have come due while the app was
     // closed. Runs after load so canWrite is settled; a failed read skips it.
     await postDueRecurring();
+    // The monthly net worth snapshot is deliberately NOT recorded here.
+    // recordNetWorthSnapshot writes a figure keyed on DateTime.now(), so putting
+    // it in load() would make the stored blob time-dependent and break the
+    // deterministic backup round-trip tests that call load() and assert an exact
+    // blob. It is a UI-layer concern instead: main.dart records it once startup
+    // finishes and again on resume, so headless data tests stay pure.
   }
 
   /// Post recurring items that have come due, into the transactions list and
@@ -497,6 +504,29 @@ class SalapifyStore extends ChangeNotifier {
 
   Future<void> _save() async {
     await _repo.writeLedger(jsonEncode(data));
+  }
+
+  /// Record this month's net worth into the history trail
+  /// (settings.netWorthHistory), so Home's Net Worth hero can show an honest
+  /// "from last month" change once a second month of use exists. Mirrors
+  /// postDueRecurring exactly: a no-op when writing is off or the current
+  /// month's snapshot already matches the live figure, folded through _mutate
+  /// onto the latest committed state so it never overwrites a concurrent write.
+  /// Uses the SAME netWorthParts (and fx table) the hero displays, so the stored
+  /// number is precisely what the user saw. Call on load, after the fx table is
+  /// ready, and whenever the app returns to the foreground.
+  Future<void> recordNetWorthSnapshot({DateTime? now}) async {
+    if (!canWrite) return;
+    final when = now ?? DateTime.now();
+    // Cheap probe (no write) to skip a redundant save when nothing would change;
+    // recordNetWorthSnapshot returns the SAME map instance in that case.
+    if (identical(nwh.recordNetWorthSnapshot(data, when, fx: fxTable), data)) {
+      return;
+    }
+    await _mutate((prev) {
+      final next = nwh.recordNetWorthSnapshot(prev, when, fx: fxTable);
+      return identical(next, prev) ? prev : next;
+    });
   }
 
   /// Import a pasted Salapify backup (the same text the RN Backup screen

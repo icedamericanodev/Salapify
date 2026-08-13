@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.11 · Home goes dashboard-first: Net Worth hero and Quick Overview on top.';
+    'f4.12 · Net Worth hero now shows the change from last month, once a month of history exists.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
@@ -88,6 +88,12 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     // Reminders.reschedule was lost the same way.
     widget.store.load().whenComplete(() {
       Reminders.reschedule(widget.store.data, DateTime.now());
+      // Record this month's net worth into the history trail, so Home's hero can
+      // show an honest "from last month" change. Here in the UI layer, not in
+      // store.load(), on purpose: this write is keyed on today's month, and
+      // keeping it out of load() leaves the pure data path deterministic for the
+      // backup round-trip tests. A no-op when unchanged or writing is off.
+      widget.store.recordNetWorthSnapshot();
       // Sweep QR image files whose account was deleted, or whose image was
       // replaced by a path this code never saw. Best effort and off the
       // critical path: a failure here never blocks startup, and the only thing
@@ -133,7 +139,12 @@ class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
     }
     if (state == AppLifecycleState.resumed) {
       // Recurring first, then push, so posted bills are already in the figure.
-      widget.store.postDueRecurring().then((_) => HomeTile.push(widget.store));
+      // Then re-stamp this month's net worth snapshot (a no-op when unchanged),
+      // so returning to the app in a new month records that month's figure.
+      widget.store
+          .postDueRecurring()
+          .then((_) => widget.store.recordNetWorthSnapshot())
+          .then((_) => HomeTile.push(widget.store));
       // Refill the schedule on every foreground, so tonight's log nudge is
       // dropped once you have logged, and new bills/utang are picked up.
       Reminders.reschedule(widget.store.data, DateTime.now());

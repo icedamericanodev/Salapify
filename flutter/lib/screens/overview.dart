@@ -20,6 +20,7 @@ import '../money/cycle.dart';
 import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
+import '../money/net_worth_history.dart' as nwh;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/treat_card.dart';
@@ -350,7 +351,7 @@ class OverviewScreen extends StatelessWidget {
                 // spending, once the THIS MONTH tail card, are the first two
                 // Quick Overview tiles.
                 if (hasStarted) ...[
-                  _netWorthHero(context, parts),
+                  _netWorthHero(context, parts, data),
                   const SizedBox(height: Gap.lg),
                   _quickOverview(context, istmt, cash),
                   const SizedBox(height: Gap.lg),
@@ -1352,12 +1353,22 @@ class OverviewScreen extends StatelessWidget {
   /// this only restyles them. It moved from the old quiet tail footer up to the
   /// top of Home and back into a raised card, the treatment the mockup shows.
   ///
-  /// The "from last month" trend the mockup draws needs a stored monthly
-  /// net-worth snapshot the app does not keep yet; that is a data change flagged
-  /// to the founder, so this card shows the position (assets and owed) honestly
-  /// rather than a fabricated change figure until the snapshot lands.
-  Widget _netWorthHero(BuildContext context, Map<String, dynamic> parts) {
+  /// The "from last month" trend the mockup draws. It reads the stored monthly
+  /// net-worth snapshots (settings.netWorthHistory, recorded on open) and
+  /// compares TODAY's live net worth against the most recent earlier month. It
+  /// appears only once a second month of history exists; before that the card
+  /// shows the position (assets and owed) honestly, never a fabricated change.
+  Widget _netWorthHero(
+    BuildContext context,
+    Map<String, dynamic> parts,
+    Map<String, dynamic> data,
+  ) {
     final nw = parts['netWorth'] as double;
+    final trend = nwh.netWorthTrend(
+      nwh.netWorthHistoryOf(data),
+      nwh.netWorthMonthKey(DateTime.now()),
+      nw,
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1374,6 +1385,10 @@ class OverviewScreen extends StatelessWidget {
               role: AmountRole.hero,
               tint: nw < 0 ? Barako.text : Barako.primary,
             ),
+            if (trend != null) ...[
+              const SizedBox(height: 6),
+              _netWorthTrendLine(trend),
+            ],
             const SizedBox(height: Gap.md),
             StatPair(
               leftLabel: 'Total assets',
@@ -1398,6 +1413,42 @@ class OverviewScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// The one-line "from last month" change under the hero figure. Words carry
+  /// the direction alongside the arrow, so it reads on its own for anyone who
+  /// cannot tell the colours apart. A rise is the accent (good news); a dip is
+  /// muted, never alarm red, because a planned drawdown is not an emergency. The
+  /// percent is shown only when the engine offered one (a positive base month);
+  /// off a zero or negative starting net worth a percentage would mislead, so
+  /// the peso figure stands alone there.
+  Widget _netWorthTrendLine(Map<String, dynamic> trend) {
+    final delta = trend['delta'] as double;
+    final pct = trend['pct'] as double?;
+    final up = delta > 0;
+    final flat = delta == 0;
+    final color = up ? Barako.primary : Barako.muted;
+    final iconName = flat ? 'forward' : (up ? 'growth' : 'decline');
+    final pctText = pct == null ? '' : ' (${pct.abs().toStringAsFixed(1)}%)';
+    final label = flat
+        ? 'No change from last month'
+        : '${up ? 'Up' : 'Down'} ${formatMoney(delta.abs())}$pctText from last month';
+    return Row(
+      children: [
+        Icon(salapifyIcon(iconName), size: 16, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            style: AppText.small.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

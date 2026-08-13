@@ -258,6 +258,13 @@ final Map<String, dynamic> livedInBlob = () {
   // Genuinely ahead of today, allowed to cross into next month, which is what a
   // real "they still have time to pay" utang looks like.
   String ahead(int days) => iso(today.add(Duration(days: days)));
+  // 'YYYY-MM' for a month N months before this one, relative to today so the
+  // net worth history never drifts into the future as the calendar moves.
+  String mkey(int monthsBack) {
+    final d = DateTime(today.year, today.month - monthsBack);
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}';
+  }
   return <String, dynamic>{
     'schemaVersion': 12,
     'settings': {
@@ -285,6 +292,15 @@ final Map<String, dynamic> livedInBlob = () {
         'startDate': ago(75),
         'startLevel': 16500,
       },
+      // Two prior monthly net worth snapshots, both below today's figure, so
+      // Home's Net Worth hero renders the "from last month" trend line as a
+      // healthy rise rather than only the position. Relative months so it never
+      // drifts into the future. This is what a phone that has been open for a
+      // couple of months looks like, which is the point of a lived-in fixture.
+      'netWorthHistory': [
+        {'month': mkey(2), 'value': 205000.0},
+        {'month': mkey(1), 'value': 215000.0},
+      ],
     },
     'accounts': [
       {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 2340},
