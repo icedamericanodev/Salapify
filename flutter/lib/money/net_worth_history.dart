@@ -118,6 +118,27 @@ Map<String, dynamic>? netWorthTrend(
   };
 }
 
+/// The series the hero's sparkline plots: every recorded month STRICTLY BEFORE
+/// the current one (frozen snapshots), then today's LIVE net worth as the final
+/// point. The current month's stored snapshot, if any, is deliberately left out
+/// and replaced by the live figure, so the last point on the chart always
+/// matches the big number above it, never a value recorded earlier in the month.
+/// Returns fewer than two points when there is not enough history to draw a
+/// trend; the hero hides the chart in that case.
+List<double> netWorthSeries(
+  List<Map<String, dynamic>> history,
+  String currentMonth,
+  double liveNetWorth,
+) {
+  final out = <double>[
+    for (final row in history)
+      if ((row['month'] as String).compareTo(currentMonth) < 0)
+        (row['value'] as num).toDouble(),
+  ];
+  out.add(liveNetWorth);
+  return out;
+}
+
 /// Record the current month's net worth into data['netWorthHistory], using the
 /// SAME netWorthParts (and fx conversion) the hero displays, so the stored
 /// figure is exactly the number the user saw. Returns the SAME map instance
