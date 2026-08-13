@@ -19,7 +19,9 @@ import 'package:salapify/theme.dart';
 double _luminance(int argb) {
   double channel(int c) {
     final s = c / 255.0;
-    return s <= 0.03928 ? s / 12.92 : math.pow((s + 0.055) / 1.055, 2.4) as double;
+    return s <= 0.03928
+        ? s / 12.92
+        : math.pow((s + 0.055) / 1.055, 2.4) as double;
   }
 
   final r = channel((argb >> 16) & 0xFF);
@@ -84,7 +86,9 @@ void main() {
     for (var i = 0; i < Barako.dataSeries.length; i++) {
       final r = _contrast(Barako.dataSeries[i], darkCard);
       if (r < 3.0) {
-        failures.add('slice $i is ${r.toStringAsFixed(2)} to 1 on the dark card');
+        failures.add(
+          'slice $i is ${r.toStringAsFixed(2)} to 1 on the dark card',
+        );
       }
     }
     expect(failures, isEmpty, reason: failures.join('\n'));
@@ -98,7 +102,9 @@ void main() {
     for (var i = 0; i < Barako.dataSeries.length; i++) {
       final r = _contrast(Barako.dataSeries[i], lightCard);
       if (r < 1.5) {
-        failures.add('slice $i is ${r.toStringAsFixed(2)} to 1 on the light card');
+        failures.add(
+          'slice $i is ${r.toStringAsFixed(2)} to 1 on the light card',
+        );
       }
     }
     expect(failures, isEmpty, reason: failures.join('\n'));

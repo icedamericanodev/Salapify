@@ -43,7 +43,10 @@ class SalapifyDonutChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final positive = slices.where((s) => s.value > 0).toList();
     if (positive.isEmpty) {
-      return Semantics(label: semanticLabel, child: SizedBox.square(dimension: size));
+      return Semantics(
+        label: semanticLabel,
+        child: SizedBox.square(dimension: size),
+      );
     }
     // A hairline in the card colour separates a slice from its neighbour and
     // from a light card, where a bright dopamine hue can otherwise sit at a low
