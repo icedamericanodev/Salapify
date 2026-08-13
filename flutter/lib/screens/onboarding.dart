@@ -25,7 +25,6 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
-import '../money/pan_mood.dart';
 import '../services/notifications.dart';
 import '../theme.dart';
 import '../typography.dart';
@@ -288,7 +287,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _welcome() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Center(child: PanMascot(mood: PanMood.happy, size: 132)),
+      // Pan waves hello on the very first screen, a greeting rather than a
+      // generic grin. This is the first frame anyone ever sees of the app.
+      Center(
+        child: PanMascot.expression(
+          expression: PanExpression.wave,
+          size: 132,
+        ),
+      ),
       const SizedBox(height: Gap.lg),
       Center(
         child: Text('Salapify', style: AppText.title.copyWith(fontSize: 30)),

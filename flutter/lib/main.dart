@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.13 · Net Worth hero gets its trend chart: a sparkline of your monthly net worth.';
+    'f4.14 · Pan grows up: twelve expressions, from waving hello to celebrating your wins.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

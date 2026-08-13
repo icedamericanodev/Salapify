@@ -150,8 +150,15 @@ String? _walkUpToFlutterRoot(String exe) {
 /// anything is pumped.
 Future<void> loadPanFaces(WidgetTester tester) async {
   await tester.runAsync(() async {
-    for (final mood in PanMood.values) {
-      final provider = AssetImage(panAssetFor(mood));
+    // Both the four mood faces AND the twelve rendered expressions: the app now
+    // draws expression art, so priming only the moods would leave every Pan on
+    // every shot rendering the code-drawn fallback instead of the real face.
+    final paths = <String>[
+      for (final mood in PanMood.values) panAssetFor(mood),
+      for (final e in PanExpression.values) panExpressionAsset(e),
+    ];
+    for (final path in paths) {
+      final provider = AssetImage(path);
       final completer = Completer<void>();
       final stream = provider.resolve(ImageConfiguration.empty);
       late ImageStreamListener listener;
@@ -2564,6 +2571,60 @@ void main() {
     );
     Barako.currentTheme = themeForKey('barako');
     Barako.current = themeForKey('barako').resolve(Brightness.dark);
+  });
+
+  testWidgets('the twelve Pan expressions', (tester) async {
+    // Pan's whole vocabulary in one frame, so a new expression, a mis-cut
+    // asset, or a pose that reads wrong at size is visible at a glance rather
+    // than only where it happens to be wired in.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    Barako.currentTheme = themeForKey('barako');
+    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: Center(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final e in PanExpression.values)
+                  SizedBox(
+                    width: 132,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PanMascot.expression(expression: e, size: 92),
+                        const SizedBox(height: 4),
+                        Text(
+                          e.name,
+                          style: TextStyle(
+                            fontFamily: 'Jakarta',
+                            color: Barako.muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/pan-expressions-dark.png'),
+    );
   });
 
   testWidgets('the onboarding flow, walked step by step', (tester) async {
