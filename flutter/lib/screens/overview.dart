@@ -482,9 +482,7 @@ class OverviewScreen extends StatelessWidget {
                                 net,
                                 role: AmountRole.lg,
                                 signed: true,
-                                tint: net >= 0
-                                    ? Barako.income
-                                    : Barako.warning,
+                                tint: net >= 0 ? Barako.income : Barako.warning,
                               );
                             },
                           ),
@@ -492,7 +490,7 @@ class OverviewScreen extends StatelessWidget {
                           StatPair(
                             leftLabel: 'Money in',
                             leftValue: formatMoney(istmt['income'] as double),
-                            leftColor: Barako.primary,
+                            leftColor: Barako.income,
                             rightLabel: 'Money out',
                             rightValue: formatMoney(
                               istmt['expenses'] as double,

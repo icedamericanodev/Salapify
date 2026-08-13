@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.09 · Positive money reads green across budget, cash flow, edit and windfall.';
+    'f4.10 · Home month card income now reads green, matching the rest.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
