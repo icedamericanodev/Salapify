@@ -6,6 +6,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/money/net_worth_history.dart';
 import 'package:salapify/money/statements.dart' show netWorthParts;
+import 'package:salapify/widgets/net_worth_sparkline.dart'
+    show netWorthSparkDomain;
 
 void main() {
   group('netWorthMonthKey', () {
@@ -151,6 +153,49 @@ void main() {
       ], '2026-08', 4200.0);
       expect(t!['delta'], closeTo(-800.0, 1e-9));
       expect(t['pct'], closeTo(-16.0, 1e-9));
+    });
+  });
+
+  group('netWorthSeries', () {
+    final history = [
+      {'month': '2026-06', 'value': 100.0},
+      {'month': '2026-07', 'value': 200.0},
+    ];
+
+    test('is prior months then today\'s live figure as the last point', () {
+      final s = netWorthSeries(history, '2026-08', 250.0);
+      expect(s, [100.0, 200.0, 250.0]);
+    });
+
+    test('drops any current-month snapshot and uses the live figure instead', () {
+      final withCurrent = [
+        ...history,
+        {'month': '2026-08', 'value': 999.0}, // stale current-month snapshot
+      ];
+      final s = netWorthSeries(withCurrent, '2026-08', 250.0);
+      // 999 is not plotted; the live 250 is the last point.
+      expect(s, [100.0, 200.0, 250.0]);
+    });
+
+    test('is a single live point when there is no prior history', () {
+      expect(netWorthSeries(const [], '2026-08', 250.0), [250.0]);
+      // The hero hides the chart below two points.
+      expect(netWorthSeries(const [], '2026-08', 250.0).length, lessThan(2));
+    });
+  });
+
+  group('netWorthSparkDomain', () {
+    test('pads the data range on both sides, never touching an edge', () {
+      final (lo, hi) = netWorthSparkDomain([200000.0, 228000.0]);
+      expect(lo, lessThan(200000.0));
+      expect(hi, greaterThan(228000.0));
+    });
+
+    test('a flat series gets a symmetric band so it sits mid-card', () {
+      final (lo, hi) = netWorthSparkDomain([50000.0, 50000.0]);
+      expect(lo, lessThan(50000.0));
+      expect(hi, greaterThan(50000.0));
+      expect(50000.0 - lo, closeTo(hi - 50000.0, 1e-6));
     });
   });
 

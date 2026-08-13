@@ -292,14 +292,24 @@ final Map<String, dynamic> livedInBlob = () {
         'startDate': ago(75),
         'startLevel': 16500,
       },
-      // Two prior monthly net worth snapshots, both below today's figure, so
-      // Home's Net Worth hero renders the "from last month" trend line as a
-      // healthy rise rather than only the position. Relative months so it never
-      // drifts into the future. This is what a phone that has been open for a
-      // couple of months looks like, which is the point of a lived-in fixture.
+      // Eleven prior monthly net worth snapshots, a rising trail with a couple
+      // of realistic dips, all below today's figure so Home's Net Worth hero
+      // renders both the "from last month" line as a healthy rise AND the trend
+      // sparkline as a lived-in curve, not a two-point stub. Relative months so
+      // it never drifts into the future. This is what a phone that has been open
+      // for a year looks like, which is the point of a lived-in fixture.
       'netWorthHistory': [
-        {'month': mkey(2), 'value': 205000.0},
-        {'month': mkey(1), 'value': 215000.0},
+        {'month': mkey(11), 'value': 178000.0},
+        {'month': mkey(10), 'value': 182500.0},
+        {'month': mkey(9), 'value': 180000.0},
+        {'month': mkey(8), 'value': 189000.0},
+        {'month': mkey(7), 'value': 195000.0},
+        {'month': mkey(6), 'value': 193000.0},
+        {'month': mkey(5), 'value': 201000.0},
+        {'month': mkey(4), 'value': 208000.0},
+        {'month': mkey(3), 'value': 206000.0},
+        {'month': mkey(2), 'value': 215000.0},
+        {'month': mkey(1), 'value': 221000.0},
       ],
     },
     'accounts': [

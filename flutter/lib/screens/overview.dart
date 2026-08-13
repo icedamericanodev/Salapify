@@ -21,6 +21,7 @@ import '../money/greeting.dart';
 import '../money/pan_mood.dart';
 import '../money/statements.dart';
 import '../money/net_worth_history.dart' as nwh;
+import '../widgets/net_worth_sparkline.dart';
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/treat_card.dart';
@@ -1364,11 +1365,10 @@ class OverviewScreen extends StatelessWidget {
     Map<String, dynamic> data,
   ) {
     final nw = parts['netWorth'] as double;
-    final trend = nwh.netWorthTrend(
-      nwh.netWorthHistoryOf(data),
-      nwh.netWorthMonthKey(DateTime.now()),
-      nw,
-    );
+    final history = nwh.netWorthHistoryOf(data);
+    final month = nwh.netWorthMonthKey(DateTime.now());
+    final trend = nwh.netWorthTrend(history, month, nw);
+    final series = nwh.netWorthSeries(history, month, nw);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1388,6 +1388,15 @@ class OverviewScreen extends StatelessWidget {
             if (trend != null) ...[
               const SizedBox(height: 6),
               _netWorthTrendLine(trend),
+            ],
+            // The trend chart the mockup draws: the shape of the last few
+            // months. Shown only once there are at least two points to draw a
+            // line (one prior month plus today), the same threshold as the trend
+            // text above. The assets and owed breakdown below it stays: the
+            // chart shows the direction, those two numbers show the position.
+            if (series.length >= 2) ...[
+              const SizedBox(height: 14),
+              NetWorthSparkline(values: series),
             ],
             const SizedBox(height: Gap.md),
             StatPair(
