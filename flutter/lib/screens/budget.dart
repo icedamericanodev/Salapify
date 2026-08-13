@@ -208,7 +208,7 @@ class BudgetScreen extends StatelessWidget {
                                                 : 0,
                                             role: AmountRole.row,
                                             signed: true,
-                                            tint: Barako.primary,
+                                            tint: Barako.income,
                                           )
                                         : AmountText(
                                             -(t['amount'] is num

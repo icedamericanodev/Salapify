@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.08 · Income reads green, and the Insights trend uses the dopamine palette.';
+    'f4.09 · Positive money reads green across budget, cash flow, edit and windfall.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

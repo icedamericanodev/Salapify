@@ -157,7 +157,7 @@ class _WindfallCardState extends State<WindfallCard> {
                 ? 'Keep for long-term goals or investing'
                 : 'Nothing left over',
             leftover,
-            color: leftover > 0 ? Barako.primaryText : Barako.muted,
+            color: leftover > 0 ? Barako.income : Barako.muted,
             bold: true,
           ),
           if (r['usedFloor'] == true) ...[

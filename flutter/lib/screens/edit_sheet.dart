@@ -200,7 +200,7 @@ Future<void> _showReceiptSheet(
                       amount,
                       role: AmountRole.card,
                       signed: true,
-                      tint: Barako.primary,
+                      tint: Barako.income,
                     )
                   : AmountText(-amount, role: AmountRole.card),
               const SizedBox(height: 8),

@@ -316,7 +316,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Net income',
           net,
           total: true,
-          color: net >= 0 ? Barako.primary : Barako.warningStrong,
+          color: net >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (interest > 0)
           Padding(
@@ -736,7 +736,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           name,
           bnet,
           total: true,
-          color: bnet >= 0 ? Barako.primary : Barako.warningStrong,
+          color: bnet >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (bin > 0) _line('Cash in', bin, sub: true),
         if (bout > 0) _line('Cash out', bout, sub: true),
@@ -758,7 +758,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Net change in cash',
           netChange,
           total: true,
-          color: netChange >= 0 ? Barako.primary : Barako.warningStrong,
+          color: netChange >= 0 ? Barako.income : Barako.warningStrong,
         ),
         if (!reconciles)
           Padding(
