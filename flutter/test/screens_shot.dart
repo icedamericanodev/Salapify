@@ -150,8 +150,13 @@ String? _walkUpToFlutterRoot(String exe) {
 /// anything is pumped.
 Future<void> loadPanFaces(WidgetTester tester) async {
   await tester.runAsync(() async {
-    for (final mood in PanMood.values) {
-      final provider = AssetImage(panAssetFor(mood));
+    // The rendered emotion faces the app draws. Priming these means every Pan on
+    // every shot renders the real face, not the code-drawn fallback.
+    final paths = <String>[
+      for (final e in PanEmotion.values) panEmotionAsset(e),
+    ];
+    for (final path in paths) {
+      final provider = AssetImage(path);
       final completer = Completer<void>();
       final stream = provider.resolve(ImageConfiguration.empty);
       late ImageStreamListener listener;
@@ -2544,7 +2549,7 @@ void main() {
                       Barako.currentTheme = theme;
                       Barako.current = theme.resolve(Brightness.dark);
                       return Image.asset(
-                        panAssetFor(PanMood.calm),
+                        panEmotionAsset(PanEmotion.content),
                         width: 72,
                         height: 72,
                         filterQuality: FilterQuality.medium,
@@ -2564,6 +2569,60 @@ void main() {
     );
     Barako.currentTheme = themeForKey('barako');
     Barako.current = themeForKey('barako').resolve(Brightness.dark);
+  });
+
+  testWidgets('the Pan emotions', (tester) async {
+    // Pan's whole feeling range in one frame, so a new emotion, a mis-cut
+    // asset, or a face that reads wrong at size is visible at a glance rather
+    // than only where it happens to be wired in.
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    Barako.currentTheme = themeForKey('barako');
+    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    tester.view.physicalSize = const Size(2100, 460);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          backgroundColor: Barako.background,
+          body: Center(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final e in PanEmotion.values)
+                  SizedBox(
+                    width: 200,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PanMascot.emotion(emotion: e, size: 130),
+                        const SizedBox(height: 6),
+                        Text(
+                          e.name,
+                          style: TextStyle(
+                            fontFamily: 'Jakarta',
+                            color: Barako.muted,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/pan-emotions-dark.png'),
+    );
   });
 
   testWidgets('the onboarding flow, walked step by step', (tester) async {

@@ -19,7 +19,6 @@
 
 import 'package:flutter/material.dart';
 
-import '../money/pan_mood.dart';
 import '../theme.dart';
 import '../typography.dart';
 import 'pan_mascot.dart';
@@ -55,6 +54,10 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Which feeling Pan shows when [showPan] is set. Defaults to content, the
+  /// at-ease look an empty screen deserves.
+  final PanEmotion panEmotion;
+
   // NOT const on purpose. Every colour below is a mutable Barako getter
   // read in build(). Dart canonicalizes const instances, so a const call
   // site makes two builds compare equal and Element.updateChild skips
@@ -71,6 +74,7 @@ class EmptyState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.showPan = false,
+    this.panEmotion = PanEmotion.content,
   });
 
   @override
@@ -85,7 +89,9 @@ class EmptyState extends StatelessWidget {
               // Calm, deliberately. An empty screen is not a problem to be
               // worried about, and it is the first thing a new user sees, so
               // the app's own character should look at ease with it.
-              ExcludeSemantics(child: PanMascot(mood: PanMood.calm, size: 76))
+              ExcludeSemantics(
+                child: PanMascot.emotion(emotion: panEmotion, size: 76),
+              )
             else
               SalapifyGlyph(icon, size: 24),
             const SizedBox(height: 8),

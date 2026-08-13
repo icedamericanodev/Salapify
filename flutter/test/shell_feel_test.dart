@@ -111,7 +111,7 @@ void main() {
       MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
-          child: const Scaffold(body: PanMascot(mood: PanMood.happy)),
+          child: Scaffold(body: PanMascot(mood: PanMood.happy)),
         ),
       ),
     );
@@ -131,7 +131,7 @@ void main() {
     // The companion that proves the test above measures the gate and not a
     // universally-dead controller.
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(body: PanMascot(mood: PanMood.happy)),
       ),
     );

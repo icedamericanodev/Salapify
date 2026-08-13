@@ -23,6 +23,7 @@ import '../money/ledger.dart' show amountOf;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/pan_mascot.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
@@ -162,6 +163,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
             // because they are the real invitation on this screen.
             EmptyState(
               icon: 'goal',
+              // Pan shows up content here: an empty goals list is the start of
+              // something, not a blank you failed to fill.
+              showPan: true,
+              panEmotion: PanEmotion.content,
               title: 'What are you saving for?',
               body:
                   'Choose a goal and Salapify will help you build a plan '
