@@ -60,63 +60,46 @@ String panAssetFor(PanMood mood) => switch (mood) {
   PanMood.happy => 'assets/pan/pan-happy.png',
 };
 
-/// Pan's full expressive vocabulary: twelve rendered poses, well beyond the
-/// four reactive moods. The money-state machine still speaks in [PanMood]
-/// (calm, nudge, worried, happy) and that maps into this set, but ANY screen
-/// can also ask Pan for a specific expression directly, so Pan waves hello on a
-/// greeting, reads during a lesson, grows a sprout on a savings win, celebrates
-/// a goal, and hugs a heart when you go Pro. This is the character layer of the
-/// "Pan is Salapify's interface" direction in the constitution: one recognisable
-/// coffee cup, many things to say.
-enum PanExpression {
-  wave, // waving hello
-  sip, // holding his own cup, relaxed
-  walk, // on the move, cheerful
-  zen, // meditating, at peace (the calm resting default)
-  read, // reading, learning a lesson
-  think, // hand on chin, working something out (money at risk)
-  celebrate, // arms up, sparkles, a win
-  wink, // thumbs up and a wink, encouraging
-  grow, // holding a sprout, savings growing
-  work, // at the laptop, heads down
-  love, // hugging a heart, gratitude
-  bye, // waving goodbye, "see you"
+/// Pan's emotional vocabulary: rendered feeling faces, the way Pan actually
+/// reacts to your money. The reaction machine speaks in [PanMood] (calm, nudge,
+/// worried, happy) and maps into this set, but ANY screen, and Pan the
+/// assistant, can also ask for a specific feeling directly. This is Pan's face
+/// as Salapify's interface: one recognisable orange cup that genuinely feels.
+///
+/// The set is deliberately open: a new feeling is a file drop under
+/// assets/pan/emotions plus an enum value, nothing else.
+enum PanEmotion {
+  content, // a soft, pleased smile: on track, all is well
+  worried, // brows up, a bead of sweat: money getting tight
+  sad, // teary: a real setback, held gently and rarely
+  angry, // frustrated, never AT you: reserved for a rip-off on your side
+  tired, // heavy-lidded, weary: a heavy load of bills or debt
 }
 
-/// Where each expression's rendered art lives. One file per pose, transparent
-/// background, cup centred at a consistent size, so swapping expressions
-/// changes the pose and nothing else. A new pose is a file drop plus an enum
-/// value, the same shape as adding a mood face.
-String panExpressionAsset(PanExpression e) =>
-    'assets/pan/expressions/pan-${e.name}.png';
+/// Where each feeling's rendered art lives. One file per emotion, transparent
+/// background, cup centred at a consistent size, so swapping feelings changes
+/// the face and nothing else.
+String panEmotionAsset(PanEmotion e) => 'assets/pan/emotions/pan-${e.name}.png';
 
-/// The four reactive money moods map onto four of the expressions, so the
-/// existing Home check-in and Ask Pan header light up with the new art for
-/// free: calm rests (zen), a gentle to-do winks (wink), money at risk thinks
-/// (think), and the all-clear celebrates (celebrate).
-PanExpression expressionForMood(PanMood mood) => switch (mood) {
-  PanMood.calm => PanExpression.zen,
-  PanMood.nudge => PanExpression.wink,
-  PanMood.worried => PanExpression.think,
-  PanMood.happy => PanExpression.celebrate,
+/// The four reactive money moods map onto the feelings, so the Home check-in
+/// and Ask Pan header light up with the new art for free. Kind by default:
+/// everything positive or resting is content, and only genuine money-at-risk is
+/// worried. The heavier feelings (sad, tired) and angry are reserved for
+/// specific moments rather than the ambient mood, so Pan never cries at, or
+/// scowls at, someone who is already worried about their money.
+PanEmotion emotionForMood(PanMood mood) => switch (mood) {
+  PanMood.worried => PanEmotion.worried,
+  PanMood.calm || PanMood.nudge || PanMood.happy => PanEmotion.content,
 };
 
 /// The coarse reverse map the code-drawn fallback painter needs. It only knows
-/// four faces, so every expression falls back to the nearest one on the rare
-/// path where a rendered asset fails to load (assets are bundled, so this is
-/// the belt-and-braces case, never the everyday one).
-PanMood _moodForExpression(PanExpression e) => switch (e) {
-  PanExpression.celebrate ||
-  PanExpression.wave ||
-  PanExpression.walk => PanMood.happy,
-  PanExpression.think || PanExpression.work => PanMood.worried,
-  PanExpression.wink ||
-  PanExpression.read ||
-  PanExpression.grow => PanMood.nudge,
-  PanExpression.zen ||
-  PanExpression.sip ||
-  PanExpression.love ||
-  PanExpression.bye => PanMood.calm,
+/// four faces, so every feeling falls back to the nearest one on the rare path
+/// where a rendered asset fails to load (assets are bundled, so this is the
+/// belt-and-braces case, never the everyday one).
+PanMood _moodForEmotion(PanEmotion e) => switch (e) {
+  PanEmotion.content => PanMood.happy,
+  PanEmotion.worried || PanEmotion.sad || PanEmotion.tired => PanMood.worried,
+  PanEmotion.angry => PanMood.worried,
 };
 
 /// Pan's signature colour, and the ONLY colour he is ever drawn in.
@@ -144,7 +127,7 @@ const PanPalette kPanSignaturePalette = PanPalette(
 );
 
 class PanMascot extends StatefulWidget {
-  final PanExpression expression;
+  final PanEmotion emotion;
   final double size;
 
   /// Const is SAFE here only because Pan reads no live palette at all: his
@@ -156,22 +139,14 @@ class PanMascot extends StatefulWidget {
   /// skip build() entirely, and Pan would be frozen in the previous palette
   /// while every other pixel on screen moved on. That footgun has bitten this
   /// codebase twice.
-  const PanMascot.expression({
-    super.key,
-    required this.expression,
-    this.size = 64,
-  });
+  const PanMascot.emotion({super.key, required this.emotion, this.size = 64});
 
-  /// The reactive callers speak in [PanMood]; this maps a mood to its
-  /// expression so the existing check-in and Ask Pan header light up with the
-  /// new art unchanged. Not const because it computes the mapping, which is
-  /// fine: those call sites were never const.
+  /// The reactive callers speak in [PanMood]; this maps a mood to its feeling
+  /// so the existing check-in and Ask Pan header light up with the new art
+  /// unchanged. Not const because it computes the mapping, which is fine: those
+  /// call sites were never const.
   PanMascot({Key? key, required PanMood mood, double size = 64})
-    : this.expression(
-        key: key,
-        expression: expressionForMood(mood),
-        size: size,
-      );
+    : this.emotion(key: key, emotion: emotionForMood(mood), size: size);
 
   @override
   State<PanMascot> createState() => _PanMascotState();
@@ -202,8 +177,8 @@ class _PanMascotState extends State<PanMascot>
   @override
   void didUpdateWidget(PanMascot old) {
     super.didUpdateWidget(old);
-    // Only react when the expression genuinely changes, not on every rebuild.
-    if (old.expression != widget.expression) _bob.forward(from: 0);
+    // Only react when the feeling genuinely changes, not on every rebuild.
+    if (old.emotion != widget.emotion) _bob.forward(from: 0);
   }
 
   @override
@@ -215,7 +190,7 @@ class _PanMascotState extends State<PanMascot>
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Pan, your coffee guide, ${_expressionWord(widget.expression)}',
+      label: 'Pan, your coffee guide, ${_emotionWord(widget.emotion)}',
       child: AnimatedBuilder(
         animation: _bob,
         builder: (context, _) {
@@ -232,7 +207,7 @@ class _PanMascotState extends State<PanMascot>
               // the app's character should be, and errorBuilder is the only
               // thing standing between that and a blank box.
               child: Image.asset(
-                panExpressionAsset(widget.expression),
+                panEmotionAsset(widget.emotion),
                 width: widget.size,
                 height: widget.size,
                 // Pan is small on screen and the source is 360px, so filtering
@@ -244,7 +219,7 @@ class _PanMascotState extends State<PanMascot>
                 // precisely the case nobody ever looks at.
                 errorBuilder: (context, error, stack) => CustomPaint(
                   painter: PanCupPainter(
-                    mood: _moodForExpression(widget.expression),
+                    mood: _moodForEmotion(widget.emotion),
                     wisp: t,
                     palette: kPanSignaturePalette,
                   ),
@@ -257,19 +232,12 @@ class _PanMascotState extends State<PanMascot>
     );
   }
 
-  String _expressionWord(PanExpression e) => switch (e) {
-    PanExpression.wave => 'waving hello',
-    PanExpression.sip => 'relaxing with a cup',
-    PanExpression.walk => 'on the move',
-    PanExpression.zen => 'calm and at peace',
-    PanExpression.read => 'reading up',
-    PanExpression.think => 'thinking it over',
-    PanExpression.celebrate => 'celebrating',
-    PanExpression.wink => 'cheering you on',
-    PanExpression.grow => 'watching your money grow',
-    PanExpression.work => 'heads down at work',
-    PanExpression.love => 'grateful',
-    PanExpression.bye => 'waving goodbye',
+  String _emotionWord(PanEmotion e) => switch (e) {
+    PanEmotion.content => 'content',
+    PanEmotion.worried => 'a little worried',
+    PanEmotion.sad => 'sad',
+    PanEmotion.angry => 'frustrated',
+    PanEmotion.tired => 'weary',
   };
 }
 

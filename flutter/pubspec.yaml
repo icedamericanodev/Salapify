@@ -57,7 +57,7 @@ flutter:
     # another pubspec edit, which is the kind of edit that gets forgotten and
     # ships a missing asset.
     - assets/pan/
-    - assets/pan/expressions/
+    - assets/pan/emotions/
   fonts:
     - family: Fraunces
       fonts:

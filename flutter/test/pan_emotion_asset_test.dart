@@ -1,7 +1,6 @@
-// Pan's twelve expressions must exist, load, be declared, and stay lean.
+// Pan's emotion faces must exist, load, be declared, and stay lean.
 //
-// Same reasoning as pan_asset_test for the four mood faces: a missing or
-// mis-declared asset fails QUIETLY, because Image.asset falls back to the
+// A missing or mis-declared asset fails QUIETLY: Image.asset falls back to the
 // code-drawn cup. On an asset build that means the founder installs a whole new
 // APK (new art is not Shorebird-patchable) and silently gets the old drawn Pan,
 // the worst outcome available. These guards make that impossible to ship.
@@ -14,22 +13,22 @@ import 'package:salapify/widgets/pan_mascot.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('every expression maps to a distinct asset path', () {
-    final paths = PanExpression.values.map(panExpressionAsset).toList();
+  test('every emotion maps to a distinct asset path', () {
+    final paths = PanEmotion.values.map(panEmotionAsset).toList();
     expect(
       paths.toSet().length,
-      PanExpression.values.length,
-      reason: 'two expressions sharing one file means one of them is wrong',
+      PanEmotion.values.length,
+      reason: 'two emotions sharing one file means one of them is wrong',
     );
     for (final p in paths) {
-      expect(p.startsWith('assets/pan/expressions/'), isTrue, reason: p);
+      expect(p.startsWith('assets/pan/emotions/'), isTrue, reason: p);
       expect(p.endsWith('.png'), isTrue, reason: p);
     }
   });
 
-  test('every expression exists on disk', () {
-    for (final e in PanExpression.values) {
-      final path = panExpressionAsset(e);
+  test('every emotion exists on disk', () {
+    for (final e in PanEmotion.values) {
+      final path = panEmotionAsset(e);
       expect(
         File(path).existsSync(),
         isTrue,
@@ -40,10 +39,10 @@ void main() {
     }
   });
 
-  test('the expressions directory is declared in pubspec', () {
+  test('the emotions directory is declared in pubspec', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(
-      pubspec.contains('- assets/pan/expressions/'),
+      pubspec.contains('- assets/pan/emotions/'),
       isTrue,
       reason:
           'The files exist but the directory is not in the bundle. A file on '
@@ -51,11 +50,11 @@ void main() {
     );
   });
 
-  testWidgets('every expression actually loads through the asset bundle', (
+  testWidgets('every emotion actually loads through the asset bundle', (
     tester,
   ) async {
-    for (final e in PanExpression.values) {
-      final path = panExpressionAsset(e);
+    for (final e in PanEmotion.values) {
+      final path = panEmotionAsset(e);
       final data = await rootBundle.load(path);
       expect(
         data.lengthInBytes,
@@ -71,15 +70,15 @@ void main() {
     }
   });
 
-  test('the expressions folder holds exactly the twelve declared poses', () {
+  test('the emotions folder holds exactly the declared feelings', () {
     // pubspec declares the whole directory, so anything in it ships. A stray
     // (an intermediate crop, a full-resolution render dropped in unprocessed)
-    // would ship silently and, worse, could break the next Shorebird build.
-    final declared = PanExpression.values
-        .map(panExpressionAsset)
+    // would ship silently and could break the next Shorebird build.
+    final declared = PanEmotion.values
+        .map(panEmotionAsset)
         .map((p) => p.replaceAll(r'\', '/'))
         .toSet();
-    final found = Directory('assets/pan/expressions')
+    final found = Directory('assets/pan/emotions')
         .listSync()
         .whereType<File>()
         .map((f) => f.path.replaceAll(r'\', '/'))
@@ -87,19 +86,19 @@ void main() {
     expect(
       found.difference(declared),
       isEmpty,
-      reason: 'Unexpected file(s) in assets/pan/expressions.',
+      reason: 'Unexpected file(s) in assets/pan/emotions.',
     );
     expect(
       declared.difference(found),
       isEmpty,
-      reason: 'A declared expression has no file.',
+      reason: 'A declared emotion has no file.',
     );
   });
 
-  test('the twelve stay lean enough to bundle', () {
+  test('the feelings stay lean enough to bundle', () {
     var total = 0;
     for (final f in Directory(
-      'assets/pan/expressions',
+      'assets/pan/emotions',
     ).listSync().whereType<File>()) {
       total += f.lengthSync();
     }
@@ -107,10 +106,9 @@ void main() {
       total,
       lessThan(2 * 1024 * 1024),
       reason:
-          'Pan expressions are ${(total / 1024).round()}KB. The 1254px source '
-          'sheet is several MB; the twelve are cut and downscaled to ~1.3MB. A '
-          'jump back means someone dropped full-resolution renders in without '
-          'processing them.',
+          'Pan emotions are ${(total / 1024).round()}KB. The 1024px sources are '
+          'cut and downscaled to a few hundred KB; a jump back means someone '
+          'dropped full-resolution renders in without processing them.',
     );
   });
 }

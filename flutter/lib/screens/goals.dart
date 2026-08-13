@@ -163,10 +163,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
             // because they are the real invitation on this screen.
             EmptyState(
               icon: 'goal',
-              // Pan holds a sprout here: an empty goals list is the start of
-              // something growing, not a blank you failed to fill.
+              // Pan shows up content here: an empty goals list is the start of
+              // something, not a blank you failed to fill.
               showPan: true,
-              panExpression: PanExpression.grow,
+              panEmotion: PanEmotion.content,
               title: 'What are you saving for?',
               body:
                   'Choose a goal and Salapify will help you build a plan '

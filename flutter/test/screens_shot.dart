@@ -150,12 +150,12 @@ String? _walkUpToFlutterRoot(String exe) {
 /// anything is pumped.
 Future<void> loadPanFaces(WidgetTester tester) async {
   await tester.runAsync(() async {
-    // Both the four mood faces AND the twelve rendered expressions: the app now
-    // draws expression art, so priming only the moods would leave every Pan on
+    // Both the four legacy mood faces AND the rendered emotion faces: the app
+    // now draws emotion art, so priming only the moods would leave every Pan on
     // every shot rendering the code-drawn fallback instead of the real face.
     final paths = <String>[
       for (final mood in PanMood.values) panAssetFor(mood),
-      for (final e in PanExpression.values) panExpressionAsset(e),
+      for (final e in PanEmotion.values) panEmotionAsset(e),
     ];
     for (final path in paths) {
       final provider = AssetImage(path);
@@ -2573,15 +2573,15 @@ void main() {
     Barako.current = themeForKey('barako').resolve(Brightness.dark);
   });
 
-  testWidgets('the twelve Pan expressions', (tester) async {
-    // Pan's whole vocabulary in one frame, so a new expression, a mis-cut
-    // asset, or a pose that reads wrong at size is visible at a glance rather
+  testWidgets('the Pan emotions', (tester) async {
+    // Pan's whole feeling range in one frame, so a new emotion, a mis-cut
+    // asset, or a face that reads wrong at size is visible at a glance rather
     // than only where it happens to be wired in.
     await loadRealFonts(tester);
     await loadPanFaces(tester);
     Barako.currentTheme = themeForKey('barako');
     Barako.current = themeForKey('barako').resolve(Brightness.dark);
-    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.physicalSize = const Size(2100, 460);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -2591,23 +2591,23 @@ void main() {
           body: Center(
             child: Wrap(
               spacing: 8,
-              runSpacing: 8,
+              runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                for (final e in PanExpression.values)
+                for (final e in PanEmotion.values)
                   SizedBox(
-                    width: 132,
+                    width: 200,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        PanMascot.expression(expression: e, size: 92),
-                        const SizedBox(height: 4),
+                        PanMascot.emotion(emotion: e, size: 130),
+                        const SizedBox(height: 6),
                         Text(
                           e.name,
                           style: TextStyle(
                             fontFamily: 'Jakarta',
                             color: Barako.muted,
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -2623,7 +2623,7 @@ void main() {
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('shots/pan-expressions-dark.png'),
+      matchesGoldenFile('shots/pan-emotions-dark.png'),
     );
   });
 
