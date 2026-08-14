@@ -66,12 +66,15 @@ Future<void> showMindsetDecisionDetail(
   BuildContext context,
   Map<String, dynamic> decision,
 ) {
-  final outcome = decision['outcome'] as String?;
+  // Read strings defensively: a malformed backup can carry a non-string where
+  // a string belongs, and an `as String?` cast would crash the sheet on tap.
+  String? str(dynamic v) => v is String ? v : null;
+  final outcome = str(decision['outcome']);
   final (icon, color) = _look(outcome);
-  final name = (decision['itemName'] as String?)?.trim();
-  final note = (decision['note'] as String?)?.trim();
+  final name = str(decision['itemName'])?.trim();
+  final note = str(decision['note'])?.trim();
   final amount = _amount(decision);
-  final verdict = _verdictLabel(decision['verdict'] as String?);
+  final verdict = _verdictLabel(str(decision['verdict']));
   final when = _fullWhen(decision['createdAt']);
 
   return showModalBottomSheet<void>(

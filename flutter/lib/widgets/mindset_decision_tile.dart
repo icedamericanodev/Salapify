@@ -41,12 +41,18 @@ class MindsetDecisionTile extends StatelessWidget {
     return null;
   }
 
+  // Read a field as a string only when it actually is one. A malformed or
+  // hand-edited backup can carry a number where a string belongs, and an
+  // `as String?` cast would throw and take the whole screen down; the pure
+  // helpers already read defensively, and these widgets must match them.
+  static String? _str(dynamic v) => v is String ? v : null;
+
   @override
   Widget build(BuildContext context) {
-    final outcome = decision['outcome'] as String?;
+    final outcome = _str(decision['outcome']);
     final (icon, color) = _look(outcome);
-    final name = (decision['itemName'] as String?)?.trim();
-    final note = (decision['note'] as String?)?.trim();
+    final name = _str(decision['itemName'])?.trim();
+    final note = _str(decision['note'])?.trim();
     final amount = _amount();
     final when = mindsetDecisionWhen(decision['createdAt'], now);
 

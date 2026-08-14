@@ -30,14 +30,19 @@ class CountUpText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A malformed stored amount can sum to NaN or Infinity. Clamp to 0 so the
+    // cell shows a stable figure instead of "PNaN": a non-finite value also
+    // breaks the ValueKey (NaN != NaN), which would restart the roll on every
+    // rebuild forever.
+    final safe = value.isFinite ? value : 0.0;
     return Semantics(
-      value: format(value),
+      value: format(safe),
       child: ExcludeSemantics(
         // Keyed by the destination so a value change re-runs the roll from the
         // current frame, and an unchanged value never re-animates on rebuild.
         child: TweenAnimationBuilder<double>(
-          key: ValueKey(value),
-          tween: Tween(begin: 0, end: value),
+          key: ValueKey(safe),
+          tween: Tween(begin: 0, end: safe),
           duration: duration,
           curve: Curves.easeOutCubic,
           builder: (context, v, _) =>

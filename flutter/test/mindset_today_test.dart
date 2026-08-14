@@ -241,6 +241,42 @@ void main() {
     expect(store.mindsetDecisions.length, 1);
   });
 
+  testWidgets('a malformed decision never crashes the dashboard or its detail', (
+    tester,
+  ) async {
+    final store = await _load(
+      _blob(
+        decisions: [
+          // Non-string outcome and itemName: an `as String?` cast would throw.
+          {
+            'id': 'm1',
+            'outcome': 5,
+            'itemName': 42,
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+          // An avoided buy with a NaN amount: the money-avoided sum goes NaN,
+          // which the count-up must survive.
+          {
+            'id': 'm2',
+            'outcome': MindsetOutcome.avoided,
+            'itemName': 'Weird',
+            'amount': 'NaN',
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+    expect(find.byType(MindsetTodayScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // The malformed row renders with the neutral fallback name and opens its
+    // read-only detail without throwing.
+    await tester.tap(find.text('A purchase'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('See my 30 days opens the insights screen', (tester) async {
     final store = await _load(_blob());
     await _pumpDashboard(tester, store);
