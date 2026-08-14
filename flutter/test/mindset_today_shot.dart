@@ -6,11 +6,46 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/screens/mindset_decisions_list.dart';
+import 'package:salapify/screens/mindset_insights.dart';
 import 'package:salapify/screens/mindset_today.dart';
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadPanFaces, loadRealFonts;
+
+/// A lived-in fixture for the 30-day insights screen: decision checks and wins
+/// spread over the last four weeks so the snapshot counts, the spending-avoided
+/// figure, the mindful streak dots, and the small wins all render with real
+/// numbers instead of an empty first-run screen.
+Map<String, dynamic> _insightsBlob() {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  String iso(DateTime t) =>
+      '${t.year.toString().padLeft(4, '0')}-'
+      '${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
+  String ago(int d) => iso(today.subtract(Duration(days: d)));
+  final blob = _blob();
+  (blob['settings'] as Map)['mindsetChecks'] = [
+    {'date': ago(1), 'verdict': 'pause24h'},
+    {'date': ago(8), 'verdict': 'notInPlan'},
+    {'date': ago(16), 'verdict': 'fitsPlan'},
+  ];
+  (blob['settings'] as Map)['mindsetWaiting'] = [
+    {'id': 'p1', 'createdAt': ago(2), 'status': 'waiting', 'amount': 4990},
+  ];
+  blob['wins'] = [
+    {'id': 'w1', 'note': 'Skipped new shoes', 'amount': 3200, 'date': ago(3)},
+    {
+      'id': 'w2',
+      'note': 'Packed lunch all week',
+      'amount': 1800,
+      'date': ago(9),
+    },
+  ];
+  return blob;
+}
 
 Map<String, dynamic> _blob() {
   final now = DateTime.now();
@@ -101,6 +136,72 @@ void main() {
   testWidgets('Mindset Today dashboard, light', (tester) async {
     await _shoot(tester, Brightness.light, 'shots/mindset-today-light.png');
   });
+  Future<void> shootScreen(
+    WidgetTester tester,
+    Brightness b,
+    Widget Function(SalapifyStore) build,
+    Map<String, dynamic> blob,
+    String file,
+  ) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(blob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(b);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: build(store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(find.byType(MaterialApp), matchesGoldenFile(file));
+  }
+
+  testWidgets('Mindset insights (My 30 days), dark', (tester) async {
+    await shootScreen(
+      tester,
+      Brightness.dark,
+      (s) => MindsetInsightsScreen(store: s),
+      _insightsBlob(),
+      'shots/mindset-insights-dark.png',
+    );
+  });
+  testWidgets('Mindset insights (My 30 days), light', (tester) async {
+    await shootScreen(
+      tester,
+      Brightness.light,
+      (s) => MindsetInsightsScreen(store: s),
+      _insightsBlob(),
+      'shots/mindset-insights-light.png',
+    );
+  });
+  testWidgets('Mindset View all with filter, dark', (tester) async {
+    await shootScreen(
+      tester,
+      Brightness.dark,
+      (s) => MindsetDecisionsListScreen(store: s),
+      _blob(),
+      'shots/mindset-viewall-dark.png',
+    );
+  });
+  testWidgets('Mindset View all with filter, light', (tester) async {
+    await shootScreen(
+      tester,
+      Brightness.light,
+      (s) => MindsetDecisionsListScreen(store: s),
+      _blob(),
+      'shots/mindset-viewall-light.png',
+    );
+  });
+
   testWidgets('Mindset Today dashboard, empty', (tester) async {
     await loadRealFonts(tester);
     await loadPanFaces(tester);

@@ -15,10 +15,16 @@ import 'salapify_icon.dart';
 class MindsetDecisionTile extends StatelessWidget {
   final Map<String, dynamic> decision;
   final DateTime now;
+
+  /// When set, the whole row is tappable and opens the decision detail. Null
+  /// leaves it a plain, non-interactive row.
+  final VoidCallback? onTap;
+
   const MindsetDecisionTile({
     super.key,
     required this.decision,
     required this.now,
+    this.onTap,
   });
 
   static (String, Color) _look(String? outcome) => switch (outcome) {
@@ -44,8 +50,7 @@ class MindsetDecisionTile extends StatelessWidget {
     final amount = _amount();
     final when = mindsetDecisionWhen(decision['createdAt'], now);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: Gap.sm),
+    final card = Container(
       padding: const EdgeInsets.all(Gap.md),
       decoration: BoxDecoration(
         color: Barako.card,
@@ -103,6 +108,28 @@ class MindsetDecisionTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    final row = onTap == null
+        ? card
+        : Semantics(
+            button: true,
+            label: [
+              name != null && name.isNotEmpty ? name : 'A purchase',
+              mindsetOutcomeLabel(outcome),
+              if (amount != null) formatMoney(amount),
+            ].where((s) => s.isNotEmpty).join(', '),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(Radii.card),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(onTap: onTap, child: card),
+            ),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.sm),
+      child: row,
     );
   }
 

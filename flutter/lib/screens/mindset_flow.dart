@@ -12,7 +12,8 @@ import '../data/store.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
-import '../money/mindset_decisions.dart' show mindsetOutcomeFromFlow;
+import '../money/mindset_decisions.dart'
+    show mindsetOutcomeFromFlow, mindsetWeekDots;
 import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
 import '../services/notifications.dart' show Reminders;
 import '../money/mindset_decision.dart'
@@ -1384,24 +1385,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   );
 
   /// One dot per week over the last four, active when a check or a win landed
-  /// in that week. Oldest week first.
-  List<bool> _weekDots(DateTime now) {
-    final dates = <DateTime>[
-      for (final c in widget.store.mindsetChecks)
-        if (c['date'] is String && DateTime.tryParse(c['date']) != null)
-          DateTime.parse(c['date']),
-      for (final w in _wins())
-        if (w['date'] is String && DateTime.tryParse(w['date']) != null)
-          DateTime.parse(w['date']),
-    ];
-    return [
-      for (var w = 3; w >= 0; w--)
-        dates.any((d) {
-          final days = now.difference(d).inDays;
-          return days >= w * 7 && days < (w + 1) * 7;
-        }),
-    ];
-  }
+  /// in that week. Oldest week first. Delegates to the shared pure helper so the
+  /// standalone insights screen and this step never drift.
+  List<bool> _weekDots(DateTime now) =>
+      mindsetWeekDots(widget.store.mindsetChecks, _wins(), now);
 
   Widget _lessonCard(String title, String summary) => Container(
     padding: const EdgeInsets.all(Gap.lg),
