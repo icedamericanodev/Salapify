@@ -364,6 +364,7 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // dragging the slider never re-runs the binary search over the ledger.
   Map<String, double>? _spectrum;
   String? _spectrumKey;
+  double? _spectrumSearchMax;
 
   // Subscription fields: a recurring amount and how often it bills.
   final _subAmountText = TextEditingController();
@@ -407,6 +408,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
       _creditFeesText.clear();
       _goalId = null;
       _checkLogged = false;
+      _whatIf = null;
+      _whatIfBase = null;
     });
     // Same reasoning as _reviewAgain's own scroll-to-top: Clear check sits
     // near the bottom of the Impulse check card, so whatever scrolled it
@@ -1050,6 +1053,8 @@ class _MindsetScreenState extends State<MindsetScreen> {
       // last completed, so the postFrameCallback's guard would silently
       // skip it.
       _checkLogged = false;
+      _whatIf = null;
+      _whatIfBase = null;
     });
     // Back to the top: the WAITING card the person just tapped from is below
     // the fold, and it is about to lose this row entirely (status is no
@@ -1280,15 +1285,23 @@ class _MindsetScreenState extends State<MindsetScreen> {
             // something honest to say.
             final decision = _decisionResult(now, selectedGoal);
             // The one-time comfort spectrum for the what-if slider, memoised so
-            // dragging never re-runs the search. Only the one-time flow shows a
-            // slider (a subscription or credit "ceiling" is a monthly figure and
-            // reads differently; deferred).
+            // dragging never re-runs the search. Shown only for a one-time buy
+            // with NO linked goal: the score is monotonic in the amount for the
+            // buffer, income and reserved axes, but the goal axis is NOT (a near
+            // funded deadline goal makes it jump as the amount crosses a period
+            // boundary), which would break the binary search and let the zoned
+            // bar disagree with the real score. So the spectrum is gated to the
+            // provably monotone case; a subscription or credit "ceiling" is a
+            // monthly figure that reads differently and is also deferred. Making
+            // the goal axis monotone is a money-methodology change flagged to the
+            // founder, not done here.
             final enteredOneTime = _validAmount ?? 0;
             final spectrum =
                 (_purchaseType == 'oneTime' &&
                     decision != null &&
-                    enteredOneTime > 0)
-                ? _spectrumFor(now, selectedGoal, decision, enteredOneTime)
+                    enteredOneTime > 0 &&
+                    selectedGoal == null)
+                ? _spectrumFor(now, decision, enteredOneTime)
                 : null;
             // One log row per completed check, the moment all three answers
             // first line up. Scheduled for after this frame rather than
@@ -2444,29 +2457,34 @@ class _MindsetScreenState extends State<MindsetScreen> {
   /// fields here is not setState, so it never triggers a rebuild.
   Map<String, double>? _spectrumFor(
     DateTime now,
-    Map<String, dynamic>? goal,
     Map<String, dynamic> decision,
     double entered,
   ) {
     final buffer = amountOf(decision['bufferAfter']) + entered;
     final available = amountOf(decision['availableAfter']) + entered;
-    final goalId = goal?['id'];
+    // daysLeft is in the key because the sweldo-relief boundary (3 days) can
+    // move the reserved axis with no change to buffer or available, which would
+    // otherwise leave a stale ceiling cached across a day boundary.
+    final daysLeft = decision['daysLeft'];
     final key =
         '${buffer.round()}_${available.round()}_'
-        '${decision['incomeKnown']}_$goalId';
+        '${daysLeft}_${decision['incomeKnown']}';
     if (key != _spectrumKey) {
       final searchMax = [
         buffer * 2,
         entered * 5,
         300000.0,
       ].reduce((a, b) => a > b ? a : b);
+      // No goal here (the caller gates the spectrum to the no-goal case), so the
+      // score is monotone and the binary search is exact.
       _spectrum = mindsetComfortRange(
         widget.store.data,
         now,
-        goal: goal,
+        goal: null,
         maxAmount: searchMax,
       );
       _spectrumKey = key;
+      _spectrumSearchMax = searchMax;
     }
     return _spectrum;
   }
@@ -2758,9 +2776,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
     // value): a ceiling reads as a round guideline, and rounding DOWN keeps it
     // honest (never promises more headroom than there is).
     final displayCeiling = (comfortCeiling / 50).floorToDouble() * 50;
+    // When the search never left the comfortable band inside its own bound, the
+    // ceiling equals that bound and is not a real boundary: say "well past"
+    // rather than print the search bound as if it were a precise limit.
+    final searchMax = _spectrumSearchMax ?? double.infinity;
+    final saturated = comfortCeiling >= searchMax * 0.999;
     final String line;
-    if (comfortCeiling >= maxSlider) {
-      line = 'Comfortable across this whole range right now.';
+    if (saturated) {
+      line = 'Comfortable well past anything you would buy right now.';
     } else if (displayCeiling > 0) {
       line =
           'Up to ${formatMoney(displayCeiling)} still fits comfortably '
@@ -2768,6 +2791,18 @@ class _MindsetScreenState extends State<MindsetScreen> {
     } else {
       line = 'Right now, even a small buy is worth a pause.';
     }
+
+    // Spoken value for a screen reader: the amount and the band it lands in.
+    String readout(double v) {
+      final b = MindsetSpectrumBar.bandForAmount(
+        v,
+        comfortCeiling,
+        cautionCeiling,
+      );
+      return '${formatMoney(v.roundToDouble())}, ${mindsetBandLabel(b)}';
+    }
+
+    final step = MindsetSpectrumBar.stepFor(maxSlider);
 
     return [
       Row(
@@ -2791,9 +2826,14 @@ class _MindsetScreenState extends State<MindsetScreen> {
         maxAmount: maxSlider,
         comfortCeiling: comfortCeiling,
         cautionCeiling: cautionCeiling,
-        semanticLabel:
-            'What if slider, ${formatMoney(sliderValue)}, '
-            '${mindsetBandLabel(band)}',
+        semanticLabel: 'What if amount',
+        semanticValue: readout(sliderValue),
+        semanticIncreasedValue: readout(
+          (sliderValue + step).clamp(0.0, maxSlider),
+        ),
+        semanticDecreasedValue: readout(
+          (sliderValue - step).clamp(0.0, maxSlider),
+        ),
         onChanged: (v) => setState(() {
           _whatIf = v;
           _whatIfBase = entered;

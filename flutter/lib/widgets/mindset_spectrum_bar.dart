@@ -23,6 +23,9 @@ class MindsetSpectrumBar extends StatelessWidget {
     required this.cautionCeiling,
     required this.onChanged,
     this.semanticLabel,
+    this.semanticValue,
+    this.semanticIncreasedValue,
+    this.semanticDecreasedValue,
   });
 
   final double value;
@@ -32,9 +35,24 @@ class MindsetSpectrumBar extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final String? semanticLabel;
 
+  /// The spoken current value (e.g. "₱5,000, Worth a pause"), so a screen
+  /// reader announces the amount and band, not just "slider". When set, the
+  /// increased/decreased spoken values must be set too (a Flutter slider
+  /// invariant when onIncrease/onDecrease are provided).
+  final String? semanticValue;
+  final String? semanticIncreasedValue;
+  final String? semanticDecreasedValue;
+
+  /// The nudge step assistive tech uses; kept in sync with the parent so the
+  /// spoken increased/decreased values match what a nudge actually does.
+  static double stepFor(double maxAmount) =>
+      (maxAmount > 0 ? maxAmount : 1) / 20;
+
   static const double _barHeight = 8;
   static const double _thumb = 22;
-  static const double _rowHeight = 28;
+  // 44dp so the whole drag target clears the minimum touch size, even though
+  // the painted bar is only 8dp tall.
+  static const double _rowHeight = 44;
 
   /// The band a peso [amount] falls in, read purely off the two thresholds, so
   /// the thumb colour and the live readout never re-score the ledger.
@@ -67,10 +85,18 @@ class MindsetSpectrumBar extends StatelessWidget {
         final band = bandForAmount(value, comfortCeiling, cautionCeiling);
 
         void report(double dx) => onChanged((dx / w).clamp(0.0, 1.0) * max);
+        // A tidy step so assistive tech can move the thumb without a drag.
+        final step = stepFor(max);
+        void nudge(double delta) => onChanged((value + delta).clamp(0.0, max));
 
         return Semantics(
           slider: true,
           label: semanticLabel,
+          value: semanticValue,
+          increasedValue: semanticIncreasedValue,
+          decreasedValue: semanticDecreasedValue,
+          onIncrease: () => nudge(step),
+          onDecrease: () => nudge(-step),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => report(d.localPosition.dx),
