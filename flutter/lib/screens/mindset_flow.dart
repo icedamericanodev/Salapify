@@ -25,6 +25,12 @@ class MindsetFlowScreen extends StatefulWidget {
 }
 
 class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
+  // Two leading-square sizes: the larger for the tall selection cards, the
+  // smaller for single-line input fields, so the two input rows (item, amount)
+  // come out the same height.
+  static const double _iconBox = 44;
+  static const double _fieldIconBox = 32;
+
   final _page = PageController();
   int _step = 1;
 
@@ -171,20 +177,20 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   Widget _typeCard(String value, String icon, String title, String subtitle) {
     final selected = _purchaseType == value;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: Gap.md),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Radii.card),
           onTap: () => setState(() => _purchaseType = value),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(Gap.lg),
             decoration: BoxDecoration(
               color: selected
                   ? Barako.primary.withValues(alpha: 0.08)
                   : Barako.card,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Radii.card),
               border: Border.all(
                 color: selected ? Barako.primary : Barako.border,
                 width: selected ? 1.5 : 1,
@@ -193,13 +199,13 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: _iconBox,
+                  height: _iconBox,
                   decoration: BoxDecoration(
                     color: selected
                         ? Barako.primary.withValues(alpha: 0.15)
                         : Barako.surfaceRaised,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Radii.control),
                   ),
                   child: Icon(
                     salapifyIcon(icon),
@@ -207,7 +213,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                     color: selected ? Barako.primary : Barako.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: Gap.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,24 +261,24 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
 
   Widget _itemField() {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(Gap.sm),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         border: Border.all(color: Barako.border),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: _fieldIconBox,
+            height: _fieldIconBox,
             decoration: BoxDecoration(
               color: Barako.surfaceRaised,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Radii.control),
             ),
-            child: Icon(salapifyIcon('cart'), size: 20, color: Barako.muted),
+            child: Icon(salapifyIcon('cart'), size: 18, color: Barako.muted),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Gap.md),
           Expanded(
             child: TextField(
               controller: _itemName,
@@ -291,10 +297,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
 
   Widget _amountField() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.md),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.field),
         border: Border.all(
           color: _amount.text.isNotEmpty && !_step1Valid
               ? Barako.warningStrong
@@ -348,17 +354,17 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
 
   Widget _panTip(String tip) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(Gap.md),
       decoration: BoxDecoration(
         color: Barako.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: Barako.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PanMascot.emotion(emotion: PanEmotion.content, size: 44),
-          const SizedBox(width: 12),
+          const PanMascot.emotion(emotion: PanEmotion.content, size: _iconBox),
+          const SizedBox(width: Gap.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,16 +471,19 @@ class _CategoryChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.control),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.md,
+            vertical: Gap.sm,
+          ),
           decoration: BoxDecoration(
             color: selected
                 ? Barako.primary.withValues(alpha: 0.12)
                 : Barako.card,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             border: Border.all(
               color: selected ? Barako.primary : Barako.border,
               width: selected ? 1.5 : 1,
