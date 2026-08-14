@@ -3,10 +3,70 @@
 // a change to the curve, a weight, or a threshold moves a number here and fails
 // loudly. The axes are pure functions precisely so each branch can be checked in
 // isolation and broken to prove the test fails (the repo rule for money logic).
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/store.dart';
 import 'package:salapify/money/mindset_decision.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// A ledger with several completed months of income and spending and a real
+/// cushion, so the multi-month engines have a base and the comfort spectrum has
+/// interior boundaries to find.
+Map<String, dynamic> _spectrumBlob() {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  String iso(DateTime t) =>
+      '${t.year.toString().padLeft(4, '0')}-'
+      '${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
+  DateTime back(int m, int day) => DateTime(today.year, today.month - m, day);
+  final txns = <Map<String, dynamic>>[];
+  for (var m = 0; m <= 5; m++) {
+    txns.add({
+      'id': 'in$m',
+      'type': 'income',
+      'label': 'Salary',
+      'amount': 32000,
+      'date': iso(back(m, 5)),
+      'accountId': 'pay',
+    });
+    txns.add({
+      'id': 'ex$m',
+      'type': 'expense',
+      'label': 'Living',
+      'amount': 17000,
+      'date': iso(back(m, 12)),
+      'accountId': 'gcash',
+    });
+  }
+  return <String, dynamic>{
+    'schemaVersion': 12,
+    'settings': {
+      'onboarded': true,
+      'paydaySchedule': {'mode': 'monthly', 'day': 30},
+    },
+    'accounts': [
+      {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 6000},
+      {'id': 'bpi', 'name': 'BPI', 'kind': 'savings', 'balance': 54000},
+      {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 10000},
+    ],
+    'transactions': txns,
+  };
+}
+
+Future<SalapifyStore> _loadStore(Map<String, dynamic> blob) async {
+  SharedPreferences.setMockInitialValues({
+    'salapify_data_v2': jsonEncode(blob),
+  });
+  final store = SalapifyStore();
+  await store.load();
+  return store;
+}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('bufferAxis (weight 40): months of cushion after the buy', () {
     test('3+ months is full marks', () {
       // Example A: buffer 90000 - 1500 = 88500, avg 20000 -> 4.425 months.
@@ -205,5 +265,51 @@ void main() {
         const Duration(days: 3),
       );
     });
+  });
+
+  group('mindsetComfortRange: the personal spending spectrum', () {
+    test('ceilings are ordered and each boundary really flips the band', () async {
+      final store = await _loadStore(_spectrumBlob());
+      final now = DateTime.now();
+      final r = mindsetComfortRange(store.data, now, maxAmount: 300000);
+      final comfort = r['comfortCeiling']!;
+      final caution = r['cautionCeiling']!;
+
+      // A real interior spectrum: 0 < comfort <= caution < max.
+      expect(comfort, greaterThan(0));
+      expect(comfort, lessThanOrEqualTo(caution));
+      expect(caution, lessThan(300000));
+
+      // The binary search lands exactly on each boundary: at the ceiling the buy
+      // is still in the band, a nudge past it is not. The 200-peso nudge clears
+      // the search's sub-peso convergence.
+      expect(mindsetOneTimeBand(store.data, now, comfort), 1);
+      expect(
+        mindsetOneTimeBand(store.data, now, comfort + 200),
+        greaterThanOrEqualTo(2),
+      );
+      expect(
+        mindsetOneTimeBand(store.data, now, caution),
+        lessThanOrEqualTo(2),
+      );
+      expect(mindsetOneTimeBand(store.data, now, caution + 200), 3);
+    });
+
+    test(
+      'band never drops as the amount rises (the search relies on this)',
+      () async {
+        final store = await _loadStore(_spectrumBlob());
+        final now = DateTime.now();
+        var prev = 0;
+        for (var a = 0.0; a <= 250000; a += 5000) {
+          final b = mindsetOneTimeBand(store.data, now, a);
+          expect(b, greaterThanOrEqualTo(prev), reason: 'band fell at $a');
+          prev = b;
+        }
+        // And it genuinely spans all three bands over the range.
+        expect(mindsetOneTimeBand(store.data, now, 0), 1);
+        expect(mindsetOneTimeBand(store.data, now, 250000), 3);
+      },
+    );
   });
 }

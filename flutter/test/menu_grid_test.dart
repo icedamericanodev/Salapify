@@ -19,7 +19,7 @@ import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/menu.dart';
 import 'package:salapify/screens/milestone_share.dart';
-import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/screens/mindset_flow.dart';
 import 'package:salapify/screens/paluwagan.dart';
 import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/payday.dart';
@@ -53,7 +53,7 @@ final _destinations = <String, Type>{
   // Calculators screen, so the guard that every Menu destination opens its
   // screen now covers them too.
   'Money courses': LearnScreen,
-  'Money mindset': MindsetScreen,
+  'Money mindset': MindsetFlowScreen,
   'Calculators': ToolsScreen,
   'Earn your treats': TreatsScreen,
   'Share your month': RecapShareScreen,
