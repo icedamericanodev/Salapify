@@ -15,10 +15,16 @@ import 'salapify_icon.dart';
 class MindsetDecisionTile extends StatelessWidget {
   final Map<String, dynamic> decision;
   final DateTime now;
+
+  /// When set, the whole row is tappable and opens the decision detail. Null
+  /// leaves it a plain, non-interactive row.
+  final VoidCallback? onTap;
+
   const MindsetDecisionTile({
     super.key,
     required this.decision,
     required this.now,
+    this.onTap,
   });
 
   static (String, Color) _look(String? outcome) => switch (outcome) {
@@ -35,17 +41,22 @@ class MindsetDecisionTile extends StatelessWidget {
     return null;
   }
 
+  // Read a field as a string only when it actually is one. A malformed or
+  // hand-edited backup can carry a number where a string belongs, and an
+  // `as String?` cast would throw and take the whole screen down; the pure
+  // helpers already read defensively, and these widgets must match them.
+  static String? _str(dynamic v) => v is String ? v : null;
+
   @override
   Widget build(BuildContext context) {
-    final outcome = decision['outcome'] as String?;
+    final outcome = _str(decision['outcome']);
     final (icon, color) = _look(outcome);
-    final name = (decision['itemName'] as String?)?.trim();
-    final note = (decision['note'] as String?)?.trim();
+    final name = _str(decision['itemName'])?.trim();
+    final note = _str(decision['note'])?.trim();
     final amount = _amount();
     final when = mindsetDecisionWhen(decision['createdAt'], now);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: Gap.sm),
+    final card = Container(
       padding: const EdgeInsets.all(Gap.md),
       decoration: BoxDecoration(
         color: Barako.card,
@@ -103,6 +114,28 @@ class MindsetDecisionTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    final row = onTap == null
+        ? card
+        : Semantics(
+            button: true,
+            label: [
+              name != null && name.isNotEmpty ? name : 'A purchase',
+              mindsetOutcomeLabel(outcome),
+              if (amount != null) formatMoney(amount),
+            ].where((s) => s.isNotEmpty).join(', '),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(Radii.card),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(onTap: onTap, child: card),
+            ),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.sm),
+      child: row,
     );
   }
 

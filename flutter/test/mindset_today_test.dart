@@ -7,9 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/mindset_decisions.dart';
+import 'package:salapify/screens/mindset_decisions_list.dart';
 import 'package:salapify/screens/mindset_flow.dart';
+import 'package:salapify/screens/mindset_insights.dart';
 import 'package:salapify/screens/mindset_today.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/segmented.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadRealFonts;
@@ -34,10 +37,7 @@ Map<String, dynamic> _blob({List<Map<String, dynamic>>? decisions}) {
   }
   return {
     'schemaVersion': 12,
-    'settings': {
-      'onboarded': true,
-      'mindsetDecisions': ?decisions,
-    },
+    'settings': {'onboarded': true, 'mindsetDecisions': ?decisions},
     'accounts': [
       {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 40000},
     ],
@@ -210,5 +210,109 @@ void main() {
     expect(find.byType(MindsetTodayScreen), findsOneWidget);
     expect(find.text('New shoes'), findsOneWidget);
     expect((store.data['transactions'] as List).length, txCount);
+  });
+
+  testWidgets('tapping a recent decision opens its detail with the note', (
+    tester,
+  ) async {
+    final store = await _load(
+      _blob(
+        decisions: [
+          _dec(
+            MindsetOutcome.avoided,
+            amount: 350,
+            item: 'GrabFood',
+            note: 'I cooked at home instead',
+          ),
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+
+    await tester.tap(find.text('GrabFood'));
+    await tester.pumpAndSettle();
+
+    // The detail sheet shows the stored note under a "Your note" heading
+    // (the heading is sheet-only; the note itself also shows behind it on the
+    // tile, so it appears twice).
+    expect(find.text('Your note'), findsOneWidget);
+    expect(find.text('I cooked at home instead'), findsWidgets);
+    // Read-only: opening the detail records nothing.
+    expect(store.mindsetDecisions.length, 1);
+  });
+
+  testWidgets('a malformed decision never crashes the dashboard or its detail', (
+    tester,
+  ) async {
+    final store = await _load(
+      _blob(
+        decisions: [
+          // Non-string outcome and itemName: an `as String?` cast would throw.
+          {
+            'id': 'm1',
+            'outcome': 5,
+            'itemName': 42,
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+          // An avoided buy with a NaN amount: the money-avoided sum goes NaN,
+          // which the count-up must survive.
+          {
+            'id': 'm2',
+            'outcome': MindsetOutcome.avoided,
+            'itemName': 'Weird',
+            'amount': 'NaN',
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+    expect(find.byType(MindsetTodayScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // The malformed row renders with the neutral fallback name and opens its
+    // read-only detail without throwing.
+    await tester.tap(find.text('A purchase'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('See my 30 days opens the insights screen', (tester) async {
+    final store = await _load(_blob());
+    await _pumpDashboard(tester, store);
+    await tester.tap(find.text('See my 30 days'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MindsetInsightsScreen), findsOneWidget);
+    expect(find.text('MINDFUL STREAK'), findsOneWidget);
+  });
+
+  testWidgets('View all filters the history by outcome', (tester) async {
+    final store = await _load(
+      _blob(
+        decisions: [
+          _dec(MindsetOutcome.purchased, amount: 900, item: 'Sneakers'),
+          _dec(MindsetOutcome.avoided, amount: 350, item: 'GrabFood'),
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MindsetDecisionsListScreen), findsOneWidget);
+    // Both show under "All".
+    expect(find.text('Sneakers'), findsOneWidget);
+    expect(find.text('GrabFood'), findsOneWidget);
+    // Filter to Avoided: tap the segment (the word also appears on the tile
+    // badge, so scope the tap to the Segmented control). The purchased one
+    // drops out.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Segmented<String>),
+        matching: find.text('Avoided'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('GrabFood'), findsOneWidget);
+    expect(find.text('Sneakers'), findsNothing);
   });
 }

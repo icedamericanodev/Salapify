@@ -109,6 +109,76 @@ void main() {
     });
   });
 
+  group('filterMindsetByOutcome', () {
+    final decisions = [
+      _d(MindsetOutcome.purchased, at: todayAt(8, 0), item: 'p'),
+      _d(MindsetOutcome.avoided, at: todayAt(8, 1), item: 'a'),
+      _d(MindsetOutcome.waiting, at: todayAt(8, 2), item: 'w'),
+      _d(MindsetOutcome.avoided, at: todayAt(8, 3), item: 'a2'),
+    ];
+    test('null returns everything, order preserved', () {
+      expect(
+        filterMindsetByOutcome(
+          decisions,
+          null,
+        ).map((e) => e['item'] ?? e['itemName']),
+        ['p', 'a', 'w', 'a2'],
+      );
+    });
+    test('a single outcome filters to just those', () {
+      expect(
+        filterMindsetByOutcome(
+          decisions,
+          MindsetOutcome.avoided,
+        ).map((e) => e['itemName']),
+        ['a', 'a2'],
+      );
+      expect(
+        filterMindsetByOutcome(decisions, MindsetOutcome.waiting).length,
+        1,
+      );
+    });
+  });
+
+  group('mindsetWeekDots', () {
+    String day(int back) {
+      final d = DateTime(2026, 8, 14).subtract(Duration(days: back));
+      return '${d.year.toString().padLeft(4, '0')}-'
+          '${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+    }
+
+    test('a check today lights the most recent week (last dot)', () {
+      final dots = mindsetWeekDots(
+        [
+          {'date': day(0)},
+        ],
+        null,
+        now,
+      );
+      expect(dots, [false, false, false, true]);
+    });
+    test('a win 10 days ago lights week 1 (second-newest)', () {
+      final dots = mindsetWeekDots(null, [
+        {'date': day(10)},
+      ], now);
+      expect(dots, [false, false, true, false]);
+    });
+    test('checks and wins combine, junk dates are ignored', () {
+      final dots = mindsetWeekDots(
+        [
+          {'date': day(0)},
+          {'date': 'nonsense'},
+        ],
+        [
+          {'date': day(10)},
+        ],
+        now,
+      );
+      expect(dots, [false, false, true, true]);
+    });
+  });
+
   group('mapping and labels', () {
     test('flow outcome maps to the stored outcome', () {
       expect(mindsetOutcomeFromFlow('bought'), MindsetOutcome.purchased);

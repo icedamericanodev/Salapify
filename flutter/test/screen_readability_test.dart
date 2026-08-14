@@ -70,6 +70,7 @@ import 'package:salapify/screens/payday.dart';
 import 'package:salapify/screens/notes.dart';
 import 'package:salapify/screens/mindset.dart';
 import 'package:salapify/screens/mindset_today.dart';
+import 'package:salapify/screens/mindset_insights.dart';
 import 'package:salapify/screens/notifications_security.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/history.dart';
@@ -433,6 +434,7 @@ void main() {
     'Notes': (s) => NotesScreen(store: s),
     'Mindset': (s) => MindsetScreen(store: s),
     'Mindset today': (s) => MindsetTodayScreen(store: s),
+    'Mindset insights': (s) => MindsetInsightsScreen(store: s),
     // No store: this screen reads the live privacy log rather than the store,
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
@@ -627,6 +629,7 @@ void main() {
       'notes.dart',
       'mindset.dart',
       'mindset_today.dart',
+      'mindset_insights.dart',
       'privacy_receipt.dart',
       'diagnostics_screen.dart',
       'notifications_security.dart',

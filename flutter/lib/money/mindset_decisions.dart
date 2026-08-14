@@ -94,6 +94,46 @@ MindsetTodayStats mindsetTodayStats(Iterable? rawDecisions, DateTime now) {
   );
 }
 
+/// One boolean per week over the last four (oldest first), true when a decision
+/// check or a win landed in that week. Shared by the flow's step 4 and the
+/// standalone insights screen so the mindful streak reads identically in both,
+/// and pinned by a test rather than duplicated by eye.
+List<bool> mindsetWeekDots(Iterable? checks, Iterable? wins, DateTime now) {
+  final dates = <DateTime>[
+    for (final c in (checks ?? const []))
+      if (c is Map &&
+          c['date'] is String &&
+          DateTime.tryParse(c['date'] as String) != null)
+        DateTime.parse(c['date'] as String),
+    for (final w in (wins ?? const []))
+      if (w is Map &&
+          w['date'] is String &&
+          DateTime.tryParse(w['date'] as String) != null)
+        DateTime.parse(w['date'] as String),
+  ];
+  return [
+    for (var wk = 3; wk >= 0; wk--)
+      dates.any((d) {
+        final days = now.difference(d).inDays;
+        return days >= wk * 7 && days < (wk + 1) * 7;
+      }),
+  ];
+}
+
+/// Filter decisions to a single outcome; a null [outcome] returns them all
+/// (used by the "All" segment). Order is preserved; the caller sorts.
+List<Map<String, dynamic>> filterMindsetByOutcome(
+  Iterable? rawDecisions,
+  String? outcome,
+) {
+  final list = _valid(rawDecisions);
+  if (outcome == null) return list;
+  return [
+    for (final e in list)
+      if (e['outcome'] == outcome) e,
+  ];
+}
+
 /// Newest first, up to [limit]. A negative [limit] returns all of them.
 /// Entries with no readable timestamp sort last, so a junk row never jumps
 /// ahead of a real one.
@@ -102,12 +142,17 @@ List<Map<String, dynamic>> recentMindsetDecisions(
   int limit = 5,
 }) {
   final list = _valid(rawDecisions);
+  // Newest first, with a stable id tiebreak so equal or both-missing timestamps
+  // keep a fixed order across rebuilds instead of shuffling (List.sort is not
+  // stable). An imported backup can carry identical or junk createdAt values.
+  String id(Map<String, dynamic> d) =>
+      d['id'] is String ? d['id'] as String : '';
   list.sort((a, b) {
     final wa = _when(a), wb = _when(b);
-    if (wa == null && wb == null) return 0;
-    if (wa == null) return 1;
-    if (wb == null) return -1;
-    return wb.compareTo(wa);
+    if (wa != null && wb != null && wa != wb) return wb.compareTo(wa);
+    if (wa == null && wb != null) return 1;
+    if (wb == null && wa != null) return -1;
+    return id(a).compareTo(id(b));
   });
   if (limit < 0 || list.length <= limit) return list;
   return list.sublist(0, limit);

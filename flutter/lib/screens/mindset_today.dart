@@ -15,11 +15,14 @@ import '../money/mindset_decisions.dart'
     show MindsetTodayStats, mindsetTodayStats, recentMindsetDecisions;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/count_up_text.dart';
+import '../widgets/mindset_decision_detail.dart';
 import '../widgets/mindset_decision_tile.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/salapify_icon.dart';
 import 'mindset_decisions_list.dart';
 import 'mindset_flow.dart';
+import 'mindset_insights.dart';
 
 class MindsetTodayScreen extends StatelessWidget {
   final SalapifyStore store;
@@ -31,6 +34,10 @@ class MindsetTodayScreen extends StatelessWidget {
 
   void _openAll(BuildContext context) => Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => MindsetDecisionsListScreen(store: store)),
+  );
+
+  void _openInsights(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => MindsetInsightsScreen(store: store)),
   );
 
   @override
@@ -60,6 +67,8 @@ class MindsetTodayScreen extends StatelessWidget {
                 Text("Today's summary", style: AppText.title.w7),
                 const SizedBox(height: Gap.md),
                 _summaryGrid(stats),
+                const SizedBox(height: Gap.md),
+                _insightsButton(context),
                 const SizedBox(height: Gap.xl),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -78,9 +87,8 @@ class MindsetTodayScreen extends StatelessWidget {
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: Gap.sm,
+                            vertical: Gap.sm,
                           ),
-                          minimumSize: const Size(0, 0),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
                           'View all',
@@ -94,7 +102,11 @@ class MindsetTodayScreen extends StatelessWidget {
                   _emptyRecent()
                 else
                   for (final d in recent)
-                    MindsetDecisionTile(decision: d, now: now),
+                    MindsetDecisionTile(
+                      decision: d,
+                      now: now,
+                      onTap: () => showMindsetDecisionDetail(context, d),
+                    ),
               ],
             ),
           ),
@@ -145,7 +157,14 @@ class MindsetTodayScreen extends StatelessWidget {
   );
 
   Widget _summaryGrid(MindsetTodayStats s) {
-    Widget cell(String value, String label, {Color? valueColor}) => Expanded(
+    // Each figure counts up from zero on open. Money uses formatMoney so the
+    // peso value rolls; the counts round to a whole number mid-roll.
+    Widget cell(
+      double value,
+      String label, {
+      bool money = false,
+      Color? valueColor,
+    }) => Expanded(
       child: Container(
         padding: const EdgeInsets.all(Gap.lg),
         decoration: BoxDecoration(
@@ -156,10 +175,10 @@ class MindsetTodayScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              value,
+            CountUpText(
+              value: value,
+              format: (v) => money ? formatMoney(v) : v.round().toString(),
               style: AppText.titleLg.w8.tabular.copyWith(color: valueColor),
-              maxLines: 1,
             ),
             const SizedBox(height: Gap.xxs),
             Text(
@@ -177,9 +196,9 @@ class MindsetTodayScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              cell('${s.decisions}', 'Decisions made'),
+              cell(s.decisions.toDouble(), 'Decisions made'),
               const SizedBox(width: Gap.md),
-              cell('${s.purchased}', 'Purchases made'),
+              cell(s.purchased.toDouble(), 'Purchases made'),
             ],
           ),
         ),
@@ -188,11 +207,12 @@ class MindsetTodayScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              cell('${s.avoided}', 'Purchases avoided'),
+              cell(s.avoided.toDouble(), 'Purchases avoided'),
               const SizedBox(width: Gap.md),
               cell(
-                formatMoney(s.moneyAvoided),
+                s.moneyAvoided,
                 'Money avoided',
+                money: true,
                 valueColor: Barako.income,
               ),
             ],
@@ -201,6 +221,22 @@ class MindsetTodayScreen extends StatelessWidget {
       ],
     );
   }
+
+  Widget _insightsButton(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: () => _openInsights(context),
+      icon: Icon(salapifyIcon('chart'), size: 18, color: Barako.primary),
+      label: Text(
+        'See my 30 days',
+        style: AppText.small.w7.tint(Barako.primary),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: Barako.border),
+        padding: const EdgeInsets.symmetric(vertical: Gap.md),
+      ),
+    ),
+  );
 
   Widget _emptyRecent() => Container(
     width: double.infinity,
