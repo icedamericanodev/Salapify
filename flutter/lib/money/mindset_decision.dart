@@ -43,7 +43,8 @@ double _n(dynamic v) {
   return x.isFinite ? x : 0.0;
 }
 
-double _clamp(double x, double lo, double hi) => x < lo ? lo : (x > hi ? hi : x);
+double _clamp(double x, double lo, double hi) =>
+    x < lo ? lo : (x > hi ? hi : x);
 double _clamp01(double x) => _clamp(x, 0, 1);
 
 /// floor(x + 0.5): the app-wide rounding, so a score never disagrees with any
@@ -203,7 +204,11 @@ Map<String, dynamic> mindsetDecision(
       ? double.nan
       : (mode == MindsetMode.oneTime
             ? incomeAxisOneTime(cashNow, typicalIncome)
-            : incomeAxisRecurring(monthlyCommitted, monthlyLoad, typicalIncome));
+            : incomeAxisRecurring(
+                monthlyCommitted,
+                monthlyLoad,
+                typicalIncome,
+              ));
   final sReserved = reservedAxis(availableAfter, committed, daysLeft);
   final tradeoff = goalTradeoff(
     goal: goal,
@@ -233,12 +238,33 @@ Map<String, dynamic> mindsetDecision(
     'bufferLabel': mindsetBufferLabel(runwayAfter),
     'availableAfter': availableAfter,
     'dipsReserved': availableAfter < 0,
+    'reservedShortfall': availableAfter < 0 ? -availableAfter : 0.0,
+    'incomeShare': !hasIncome
+        ? null
+        : (mode == MindsetMode.oneTime
+              ? cashNow / typicalIncome
+              : (monthlyCommitted + monthlyLoad) / typicalIncome),
     'daysLeft': daysLeft,
     'goalTradeoff': tradeoff,
     'axes': [
-      {'name': 'buffer', 'weight': wBuffer, 'score': sBuffer, 'skipped': sBuffer.isNaN},
-      {'name': 'income', 'weight': wIncome, 'score': sIncome, 'skipped': sIncome.isNaN},
-      {'name': 'reserved', 'weight': wReserved, 'score': sReserved, 'skipped': sReserved.isNaN},
+      {
+        'name': 'buffer',
+        'weight': wBuffer,
+        'score': sBuffer,
+        'skipped': sBuffer.isNaN,
+      },
+      {
+        'name': 'income',
+        'weight': wIncome,
+        'score': sIncome,
+        'skipped': sIncome.isNaN,
+      },
+      {
+        'name': 'reserved',
+        'weight': wReserved,
+        'score': sReserved,
+        'skipped': sReserved.isNaN,
+      },
       {'name': 'goal', 'weight': wGoal, 'score': sGoal, 'skipped': sGoal.isNaN},
     ],
     'incomeKnown': hasIncome,
@@ -276,7 +302,10 @@ Map<String, dynamic> applyReflection(
 Duration? mindsetCoolOff(int band, {double? cashNow, double? avgDaily}) {
   switch (band) {
     case 3:
-      if (cashNow != null && avgDaily != null && avgDaily > 0 && cashNow < avgDaily) {
+      if (cashNow != null &&
+          avgDaily != null &&
+          avgDaily > 0 &&
+          cashNow < avgDaily) {
         return const Duration(days: 3);
       }
       return const Duration(days: 7);

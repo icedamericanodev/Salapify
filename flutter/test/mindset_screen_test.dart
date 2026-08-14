@@ -44,6 +44,14 @@ Future<SalapifyStore> _openDirect(
   SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
   final store = SalapifyStore();
   await store.load();
+  // A realistic phone height (the default test surface is only 600 logical px
+  // tall, shorter than any real phone). The Impulse check card grew with the
+  // Money impact section, so the short default surface could no longer scroll
+  // the lowest question into reach for a tap. Width stays 800 so no horizontal
+  // layout changes; only vertical room grows.
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(home: MindsetScreen(store: store)));
   await tester.pumpAndSettle();
   return store;
