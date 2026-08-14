@@ -83,6 +83,26 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
 
   double get _enteredAmount => parseAmount(_amount.text) ?? 0;
 
+  /// A borderless input decoration. InputDecoration.collapsed only nulls the
+  /// base border, so the app's inputDecorationTheme still draws its enabled and
+  /// focused OutlineInputBorders inside the field, a second rounded outline that
+  /// cramps the text. Nulling every state, plus filled:false, leaves only the
+  /// field container's own border.
+  InputDecoration _bareInput(String hint, TextStyle hintStyle) =>
+      InputDecoration(
+        isCollapsed: true,
+        filled: false,
+        contentPadding: EdgeInsets.zero,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        hintText: hint,
+        hintStyle: hintStyle,
+      );
+
   static Color _bandColor(int band) => switch (band) {
     1 => Barako.primary,
     2 => Barako.warning,
@@ -159,6 +179,18 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
           tooltip: 'Close',
         ),
+        actions: [
+          // A jump straight to the 30-day overview, so history is one tap away
+          // without walking the decision steps.
+          if (_step != 4)
+            TextButton(
+              onPressed: () => _goTo(4),
+              child: Text(
+                'My 30 days',
+                style: AppText.small.w7.tint(Barako.primary),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -350,9 +382,9 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             child: TextField(
               controller: _itemName,
               style: AppText.body,
-              decoration: InputDecoration.collapsed(
-                hintText: 'e.g. new headphones',
-                hintStyle: AppText.body.tint(Barako.muted),
+              decoration: _bareInput(
+                'e.g. new headphones',
+                AppText.body.tint(Barako.muted),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -388,10 +420,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                 decimal: true,
               ),
               style: AppText.title.w7,
-              decoration: InputDecoration.collapsed(
-                hintText: '0',
-                hintStyle: AppText.title.w7.tint(Barako.muted),
-              ),
+              decoration: _bareInput('0', AppText.title.w7.tint(Barako.muted)),
               onChanged: (_) => setState(() {}),
             ),
           ),
@@ -1481,7 +1510,9 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           ],
           Expanded(
             child: FilledButton(
-              onPressed: canContinue ? _next : null,
+              onPressed: canContinue
+                  ? (_step < 4 ? _next : () => Navigator.of(context).maybePop())
+                  : null,
               style: FilledButton.styleFrom(
                 backgroundColor: Barako.primary,
                 foregroundColor: Barako.onPrimary,
