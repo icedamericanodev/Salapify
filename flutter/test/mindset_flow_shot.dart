@@ -41,6 +41,10 @@ void main() {
     await tester.enterText(fields.at(0), 'New headphones');
     await tester.enterText(fields.at(1), '14990');
     await tester.pumpAndSettle();
+    // Drop focus so the render shows the typed values the way the phone does,
+    // without the test's text-selection highlight around the amount.
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
 
     await expectLater(
       find.byType(MaterialApp),
