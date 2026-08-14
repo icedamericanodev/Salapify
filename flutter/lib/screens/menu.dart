@@ -30,7 +30,7 @@ import 'csv_import.dart';
 import 'goals.dart';
 import 'learn.dart';
 import 'milestone_share.dart';
-import 'mindset_flow.dart';
+import 'mindset_today.dart';
 import 'new_phone_day.dart';
 import 'notifications_security.dart';
 import 'overview.dart' show ExportScreen, ImportScreen;
@@ -228,7 +228,7 @@ class MenuScreen extends StatelessWidget {
                     label: 'Money mindset',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MindsetFlowScreen(store: store),
+                        builder: (_) => MindsetTodayScreen(store: store),
                       ),
                     ),
                   ),

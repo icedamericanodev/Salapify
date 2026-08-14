@@ -12,6 +12,7 @@ import '../data/store.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
+import '../money/mindset_decisions.dart' show mindsetOutcomeFromFlow;
 import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
 import '../services/notifications.dart' show Reminders;
 import '../money/mindset_decision.dart'
@@ -53,6 +54,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   String _purchaseType = 'oneTime';
   final _itemName = TextEditingController();
   final _amount = TextEditingController();
+  final _note = TextEditingController();
   String? _categoryId;
 
   // Step 2 what-if exploration (one-time only), memoised so a drag never
@@ -137,6 +139,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     _page.dispose();
     _itemName.dispose();
     _amount.dispose();
+    _note.dispose();
     super.dispose();
   }
 
@@ -1013,6 +1016,34 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               'Share of income',
               '${(incomeShare * 100).round()}% of a month',
             ),
+          const SizedBox(height: Gap.md),
+          Text(
+            'Add a note (optional)',
+            style: AppText.caption.w6.tint(Barako.muted),
+          ),
+          const SizedBox(height: Gap.xs),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Gap.md,
+              vertical: Gap.sm,
+            ),
+            decoration: BoxDecoration(
+              color: Barako.surfaceRaised,
+              borderRadius: BorderRadius.circular(Radii.field),
+              border: Border.all(color: Barako.border),
+            ),
+            child: TextField(
+              controller: _note,
+              style: AppText.small,
+              minLines: 1,
+              maxLines: 2,
+              textInputAction: TextInputAction.done,
+              decoration: _bareInput(
+                'e.g. I cooked at home instead',
+                AppText.small.tint(Barako.muted),
+              ),
+            ),
+          ),
           const SizedBox(height: Gap.lg),
           if (coolOff != null)
             SizedBox(
@@ -1106,6 +1137,17 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       final result = _resultKey(band);
       try {
         await store.logMindsetCheck(verdict: result);
+        // The unified decision record that powers the Mindset Today dashboard
+        // (summary counts and Recent Decisions). Additive and read-only: the
+        // amount is the Step 1 estimate, never a transaction.
+        await store.addMindsetDecision(
+          itemName: name,
+          amount: amt > 0 ? amt : null,
+          categoryId: _categoryId,
+          outcome: mindsetOutcomeFromFlow(outcome),
+          note: _note.text,
+          verdict: result,
+        );
         if (outcome == 'skipped') {
           await store.addWin('Skipped $name', amount: amt > 0 ? amt : null);
         } else if (outcome == 'waiting') {

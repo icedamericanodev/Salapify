@@ -69,6 +69,7 @@ import 'package:salapify/screens/pan.dart';
 import 'package:salapify/screens/payday.dart';
 import 'package:salapify/screens/notes.dart';
 import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/screens/mindset_today.dart';
 import 'package:salapify/screens/notifications_security.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/screens/history.dart';
@@ -431,6 +432,7 @@ void main() {
     'Payday': (s) => PaydayScreen(store: s),
     'Notes': (s) => NotesScreen(store: s),
     'Mindset': (s) => MindsetScreen(store: s),
+    'Mindset today': (s) => MindsetTodayScreen(store: s),
     // No store: this screen reads the live privacy log rather than the store,
     // which is the one thing it exists to prove about itself.
     'Privacy receipt': (s) => PrivacyReceiptScreen(),
@@ -584,6 +586,11 @@ void main() {
       'mindset_flow.dart':
           'a guided four-step flow, input-driven (a cold pump shows only step '
           '1); walked by mindset_flow_test and rendered by mindset_flow_shot',
+      'mindset_decisions_list.dart':
+          'the View-all full history; on the shared fixture (no logged '
+          'decisions) it is only its empty state, a blank-looking screen by '
+          'design. Its rows are the MindsetDecisionTile measured by '
+          'mindset_today_test and rendered by mindset_today_shot',
       // The calculators used to sit here as "input-driven; cold pump shows an
       // empty form", with a note that this was a reason to drive them, not to
       // skip them. They are swept now, typed via typedInput above.
@@ -619,6 +626,7 @@ void main() {
       'payday.dart',
       'notes.dart',
       'mindset.dart',
+      'mindset_today.dart',
       'privacy_receipt.dart',
       'diagnostics_screen.dart',
       'notifications_security.dart',
