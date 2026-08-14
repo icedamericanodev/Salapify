@@ -131,4 +131,52 @@ void main() {
       matchesGoldenFile('shots/mindset-flow-step2-dark.png'),
     );
   });
+
+  testWidgets('Money Mindset flow, Step 3 Decision result, dark', (
+    tester,
+  ) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(_richBlob()),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(1), '14990');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue')); // -> step 2
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue')); // -> step 3
+    await tester.pumpAndSettle();
+
+    // Answer the three questions; each answer auto-expands the next.
+    await tester.tap(find.byKey(const Key('mindsetAnswer_0_false')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mindsetAnswer_1_true')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mindsetAnswer_2_true')));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-flow-step3-dark.png'),
+    );
+  });
 }

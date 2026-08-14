@@ -11,7 +11,13 @@ import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
 import '../money/mindset_decision.dart'
-    show MindsetMode, mindsetBandLabel, mindsetComfortRange, mindsetDecision;
+    show
+        MindsetMode,
+        applyReflection,
+        mindsetBandLabel,
+        mindsetCoolOff,
+        mindsetComfortRange,
+        mindsetDecision;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/mindset_score_gauge.dart';
@@ -52,6 +58,18 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   Map<String, double>? _spectrum;
   String? _spectrumKey;
   double? _spectrumSearchMax;
+
+  // Step 3 reflection. Private, never leaves the phone.
+  static const List<String> _questions = [
+    'Is this essential right now?',
+    'Can I afford this without using money reserved for bills, debt, or goals?',
+    'Have I wanted it for at least 24 hours?',
+  ];
+  final List<bool?> _answers = List<bool?>.filled(3, null);
+  int _expandedQ = 0;
+  String? _outcome; // 'bought' | 'skipped' | 'waiting', set by the actions
+
+  bool get _allAnswered => _answers.every((a) => a != null);
 
   MindsetMode get _mindsetMode => switch (_purchaseType) {
     'subscription' => MindsetMode.subscription,
@@ -151,11 +169,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               children: [
                 _contextStep(),
                 _impactStep(),
-                _placeholder('Decision', 'The three questions and your call.'),
-                _placeholder(
-                  'Reflection',
-                  'Your streak, wins, and today\'s lesson.',
-                ),
+                _decisionStep(),
+                _reflectionStep(),
               ],
             ),
           ),
@@ -746,6 +761,309 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     );
   }
 
+  // ------------------------------------------------------------- Step 3
+
+  int _nextUnanswered() => _answers.indexWhere((a) => a == null);
+
+  Widget _decisionStep() {
+    final amt = _enteredAmount;
+    if (!(amt > 0)) {
+      return _placeholder('Decision', 'Add an amount in step 1 first.');
+    }
+    final decision = _decision(DateTime.now());
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        Gap.gutter,
+        Gap.xs,
+        Gap.gutter,
+        Gap.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('A few honest questions', style: AppText.title.w7),
+          const SizedBox(height: Gap.xs),
+          Text(
+            'Only you see these. They can nudge you toward waiting, never '
+            'toward buying.',
+            style: AppText.small
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
+          ),
+          const SizedBox(height: Gap.lg),
+          for (var i = 0; i < _questions.length; i++) _questionTile(i),
+          const SizedBox(height: Gap.sm),
+          Row(
+            children: [
+              Icon(salapifyIcon('lock'), size: 15, color: Barako.muted),
+              const SizedBox(width: Gap.xs),
+              Expanded(
+                child: Text(
+                  'Private and stored only on your phone.',
+                  style: AppText.small.tint(Barako.muted),
+                ),
+              ),
+            ],
+          ),
+          if (_allAnswered) ...[
+            const SizedBox(height: Gap.lg),
+            _resultCard(decision),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _questionTile(int i) {
+    final expanded = _expandedQ == i;
+    final answer = _answers[i];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.md),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        decoration: BoxDecoration(
+          color: Barako.card,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(
+            color: expanded ? Barako.primary : Barako.border,
+            width: expanded ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(Radii.card),
+              onTap: () => setState(() => _expandedQ = expanded ? -1 : i),
+              child: Padding(
+                padding: const EdgeInsets.all(Gap.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${i + 1} of ${_questions.length}',
+                            style: AppText.caption.tint(Barako.muted),
+                          ),
+                          const SizedBox(height: Gap.xxs),
+                          Text(
+                            _questions[i],
+                            style: AppText.body.w6.copyWith(height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: Gap.sm),
+                    if (answer != null && !expanded)
+                      Text(
+                        answer ? 'Yes' : 'No',
+                        style: AppText.small.w7.tint(Barako.primary),
+                      )
+                    else
+                      AnimatedRotation(
+                        turns: expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(
+                          salapifyIcon('expand'),
+                          size: 20,
+                          color: Barako.muted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (expanded)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Gap.lg, 0, Gap.lg, Gap.lg),
+                child: Row(
+                  children: [
+                    Expanded(child: _answerButton('Yes', true, i)),
+                    const SizedBox(width: Gap.sm),
+                    Expanded(child: _answerButton('No', false, i)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _answerButton(String label, bool value, int i) {
+    final selected = _answers[i] == value;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('mindsetAnswer_${i}_$value'),
+        borderRadius: BorderRadius.circular(Radii.field),
+        onTap: () => setState(() {
+          _answers[i] = value;
+          _expandedQ = _nextUnanswered();
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(vertical: Gap.md),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? Barako.primary.withValues(alpha: 0.12)
+                : Barako.surfaceRaised,
+            borderRadius: BorderRadius.circular(Radii.field),
+            border: Border.all(
+              color: selected ? Barako.primary : Barako.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppText.body.w6.tint(
+              selected ? Barako.primary : Barako.text,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _resultCard(Map<String, dynamic> decision) {
+    final financial = decision['financialScore'] as int;
+    final reflection = applyReflection(
+      financial,
+      essential: _answers[0]!,
+      affordWithoutReserved: _answers[1]!,
+      wanted24h: _answers[2]!,
+    );
+    final band = reflection['finalBand'] as int;
+    final label = mindsetBandLabel(band);
+    final color = _bandColor(band);
+    final icon = switch (band) {
+      1 => 'done',
+      2 => 'paused',
+      _ => 'warning',
+    };
+    final bufferAfter = amountOf(decision['bufferAfter']);
+    final incomeShare = decision['incomeShare'] as double?;
+    final coolOff = mindsetCoolOff(band);
+
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(salapifyIcon(icon), color: color, size: 22),
+              const SizedBox(width: Gap.sm),
+              Text(label, style: AppText.title.w7.tint(color)),
+            ],
+          ),
+          const SizedBox(height: Gap.sm),
+          Text(
+            _bandLine(band),
+            style: AppText.small
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
+          ),
+          const SizedBox(height: Gap.md),
+          Divider(height: 1, color: Barako.border),
+          const SizedBox(height: Gap.md),
+          _resultRow('Cash buffer after', formatMoney(bufferAfter)),
+          if (incomeShare != null)
+            _resultRow(
+              'Share of income',
+              '${(incomeShare * 100).round()}% of a month',
+            ),
+          const SizedBox(height: Gap.lg),
+          if (coolOff != null)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _finish('waiting'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color),
+                  padding: const EdgeInsets.symmetric(vertical: Gap.md),
+                ),
+                child: Text('Remind me in ${coolOff.inDays} days'),
+              ),
+            ),
+          if (coolOff != null) const SizedBox(height: Gap.sm),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _finish('skipped'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Barako.textSecondary,
+                    side: BorderSide(color: Barako.border),
+                    padding: const EdgeInsets.symmetric(vertical: Gap.md),
+                  ),
+                  child: const Text('Skip for now'),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => _finish('bought'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Barako.primary,
+                    foregroundColor: Barako.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: Gap.md),
+                  ),
+                  child: const Text('Buy anyway'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(child: Text(label, style: AppText.small.tint(Barako.muted))),
+        const SizedBox(width: Gap.sm),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(value, style: AppText.small.w7),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  /// Records the chosen outcome (write-through comes in the storage phase) and
+  /// moves to Reflection.
+  void _finish(String outcome) {
+    setState(() => _outcome = outcome);
+    _goTo(4);
+  }
+
+  // ------------------------------------------------------------- Step 4 (stub)
+
+  Widget _reflectionStep() {
+    final line = switch (_outcome) {
+      'bought' => 'You decided to buy it. Logged.',
+      'skipped' => 'You skipped it. Nice pause.',
+      'waiting' => "Saved to wait on. We'll remind you.",
+      _ => "Your streak, wins, and today's lesson land here.",
+    };
+    return _placeholder('Reflection', line);
+  }
+
   // ------------------------------------------------------- placeholder steps
 
   Widget _placeholder(String title, String note) {
@@ -773,7 +1091,11 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   // ----------------------------------------------------------------- nav
 
   Widget _navBar() {
-    final canContinue = _step > 1 || _step1Valid;
+    final canContinue = switch (_step) {
+      1 => _step1Valid,
+      3 => _allAnswered,
+      _ => true,
+    };
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
