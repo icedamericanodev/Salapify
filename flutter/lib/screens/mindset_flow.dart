@@ -8,8 +8,14 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
+import '../money/format.dart' show formatMoney;
+import '../money/ledger.dart' show amountOf;
+import '../money/mindset_decision.dart'
+    show MindsetMode, mindsetBandLabel, mindsetComfortRange, mindsetDecision;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/mindset_score_gauge.dart';
+import '../widgets/mindset_spectrum_bar.dart';
 import '../widgets/mindset_step_indicator.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/salapify_icon.dart';
@@ -38,6 +44,51 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   final _itemName = TextEditingController();
   final _amount = TextEditingController();
   String? _categoryId;
+
+  // Step 2 what-if exploration (one-time only), memoised so a drag never
+  // re-runs the search over the ledger.
+  double? _whatIf;
+  double? _whatIfBase;
+  Map<String, double>? _spectrum;
+  String? _spectrumKey;
+  double? _spectrumSearchMax;
+
+  MindsetMode get _mindsetMode => switch (_purchaseType) {
+    'subscription' => MindsetMode.subscription,
+    'credit' => MindsetMode.credit,
+    _ => MindsetMode.oneTime,
+  };
+
+  double get _enteredAmount => parseAmount(_amount.text) ?? 0;
+
+  static Color _bandColor(int band) => switch (band) {
+    1 => Barako.primary,
+    2 => Barako.warning,
+    _ => Barako.warningStrong,
+  };
+
+  static Color _scoreColor(double score) {
+    if (score.isNaN) return Barako.muted;
+    if (score >= 70) return Barako.primary;
+    if (score >= 45) return Barako.warning;
+    return Barako.warningStrong;
+  }
+
+  /// The read-only Decision Score for the current entry. Goal is left out here
+  /// (no goal picker yet), so the score and the what-if spectrum stay
+  /// consistent and the spectrum's monotonic search stays valid.
+  Map<String, dynamic> _decision(DateTime now) {
+    final amt = _enteredAmount;
+    final mode = _mindsetMode;
+    return mindsetDecision(
+      widget.store.data,
+      now,
+      mode: mode,
+      cashNow: amt,
+      monthlyLoad: mode == MindsetMode.oneTime ? 0.0 : amt,
+      goalAmount: amt,
+    );
+  }
 
   @override
   void dispose() {
@@ -99,10 +150,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _contextStep(),
-                _placeholder(
-                  'Impact',
-                  'The Decision Score and what-if lives here.',
-                ),
+                _impactStep(),
                 _placeholder('Decision', 'The three questions and your call.'),
                 _placeholder(
                   'Reflection',
@@ -379,6 +427,319 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------- Step 2
+
+  Widget _impactStep() {
+    final amt = _enteredAmount;
+    if (!(amt > 0)) {
+      return _placeholder(
+        'Impact',
+        'Add an amount in step 1 to see the impact.',
+      );
+    }
+    final now = DateTime.now();
+    final decision = _decision(now);
+    final score = decision['financialScore'] as int;
+    final band = decision['band'] as int;
+    final color = _bandColor(band);
+    final spectrum = _mindsetMode == MindsetMode.oneTime
+        ? _spectrumFor(now, decision, amt)
+        : null;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        Gap.gutter,
+        Gap.sm,
+        Gap.gutter,
+        Gap.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: Gap.sm),
+          MindsetScoreGauge(score: score, band: band, size: 180),
+          const SizedBox(height: Gap.md),
+          Text(mindsetBandLabel(band), style: AppText.title.w7.tint(color)),
+          const SizedBox(height: Gap.xs),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.md),
+            child: Text(
+              _bandLine(band),
+              textAlign: TextAlign.center,
+              style: AppText.small
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.4),
+            ),
+          ),
+          const SizedBox(height: Gap.xl),
+          _impactCard(decision),
+          if (spectrum != null) ...[
+            const SizedBox(height: Gap.lg),
+            _whatIfCard(spectrum, amt),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _bandLine(int band) => switch (band) {
+    1 => 'This fits comfortably against your money right now.',
+    2 => 'Not a bad buy, but the timing is worth a pause.',
+    _ => 'This would make a big dent in your money right now.',
+  };
+
+  Widget _impactCard(Map<String, dynamic> decision) {
+    final runwayAfter = decision['runwayAfter'] as double?;
+    final bufferAfter = amountOf(decision['bufferAfter']);
+    final incomeShare = decision['incomeShare'] as double?;
+    final dips = decision['dipsReserved'] as bool;
+    final shortfall = amountOf(decision['reservedShortfall']);
+    final axes = (decision['axes'] as List).cast<Map<String, dynamic>>();
+    double axisScore(String name) {
+      final a = axes.firstWhere(
+        (e) => e['name'] == name,
+        orElse: () => const {'score': double.nan},
+      );
+      return (a['score'] as num).toDouble();
+    }
+
+    final String cushion;
+    if (runwayAfter == null) {
+      cushion = bufferAfter > 0
+          ? '${formatMoney(bufferAfter)} left'
+          : 'Empties it';
+    } else if (runwayAfter <= 0) {
+      cushion = 'Empties it';
+    } else if (runwayAfter < 0.05) {
+      cushion = 'Under 0.1 months left';
+    } else {
+      cushion = '${runwayAfter.toStringAsFixed(1)} months left';
+    }
+    final income = incomeShare == null
+        ? 'Income unknown'
+        : '${(incomeShare * 100).round()}% of a month';
+
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WHAT IT DOES', style: Barako.cardKickerStyle),
+          const SizedBox(height: Gap.md),
+          _metricRow('Cushion after', cushion, axisScore('buffer')),
+          _metricRow('Share of income', income, axisScore('income')),
+          _metricRow(
+            'Bills & debt money',
+            dips ? 'Dips ${formatMoney(shortfall)}' : 'No dip',
+            dips ? -1 : 100,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricRow(String label, String value, double score) {
+    final c = score < 0 ? Barako.warningStrong : _scoreColor(score);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: AppText.small.tint(Barako.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: Gap.sm),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(value, maxLines: 1, style: AppText.small.w6.tint(c)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, double>? _spectrumFor(
+    DateTime now,
+    Map<String, dynamic> decision,
+    double entered,
+  ) {
+    final buffer = amountOf(decision['bufferAfter']) + entered;
+    final available = amountOf(decision['availableAfter']) + entered;
+    final daysLeft = decision['daysLeft'];
+    final key =
+        '${buffer.round()}_${available.round()}_'
+        '${daysLeft}_${decision['incomeKnown']}';
+    if (key != _spectrumKey) {
+      final searchMax = [
+        buffer * 2,
+        entered * 5,
+        300000.0,
+      ].reduce((a, b) => a > b ? a : b);
+      _spectrum = mindsetComfortRange(
+        widget.store.data,
+        now,
+        goal: null,
+        maxAmount: searchMax,
+      );
+      _spectrumKey = key;
+      _spectrumSearchMax = searchMax;
+    }
+    return _spectrum;
+  }
+
+  static double _niceCeil(double x) {
+    if (x <= 0) return 1000;
+    final step = x < 5000
+        ? 500.0
+        : x < 20000
+        ? 1000.0
+        : x < 100000
+        ? 5000.0
+        : 10000.0;
+    return (x / step).ceil() * step;
+  }
+
+  Widget _whatIfCard(Map<String, double> spectrum, double entered) {
+    final comfortCeiling = spectrum['comfortCeiling'] ?? 0;
+    final cautionCeiling = spectrum['cautionCeiling'] ?? 0;
+    final maxSlider = _niceCeil(
+      [
+        entered * 1.4,
+        cautionCeiling * 1.25,
+        comfortCeiling * 1.5,
+        1000.0,
+      ].reduce((a, b) => a > b ? a : b),
+    );
+    final synced = _whatIfBase == entered;
+    final sliderValue = ((synced ? (_whatIf ?? entered) : entered)).clamp(
+      0.0,
+      maxSlider,
+    );
+    final band = MindsetSpectrumBar.bandForAmount(
+      sliderValue,
+      comfortCeiling,
+      cautionCeiling,
+    );
+    final displayCeiling = (comfortCeiling / 50).floorToDouble() * 50;
+    final searchMax = _spectrumSearchMax ?? double.infinity;
+    final saturated = comfortCeiling >= searchMax * 0.999;
+    final String line;
+    if (saturated) {
+      line = 'Comfortable well past anything you would buy right now.';
+    } else if (displayCeiling > 0) {
+      line =
+          'Up to ${formatMoney(displayCeiling)} still fits comfortably '
+          'right now.';
+    } else {
+      line = 'Right now, even a small buy is worth a pause.';
+    }
+
+    String readout(double v) {
+      final b = MindsetSpectrumBar.bandForAmount(
+        v,
+        comfortCeiling,
+        cautionCeiling,
+      );
+      return '${formatMoney(v.roundToDouble())}, ${mindsetBandLabel(b)}';
+    }
+
+    final step = MindsetSpectrumBar.stepFor(maxSlider);
+
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WHAT IF YOU SPEND', style: Barako.cardKickerStyle),
+          const SizedBox(height: Gap.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(salapifyIcon('insights'), size: 16, color: Barako.primary),
+              const SizedBox(width: Gap.xs),
+              Expanded(
+                child: Text(
+                  line,
+                  style: AppText.small
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.35),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.md),
+          MindsetSpectrumBar(
+            value: sliderValue,
+            maxAmount: maxSlider,
+            comfortCeiling: comfortCeiling,
+            cautionCeiling: cautionCeiling,
+            semanticLabel: 'What if amount',
+            semanticValue: readout(sliderValue),
+            semanticIncreasedValue: readout(
+              (sliderValue + step).clamp(0.0, maxSlider),
+            ),
+            semanticDecreasedValue: readout(
+              (sliderValue - step).clamp(0.0, maxSlider),
+            ),
+            onChanged: (v) => setState(() {
+              _whatIf = v;
+              _whatIfBase = entered;
+            }),
+          ),
+          const SizedBox(height: Gap.sm),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Drag to explore',
+                  style: AppText.small.tint(Barako.muted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${formatMoney(sliderValue.roundToDouble())} · '
+                    '${mindsetBandLabel(band)}',
+                    maxLines: 1,
+                    style: AppText.small.w6.tint(_bandColor(band)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
