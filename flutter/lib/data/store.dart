@@ -1678,6 +1678,61 @@ class SalapifyStore extends ChangeNotifier {
     },
   );
 
+  List<Map<String, dynamic>> _mindsetDecisionsOf(Map<String, dynamic> d) {
+    final s = d['settings'];
+    return _maps(s is Map ? s['mindsetDecisions'] : null);
+  }
+
+  /// Money Mindset's logged decision history (settings.mindsetDecisions): one
+  /// row per completed decision from the four-step flow, each carrying the
+  /// item, its estimated amount, the category, the outcome (purchased /
+  /// avoided / waiting), an optional note, the verdict, and a full timestamp.
+  /// Powers the Mindset Today dashboard's summary counts and Recent Decisions
+  /// list. Same Flutter-only passthrough pattern activePlan, timelineScenarios,
+  /// mindsetWaiting, and mindsetChecks already use: stored as plain maps under
+  /// settings so the backup preserves it with no migration, and absent on every
+  /// RN fixture so the golden key-set contract holds. READ-ONLY money: the
+  /// amount is the person's own Step 1 estimate, never a transaction, and
+  /// nothing here moves a balance.
+  List<Map<String, dynamic>> get mindsetDecisions => _mindsetDecisionsOf(data);
+
+  /// Save one completed decision to the history. Optional to call, like
+  /// addMindsetWaitingItem: the flow records it once per finish. amount and
+  /// categoryId are the Step 1 estimate and choice, kept for the summary and
+  /// the list; this is not a transaction and moves no balance. A blank note is
+  /// dropped rather than stored.
+  Future<void> addMindsetDecision({
+    required String itemName,
+    double? amount,
+    String? categoryId,
+    required String outcome,
+    String? note,
+    String? verdict,
+  }) {
+    final trimmedNote = note?.trim();
+    final item = {
+      'id': _genId('mindsetDecisions'),
+      'itemName': itemName,
+      'amount': ?amount,
+      'categoryId': ?categoryId,
+      'outcome': outcome,
+      'note': ?(trimmedNote != null && trimmedNote.isNotEmpty
+          ? trimmedNote
+          : null),
+      'verdict': ?verdict,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+    return _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'mindsetDecisions': [..._mindsetDecisionsOf(d), item],
+        },
+      },
+    );
+  }
+
   /// Whether reminders may carry names and amounts in their body
   /// (settings.notifDetailed). OFF by default: the privacy contract is that a
   /// locked phone shows generic reminders only. Turning this on reveals detail
