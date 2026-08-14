@@ -271,6 +271,72 @@ Map<String, dynamic> mindsetDecision(
   };
 }
 
+/// The band a ONE-TIME buy of [amount] lands in right now, reusing the same
+/// axes. A thin wrapper so the what-if slider and the comfort-ceiling search
+/// can ask about an arbitrary amount without the screen re-deriving anything.
+int mindsetOneTimeBand(
+  Map<String, dynamic> data,
+  DateTime ref,
+  double amount, {
+  Map<String, dynamic>? goal,
+}) {
+  final d = mindsetDecision(
+    data,
+    ref,
+    mode: MindsetMode.oneTime,
+    cashNow: amount,
+    monthlyLoad: 0,
+    goal: goal,
+    goalAmount: amount,
+  );
+  return d['band'] as int;
+}
+
+/// The personal spending SPECTRUM for a one-time buy right now: the largest
+/// amount that still lands in each band. Every axis worsens as the amount
+/// grows, so the score is monotonic non-increasing in amount, which means a
+/// binary search finds each band boundary exactly. Read-only.
+///
+/// Returns {comfortCeiling, cautionCeiling}: at or below comfortCeiling the buy
+/// Fits comfortably (band 1); above cautionCeiling it is a Big impact (band 3);
+/// between them it is Worth a pause. A ceiling of 0 means even a tiny buy is
+/// already past that band; a ceiling equal to [maxAmount] means the search hit
+/// its ceiling without leaving the band (the caller should treat it as "at
+/// least this much"). [maxAmount] must be a generous upper bound, past which the
+/// buy is certainly a Big impact (e.g. more than every peso in the accounts).
+Map<String, double> mindsetComfortRange(
+  Map<String, dynamic> data,
+  DateTime ref, {
+  Map<String, dynamic>? goal,
+  required double maxAmount,
+}) {
+  final hi0 = maxAmount.isFinite && maxAmount > 0 ? maxAmount : 10000.0;
+  int bandAt(double amount) =>
+      mindsetOneTimeBand(data, ref, amount, goal: goal);
+
+  // The largest amount in [0, hi0] whose band is at most [maxBand]. Because band
+  // only ever rises with amount, this is a clean binary search.
+  double ceilingForBand(int maxBand) {
+    if (bandAt(0) > maxBand) return 0; // even spending nothing is worse
+    if (bandAt(hi0) <= maxBand) return hi0; // never leaves the band in range
+    var lo = 0.0, hi = hi0;
+    for (var i = 0; i < 20; i++) {
+      final mid = (lo + hi) / 2;
+      if (bandAt(mid) <= maxBand) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  return {
+    'comfortCeiling': ceilingForBand(1),
+    'cautionCeiling': ceilingForBand(2),
+  };
+}
+
 /// The three private reflection answers, applied as penalties ONLY. A "Yes" adds
 /// nothing; the financial score is the ceiling and reflection can only nudge
 /// toward waiting. Q2 ("can you afford this without touching reserved money") is

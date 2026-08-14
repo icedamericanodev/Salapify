@@ -25,7 +25,8 @@ import '../money/commitmentload.dart' show commitmentLoad;
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
-import '../money/mindset_decision.dart' show MindsetMode, mindsetDecision;
+import '../money/mindset_decision.dart'
+    show MindsetMode, mindsetBandLabel, mindsetComfortRange, mindsetDecision;
 import '../money/mindset_purchase.dart'
     show goalTradeoff, subscriptionEquivalents;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
@@ -34,6 +35,7 @@ import '../money/mindset_wins.dart'
 import '../services/notifications.dart' show Reminders;
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/mindset_spectrum_bar.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/segmented.dart';
@@ -352,6 +354,16 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // Switching types never clears what was typed in another type's fields;
   // only the active type's fields feed the verdict and the cards below.
   String _purchaseType = 'oneTime';
+
+  // The what-if slider's explored amount, and the entered amount it was based
+  // on. When the entered amount changes, the explored value falls back to it
+  // (checked in build, never a setState there). Only the one-time flow shows it.
+  double? _whatIf;
+  double? _whatIfBase;
+  // The comfort spectrum (band ceilings), memoised by a store-money signature so
+  // dragging the slider never re-runs the binary search over the ledger.
+  Map<String, double>? _spectrum;
+  String? _spectrumKey;
 
   // Subscription fields: a recurring amount and how often it bills.
   final _subAmountText = TextEditingController();
@@ -1267,6 +1279,17 @@ class _MindsetScreenState extends State<MindsetScreen> {
             // usable amount is typed, so the card appears only once it has
             // something honest to say.
             final decision = _decisionResult(now, selectedGoal);
+            // The one-time comfort spectrum for the what-if slider, memoised so
+            // dragging never re-runs the search. Only the one-time flow shows a
+            // slider (a subscription or credit "ceiling" is a monthly figure and
+            // reads differently; deferred).
+            final enteredOneTime = _validAmount ?? 0;
+            final spectrum =
+                (_purchaseType == 'oneTime' &&
+                    decision != null &&
+                    enteredOneTime > 0)
+                ? _spectrumFor(now, selectedGoal, decision, enteredOneTime)
+                : null;
             // One log row per completed check, the moment all three answers
             // first line up. Scheduled for after this frame rather than
             // called straight from build(): logMindsetCheck writes through
@@ -1350,7 +1373,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
                               ),
                               if (decision != null) ...[
                                 const SizedBox(height: 14),
-                                _decisionSection(decision, _purchaseType),
+                                _decisionSection(
+                                  decision,
+                                  _purchaseType,
+                                  spectrum: spectrum,
+                                  entered: enteredOneTime,
+                                ),
                               ],
                               if (impact != null) ...[
                                 const SizedBox(height: 14),
@@ -2394,6 +2422,55 @@ class _MindsetScreenState extends State<MindsetScreen> {
     );
   }
 
+  /// Round up to a tidy number for the slider's top end, so the axis reads in
+  /// round pesos rather than an arbitrary 1.4x figure.
+  static double _niceCeil(double x) {
+    if (x <= 0) return 1000;
+    final step = x < 5000
+        ? 500.0
+        : x < 20000
+        ? 1000.0
+        : x < 100000
+        ? 5000.0
+        : 10000.0;
+    return (x / step).ceil() * step;
+  }
+
+  /// The comfort spectrum (band ceilings) for the current one-time entry,
+  /// memoised by the store's money state so dragging the slider reuses it
+  /// instead of re-running the binary search over the ledger. The ceilings
+  /// depend on the money on hand and the linked goal, not on the entered amount,
+  /// so the cache stays valid as the typed amount changes. Assigning the cache
+  /// fields here is not setState, so it never triggers a rebuild.
+  Map<String, double>? _spectrumFor(
+    DateTime now,
+    Map<String, dynamic>? goal,
+    Map<String, dynamic> decision,
+    double entered,
+  ) {
+    final buffer = amountOf(decision['bufferAfter']) + entered;
+    final available = amountOf(decision['availableAfter']) + entered;
+    final goalId = goal?['id'];
+    final key =
+        '${buffer.round()}_${available.round()}_'
+        '${decision['incomeKnown']}_$goalId';
+    if (key != _spectrumKey) {
+      final searchMax = [
+        buffer * 2,
+        entered * 5,
+        300000.0,
+      ].reduce((a, b) => a > b ? a : b);
+      _spectrum = mindsetComfortRange(
+        widget.store.data,
+        now,
+        goal: goal,
+        maxAmount: searchMax,
+      );
+      _spectrumKey = key;
+    }
+    return _spectrum;
+  }
+
   static Color _scoreColor(double score) {
     if (score.isNaN) return Barako.muted;
     if (score >= 70) return Barako.primary;
@@ -2483,7 +2560,12 @@ class _MindsetScreenState extends State<MindsetScreen> {
   /// purchase does to the money, shown the moment a usable amount is typed and
   /// before the three reflection questions. It never gives an order (founder
   /// rule): impact words, not "buy" or "skip", and the user still decides.
-  Widget _decisionSection(Map<String, dynamic> decision, String purchaseType) {
+  Widget _decisionSection(
+    Map<String, dynamic> decision,
+    String purchaseType, {
+    Map<String, double>? spectrum,
+    double entered = 0,
+  }) {
     final score = decision['financialScore'] as int;
     final band = decision['band'] as int;
     final bandLabel = decision['bandLabel'] as String;
@@ -2634,9 +2716,116 @@ class _MindsetScreenState extends State<MindsetScreen> {
               _scoreColor(goalScore),
               _axisValence(goalScore),
             ),
+          if (spectrum != null && entered > 0) ...[
+            const SizedBox(height: 12),
+            Divider(height: 1, color: Barako.border),
+            const SizedBox(height: 10),
+            ..._whatIfSpectrum(spectrum, entered),
+          ],
         ],
       ),
     );
+  }
+
+  /// The what-if spending spectrum: a plain-English comfortable ceiling, a
+  /// zoned draggable bar, and a live readout. Only shown for a one-time buy.
+  List<Widget> _whatIfSpectrum(Map<String, double> spectrum, double entered) {
+    final comfortCeiling = spectrum['comfortCeiling'] ?? 0;
+    final cautionCeiling = spectrum['cautionCeiling'] ?? 0;
+    final maxSlider = _niceCeil(
+      [
+        entered * 1.4,
+        cautionCeiling * 1.25,
+        comfortCeiling * 1.5,
+        1000.0,
+      ].reduce((a, b) => a > b ? a : b),
+    );
+    // The explored value falls back to the entered amount whenever the entered
+    // amount has changed since the last drag (never a setState in build).
+    final synced = _whatIfBase == entered;
+    final sliderValue = ((synced ? (_whatIf ?? entered) : entered)).clamp(
+      0.0,
+      maxSlider,
+    );
+    final band = MindsetSpectrumBar.bandForAmount(
+      sliderValue,
+      comfortCeiling,
+      cautionCeiling,
+    );
+    final bandColor = _bandColor(band);
+
+    // Floor the ceiling to a tidy ₱50 for the sentence (the bar keeps the exact
+    // value): a ceiling reads as a round guideline, and rounding DOWN keeps it
+    // honest (never promises more headroom than there is).
+    final displayCeiling = (comfortCeiling / 50).floorToDouble() * 50;
+    final String line;
+    if (comfortCeiling >= maxSlider) {
+      line = 'Comfortable across this whole range right now.';
+    } else if (displayCeiling > 0) {
+      line =
+          'Up to ${formatMoney(displayCeiling)} still fits comfortably '
+          'right now.';
+    } else {
+      line = 'Right now, even a small buy is worth a pause.';
+    }
+
+    return [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('insights'), size: 16, color: Barako.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              line,
+              style: AppText.small
+                  .tint(Barako.textSecondary)
+                  .copyWith(height: 1.35),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      MindsetSpectrumBar(
+        value: sliderValue,
+        maxAmount: maxSlider,
+        comfortCeiling: comfortCeiling,
+        cautionCeiling: cautionCeiling,
+        semanticLabel:
+            'What if slider, ${formatMoney(sliderValue)}, '
+            '${mindsetBandLabel(band)}',
+        onChanged: (v) => setState(() {
+          _whatIf = v;
+          _whatIfBase = entered;
+        }),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Drag to explore',
+              style: AppText.small.tint(Barako.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                '${formatMoney(sliderValue.roundToDouble())} · '
+                '${mindsetBandLabel(band)}',
+                maxLines: 1,
+                style: AppText.small.w6.tint(bandColor),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
   }
 
   Widget _budgetImpactSection(Map<String, dynamic> impact) {
