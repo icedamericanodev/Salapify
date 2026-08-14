@@ -15,8 +15,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/theme.dart' show Barako, salapifyTheme;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'screens_shot.dart' show loadRealFonts;
 import 'support/app_harness.dart';
 
 Map<String, dynamic> _blob({
@@ -44,6 +46,14 @@ Future<SalapifyStore> _openDirect(
   SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
   final store = SalapifyStore();
   await store.load();
+  // A realistic phone height (the default test surface is only 600 logical px
+  // tall, shorter than any real phone). The Impulse check card grew with the
+  // Money impact section, so the short default surface could no longer scroll
+  // the lowest question into reach for a tap. Width stays 800 so no horizontal
+  // layout changes; only vertical room grows.
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(home: MindsetScreen(store: store)));
   await tester.pumpAndSettle();
   return store;
@@ -1009,6 +1019,61 @@ void main() {
         expect(find.text('₱300'), findsOneWidget);
         expect(find.text('Expected amount remaining'), findsOneWidget);
         expect(find.text('₱500'), findsOneWidget); // 800 - 300
+      },
+    );
+
+    testWidgets(
+      'the Money impact card does not overflow at 320dp and 2.0x text',
+      (tester) async {
+        // Real fonts, or this measures the default test font (wider than the
+        // shipped Plus Jakarta Sans) and false-alarms on an overflow the phone
+        // never shows, the repo rule for any layout-measuring test.
+        await loadRealFonts(tester);
+        SharedPreferences.setMockInitialValues({
+          storageKey: jsonEncode(
+            _blob(
+              transactions: [
+                {
+                  'id': 'inc',
+                  'type': 'income',
+                  'label': 'Salary',
+                  'amount': 30000,
+                  'date': _todayIso(),
+                  'accountId': 'a',
+                },
+              ],
+            ),
+          ),
+        });
+        final store = SalapifyStore();
+        await store.load();
+        tester.view.physicalSize = const Size(320, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        // Pump under the real theme (Plus Jakarta Sans app-wide), as the phone
+        // runs it: without it the non-AppText widgets fall back to the wide
+        // default test font and overflow for a reason the phone never sees.
+        Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: salapifyTheme(Barako.current),
+            home: MindsetScreen(store: store),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // A seven-figure amount makes both the score line and the reserved
+        // "Dips PHP X" value as long as they can get.
+        await tester.enterText(
+          find.byKey(const Key('mindsetAmount')),
+          '9999999',
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('MONEY IMPACT'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       },
     );
 

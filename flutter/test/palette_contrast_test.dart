@@ -90,6 +90,12 @@ const List<Pair> _pairs = [
   // Warnings carry the most consequential words in the app.
   ('warning on card', _warning, _card, 4.5),
   ('warningStrong on card', _warningStrong, _card, 4.5),
+  // warningStrong is drawn on the page background too (the budget-impact panel's
+  // over-cap clause), so that pair is a promise, not an assumption. The mid
+  // warning tint is deliberately NOT used on background anywhere: it fails AA on
+  // background in two light themes (voltage, tidal), which is why the Money
+  // Mindset decision card draws on a card surface instead.
+  ('warningStrong on background', _warningStrong, _background, 4.5),
 
   // The caramel kicker inside a card. This pair was previously guaranteed
   // only by a comment on Barako.cardKickerStyle ("ranges 5.42 to 9.75"); the

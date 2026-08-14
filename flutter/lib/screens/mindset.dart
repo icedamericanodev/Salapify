@@ -25,6 +25,7 @@ import '../money/commitmentload.dart' show commitmentLoad;
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
+import '../money/mindset_decision.dart' show MindsetMode, mindsetDecision;
 import '../money/mindset_purchase.dart'
     show goalTradeoff, subscriptionEquivalents;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
@@ -1261,6 +1262,11 @@ class _MindsetScreenState extends State<MindsetScreen> {
               purchaseAmount: _goalTradeoffAmount,
               now: now,
             );
+            // The objective Decision Score for the current entry, shown as its
+            // own card between the inputs and the questions. Null until a
+            // usable amount is typed, so the card appears only once it has
+            // something honest to say.
+            final decision = _decisionResult(now, selectedGoal);
             // One log row per completed check, the moment all three answers
             // first line up. Scheduled for after this frame rather than
             // called straight from build(): logMindsetCheck writes through
@@ -1342,6 +1348,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
                                 commitLoad,
                                 goalInfo,
                               ),
+                              if (decision != null) ...[
+                                const SizedBox(height: 14),
+                                _decisionSection(decision, _purchaseType),
+                              ],
                               if (impact != null) ...[
                                 const SizedBox(height: 14),
                                 _budgetImpactSection(impact),
@@ -2339,6 +2349,296 @@ class _MindsetScreenState extends State<MindsetScreen> {
   // Only rendered when _budgetImpact returned non-null: a valid amount, a
   // chosen category, and a real Pro monthly cap all lined up. Read-only,
   // exactly like AffordCard; nothing here saves or spends anything.
+  MindsetMode get _mindsetMode => switch (_purchaseType) {
+    'subscription' => MindsetMode.subscription,
+    'credit' => MindsetMode.credit,
+    _ => MindsetMode.oneTime,
+  };
+
+  /// The objective Decision Score for whatever is currently typed, or null
+  /// when there is not yet a usable amount to judge. Read-only: it composes
+  /// the same golden-locked engines Home and the Afford card already show, so
+  /// this card can never disagree with them. A one-time buy weighs its whole
+  /// price against the cushion; a subscription or a credit plan weighs its
+  /// monthly bite, matching [_effectiveAmount]'s own per-type rule.
+  Map<String, dynamic>? _decisionResult(
+    DateTime now,
+    Map<String, dynamic>? selectedGoal,
+  ) {
+    final mode = _mindsetMode;
+    final double? cashNow;
+    final double monthlyLoad;
+    if (mode == MindsetMode.oneTime) {
+      cashNow = _validAmount;
+      monthlyLoad = 0;
+    } else {
+      cashNow = _effectiveAmount;
+      monthlyLoad = _effectiveAmount ?? 0;
+    }
+    if (cashNow == null || !(cashNow > 0)) return null;
+    var markup = 0.0;
+    if (mode == MindsetMode.credit) {
+      final extra = amountOf(_creditSummary?['extraCost']);
+      final cash = _numericFieldValue(_creditCashText.text) ?? 0;
+      if (cash > 0 && extra > 0) markup = extra / cash;
+    }
+    return mindsetDecision(
+      widget.store.data,
+      now,
+      mode: mode,
+      cashNow: cashNow,
+      monthlyLoad: monthlyLoad,
+      creditMarkup: markup,
+      goal: selectedGoal,
+      goalAmount: _goalTradeoffAmount,
+    );
+  }
+
+  static Color _scoreColor(double score) {
+    if (score.isNaN) return Barako.muted;
+    if (score >= 70) return Barako.primary;
+    if (score >= 45) return Barako.warning;
+    return Barako.warningStrong;
+  }
+
+  /// The headline colour reads the BAND, not the raw score, so it can never
+  /// disagree with the band word beside it if the cutoffs are ever retuned in
+  /// the engine (one source of truth for the headline).
+  static Color _bandColor(int band) => switch (band) {
+    1 => Barako.primary,
+    2 => Barako.warning,
+    _ => Barako.warningStrong,
+  };
+
+  /// A plain valence word for an axis score, so the dot colour is never the only
+  /// signal: a colour-blind user and a screen reader both get the severity.
+  static String _axisValence(double score) {
+    if (score.isNaN) return 'not enough history to judge';
+    if (score >= 70) return 'looks fine';
+    if (score >= 45) return 'worth watching';
+    return 'a concern';
+  }
+
+  /// The singular or plural period word for a goal-delay estimate, so
+  /// "1 month later" and "5 months later" both read right.
+  static String _goalPeriodWord(int n, String frequency) {
+    final base = switch (frequency) {
+      'weekly' => 'week',
+      'quarterly' => 'quarter',
+      'annual' => 'year',
+      _ => 'month',
+    };
+    return n == 1 ? base : '${base}s';
+  }
+
+  /// One axis of the Decision Score: a colour dot keyed to how that axis
+  /// scored, the plain-English factor name, and the honest figure behind it.
+  /// The label ellipsizes and the value scales down, so neither overflows a
+  /// 320dp phone at large text, the same guard [_impactRow] keeps.
+  Widget _axisRow(String label, String value, Color dot, String valence) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      // One merged node per row so a screen reader reads "Cushion after, 1.5
+      // months left, worth watching" instead of a bare fact with the severity
+      // hidden in a colour it cannot see.
+      child: Semantics(
+        container: true,
+        excludeSemantics: true,
+        label: '$label: $value, $valence',
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: AppText.small.tint(Barako.muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: AppText.small.w6.tint(dot),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The Money Mindset Decision Score card: the objective read on what a
+  /// purchase does to the money, shown the moment a usable amount is typed and
+  /// before the three reflection questions. It never gives an order (founder
+  /// rule): impact words, not "buy" or "skip", and the user still decides.
+  Widget _decisionSection(Map<String, dynamic> decision, String purchaseType) {
+    final score = decision['financialScore'] as int;
+    final band = decision['band'] as int;
+    final bandLabel = decision['bandLabel'] as String;
+    final c = _bandColor(band);
+    final runwayAfter = decision['runwayAfter'] as double?;
+    final incomeShare = decision['incomeShare'] as double?;
+    final dips = decision['dipsReserved'] as bool;
+    final shortfall = amountOf(decision['reservedShortfall']);
+    final tradeoff = decision['goalTradeoff'] as Map<String, dynamic>?;
+    final axes = (decision['axes'] as List).cast<Map<String, dynamic>>();
+    double axisScore(String name) {
+      final a = axes.firstWhere(
+        (e) => e['name'] == name,
+        orElse: () => const {'score': double.nan},
+      );
+      return (a['score'] as num).toDouble();
+    }
+
+    // Cushion after the buy. With enough expense history this is a count of
+    // months; without it (a thin, early-user ledger) there is no honest month
+    // figure, so it shows the actual pesos left in the accounts instead of a
+    // fabricated month count or a vague word.
+    final bufferAfter = amountOf(decision['bufferAfter']);
+    final String cushionText;
+    if (runwayAfter == null) {
+      cushionText = bufferAfter > 0
+          ? '${formatMoney(bufferAfter)} left'
+          : 'Empties it';
+    } else if (runwayAfter <= 0) {
+      cushionText = 'Empties it';
+    } else if (runwayAfter < 0.05) {
+      // Positive but rounds to 0.0: say so honestly rather than print the same
+      // "0.0" a reader takes for empty (which the branch above already owns).
+      cushionText = 'Under 0.1 months left';
+    } else {
+      cushionText = '${runwayAfter.toStringAsFixed(1)} months left';
+    }
+    // Share of income.
+    final String incomeText;
+    if (incomeShare == null) {
+      incomeText = 'Income unknown';
+    } else if (purchaseType == 'oneTime') {
+      incomeText = '${(incomeShare * 100).round()}% of a month';
+    } else {
+      incomeText = '${(incomeShare * 100).round()}% of income committed';
+    }
+    // Goal trade-off (only when a goal is linked and there is a real delay
+    // or a real share to show).
+    String? goalLabel;
+    String? goalText;
+    if (tradeoff != null) {
+      goalLabel = tradeoff['goalName'] as String? ?? 'Goal';
+      final delay = tradeoff['delay'];
+      if (delay is Map) {
+        final p = (delay['periods'] as num).toInt();
+        final f = delay['frequency'] as String? ?? 'monthly';
+        goalText = '$p ${_goalPeriodWord(p, f)} later';
+      } else {
+        final pct = amountOf(tradeoff['percentOfRemaining']).round();
+        goalText = "$pct% of what's left";
+      }
+    }
+
+    // Per-axis dot colour and valence. The reserved dot is floored at the
+    // warning colour whenever the buy dips into reserved money, so the sweldo
+    // relief in the engine (which can lift the axis score into the green band)
+    // can never paint a green dot beside the words "Dips PHP X".
+    final bufferScore = axisScore('buffer');
+    final incomeScoreV = axisScore('income');
+    final reservedScore = axisScore('reserved');
+    final goalScore = axisScore('goal');
+    var reservedDot = _scoreColor(reservedScore);
+    if (dips && reservedDot == Barako.primary) reservedDot = Barako.warning;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        // A raised card surface, not the page background: the band label, score
+        // and axis values are drawn in the accent, warning and warningStrong
+        // tints, and the mid warning fails AA on background in two light themes
+        // (voltage, tidal) while it passes comfortably on card. Sitting on card
+        // inside the darker considering panel also reads as a raised inset.
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.withValues(alpha: 0.55)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('MONEY IMPACT', style: Barako.cardKickerStyle),
+          const SizedBox(height: 6),
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label: 'Money impact score $score out of 100, $bandLabel',
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    bandLabel,
+                    style: AppText.subtitle.w7.tint(c),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('$score', style: AppText.title.w8.tabular.tint(c)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(' /100', style: AppText.small.tint(Barako.muted)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'How this purchase sits against your money right now. You decide.',
+            style: AppText.small
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          _axisRow(
+            'Cushion after',
+            cushionText,
+            _scoreColor(bufferScore),
+            _axisValence(bufferScore),
+          ),
+          _axisRow(
+            'Share of income',
+            incomeText,
+            _scoreColor(incomeScoreV),
+            incomeShare == null
+                ? 'income history unknown'
+                : _axisValence(incomeScoreV),
+          ),
+          _axisRow(
+            'Bills & debt money',
+            dips ? 'Dips ${formatMoney(shortfall)}' : 'No dip',
+            reservedDot,
+            dips ? 'dips into money reserved for bills and debt' : 'no dip',
+          ),
+          if (goalLabel != null && goalText != null)
+            _axisRow(
+              goalLabel,
+              goalText,
+              _scoreColor(goalScore),
+              _axisValence(goalScore),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _budgetImpactSection(Map<String, dynamic> impact) {
     final categoryName = impact['categoryName'] as String;
     final remainingBefore = impact['remainingBefore'] as double;
