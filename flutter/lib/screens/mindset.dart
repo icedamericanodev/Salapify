@@ -2401,6 +2401,24 @@ class _MindsetScreenState extends State<MindsetScreen> {
     return Barako.warningStrong;
   }
 
+  /// The headline colour reads the BAND, not the raw score, so it can never
+  /// disagree with the band word beside it if the cutoffs are ever retuned in
+  /// the engine (one source of truth for the headline).
+  static Color _bandColor(int band) => switch (band) {
+    1 => Barako.primary,
+    2 => Barako.warning,
+    _ => Barako.warningStrong,
+  };
+
+  /// A plain valence word for an axis score, so the dot colour is never the only
+  /// signal: a colour-blind user and a screen reader both get the severity.
+  static String _axisValence(double score) {
+    if (score.isNaN) return 'not enough history to judge';
+    if (score >= 70) return 'looks fine';
+    if (score >= 45) return 'worth watching';
+    return 'a concern';
+  }
+
   /// The singular or plural period word for a goal-delay estimate, so
   /// "1 month later" and "5 months later" both read right.
   static String _goalPeriodWord(int n, String frequency) {
@@ -2417,35 +2435,46 @@ class _MindsetScreenState extends State<MindsetScreen> {
   /// scored, the plain-English factor name, and the honest figure behind it.
   /// The label ellipsizes and the value scales down, so neither overflows a
   /// 320dp phone at large text, the same guard [_impactRow] keeps.
-  Widget _axisRow(String label, String value, double score) {
-    final c = _scoreColor(score);
+  Widget _axisRow(String label, String value, Color dot, String valence) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: AppText.small.tint(Barako.muted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      // One merged node per row so a screen reader reads "Cushion after, 1.5
+      // months left, worth watching" instead of a bare fact with the severity
+      // hidden in a colour it cannot see.
+      child: Semantics(
+        container: true,
+        excludeSemantics: true,
+        label: '$label: $value, $valence',
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
             ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Text(value, maxLines: 1, style: AppText.small.w6.tint(c)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: AppText.small.tint(Barako.muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: AppText.small.w6.tint(dot),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2456,8 +2485,9 @@ class _MindsetScreenState extends State<MindsetScreen> {
   /// rule): impact words, not "buy" or "skip", and the user still decides.
   Widget _decisionSection(Map<String, dynamic> decision, String purchaseType) {
     final score = decision['financialScore'] as int;
+    final band = decision['band'] as int;
     final bandLabel = decision['bandLabel'] as String;
-    final c = _scoreColor(score.toDouble());
+    final c = _bandColor(band);
     final runwayAfter = decision['runwayAfter'] as double?;
     final incomeShare = decision['incomeShare'] as double?;
     final dips = decision['dipsReserved'] as bool;
@@ -2484,6 +2514,10 @@ class _MindsetScreenState extends State<MindsetScreen> {
           : 'Empties it';
     } else if (runwayAfter <= 0) {
       cushionText = 'Empties it';
+    } else if (runwayAfter < 0.05) {
+      // Positive but rounds to 0.0: say so honestly rather than print the same
+      // "0.0" a reader takes for empty (which the branch above already owns).
+      cushionText = 'Under 0.1 months left';
     } else {
       cushionText = '${runwayAfter.toStringAsFixed(1)} months left';
     }
@@ -2513,10 +2547,26 @@ class _MindsetScreenState extends State<MindsetScreen> {
       }
     }
 
+    // Per-axis dot colour and valence. The reserved dot is floored at the
+    // warning colour whenever the buy dips into reserved money, so the sweldo
+    // relief in the engine (which can lift the axis score into the green band)
+    // can never paint a green dot beside the words "Dips PHP X".
+    final bufferScore = axisScore('buffer');
+    final incomeScoreV = axisScore('income');
+    final reservedScore = axisScore('reserved');
+    final goalScore = axisScore('goal');
+    var reservedDot = _scoreColor(reservedScore);
+    if (dips && reservedDot == Barako.primary) reservedDot = Barako.warning;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Barako.background,
+        // A raised card surface, not the page background: the band label, score
+        // and axis values are drawn in the accent, warning and warningStrong
+        // tints, and the mid warning fails AA on background in two light themes
+        // (voltage, tidal) while it passes comfortably on card. Sitting on card
+        // inside the darker considering panel also reads as a raised inset.
+        color: Barako.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: c.withValues(alpha: 0.55)),
       ),
@@ -2525,24 +2575,29 @@ class _MindsetScreenState extends State<MindsetScreen> {
         children: [
           Text('MONEY IMPACT', style: Barako.cardKickerStyle),
           const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  bandLabel,
-                  style: AppText.subtitle.w7.tint(c),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label: 'Money impact score $score out of 100, $bandLabel',
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    bandLabel,
+                    style: AppText.subtitle.w7.tint(c),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text('$score', style: AppText.title.w8.tabular.tint(c)),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(' /100', style: AppText.small.tint(Barako.muted)),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text('$score', style: AppText.title.w8.tabular.tint(c)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(' /100', style: AppText.small.tint(Barako.muted)),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -2552,15 +2607,33 @@ class _MindsetScreenState extends State<MindsetScreen> {
                 .copyWith(height: 1.4),
           ),
           const SizedBox(height: 10),
-          _axisRow('Cushion after', cushionText, axisScore('buffer')),
-          _axisRow('Share of income', incomeText, axisScore('income')),
+          _axisRow(
+            'Cushion after',
+            cushionText,
+            _scoreColor(bufferScore),
+            _axisValence(bufferScore),
+          ),
+          _axisRow(
+            'Share of income',
+            incomeText,
+            _scoreColor(incomeScoreV),
+            incomeShare == null
+                ? 'income history unknown'
+                : _axisValence(incomeScoreV),
+          ),
           _axisRow(
             'Bills & debt money',
             dips ? 'Dips ${formatMoney(shortfall)}' : 'No dip',
-            axisScore('reserved'),
+            reservedDot,
+            dips ? 'dips into money reserved for bills and debt' : 'no dip',
           ),
           if (goalLabel != null && goalText != null)
-            _axisRow(goalLabel, goalText, axisScore('goal')),
+            _axisRow(
+              goalLabel,
+              goalText,
+              _scoreColor(goalScore),
+              _axisValence(goalScore),
+            ),
         ],
       ),
     );
