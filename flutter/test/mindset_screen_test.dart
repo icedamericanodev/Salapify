@@ -60,7 +60,17 @@ Future<SalapifyStore> _openDirect(
 }
 
 Future<void> _openMindset(WidgetTester tester) async {
-  await openFromMenu(tester, 'Money mindset');
+  // The Money mindset menu tile now opens the redesigned MindsetFlowScreen;
+  // these tests exercise the original MindsetScreen component directly (it is
+  // still shipped while its remaining pieces fold into the flow), the same way
+  // _openDirect pumps it, reading the prefs the test already set.
+  final store = SalapifyStore();
+  await store.load();
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(MaterialApp(home: MindsetScreen(store: store)));
+  await tester.pumpAndSettle();
 }
 
 /// Answers decision-check question [i] (0-indexed, in the order the screen
@@ -274,11 +284,7 @@ void main() {
 
   group('small wins', () {
     testWidgets('a small win can be added and removed', (tester) async {
-      SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
-      final store = SalapifyStore();
-      await tester.pumpWidget(SalapifyApp(store: store));
-      await tester.pumpAndSettle();
-      await _openMindset(tester);
+      final store = await _openDirect(tester, _blob());
       await tester.scrollUntilVisible(
         find.text('No wins yet. Add a small one above.'),
         400,
@@ -665,11 +671,7 @@ void main() {
     testWidgets(
       'completing a decision check logs once, not once per answer flip',
       (tester) async {
-        SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
-        final store = SalapifyStore();
-        await tester.pumpWidget(SalapifyApp(store: store));
-        await tester.pumpAndSettle();
-        await _openMindset(tester);
+        final store = await _openDirect(tester, _blob());
 
         await _answer(tester, 0, false); // not essential
         await _answer(tester, 1, true); // affordable

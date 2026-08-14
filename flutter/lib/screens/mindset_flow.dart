@@ -13,6 +13,7 @@ import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
 import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
+import '../services/notifications.dart' show Reminders;
 import '../money/mindset_decision.dart'
     show
         MindsetMode,
@@ -1048,9 +1049,53 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     ),
   );
 
-  /// Records the chosen outcome (write-through comes in the storage phase) and
-  /// moves to Reflection.
-  void _finish(String outcome) {
+  String _resultKey(int band) => switch (band) {
+    1 => 'fitsPlan',
+    2 => 'pause24h',
+    _ => 'notInPlan',
+  };
+
+  /// Records the chosen outcome through the existing, tested store write paths
+  /// (no new schema): every completed check is logged; a skip becomes a small
+  /// win; a "remind me" becomes a waiting item and reschedules its nudge. Then
+  /// it moves to Reflection. A write failure never traps the user mid-flow.
+  Future<void> _finish(String outcome) async {
+    final store = widget.store;
+    if (store.canWrite && _allAnswered) {
+      final name = _itemName.text.trim().isNotEmpty
+          ? _itemName.text.trim()
+          : 'a purchase';
+      final amt = _enteredAmount;
+      final band =
+          applyReflection(
+                _decision(DateTime.now())['financialScore'] as int,
+                essential: _answers[0]!,
+                affordWithoutReserved: _answers[1]!,
+                wanted24h: _answers[2]!,
+              )['finalBand']
+              as int;
+      final result = _resultKey(band);
+      try {
+        await store.logMindsetCheck(verdict: result);
+        if (outcome == 'skipped') {
+          await store.addWin('Skipped $name', amount: amt > 0 ? amt : null);
+        } else if (outcome == 'waiting') {
+          await store.addMindsetWaitingItem(
+            itemName: name,
+            amount: amt > 0 ? amt : null,
+            categoryId: _categoryId,
+            essential: _answers[0]!,
+            affordableWithoutReserved: _answers[1]!,
+            waited24h: _answers[2]!,
+            result: result,
+          );
+          await Reminders.reschedule(store.data, DateTime.now());
+        }
+      } catch (_) {
+        // The reflection still shows, just without the recorded row.
+      }
+    }
+    if (!mounted) return;
     setState(() => _outcome = outcome);
     _goTo(4);
   }

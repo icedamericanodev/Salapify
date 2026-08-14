@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.16 · Money mindset shows your comfortable spending ceiling and a live what-if slider.';
+    'f4.16 · Money mindset is now a guided flow: score a purchase, explore what-if, decide, reflect.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
