@@ -581,6 +581,9 @@ void main() {
       'recap_share.dart': 'needs a specific month to share',
       'csv_import.dart': 'needs a picked file',
       'new_phone_day.dart': 'a guided handoff driven by its own test',
+      'mindset_flow.dart':
+          'a guided four-step flow, input-driven (a cold pump shows only step '
+          '1); walked by mindset_flow_test and rendered by mindset_flow_shot',
       // The calculators used to sit here as "input-driven; cold pump shows an
       // empty form", with a note that this was a reason to drive them, not to
       // skip them. They are swept now, typed via typedInput above.
