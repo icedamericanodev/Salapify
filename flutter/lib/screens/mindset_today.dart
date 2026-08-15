@@ -18,6 +18,7 @@ import '../money/mindset_decisions.dart'
         mindsetTodayStats,
         recentMindsetDecisions;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
+import '../services/notifications.dart' show Reminders;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/count_up_text.dart';
@@ -77,7 +78,7 @@ class MindsetTodayScreen extends StatelessWidget {
                   const SizedBox(height: Gap.xl),
                   Text('Waiting on', style: AppText.title.w7),
                   const SizedBox(height: Gap.sm),
-                  for (final w in waiting) _waitingRow(w, now),
+                  for (final w in waiting) _waitingRow(context, w, now),
                 ],
                 const SizedBox(height: Gap.xl),
                 Row(
@@ -182,10 +183,14 @@ class MindsetTodayScreen extends StatelessWidget {
     ),
   );
 
-  // A parked "Remind me in N days" purchase, read-only: its name, estimated
-  // amount, and when it is ready to revisit. The reminder nudge already handles
-  // bringing the person back to decide; this just makes what is parked visible.
-  Widget _waitingRow(Map<String, dynamic> item, DateTime now) {
+  // A parked "Remind me" purchase: its name, estimated amount, and when it is
+  // ready to revisit. Tapping it opens the act-on-it sheet (skipped, bought, or
+  // more time) so a decision can be resolved without waiting for the nudge.
+  Widget _waitingRow(
+    BuildContext context,
+    Map<String, dynamic> item,
+    DateTime now,
+  ) {
     final name = (item['itemName'] is String)
         ? (item['itemName'] as String).trim()
         : '';
@@ -195,56 +200,225 @@ class MindsetTodayScreen extends StatelessWidget {
         : (amt is String ? double.tryParse(amt) : null);
     final due = isDue(item, now);
     final label = revisitLabel(item, now);
-    return Container(
-      margin: const EdgeInsets.only(bottom: Gap.sm),
-      padding: const EdgeInsets.all(Gap.md),
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.sm),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.card),
+          onTap: () => _openWaitingActions(context, item),
+          child: Container(
+            padding: const EdgeInsets.all(Gap.md),
             decoration: BoxDecoration(
-              color: Barako.warning.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(Radii.control),
+              color: Barako.card,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: Barako.border),
             ),
-            child: Icon(
-              salapifyIcon('paused'),
-              size: 20,
-              color: Barako.warning,
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Barako.warning.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(Radii.control),
+                  ),
+                  child: Icon(
+                    salapifyIcon('paused'),
+                    size: 20,
+                    color: Barako.warning,
+                  ),
+                ),
+                const SizedBox(width: Gap.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isNotEmpty ? name : "Something you're considering",
+                        style: AppText.body.w6,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: Gap.xxs),
+                      Text(
+                        label,
+                        style: AppText.caption.w6.tint(
+                          due ? Barako.income : Barako.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (amount != null) ...[
+                  const SizedBox(width: Gap.sm),
+                  Text(formatMoney(amount), style: AppText.small.w7.tabular),
+                ],
+                const SizedBox(width: Gap.sm),
+                Icon(salapifyIcon('forward'), size: 16, color: Barako.muted),
+              ],
             ),
           ),
-          const SizedBox(width: Gap.md),
-          Expanded(
+        ),
+      ),
+    );
+  }
+
+  String _waitingName(Map<String, dynamic> item) {
+    final n = item['itemName'];
+    return (n is String && n.trim().isNotEmpty)
+        ? n.trim()
+        : "Something you're considering";
+  }
+
+  // Act on a parked item, three deliberate outcomes, each a single store write:
+  // "I skipped it" resolves it and logs the money kept as a win (the same thing
+  // the flow's Skip does); "I bought it" just resolves it; "Keep waiting" pushes
+  // the revisit out another 24 hours. Read-only money in the Salapify sense: a
+  // win records what was NOT spent and never moves a balance.
+  void _openWaitingActions(BuildContext context, Map<String, dynamic> item) {
+    final id = item['id'];
+    if (id is! String) return;
+    final name = _waitingName(item);
+    final amt = item['amount'];
+    final amount = amt is num ? amt.toDouble() : null;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: Barako.background,
+          border: Border.all(color: Barako.border),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          24 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name.isNotEmpty ? name : "Something you're considering",
-                  style: AppText.body.w6,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Text('Do you still want this?', style: AppText.title.w7),
+                const SizedBox(height: 6),
+                Text(name, style: AppText.bodyLg.w7),
+                if (amount != null) ...[
+                  const SizedBox(height: 2),
+                  Text(formatMoney(amount), style: AppText.body),
+                ],
+                const SizedBox(height: Gap.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _resolveWaiting(
+                        context,
+                        id,
+                        status: 'skipped',
+                        winNote: 'Skipped $name',
+                        winAmount: amount,
+                        toast: 'Skipped. That is money kept.',
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('No, I skipped it'),
+                  ),
                 ),
-                const SizedBox(height: Gap.xxs),
-                Text(
-                  label,
-                  style: AppText.caption.w6.tint(
-                    due ? Barako.income : Barako.muted,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _resolveWaiting(
+                        context,
+                        id,
+                        status: 'reviewed',
+                        toast: 'Logged. Off your waiting list.',
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Barako.textSecondary,
+                      side: BorderSide(color: Barako.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Yes, I bought it'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _extendWaiting(context, id);
+                    },
+                    child: Text(
+                      'Not sure, keep waiting 24 hours',
+                      style: AppText.small.w6.tint(Barako.muted),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          if (amount != null) ...[
-            const SizedBox(width: Gap.sm),
-            Text(formatMoney(amount), style: AppText.small.w7.tabular),
-          ],
-        ],
+        ),
       ),
+    );
+  }
+
+  Future<void> _resolveWaiting(
+    BuildContext context,
+    String id, {
+    required String status,
+    String? winNote,
+    double? winAmount,
+    required String toast,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await store.patchMindsetWaitingItem(id, {'status': status});
+      if (winNote != null) {
+        await store.addWin(winNote, amount: winAmount);
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(store.data, DateTime.now());
+    messenger.showSnackBar(SnackBar(content: Text(toast)));
+  }
+
+  Future<void> _extendWaiting(BuildContext context, String id) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final next = DateTime.now().add(const Duration(hours: 24));
+    try {
+      await store.patchMindsetWaitingItem(id, {
+        'revisitAt': next.toIso8601String(),
+      });
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save that, nothing changed. $e')),
+      );
+      return;
+    }
+    await Reminders.reschedule(store.data, DateTime.now());
+    messenger.showSnackBar(
+      const SnackBar(content: Text("We'll check back again in 24 hours.")),
     );
   }
 

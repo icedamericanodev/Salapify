@@ -200,6 +200,44 @@ void main() {
     expect(find.textContaining('1,300'), findsWidgets); // 500 + 800 avoided
   });
 
+  testWidgets('acting on a waiting item resolves it and logs a win, no balance '
+      'moved', (tester) async {
+    final now = DateTime.now();
+    final store = await _load(
+      _blob(
+        waiting: [
+          {
+            'id': 'w1',
+            'itemName': 'New headphones',
+            'amount': 4990,
+            'status': 'waiting',
+            'result': 'pause24h',
+            'createdAt': now.toIso8601String(),
+            'revisitAt': now
+                .subtract(const Duration(hours: 1))
+                .toIso8601String(),
+          },
+        ],
+      ),
+    );
+    final txCount = (store.data['transactions'] as List).length;
+    final winCount = (store.data['wins'] as List?)?.length ?? 0;
+    await _pumpDashboard(tester, store);
+
+    // Tap the waiting row, then choose "I skipped it".
+    await tester.tap(find.text('New headphones'));
+    await tester.pumpAndSettle();
+    expect(find.text('Do you still want this?'), findsOneWidget);
+    await tester.tap(find.text('No, I skipped it'));
+    await tester.pumpAndSettle();
+
+    // The item is resolved (no longer waiting), a win was logged, and no
+    // transaction was created.
+    expect(store.mindsetWaiting.first['status'], 'skipped');
+    expect((store.data['wins'] as List).length, winCount + 1);
+    expect((store.data['transactions'] as List).length, txCount);
+  });
+
   testWidgets('empty state when nothing is logged yet', (tester) async {
     final store = await _load(_blob());
     await _pumpDashboard(tester, store);
