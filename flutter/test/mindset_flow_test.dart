@@ -122,6 +122,27 @@ void main() {
     expect(find.text('Real cost per year'), findsOneWidget);
   });
 
+  testWidgets('the Subscription path compares monthly vs yearly', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Subscription'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(1), '499');
+    await tester.pumpAndSettle();
+
+    // Default is Monthly: 499/mo and 5,988/yr (499 * 12).
+    expect(find.text('Per month'), findsOneWidget);
+    expect(find.text('Per year'), findsOneWidget);
+    expect(find.textContaining('5,988'), findsWidgets);
+
+    // Switch to Yearly: now 499 is the yearly figure, ~41.58/mo.
+    await tester.tap(find.text('Yearly'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('41'), findsWidgets); // 499/12 per month
+  });
+
   testWidgets('the flow never records a transaction (read-only money)', (
     tester,
   ) async {

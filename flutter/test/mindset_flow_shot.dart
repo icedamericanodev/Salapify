@@ -165,6 +165,49 @@ void main() {
     );
   });
 
+  testWidgets('Money Mindset flow, Step 1 Subscription detail, dark', (
+    tester,
+  ) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    final blob = _richBlob();
+    (blob['settings'] as Map)['mindsetSubscriptions'] = [
+      {'id': 's1', 'name': 'Streaming', 'amount': 149, 'cycle': 'monthly'},
+      {'id': 's2', 'name': 'Cloud', 'amount': 1200, 'cycle': 'annual'},
+    ];
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(blob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Subscription'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '499');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-flow-subscription-dark.png'),
+    );
+  });
+
   testWidgets('Money Mindset flow, Step 2 Impact, dark', (tester) async {
     await loadRealFonts(tester);
     await loadPanFaces(tester);
