@@ -799,6 +799,82 @@ void main() {
       ).where((r) => r.title == 'Still thinking it over?').toList();
       expect(rs, hasLength(1));
     });
+
+    test(
+      'a Big-impact buy (Band 3, notInPlan) gets a second nudge ~3 days later',
+      () {
+        final rs =
+            plannedReminders(
+                waitingData(
+                  items: [
+                    {
+                      'id': 'w3',
+                      'itemName': 'New laptop',
+                      'amount': 45000,
+                      'status': 'waiting',
+                      'result': 'notInPlan',
+                      'createdAt': DateTime(2026, 7, 15, 12).toIso8601String(),
+                      'revisitAt': DateTime(2026, 7, 16, 12).toIso8601String(),
+                    },
+                  ],
+                ),
+                now,
+              ).where((r) => r.title == 'Still thinking it over?').toList()
+              ..sort((a, b) => a.when.compareTo(b.when));
+        expect(rs, hasLength(2));
+        expect(rs[0].when, DateTime(2026, 7, 16, 12)); // day-1, decisive
+        expect(rs[1].when, DateTime(2026, 7, 18, 12)); // createdAt + 3 days
+      },
+    );
+
+    test('a Worth-a-pause buy (Band 2) still gets only the one nudge', () {
+      final rs = plannedReminders(
+        waitingData(
+          items: [
+            {
+              'id': 'w4',
+              'itemName': 'New shoes',
+              'status': 'waiting',
+              'result': 'pause24h',
+              'createdAt': DateTime(2026, 7, 15, 12).toIso8601String(),
+              'revisitAt': DateTime(2026, 7, 16, 9).toIso8601String(),
+            },
+          ],
+        ),
+        now,
+      ).where((r) => r.title == 'Still thinking it over?');
+      expect(rs, hasLength(1));
+    });
+
+    test('the day-3 nudge is dropped once it is in the past', () {
+      // A Band-3 item created 4 days ago: its day-3 nudge is already past, so
+      // only a still-future revisit (if any) survives. Here both are past.
+      final rs = plannedReminders(
+        waitingData(
+          items: [
+            {
+              'id': 'w5',
+              'status': 'waiting',
+              'result': 'notInPlan',
+              'createdAt': DateTime(2026, 7, 11, 12).toIso8601String(),
+              'revisitAt': DateTime(2026, 7, 12, 12).toIso8601String(),
+            },
+          ],
+        ),
+        now,
+      ).where((r) => r.title == 'Still thinking it over?');
+      expect(rs, isEmpty);
+    });
+
+    test('the copy no longer hardcodes a duration', () {
+      final rs = plannedReminders(
+        waitingData(items: oneWaiting),
+        now,
+        detailed: true,
+      ).where((r) => r.title == 'Still thinking it over?').toList();
+      expect(rs.single.body.contains('24 hours'), isFalse);
+      expect(rs.single.body.contains('You paused'), isTrue);
+    });
   });
 
   test('junk data never throws', () {
