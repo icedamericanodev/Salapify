@@ -825,10 +825,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           ),
           const SizedBox(height: Gap.md),
           _impactCard(decision),
-          if (_openGoals().isNotEmpty) ...[
-            const SizedBox(height: Gap.lg),
-            _goalImpactCard(amt, now),
-          ],
+          const SizedBox(height: Gap.lg),
+          _openGoals().isNotEmpty
+              ? _goalImpactCard(amt, now)
+              : _goalImpactEmpty(),
           if (spectrum != null) ...[
             const SizedBox(height: Gap.lg),
             _whatIfCard(spectrum, amt),
@@ -1056,6 +1056,44 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       _ => periods == 1 ? 'month' : 'months',
     };
     return 'about $periods $unit later';
+  }
+
+  // Shown when there is no savings goal yet, so the goal lens is always visible
+  // on Impact (a first-run phone has no goals, and a hidden card can never be
+  // discovered). It explains what the section would do and points to Goals.
+  Widget _goalImpactEmpty() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WHAT THIS COSTS YOUR GOAL', style: Barako.cardKickerStyle),
+          const SizedBox(height: Gap.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(salapifyIcon('goal'), size: 18, color: Barako.textSecondary),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  'Set a savings goal and this will show how much a buy sets it '
+                  'back, and about how much later it would land.',
+                  style: AppText.small
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   // What a buy costs a savings goal. INFORMATIONAL, separate from the score: the
