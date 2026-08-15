@@ -17,7 +17,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens_shot.dart' show loadRealFonts;
 
-Map<String, dynamic> _blob({List<Map<String, dynamic>>? decisions}) {
+Map<String, dynamic> _blob({
+  List<Map<String, dynamic>>? decisions,
+  List<Map<String, dynamic>>? waiting,
+}) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   String iso(DateTime t) =>
@@ -37,7 +40,11 @@ Map<String, dynamic> _blob({List<Map<String, dynamic>>? decisions}) {
   }
   return {
     'schemaVersion': 12,
-    'settings': {'onboarded': true, 'mindsetDecisions': ?decisions},
+    'settings': {
+      'onboarded': true,
+      'mindsetDecisions': ?decisions,
+      'mindsetWaiting': ?waiting,
+    },
     'accounts': [
       {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 40000},
     ],
@@ -275,6 +282,61 @@ void main() {
     await tester.tap(find.text('A purchase'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the Waiting on section surfaces paused items and their revisit '
+      'time, and is absent when none are waiting', (tester) async {
+    final now = DateTime.now();
+    final store = await _load(
+      _blob(
+        waiting: [
+          // Ready now: revisitAt in the past.
+          {
+            'id': 'w1',
+            'itemName': 'New headphones',
+            'amount': 4990,
+            'status': 'waiting',
+            'createdAt': now
+                .subtract(const Duration(days: 2))
+                .toIso8601String(),
+            'revisitAt': now
+                .subtract(const Duration(hours: 1))
+                .toIso8601String(),
+          },
+          // Still cooling off: revisitAt in the future.
+          {
+            'id': 'w2',
+            'itemName': 'Sneakers',
+            'amount': 3200,
+            'status': 'waiting',
+            'createdAt': now.toIso8601String(),
+            'revisitAt': now.add(const Duration(hours: 10)).toIso8601String(),
+          },
+          // Already reviewed: must NOT show.
+          {
+            'id': 'w3',
+            'itemName': 'Old thing',
+            'status': 'reviewed',
+            'revisitAt': now.toIso8601String(),
+          },
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+
+    expect(find.text('Waiting on'), findsOneWidget);
+    expect(find.text('New headphones'), findsOneWidget);
+    expect(find.text('Sneakers'), findsOneWidget);
+    expect(find.text('Ready to revisit'), findsOneWidget);
+    // The future one shows a countdown (exact hours depend on elapsed test time).
+    expect(find.textContaining('Revisit in'), findsOneWidget);
+    // A reviewed item is not waiting, so it is not surfaced.
+    expect(find.text('Old thing'), findsNothing);
+
+    // With nothing waiting, the section header is gone entirely.
+    final empty = await _load(_blob());
+    await _pumpDashboard(tester, empty);
+    expect(find.text('Waiting on'), findsNothing);
   });
 
   testWidgets('See my 30 days opens the insights screen', (tester) async {

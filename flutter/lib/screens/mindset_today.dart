@@ -13,6 +13,7 @@ import '../money/format.dart' show formatMoney;
 import '../money/pan_mood.dart' show PanMood;
 import '../money/mindset_decisions.dart'
     show MindsetTodayStats, mindsetTodayStats, recentMindsetDecisions;
+import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/count_up_text.dart';
@@ -49,6 +50,7 @@ class MindsetTodayScreen extends StatelessWidget {
         final decisions = store.mindsetDecisions;
         final stats = mindsetTodayStats(decisions, now);
         final recent = recentMindsetDecisions(decisions, limit: 5);
+        final waiting = waitingItems(store.mindsetWaiting);
         return Scaffold(
           backgroundColor: Barako.background,
           appBar: AppBar(title: const Text('Money mindset')),
@@ -69,6 +71,12 @@ class MindsetTodayScreen extends StatelessWidget {
                 _summaryGrid(stats),
                 const SizedBox(height: Gap.md),
                 _insightsButton(context),
+                if (waiting.isNotEmpty) ...[
+                  const SizedBox(height: Gap.xl),
+                  Text('Waiting on', style: AppText.title.w7),
+                  const SizedBox(height: Gap.sm),
+                  for (final w in waiting) _waitingRow(w, now),
+                ],
                 const SizedBox(height: Gap.xl),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,6 +245,72 @@ class MindsetTodayScreen extends StatelessWidget {
       ),
     ),
   );
+
+  // A parked "Remind me in N days" purchase, read-only: its name, estimated
+  // amount, and when it is ready to revisit. The reminder nudge already handles
+  // bringing the person back to decide; this just makes what is parked visible.
+  Widget _waitingRow(Map<String, dynamic> item, DateTime now) {
+    final name = (item['itemName'] is String)
+        ? (item['itemName'] as String).trim()
+        : '';
+    final amt = item['amount'];
+    final amount = amt is num
+        ? amt.toDouble()
+        : (amt is String ? double.tryParse(amt) : null);
+    final due = isDue(item, now);
+    final label = revisitLabel(item, now);
+    return Container(
+      margin: const EdgeInsets.only(bottom: Gap.sm),
+      padding: const EdgeInsets.all(Gap.md),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Barako.warning.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(Radii.control),
+            ),
+            child: Icon(
+              salapifyIcon('paused'),
+              size: 20,
+              color: Barako.warning,
+            ),
+          ),
+          const SizedBox(width: Gap.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isNotEmpty ? name : "Something you're considering",
+                  style: AppText.body.w6,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: Gap.xxs),
+                Text(
+                  label,
+                  style: AppText.caption.w6.tint(
+                    due ? Barako.income : Barako.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (amount != null) ...[
+            const SizedBox(width: Gap.sm),
+            Text(formatMoney(amount), style: AppText.small.w7.tabular),
+          ],
+        ],
+      ),
+    );
+  }
 
   Widget _emptyRecent() => Container(
     width: double.infinity,
