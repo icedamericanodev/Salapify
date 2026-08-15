@@ -16,7 +16,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/money/lesson_progress.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/learn.dart';
-import 'package:salapify/screens/mindset.dart';
+import 'package:salapify/screens/mindset_today.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/expansion_lesson_reader.dart';
 import 'package:salapify/widgets/paged_lesson_reader.dart';
@@ -160,7 +160,7 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(MindsetScreen), findsOneWidget);
+      expect(find.byType(MindsetTodayScreen), findsOneWidget);
       expect(
         store.expansionProgressFor('grow_your_money')[verifyLesson.id],
         LessonState.applied,

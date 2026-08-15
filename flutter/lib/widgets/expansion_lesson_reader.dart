@@ -34,7 +34,7 @@ import '../screens/accounts.dart';
 import '../screens/budget.dart';
 import '../screens/debts.dart';
 import '../screens/goals.dart';
-import '../screens/mindset.dart';
+import '../screens/mindset_today.dart';
 import '../screens/notifications_security.dart';
 import '../screens/recurring.dart';
 import '../screens/salary_calculator.dart';
@@ -68,7 +68,7 @@ VoidCallback? resolveExpansionActionRoute(
     'goals' => GoalsScreen(store: store),
     'debts' => DebtsScreen(store: store),
     'budget' => BudgetScreen(store: store),
-    'mindset' => MindsetScreen(store: store),
+    'mindset' => MindsetTodayScreen(store: store),
     'accounts' => AccountsScreen(store: store),
     'recurring' => RecurringScreen(store: store),
     'notifications' => NotificationsSecurityScreen(store: store),

@@ -36,7 +36,18 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Each entry needs a reason somebody could argue with. An exemption is how
 /// this guard rots, so it should stay empty unless there is a real answer.
-const _exempt = <String, String>{};
+const _exempt = <String, String>{
+  // The old single-screen Money Mindset. f4.32 re-pointed the app's only two
+  // links (the menu and the lesson reader) to the new flow, so lib no longer
+  // builds it; it is retained because mindset_waiting_screen_test still mounts
+  // it for the waiting-list flow. Its three shots document that retained screen.
+  // FOLLOW-UP for the founder: remove mindset.dart, its shots, and that test
+  // together as a deliberate deletion, then delete this exemption. Tracked in
+  // docs/reviews/f4.32-mindset-single-entry-report.md.
+  'MindsetScreen':
+      'retained for mindset_waiting_screen_test; no longer app-reachable after '
+      'f4.32, pending a dedicated old-screen removal',
+};
 
 void main() {
   test('every widget the render harness shoots is one the app can build', () {

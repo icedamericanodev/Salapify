@@ -36,7 +36,7 @@ import 'contribution_calculator.dart';
 import 'debts.dart';
 import 'goals.dart';
 import 'log_sheet.dart';
-import 'mindset.dart';
+import 'mindset_today.dart';
 import 'notes.dart';
 import 'paluwagan.dart';
 import 'path_screen.dart';
@@ -163,10 +163,10 @@ class _LearnScreenState extends State<LearnScreen> {
       case 'log':
         return () => showLogSheet(context, widget.store);
       case 'mindset':
-        screen = MindsetScreen(
-          store: widget.store,
-          onSwitchTab: widget.onSwitchTab,
-        );
+        // The new Money Mindset home (dashboard -> Log a Decision -> the 4-step
+        // flow), the same one the menu opens, so a lesson link and the menu land
+        // on one experience instead of the older single screen.
+        screen = MindsetTodayScreen(store: widget.store);
       case 'recurring':
         screen = RecurringScreen(store: widget.store);
       case 'goals':
