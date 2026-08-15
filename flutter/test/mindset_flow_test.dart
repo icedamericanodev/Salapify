@@ -217,6 +217,20 @@ void main() {
     expect(find.text('Bills and debt'), findsOneWidget);
   });
 
+  testWidgets('with no goals, the Impact step still shows a goal prompt', (
+    tester,
+  ) async {
+    await _pump(tester); // default blob has no goals
+    await tester.enterText(find.byType(TextField).at(1), '3000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // The section is always visible, now as a discoverable prompt.
+    expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
+    expect(find.textContaining('Set a savings goal'), findsOneWidget);
+  });
+
   testWidgets('a goal with no deadline shows no fabricated day count', (
     tester,
   ) async {
