@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.33 · Mindset: removed the retired old single screen now that everything runs on the new flow.';
+    'f4.34 · Mindset: a Credit or BNPL score now weighs the monthly installment, not the full price, so it is right.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

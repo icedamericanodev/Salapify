@@ -136,6 +136,26 @@ void main() {
     expect(find.text('Real cost per year'), findsOneWidget);
   });
 
+  testWidgets('the Credit path scores on the installment, not the full price', (
+    tester,
+  ) async {
+    await _pump(tester); // income 32,000/mo, ~40,000 in accounts
+    await tester.tap(find.text('Credit or BNPL'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '20000');
+    await tester.enterText(find.byType(TextField).at(2), '3');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // A ~3,433 installment against 32,000 income is not a "Big impact" buy. The
+    // old bug (20,000 as both the cash out AND the monthly load) would have
+    // scored it as one; the fix scores on the installment instead.
+    expect(find.text('Big impact'), findsNothing);
+    // The score section still renders its explainer, so we are on Step 2.
+    expect(find.text('How we score this'), findsOneWidget);
+  });
+
   testWidgets('the Subscription path compares monthly vs yearly', (
     tester,
   ) async {

@@ -13,7 +13,8 @@ import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' show amountOf;
 import '../money/bnpl.dart' show bnplCost;
-import '../money/mindset_credit.dart' show BnplFlatPlan, bnplFlatPlan;
+import '../money/mindset_credit.dart'
+    show BnplFlatPlan, bnplFlatPlan, creditScoreInputs;
 import '../money/mindset_purchase.dart' show goalTradeoff;
 import '../money/mindset_subscriptions.dart'
     show parseSubscriptions, subscriptionsOverview;
@@ -149,6 +150,31 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   Map<String, dynamic> _decision(DateTime now) {
     final amt = _enteredAmount;
     final mode = _mindsetMode;
+    // Credit / BNPL scores on the INSTALLMENT, not the full price. Passing the
+    // whole price as both the immediate cash out and the monthly load (the old
+    // bug) scored a spread-out plan as if the entire amount left today and again
+    // every month. Now the first installment is the cash out, the same
+    // installment is the monthly load, and the fee is carried as a credit
+    // markup, exactly the engine's documented contract (bank-officer verified
+    // 2026-08-15). The goal card stays informational and weighs the total repaid.
+    if (mode == MindsetMode.credit) {
+      final fee = double.tryParse(_creditFee.text.trim()) ?? 0;
+      final plan = bnplFlatPlan(
+        price: amt,
+        months: _creditMonths,
+        feePercent: fee,
+      );
+      final inputs = creditScoreInputs(plan);
+      return mindsetDecision(
+        widget.store.data,
+        now,
+        mode: mode,
+        cashNow: inputs.cashNow,
+        monthlyLoad: inputs.monthlyLoad,
+        creditMarkup: inputs.creditMarkup,
+        goalAmount: plan.totalPaid,
+      );
+    }
     return mindsetDecision(
       widget.store.data,
       now,
@@ -827,7 +853,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           _impactCard(decision),
           const SizedBox(height: Gap.lg),
           _openGoals().isNotEmpty
-              ? _goalImpactCard(amt, now)
+              ? _goalImpactCard(_goalWeighAmount(amt), now)
               : _goalImpactEmpty(),
           if (spectrum != null) ...[
             const SizedBox(height: Gap.lg),
@@ -1094,6 +1120,19 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
         ],
       ),
     );
+  }
+
+  // The amount a buy truly costs a goal: for credit that is the TOTAL repaid
+  // (price plus fee), not the sticker price, since that is what actually leaves
+  // your pocket instead of going to the goal (bank-officer note, 2026-08-15).
+  double _goalWeighAmount(double amt) {
+    if (_mindsetMode != MindsetMode.credit) return amt;
+    final fee = double.tryParse(_creditFee.text.trim()) ?? 0;
+    return bnplFlatPlan(
+      price: amt,
+      months: _creditMonths,
+      feePercent: fee,
+    ).totalPaid;
   }
 
   // What a buy costs a savings goal. INFORMATIONAL, separate from the score: the
