@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.32 · Mindset: opening it from a lesson now lands on the same new flow as the menu, one experience.';
+    'f4.33 · Mindset: removed the retired old single screen now that everything runs on the new flow.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
