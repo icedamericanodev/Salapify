@@ -12,7 +12,11 @@ import '../data/store.dart';
 import '../money/format.dart' show formatMoney;
 import '../money/pan_mood.dart' show PanMood;
 import '../money/mindset_decisions.dart'
-    show MindsetTodayStats, mindsetTodayStats, recentMindsetDecisions;
+    show
+        MindsetTodayStats,
+        mindsetRangeStats,
+        mindsetTodayStats,
+        recentMindsetDecisions;
 import '../money/mindset_waiting.dart' show isDue, revisitLabel, waitingItems;
 import '../theme.dart';
 import '../typography.dart';
@@ -21,6 +25,7 @@ import '../widgets/mindset_decision_detail.dart';
 import '../widgets/mindset_decision_tile.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/segmented.dart';
 import 'mindset_decisions_list.dart';
 import 'mindset_flow.dart';
 import 'mindset_insights.dart';
@@ -48,7 +53,6 @@ class MindsetTodayScreen extends StatelessWidget {
       builder: (context, _) {
         final now = DateTime.now();
         final decisions = store.mindsetDecisions;
-        final stats = mindsetTodayStats(decisions, now);
         final recent = recentMindsetDecisions(decisions, limit: 5);
         final waiting = waitingItems(store.mindsetWaiting);
         return Scaffold(
@@ -66,9 +70,7 @@ class MindsetTodayScreen extends StatelessWidget {
               children: [
                 _header(context),
                 const SizedBox(height: Gap.xl),
-                Text("Today's summary", style: AppText.title.w7),
-                const SizedBox(height: Gap.md),
-                _summaryGrid(stats),
+                _MindsetSummary(decisions: decisions, now: now),
                 const SizedBox(height: Gap.md),
                 _insightsButton(context),
                 if (waiting.isNotEmpty) ...[
@@ -163,72 +165,6 @@ class MindsetTodayScreen extends StatelessWidget {
       ],
     ),
   );
-
-  Widget _summaryGrid(MindsetTodayStats s) {
-    // Each figure counts up from zero on open. Money uses formatMoney so the
-    // peso value rolls; the counts round to a whole number mid-roll.
-    Widget cell(
-      double value,
-      String label, {
-      bool money = false,
-      Color? valueColor,
-    }) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(Gap.lg),
-        decoration: BoxDecoration(
-          color: Barako.card,
-          borderRadius: BorderRadius.circular(Radii.card),
-          border: Border.all(color: Barako.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CountUpText(
-              value: value,
-              format: (v) => money ? formatMoney(v) : v.round().toString(),
-              style: AppText.titleLg.w8.tabular.copyWith(color: valueColor),
-            ),
-            const SizedBox(height: Gap.xxs),
-            Text(
-              label,
-              style: AppText.small.tint(Barako.textSecondary),
-              maxLines: 2,
-            ),
-          ],
-        ),
-      ),
-    );
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              cell(s.decisions.toDouble(), 'Decisions made'),
-              const SizedBox(width: Gap.md),
-              cell(s.purchased.toDouble(), 'Purchases made'),
-            ],
-          ),
-        ),
-        const SizedBox(height: Gap.md),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              cell(s.avoided.toDouble(), 'Purchases avoided'),
-              const SizedBox(width: Gap.md),
-              cell(
-                s.moneyAvoided,
-                'Money avoided',
-                money: true,
-                valueColor: Barako.income,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _insightsButton(BuildContext context) => SizedBox(
     width: double.infinity,
@@ -338,4 +274,114 @@ class MindsetTodayScreen extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// The dashboard summary with a Today / 30 days toggle. Stateful only for the
+/// selected window; every figure is still READ from the logged decisions, and
+/// nothing here changes a balance.
+class _MindsetSummary extends StatefulWidget {
+  const _MindsetSummary({required this.decisions, required this.now});
+  final Iterable? decisions;
+  final DateTime now;
+
+  @override
+  State<_MindsetSummary> createState() => _MindsetSummaryState();
+}
+
+class _MindsetSummaryState extends State<_MindsetSummary> {
+  // 1 = today only, 30 = the rolling last 30 days.
+  int _days = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = _days == 1
+        ? mindsetTodayStats(widget.decisions, widget.now)
+        : mindsetRangeStats(widget.decisions, widget.now, days: 30);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _days == 1 ? "Today's summary" : 'Last 30 days',
+          style: AppText.title.w7,
+        ),
+        const SizedBox(height: Gap.md),
+        Segmented<int>(
+          options: const [
+            SegmentOption(value: 1, label: 'Today'),
+            SegmentOption(value: 30, label: '30 days'),
+          ],
+          current: _days,
+          onPick: (v) => setState(() => _days = v),
+        ),
+        const SizedBox(height: Gap.md),
+        _grid(stats),
+      ],
+    );
+  }
+
+  Widget _grid(MindsetTodayStats s) {
+    // Each figure counts up from zero on open. Money uses formatMoney so the
+    // peso value rolls; the counts round to a whole number mid-roll.
+    Widget cell(
+      double value,
+      String label, {
+      bool money = false,
+      Color? valueColor,
+    }) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(Gap.lg),
+        decoration: BoxDecoration(
+          color: Barako.card,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(color: Barako.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CountUpText(
+              value: value,
+              format: (v) => money ? formatMoney(v) : v.round().toString(),
+              style: AppText.titleLg.w8.tabular.copyWith(color: valueColor),
+            ),
+            const SizedBox(height: Gap.xxs),
+            Text(
+              label,
+              style: AppText.small.tint(Barako.textSecondary),
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              cell(s.decisions.toDouble(), 'Decisions made'),
+              const SizedBox(width: Gap.md),
+              cell(s.purchased.toDouble(), 'Purchases made'),
+            ],
+          ),
+        ),
+        const SizedBox(height: Gap.md),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              cell(s.avoided.toDouble(), 'Purchases avoided'),
+              const SizedBox(width: Gap.md),
+              cell(
+                s.moneyAvoided,
+                'Money avoided',
+                money: true,
+                valueColor: Barako.income,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

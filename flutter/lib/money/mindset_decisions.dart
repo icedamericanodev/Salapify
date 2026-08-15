@@ -94,6 +94,43 @@ MindsetTodayStats mindsetTodayStats(Iterable? rawDecisions, DateTime now) {
   );
 }
 
+/// The same four figures as [mindsetTodayStats], but over a rolling window of
+/// the last [days] days counting today (so days:1 is today only and matches
+/// mindsetTodayStats). Powers the dashboard's Today / 30 days toggle. A
+/// future-dated row and anything older than the window are both excluded, and a
+/// days below 1 is floored to 1 so the window is never empty by accident.
+MindsetTodayStats mindsetRangeStats(
+  Iterable? rawDecisions,
+  DateTime now, {
+  required int days,
+}) {
+  final span = days < 1 ? 1 : days;
+  final today = DateTime(now.year, now.month, now.day);
+  var decisions = 0, purchased = 0, avoided = 0;
+  var money = 0.0;
+  for (final d in _valid(rawDecisions)) {
+    final w = _when(d);
+    if (w == null) continue;
+    final wDay = DateTime(w.year, w.month, w.day);
+    final diff = today.difference(wDay).inDays;
+    if (diff < 0 || diff >= span) continue;
+    decisions++;
+    switch (d['outcome']) {
+      case MindsetOutcome.purchased:
+        purchased++;
+      case MindsetOutcome.avoided:
+        avoided++;
+        money += _amt(d['amount']);
+    }
+  }
+  return MindsetTodayStats(
+    decisions: decisions,
+    purchased: purchased,
+    avoided: avoided,
+    moneyAvoided: money,
+  );
+}
+
 /// One boolean per week over the last four (oldest first), true when a decision
 /// check or a win landed in that week. Shared by the flow's step 4 and the
 /// standalone insights screen so the mindful streak reads identically in both,
