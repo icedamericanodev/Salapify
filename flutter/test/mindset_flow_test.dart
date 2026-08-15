@@ -8,7 +8,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/mindset_flow.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Map<String, dynamic> _blob() {
+Map<String, dynamic> _blob({List<Map<String, dynamic>>? goals}) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   String iso(DateTime t) =>
@@ -34,12 +34,16 @@ Map<String, dynamic> _blob() {
       {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 40000},
     ],
     'transactions': txns,
+    'goals': ?goals,
   };
 }
 
-Future<SalapifyStore> _pump(WidgetTester tester) async {
+Future<SalapifyStore> _pump(
+  WidgetTester tester, {
+  List<Map<String, dynamic>>? goals,
+}) async {
   SharedPreferences.setMockInitialValues({
-    'salapify_data_v2': jsonEncode(_blob()),
+    'salapify_data_v2': jsonEncode(_blob(goals: goals)),
   });
   final store = SalapifyStore();
   await store.load();
@@ -171,6 +175,72 @@ void main() {
     expect(find.text('Cash left after'), findsWidgets);
     expect(find.textContaining('a guide, not a rule'), findsOneWidget);
     expect(find.text('Got it'), findsOneWidget);
+  });
+
+  testWidgets('goal impact shows separately and does not enter the score', (
+    tester,
+  ) async {
+    final soon = DateTime.now().add(const Duration(days: 120));
+    String iso(DateTime t) =>
+        '${t.year.toString().padLeft(4, '0')}-'
+        '${t.month.toString().padLeft(2, '0')}-'
+        '${t.day.toString().padLeft(2, '0')}';
+    await _pump(
+      tester,
+      goals: [
+        {
+          'id': 'g1',
+          'name': 'Emergency fund',
+          'target': 100000,
+          'saved': 82000,
+          'targetDate': iso(soon),
+        },
+      ],
+    );
+    await tester.enterText(find.byType(TextField).at(1), '14990');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // The goal card is its own section with before/after bars and an honest,
+    // engine-backed delay.
+    expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
+    expect(find.text('Emergency fund'), findsWidgets);
+    expect(find.text('Now'), findsOneWidget);
+    expect(find.text('If you buy this'), findsOneWidget);
+    expect(find.textContaining('later'), findsOneWidget);
+
+    // The score breakdown still lists ONLY the three real axes; the goal is not
+    // a scored row, so the number never silently moved because of it.
+    expect(find.text('Cash left after'), findsOneWidget);
+    expect(find.text('Size vs income'), findsOneWidget);
+    expect(find.text('Bills and debt'), findsOneWidget);
+  });
+
+  testWidgets('a goal with no deadline shows no fabricated day count', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      goals: [
+        {
+          'id': 'g2',
+          'name': 'New phone',
+          'target': 40000,
+          'saved': 10000,
+          // no targetDate: goalTradeoff must return a null delay
+        },
+      ],
+    );
+    await tester.enterText(find.byType(TextField).at(1), '5000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
+    // No deadline means no honest "about N later"; it says it slows the goal.
+    expect(find.textContaining('slows'), findsOneWidget);
+    expect(find.textContaining('later'), findsNothing);
   });
 
   testWidgets('the flow never records a transaction (read-only money)', (

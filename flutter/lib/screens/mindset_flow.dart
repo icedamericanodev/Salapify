@@ -14,6 +14,7 @@ import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' show amountOf;
 import '../money/bnpl.dart' show bnplCost;
 import '../money/mindset_credit.dart' show BnplFlatPlan, bnplFlatPlan;
+import '../money/mindset_purchase.dart' show goalTradeoff;
 import '../money/mindset_subscriptions.dart'
     show parseSubscriptions, subscriptionsOverview;
 import '../money/mindset_decisions.dart'
@@ -74,6 +75,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   // or yearly, so the comparison can annualize or normalize it.
   String _subCycle = 'monthly';
   String? _categoryId;
+
+  // Step 2 goal-impact: which saved goal the buy is weighed against. This is
+  // INFORMATIONAL only and never feeds the Decision Score (the score already
+  // carries your cash cushion; a wants goal is your own tradeoff to weigh).
+  // Founder-directed, finance-expert reviewed (2026-08-15).
+  String? _goalId;
 
   // Step 2 what-if exploration (one-time only), memoised so a drag never
   // re-runs the search over the ledger.
@@ -198,6 +205,15 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   List<Map<String, dynamic>> _categories() => [
     for (final c in (widget.store.data['categories'] as List? ?? const []))
       if (c is Map<String, dynamic>) c,
+  ];
+
+  // Goals with something still left to save, the only ones a tradeoff can speak
+  // to (goalTradeoff returns null for a fully funded goal anyway).
+  List<Map<String, dynamic>> _openGoals() => [
+    for (final g in (widget.store.data['goals'] as List? ?? const []))
+      if (g is Map<String, dynamic> &&
+          amountOf(g['target']) - amountOf(g['saved']) > 0)
+        g,
   ];
 
   @override
@@ -809,6 +825,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           ),
           const SizedBox(height: Gap.md),
           _impactCard(decision),
+          if (_openGoals().isNotEmpty) ...[
+            const SizedBox(height: Gap.lg),
+            _goalImpactCard(amt, now),
+          ],
           if (spectrum != null) ...[
             const SizedBox(height: Gap.lg),
             _whatIfCard(spectrum, amt),
@@ -1015,6 +1035,200 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  String _goalKey(Map<String, dynamic> g) {
+    final id = g['id'];
+    if (id is String && id.trim().isNotEmpty) return id;
+    final name = g['name'];
+    return name is String ? name : '';
+  }
+
+  String? _delayText(dynamic delay) {
+    if (delay is! Map) return null;
+    final periods = delay['periods'];
+    if (periods is! int || periods <= 0) return null;
+    final freq = delay['frequency'];
+    final unit = switch (freq) {
+      'weekly' => periods == 1 ? 'week' : 'weeks',
+      'kinsenas' => periods == 1 ? 'payday' : 'paydays',
+      _ => periods == 1 ? 'month' : 'months',
+    };
+    return 'about $periods $unit later';
+  }
+
+  // What a buy costs a savings goal. INFORMATIONAL, separate from the score: the
+  // heading and copy never imply the score dropped because of the goal (the
+  // score does not use it). Bars and any delay come from the tested goalTradeoff
+  // engine, and the delay is shown ONLY when that engine gives a real number.
+  Widget _goalImpactCard(double amt, DateTime now) {
+    final goals = _openGoals();
+    final selected = goals.firstWhere(
+      (g) => _goalKey(g) == _goalId,
+      orElse: () => goals.first,
+    );
+    final target = amountOf(selected['target']);
+    final saved = amountOf(selected['saved']);
+    final name = (selected['name'] is String)
+        ? (selected['name'] as String).trim()
+        : 'this goal';
+    final beforePct = target > 0 ? (saved / target).clamp(0.0, 1.0) : 0.0;
+    // If you buy this AND still want the goal, you need [amt] more, so you are
+    // this far along a bigger total. Honest opportunity-cost framing that lines
+    // up with the delay math (which adds the amount to the target).
+    final afterPct = (target + amt) > 0
+        ? (saved / (target + amt)).clamp(0.0, 1.0)
+        : 0.0;
+    final tradeoff = goalTradeoff(
+      goal: selected,
+      purchaseAmount: amt,
+      now: now,
+    );
+    final delayText = _delayText(tradeoff?['delay']);
+    final pctOfRemaining = tradeoff?['percentOfRemaining'];
+    final isEmergency = name.toLowerCase().contains('emergency');
+
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'WHAT THIS COSTS YOUR GOAL',
+                  style: Barako.cardKickerStyle,
+                ),
+              ),
+              if (goals.length > 1)
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _goalKey(selected),
+                    isDense: true,
+                    dropdownColor: Barako.card,
+                    style: AppText.small.w7.tint(Barako.primary),
+                    icon: Icon(
+                      salapifyIcon('expand'),
+                      size: 18,
+                      color: Barako.primary,
+                    ),
+                    items: [
+                      for (final g in goals)
+                        DropdownMenuItem(
+                          value: _goalKey(g),
+                          child: Text(
+                            (g['name'] is String)
+                                ? g['name'] as String
+                                : 'Goal',
+                            style: AppText.small.w7,
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => _goalId = v),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: Gap.md),
+          if (goals.length == 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Gap.sm),
+              child: Text(name, style: AppText.body.w7),
+            ),
+          _goalBar('Now', beforePct, saved, target, Barako.primary),
+          const SizedBox(height: Gap.md),
+          _goalBar(
+            'If you buy this',
+            afterPct,
+            saved,
+            target + amt,
+            Barako.warning,
+          ),
+          const SizedBox(height: Gap.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                salapifyIcon(isEmergency ? 'shield' : 'goal'),
+                size: 16,
+                color: isEmergency
+                    ? Barako.warningStrong
+                    : Barako.textSecondary,
+              ),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  _goalImpactLine(name, delayText, pctOfRemaining, isEmergency),
+                  style: AppText.small
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _goalImpactLine(
+    String name,
+    String? delayText,
+    dynamic pctOfRemaining,
+    bool isEmergency,
+  ) {
+    final pct = pctOfRemaining is num ? pctOfRemaining.round() : null;
+    final pctPart = (pct != null && pct > 0)
+        ? 'This buy is about $pct% of what you still need for $name. '
+        : '';
+    final timePart = delayText != null
+        ? 'At your pace, $name lands $delayText.'
+        : 'It slows $name down.';
+    final lead = isEmergency ? 'Careful, this is your emergency fund. ' : '';
+    return '$lead$pctPart$timePart';
+  }
+
+  Widget _goalBar(
+    String label,
+    double pct,
+    double saved,
+    double total,
+    Color color,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(label, style: AppText.small.tint(Barako.muted)),
+            ),
+            Text('${(pct * 100).round()}%', style: AppText.small.w7),
+          ],
+        ),
+        const SizedBox(height: Gap.xs),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 8,
+            backgroundColor: Barako.surfaceRaised,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+        const SizedBox(height: Gap.xxs),
+        Text(
+          '${formatMoney(saved)} of ${formatMoney(total)}',
+          style: AppText.caption.tint(Barako.muted),
+        ),
+      ],
     );
   }
 
