@@ -57,3 +57,21 @@ BnplFlatPlan bnplFlatPlan({
     monthly: total / m,
   );
 }
+
+/// The three Decision-Score engine inputs for a credit / BNPL plan, kept here so
+/// the flow's wiring is testable and pinned rather than typed inline. Per the
+/// engine's own contract (mindset_decision.dart) and a PH bank officer's review
+/// (2026-08-15): the immediate cash out is the FIRST installment (not the full
+/// price, the old bug), the ongoing monthly load is that same installment, and
+/// the credit markup is the fee as a share of the CASH price. A true 0% plan has
+/// a zero markup, so the engine's markup penalty is skipped.
+({double cashNow, double monthlyLoad, double creditMarkup}) creditScoreInputs(
+  BnplFlatPlan plan,
+) {
+  final markup = plan.price > 0 ? plan.extraCost / plan.price : 0.0;
+  return (
+    cashNow: plan.monthly,
+    monthlyLoad: plan.monthly,
+    creditMarkup: markup,
+  );
+}

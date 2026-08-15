@@ -34,6 +34,29 @@ void main() {
   });
 
   test(
+    'credit score inputs: the installment drives the score, not the price',
+    () {
+      final i = creditScoreInputs(
+        bnplFlatPlan(price: 20000, months: 6, feePercent: 3),
+      );
+      // The first installment (~3,433), NOT the full 20,000, is the cash out and
+      // the monthly load; the fee rides as the markup (fee / price).
+      expect(i.cashNow, closeTo(3433.33, 0.01));
+      expect(i.monthlyLoad, closeTo(3433.33, 0.01));
+      expect(i.creditMarkup, closeTo(0.03, 0.0001));
+    },
+  );
+
+  test('a true 0% plan carries no markup', () {
+    final i = creditScoreInputs(
+      bnplFlatPlan(price: 12000, months: 12, feePercent: 0),
+    );
+    expect(i.creditMarkup, 0);
+    expect(i.cashNow, closeTo(1000, 0.001));
+    expect(i.monthlyLoad, closeTo(1000, 0.001));
+  });
+
+  test(
     'junk in, safe out: zero price and a stray zero term never divide by zero',
     () {
       final z = bnplFlatPlan(price: 0, months: 6, feePercent: 3);
