@@ -88,12 +88,20 @@ void main() {
     expect(store.mindsetWaiting.length, 0);
 
     await _toDecision(tester);
-    final remind = find.textContaining('Remind me');
+    // The button names the day the reminder arrives ("Remind me on Aug 16"),
+    // not a "in N days" count that did not match the actual 24h revisit.
+    final remind = find.textContaining('Remind me on');
     expect(remind, findsOneWidget);
     await tester.tap(remind);
     await tester.pumpAndSettle();
 
     expect(store.mindsetWaiting.length, 1);
+    // The stored revisit is one day out, the same date the button named.
+    final revisit = DateTime.parse(
+      store.mindsetWaiting.first['revisitAt'] as String,
+    );
+    final delta = revisit.difference(DateTime.now());
+    expect(delta.inHours >= 22 && delta.inHours <= 26, true);
   });
 
   testWidgets('the Credit or BNPL path shows the flat add-on cost breakdown', (
