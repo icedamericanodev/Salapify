@@ -1733,6 +1733,100 @@ class SalapifyStore extends ChangeNotifier {
     );
   }
 
+  List<Map<String, dynamic>> _mindsetSubscriptionsOf(Map<String, dynamic> d) {
+    final s = d['settings'];
+    return _maps(s is Map ? s['mindsetSubscriptions'] : null);
+  }
+
+  /// The Money Mindset subscriptions list (settings.mindsetSubscriptions): the
+  /// services the person tracks, each with a price and a monthly or annual
+  /// billing cycle. Powers the Subscription path's overview (count and running
+  /// monthly and annual totals). Same Flutter-only passthrough pattern
+  /// mindsetWaiting and mindsetDecisions use: stored as plain maps under
+  /// settings so the backup preserves it with no migration, absent on every RN
+  /// fixture so the golden key-set contract holds. Not a transaction: adding a
+  /// subscription records what the person pays elsewhere, it never moves a
+  /// Salapify balance.
+  List<Map<String, dynamic>> get mindsetSubscriptions =>
+      _mindsetSubscriptionsOf(data);
+
+  /// Add one subscription. cycle is 'monthly' or 'annual'; a blank emoji is
+  /// dropped rather than stored. A non-positive amount is stored as 0, the same
+  /// safe-on-read contract sanitizeData enforces.
+  Future<void> addMindsetSubscription({
+    required String name,
+    required double amount,
+    required String cycle,
+    String? emoji,
+  }) {
+    final trimmedEmoji = emoji?.trim();
+    final item = {
+      'id': _genId('mindsetSubscriptions'),
+      'name': name,
+      'amount': amount.isFinite && amount > 0 ? amount : 0.0,
+      'cycle': cycle == 'annual' ? 'annual' : 'monthly',
+      'emoji': ?(trimmedEmoji != null && trimmedEmoji.isNotEmpty
+          ? trimmedEmoji
+          : null),
+    };
+    return _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'mindsetSubscriptions': [..._mindsetSubscriptionsOf(d), item],
+        },
+      },
+    );
+  }
+
+  /// Patch fields on one subscription (rename, reprice, switch cycle).
+  /// Spread-first so unknown or future fields survive, same contract as
+  /// patchGoal and patchMindsetWaitingItem. The two money-shaped fields are
+  /// coerced the same way the add path guards them, so a non-UI caller passing
+  /// a non-finite amount or an unknown cycle can never write junk that would
+  /// throw at save time (defense in depth; the editor already blocks it).
+  Future<void> patchMindsetSubscription(
+    String id,
+    Map<String, dynamic> fields,
+  ) {
+    final safe = {...fields};
+    if (safe.containsKey('amount')) {
+      final a = safe['amount'];
+      final amt = a is num ? a.toDouble() : double.nan;
+      safe['amount'] = (amt.isFinite && amt > 0) ? amt : 0.0;
+    }
+    if (safe.containsKey('cycle')) {
+      safe['cycle'] = safe['cycle'] == 'annual' ? 'annual' : 'monthly';
+    }
+    return _mutate(
+      (d) => {
+        ...d,
+        'settings': {
+          ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+          'mindsetSubscriptions': [
+            for (final sub in _mindsetSubscriptionsOf(d))
+              if (sub['id'] == id) {...sub, ...safe} else sub,
+          ],
+        },
+      },
+    );
+  }
+
+  /// Remove one subscription by id.
+  Future<void> removeMindsetSubscription(String id) => _mutate(
+    (d) => {
+      ...d,
+      'settings': {
+        ...((d['settings'] as Map?) ?? const {}).cast<String, dynamic>(),
+        'mindsetSubscriptions': [
+          for (final sub in _mindsetSubscriptionsOf(d))
+            if (sub['id'] != id) sub,
+        ],
+      },
+    },
+  );
+
   /// Whether reminders may carry names and amounts in their body
   /// (settings.notifDetailed). OFF by default: the privacy contract is that a
   /// locked phone shows generic reminders only. Turning this on reveals detail

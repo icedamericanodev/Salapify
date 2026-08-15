@@ -617,6 +617,18 @@ Map<String, dynamic> sanitizeData(
       } else {
         s.remove('paluwagans');
       }
+      // The Money Mindset subscriptions list (settings.mindsetSubscriptions) is
+      // Flutter-era and CONDITIONAL for the same reason as paluwagans above:
+      // RN-generated golden fixtures never carry it and must not gain the key
+      // here. Validated rather than passed through, because the amounts sum into
+      // a total the person reads, and a junk amount from a hand-edited backup
+      // would produce a confident wrong monthly cost.
+      final subs = _subscriptionList(settings['mindsetSubscriptions']);
+      if (subs.isEmpty) {
+        s.remove('mindsetSubscriptions');
+      } else {
+        s['mindsetSubscriptions'] = subs;
+      }
       // Steady Pay (the accepted weekly draw) is Flutter-era too, and the
       // same CONDITIONAL-key rule applies: present only when a valid
       // accepted amount exists, absent otherwise, so RN-generated fixtures
@@ -688,6 +700,40 @@ Map<String, dynamic> sanitizeData(
       return s;
     })(),
   };
+}
+
+/// Normalize a stored subscriptions list to the safe shape the overview and the
+/// Subscription path expect: a stable id, a non-empty name, a non-negative
+/// finite amount, and a known billing cycle. Mirrors _paluwaganList; the engine
+/// (money/mindset_subscriptions.dart) also guards junk at read time, so this is
+/// defense in depth plus a clean, comparable backup.
+List<Map<String, dynamic>> _subscriptionList(dynamic list) {
+  var i = 0;
+  final seen = <String>{};
+  return _cleanList(list).map((r) {
+    var id = _str(r['id']);
+    if (id.isEmpty) id = 'sub_restored_$i';
+    while (seen.contains(id)) {
+      id = '${id}_dup';
+    }
+    seen.add(id);
+    final amt = _num(r['amount']);
+    final out = {
+      ...r,
+      'id': id,
+      'name': _str(r['name'], 'Subscription'),
+      'amount': (amt.isFinite && amt > 0) ? amt : 0.0,
+      'cycle': r['cycle'] == 'annual' ? 'annual' : 'monthly',
+    };
+    final emoji = r['emoji'];
+    if (emoji is String && emoji.isNotEmpty) {
+      out['emoji'] = emoji;
+    } else {
+      out.remove('emoji');
+    }
+    i++;
+    return out;
+  }).toList();
 }
 
 /// Valid paluwagan cadence keys, kept in step with money/paluwagan.dart.
