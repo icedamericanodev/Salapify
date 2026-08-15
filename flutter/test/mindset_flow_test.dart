@@ -81,6 +81,8 @@ void main() {
     expect((store.data['wins'] as List).length, 1);
     expect(store.mindsetChecks.length, 1);
     expect(find.text('Your last 30 days'), findsOneWidget); // reached step 4
+    // The all-time money-kept hero appears now that there is at least one win.
+    expect(find.text('Money kept, all time'), findsOneWidget);
   });
 
   testWidgets('remind me records a waiting item', (tester) async {
