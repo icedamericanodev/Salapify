@@ -153,6 +153,26 @@ void main() {
     expect(find.textContaining('41'), findsWidgets); // 499/12 per month
   });
 
+  testWidgets('the Impact step defines the score in plain words', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.enterText(find.byType(TextField).at(1), '3000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // The explainer link is present, and opening it defines the score plainly.
+    final link = find.text('How we score this');
+    expect(link, findsOneWidget);
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('quick read, from 0 to 100'), findsOneWidget);
+    expect(find.text('Cash left after'), findsWidgets);
+    expect(find.textContaining('a guide, not a rule'), findsOneWidget);
+    expect(find.text('Got it'), findsOneWidget);
+  });
+
   testWidgets('the flow never records a transaction (read-only money)', (
     tester,
   ) async {

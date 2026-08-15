@@ -799,7 +799,15 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                   .copyWith(height: 1.4),
             ),
           ),
-          const SizedBox(height: Gap.xl),
+          const SizedBox(height: Gap.sm),
+          TextButton(
+            onPressed: _showScoreExplainer,
+            child: Text(
+              'How we score this',
+              style: AppText.small.w7.tint(Barako.primary),
+            ),
+          ),
+          const SizedBox(height: Gap.md),
           _impactCard(decision),
           if (spectrum != null) ...[
             const SizedBox(height: Gap.lg),
@@ -815,6 +823,145 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     2 => 'Not a bad buy, but the timing is worth a pause.',
     _ => 'This would make a big dent in your money right now.',
   };
+
+  // Plain-words definition of the Decision Score, so the number never feels like
+  // a mystery. Founder direction 2026-08-15: define it simply, no jargon.
+  void _showScoreExplainer() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: Barako.background,
+          border: Border.all(color: Barako.border),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          24 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Barako.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Gap.lg),
+                Text('How we score this', style: AppText.title.w7),
+                const SizedBox(height: Gap.sm),
+                Text(
+                  'The Decision Score is a quick read, from 0 to 100, of how '
+                  'well this purchase fits your money right now. Higher is safer '
+                  'to buy. Lower means it is worth a pause.',
+                  style: AppText.small
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.5),
+                ),
+                const SizedBox(height: Gap.lg),
+                _explainRow(
+                  'wallet',
+                  'Cash left after',
+                  'How much cash you would have left once you buy. More left, '
+                      'higher score.',
+                ),
+                _explainRow(
+                  'shield',
+                  'Bills and debt',
+                  'Whether it dips into money set aside for what you owe. '
+                      'Dipping pulls the score down the most.',
+                ),
+                _explainRow(
+                  'chart',
+                  'Size vs income',
+                  'How big it is next to a month of your income. Smaller is '
+                      'safer.',
+                ),
+                const SizedBox(height: Gap.md),
+                Container(
+                  padding: const EdgeInsets.all(Gap.md),
+                  decoration: BoxDecoration(
+                    color: Barako.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(Radii.card),
+                  ),
+                  child: Text(
+                    'It is a guide, not a rule. You always make the final call.',
+                    style: AppText.small.w6
+                        .tint(Barako.primary)
+                        .copyWith(height: 1.4),
+                  ),
+                ),
+                const SizedBox(height: Gap.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Barako.primary,
+                      foregroundColor: Barako.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Got it'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _explainRow(String icon, String title, String body) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Gap.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Barako.surfaceRaised,
+              borderRadius: BorderRadius.circular(Radii.control),
+            ),
+            child: Icon(salapifyIcon(icon), size: 18, color: Barako.primary),
+          ),
+          const SizedBox(width: Gap.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.small.w7),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: AppText.caption
+                      .tint(Barako.textSecondary)
+                      .copyWith(height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _impactCard(Map<String, dynamic> decision) {
     final runwayAfter = decision['runwayAfter'] as double?;
@@ -844,7 +991,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       cushion = '${runwayAfter.toStringAsFixed(1)} months left';
     }
     final income = incomeShare == null
-        ? 'Income unknown'
+        ? 'Add income to see'
         : '${(incomeShare * 100).round()}% of a month';
 
     return Container(
@@ -857,12 +1004,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('WHAT IT DOES', style: Barako.cardKickerStyle),
+          Text('WHAT THIS LOOKS AT', style: Barako.cardKickerStyle),
           const SizedBox(height: Gap.md),
-          _metricRow('Cushion after', cushion, axisScore('buffer')),
-          _metricRow('Share of income', income, axisScore('income')),
+          _metricRow('Cash left after', cushion, axisScore('buffer')),
+          _metricRow('Size vs income', income, axisScore('income')),
           _metricRow(
-            'Bills & debt money',
+            'Bills and debt',
             dips ? 'Dips ${formatMoney(shortfall)}' : 'No dip',
             dips ? -1 : 100,
           ),
