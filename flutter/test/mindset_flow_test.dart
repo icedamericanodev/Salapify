@@ -96,6 +96,32 @@ void main() {
     expect(store.mindsetWaiting.length, 1);
   });
 
+  testWidgets('the Credit or BNPL path shows the flat add-on cost breakdown', (
+    tester,
+  ) async {
+    await _pump(tester);
+    // Choose the credit path.
+    await tester.tap(find.text('Credit or BNPL'));
+    await tester.pumpAndSettle();
+
+    // The fee is labelled a one-time fee, never "interest per month".
+    expect(find.text('One-time fee (% of price)'), findsOneWidget);
+
+    // Price 20,000 on a 6-month plan (default) with a 3% one-time fee.
+    await tester.enterText(find.byType(TextField).at(1), '20000');
+    await tester.enterText(find.byType(TextField).at(2), '3');
+    await tester.pumpAndSettle();
+
+    // extra = 600, total = 20,600, monthly = 3,433.33; the cost card shows them.
+    expect(find.text('Monthly payment (approx.)'), findsOneWidget);
+    expect(find.text('Total paid'), findsOneWidget);
+    expect(find.text('Extra cost'), findsOneWidget);
+    expect(find.textContaining('20,600'), findsWidgets);
+    expect(find.textContaining('600'), findsWidgets);
+    // The honest annualized cost is surfaced, not just the small peso fee.
+    expect(find.text('Real cost per year'), findsOneWidget);
+  });
+
   testWidgets('the flow never records a transaction (read-only money)', (
     tester,
   ) async {

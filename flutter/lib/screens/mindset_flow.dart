@@ -12,6 +12,8 @@ import '../data/store.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
 import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
+import '../money/bnpl.dart' show bnplCost;
+import '../money/mindset_credit.dart' show BnplFlatPlan, bnplFlatPlan;
 import '../money/mindset_decisions.dart'
     show mindsetOutcomeFromFlow, mindsetWeekDots;
 import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
@@ -31,6 +33,7 @@ import '../widgets/mindset_spectrum_bar.dart';
 import '../widgets/mindset_step_indicator.dart';
 import '../widgets/pan_mascot.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/segmented.dart';
 import 'log_sheet.dart' show parseAmount;
 
 class MindsetFlowScreen extends StatefulWidget {
@@ -56,6 +59,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   final _itemName = TextEditingController();
   final _amount = TextEditingController();
   final _note = TextEditingController();
+
+  // Credit / BNPL path: the installment term and the one-time add-on fee the
+  // person's plan charges. The fee is left blank on purpose (a prefilled small
+  // rate makes credit feel harmless); the cost card appears once it is entered.
+  int _creditMonths = 6;
+  final _creditFee = TextEditingController();
   String? _categoryId;
 
   // Step 2 what-if exploration (one-time only), memoised so a drag never
@@ -141,6 +150,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     _itemName.dispose();
     _amount.dispose();
     _note.dispose();
+    _creditFee.dispose();
     super.dispose();
   }
 
@@ -261,9 +271,17 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           const SizedBox(height: 8),
           _itemField(),
           const SizedBox(height: 16),
-          Text('Estimated amount', style: AppText.small.w7),
+          Text(
+            _purchaseType == 'credit'
+                ? 'Purchase price'
+                : _purchaseType == 'subscription'
+                ? 'Monthly price'
+                : 'Estimated amount',
+            style: AppText.small.w7,
+          ),
           const SizedBox(height: 8),
           _amountField(),
+          if (_purchaseType == 'credit') _creditDetail(),
           if (cats.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text('Category (optional)', style: AppText.small.w7),
@@ -427,6 +445,120 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               decoration: _bareInput('0', AppText.title.w7.tint(Barako.muted)),
               onChanged: (_) => setState(() {}),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Credit / BNPL Step 1 detail: the installment term, a one-time fee percent,
+  // and a live cost breakdown. The fee is labelled a one-time fee on the price,
+  // never a monthly rate (a flat 3% and 3% per month differ by the term), and
+  // the real cost per year is shown from the golden bnplCost engine so the
+  // annualized cost lands, not just a small peso fee. Bank-officer verified.
+  Widget _creditDetail() {
+    final price = _enteredAmount;
+    final feeText = _creditFee.text.trim();
+    final fee = double.tryParse(feeText);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Gap.lg),
+        Text('Installment plan', style: AppText.small.w7),
+        const SizedBox(height: Gap.sm),
+        Segmented<int>(
+          options: const [
+            SegmentOption(value: 3, label: '3 mo'),
+            SegmentOption(value: 6, label: '6 mo'),
+            SegmentOption(value: 12, label: '12 mo'),
+          ],
+          current: _creditMonths,
+          onPick: (v) => setState(() => _creditMonths = v),
+        ),
+        const SizedBox(height: Gap.lg),
+        Text('One-time fee (% of price)', style: AppText.small.w7),
+        const SizedBox(height: Gap.sm),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.lg,
+            vertical: Gap.md,
+          ),
+          decoration: BoxDecoration(
+            color: Barako.card,
+            borderRadius: BorderRadius.circular(Radii.field),
+            border: Border.all(color: Barako.border),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _creditFee,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: AppText.title.w7,
+                  decoration: _bareInput(
+                    'e.g. 3',
+                    AppText.title.w7.tint(Barako.muted),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              Text('%', style: AppText.title.w7.tint(Barako.textSecondary)),
+            ],
+          ),
+        ),
+        const SizedBox(height: Gap.xs),
+        Text(
+          'A single fee on the price, not a rate per month. If your plan charges '
+          'a rate every month, this estimate will be too low.',
+          style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
+        ),
+        if (price > 0 && feeText.isNotEmpty && fee != null) ...[
+          const SizedBox(height: Gap.lg),
+          _creditCostCard(
+            bnplFlatPlan(price: price, months: _creditMonths, feePercent: fee),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _creditCostCard(BnplFlatPlan plan) {
+    // Real cost per year, from the golden engine. The fee rides in the monthly
+    // (upfrontFee 0), so netCredit is the full price and the rate is honest.
+    final cost = bnplCost({
+      'cashPrice': plan.price,
+      'downpayment': 0,
+      'months': plan.months,
+      'monthlyPayment': plan.monthly,
+      'upfrontFee': 0,
+    });
+    final rateReliable = cost['rateReliable'] == true;
+    final annual = (cost['annualRate'] as num).toDouble();
+    final rateText = annual > 10
+        ? 'over 1,000% a year'
+        : '${(annual * 100).toStringAsFixed(1)}% a year';
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _resultRow('Monthly payment (approx.)', formatMoney(plan.monthly)),
+          _resultRow('Total paid', formatMoney(plan.totalPaid)),
+          _resultRow('Extra cost', formatMoney(plan.extraCost)),
+          if (rateReliable) _resultRow('Real cost per year', rateText),
+          const SizedBox(height: Gap.sm),
+          Text(
+            'An estimate from the numbers you enter, not a loan offer. Fee only, '
+            'before any late fees or penalties. The last payment covers any '
+            'centavo remainder.',
+            style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
           ),
         ],
       ),
