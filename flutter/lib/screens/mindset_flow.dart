@@ -18,7 +18,8 @@ import '../money/mindset_subscriptions.dart'
     show parseSubscriptions, subscriptionsOverview;
 import '../money/mindset_decisions.dart'
     show mindsetOutcomeFromFlow, mindsetWeekDots;
-import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
+import '../money/mindset_wins.dart'
+    show MindsetSnapshot, mindsetAllTimeAvoided, mindsetSnapshot;
 import '../services/notifications.dart' show Reminders;
 import '../money/mindset_decision.dart'
     show
@@ -1478,6 +1479,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       now: now,
     );
     final wins = _wins().reversed.take(4).toList();
+    final allTime = mindsetAllTimeAvoided(widget.store.data['wins']);
     final lesson = lessonFromMap(lessonOfTheDay(now));
 
     return SingleChildScrollView(
@@ -1494,6 +1496,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             _outcomeBanner(),
             const SizedBox(height: Gap.lg),
           ],
+          if (allTime.count > 0) ...[
+            _allTimeHero(allTime.total, allTime.count),
+            const SizedBox(height: Gap.lg),
+          ],
           Text('Your last 30 days', style: AppText.title.w7),
           const SizedBox(height: Gap.md),
           _snapshotGrid(snap),
@@ -1508,6 +1514,39 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             "This doesn't add to your balance. It reflects what you chose not "
             'to spend.',
             style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // All-time money kept: the running total of confirmed spending avoided across
+  // every choice, not just the last 30 days. Read-only, the same win-amount sum
+  // the 30-day snapshot uses; it never adds to a balance.
+  Widget _allTimeHero(double total, int count) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Gap.xl),
+      decoration: BoxDecoration(
+        color: Barako.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.primary.withValues(alpha: 0.30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Money kept, all time',
+            style: AppText.small.w7.tint(Barako.primary),
+          ),
+          const SizedBox(height: Gap.xs),
+          Text(formatMoney(total), style: AppText.amountLg.tabular),
+          const SizedBox(height: 2),
+          Text(
+            count == 1
+                ? 'From 1 choice you made on purpose.'
+                : 'From $count choices you made on purpose.',
+            style: AppText.small.tint(Barako.textSecondary),
           ),
         ],
       ),

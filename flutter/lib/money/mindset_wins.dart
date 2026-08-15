@@ -104,6 +104,23 @@ MindsetSnapshot mindsetSnapshot({
   );
 }
 
+/// The all-time confirmed spending avoided: the SAME win-amount sum the 30-day
+/// snapshot uses (validWinAmount), but with no date window. Returns the peso
+/// total and how many wins carried a usable amount, so the UI can say "across N
+/// choices" honestly rather than implying every win counted. Read-only, like the
+/// snapshot: it reads data.wins and never touches a balance.
+({double total, int count}) mindsetAllTimeAvoided(dynamic wins) {
+  var total = 0.0;
+  var count = 0;
+  for (final w in _maps(wins)) {
+    final amount = validWinAmount(w['amount']);
+    if (amount == null) continue;
+    total += amount;
+    count++;
+  }
+  return (total: total, count: count);
+}
+
 /// The minimum number of relevant records a rule needs before it is allowed
 /// to name a pattern. Below this, a real pattern and pure chance look the
 /// same, so the honest thing is to say nothing.
