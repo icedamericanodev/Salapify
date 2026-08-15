@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.23 · Mindset: the Subscription path shows monthly vs yearly and what it adds to your subscriptions.';
+    'f4.24 · Mindset: the Wait choice now names the day your reminder arrives, matching when it really fires.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

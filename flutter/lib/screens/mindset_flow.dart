@@ -10,7 +10,7 @@ import '../content/lesson_model.dart' show lessonFromMap;
 import '../content/lessons.dart' show lessonOfTheDay;
 import '../data/store.dart';
 import '../money/currencies.dart' show baseCurrencySymbol;
-import '../money/format.dart' show formatMoney;
+import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' show amountOf;
 import '../money/bnpl.dart' show bnplCost;
 import '../money/mindset_credit.dart' show BnplFlatPlan, bnplFlatPlan;
@@ -162,6 +162,16 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   }
 
   bool get _step1Valid => parseAmount(_amount.text) != null;
+
+  // The friendly date the "Remind me" nudge will actually arrive: one day out,
+  // mirroring addMindsetWaitingItem's revisitAt (now + 24h). Kept in step with
+  // that constant so the button never promises a date the reminder will not
+  // honor. The band cool-off length (mindsetCoolOff) gates whether this button
+  // shows at all; it does not drive the reminder timing today, which is a
+  // discrepancy flagged to the founder rather than changed here.
+  String _revisitDate() => prettyDay(
+    DateTime.now().add(const Duration(hours: 24)).toIso8601String(),
+  );
 
   void _goTo(int step) {
     setState(() => _step = step);
@@ -1315,7 +1325,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                   side: BorderSide(color: color),
                   padding: const EdgeInsets.symmetric(vertical: Gap.md),
                 ),
-                child: Text('Remind me in ${coolOff.inDays} days'),
+                child: Text('Remind me on ${_revisitDate()}'),
               ),
             ),
           if (coolOff != null) const SizedBox(height: Gap.sm),
