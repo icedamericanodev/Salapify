@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.24 · Mindset: the Wait choice now names the day your reminder arrives, matching when it really fires.';
+    'f4.25 · Mindset: a paused big-impact buy gets a second gentle check a few days later, not just once.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -419,8 +419,24 @@ List<PlannedReminder> plannedReminders(
       if (raw['status'] != 'waiting') continue;
       final at = raw['revisitAt'];
       final when = at is String ? DateTime.tryParse(at) : null;
-      if (when == null) continue;
-      dueSoonest.add((when, raw));
+      if (when != null) dueSoonest.add((when, raw));
+      // A "Big impact" buy (Band 3, stored result 'notInPlan') earns a second,
+      // gentler safety-net nudge a few days after the pause, because a large
+      // purchase deserves more than one look. Only Band 3, and only while still
+      // waiting (the status check above); add() drops it if that day is already
+      // past, and the whole schedule rebuilds on every open, so a resolved item
+      // fires neither ping. The delay is a fixed 3 days on purpose: the day-1
+      // nudge stays the decisive one (a lone far-off ping is the easiest to
+      // miss), and this is the backup. Founder approved 2026-08-15 on the
+      // behavior-science recommendation; the 3/7-day band cool-off is NOT used
+      // as a single far-out reminder for exactly that reason.
+      if (raw['result'] == 'notInPlan') {
+        final created = raw['createdAt'];
+        final base = created is String ? DateTime.tryParse(created) : null;
+        if (base != null) {
+          dueSoonest.add((base.add(const Duration(days: 3)), raw));
+        }
+      }
     }
     dueSoonest.sort((a, b) => a.$1.compareTo(b.$1));
     // A sane cap, the same reasoning goals' activeDated.take(2) above uses:
@@ -443,9 +459,9 @@ List<PlannedReminder> plannedReminders(
         'Still thinking it over?',
         detailed
             ? (amount > 0
-                  ? 'The 24 hours are up on $itemName (${_peso(amount)}). Open Salapify to decide.'
-                  : 'The 24 hours are up on $itemName. Open Salapify to decide.')
-            : 'The 24 hours are up on something you paused. Open Salapify to decide if it still fits.',
+                  ? 'You paused $itemName (${_peso(amount)}). Open Salapify to decide with a clear head.'
+                  : 'You paused $itemName. Open Salapify to decide with a clear head.')
+            : 'You paused something. Open Salapify to decide if it still fits.',
         dueAt,
       );
     }
