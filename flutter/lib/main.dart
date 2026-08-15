@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.31 · Mindset: the goal-impact card now always shows on Impact, with a prompt to set a goal if you have none.';
+    'f4.32 · Mindset: opening it from a lesson now lands on the same new flow as the menu, one experience.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
