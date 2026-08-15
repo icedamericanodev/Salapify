@@ -62,7 +62,6 @@ const Map<String, int> _baseline = {
   'lib/screens/insights.dart': 6,
   'lib/screens/learn.dart': 5,
   'lib/screens/loan_calculator.dart': 2,
-  'lib/screens/mindset.dart': 2,
   'lib/screens/new_phone_day.dart': 1,
   // Phase 2B: the note total dropped its fontSize:14 fork when it moved to
   // AmountText(role: row).
