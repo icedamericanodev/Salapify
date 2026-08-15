@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.26 · Mindset: your 30 days now opens with an all-time total of the money you have kept.';
+    'f4.27 · Mindset: the dashboard summary now has a Today or 30 days toggle, so you can see either.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -170,6 +170,36 @@ void main() {
     expect(find.text('View all'), findsOneWidget);
   });
 
+  testWidgets('the Today / 30 days toggle widens the window', (tester) async {
+    final store = await _load(
+      _blob(
+        decisions: [
+          _dec(MindsetOutcome.avoided, amount: 500, item: 'Today snack'),
+          // A week ago: outside Today, inside the 30-day window.
+          _dec(
+            MindsetOutcome.avoided,
+            amount: 800,
+            item: 'Last week impulse',
+            at: DateTime.now().subtract(const Duration(days: 7)),
+          ),
+        ],
+      ),
+    );
+    await _pumpDashboard(tester, store);
+
+    // Today: only today's ₱500 counts; the 30-day title and total are absent.
+    expect(find.text("Today's summary"), findsOneWidget);
+    expect(find.text('Last 30 days'), findsNothing);
+    expect(find.textContaining('1,300'), findsNothing);
+
+    // Switch to 30 days: the title changes and both avoided amounts sum in.
+    await tester.tap(find.text('30 days'));
+    await tester.pumpAndSettle();
+    expect(find.text('Last 30 days'), findsOneWidget);
+    expect(find.text("Today's summary"), findsNothing);
+    expect(find.textContaining('1,300'), findsWidgets); // 500 + 800 avoided
+  });
+
   testWidgets('empty state when nothing is logged yet', (tester) async {
     final store = await _load(_blob());
     await _pumpDashboard(tester, store);
