@@ -68,6 +68,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   // rate makes credit feel harmless); the cost card appears once it is entered.
   int _creditMonths = 6;
   final _creditFee = TextEditingController();
+
+  // Subscription path: whether the price the person entered is billed monthly
+  // or yearly, so the comparison can annualize or normalize it.
+  String _subCycle = 'monthly';
   String? _categoryId;
 
   // Step 2 what-if exploration (one-time only), memoised so a drag never
@@ -534,54 +538,113 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   Widget _subscriptionDetail() {
     final subs = parseSubscriptions(widget.store.mindsetSubscriptions);
     final o = subscriptionsOverview(subs);
-    return Padding(
-      padding: const EdgeInsets.only(top: Gap.lg),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.card),
-          onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MindsetSubscriptionsScreen(store: widget.store),
-              ),
-            );
-            if (mounted) setState(() {});
-          },
-          child: Container(
-            padding: const EdgeInsets.all(Gap.lg),
-            decoration: BoxDecoration(
-              color: Barako.card,
-              borderRadius: BorderRadius.circular(Radii.card),
-              border: Border.all(color: Barako.border),
+    final price = _enteredAmount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Gap.lg),
+        Text('Billed', style: AppText.small.w7),
+        const SizedBox(height: Gap.sm),
+        Segmented<String>(
+          options: const [
+            SegmentOption(value: 'monthly', label: 'Monthly'),
+            SegmentOption(value: 'annual', label: 'Yearly'),
+          ],
+          current: _subCycle,
+          onPick: (v) => setState(() => _subCycle = v),
+        ),
+        if (price > 0) ...[
+          const SizedBox(height: Gap.lg),
+          _subscriptionCompareCard(price, o.monthlyTotal),
+        ],
+        const SizedBox(height: Gap.lg),
+        _subscriptionManagePeek(subs, o),
+      ],
+    );
+  }
+
+  Widget _subscriptionCompareCard(double price, double currentMonthly) {
+    // Normalize the entered price to per-month and per-year the same way the
+    // overview engine does, so the two figures always reconcile.
+    final perMonth = _subCycle == 'annual' ? price / 12 : price;
+    final perYear = _subCycle == 'annual' ? price : price * 12;
+    final newMonthly = currentMonthly + perMonth;
+    return Container(
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _resultRow('Per month', formatMoney(perMonth)),
+          _resultRow('Per year', formatMoney(perYear)),
+          if (currentMonthly > 0) ...[
+            const Divider(height: Gap.lg),
+            _resultRow(
+              'Your subscriptions would go to',
+              '${formatMoney(newMonthly)} a month',
             ),
-            child: Row(
-              children: [
-                Icon(salapifyIcon('repeat'), size: 20, color: Barako.primary),
-                const SizedBox(width: Gap.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subs.isEmpty
-                            ? 'Track your subscriptions'
-                            : '${o.count} subscription${o.count == 1 ? '' : 's'}, ${formatMoney(o.monthlyTotal)} a month',
-                        style: AppText.small.w7,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subs.isEmpty
-                            ? 'See what your monthly and yearly plans cost together.'
-                            : 'Tap to manage, or add this one to the list.',
-                        style: AppText.caption.tint(Barako.textSecondary),
-                      ),
-                    ],
-                  ),
+          ],
+          const SizedBox(height: Gap.sm),
+          Text(
+            'A subscription is small each month and large across a year. This '
+            'is what it adds, not a bill you owe.',
+            style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subscriptionManagePeek(List<dynamic> subs, dynamic o) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.card),
+        onTap: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => MindsetSubscriptionsScreen(store: widget.store),
+            ),
+          );
+          if (mounted) setState(() {});
+        },
+        child: Container(
+          padding: const EdgeInsets.all(Gap.lg),
+          decoration: BoxDecoration(
+            color: Barako.card,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: Barako.border),
+          ),
+          child: Row(
+            children: [
+              Icon(salapifyIcon('repeat'), size: 20, color: Barako.primary),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subs.isEmpty
+                          ? 'Track your subscriptions'
+                          : '${o.count} subscription${o.count == 1 ? '' : 's'}, ${formatMoney(o.monthlyTotal)} a month',
+                      style: AppText.small.w7,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subs.isEmpty
+                          ? 'See what your monthly and yearly plans cost together.'
+                          : 'Tap to manage, or add this one to the list.',
+                      style: AppText.caption.tint(Barako.textSecondary),
+                    ),
+                  ],
                 ),
-                Icon(salapifyIcon('forward'), size: 18, color: Barako.muted),
-              ],
-            ),
+              ),
+              Icon(salapifyIcon('forward'), size: 18, color: Barako.muted),
+            ],
           ),
         ),
       ),
