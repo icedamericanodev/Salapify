@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.27 · Mindset: the dashboard summary now has a Today or 30 days toggle, so you can see either.';
+    'f4.28 · Mindset: tap a Waiting item to act on it, mark it skipped, bought, or give it more time.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
