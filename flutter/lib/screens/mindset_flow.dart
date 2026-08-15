@@ -14,6 +14,8 @@ import '../money/format.dart' show formatMoney;
 import '../money/ledger.dart' show amountOf;
 import '../money/bnpl.dart' show bnplCost;
 import '../money/mindset_credit.dart' show BnplFlatPlan, bnplFlatPlan;
+import '../money/mindset_subscriptions.dart'
+    show parseSubscriptions, subscriptionsOverview;
 import '../money/mindset_decisions.dart'
     show mindsetOutcomeFromFlow, mindsetWeekDots;
 import '../money/mindset_wins.dart' show MindsetSnapshot, mindsetSnapshot;
@@ -35,6 +37,7 @@ import '../widgets/pan_mascot.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/segmented.dart';
 import 'log_sheet.dart' show parseAmount;
+import 'mindset_subscriptions_screen.dart';
 
 class MindsetFlowScreen extends StatefulWidget {
   const MindsetFlowScreen({super.key, required this.store});
@@ -282,6 +285,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           const SizedBox(height: 8),
           _amountField(),
           if (_purchaseType == 'credit') _creditDetail(),
+          if (_purchaseType == 'subscription') _subscriptionDetail(),
           if (cats.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text('Category (optional)', style: AppText.small.w7),
@@ -521,6 +525,66 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  // Subscription Step 1 detail: a peek at what all the person's subscriptions
+  // already cost per month, and a way in to manage them. The full monthly vs
+  // yearly comparison for the item being considered is a follow-up.
+  Widget _subscriptionDetail() {
+    final subs = parseSubscriptions(widget.store.mindsetSubscriptions);
+    final o = subscriptionsOverview(subs);
+    return Padding(
+      padding: const EdgeInsets.only(top: Gap.lg),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.card),
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MindsetSubscriptionsScreen(store: widget.store),
+              ),
+            );
+            if (mounted) setState(() {});
+          },
+          child: Container(
+            padding: const EdgeInsets.all(Gap.lg),
+            decoration: BoxDecoration(
+              color: Barako.card,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: Barako.border),
+            ),
+            child: Row(
+              children: [
+                Icon(salapifyIcon('repeat'), size: 20, color: Barako.primary),
+                const SizedBox(width: Gap.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subs.isEmpty
+                            ? 'Track your subscriptions'
+                            : '${o.count} subscription${o.count == 1 ? '' : 's'}, ${formatMoney(o.monthlyTotal)} a month',
+                        style: AppText.small.w7,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subs.isEmpty
+                            ? 'See what your monthly and yearly plans cost together.'
+                            : 'Tap to manage, or add this one to the list.',
+                        style: AppText.caption.tint(Barako.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(salapifyIcon('forward'), size: 18, color: Barako.muted),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

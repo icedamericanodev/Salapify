@@ -588,6 +588,10 @@ void main() {
       'mindset_flow.dart':
           'a guided four-step flow, input-driven (a cold pump shows only step '
           '1); walked by mindset_flow_test and rendered by mindset_flow_shot',
+      'mindset_subscriptions_screen.dart':
+          'reached from the Subscription path; a list plus add/edit sheet, '
+          'input-driven, rendered by mindset_subscriptions_shot and its money '
+          'covered by mindset_subscriptions_store_test',
       'mindset_decisions_list.dart':
           'the View-all full history; on the shared fixture (no logged '
           'decisions) it is only its empty state, a blank-looking screen by '

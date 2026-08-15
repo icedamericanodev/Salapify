@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.21 · Mindset: the Credit or BNPL path now shows monthly payment, total paid, and the real extra cost.';
+    'f4.22 · Mindset: a Subscriptions list, add what you pay monthly or yearly and see the running total.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
