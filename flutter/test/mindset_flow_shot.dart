@@ -244,6 +244,60 @@ void main() {
     );
   });
 
+  testWidgets('Money Mindset flow, Step 2 goal impact, dark', (tester) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    final blob = _richBlob();
+    final soon = DateTime.now().add(const Duration(days: 120));
+    blob['goals'] = [
+      {
+        'id': 'g1',
+        'name': 'Emergency fund',
+        'target': 100000,
+        'saved': 82000,
+        'targetDate':
+            '${soon.year.toString().padLeft(4, '0')}-'
+            '${soon.month.toString().padLeft(2, '0')}-'
+            '${soon.day.toString().padLeft(2, '0')}',
+      },
+    ];
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(blob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '14990');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -520),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-flow-goal-impact-dark.png'),
+    );
+  });
+
   testWidgets('Money Mindset flow, score explainer sheet, dark', (
     tester,
   ) async {
