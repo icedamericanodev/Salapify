@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.28 · Mindset: tap a Waiting item to act on it, mark it skipped, bought, or give it more time.';
+    'f4.29 · Mindset: the Decision Score now explains itself, tap How we score this to see it in plain words.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
