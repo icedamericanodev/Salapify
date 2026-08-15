@@ -69,7 +69,12 @@ Map<String, dynamic> _reflectionBlob() {
   final blob = _richBlob();
   blob['wins'] = [
     {'id': 'w1', 'note': 'Skipped new shoes', 'amount': 3200, 'date': ago(3)},
-    {'id': 'w2', 'note': 'Packed lunch all week', 'amount': 1800, 'date': ago(9)},
+    {
+      'id': 'w2',
+      'note': 'Packed lunch all week',
+      'amount': 1800,
+      'date': ago(9),
+    },
   ];
   (blob['settings'] as Map)['mindsetChecks'] = [
     {'date': ago(1), 'result': 'pause24h'},
@@ -120,6 +125,43 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/mindset-flow-step1-dark.png'),
+    );
+  });
+
+  testWidgets('Money Mindset flow, Step 1 Credit detail, dark', (tester) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(_richBlob()),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Credit or BNPL'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '20000');
+    await tester.enterText(find.byType(TextField).at(2), '3');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-flow-credit-dark.png'),
     );
   });
 
