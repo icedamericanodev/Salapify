@@ -34,7 +34,7 @@ Map<String, dynamic> _blob({List<Map<String, dynamic>>? goals}) {
       {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 40000},
     ],
     'transactions': txns,
-    if (goals != null) 'goals': goals,
+    'goals': ?goals,
   };
 }
 
