@@ -96,6 +96,24 @@ Map<String, dynamic> _blob() {
           ).toIso8601String(),
         },
       ],
+      'mindsetWaiting': [
+        {
+          'id': 'w1',
+          'itemName': 'New headphones',
+          'amount': 4990,
+          'status': 'waiting',
+          'createdAt': now.subtract(const Duration(days: 2)).toIso8601String(),
+          'revisitAt': now.subtract(const Duration(hours: 3)).toIso8601String(),
+        },
+        {
+          'id': 'w2',
+          'itemName': 'Weekend getaway',
+          'amount': 6500,
+          'status': 'waiting',
+          'createdAt': now.toIso8601String(),
+          'revisitAt': now.add(const Duration(hours: 18)).toIso8601String(),
+        },
+      ],
     },
     'accounts': [
       {'id': 'pay', 'name': 'Payroll', 'kind': 'checking', 'balance': 40000},
