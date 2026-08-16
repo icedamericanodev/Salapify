@@ -280,6 +280,30 @@ void main() {
     expect(find.byIcon(Icons.warning_amber_rounded), findsWidgets);
   });
 
+  testWidgets('the cash buffer card shows the peso cushion and a status', (
+    tester,
+  ) async {
+    await _pump(tester); // 40,000 on hand
+    await tester.enterText(find.byType(TextField).at(1), '3000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    // A small buy leaves a cushion: the card is present and not the empties state.
+    expect(find.text('CASH BUFFER AFTER PURCHASE'), findsOneWidget);
+    expect(find.text('Empties it'), findsNothing);
+
+    // A buy larger than everything on hand empties the cushion; the card and the
+    // breakdown row both say so.
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '60000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('CASH BUFFER AFTER PURCHASE'), findsOneWidget);
+    expect(find.text('Empties it'), findsWidgets);
+  });
+
   testWidgets('a goal with no deadline shows no fabricated day count', (
     tester,
   ) async {
