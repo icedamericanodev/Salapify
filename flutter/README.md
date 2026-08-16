@@ -30,4 +30,15 @@ The working rules live in `../CLAUDE.md`. In short:
 - Delivery is over the air via Shorebird; a base APK is rebuilt only for
   native-level changes.
 
-The local Flutter SDK a session uses is `3.44.6` stable.
+Salapify builds and ships on the Flutter version pinned in
+`.github/workflows/`. Shorebird sets that pin, not us, so it lags Flutter
+stable. A session's own SDK may be newer than the pin; what protects the build
+is that CI resolves dependencies at the pin and fails if `pubspec.lock` or
+`analysis_options.yaml` drift, so a lockfile produced by a newer SDK cannot
+land unnoticed.
+
+This paragraph deliberately names no version number. The line it replaced named
+one and went stale twice in a single day, once when a newer SDK was installed to
+evaluate it and again when that SDK became the default. See
+`../docs/decision-log.md` for the current pin and what has to be true before it
+moves.

@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.41 · Mindset goal card: quieter on tiny buys, truthful over target wording, no chip overflow.';
+    'f4.42 · Docs only: the README now states the Flutter pin rule instead of a version that goes stale.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
