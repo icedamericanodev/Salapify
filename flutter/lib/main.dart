@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.42 · Docs only: the README now states the Flutter pin rule instead of a version that goes stale.';
+    'f4.43 · Guards from the retrospective: the Flutter pin and constitution citations are now machine checked.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

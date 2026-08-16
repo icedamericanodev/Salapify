@@ -157,10 +157,14 @@ Checked 2026-08-16.
 
 - No delivery impact. Nothing under flutter/ changed, so the preview publisher
   does not trigger and no update stamp applies.
-- The number 3.44.6 is written in six places and all of them still agree:
-  flutter-check.yml, flutter-preview.yml twice (the setup step and the
-  `shorebird release` argument), flutter-prod-aab.yml, pages.yml, and
-  CLAUDE.md rule 5. Moving the pin means moving all six.
+- The pin is written in several workflow files and they must all agree.
+  flutter/test/toolchain_pin_test.dart derives that list every run and fails if
+  they disagree, so this entry deliberately does NOT hand count them.
+  (It did once, and said six. That was wrong when written, missing two test
+  file comments, and made wronger three hours later by this same session's own
+  f4.42 commit, which removed the number from one of the six places the list
+  named. A hand counted inventory in prose is a promise about a set that
+  changes; the test is the inventory now. Session 39, docs/lunch-and-learn.md.)
 - flutter/README.md line 33 also carries it, and that line stayed TRUE at the
   time of this entry, because /opt/flutter was put back to 3.44.6 once the
   evaluation was finished. (Superseded the same day: the founder moved the

@@ -30,7 +30,39 @@ const _candidates = <String, List<String>>{
   ],
 };
 
-const _sdkFonts = '/opt/flutter/engine/src/flutter/txt/third_party/fonts';
+/// Where the SDK keeps Roboto, resolved rather than hardcoded.
+///
+/// This used to be a literal `/opt/flutter/...` path, which quietly became the
+/// WRONG SDK the day a session ran a Flutter newer than the pin at that
+/// location: it kept resolving, kept loading a Roboto, and compared the app's
+/// faces against a version nothing ships on. It would break outright on any
+/// future SDK that moves the directory. `screens_shot.dart` already solved this
+/// properly, so this borrows its approach: ask the tool where the SDK is, and
+/// fall back to walking up from the running Dart binary.
+String? _sdkFontDir() {
+  final roots = <String>{
+    ?Platform.environment['FLUTTER_ROOT'],
+    _walkUpToFlutterRoot(Platform.resolvedExecutable) ?? '',
+  }..remove('');
+  for (final root in roots) {
+    final d = Directory('$root/engine/src/flutter/txt/third_party/fonts');
+    if (d.existsSync()) return d.path;
+  }
+  return null;
+}
+
+/// `.../<root>/bin/cache/dart-sdk/bin/dart`, walked back up to the root.
+String? _walkUpToFlutterRoot(String exe) {
+  var dir = File(exe).parent;
+  for (var i = 0; i < 8; i++) {
+    if (Directory('${dir.path}/bin/cache/artifacts').existsSync()) {
+      return dir.path;
+    }
+    if (dir.parent.path == dir.path) break;
+    dir = dir.parent;
+  }
+  return null;
+}
 
 Future<void> _load(WidgetTester tester) async {
   await tester.runAsync(() async {
@@ -43,9 +75,11 @@ Future<void> _load(WidgetTester tester) async {
       await loader.load();
     }
     // Roboto, the Android system face, straight out of the SDK.
+    final sdkFonts = _sdkFontDir();
     final roboto = FontLoader('Roboto');
     for (final n in ['Roboto-Regular.ttf', 'Roboto-Medium.ttf']) {
-      final f = File('$_sdkFonts/$n');
+      if (sdkFonts == null) break;
+      final f = File('$sdkFonts/$n');
       if (!f.existsSync()) continue;
       final bytes = await f.readAsBytes();
       roboto.addFont(Future.value(ByteData.view(bytes.buffer)));
