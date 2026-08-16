@@ -126,10 +126,10 @@ class _MindsetSubscriptionsScreenState
 
   Widget _overviewCard(SubscriptionsOverview o) {
     return Container(
-      padding: const EdgeInsets.all(Gap.xl),
+      padding: Insets.hero,
       decoration: BoxDecoration(
         color: Barako.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Radii.card),
+        borderRadius: BorderRadius.circular(Radii.hero),
         border: Border.all(color: Barako.primary.withValues(alpha: 0.25)),
       ),
       child: Column(
@@ -147,7 +147,7 @@ class _MindsetSubscriptionsScreenState
               Flexible(
                 child: Text(
                   formatMoney(o.monthlyTotal),
-                  style: AppText.amountLg,
+                  style: AppText.amountLg.tabular,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
