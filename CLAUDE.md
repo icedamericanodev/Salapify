@@ -88,10 +88,23 @@ Flutter track:
    (must import the existing Salapify backup JSON, schema v12 rules), then
    screens. Money math ports do not merge without matching test vectors.
 5. The local Flutter SDK in a session lives at /opt/flutter (add
-   /opt/flutter/bin to PATH); install 3.44.6 stable from
-   storage.googleapis.com if missing. That version is the CI pin and Shorebird
-   sets it, so it lags Flutter stable; see docs/decision-log.md for why and for
-   what has to be true before it moves.
+   /opt/flutter/bin to PATH); install it from storage.googleapis.com if
+   missing. WHICH version belongs there is not fixed: the founder may run a
+   newer Flutter than the one the app ships on, and on 2026-08-16 chose exactly
+   that. The version the app is BUILT and SHIPPED with is the CI pin, repeated
+   in flutter-check.yml, flutter-preview.yml twice including the Shorebird
+   argument, flutter-prod-aab.yml and pages.yml. Shorebird sets that pin, so it
+   lags Flutter stable, and moving it forces a new base APK; see
+   docs/decision-log.md for the current value and what has to be true first.
+   When the local SDK is newer than the pin, keep the pinned one on the box too
+   (/opt/flutter-<version>) and verify against IT before pushing, because that
+   is what the runner builds. Do not trust a local green run from a newer SDK
+   as evidence about CI. `flutter pub get` is the sharp edge: it rewrites
+   pubspec.lock to whichever SDK ran it, and from 3.47 also writes an
+   analyzer.exclude block into analysis_options.yaml. Both are SDK-specific and
+   neither analyze nor test notices. The branch check now resolves at the pin
+   and reddens on either file, so this is guarded rather than remembered, but
+   check `git status` after a pub get anyway.
 6. A pre-authored course commit, one that arrives already fully written and
    pushed rather than authored inside a live turn, has repeatedly reached CI
    with the stamp left at the already-delivered value: rule 2's "bump it
