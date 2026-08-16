@@ -226,15 +226,15 @@ void main() {
     // engine-backed delay.
     expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
     expect(find.text('Emergency fund'), findsWidgets);
-    expect(find.text('Now'), findsOneWidget);
-    expect(find.text('If you buy this'), findsOneWidget);
+    expect(find.text('Before purchase'), findsOneWidget);
+    expect(find.text('After purchase'), findsOneWidget);
     expect(find.textContaining('later'), findsOneWidget);
 
     // The score breakdown still lists ONLY the three real axes; the goal is not
     // a scored row, so the number never silently moved because of it.
     expect(find.text('Cash left after'), findsOneWidget);
     expect(find.text('Size vs income'), findsOneWidget);
-    expect(find.text('Bills and debt'), findsOneWidget);
+    expect(find.text('Money for bills'), findsOneWidget);
   });
 
   testWidgets('with no goals, the Impact step still shows a goal prompt', (

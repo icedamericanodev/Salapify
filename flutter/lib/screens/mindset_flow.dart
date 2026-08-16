@@ -934,9 +934,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                 ),
                 _explainRow(
                   'shield',
-                  'Bills and debt',
-                  'Whether it dips into money set aside for what you owe. '
-                      'Dipping pulls the score down the most.',
+                  'Money for bills',
+                  'Whether it leaves you short of the money set aside for bills '
+                      'and debt due soon. Falling short pulls the score down the '
+                      'most.',
                 ),
                 _explainRow(
                   'chart',
@@ -1062,8 +1063,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           _metricRow('Cash left after', cushion, axisScore('buffer')),
           _metricRow('Size vs income', income, axisScore('income')),
           _metricRow(
-            'Bills and debt',
-            dips ? 'Dips ${formatMoney(shortfall)}' : 'No dip',
+            'Money for bills',
+            dips ? '${formatMoney(shortfall)} short' : 'Bills covered',
             dips ? -1 : 100,
           ),
         ],
@@ -1226,10 +1227,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               padding: const EdgeInsets.only(bottom: Gap.sm),
               child: Text(name, style: AppText.body.w7),
             ),
-          _goalBar('Now', beforePct, saved, target, Barako.primary),
+          _goalBar('Before purchase', beforePct, saved, target, Barako.primary),
           const SizedBox(height: Gap.md),
           _goalBar(
-            'If you buy this',
+            'After purchase',
             afterPct,
             saved,
             target + amt,

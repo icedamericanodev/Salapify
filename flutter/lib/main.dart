@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.36 · Mindset: a polish pass, steadier peso figures, matching hero cards, gentle motion and taps.';
+    'f4.37 · Mindset Impact redesign: a clearer score card, plainer bills wording, before and after goal bars.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
