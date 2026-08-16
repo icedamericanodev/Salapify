@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.39 · Mindset goal card: the delay is now a clear chip, plainer wording, honest small buy relief.';
+    'f4.40 · New Financial Guides hub under Learn: browse money explainers by topic, with search and Pan tips.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

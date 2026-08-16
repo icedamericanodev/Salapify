@@ -15,6 +15,7 @@ import 'dart:math';
 import '../money/base_currency_scope.dart' show baseCurrencyOf, manualRatesOf;
 import '../money/fx_totals.dart' show FxTable;
 import '../money/expansion_progress.dart';
+import '../money/guide_progress.dart';
 import '../money/greeting.dart';
 import '../money/lesson_progress.dart';
 import '../money/ledger.dart' as ledger;
@@ -2027,6 +2028,39 @@ class SalapifyStore extends ChangeNotifier {
     }
     return {...d, 'settings': settings};
   });
+
+  /// How far a reader got through each Financial Guide, kept in
+  /// settings.guideProgress: a fraction from 0 to 1 per guide id. A namespace
+  /// entirely separate from lessonProgress, lessonsRead, and expansionProgress
+  /// (money/guide_progress.dart), so reading a guide can never move a lesson's
+  /// progress or the "X of 22" figure, and the reverse is just as true. The
+  /// backup preserves unknown settings keys, so this needs no migration.
+  ///
+  /// This is the small API the Financial Guides screens use; they never read
+  /// settings.guideProgress directly.
+  Map<String, double> get guideProgress {
+    final s = data['settings'];
+    return parseGuideProgress(s is Map ? s['guideProgress'] : null);
+  }
+
+  /// Raise one guide's progress to [fraction]. Progress never goes backwards:
+  /// a lower value than the reader already reached is ignored. A resulting
+  /// entry of 0 is dropped so the map only holds guides genuinely touched.
+  Future<void> setGuideProgress(String id, double fraction) => _mutate((d) {
+    final s = ((d['settings'] as Map?) ?? const {}).cast<String, dynamic>();
+    final progress = withGuideProgress(s['guideProgress'], id, fraction);
+    final settings = {...s};
+    if (progress.isEmpty) {
+      settings.remove('guideProgress');
+    } else {
+      settings['guideProgress'] = progress;
+    }
+    return {...d, 'settings': settings};
+  });
+
+  /// Mark a guide fully read. Equivalent to raising it to 1.0, so it never
+  /// demotes a guide already read and always counts as done afterward.
+  Future<void> markGuideRead(String id) => setGuideProgress(id, 1.0);
 
   /// Earn-your-treats rules, kept in settings.treats. Every write goes through
   /// the golden-locked treats engine so check-in windows and lifetime match the

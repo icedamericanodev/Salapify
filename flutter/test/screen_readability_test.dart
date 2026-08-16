@@ -72,6 +72,7 @@ import 'package:salapify/screens/mindset_today.dart';
 import 'package:salapify/screens/mindset_insights.dart';
 import 'package:salapify/screens/notifications_security.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
+import 'package:salapify/screens/financial_guides.dart';
 import 'package:salapify/screens/history.dart';
 import 'package:salapify/screens/insights.dart';
 import 'package:salapify/screens/learn.dart';
@@ -394,6 +395,7 @@ void main() {
         InsightsScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
     'Menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
     'Courses': (s) => LearnScreen(store: s),
+    'Financial guides': (s) => FinancialGuidesScreen(store: s),
     'Appearance': (s) => AppearanceScreen(store: s),
     'Accounts': (s) => AccountsScreen(store: s),
     'Account detail': (s) => AccountDetailScreen(
@@ -610,6 +612,7 @@ void main() {
       'insights.dart',
       'menu.dart',
       'learn.dart',
+      'financial_guides.dart',
       'path_screen.dart',
       'appearance.dart',
       'accounts.dart',

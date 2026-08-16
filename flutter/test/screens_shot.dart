@@ -49,6 +49,7 @@ import 'package:salapify/content/lessons_bir_local_permits.dart';
 import 'package:salapify/content/lessons_business_permits_compliance.dart';
 import 'package:salapify/content/lessons_bir_tax_setup.dart';
 import 'package:salapify/content/lessons_business_registration.dart';
+import 'package:salapify/screens/financial_guides.dart';
 import 'package:salapify/screens/learn.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/content/lesson_model.dart';
@@ -269,6 +270,7 @@ final Map<String, dynamic> livedInBlob = () {
     return '${d.year.toString().padLeft(4, '0')}-'
         '${d.month.toString().padLeft(2, '0')}';
   }
+
   return <String, dynamic>{
     'schemaVersion': 12,
     'settings': {
@@ -991,6 +993,18 @@ void main() {
       ),
       store: s,
     ),
+    // Financial Guides (new): the browse hub the founder asked for, and the
+    // reader for one guide (opened via focusGuideId, the same way the core
+    // lesson reader is rendered through LearnScreen.focusId above). Rendered
+    // at both brightnesses like every other screen, dark reviewed first.
+    'financial-guides': (s) =>
+        FinancialGuidesScreen(store: s, onSwitchTab: (_) {}),
+    'guide-reader-13th-month': (s) => FinancialGuidesScreen(
+      store: s,
+      focusGuideId: 'how-13th-month-pay-works',
+    ),
+    'guide-reader-mp2': (s) =>
+        FinancialGuidesScreen(store: s, focusGuideId: 'what-is-mp2'),
   };
 
   for (final entry in screens.entries) {
