@@ -89,7 +89,31 @@ Flutter track:
    screens. Money math ports do not merge without matching test vectors.
 5. The local Flutter SDK in a session lives at /opt/flutter (add
    /opt/flutter/bin to PATH); install 3.44.6 stable from
-   storage.googleapis.com if missing.
+   storage.googleapis.com if missing. That number is not a preference, it is
+   the CI pin: the same 3.44.6 appears in flutter-check.yml,
+   flutter-preview.yml (twice, including the Shorebird --flutter-version),
+   flutter-prod-aab.yml and pages.yml. A local SDK that differs from the pin
+   makes a green local run a weaker signal than it looks, because the runner
+   is compiling against a different toolchain.
+   SHOREBIRD, NOT FLUTTER, SETS THIS NUMBER, and that is the whole reason the
+   pin lags stable. Checked 2026-08-16: Flutter 3.47.0 stable (Dart 3.13.0,
+   released 2026-08-12) was installed and the app is completely green on it,
+   flutter analyze clean and all 2940 tests passing, so the app code is not
+   what is holding the pin back. Shorebird is. Its newest release at the time,
+   1.6.117 of 2026-08-14, still declared "Flutter 3.44.9 / Dart 3.12.2
+   support", and its Flutter fork carried only a 3.47.0-0.1.pre beta tag with
+   no 3.47.0 stable. Passing --flutter-version 3.47.0 to shorebird release
+   would therefore not have built, it would have broken delivery outright.
+   Do not raise the pin on the strength of a green local run; read
+   RELEASE_NOTES.md in shorebirdtech/shorebird and confirm the exact version
+   is listed as supported first.
+   Raising the pin is ALSO a founder-gated release event, separately from
+   whether Shorebird supports it. A Shorebird patch only applies to a release
+   built on the same Flutter revision, so changing --flutter-version forces a
+   NEW base APK the founder installs by hand, and until they install it they
+   receive nothing while every build still reports green. That is the loud
+   flag rule 1 already demands, so the pin bump goes to the founder before it
+   is made, never quietly alongside other work.
 6. A pre-authored course commit, one that arrives already fully written and
    pushed rather than authored inside a live turn, has repeatedly reached CI
    with the stamp left at the already-delivered value: rule 2's "bump it
