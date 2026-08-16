@@ -27,6 +27,7 @@ import 'categories.dart';
 import 'appearance.dart';
 import 'cashflow.dart';
 import 'csv_import.dart';
+import 'financial_guides.dart';
 import 'goals.dart';
 import 'learn.dart';
 import 'milestone_share.dart';
@@ -213,6 +214,22 @@ class MenuScreen extends StatelessWidget {
               const SizedBox(height: Gap.sm),
               NavBand(
                 tiles: [
+                  NavTile(
+                    // A separate glyph from Money courses' 'learning', so the
+                    // two LEARN rows read as two different things at a glance.
+                    icon: 'document',
+                    label: 'Financial guides',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => FinancialGuidesScreen(
+                          store: store,
+                          onSwitchTab: onSwitchTab,
+                          onOpenReceivables: onOpenReceivables,
+                          onOpenPayables: onOpenPayables,
+                        ),
+                      ),
+                    ),
+                  ),
                   NavTile(
                     icon: 'learning',
                     label: 'Money courses',
