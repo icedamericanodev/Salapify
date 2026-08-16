@@ -7,6 +7,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/money/mindset_credit.dart'
+    show bnplFlatPlan, creditScoreInputs;
 import 'package:salapify/money/mindset_decision.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -254,6 +256,47 @@ void main() {
       expect(creditPenalty(0.15), closeTo(7.5, 1e-9));
       expect(creditPenalty(0.30), 15);
       expect(creditPenalty(0.50), 15);
+    });
+    test(
+      'lock-in penalty: 3mo baseline zero, a point per extra 3mo, capped',
+      () {
+        expect(
+          lockInPenalty(3),
+          0,
+        ); // the shortest offered term is the baseline
+        expect(lockInPenalty(6), 1);
+        expect(lockInPenalty(12), 3);
+        expect(lockInPenalty(9), closeTo(2, 1e-9)); // off-grid interpolation
+        expect(lockInPenalty(18), 4); // cap holds (uncapped would be 5)
+        expect(lockInPenalty(0), 0); // floored/baseline edge
+        expect(lockInPenalty(1), 0);
+      },
+    );
+    testWidgets('a longer credit term scores lower, and a 0% long plan is not '
+        'exempt from the lock-in penalty', (tester) async {
+      final store = await _loadStore(_spectrumBlob());
+      final now = DateTime.now();
+      int score(int months, double fee) {
+        final i = creditScoreInputs(
+          bnplFlatPlan(price: 20000, months: months, feePercent: fee),
+        );
+        return mindsetDecision(
+              store.data,
+              now,
+              mode: MindsetMode.credit,
+              cashNow: i.cashNow,
+              monthlyLoad: i.monthlyLoad,
+              creditMarkup: i.creditMarkup,
+              termMonths: i.months,
+            )['financialScore']
+            as int;
+      }
+
+      // Same price and fee: a 12-month lock scores lower than a 3-month one.
+      expect(score(12, 3) < score(3, 3), isTrue);
+      // And a true 0% plan is still penalized for the longer lock-in (the fee
+      // penalty is zero, so this proves the lock-in is not gated behind a fee).
+      expect(score(12, 0) < score(3, 0), isTrue);
     });
     test('cool-off lengthens with impact; tiny buys stay short', () {
       expect(mindsetCoolOff(1), isNull);

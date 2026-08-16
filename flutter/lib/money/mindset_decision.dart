@@ -162,6 +162,19 @@ double combineAxes(List<({double weight, double score})> axes) {
 /// full 15-point hit.
 double creditPenalty(double markup) => _clamp(markup, 0, 0.3) / 0.3 * 15;
 
+/// Lock-in penalty for a credit / BNPL plan: a longer installment commitment is
+/// more sustained exposure than a short one, so it costs a few points. The
+/// shortest term the app offers (3 months) is the zero baseline, and each extra
+/// three months adds a point, capped at 4 (~15 months) so a stray term can never
+/// dominate. A pure function of the term ONLY (never scaled by the monthly bite,
+/// which the income axis already reflects), and applied to EVERY credit plan,
+/// including true 0% ones, because lock-in is a risk with no fee at all.
+/// Bank-officer verified 2026-08-15.
+double lockInPenalty(int months) {
+  final m = months >= 1 ? months : 1;
+  return _clamp((m - 3) / 3, 0, 4);
+}
+
 // ------------------------------------------------------------- orchestrator
 
 /// The financial Decision Score and its axis breakdown for a hypothetical
@@ -179,6 +192,7 @@ Map<String, dynamic> mindsetDecision(
   required double cashNow,
   double monthlyLoad = 0,
   double creditMarkup = 0,
+  int termMonths = 0,
   Map<String, dynamic>? goal,
   double? goalAmount,
 }) {
@@ -223,8 +237,14 @@ Map<String, dynamic> mindsetDecision(
     (weight: wReserved, score: sReserved),
     (weight: wGoal, score: sGoal),
   ]);
-  if (mode == MindsetMode.credit && creditMarkup > 0 && !financial.isNaN) {
-    financial = _clamp(financial - creditPenalty(creditMarkup), 0, 100);
+  if (mode == MindsetMode.credit && !financial.isNaN) {
+    // The markup penalty is gated on a real fee; the lock-in penalty applies to
+    // every credit plan (a 0% long plan still locks you in). Folded into one
+    // clamp so the score is never clamped twice.
+    final penalty =
+        (creditMarkup > 0 ? creditPenalty(creditMarkup) : 0.0) +
+        lockInPenalty(termMonths);
+    financial = _clamp(financial - penalty, 0, 100);
   }
   final score = financial.isNaN ? 0 : mindsetRound(financial);
   final band = mindsetBand(score.toDouble());

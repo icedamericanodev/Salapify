@@ -41,6 +41,7 @@ import '../widgets/salapify_icon.dart';
 import '../widgets/segmented.dart';
 import 'log_sheet.dart' show parseAmount;
 import 'mindset_subscriptions_screen.dart';
+import 'recurring.dart' show RecurringScreen;
 
 class MindsetFlowScreen extends StatefulWidget {
   const MindsetFlowScreen({super.key, required this.store});
@@ -172,6 +173,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
         cashNow: inputs.cashNow,
         monthlyLoad: inputs.monthlyLoad,
         creditMarkup: inputs.creditMarkup,
+        termMonths: inputs.months,
         goalAmount: plan.totalPaid,
       );
     }
@@ -1934,6 +1936,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             _outcomeBanner(),
             const SizedBox(height: Gap.lg),
           ],
+          if (_outcome == 'bought' && _mindsetMode == MindsetMode.credit) ...[
+            _logPlanPrompt(),
+            const SizedBox(height: Gap.lg),
+          ],
           if (allTime.count > 0) ...[
             _allTimeHero(allTime.total, allTime.count),
             const SizedBox(height: Gap.lg),
@@ -1985,6 +1991,70 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                 ? 'From 1 choice you made on purpose.'
                 : 'From $count choices you made on purpose.',
             style: AppText.small.tint(Barako.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // After buying on a plan, offer to log the monthly payment as a recurring
+  // expense so the NEXT decision's score sees the commitment (the stacking
+  // guard reads recurring bills and debt minimums). Bank-officer note,
+  // 2026-08-15: a plan the user never logs is invisible to the next what-if.
+  Widget _logPlanPrompt() {
+    final fee = double.tryParse(_creditFee.text.trim()) ?? 0;
+    final plan = bnplFlatPlan(
+      price: _enteredAmount,
+      months: _creditMonths,
+      feePercent: fee,
+    );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(salapifyIcon('repeat'), size: 18, color: Barako.primary),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  'Keep your next check honest',
+                  style: AppText.small.w7,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.xs),
+          Text(
+            'Add the ${formatMoney(plan.monthly)} monthly payment to Recurring, '
+            'so your next Money mindset check counts this plan too.',
+            style: AppText.caption
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
+          ),
+          const SizedBox(height: Gap.md),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => RecurringScreen(store: widget.store),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Barako.primary,
+                side: BorderSide(color: Barako.border),
+                padding: const EdgeInsets.symmetric(vertical: Gap.md),
+              ),
+              child: const Text('Add to Recurring'),
+            ),
           ),
         ],
       ),
