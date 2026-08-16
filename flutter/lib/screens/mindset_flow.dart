@@ -836,6 +836,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           const SizedBox(height: Gap.xs),
           _scoreCard(score, band, color),
           const SizedBox(height: Gap.lg),
+          _bufferCard(decision),
+          const SizedBox(height: Gap.lg),
           _impactCard(decision),
           const SizedBox(height: Gap.lg),
           _openGoals().isNotEmpty
@@ -1082,6 +1084,95 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       ),
     );
   }
+
+  // The peso cash cushion left after the buy, with a plain status word (founder
+  // mockup, 2026-08-16). Presentation only: bufferAfter and runwayAfter are the
+  // same engine outputs the breakdown below reads. This card just leads with the
+  // amount and a one-line read, so "how much would I have left" is answered before
+  // the detail. A used-up cushion shows as the base currency zero with an
+  // "Empties it" status, never a minus figure.
+  Widget _bufferCard(Map<String, dynamic> decision) {
+    final bufferAfter = amountOf(decision['bufferAfter']);
+    final runwayAfter = decision['runwayAfter'] as double?;
+    final empties =
+        bufferAfter <= 0 || (runwayAfter != null && runwayAfter <= 0);
+
+    String status;
+    Color color;
+    String line;
+    if (empties) {
+      status = 'Empties it';
+      color = Barako.warningStrong;
+      line = 'This would use up your cash cushion.';
+    } else if (runwayAfter == null) {
+      status = 'Okay';
+      color = Barako.primary;
+      line = 'You would still have cash on hand.';
+    } else if (runwayAfter < 1) {
+      status = 'Thin';
+      color = Barako.warning;
+      line = 'This leaves your cushion thin.';
+    } else if (runwayAfter < 3) {
+      status = 'Okay';
+      color = Barako.primary;
+      line = 'You would still have a cushion.';
+    } else {
+      status = 'Comfortable';
+      color = Barako.primary;
+      line = 'You would still have a healthy cushion.';
+    }
+    final shown = bufferAfter > 0 ? bufferAfter : 0.0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('CASH BUFFER AFTER PURCHASE', style: Barako.cardKickerStyle),
+          const SizedBox(height: Gap.sm),
+          Row(
+            children: [
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatMoney(shown),
+                    maxLines: 1,
+                    style: AppText.amountLg.tabular,
+                  ),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              _statusPill(status, color),
+            ],
+          ),
+          const SizedBox(height: Gap.xs),
+          Text(
+            line,
+            style: AppText.small
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusPill(String label, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: Gap.xxs),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(label, style: AppText.small.w7.tint(color)),
+  );
 
   Widget _impactCard(Map<String, dynamic> decision) {
     final runwayAfter = decision['runwayAfter'] as double?;
