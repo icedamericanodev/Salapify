@@ -89,7 +89,9 @@ Flutter track:
    screens. Money math ports do not merge without matching test vectors.
 5. The local Flutter SDK in a session lives at /opt/flutter (add
    /opt/flutter/bin to PATH); install 3.44.6 stable from
-   storage.googleapis.com if missing.
+   storage.googleapis.com if missing. That version is the CI pin and Shorebird
+   sets it, so it lags Flutter stable; see docs/decision-log.md for why and for
+   what has to be true before it moves.
 6. A pre-authored course commit, one that arrives already fully written and
    pushed rather than authored inside a live turn, has repeatedly reached CI
    with the stamp left at the already-delivered value: rule 2's "bump it
