@@ -213,7 +213,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     setState(() => _step = step);
     _page.animateToPage(
       step - 1,
-      duration: const Duration(milliseconds: 320),
+      duration: Motion.of(context, Motion.move),
       curve: Curves.easeInOutCubic,
     );
   }
@@ -366,9 +366,13 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(Radii.card),
-          onTap: () => setState(() => _purchaseType = value),
+          onTap: () {
+            Haptics.select();
+            setState(() => _purchaseType = value);
+          },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
+            duration: Motion.of(context, Motion.state),
+            curve: Motion.curve,
             padding: const EdgeInsets.all(Gap.lg),
             decoration: BoxDecoration(
               color: selected
@@ -422,7 +426,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   }
 
   Widget _radio(bool on) => AnimatedContainer(
-    duration: const Duration(milliseconds: 180),
+    duration: Motion.of(context, Motion.state),
+    curve: Motion.curve,
     width: 22,
     height: 22,
     decoration: BoxDecoration(
@@ -1289,7 +1294,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             Expanded(
               child: Text(label, style: AppText.small.tint(Barako.muted)),
             ),
-            Text('${(pct * 100).round()}%', style: AppText.small.w7),
+            Text('${(pct * 100).round()}%', style: AppText.small.w7.tabular),
           ],
         ),
         const SizedBox(height: Gap.xs),
@@ -1305,7 +1310,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
         const SizedBox(height: Gap.xxs),
         Text(
           '${formatMoney(saved)} of ${formatMoney(total)}',
-          style: AppText.caption.tint(Barako.muted),
+          style: AppText.caption.tint(Barako.muted).tabular,
         ),
       ],
     );
@@ -1336,7 +1341,11 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerRight,
-              child: Text(value, maxLines: 1, style: AppText.small.w6.tint(c)),
+              child: Text(
+                value,
+                maxLines: 1,
+                style: AppText.small.w6.tint(c).tabular,
+              ),
             ),
           ),
         ],
@@ -1567,7 +1576,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: Gap.md),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: Motion.of(context, Motion.state),
+        curve: Motion.curve,
         decoration: BoxDecoration(
           color: Barako.card,
           borderRadius: BorderRadius.circular(Radii.card),
@@ -1610,7 +1620,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
                     else
                       AnimatedRotation(
                         turns: expanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 180),
+                        duration: Motion.of(context, Motion.state),
+                        curve: Motion.curve,
                         child: Icon(
                           salapifyIcon('expand'),
                           size: 20,
@@ -1645,12 +1656,16 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       child: InkWell(
         key: Key('mindsetAnswer_${i}_$value'),
         borderRadius: BorderRadius.circular(Radii.field),
-        onTap: () => setState(() {
-          _answers[i] = value;
-          _expandedQ = _nextUnanswered();
-        }),
+        onTap: () {
+          Haptics.select();
+          setState(() {
+            _answers[i] = value;
+            _expandedQ = _nextUnanswered();
+          });
+        },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: Motion.of(context, Motion.state),
+          curve: Motion.curve,
           padding: const EdgeInsets.symmetric(vertical: Gap.md),
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -1813,7 +1828,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           child: FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerRight,
-            child: Text(value, style: AppText.small.w7),
+            child: Text(value, style: AppText.small.w7.tabular),
           ),
         ),
       ],
@@ -1970,11 +1985,11 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
   Widget _allTimeHero(double total, int count) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(Gap.xl),
+      padding: Insets.hero,
       decoration: BoxDecoration(
-        color: Barako.primary.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.primary.withValues(alpha: 0.30)),
+        color: Barako.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(Radii.hero),
+        border: Border.all(color: Barako.primary.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2391,9 +2406,13 @@ class _CategoryChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(Radii.control),
-        onTap: onTap,
+        onTap: () {
+          Haptics.select();
+          onTap();
+        },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: Motion.of(context, Motion.state),
+          curve: Motion.curve,
           padding: const EdgeInsets.symmetric(
             horizontal: Gap.md,
             vertical: Gap.sm,

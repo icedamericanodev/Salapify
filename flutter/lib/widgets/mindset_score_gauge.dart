@@ -64,6 +64,9 @@ class MindsetScoreGauge extends StatelessWidget {
                   fontWeight: TypeWeight.heavy,
                   color: color,
                   height: 1.0,
+                  // Slightly tighter tracking on the display-size hero number,
+                  // the way large headings read best.
+                  letterSpacing: -0.5,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),

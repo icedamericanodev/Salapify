@@ -26,21 +26,21 @@ class MindsetStepIndicator extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 1; i <= total; i++) ...[
-            _dot(i),
-            if (i < total) Expanded(child: _line(i)),
+            _dot(context, i),
+            if (i < total) Expanded(child: _line(context, i)),
           ],
         ],
       ),
     );
   }
 
-  Widget _dot(int i) {
+  Widget _dot(BuildContext context, int i) {
     final done = i < current;
     final active = i == current;
     final filled = done || active;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: Motion.of(context, Motion.move),
+      curve: Motion.curve,
       width: 28,
       height: 28,
       decoration: BoxDecoration(
@@ -64,8 +64,9 @@ class MindsetStepIndicator extends StatelessWidget {
     );
   }
 
-  Widget _line(int i) => AnimatedContainer(
-    duration: const Duration(milliseconds: 250),
+  Widget _line(BuildContext context, int i) => AnimatedContainer(
+    duration: Motion.of(context, Motion.move),
+    curve: Motion.curve,
     height: 2,
     margin: const EdgeInsets.symmetric(horizontal: 6),
     color: i < current ? Barako.primary : Barako.border,
