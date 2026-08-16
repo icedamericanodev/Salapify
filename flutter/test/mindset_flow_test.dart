@@ -226,15 +226,15 @@ void main() {
     // engine-backed delay.
     expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
     expect(find.text('Emergency fund'), findsWidgets);
-    expect(find.text('Now'), findsOneWidget);
-    expect(find.text('If you buy this'), findsOneWidget);
+    expect(find.text('Before purchase'), findsOneWidget);
+    expect(find.text('After purchase'), findsOneWidget);
     expect(find.textContaining('later'), findsOneWidget);
 
     // The score breakdown still lists ONLY the three real axes; the goal is not
     // a scored row, so the number never silently moved because of it.
     expect(find.text('Cash left after'), findsOneWidget);
     expect(find.text('Size vs income'), findsOneWidget);
-    expect(find.text('Bills and debt'), findsOneWidget);
+    expect(find.text('Money for bills'), findsOneWidget);
   });
 
   testWidgets('with no goals, the Impact step still shows a goal prompt', (
@@ -249,6 +249,35 @@ void main() {
     // The section is always visible, now as a discoverable prompt.
     expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
     expect(find.textContaining('Set a savings goal'), findsOneWidget);
+  });
+
+  testWidgets('a buy that eats into bills money shows a plain short warning', (
+    tester,
+  ) async {
+    await _pump(tester); // 40,000 on hand, nothing reserved
+    // A small buy leaves the money for bills alone: plain "Bills covered", no
+    // warning glyph.
+    await tester.enterText(find.byType(TextField).at(1), '3000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Money for bills'), findsOneWidget);
+    expect(find.text('Bills covered'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+
+    // Back to step 1, now a buy larger than everything on hand.
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '60000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Money for bills'), findsOneWidget);
+    // Plain wording, never the old "Dips" jargon, and a warning glyph so the
+    // signal is not carried by color alone.
+    expect(find.textContaining('short'), findsWidgets);
+    expect(find.textContaining('Dips'), findsNothing);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsWidgets);
   });
 
   testWidgets('a goal with no deadline shows no fabricated day count', (
