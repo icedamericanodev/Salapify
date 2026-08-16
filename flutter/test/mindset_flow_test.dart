@@ -223,12 +223,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // The goal card is its own section with before/after bars and an honest,
-    // engine-backed delay.
+    // engine-backed delay shown as a chip.
     expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
-    expect(find.text('Emergency fund'), findsWidgets);
+    expect(find.textContaining('Emergency fund'), findsWidgets);
     expect(find.text('Before purchase'), findsOneWidget);
     expect(find.text('After purchase'), findsOneWidget);
+    // The delay lives in the headline chip now ("about N months later").
     expect(find.textContaining('later'), findsOneWidget);
+    // The peso opportunity cost is stated plainly in the footer.
+    expect(find.textContaining('you could put toward'), findsOneWidget);
 
     // The score breakdown still lists ONLY the three real axes; the goal is not
     // a scored row, so the number never silently moved because of it.
@@ -325,9 +328,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('WHAT THIS COSTS YOUR GOAL'), findsOneWidget);
-    // No deadline means no honest "about N later"; it says it slows the goal.
-    expect(find.textContaining('slows'), findsOneWidget);
-    expect(find.textContaining('later'), findsNothing);
+    // No deadline means no fabricated "about N months later" projection; instead
+    // the card points the person at setting a target date.
+    expect(find.textContaining('Set a target date'), findsOneWidget);
+    expect(find.textContaining('months later'), findsNothing);
+    expect(find.textContaining('paydays later'), findsNothing);
+    expect(find.textContaining('weeks later'), findsNothing);
   });
 
   testWidgets('buying on credit offers to log the monthly payment', (

@@ -1270,12 +1270,16 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(salapifyIcon('goal'), size: 18, color: Barako.textSecondary),
+              Icon(
+                salapifyIcon('waiting'),
+                size: IconSizes.dense,
+                color: Barako.textSecondary,
+              ),
               const SizedBox(width: Gap.sm),
               Expanded(
                 child: Text(
-                  'Set a savings goal and this will show how much a buy sets it '
-                  'back, and about how much later it would land.',
+                  'Set a savings goal and this shows how far a buy sets it back, '
+                  'and about how much later it would land.',
                   style: AppText.small
                       .tint(Barako.textSecondary)
                       .copyWith(height: 1.4),
@@ -1330,7 +1334,25 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     );
     final delayText = _delayText(tradeoff?['delay']);
     final pctOfRemaining = tradeoff?['percentOfRemaining'];
+    final remaining = tradeoff?['remaining'];
     final isEmergency = name.toLowerCase().contains('emergency');
+    // The delay is the card's headline now, shown as a chip beside the goal so
+    // the time cost is scannable in one glance. Emergency funds carry the
+    // stronger warning tone; everything else the standard warning.
+    final hasDelay = delayText != null;
+    final delayColor = isEmergency ? Barako.warningStrong : Barako.warning;
+    final headlineIcon = isEmergency ? 'shield' : 'waiting';
+    // Just the goal name; the chip beside it carries the "about N later" read, so
+    // a trailing verb would only get ellipsized on a narrow phone.
+    final headlineLabel = goals.length > 1 ? 'This goal' : name;
+    final footerLine = _goalImpactLine(
+      name,
+      amt,
+      pctOfRemaining,
+      remaining,
+      isEmergency,
+      hasDelay,
+    );
 
     return Container(
       padding: const EdgeInsets.all(Gap.lg),
@@ -1380,13 +1402,33 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             ],
           ),
           const SizedBox(height: Gap.md),
-          if (goals.length == 1)
-            Padding(
-              padding: const EdgeInsets.only(bottom: Gap.sm),
-              child: Text(name, style: AppText.body.w7),
-            ),
-          _goalBar('Before purchase', beforePct, saved, target, Barako.primary),
+          // The headline read: the goal, and a chip with the time it sets it back
+          // (only when the engine has a real deadline and pace to say so).
+          Row(
+            children: [
+              Icon(
+                salapifyIcon(headlineIcon),
+                size: IconSizes.dense,
+                color: delayColor,
+              ),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  headlineLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.small.w6,
+                ),
+              ),
+              if (delayText != null) ...[
+                const SizedBox(width: Gap.sm),
+                _statusPill(delayText, delayColor),
+              ],
+            ],
+          ),
           const SizedBox(height: Gap.md),
+          _goalBar('Before purchase', beforePct, saved, target, Barako.primary),
+          const SizedBox(height: Gap.sm),
           _goalBar(
             'After purchase',
             afterPct,
@@ -1395,47 +1437,66 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             Barako.warning,
           ),
           const SizedBox(height: Gap.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                salapifyIcon(isEmergency ? 'shield' : 'goal'),
-                size: 16,
-                color: isEmergency
-                    ? Barako.warningStrong
-                    : Barako.textSecondary,
-              ),
-              const SizedBox(width: Gap.sm),
-              Expanded(
-                child: Text(
-                  _goalImpactLine(name, delayText, pctOfRemaining, isEmergency),
-                  style: AppText.small
-                      .tint(Barako.textSecondary)
-                      .copyWith(height: 1.4),
-                ),
-              ),
-            ],
+          Text(
+            footerLine,
+            style: AppText.small
+                .tint(Barako.textSecondary)
+                .copyWith(height: 1.4),
           ),
         ],
       ),
     );
   }
 
+  // The footer read: what the buy costs the goal in plain pesos, scaled by how
+  // big a bite it is. The time cost lives in the headline chip now, so it is not
+  // repeated here. Emergency funds earn the stronger "Careful" only on a
+  // significant buy, so the warning stays meaningful instead of nagging every
+  // time. Every figure is a tested goalTradeoff output, no new money math.
   String _goalImpactLine(
     String name,
-    String? delayText,
+    double amt,
     dynamic pctOfRemaining,
+    dynamic remaining,
     bool isEmergency,
+    bool hasDelay,
   ) {
     final pct = pctOfRemaining is num ? pctOfRemaining.round() : null;
-    final pctPart = (pct != null && pct > 0)
-        ? 'This buy is about $pct% of what you still need for $name. '
-        : '';
-    final timePart = delayText != null
-        ? 'At your pace, $name lands $delayText.'
-        : 'It slows $name down.';
-    final lead = isEmergency ? 'Careful, this is your emergency fund. ' : '';
-    return '$lead$pctPart$timePart';
+    final rem = remaining is num ? remaining.toDouble() : null;
+    final peso = formatMoney(amt);
+    final significant = (pct != null && pct >= 25) || hasDelay;
+    final parts = <String>[];
+    if (isEmergency) {
+      parts.add(
+        significant
+            ? 'Careful, this is your emergency fund.'
+            : 'This is your emergency fund.',
+      );
+    }
+    if (pct != null && pct >= 100 && rem != null) {
+      parts.add(
+        'That is $peso, more than the ${formatMoney(rem)} you still need '
+        'for $name.',
+      );
+    } else if (pct != null && pct >= 10) {
+      parts.add(
+        'That is $peso you could put toward $name instead, about $pct% of '
+        'what you still need.',
+      );
+    } else if (pct != null && pct > 0) {
+      parts.add(
+        'That is $peso you could put toward $name instead, a small slice of '
+        'what you still need.',
+      );
+    } else {
+      parts.add('That is $peso you could put toward $name instead.');
+    }
+    // No delay chip means the engine had no deadline or pace to project from;
+    // point the person at the fix instead of an unquantified "it slows it down".
+    if (!hasDelay && (pct == null || pct >= 10)) {
+      parts.add('Set a target date in Goals to see how much later this lands.');
+    }
+    return parts.join(' ');
   }
 
   Widget _goalBar(
@@ -1469,6 +1530,8 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
         const SizedBox(height: Gap.xxs),
         Text(
           '${formatMoney(saved)} of ${formatMoney(total)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppText.caption.tint(Barako.muted).tabular,
         ),
       ],

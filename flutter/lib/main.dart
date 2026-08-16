@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.38 · Mindset: a cash buffer card shows the peso cushion left after a buy, with a plain status.';
+    'f4.39 · Mindset goal card: the delay is now a clear chip, plainer wording, honest small buy relief.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
