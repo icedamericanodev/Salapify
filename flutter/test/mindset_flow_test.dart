@@ -277,6 +277,32 @@ void main() {
     expect(find.textContaining('later'), findsNothing);
   });
 
+  testWidgets('buying on credit offers to log the monthly payment', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Credit or BNPL'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '20000');
+    await tester.enterText(find.byType(TextField).at(2), '3');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue')); // step 2
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue')); // step 3
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mindsetAnswer_0_true')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mindsetAnswer_1_true')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mindsetAnswer_2_true')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Buy anyway'));
+    await tester.pumpAndSettle();
+
+    // The result offers to log the plan so the next check sees the commitment.
+    expect(find.text('Add to Recurring'), findsOneWidget);
+  });
+
   testWidgets('the flow never records a transaction (read-only money)', (
     tester,
   ) async {

@@ -65,13 +65,13 @@ BnplFlatPlan bnplFlatPlan({
 /// price, the old bug), the ongoing monthly load is that same installment, and
 /// the credit markup is the fee as a share of the CASH price. A true 0% plan has
 /// a zero markup, so the engine's markup penalty is skipped.
-({double cashNow, double monthlyLoad, double creditMarkup}) creditScoreInputs(
-  BnplFlatPlan plan,
-) {
+({double cashNow, double monthlyLoad, double creditMarkup, int months})
+creditScoreInputs(BnplFlatPlan plan) {
   final markup = plan.price > 0 ? plan.extraCost / plan.price : 0.0;
   return (
     cashNow: plan.monthly,
     monthlyLoad: plan.monthly,
     creditMarkup: markup,
+    months: plan.months,
   );
 }

@@ -44,6 +44,7 @@ void main() {
       expect(i.cashNow, closeTo(3433.33, 0.01));
       expect(i.monthlyLoad, closeTo(3433.33, 0.01));
       expect(i.creditMarkup, closeTo(0.03, 0.0001));
+      expect(i.months, 6); // term carried through for the lock-in penalty
     },
   );
 
