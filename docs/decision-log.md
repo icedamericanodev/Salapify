@@ -19,6 +19,78 @@ Newest entry first.
 
 ---
 
+## 2026-08-16: Guard the lockfile after the sandbox default moved to Flutter 3.47.0
+
+### Decision
+
+The founder directed that `flutter` on PATH be 3.47.0, so /opt/flutter is now
+3.47.0 while every repository pin stays at 3.44.6. That instruction is theirs
+and is not the decision being logged here. What is logged is what was decided
+autonomously in response to it:
+
+1. Keep the pinned SDK on the box at /opt/flutter-3.44.6, so a change can still
+   be verified against what the runner will actually build before it is pushed.
+2. Add a CI step to flutter-check.yml that fails when resolving dependencies at
+   the pin changes pubspec.lock or analysis_options.yaml.
+3. Leave flutter/README.md line 33 stale rather than correct it, for now.
+
+### Reason
+
+A default newer than the pin creates one specific, likely failure, and it is
+not the one people expect. The worry is usually "a test passes locally and
+fails on the runner". The real hazard is quieter: `flutter pub get` REWRITES
+pubspec.lock to the resolution of whichever SDK ran it, and from 3.47 it also
+writes an analyzer.exclude block into analysis_options.yaml. Both files are
+SDK-specific. Commit them by accident and the runner is handed a resolution it
+cannot reproduce, while analyze and test both still pass, because neither cares
+who resolved the lockfile.
+
+This is not a projection. The first `flutter pub get` run after the default
+moved dirtied both files immediately.
+
+That is exactly the shape that belongs in a machine rather than a rule, so it
+became a CI step instead of a paragraph telling future sessions to be careful.
+
+### Alternatives considered
+
+1. Refuse the default change and stay on the pin. Rejected: it is the founder's
+   environment and their call, and the hazard is guardable.
+2. Take the default change and rely on sessions remembering to check
+   `git status` after a pub get. Rejected: that is precisely the kind of rule
+   that holds until the one time it matters.
+3. Fix flutter/README.md line 33 so it stops naming a version. Deferred, not
+   rejected. The file is under flutter/, the preview publisher triggers on
+   flutter/** at the merge to main, and Shorebird patches on build bytes, so a
+   one word doc fix spends a real patch and an update stamp. It is worth doing
+   as a passenger on the next flutter/ batch that is shipping anyway, where it
+   costs nothing, and worth wording as a rule rather than a number so it stops
+   going stale every time the sandbox changes.
+
+### Evidence
+
+Both halves of the new guard were proven before it was trusted, which is the
+part that matters for an alarm.
+
+- It FIRES on a real fault. Run against the tree 3.47.0's pub get produced, it
+  exits 1 and names both paths: pubspec.lock with matcher, meta, test_api and
+  vector_math bumped, and analysis_options.yaml with the added exclude block.
+- It stays SILENT when it should. Run against the same tree resolved at the
+  pinned 3.44.6, `git diff --exit-code` reports no change and the step passes.
+  An alarm that cries wolf gets its battery taken out, so this half was tested
+  deliberately rather than assumed.
+
+### Impact
+
+- /opt/flutter is 3.47.0, Dart 3.13.0. /opt/flutter-3.44.6 holds the pin.
+- No repository pin moved. Delivery is untouched and Shorebird still tops out
+  at Flutter 3.44.9, rechecked the same day against RELEASE_NOTES.md.
+- flutter/README.md line 33 is stale again while it names a version. Tracked in
+  alternative 3 above rather than left as a surprise.
+- Nothing under flutter/ changed, so the preview publisher does not trigger and
+  no update stamp applies.
+
+---
+
 ## 2026-08-16: Stay on the Flutter 3.44.6 toolchain pin after evaluating 3.47.0
 
 ### Decision
@@ -89,9 +161,12 @@ Checked 2026-08-16.
   flutter-check.yml, flutter-preview.yml twice (the setup step and the
   `shorebird release` argument), flutter-prod-aab.yml, pages.yml, and
   CLAUDE.md rule 5. Moving the pin means moving all six.
-- flutter/README.md line 33 also carries it, and that line stayed TRUE, because
-  /opt/flutter was put back to 3.44.6 once the evaluation was finished. That
-  ordering is the point, not an afterthought. Editing the README would touch
+- flutter/README.md line 33 also carries it, and that line stayed TRUE at the
+  time of this entry, because /opt/flutter was put back to 3.44.6 once the
+  evaluation was finished. (Superseded the same day: the founder moved the
+  sandbox default to 3.47.0, so that line is stale again. See the entry above.
+  The reasoning below still holds and is why it was not simply edited.)
+  That ordering is the point, not an afterthought. Editing the README would touch
   flutter/, the preview publisher triggers on flutter/** at the merge to main,
   so a one word README fix would have shipped a real Shorebird patch and needed
   its own update stamp. Restoring the sandbox to the pin cost nothing, shipped
