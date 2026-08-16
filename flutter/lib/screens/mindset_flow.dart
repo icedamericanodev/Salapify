@@ -833,30 +833,9 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: Gap.sm),
-          MindsetScoreGauge(score: score, band: band, size: 180),
-          const SizedBox(height: Gap.md),
-          Text(mindsetBandLabel(band), style: AppText.title.w7.tint(color)),
           const SizedBox(height: Gap.xs),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Gap.md),
-            child: Text(
-              _bandLine(band),
-              textAlign: TextAlign.center,
-              style: AppText.small
-                  .tint(Barako.textSecondary)
-                  .copyWith(height: 1.4),
-            ),
-          ),
-          const SizedBox(height: Gap.sm),
-          TextButton(
-            onPressed: _showScoreExplainer,
-            child: Text(
-              'How we score this',
-              style: AppText.small.w7.tint(Barako.primary),
-            ),
-          ),
-          const SizedBox(height: Gap.md),
+          _scoreCard(score, band, color),
+          const SizedBox(height: Gap.lg),
           _impactCard(decision),
           const SizedBox(height: Gap.lg),
           _openGoals().isNotEmpty
@@ -866,6 +845,93 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             const SizedBox(height: Gap.lg),
             _whatIfCard(spectrum, amt),
           ],
+        ],
+      ),
+    );
+  }
+
+  // The Decision Score as a compact hero card: the gauge beside the verdict, one
+  // reason line, and the explainer link (founder mockup, 2026-08-16). Presentation
+  // only, the score, band and copy are the same engine outputs as before. The hero
+  // shell uses the primary tint for ALL bands, matching the other Step-2 cards; the
+  // band color lives only on the verdict word and the gauge number, so a red verdict
+  // never sits on a red card. Narrow screens and large text stack the gauge above
+  // the words instead of beside them, so nothing clips at 320dp or 2.0x.
+  Widget _scoreCard(int score, int band, Color color) {
+    Widget verdict(TextAlign align) => Text(
+      mindsetBandLabel(band),
+      textAlign: align,
+      style: AppText.subtitle.w7.tint(color),
+    );
+    Widget reason(TextAlign align) => Text(
+      _bandLine(band),
+      textAlign: align,
+      style: AppText.small.tint(Barako.textSecondary).copyWith(height: 1.4),
+    );
+    final howButton = TextButton(
+      onPressed: _showScoreExplainer,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: Gap.xs),
+        minimumSize: const Size(0, 44),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        'How we score this',
+        style: AppText.small.w7.tint(Barako.primary),
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: Insets.hero,
+      decoration: BoxDecoration(
+        color: Barako.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(Radii.hero),
+        border: Border.all(color: Barako.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('DECISION SCORE', style: Barako.cardKickerStyle),
+          const SizedBox(height: Gap.md),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = MediaQuery.textScalerOf(context).scale(1);
+              final stack = constraints.maxWidth < 272 || scale > 1.3;
+              if (stack) {
+                return Column(
+                  children: [
+                    MindsetScoreGauge(score: score, band: band, size: 120),
+                    const SizedBox(height: Gap.md),
+                    verdict(TextAlign.center),
+                    const SizedBox(height: Gap.xs),
+                    reason(TextAlign.center),
+                    const SizedBox(height: Gap.sm),
+                    howButton,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  MindsetScoreGauge(score: score, band: band, size: 128),
+                  const SizedBox(width: Gap.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        verdict(TextAlign.start),
+                        const SizedBox(height: Gap.xs),
+                        reason(TextAlign.start),
+                        const SizedBox(height: Gap.sm),
+                        howButton,
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1066,6 +1132,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             'Money for bills',
             dips ? '${formatMoney(shortfall)} short' : 'Bills covered',
             dips ? -1 : 100,
+            warn: dips,
           ),
         ],
       ),
@@ -1317,7 +1384,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     );
   }
 
-  Widget _metricRow(String label, String value, double score) {
+  Widget _metricRow(
+    String label,
+    String value,
+    double score, {
+    bool warn = false,
+  }) {
     final c = score < 0 ? Barako.warningStrong : _scoreColor(score);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Gap.xs),
@@ -1338,6 +1410,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             ),
           ),
           const SizedBox(width: Gap.sm),
+          // A warning glyph beside the value when the buy falls short, so the
+          // signal never rests on color alone (WCAG 1.4.1, and red-green safe).
+          if (warn) ...[
+            Icon(salapifyIcon('warning'), size: 14, color: c),
+            const SizedBox(width: Gap.xxs),
+          ],
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,

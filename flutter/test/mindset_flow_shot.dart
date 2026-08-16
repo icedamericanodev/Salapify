@@ -244,6 +244,45 @@ void main() {
     );
   });
 
+  testWidgets('Money Mindset flow, Step 2 short on bills, dark', (
+    tester,
+  ) async {
+    await loadRealFonts(tester);
+    await loadPanFaces(tester);
+    SharedPreferences.setMockInitialValues({
+      'salapify_data_v2': jsonEncode(_richBlob()),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: MindsetFlowScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // A buy larger than everything on hand, so it eats into the money for bills
+    // and the alert state renders: red band, warning glyph, and "short".
+    await tester.enterText(find.byType(TextField).at(1), '90000');
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/mindset-flow-short-dark.png'),
+    );
+  });
+
   testWidgets('Money Mindset flow, Step 2 goal impact, dark', (tester) async {
     await loadRealFonts(tester);
     await loadPanFaces(tester);

@@ -251,6 +251,35 @@ void main() {
     expect(find.textContaining('Set a savings goal'), findsOneWidget);
   });
 
+  testWidgets('a buy that eats into bills money shows a plain short warning', (
+    tester,
+  ) async {
+    await _pump(tester); // 40,000 on hand, nothing reserved
+    // A small buy leaves the money for bills alone: plain "Bills covered", no
+    // warning glyph.
+    await tester.enterText(find.byType(TextField).at(1), '3000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Money for bills'), findsOneWidget);
+    expect(find.text('Bills covered'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+
+    // Back to step 1, now a buy larger than everything on hand.
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '60000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Money for bills'), findsOneWidget);
+    // Plain wording, never the old "Dips" jargon, and a warning glyph so the
+    // signal is not carried by color alone.
+    expect(find.textContaining('short'), findsWidgets);
+    expect(find.textContaining('Dips'), findsNothing);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsWidgets);
+  });
+
   testWidgets('a goal with no deadline shows no fabricated day count', (
     tester,
   ) async {
