@@ -166,6 +166,35 @@ jobs:
           fi
           bash .github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED" "$TOUCHES"
 
+      # A lockfile resolved by a DIFFERENT SDK must never land silently.
+      # pubspec.lock and analysis_options.yaml are both SDK-specific: a Flutter
+      # newer than the pin resolves matcher, meta, test_api and vector_math to
+      # versions bound to its own Dart, and from 3.47 pub get also writes an
+      # analyzer.exclude block into analysis_options.yaml. So a session running
+      # a newer local Flutter can commit files this runner cannot reproduce, and
+      # every other step here would still pass, because analyze and test do not
+      # care who resolved the lockfile.
+      #
+      # This is not hypothetical. The founder runs 3.47.0 locally while the pin
+      # is 3.44.6, and the very first `flutter pub get` after that switch dirtied
+      # both files. Proven to fail before being trusted: run against that tree
+      # this step exits 1 and names both paths; against a tree resolved at the
+      # pin it is silent, which is the half that matters, since an alarm that
+      # cries wolf gets switched off.
+      - name: pub get on the pinned SDK leaves the tree clean
+        run: |
+          flutter pub get
+          if ! git diff --exit-code pubspec.lock analysis_options.yaml; then
+            echo
+            echo "Resolving dependencies at the pinned Flutter version changed one of"
+            echo "these files, so what is committed was not produced at the pin."
+            echo "Almost always this means a local SDK newer than the pin ran pub get"
+            echo "and the result was committed by accident."
+            echo "Fix: re-run flutter pub get on the pinned version and commit that,"
+            echo "or restore both files from HEAD if you did not mean to change them."
+            exit 1
+          fi
+
       - name: Analyze (zero tolerance)
         run: flutter analyze
 
