@@ -1096,6 +1096,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     final runwayAfter = decision['runwayAfter'] as double?;
     final empties =
         bufferAfter <= 0 || (runwayAfter != null && runwayAfter <= 0);
+    // Threshold on the SAME one-decimal value the "What this looks at" runway row
+    // displays (toStringAsFixed(1)), so the pill and that row never disagree at a
+    // tenth-of-a-month boundary (e.g. 0.96 showing "1.0 months left" beside "Thin").
+    final runwayShown = runwayAfter == null
+        ? null
+        : (runwayAfter * 10).round() / 10;
 
     String status;
     Color color;
@@ -1104,15 +1110,15 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       status = 'Empties it';
       color = Barako.warningStrong;
       line = 'This would use up your cash cushion.';
-    } else if (runwayAfter == null) {
+    } else if (runwayShown == null) {
       status = 'Okay';
       color = Barako.primary;
       line = 'You would still have cash on hand.';
-    } else if (runwayAfter < 1) {
+    } else if (runwayShown < 1) {
       status = 'Thin';
       color = Barako.warning;
       line = 'This leaves your cushion thin.';
-    } else if (runwayAfter < 3) {
+    } else if (runwayShown < 3) {
       status = 'Okay';
       color = Barako.primary;
       line = 'You would still have a cushion.';
@@ -1171,7 +1177,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       color: color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(999),
     ),
-    child: Text(label, style: AppText.small.w7.tint(color)),
+    child: Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppText.small.w7.tint(color),
+    ),
   );
 
   Widget _impactCard(Map<String, dynamic> decision) {
@@ -1317,9 +1328,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     );
     final target = amountOf(selected['target']);
     final saved = amountOf(selected['saved']);
-    final name = (selected['name'] is String)
+    final rawName = (selected['name'] is String)
         ? (selected['name'] as String).trim()
-        : 'this goal';
+        : '';
+    // Match goalTradeoff's own fallback so a blank name never leaves a gap in the
+    // footer sentence ("put toward  instead").
+    final name = rawName.isEmpty ? 'this goal' : rawName;
     final beforePct = target > 0 ? (saved / target).clamp(0.0, 1.0) : 0.0;
     // If you buy this AND still want the goal, you need [amt] more, so you are
     // this far along a bigger total. Honest opportunity-cost framing that lines
@@ -1336,11 +1350,20 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     final pctOfRemaining = tradeoff?['percentOfRemaining'];
     final remaining = tradeoff?['remaining'];
     final isEmergency = name.toLowerCase().contains('emergency');
-    // The delay is the card's headline now, shown as a chip beside the goal so
-    // the time cost is scannable in one glance. Emergency funds carry the
-    // stronger warning tone; everything else the standard warning.
     final hasDelay = delayText != null;
-    final delayColor = isEmergency ? Barako.warningStrong : Barako.warning;
+    // "Significant" is a real bite of the goal, by SIZE, not by the delay chip.
+    // The delay fires for almost any amount because the pace is rounded up to the
+    // whole peso per period, so a plan finishing one ceil-period later is not by
+    // itself cause for the strongest alarm. Keeping significant on size alone
+    // means a tiny buy stays quiet even when it nudges the projected date.
+    final pctRounded = pctOfRemaining is num ? pctOfRemaining.round() : null;
+    final significant = pctRounded != null && pctRounded >= 25;
+    // The delay is a chip beside the goal so the time cost is scannable. The
+    // strong emergency-fund red is reserved for a significant buy; a small buy
+    // that only nudges the date shows the standard warning, not an alarm.
+    final delayColor = (isEmergency && significant)
+        ? Barako.warningStrong
+        : Barako.warning;
     final headlineIcon = isEmergency ? 'shield' : 'waiting';
     // Just the goal name; the chip beside it carries the "about N later" read, so
     // a trailing verb would only get ellipsized on a narrow phone.
@@ -1351,6 +1374,7 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
       pctOfRemaining,
       remaining,
       isEmergency,
+      significant,
       hasDelay,
     );
 
@@ -1422,7 +1446,16 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
               ),
               if (delayText != null) ...[
                 const SizedBox(width: Gap.sm),
-                _statusPill(delayText, delayColor),
+                // Flexible + scale-down so a long delay ("about 120 months later")
+                // never overflows the row at 320dp or large text; the label above
+                // is already ellipsized.
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: _statusPill(delayText, delayColor),
+                  ),
+                ),
               ],
             ],
           ),
@@ -1459,12 +1492,12 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
     dynamic pctOfRemaining,
     dynamic remaining,
     bool isEmergency,
+    bool significant,
     bool hasDelay,
   ) {
     final pct = pctOfRemaining is num ? pctOfRemaining.round() : null;
     final rem = remaining is num ? remaining.toDouble() : null;
     final peso = formatMoney(amt);
-    final significant = (pct != null && pct >= 25) || hasDelay;
     final parts = <String>[];
     if (isEmergency) {
       parts.add(
@@ -1473,7 +1506,10 @@ class _MindsetFlowScreenState extends State<MindsetFlowScreen> {
             : 'This is your emergency fund.',
       );
     }
-    if (pct != null && pct >= 100 && rem != null) {
+    // Compare pesos directly, not the rounded percent: a buy of 99.6% of what is
+    // left rounds to 100% but is still LESS than remaining, so "more than" would
+    // contradict the figures shown.
+    if (rem != null && amt > rem) {
       parts.add(
         'That is $peso, more than the ${formatMoney(rem)} you still need '
         'for $name.',

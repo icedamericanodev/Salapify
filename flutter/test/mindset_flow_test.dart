@@ -240,6 +240,61 @@ void main() {
     expect(find.text('Money for bills'), findsOneWidget);
   });
 
+  testWidgets('a tiny buy on an emergency fund stays quiet, not "Careful"', (
+    tester,
+  ) async {
+    final soon = DateTime.now().add(const Duration(days: 120));
+    String iso(DateTime t) =>
+        '${t.year.toString().padLeft(4, '0')}-'
+        '${t.month.toString().padLeft(2, '0')}-'
+        '${t.day.toString().padLeft(2, '0')}';
+    await _pump(
+      tester,
+      goals: [
+        {
+          'id': 'g1',
+          'name': 'Emergency fund',
+          'target': 100000,
+          'saved': 82000,
+          'targetDate': iso(soon),
+        },
+      ],
+    );
+    // A tiny buy (well under 25% of what is left) must not draw the strongest
+    // alarm just because the deadline math nudges the date by a ceil period.
+    await tester.enterText(find.byType(TextField).at(1), '100');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Careful'), findsNothing);
+    expect(find.textContaining('This is your emergency fund'), findsOneWidget);
+    expect(find.textContaining('small slice'), findsOneWidget);
+  });
+
+  testWidgets('a buy just under what is left never reads "more than"', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      goals: [
+        {
+          'id': 'g3',
+          'name': 'New phone',
+          'target': 40000,
+          'saved': 38005, // remaining 1,995
+        },
+      ],
+    );
+    // 1,990 is 99.75% of 1,995: it rounds to 100% but is still LESS than what is
+    // left, so the copy must not claim "more than".
+    await tester.enterText(find.byType(TextField).at(1), '1990');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('more than'), findsNothing);
+    expect(find.textContaining('you could put toward'), findsOneWidget);
+  });
+
   testWidgets('with no goals, the Impact step still shows a goal prompt', (
     tester,
   ) async {
