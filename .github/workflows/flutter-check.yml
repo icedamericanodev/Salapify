@@ -181,10 +181,17 @@ jobs:
       # this step exits 1 and names both paths; against a tree resolved at the
       # pin it is silent, which is the half that matters, since an alarm that
       # cries wolf gets switched off.
+      # The path list is DERIVED, not typed. Naming pubspec.lock and
+      # analysis_options.yaml was a promise about which files a future SDK will
+      # rewrite, and nobody can keep that promise: 3.47 added the
+      # analysis_options.yaml behaviour that 3.44 never had, so the typed list
+      # was already one short once. `-- .` is every file under flutter/, which
+      # is where pub get writes, so the next surprise is covered before anyone
+      # knows its name. A derived set is a rule and a typed set is a promise.
       - name: pub get on the pinned SDK leaves the tree clean
         run: |
           flutter pub get
-          if ! git diff --exit-code pubspec.lock analysis_options.yaml; then
+          if ! git diff --exit-code -- .; then
             echo
             echo "Resolving dependencies at the pinned Flutter version changed one of"
             echo "these files, so what is committed was not produced at the pin."
