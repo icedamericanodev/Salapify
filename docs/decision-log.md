@@ -7,8 +7,13 @@ considered, the evidence, and the impact.
 
 It is deliberately lightweight. The constitution says not to create excessive
 documentation for trivial decisions, so only decisions a later session would
-otherwise have to re-derive belong here. Founder-gated decisions do not belong
-here at all; those go to the founder before they are made.
+otherwise have to re-derive belong here.
+
+Section 46 scopes this file to AUTONOMOUS decisions, so a founder-gated one is
+not an entry here. Those go to the founder before they are made, and when they
+are significant enough to need a written record afterwards, the established
+home is docs/adr, alongside 0001-durable-encrypted-store.md and
+0002-privacy-release-evidence.md.
 
 Newest entry first.
 
@@ -56,9 +61,19 @@ Checked 2026-08-16.
 
 - No delivery impact. Nothing under flutter/ changed, so the preview publisher
   does not trigger and no update stamp applies.
-- The pin 3.44.6 appears in flutter-check.yml, flutter-preview.yml (twice,
-  including the Shorebird argument), flutter-prod-aab.yml and pages.yml. All
-  four still agree.
+- The number 3.44.6 is written in six places and all of them still agree:
+  flutter-check.yml, flutter-preview.yml twice (the setup step and the
+  `shorebird release` argument), flutter-prod-aab.yml, pages.yml, and
+  CLAUDE.md rule 5. Moving the pin means moving all six.
+- flutter/README.md line 33 also carries it, and that line is now stale in a
+  session that followed this decision: it says the local SDK a session uses is
+  3.44.6, while /opt/flutter holds 3.47.0. It was left alone deliberately.
+  Editing it would touch flutter/, and the preview publisher triggers on
+  flutter/** at the merge to main, so a one word README fix would ship a real
+  Shorebird patch and require its own update stamp. A stale sentence in a
+  README is the cheaper of the two, but it is a known wart, not an oversight,
+  and it is the founder's call whether to fold the fix into a later flutter/
+  batch that is shipping anyway.
 - A local SDK that differs from the pin makes a green local run a weaker signal
   than it looks, because the runner compiles against a different toolchain.
 
@@ -71,6 +86,13 @@ Two conditions, both required.
 2. The founder approves it. A Shorebird patch only applies to a release built
    on the same Flutter revision, so changing `--flutter-version` forces a new
    base APK the founder installs by hand, and until they install it they
-   receive nothing while every later build still reports green. That is a
-   release decision under section 42 of the constitution, not routine
-   engineering.
+   receive nothing while every later build still reports green.
+
+   The authority for that gate is the "Merge or release" stop condition in
+   CLAUDE.md's autonomous execution rules. The constitution has no release
+   category of its own: section 42 lists product direction, financial
+   behavior, security and privacy, architecture, external cost, irreversible
+   or high-impact changes, and brand or design, and section 43's Tier 2
+   examples do not name releases either. A forced base APK reaches section 42
+   only through "irreversible or high-impact changes". Cite it that way, not
+   as a section 42 release rule, which is not a thing the document contains.
