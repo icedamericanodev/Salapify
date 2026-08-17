@@ -150,6 +150,11 @@ const Map<String, IconData> _icons = {
   // The display fallback for a treat whose emoji field is empty. The emoji
   // a user typed stays theirs; this is only what WE draw when there is none.
   'treat': Icons.local_cafe_outlined,
+  // The brand's coffee mark. Salapify is a coffee-warm brand (Barako), so this
+  // is our own decorative full stop, e.g. the warm accent on the Accounts
+  // hero where the mockup put a latte. Ours to draw, so it is a glyph in the
+  // accent, never an emoji sticker.
+  'coffee': Icons.local_cafe_outlined,
   'paused': Icons.pause_circle_outline,
   // A paused decision sitting in the Money Mindset Waiting list, counting
   // down to its Do you still want this? check-in.

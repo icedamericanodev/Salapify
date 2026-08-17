@@ -13,6 +13,10 @@ import 'package:flutter/services.dart';
 
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/format.dart' show formatMoney;
+import '../money/greeting.dart' show greetingFor;
+import '../money/net_worth_history.dart'
+    show netWorthHistoryOf, netWorthMonthKey, netWorthTrend;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
     show baseCurrencyOf, excludedNotice, manualRatesOf;
@@ -496,6 +500,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Widget _summary(Map<String, dynamic> parts) {
+    final netWorth = parts['netWorth'] as double;
     final assets = parts['assets'] as double;
     final liabilities = parts['liabilities'] as double;
     // The ratio splits owned against owed. Only POSITIVE money counts as owned
@@ -517,47 +522,144 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (owedValue > 0 && p == 100) p = 99;
       ownedPct = p;
     }
-    return Card(
-      color: Barako.surfaceRaised,
-      child: Padding(
-        padding: Insets.hero,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('NET WORTH', style: Barako.kickerStyle),
-            const SizedBox(height: Gap.xs),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoneyText(parts['netWorth'] as double),
-                maxLines: 1,
-                style: AppText.amountLg.w8,
-              ),
+    // The month move, from the SAME golden-locked trend the Overview hero
+    // shows, so the two screens can never disagree about "this month". Null
+    // until there is a prior month to compare against, and the line is simply
+    // omitted then rather than faking a zero.
+    final now = DateTime.now();
+    final trend = netWorthTrend(
+      netWorthHistoryOf(store.data),
+      netWorthMonthKey(now),
+      netWorth,
+    );
+    final greeting = greetingFor(now, name: store.displayName);
+    // The one raised hero, warmed. surfaceRaised is the base, with a soft
+    // top-right glow of the brand accent standing in for the mockup's latte:
+    // pure paint, so it ships over the air, and low enough alpha that the light
+    // text on top keeps its measured contrast (the gradient never darkens below
+    // surfaceRaised, so no pair the contrast sweep checks is weakened).
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Radii.hero),
+        border: Border.all(color: Barako.border),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color.alphaBlend(
+              Barako.primary.withValues(alpha: BarakoAlpha.wash),
+              Barako.surfaceRaised,
             ),
-            const SizedBox(height: Gap.lg),
-            Row(
-              children: [
-                Flexible(
-                  child: _miniStat('Total assets', assets, Barako.primaryText),
-                ),
-                const SizedBox(width: Gap.lg),
-                Flexible(
-                  child: _miniStat(
-                    'Total owed',
-                    liabilities,
-                    Barako.warningStrong,
-                  ),
-                ),
-              ],
-            ),
-            if (ownedPct != null) ...[
-              const SizedBox(height: Gap.lg),
-              _ownershipBar(ownedPct),
-            ],
+            Barako.surfaceRaised,
           ],
         ),
       ),
+      padding: Insets.hero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.small.w6.tint(Barako.textSecondary),
+                ),
+              ),
+              // The coffee mark: Salapify's own glyph in the accent, a warm
+              // full stop to the greeting where the mockup put a latte. An
+              // icon, not an emoji, so the palette owns it and it renders
+              // rather than drawing a box in a review shot.
+              const SizedBox(width: Gap.sm),
+              Container(
+                width: IconSizes.disc,
+                height: IconSizes.disc,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  salapifyIcon('coffee'),
+                  size: IconSizes.inline,
+                  color: Barako.primaryText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.lg),
+          Text('NET WORTH', style: Barako.kickerStyle),
+          const SizedBox(height: Gap.xs),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoneyText(netWorth),
+              maxLines: 1,
+              style: AppText.amountLg.w8,
+            ),
+          ),
+          if (trend != null) ...[
+            const SizedBox(height: Gap.sm),
+            _monthTrendLine(trend),
+          ],
+          const SizedBox(height: Gap.lg),
+          Row(
+            children: [
+              Flexible(
+                child: _miniStat('Total assets', assets, Barako.primaryText),
+              ),
+              const SizedBox(width: Gap.lg),
+              Flexible(
+                child: _miniStat('Total owed', liabilities, Barako.warningStrong),
+              ),
+            ],
+          ),
+          if (ownedPct != null) ...[
+            const SizedBox(height: Gap.lg),
+            _ownershipBar(ownedPct),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The net worth move this month, the mockup's green delta under the figure.
+  ///
+  /// Reads the SAME netWorthTrend the Overview hero reads and matches its
+  /// icon-and-colour convention (up in the brand accent, down in muted ink, a
+  /// flat month in words), so a person who sees both heroes never finds them
+  /// disagreeing. The wording is "this month" per the mockup; Overview says
+  /// "from last month"; both describe the one move since last month's snapshot.
+  Widget _monthTrendLine(Map<String, dynamic> trend) {
+    final delta = trend['delta'] as double;
+    final pct = trend['pct'] as double?;
+    final flat = delta.abs() < 0.005;
+    final up = delta > 0;
+    final color = up ? Barako.primary : Barako.muted;
+    final iconName = flat ? 'forward' : (up ? 'growth' : 'decline');
+    final pctText = pct == null ? '' : ' (${pct.abs().toStringAsFixed(1)}%)';
+    final label = flat
+        ? 'No change this month'
+        : '${up ? 'Up' : 'Down'} ${formatMoney(delta.abs())}$pctText this month';
+    return Row(
+      children: [
+        Icon(salapifyIcon(iconName), size: IconSizes.dense, color: color),
+        const SizedBox(width: Gap.xs),
+        Flexible(
+          child: Text(
+            label,
+            style: AppText.small.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
