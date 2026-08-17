@@ -1026,9 +1026,11 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       indicatorColor: p.primary,
-      // Five tabs share the width. The 10px labels date from the six-tab era;
-      // they still keep every label on one line down to a 320dp phone, and
-      // raising them is a separate, sweep-verified decision.
+      // Four tabs share the width now (Home, Activity, Insights, Accounts),
+      // down from five when Budget and Utang left the bar. The 10px labels date
+      // from the six-tab era; with more room per tab they still keep every
+      // label on one line down to a 320dp phone, and raising them is a
+      // separate, sweep-verified decision.
       height: 68,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(

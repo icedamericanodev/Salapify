@@ -100,12 +100,18 @@ void main() {
     expect(find.text('Money owed to you, oldest first'), findsOneWidget);
   });
 
-  testWidgets('the strategy choice survives a segment flip AND a tab flip', (
-    tester,
-  ) async {
-    // The reason the two views live in an inner IndexedStack inside the
-    // shell's outer one. Either flip used to be a rebuild that would have
-    // reset this to snowball.
+  testWidgets('the strategy choice survives a segment flip', (tester) async {
+    // The reason the two views live in an inner IndexedStack inside MoneyScreen:
+    // flipping "I owe" to "Owed to me" and back must not rebuild the debts view
+    // and reset this exploration toggle to snowball.
+    //
+    // This used to also assert survival across a TAB flip, back when Utang was a
+    // resident bottom-bar tab kept alive by the shell's outer IndexedStack.
+    // Utang left the bar (founder direction, matching the mockup) and is a
+    // pushed screen now, so closing and reopening it builds a fresh MoneyScreen
+    // and the transient strategy resets to its default, exactly like every
+    // other pushed screen. What an inner IndexedStack still guarantees, and what
+    // this guards, is that a SEGMENT flip within one open Utang keeps the pick.
     await _boot(tester);
     await goToTab(tester, 'Utang');
     await tester.tap(find.text('Avalanche'));
@@ -113,8 +119,6 @@ void main() {
 
     await tester.tap(find.text('Owed to me'));
     await tester.pumpAndSettle();
-    await goToTab(tester, 'Home');
-    await goToTab(tester, 'Utang');
     await tester.tap(find.text('I owe'));
     await tester.pumpAndSettle();
 
@@ -125,8 +129,8 @@ void main() {
       chip.selected,
       isTrue,
       reason:
-          'The strategy switch reset. Its State must live inside both '
-          'IndexedStacks so no flip unmounts it.',
+          'The strategy switch reset on a segment flip. Its State must live '
+          'inside the inner IndexedStack so a flip does not unmount it.',
     );
   });
 

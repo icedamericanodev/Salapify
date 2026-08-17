@@ -261,6 +261,10 @@ const Map<String, IconData> _filled = {
   'activity': Icons.receipt_long,
   'utang': Icons.handshake,
   'insights': Icons.insights,
+  // Accounts joined the bottom bar (the mockup's four-tab strip), so its glyph
+  // needs a filled twin like the other destinations: the tab you are ON must
+  // differ by shape, not colour alone.
+  'wallet': Icons.account_balance_wallet,
   'menu': Icons.grid_view,
 };
 

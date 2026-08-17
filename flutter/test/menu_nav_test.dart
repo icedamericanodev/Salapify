@@ -46,24 +46,28 @@ void main() {
     // viewport. This assertion only ever meant "the real dashboard rendered".
     expect(find.text('NET WORTH'), findsOneWidget);
     expect(find.text('Calculators'), findsNothing);
-    expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
+    // 'Accounts' is deliberately NOT asserted absent any more: it became a
+    // bottom-bar destination (the mockup's Home / Activity / Insights /
+    // Accounts), so its label lives in the NavigationBar now, which is exactly
+    // where a place you go often belongs. Calculators and Goals stay Menu-only.
 
-    // Five destinations, and Menu is NOT one of them. A bottom bar is for
-    // places you go often; Menu is a drawer of everything else and it was
-    // taking a sixth of the most valuable strip on the screen. The bar's own
-    // theme had been shrunk below Material's defaults specifically to fit six.
+    // Four destinations, and Menu is NOT one of them. A bottom bar is for
+    // places you go often; Menu is a drawer of everything else. Budget and
+    // Utang moved off the bar into the Menu (matching the mockup), so the strip
+    // that had shrunk below Material's defaults to fit six now holds four.
     //
     // Scoped to the NavigationBar rather than searching the whole tree, because
     // the mounted destinations render their own headers with the same words.
     expect(navDestination('Menu'), findsNothing);
     expect(navDestination('Insights'), findsOneWidget);
+    expect(navDestination('Accounts'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(NavigationBar),
         matching: find.byType(NavigationDestination),
       ),
-      findsNWidgets(5),
+      findsNWidgets(4),
     );
 
     // And Menu is still one tap away, from the header.

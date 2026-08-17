@@ -36,6 +36,12 @@ class ScreenHeader extends StatelessWidget {
   /// the bottom bar and this is now the only way in.
   final VoidCallback? onMenu;
 
+  /// Pops the screen. Set only when the header sits on a PUSHED screen (Budget
+  /// and Utang became pushes when they left the bar), where a back arrow is the
+  /// way out. Null on a resident bar tab, which has no route to pop. Rendered as
+  /// a plain leading arrow, the platform convention, not the raised Menu key.
+  final VoidCallback? onBack;
+
   /// The gap above the title. Defaults to 12; the whole header carries a fixed
   /// 20 gap below so content starts at the same place on every tab.
   final double topGap;
@@ -52,6 +58,7 @@ class ScreenHeader extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onMenu,
+    this.onBack,
     this.topGap = 12,
   });
 
@@ -84,7 +91,7 @@ class ScreenHeader extends StatelessWidget {
     // system font is large, the TITLE is still the thing that wraps; letting
     // an action shrink instead would give a user a button too small to hit at
     // exactly the font size they chose because things were hard to see.
-    final hasActions = trailing != null || onMenu != null;
+    final hasActions = trailing != null || onMenu != null || onBack != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,6 +99,10 @@ class ScreenHeader extends StatelessWidget {
         if (hasActions)
           Row(
             children: [
+              if (onBack != null) ...[
+                BackAction(onTap: onBack!),
+                const SizedBox(width: Gap.xs),
+              ],
               Expanded(child: titleText),
               ?trailing,
               if (trailing != null && onMenu != null)
@@ -162,6 +173,32 @@ class HeaderAction extends StatelessWidget {
       // fixedSize pins the drawn square to the tap target, so the shape
       // users see is exactly the thing they can hit.
       fixedSize: const Size(48, 48),
+      minimumSize: const Size(48, 48),
+      padding: EdgeInsets.zero,
+    ),
+    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+  );
+}
+
+/// The way back off a pushed screen, in one place.
+///
+/// A plain leading arrow, not the raised Menu key: back is a platform
+/// convention and reads as one bare arrow at the top left, so it does not
+/// borrow the card language the way an in-content action does. Still a 48
+/// square with a tooltip, because the Android tap floor and the screen reader's
+/// only label are the same two rules every header action answers to.
+class BackAction extends StatelessWidget {
+  final VoidCallback onTap;
+
+  // ignore: prefer_const_constructors_in_immutables
+  BackAction({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    onPressed: onTap,
+    tooltip: 'Back',
+    icon: Icon(salapifyIcon('back'), size: 24, color: Barako.text),
+    style: IconButton.styleFrom(
       minimumSize: const Size(48, 48),
       padding: EdgeInsets.zero,
     ),

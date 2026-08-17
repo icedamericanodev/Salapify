@@ -131,11 +131,23 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // No Debts tile: the Utang tab's "I owe" segment is the one
-                  // home of that content since the Phase 1 merge, and a
-                  // second door from Menu opened a pushed copy with no bottom
-                  // bar. Founder approved the removal. Bonus: the MONEY grid
-                  // is 8 tiles again, four clean rows.
+                  // Budget and Utang moved OFF the bottom bar (the mockup's
+                  // Home / Activity / Insights / Accounts), so the Menu is now
+                  // their home alongside Home. Budget routes through onSwitchTab
+                  // (which pushes it as a screen); Utang opens on the "I owe"
+                  // side via onOpenPayables, the same door a due-soon check-in
+                  // uses, so tapping it lands on the user's own debts rather
+                  // than an empty "owed to me".
+                  NavTile(
+                    icon: 'budget',
+                    label: 'Budget',
+                    onTap: () => onSwitchTab?.call(Destination.budget),
+                  ),
+                  NavTile(
+                    icon: 'utang',
+                    label: 'Utang',
+                    onTap: () => onOpenPayables?.call(),
+                  ),
                   NavTile(
                     icon: 'savings',
                     label: 'Goals',

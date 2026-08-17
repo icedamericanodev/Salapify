@@ -1,8 +1,9 @@
 // The assumption the whole tab refactor rests on, pinned.
 //
-// Moving the five destinations into an IndexedStack means they are all MOUNTED
-// at once. The obvious worry is that the test suite then sees five screens
-// where it used to see one: `find.text('Insights')` matching both the nav label
+// Moving the four bar destinations into an IndexedStack means they are all
+// MOUNTED at once. The obvious worry is that the test suite then sees four
+// screens where it used to see one: `find.text('Insights')` matching both the
+// nav label
 // and the mounted Insights header, and `find.byType(Scrollable).first`
 // resolving to Home no matter which screen a test meant. The second failure
 // mode is the frightening one, because a test that scrolls the wrong screen

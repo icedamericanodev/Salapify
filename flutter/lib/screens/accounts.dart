@@ -47,6 +47,7 @@ import '../widgets/flip_bank_card.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/screen_header.dart' show MenuAction;
 
 const _accountKinds = [
   ('cash', 'Cash'),
@@ -78,6 +79,13 @@ class AccountsScreen extends StatefulWidget {
   /// rather than a live link.
   final VoidCallback? onOpenPayables;
 
+  /// Opens the Menu. Set only when Accounts is the resident bottom-bar tab (the
+  /// shell hands it down): a bar tab has no back button, so this is its one way
+  /// into the sixteen Menu destinations, the same door the other tabs carry.
+  /// Null on a deep push, where the AppBar's own back button is the way out and
+  /// a Menu action would be redundant.
+  final VoidCallback? onMenu;
+
   /// An account id to reveal on open: the list scrolls to it and it flashes
   /// once. Set when Search opens this screen on a specific account match. If
   /// the id no longer exists (the account was deleted between the search result
@@ -89,6 +97,7 @@ class AccountsScreen extends StatefulWidget {
     super.key,
     required this.store,
     this.onOpenPayables,
+    this.onMenu,
     this.focusAccountId,
   });
 
@@ -212,7 +221,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Accounts')),
+      appBar: AppBar(
+        title: Text('Accounts'),
+        // The Menu action only when this is the resident bar tab. A bar tab has
+        // no back button, so without this Accounts would be the one primary
+        // screen with no one-tap way into the Menu. On a deep push onMenu is
+        // null and the AppBar's own back arrow is the way out.
+        actions: widget.onMenu == null
+            ? null
+            : [
+                MenuAction(onTap: widget.onMenu!),
+                const SizedBox(width: Gap.sm),
+              ],
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: store,

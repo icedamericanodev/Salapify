@@ -123,14 +123,13 @@ void main() {
     expect(find.text('STILL UNPAID'), findsOneWidget);
   });
 
-  testWidgets('a due-soon check-in lands on the Utang tab, bottom bar intact', (
+  testWidgets('a due-soon check-in opens the Utang I owe screen', (
     tester,
   ) async {
     // A card due today (dueDay = today) is a debtdue decision at prio 92, the
     // top of the check-in here. Its route is /debts, whose home is the Utang
-    // tab's "I owe" segment. It used to push a standalone DebtsScreen, which
-    // showed the right content with NO bottom bar: a copy of the tab the
-    // user could not tab away from.
+    // "I owe" segment. It once pushed a standalone DebtsScreen, a bare copy
+    // with none of the Utang screen's segment control around it.
     final dueDay = DateTime.now().day;
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
@@ -167,17 +166,25 @@ void main() {
     expect(find.textContaining('due soon'), findsOneWidget);
     await tester.tap(find.textContaining('due soon'));
     await tester.pumpAndSettle();
-    // The debts content is showing. PAYOFF PLAN alone cannot tell the tab
-    // from the old pushed copy (both render DebtsView), so the assertion
-    // that carries the fix is the NavigationBar: visible on the tab,
-    // covered by a pushed route.
+    // The debts content is showing, and it is the canonical Utang surface, not
+    // a standalone DebtsScreen copy: MoneyScreen carries the "I owe" / "Owed to
+    // me" segment control (PAYOFF PLAN alone cannot tell them apart, since both
+    // render DebtsView). Utang left the bottom bar and is a pushed screen now,
+    // so the way out is the header Back arrow rather than a bottom bar under it.
     expect(find.text('PAYOFF PLAN'), findsOneWidget);
     expect(
-      find.byType(NavigationBar),
+      find.text('Owed to me'),
       findsOneWidget,
       reason:
-          'The check-in must land on the Utang tab, not push a standalone '
-          'copy of it with no bottom bar.',
+          'The check-in must open the full Utang screen with both segments, '
+          'not a standalone DebtsScreen copy.',
+    );
+    expect(
+      find.byTooltip('Back'),
+      findsOneWidget,
+      reason:
+          'Utang is a pushed screen now; its header carries the way back where '
+          'a bottom bar used to sit.',
     );
   });
 

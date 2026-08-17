@@ -55,8 +55,22 @@ Map<String, Object> onboardedEmptyStorage() => {
 Finder navDestination(String label) =>
     find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
 
-/// Switch to a primary destination by its bottom bar label.
+/// Reach a primary destination by its label, the way a person does.
+///
+/// Home, Activity, Insights and Accounts are bottom-bar destinations, tapped on
+/// the bar. Budget and Utang left the bar (founder direction, matching the
+/// mockup's four-tab bar) and now live on the Menu as pushed screens, the same
+/// as every other Menu tile. So this reaches them through the Menu: open it, tap
+/// the tile. Utang opens on its "I owe" side (onOpenPayables), the user's own
+/// debts; goToOwedToMe flips to the receivables segment after.
+///
+/// The body of this function is allowed to change and its many callers are not:
+/// when a destination moves between the bar and the Menu, only these lines move.
 Future<void> goToTab(WidgetTester tester, String label) async {
+  if (label == 'Budget' || label == 'Utang') {
+    await openFromMenu(tester, label);
+    return;
+  }
   await tester.tap(navDestination(label));
   await tester.pumpAndSettle();
 }
@@ -135,7 +149,7 @@ Future<void> openTool(WidgetTester tester, String label) async {
 /// Mount a primary destination the way the shell mounts it: as a body inside a
 /// Scaffold.
 ///
-/// The five destinations stopped returning their own Scaffold when the shell
+/// The bar destinations stopped returning their own Scaffold when the shell
 /// took ownership of the one Scaffold, the nav bar and the Log button. That is
 /// the right shape for the app and it changes the contract for tests: a screen
 /// pumped as a bare `home:` now has no Material ancestor, and anything Material

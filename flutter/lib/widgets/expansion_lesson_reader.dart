@@ -80,6 +80,24 @@ VoidCallback? resolveExpansionActionRoute(
     _ => null,
   };
   if (screen == null) return null;
+  // Budget is the one screen here that renders a bare SafeArea rather than its
+  // own Scaffold (it was a bottom-bar tab body): pushed on its own it would have
+  // no Material ancestor, no ScaffoldMessenger, no page background, and no
+  // visible way back. So it gets the same Scaffold-plus-Back wrapper the shell
+  // gives it (shell.dart _pushRoute). Every other route above brings its own
+  // Scaffold and AppBar, so they push as-is.
+  if (route == 'budget') {
+    return () => Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (routeContext) => Scaffold(
+          body: BudgetScreen(
+            store: store,
+            onBack: () => Navigator.of(routeContext).pop(),
+          ),
+        ),
+      ),
+    );
+  }
   return () =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 }

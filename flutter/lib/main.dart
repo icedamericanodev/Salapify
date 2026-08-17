@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.44 · Accounts redesign in progress: a warmer net worth hero and a new tappable net worth trend screen.';
+    'f4.45 · Accounts redesign: Budget and Utang leave the bottom bar, now Home, Activity, Insights, Accounts.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

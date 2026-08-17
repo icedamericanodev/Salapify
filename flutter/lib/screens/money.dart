@@ -11,11 +11,13 @@
 // the segments, which is what the identity-noun rule asks for.
 //
 // The two segments live in an inner IndexedStack, so the strategy switch in
-// the debts view survives a segment flip, and the whole thing sits inside the
-// shell's outer IndexedStack, so it survives a tab flip too. Neither list uses
-// the ambient PrimaryScrollController: with both mounted at once they would
-// fight over it and throw, so this screen owns one controller per segment and
-// hands the shell whichever is active for its scroll-to-top.
+// the debts view survives a segment flip. It no longer survives being CLOSED:
+// Utang left the bottom bar (founder direction, matching the mockup) and is a
+// pushed screen now, so popping it disposes this State and the transient
+// strategy resets to its default on the next open, the same as every other
+// pushed screen. Neither list uses the ambient PrimaryScrollController: with
+// both mounted at once they would fight over it and throw, so this screen owns
+// one controller per segment.
 
 import 'package:flutter/material.dart';
 
@@ -34,15 +36,32 @@ class MoneyScreen extends StatefulWidget {
   final SalapifyStore store;
   final VoidCallback? onMenu;
 
+  /// Pops this screen. Utang is a pushed screen now (it left the bar), so it
+  /// carries a back arrow rather than a Menu key. Null when hosted some other
+  /// way.
+  final VoidCallback? onBack;
+
+  /// Which side to open on. Utang is no longer a bottom tab (it is pushed from
+  /// Home and the Menu now), so a caller that means one side specifically, a
+  /// "follow up Migs" check-in or a debt-due tap, passes it here at construction
+  /// instead of flipping a persistent tab's segment after the fact.
+  final MoneySegment initialSegment;
+
   // ignore: prefer_const_constructors_in_immutables
-  MoneyScreen({super.key, required this.store, this.onMenu});
+  MoneyScreen({
+    super.key,
+    required this.store,
+    this.onMenu,
+    this.onBack,
+    this.initialSegment = MoneySegment.owe,
+  });
 
   @override
   State<MoneyScreen> createState() => MoneyScreenState();
 }
 
 class MoneyScreenState extends State<MoneyScreen> {
-  MoneySegment segment = MoneySegment.owe;
+  late MoneySegment segment = widget.initialSegment;
 
   /// One controller per segment, owned here. See the header comment: two
   /// mounted scrollables cannot share the primary controller.
@@ -54,17 +73,6 @@ class MoneyScreenState extends State<MoneyScreen> {
     _oweController.dispose();
     _owedController.dispose();
     super.dispose();
-  }
-
-  /// The shell calls this when the Utang tab is re-tapped while active.
-  ScrollController get activeController =>
-      segment == MoneySegment.owe ? _oweController : _owedController;
-
-  /// Jump straight to a segment, for taps that mean one side specifically:
-  /// a "follow up Migs" check-in means the money owed TO you, and landing it
-  /// on "I owe" would show a screen with no Migs anywhere on it.
-  void showSegment(MoneySegment s) {
-    if (s != segment) setState(() => segment = s);
   }
 
   @override
@@ -90,6 +98,7 @@ class MoneyScreenState extends State<MoneyScreen> {
                       ? 'What you owe, and the plan to zero'
                       : 'Money owed to you, oldest first',
                   onMenu: widget.onMenu,
+                  onBack: widget.onBack,
                   // The create action follows the segment, so each half keeps
                   // the one it had when it was its own screen.
                   trailing: !widget.store.canWrite

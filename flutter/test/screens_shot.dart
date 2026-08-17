@@ -1386,8 +1386,8 @@ void main() {
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
-    await tester.tap(navDestination('Utang'));
-    await tester.pumpAndSettle();
+    // Utang left the bar and is a pushed screen off the Menu now.
+    await goToTab(tester, 'Utang');
     await tester.tap(find.text('Owed to me'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
@@ -1397,6 +1397,14 @@ void main() {
       matchesGoldenFile('shots/utang-new-sheet-dark.png'),
     );
     await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // Back out of the pushed Utang screen (its header Back arrow) and the Menu
+    // beneath it (its AppBar back) to the shell, so the bottom bar is reachable
+    // again for the next shot.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     // The edit sheet, opened from a real Activity row, prefilled.
@@ -1468,8 +1476,8 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/activity-rows-dark.png'),
     );
-    await tester.tap(navDestination('Budget'));
-    await tester.pumpAndSettle();
+    // Budget left the bar and is a pushed screen off the Menu now.
+    await goToTab(tester, 'Budget');
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/budget-today-dark.png'),

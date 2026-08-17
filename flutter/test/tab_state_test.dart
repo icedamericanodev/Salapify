@@ -63,7 +63,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Sweldo'), findsNothing);
 
-    await goToTab(tester, 'Budget');
+    // Leave to another BAR tab and back. Budget and Utang are pushed screens
+    // now, not tabs, so a round trip through the bar uses a bar destination.
+    await goToTab(tester, 'Home');
     await goToTab(tester, 'Activity');
 
     expect(
@@ -108,7 +110,7 @@ void main() {
     final scrolled = tester.widget<Scrollable>(list).controller!.offset;
     expect(scrolled, greaterThan(0));
 
-    await goToTab(tester, 'Budget');
+    await goToTab(tester, 'Home');
     await goToTab(tester, 'Activity');
 
     expect(
@@ -146,11 +148,14 @@ void main() {
     );
   });
 
-  testWidgets('Log is reachable from every destination', (tester) async {
+  testWidgets('Log is reachable from every bar destination', (tester) async {
     // The reason the FAB moved into the shell. It used to be on Home only,
-    // which put the most frequent action in the app behind a tab change.
+    // which put the most frequent action in the app behind a tab change. The
+    // FAB lives on the shell Scaffold, so it shows on the four resident bar
+    // tabs; Budget and Utang are pushed screens over the shell now, checked in
+    // their own suites.
     await _boot(tester);
-    for (final label in ['Home', 'Activity', 'Budget', 'Utang', 'Insights']) {
+    for (final label in ['Home', 'Activity', 'Insights', 'Accounts']) {
       await goToTab(tester, label);
       expect(
         find.widgetWithText(FloatingActionButton, 'Log'),
@@ -186,8 +191,9 @@ void main() {
     expect(find.text('Insights'), findsWidgets);
 
     // And once visited it STAYS built, which is what makes the state above
-    // survive.
-    await goToTab(tester, 'Budget');
+    // survive. Leave to another bar tab (Budget is a pushed screen now, not a
+    // tab) and Insights is still there, offstage in the IndexedStack.
+    await goToTab(tester, 'Home');
     expect(find.byType(InsightsScreen, skipOffstage: false), findsOneWidget);
   });
 }

@@ -81,7 +81,12 @@ void main() {
     tester,
   ) async {
     await _boot(tester);
-    for (final tab in ['Home', 'Activity', 'Budget', 'Utang', 'Insights']) {
+    // The ScreenHeader tabs only. Accounts carries its Menu in a Material
+    // AppBar (its own hero owns the top of the screen), and Budget and Utang
+    // are pushed screens off the Menu now, not bar tabs. The raised-key-on-the-
+    // content-edge contract this test guards is the ScreenHeader's, so it is
+    // measured on the three screens that use it.
+    for (final tab in ['Home', 'Activity', 'Insights']) {
       await goToTab(tester, tab);
       final key = tester.getRect(find.byTooltip('Menu').first);
       expect(
@@ -99,10 +104,9 @@ void main() {
   testWidgets('the Menu key survives a deep scroll on every tab', (
     tester,
   ) async {
-    // The founder's call: the header pins on all five tabs, so Menu is one
-    // tap away at any scroll depth. Before this, Home, Budget, and Insights
-    // put the header inside the list and Menu scrolled away on exactly the
-    // three longest screens.
+    // The founder's call: the header pins on the ScreenHeader tabs, so Menu is
+    // one tap away at any scroll depth. Before this, Home and Insights put the
+    // header inside the list and Menu scrolled away on the longest screens.
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -112,7 +116,7 @@ void main() {
     await tester.pumpWidget(SalapifyApp(store: SalapifyStore()));
     await tester.pumpAndSettle();
 
-    for (final tab in ['Home', 'Activity', 'Budget', 'Utang', 'Insights']) {
+    for (final tab in ['Home', 'Activity', 'Insights']) {
       await goToTab(tester, tab);
       final before = tester.getRect(find.byTooltip('Menu').first);
       // Drag the active tab's list well past a screenful. The finder skips
