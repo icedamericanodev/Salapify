@@ -27,9 +27,11 @@ import 'package:flutter/services.dart';
 import '../data/qr_vault.dart';
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
+import '../money/account_flow.dart' show accountMonthFlow;
 import '../money/card_products.dart';
 import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' show amountOf;
+import '../money/net_worth_history.dart' show netWorthMonthKey;
 import '../money/institutions.dart';
 import '../services/secure_window.dart';
 import '../theme.dart';
@@ -279,6 +281,15 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
         _heroCard(row, kind.subtype.label, last4),
         const SizedBox(height: 20),
         _summaryCard(row),
+        // This month's In / Out / Net, the mockup's account-detail figures.
+        // Accounts only: it sums that account's own income and expenses plus
+        // the transfers into and out of it (founder decision to include
+        // transfers), via the golden-tested accountMonthFlow. Debts and assets
+        // have no per-account monthly flow, so they skip it.
+        if (widget.accountStore == AccountStore.accounts) ...[
+          const SizedBox(height: 20),
+          _thisMonthCard(),
+        ],
         const SizedBox(height: 20),
         _secureSection(row, instId, last4),
         const SizedBox(height: 20),
@@ -466,6 +477,71 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       ),
     ],
   );
+
+  /// This month's In / Out / Net for this account. Every figure is a
+  /// golden-tested accountMonthFlow read, formatted with the same centavo
+  /// formatMoney the activity rows use. In is green, Net is sign-coloured
+  /// (a positive month in the accent, a negative one in the warning ink), and
+  /// the direction is carried by a word and an arrow, never colour alone.
+  Widget _thisMonthCard() {
+    final f = accountMonthFlow(
+      widget.store.data,
+      widget.id,
+      netWorthMonthKey(DateTime.now()),
+    );
+    final netUp = f.net >= 0;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(Gap.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('THIS MONTH', style: Barako.kickerStyle),
+            const SizedBox(height: Gap.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _flowStat('In', f.inflow, 'incoming', Barako.income)),
+                Expanded(child: _flowStat('Out', f.outflow, 'outgoing', Barako.text)),
+                Expanded(
+                  child: _flowStat(
+                    'Net',
+                    f.net,
+                    netUp ? 'growth' : 'decline',
+                    netUp ? Barako.primaryText : Barako.warning,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _flowStat(String label, double value, String icon, Color tint) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(salapifyIcon(icon), size: IconSizes.dense, color: tint),
+              const SizedBox(width: Gap.xs),
+              Text(label, style: AppText.caption.tint(Barako.muted)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoney(value),
+              maxLines: 1,
+              style: AppText.amountRow.tint(tint),
+            ),
+          ),
+        ],
+      );
 
   // --- Secure information ---------------------------------------------------
 

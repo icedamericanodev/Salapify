@@ -2556,6 +2556,73 @@ void main() {
     }
   });
 
+  testWidgets('the account detail This month figures, light and dark', (
+    tester,
+  ) async {
+    // A dedicated fixture so the This month In/Out/Net card shows real numbers
+    // (the shared lived-in book has no bpi movements). Current-month dates so
+    // the month filter always includes them. In 36,250, Out 25,000 + 5,000
+    // transfer = 30,000, Net 6,250, matching the mockup. Light then dark.
+    await loadRealFonts(tester);
+    final now = DateTime.now();
+    String d(int back) {
+      final t = DateTime(now.year, now.month, now.day).subtract(Duration(days: back));
+      return '${t.year.toString().padLeft(4, '0')}-'
+          '${t.month.toString().padLeft(2, '0')}-'
+          '${t.day.toString().padLeft(2, '0')}';
+    }
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {
+            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
+            'balance': 48000, 'subtype': 'savings_account',
+            'institutionId': 'bpi',
+          },
+          {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000},
+        ],
+        'transactions': [
+          {'id': 'i1', 'type': 'income', 'label': 'Salary deposit', 'amount': 36250, 'date': d(0), 'accountId': 'bpi'},
+          {'id': 'o1', 'type': 'expense', 'label': 'Rent', 'amount': 25000, 'date': d(2), 'accountId': 'bpi'},
+          {
+            'id': 'x1', 'type': 'transfer', 'label': 'Transfer to GCash',
+            'amount': 5000, 'date': d(4),
+            'transferFromId': 'bpi', 'transferToId': 'gcash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AccountDetailScreen(
+            store: store,
+            id: 'bpi',
+            accountStore: AccountStore.accounts,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/account-detail-month-${b.name}.png'),
+      );
+    }
+  });
+
   testWidgets('the account groups, expanded and collapsed', (tester) async {
     // The Phase 4 change: each taxonomy section is now a collapsible group with
     // an icon, name, account count, total and a chevron. Rendered light first,
