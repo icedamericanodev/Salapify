@@ -139,6 +139,60 @@ List<double> netWorthSeries(
   return out;
 }
 
+/// One plotted point on the net worth trend: the month it belongs to and the
+/// value recorded (or, for the final point, the live figure).
+typedef NetWorthPoint = ({String month, double value});
+
+/// The net worth points to plot for the trend screen, month-labelled so the
+/// chart can print an axis. Same shape as [netWorthSeries]: every recorded
+/// snapshot STRICTLY BEFORE the current month, then today's LIVE net worth as
+/// the final point carrying [currentMonth], so the last point always matches
+/// the big number the hero shows rather than a value recorded earlier.
+///
+/// [months] is the period window the selector picks: keep only the most recent
+/// [months] points (1M is 1, 3M is 3, and so on), or ALL points when null. The
+/// window is applied AFTER the live point is appended, so "last 3 months"
+/// always includes today. History is assumed sorted ascending by month, which
+/// is how [upsertNetWorthSnapshot] keeps it; this does not re-sort.
+///
+/// Honest about thin data: Salapify records ONE snapshot per month, so a 1M
+/// window is one or two points and the screen must show a not-enough-history
+/// state rather than fake a line. This returns exactly what exists, never an
+/// interpolated or invented point.
+List<NetWorthPoint> netWorthWindow(
+  List<Map<String, dynamic>> history,
+  String currentMonth,
+  double liveNetWorth, {
+  int? months,
+}) {
+  final out = <NetWorthPoint>[
+    for (final row in history)
+      if ((row['month'] as String).compareTo(currentMonth) < 0)
+        (month: row['month'] as String, value: (row['value'] as num).toDouble()),
+  ];
+  out.add((month: currentMonth, value: liveNetWorth));
+  if (months == null || out.length <= months) return out;
+  return out.sublist(out.length - months);
+}
+
+/// Highest, lowest and average net worth across a window's points, the mockup's
+/// three summary stats. Presentation over already golden net worth values (a
+/// min, a max and a mean), not a new money methodology: no rounding, sign or
+/// currency policy is decided here. Null when there are no points, so the
+/// caller shows nothing rather than dividing by zero.
+({double high, double low, double avg})? netWorthStats(
+  List<NetWorthPoint> points,
+) {
+  if (points.isEmpty) return null;
+  final values = [for (final p in points) p.value];
+  final sum = values.reduce((a, b) => a + b);
+  return (
+    high: values.reduce((a, b) => a > b ? a : b),
+    low: values.reduce((a, b) => a < b ? a : b),
+    avg: sum / values.length,
+  );
+}
+
 /// Record the current month's net worth into data['netWorthHistory], using the
 /// SAME netWorthParts (and fx conversion) the hero displays, so the stored
 /// figure is exactly the number the user saw. Returns the SAME map instance

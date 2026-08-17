@@ -9,6 +9,7 @@
 import 'dart:async' show Timer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 
 import '../money/accounts_calc.dart';
@@ -30,6 +31,7 @@ import '../data/qr_vault.dart';
 import '../money/account_taxonomy.dart';
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
+import 'net_worth_trend.dart' show NetWorthTrendScreen;
 import '../money/institutions.dart'
     show institutionBrandColor, institutionById, institutionLabel;
 import '../theme.dart';
@@ -269,6 +271,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              // When a search deep-link focuses an account, the reveal scrolls
+              // to its row with Scrollable.ensureVisible, which needs the row's
+              // group already BUILT: the group is a direct child of this lazy
+              // ListView, so a group sitting below the default 250px cache
+              // extent never builds and _focusKey.currentContext is null,
+              // making the scroll die silently (see _revealFocus). The taller
+              // hero pushed that boundary far enough to expose it. A generous
+              // cache extent WHILE focusing builds every group so the reveal
+              // always lands; normal browsing keeps the default lazy behaviour
+              // and its cost. Guarded by accounts_focus_scroll_test.dart.
+              scrollCacheExtent: widget.focusAccountId != null
+                  ? ScrollCacheExtent.pixels(5000)
+                  : null,
               children: [
                 _summary(parts),
                 // What the total was converted with, or what it left out,
@@ -563,19 +578,58 @@ class _AccountsScreenState extends State<AccountsScreen> {
             ],
           ),
           const SizedBox(height: Gap.sm),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formatMoneyText(netWorth),
-              maxLines: 1,
-              style: AppText.amountLg.w8,
+          // The figure and its delta open the full trend screen, one tap from
+          // the number, the "am I winning over time" view the panel put first.
+          // A named button so a screen reader gets a destination, not a stream
+          // of fragments.
+          Semantics(
+            button: true,
+            label:
+                'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Haptics.select();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => NetWorthTrendScreen(store: store),
+                    ),
+                  );
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              formatMoneyText(netWorth),
+                              maxLines: 1,
+                              style: AppText.amountLg.w8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: Gap.sm),
+                        Icon(
+                          salapifyIcon('forward'),
+                          size: IconSizes.inline,
+                          color: Barako.muted,
+                        ),
+                      ],
+                    ),
+                    if (trend != null) ...[
+                      const SizedBox(height: Gap.sm),
+                      _monthTrendLine(trend),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
-          if (trend != null) ...[
-            const SizedBox(height: Gap.sm),
-            _monthTrendLine(trend),
-          ],
           const SizedBox(height: Gap.lg),
           Row(
             children: [

@@ -18,6 +18,75 @@ void main() {
     });
   });
 
+  group('netWorthWindow', () {
+    // Four recorded months, ascending, plus a live current month. The live
+    // figure is deliberately different from any recorded value so the "last
+    // point is live, not a stored snapshot" rule is visible.
+    final history = [
+      {'month': '2026-03', 'value': 100000},
+      {'month': '2026-04', 'value': 110000},
+      {'month': '2026-05', 'value': 120000},
+      {'month': '2026-06', 'value': 130000},
+    ];
+
+    test('appends the live current month as the final point', () {
+      final all = netWorthWindow(history, '2026-07', 145000);
+      expect(all.length, 5);
+      expect(all.last, (month: '2026-07', value: 145000.0));
+      // The recorded months come through in order, untouched.
+      expect(all.first, (month: '2026-03', value: 100000.0));
+    });
+
+    test('replaces the current month snapshot with the live figure', () {
+      // A snapshot already recorded for the current month must NOT be plotted;
+      // the live figure stands in for it, so the last point matches the hero.
+      final withCurrent = [
+        ...history,
+        {'month': '2026-07', 'value': 140000},
+      ];
+      final all = netWorthWindow(withCurrent, '2026-07', 145000);
+      expect(all.where((p) => p.month == '2026-07').length, 1);
+      expect(all.last, (month: '2026-07', value: 145000.0));
+    });
+
+    test('a period window keeps only the most recent months, incl. today', () {
+      final threeM = netWorthWindow(history, '2026-07', 145000, months: 3);
+      expect(threeM.length, 3);
+      expect(threeM.first.month, '2026-05');
+      expect(threeM.last, (month: '2026-07', value: 145000.0));
+    });
+
+    test('a window larger than the data keeps everything', () {
+      final all = netWorthWindow(history, '2026-07', 145000, months: 24);
+      expect(all.length, 5);
+    });
+
+    test('thin data returns exactly what exists, never an invented point', () {
+      // No history at all: one point, the live figure. The screen shows a
+      // not-enough-history state off this; it must not fabricate a second.
+      final oneM = netWorthWindow(const [], '2026-07', 145000, months: 1);
+      expect(oneM, [(month: '2026-07', value: 145000.0)]);
+    });
+  });
+
+  group('netWorthStats', () {
+    test('is the high, low and mean of the points', () {
+      final points = netWorthWindow([
+        {'month': '2026-04', 'value': 110000},
+        {'month': '2026-05', 'value': 130000},
+      ], '2026-06', 120000);
+      final s = netWorthStats(points)!;
+      expect(s.high, 130000);
+      expect(s.low, 110000);
+      // (110000 + 130000 + 120000) / 3
+      expect(s.avg, closeTo(120000, 0.0001));
+    });
+
+    test('is null for no points', () {
+      expect(netWorthStats(const []), isNull);
+    });
+  });
+
   group('upsertNetWorthSnapshot', () {
     test('appends a new month in date order', () {
       final start = [

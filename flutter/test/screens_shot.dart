@@ -71,6 +71,7 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/net_worth_trend.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
@@ -2486,6 +2487,38 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('shots/accounts-overview-${b.name}.png'),
+      );
+    }
+  });
+
+  testWidgets('the Net worth trend screen, light and dark', (tester) async {
+    // Reached by tapping the net worth figure on the Accounts hero. The
+    // lived-in fixture carries eleven months of history, so the line draws
+    // rather than showing the not-enough-history state. Light then dark.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: NetWorthTrendScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/net-worth-trend-${b.name}.png'),
       );
     }
   });
