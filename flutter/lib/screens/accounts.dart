@@ -2516,27 +2516,57 @@ class _TransferSheetState extends State<_TransferSheet> {
       });
       return;
     }
-    // A receipt, so the largest single-tap money move in the app confirms what
-    // happened, the way every other write here already does. No Undo: deleting
-    // a transfer row does not reverse the balances (see transfers.dart), so the
-    // honest thing is to confirm, not offer an undo that would not undo. The
-    // messenger is captured BEFORE the pop, because the sheet's own context is
-    // gone the moment it closes.
-    final messenger = ScaffoldMessenger.of(context);
+    // The mockup's success confirmation, replacing the old snackbar receipt: it
+    // shows the move, both new balances, and a checkmark. Values are captured
+    // BEFORE the pop, because the sheet's own context and state are gone the
+    // moment it closes; the balances are already the post-transfer figures. No
+    // Undo, the same reason as before (deleting a transfer row does not reverse
+    // the balances, see transfers.dart), so the honest thing is to confirm.
+    final nav = Navigator.of(context);
     final moved = amountOf(_amount.text.replaceAll(RegExp(r'[, ]'), ''));
     final fromName = _nameOf(_fromId);
     final toName = _nameOf(_toId);
-    // Felt, not just shown, the word every committed money write speaks. The
-    // refusal and error paths above stay silent on purpose.
+    final fromBalance = _balanceOf(_fromId);
+    final toBalance = _balanceOf(_toId);
+    final fromColor = institutionBrandColor(
+      _rowOf(_fromId)['institutionId']?.toString(),
+    );
+    final toColor = institutionBrandColor(
+      _rowOf(_toId)['institutionId']?.toString(),
+    );
+    // Felt, not just shown, the word every committed money write speaks. A
+    // transfer is a ROUTINE write, not a milestone, so it gets moneyWritten,
+    // not milestone, and the success screen stays a calm confirmation with no
+    // reserved celebration confetti. The refusal and error paths stay silent.
     Haptics.moneyWritten();
-    Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          'Moved ${formatMoneyText(moved)} from $fromName to $toName.',
-        ),
+    nav.pop();
+    await showDialog<void>(
+      context: nav.context,
+      barrierColor: Barako.overlay,
+      builder: (_) => _TransferSuccessDialog(
+        moved: moved,
+        fromName: fromName,
+        toName: toName,
+        fromBalance: fromBalance,
+        toBalance: toBalance,
+        fromColor: fromColor,
+        toColor: toColor,
       ),
     );
+  }
+
+  double _balanceOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return amountOf(a['balance']);
+    }
+    return 0;
+  }
+
+  Map<String, dynamic> _rowOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return a;
+    }
+    return const {};
   }
 
   /// The refusal as a sentence that cannot contradict itself.
@@ -2743,6 +2773,159 @@ class _TransferSheetState extends State<_TransferSheet> {
         ),
     ],
   );
+}
+
+/// The transfer success confirmation, the mockup's "Transfer successful" screen.
+///
+/// A calm confirmation, not a celebration: a transfer is a routine money write,
+/// so this uses a checkmark that scales in (gated through Motion.of for
+/// reduce-motion) rather than the reserved milestone confetti. It shows the two
+/// accounts with their NEW balances and the amount moved, so the person sees
+/// exactly what happened before dismissing.
+class _TransferSuccessDialog extends StatelessWidget {
+  final double moved;
+  final String fromName;
+  final String toName;
+  final double fromBalance;
+  final double toBalance;
+  final Color? fromColor;
+  final Color? toColor;
+  // ignore: prefer_const_constructors_in_immutables
+  _TransferSuccessDialog({
+    required this.moved,
+    required this.fromName,
+    required this.toName,
+    required this.fromBalance,
+    required this.toBalance,
+    this.fromColor,
+    this.toColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(Gap.xl),
+      child: Padding(
+        padding: const EdgeInsets.all(Gap.gutter),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Transfer successful',
+              style: AppText.subtitle.w8.tint(Barako.text),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: Gap.xl),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _accountChip(fromName, fromBalance, fromColor)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Gap.sm),
+                  child: _check(context),
+                ),
+                Expanded(child: _accountChip(toName, toBalance, toColor)),
+              ],
+            ),
+            const SizedBox(height: Gap.xl),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                formatMoneyText(moved),
+                maxLines: 1,
+                style: AppText.amountLg.w8,
+              ),
+            ),
+            const SizedBox(height: Gap.xs),
+            Text(
+              'Successfully transferred',
+              style: AppText.small.tint(Barako.muted),
+            ),
+            const SizedBox(height: Gap.xl),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The checkmark, scaling in on first build, gated through Motion.of so
+  /// reduce-motion shows it settled instantly.
+  Widget _check(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Motion.of(context, Motion.reveal),
+      curve: Curves.elasticOut,
+      builder: (context, t, child) =>
+          Transform.scale(scale: t.clamp(0.0, 1.0), child: child),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Barako.income.withValues(alpha: BarakoAlpha.tint),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          salapifyIcon('done'),
+          size: IconSizes.inline,
+          color: Barako.income,
+        ),
+      ),
+    );
+  }
+
+  /// One account, with its NEW balance, tinted by its brand colour where one is
+  /// known. Never draws money in the brand colour: the tint is a thin top
+  /// stripe, the figure stays in full ink so it always clears contrast.
+  Widget _accountChip(String name, double balance, Color? brand) {
+    final accent = brand ?? Barako.primary;
+    return Container(
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: Barako.border),
+      ),
+      padding: const EdgeInsets.all(Gap.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 4,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+          ),
+          const SizedBox(height: Gap.sm),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.small.w6.tint(Barako.text),
+          ),
+          const SizedBox(height: 2),
+          Text('New balance', style: AppText.caption.tint(Barako.muted)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoneyText(balance),
+              maxLines: 1,
+              style: AppText.amountRow.tint(Barako.text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The rate dialog, as a widget rather than a local in an async function.

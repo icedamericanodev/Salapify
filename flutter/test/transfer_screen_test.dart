@@ -133,20 +133,29 @@ void main() {
     expect(find.text('Move it'), findsNothing);
   });
 
-  testWidgets('a successful transfer shows a receipt', (tester) async {
-    // The biggest single-tap money move in the app used to confirm NOTHING: it
-    // just popped the sheet, unlike every other write, which shows a receipt.
-    // formatMoneyText renders whole pesos, so 1,000 reads back as P1,000.
+  testWidgets('a successful transfer shows the success confirmation', (
+    tester,
+  ) async {
+    // The biggest single-tap money move in the app confirms what happened. It
+    // used to be a snackbar receipt; the redesign shows the mockup's success
+    // dialog with the amount moved and both new balances. The sheet defaults
+    // from Cash to BPI (see the ledger test above), so Cash 3,200 - 1,000 =
+    // 2,200 is the clean figure to check; formatMoneyText renders whole pesos.
     await _open(tester);
     await _openSheet(tester);
     await tester.enterText(find.byType(TextField), '1,000');
     await tester.tap(find.text('Move it'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Moved ₱1,000 from Cash to BPI.'),
+      find.text('Transfer successful'),
       findsOneWidget,
       reason: 'a successful transfer must confirm what happened',
     );
+    expect(find.text('₱1,000'), findsOneWidget); // the amount moved
+    // Cash new balance 2,200 shows in the dialog AND on the screen behind it.
+    expect(find.text('₱2,200'), findsWidgets);
+    expect(find.text('New balance'), findsWidgets); // both accounts labelled
+    expect(find.text('Successfully transferred'), findsOneWidget);
   });
 
   testWidgets('an overdraft is refused in words, and nothing moves', (

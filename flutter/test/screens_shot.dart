@@ -2623,6 +2623,56 @@ void main() {
     }
   });
 
+  testWidgets('the transfer success confirmation, dark', (tester) async {
+    // Drives a real transfer end to end (open the sheet, enter an amount, tap
+    // Move it) so the success dialog it renders is the real one, not a mock.
+    // Dark only, the founder's mode, like the other dialogs and sheets.
+    await loadRealFonts(tester);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {
+            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
+            'balance': 48000, 'subtype': 'savings_account',
+            'institutionId': 'bpi',
+          },
+          {
+            'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000,
+            'institutionId': 'gcash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: AccountsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transfer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '5000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move it'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/transfer-success-dark.png'),
+    );
+  });
+
   testWidgets('the account groups, expanded and collapsed', (tester) async {
     // The Phase 4 change: each taxonomy section is now a collapsible group with
     // an icon, name, account count, total and a chevron. Rendered light first,
