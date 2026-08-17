@@ -401,7 +401,8 @@ void main() {
     final before = _netWorth(store);
     final stateBefore = _storedState(store);
 
-    await _tap(tester, find.byTooltip('Menu'));
+    // Accounts is a bottom-bar tab now, tapped straight on the bar (its Menu
+    // tile was retired when it got its own bar seat).
     await _tap(tester, find.text('Accounts'));
     // Transfer now lives in the quick-actions row under the net worth card.
     await _tap(tester, find.text('Transfer'));
@@ -497,7 +498,8 @@ void main() {
     // Net worth 21,800 - 8,000 = 13,800.
     expect(_netWorth(store), closeTo(13800, 0.001));
 
-    await _tap(tester, find.byTooltip('Menu'));
+    // Accounts is a bottom-bar tab now, tapped straight on the bar (its Menu
+    // tile was retired when it got its own bar seat).
     await _tap(tester, find.text('Accounts'));
     // The hero on Accounts, from netWorthParts, and the engine, from the same
     // call. If these two ever part company the screen is doing its own maths.

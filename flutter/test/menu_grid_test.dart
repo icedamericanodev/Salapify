@@ -13,7 +13,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
-import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/screens/cashflow.dart';
 import 'package:salapify/screens/goals.dart';
 import 'package:salapify/screens/learn.dart';
@@ -40,10 +39,14 @@ import 'support/app_harness.dart';
 /// without adding it here is itself a visible omission.
 final _destinations = <String, Type>{
   'Search': SearchScreen,
-  'Accounts': AccountsScreen,
+  // Accounts has no tile since f4.45: it became a resident bottom-bar tab, so
+  // its one home is the bar (a Menu copy was a rootless second door). Debts has
+  // had none since Phase 2 batch 1: the Utang tab's "I owe" segment is its home.
+  // Budget and Utang DID gain tiles in f4.45, but they navigate through the
+  // shell's onSwitchTab / onOpenPayables callbacks rather than a Navigator.push,
+  // which this push-verifying map cannot exercise (the callbacks are stubbed
+  // here); a11y_test and money_tab_test open them through the real wiring.
   'Cash flow': CashFlowScreen,
-  // Debts has no tile since Phase 2 batch 1: the Utang tab's "I owe" segment
-  // is its one home, and money_tab_test guards that route.
   'Goals': GoalsScreen,
   'Paluwagan': PaluwaganScreen,
   'Recurring': RecurringScreen,
@@ -155,7 +158,8 @@ void main() {
     // names are checked here rather than trusted.
     const used = [
       'search',
-      'wallet',
+      'budget',
+      'utang',
       'flow',
       'card',
       'savings',

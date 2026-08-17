@@ -1,8 +1,9 @@
 // Menu: the hub that keeps the dashboard clean. Everything that is not
-// glance-level status lives here, grouped: the money screens (Accounts,
+// glance-level status lives here, grouped: the money screens (Budget, Utang,
 // Goals, the deeper Insights), the helpers (Ask Pan, Tools), personalize
 // (mood), and your data (backup, build stamp). Reached from the header key
-// on every tab. Debts has no tile here: it lives on the Utang tab.
+// on every tab. Debts has no tile here: it lives on the Utang tab. Accounts
+// has none either now: it is a resident bottom-bar tab, one tap away.
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -22,7 +23,6 @@ import '../build_flags.dart' show kTestingAids;
 import '../money/sample_data.dart' show hasSampleData;
 import '../widgets/nav_tile.dart';
 import '../widgets/pressable_scale.dart';
-import 'accounts.dart';
 import 'categories.dart';
 import 'appearance.dart';
 import 'cashflow.dart';
@@ -113,15 +113,11 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  NavTile(
-                    icon: 'wallet',
-                    label: 'Accounts',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AccountsScreen(store: store),
-                      ),
-                    ),
-                  ),
+                  // Accounts has no tile here any more: it became a resident
+                  // bottom-bar destination (the mockup's four-tab bar), so it is
+                  // one tap away on the bar. A Menu tile pushed a rootless copy
+                  // with no bottom bar, the same "second door" the Debts tile was
+                  // removed for; the bar is its one canonical home now.
                   NavTile(
                     icon: 'flow',
                     label: 'Cash flow',

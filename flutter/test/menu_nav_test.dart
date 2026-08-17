@@ -84,7 +84,27 @@ void main() {
       findsNothing,
       reason: 'The Debts tile came back. Its one home is the Utang tab.',
     );
-    for (final row in const ['Accounts', 'Goals', 'Ask Pan', 'Calculators']) {
+    // Accounts is absent for the same reason Debts is: it became a resident
+    // bottom-bar tab, so a Menu tile would be a rootless second door with no
+    // bottom bar. The MONEY grid it used to sit in is at the top of Menu, on
+    // screen right here, so this findsNothing measures the real place.
+    expect(
+      find.text('Accounts'),
+      findsNothing,
+      reason:
+          'The Accounts tile came back. It is a bottom-bar tab now, one tap '
+          'away; a Menu copy is the second-door antipattern.',
+    );
+    // Budget and Utang, on the other hand, MUST be here: they left the bar and
+    // this Menu is their home now. A typed set is a promise, so the IA-lock
+    // test names the exact members this move added, not just the survivors.
+    for (final row in const [
+      'Budget',
+      'Utang',
+      'Goals',
+      'Ask Pan',
+      'Calculators',
+    ]) {
       await tester.scrollUntilVisible(
         find.text(row),
         100,
