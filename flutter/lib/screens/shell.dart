@@ -22,6 +22,7 @@ import '../services/home_tile.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
+import 'accounts.dart';
 import 'budget.dart';
 import 'history.dart';
 import 'insights.dart';
@@ -31,11 +32,19 @@ import 'money.dart';
 import 'overview.dart';
 
 enum Destination {
+  // The four bottom-bar destinations, in bar order (see [bar]).
   home(label: 'Home', icon: 'home'),
   history(label: 'Activity', icon: 'activity'),
+  insights(label: 'Insights', icon: 'insights'),
+  accounts(label: 'Accounts', icon: 'wallet'),
+  // Budget and Utang are NO LONGER tabs (founder direction, matching the
+  // mockup's Home / Activity / Insights / Accounts bar). They stay enum
+  // members because Home, the Menu, Pan, Search, Insights and the course
+  // deep-links all name them, and _select now PUSHES them as full screens
+  // instead of switching a tab. Reachable from Home and the Menu, never walled
+  // off.
   budget(label: 'Budget', icon: 'budget'),
-  utang(label: 'Utang', icon: 'utang'),
-  insights(label: 'Insights', icon: 'insights');
+  utang(label: 'Utang', icon: 'utang');
 
   const Destination({required this.label, required this.icon});
 
@@ -49,6 +58,12 @@ enum Destination {
   /// drawn, and a typo here hits a visible fallback marker that a test catches
   /// rather than a blank space that nobody notices.
   final String icon;
+
+  /// The destinations that get a bottom-bar button and an IndexedStack body,
+  /// in left-to-right order. The current [tab] is always one of these; Budget
+  /// and Utang are pushed screens, never the resident tab, so they are not
+  /// here. Changing this list changes the bar.
+  static const List<Destination> bar = [home, history, insights, accounts];
 }
 
 /// The one Scaffold the primary destinations live in.
@@ -147,31 +162,25 @@ class _ShellScreenState extends State<ShellScreen> {
     _openLogSheetOnce();
   }
 
-  /// Reaches into the Money tab for the two things only it knows: which
-  /// segment is active (for scroll-to-top) and how to show a specific one
-  /// (for taps that mean receivables in particular).
-  final _moneyKey = GlobalKey<MoneyScreenState>();
-
   /// Destinations that have ever been shown.
   ///
   /// A plain IndexedStack builds every child on the first frame, which would
-  /// mean the eleven engine calls in Insights, plus Budget, plus Utang, all
-  /// running before the user sees Home. That is a cold start cost paid by a
-  /// cheap Android phone for screens the user may never open. A destination
-  /// joins this set the first time it is selected and never leaves, so state
-  /// is preserved from first visit onward, which is all "preserve across tab
-  /// switches" ever meant.
+  /// mean the eleven engine calls in Insights all running before the user sees
+  /// Home. That is a cold start cost paid by a cheap Android phone for screens
+  /// the user may never open. A destination joins this set the first time it is
+  /// selected and never leaves, so state is preserved from first visit onward,
+  /// which is all "preserve across tab switches" ever meant.
   final Set<Destination> _visited = {Destination.home};
 
-  /// One scroll controller per destination, so each remembers its own place.
-  ///
-  /// Handed down through PrimaryScrollController rather than passed as an
+  /// One scroll controller per BAR destination, so each remembers its own
+  /// place. Handed down through PrimaryScrollController rather than passed as an
   /// argument: a vertical ListView with no explicit controller attaches to the
-  /// ambient primary controller on its own, and not one of the six destinations
-  /// sets a controller. So this preserves every scroll position in the app
-  /// without touching a single screen file.
+  /// ambient primary controller on its own, and not one of the tabs sets a
+  /// controller. So this preserves every scroll position without touching a
+  /// single screen file. Only bar tabs get one; Budget and Utang are pushed
+  /// routes now and carry their own scrollables.
   late final Map<Destination, ScrollController> _controllers = {
-    for (final d in Destination.values) d: ScrollController(),
+    for (final d in Destination.bar) d: ScrollController(),
   };
 
   @override
@@ -188,6 +197,19 @@ class _ShellScreenState extends State<ShellScreen> {
   }
 
   void _select(Destination d) {
+    // Budget and Utang are not tabs any more: switching to them means PUSHING
+    // the screen over the shell, so every existing onSwitchTab(Destination.x)
+    // caller (Home, Menu, Pan, Search, Insights, the course deep-links) keeps
+    // working without knowing the bar changed. Utang opens on "I owe" by
+    // default; the receivables and payables entry points below name the side.
+    if (d == Destination.budget) {
+      _pushRoute(BudgetScreen(store: widget.store, onBack: _popTop));
+      return;
+    }
+    if (d == Destination.utang) {
+      _openPayables();
+      return;
+    }
     if (d != tab) {
       // A position change clicks, per the Phase 1 vocabulary. Change only:
       // re-tapping the current tab is a no-op selection and stays silent,
@@ -200,12 +222,8 @@ class _ShellScreenState extends State<ShellScreen> {
       return;
     }
     // Tapping the tab you are already on scrolls it back to the top, the
-    // convention every phone user already knows from other apps. The Money
-    // tab owns its own controllers (its two segments cannot share the
-    // ambient one), so it is asked rather than assumed.
-    final c = d == Destination.utang
-        ? _moneyKey.currentState?.activeController
-        : _controllers[d];
+    // convention every phone user already knows from other apps.
+    final c = _controllers[d];
     if (c == null || !c.hasClients || c.offset <= 0) return;
     // Motion.of collapses to zero under the OS reduce-motion setting, and
     // reads only that aspect, so the shell does not rebuild on keyboard opens.
@@ -217,30 +235,51 @@ class _ShellScreenState extends State<ShellScreen> {
     }
   }
 
-  /// Land on the Utang tab with the "Owed to me" segment showing.
+  /// Push a screen over the shell, so it appears full-screen with no bottom bar.
+  /// The single door Budget and Utang now use.
   ///
-  /// A check-in like "Follow up Migs" is about money owed TO the user, and
-  /// landing it on the default "I owe" segment would open a screen with no
-  /// Migs anywhere on it. The segment flip happens after the frame so the
-  /// Money tab exists even when this is its first visit.
-  void _openReceivables() {
-    _select(Destination.utang);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _moneyKey.currentState?.showSegment(MoneySegment.owed);
-    });
+  /// Wrapped in a Scaffold because Budget and MoneyScreen were tab BODIES: they
+  /// render a bare SafeArea and lean on the shell's Scaffold for their Material
+  /// ancestor and their ScaffoldMessenger. Pushed on their own they had
+  /// neither, so a header IconButton would assert "No Material widget found" and
+  /// a snackbar would have nowhere to land. The back arrow is the screen's own
+  /// ScreenHeader.onBack, so no AppBar is needed here.
+  void _pushRoute(Widget screen) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => Scaffold(body: screen)));
   }
 
-  /// Land on the Utang tab with the "I owe" segment showing.
+  /// Pop the topmost pushed screen. Handed to Budget and Utang as their back
+  /// arrow: they are pushes now, so backing out is a plain route pop.
+  void _popTop() => Navigator.of(context).pop();
+
+  /// Open Utang on the "Owed to me" side.
   ///
-  /// The mirror of _openReceivables, for taps that mean the user's own debts:
-  /// a due-soon check-in, a Pan "Open debts" reply, a search hit on a debt.
-  /// Before this existed those pushed a standalone DebtsScreen over the shell,
-  /// stranding the user on a copy of the tab with no bottom bar.
+  /// A check-in like "Follow up Migs" is about money owed TO the user, so
+  /// landing it on "I owe" would open a screen with no Migs anywhere on it.
+  /// Utang is a pushed screen now, so the side is chosen at construction rather
+  /// than flipped on a persistent tab after the frame.
+  void _openReceivables() {
+    _pushRoute(
+      MoneyScreen(
+        store: widget.store,
+        onBack: _popTop,
+        initialSegment: MoneySegment.owed,
+      ),
+    );
+  }
+
+  /// Open Utang on the "I owe" side: a due-soon check-in, a Pan "Open debts"
+  /// reply, a search hit on a debt, or a plain tap on Utang.
   void _openPayables() {
-    _select(Destination.utang);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _moneyKey.currentState?.showSegment(MoneySegment.owe);
-    });
+    _pushRoute(
+      MoneyScreen(
+        store: widget.store,
+        onBack: _popTop,
+        initialSegment: MoneySegment.owe,
+      ),
+    );
   }
 
   void _openMenu() {
@@ -256,6 +295,10 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
+  /// The body for a BAR destination. Budget and Utang are never asked for here:
+  /// they are pushed routes, not resident tabs, so this switch only covers the
+  /// four bar tabs. The default is unreachable (tab is always a bar member) and
+  /// exists only to keep the switch exhaustive over the enum.
   Widget _bodyFor(Destination d) => switch (d) {
     Destination.home => OverviewScreen(
       store: widget.store,
@@ -264,16 +307,7 @@ class _ShellScreenState extends State<ShellScreen> {
       onOpenPayables: _openPayables,
       onMenu: _openMenu,
     ),
-    Destination.budget => BudgetScreen(store: widget.store, onMenu: _openMenu),
-    Destination.history => HistoryScreen(
-      store: widget.store,
-      onMenu: _openMenu,
-    ),
-    Destination.utang => MoneyScreen(
-      key: _moneyKey,
-      store: widget.store,
-      onMenu: _openMenu,
-    ),
+    Destination.history => HistoryScreen(store: widget.store, onMenu: _openMenu),
     Destination.insights => InsightsScreen(
       store: widget.store,
       onSwitchTab: _select,
@@ -281,6 +315,12 @@ class _ShellScreenState extends State<ShellScreen> {
       onOpenPayables: _openPayables,
       onMenu: _openMenu,
     ),
+    Destination.accounts => AccountsScreen(
+      store: widget.store,
+      onOpenPayables: _openPayables,
+      onMenu: _openMenu,
+    ),
+    Destination.budget || Destination.utang => const SizedBox.shrink(),
   };
 
   @override
@@ -309,9 +349,12 @@ class _ShellScreenState extends State<ShellScreen> {
             )
           : null,
       body: IndexedStack(
-        index: tab.index,
+        // Indexed over the BAR list, not the enum: Budget and Utang are not
+        // bodies here, so tab.index (an enum index) would point past the
+        // children. tab is always a bar member, so this always resolves.
+        index: Destination.bar.indexOf(tab),
         children: [
-          for (final d in Destination.values)
+          for (final d in Destination.bar)
             // An unvisited destination is an empty box until it is first
             // opened. IndexedStack keeps every child it is given, so this is
             // what makes the laziness real rather than nominal.
@@ -327,12 +370,12 @@ class _ShellScreenState extends State<ShellScreen> {
       // indicator, and the per-state icon color. Re-passing them here is how a
       // theme change ships everywhere except the nav bar.
       bottomNavigationBar: NavigationBar(
-        selectedIndex: tab.index,
-        onDestinationSelected: (i) => _select(Destination.values[i]),
+        selectedIndex: Destination.bar.indexOf(tab),
+        onDestinationSelected: (i) => _select(Destination.bar[i]),
         // Every glyph resolves by NAME through salapify_icon.dart, the same as
         // the rest of the app's own icons.
         destinations: [
-          for (final d in Destination.values)
+          for (final d in Destination.bar)
             NavigationDestination(
               icon: Icon(salapifyIcon(d.icon)),
               selectedIcon: Icon(salapifyIconSelected(d.icon)),

@@ -27,7 +27,17 @@ class BudgetScreen extends StatelessWidget {
   /// Opens Menu. Menu left the bottom bar, so every primary screen carries
   /// the way in.
   final VoidCallback? onMenu;
-  const BudgetScreen({super.key, required this.store, this.onMenu});
+
+  /// Pops this screen. Budget left the bar too and is a pushed screen now, so it
+  /// carries a back arrow instead of a Menu key. Null when hosted some other
+  /// way.
+  final VoidCallback? onBack;
+  const BudgetScreen({
+    super.key,
+    required this.store,
+    this.onMenu,
+    this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +69,7 @@ class BudgetScreen extends StatelessWidget {
               Gap.gutter,
               0,
             ),
-            child: ScreenHeader('Budget', onMenu: onMenu),
+            child: ScreenHeader('Budget', onMenu: onMenu, onBack: onBack),
           ),
           Expanded(
             child: ListView(

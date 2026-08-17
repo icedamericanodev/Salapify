@@ -9,10 +9,15 @@
 import 'dart:async' show Timer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
+import '../money/format.dart' show formatMoney;
+import '../money/greeting.dart' show greetingFor;
+import '../money/net_worth_history.dart'
+    show netWorthHistoryOf, netWorthMonthKey, netWorthTrend;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
     show baseCurrencyOf, excludedNotice, manualRatesOf;
@@ -27,6 +32,8 @@ import '../data/qr_vault.dart';
 import '../money/account_taxonomy.dart';
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
+import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
+import 'net_worth_trend.dart' show NetWorthTrendScreen;
 import '../money/institutions.dart'
     show institutionBrandColor, institutionById, institutionLabel;
 import '../theme.dart';
@@ -40,6 +47,7 @@ import '../widgets/flip_bank_card.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
+import '../widgets/screen_header.dart' show MenuAction;
 
 const _accountKinds = [
   ('cash', 'Cash'),
@@ -71,6 +79,13 @@ class AccountsScreen extends StatefulWidget {
   /// rather than a live link.
   final VoidCallback? onOpenPayables;
 
+  /// Opens the Menu. Set only when Accounts is the resident bottom-bar tab (the
+  /// shell hands it down): a bar tab has no back button, so this is its one way
+  /// into the sixteen Menu destinations, the same door the other tabs carry.
+  /// Null on a deep push, where the AppBar's own back button is the way out and
+  /// a Menu action would be redundant.
+  final VoidCallback? onMenu;
+
   /// An account id to reveal on open: the list scrolls to it and it flashes
   /// once. Set when Search opens this screen on a specific account match. If
   /// the id no longer exists (the account was deleted between the search result
@@ -82,6 +97,7 @@ class AccountsScreen extends StatefulWidget {
     super.key,
     required this.store,
     this.onOpenPayables,
+    this.onMenu,
     this.focusAccountId,
   });
 
@@ -205,7 +221,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Accounts')),
+      appBar: AppBar(
+        title: Text('Accounts'),
+        // The Menu action only when this is the resident bar tab. A bar tab has
+        // no back button, so without this Accounts would be the one primary
+        // screen with no one-tap way into the Menu. On a deep push onMenu is
+        // null and the AppBar's own back arrow is the way out.
+        actions: widget.onMenu == null
+            ? null
+            : [
+                MenuAction(onTap: widget.onMenu!),
+                const SizedBox(width: Gap.sm),
+              ],
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: store,
@@ -266,6 +294,19 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              // When a search deep-link focuses an account, the reveal scrolls
+              // to its row with Scrollable.ensureVisible, which needs the row's
+              // group already BUILT: the group is a direct child of this lazy
+              // ListView, so a group sitting below the default 250px cache
+              // extent never builds and _focusKey.currentContext is null,
+              // making the scroll die silently (see _revealFocus). The taller
+              // hero pushed that boundary far enough to expose it. A generous
+              // cache extent WHILE focusing builds every group so the reveal
+              // always lands; normal browsing keeps the default lazy behaviour
+              // and its cost. Guarded by accounts_focus_scroll_test.dart.
+              scrollCacheExtent: widget.focusAccountId != null
+                  ? ScrollCacheExtent.pixels(5000)
+                  : null,
               children: [
                 _summary(parts),
                 // What the total was converted with, or what it left out,
@@ -496,6 +537,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Widget _summary(Map<String, dynamic> parts) {
+    final netWorth = parts['netWorth'] as double;
     final assets = parts['assets'] as double;
     final liabilities = parts['liabilities'] as double;
     // The ratio splits owned against owed. Only POSITIVE money counts as owned
@@ -517,47 +559,185 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (owedValue > 0 && p == 100) p = 99;
       ownedPct = p;
     }
-    return Card(
-      color: Barako.surfaceRaised,
-      child: Padding(
-        padding: Insets.hero,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('NET WORTH', style: Barako.kickerStyle),
-            const SizedBox(height: Gap.xs),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatMoneyText(parts['netWorth'] as double),
-                maxLines: 1,
-                style: AppText.amountLg.w8,
+    // The month move, from the SAME golden-locked trend the Overview hero
+    // shows, so the two screens can never disagree about "this month". Null
+    // until there is a prior month to compare against, and the line is simply
+    // omitted then rather than faking a zero.
+    final now = DateTime.now();
+    final trend = netWorthTrend(
+      netWorthHistoryOf(store.data),
+      netWorthMonthKey(now),
+      netWorth,
+    );
+    // The one raised hero, warmed by Barako.heroWash (the tokenized coffee
+    // glow). Matches the founder's mockup top to bottom: a greeting with a
+    // warm coffee mark where the mockup put a latte, then NET WORTH, the
+    // figure, the month move, the two totals and the owned/owed bar. The
+    // greeting is the founder's explicit "as close as possible" call, which
+    // overrides the panel's tidier preference to drop it.
+    final greeting = greetingFor(now, name: store.displayName);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Radii.hero),
+        border: Border.all(color: Barako.border),
+        gradient: Barako.heroWash,
+      ),
+      padding: Insets.hero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.small.w6.tint(Barako.textSecondary),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              // The coffee mark: Salapify's own glyph in the accent, where the
+              // mockup put a latte. A photo cannot ship over the air (the patch
+              // carries no new assets), so the brand glyph is the closest
+              // OTA-safe stand-in. Drawn by the shared SalapifyGlyph (40 disc,
+              // 20 glyph) so the disc recipe cannot drift, and excluded from
+              // semantics since it is decoration, not information.
+              ExcludeSemantics(
+                child: SalapifyGlyph('coffee', size: IconSizes.inline),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.lg),
+          Text('NET WORTH', style: Barako.kickerStyle),
+          const SizedBox(height: Gap.xs),
+          // The figure and its delta open the full trend screen, one tap from
+          // the number, the "am I winning over time" view the panel put first.
+          // A named button so a screen reader gets a destination, not a stream
+          // of fragments.
+          Semantics(
+            button: true,
+            label:
+                'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Haptics.select();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => NetWorthTrendScreen(store: store),
+                    ),
+                  );
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              formatMoneyText(netWorth),
+                              maxLines: 1,
+                              style: AppText.amountLg.w8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: Gap.sm),
+                        Icon(
+                          salapifyIcon('forward'),
+                          size: IconSizes.inline,
+                          color: Barako.muted,
+                        ),
+                      ],
+                    ),
+                    if (trend != null) ...[
+                      const SizedBox(height: Gap.sm),
+                      _monthTrendLine(trend),
+                    ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: Gap.lg),
-            Row(
-              children: [
-                Flexible(
-                  child: _miniStat('Total assets', assets, Barako.primaryText),
+          ),
+          const SizedBox(height: Gap.lg),
+          Row(
+            children: [
+              Flexible(
+                child: _miniStat(
+                  'Total assets',
+                  assets,
+                  Barako.primaryText,
+                  onTap: () => _openBreakdown(context, AssetsView.own),
                 ),
-                const SizedBox(width: Gap.lg),
-                Flexible(
-                  child: _miniStat(
-                    'Total owed',
-                    liabilities,
-                    Barako.warningStrong,
-                  ),
+              ),
+              const SizedBox(width: Gap.lg),
+              Flexible(
+                // Owed draws in Barako.warning, not warningStrong. warningStrong
+                // was tuned to clear AA on the card surface (theme.dart), but
+                // the hero sits on surfaceRaised, which is LIGHTER in every dark
+                // palette, and warningStrong measured under 4.5 there for a
+                // money figure. warning is the lighter red and clears it; the
+                // ownership bar's owed segment uses the same colour so the two
+                // read as one thought. Guarded by palette_contrast_test now.
+                child: _miniStat(
+                  'Total owed',
+                  liabilities,
+                  Barako.warning,
+                  onTap: () => _openBreakdown(context, AssetsView.owe),
                 ),
-              ],
-            ),
-            if (ownedPct != null) ...[
-              const SizedBox(height: Gap.lg),
-              _ownershipBar(ownedPct),
+              ),
             ],
+          ),
+          if (ownedPct != null) ...[
+            const SizedBox(height: Gap.lg),
+            _ownershipBar(ownedPct),
           ],
-        ),
+        ],
       ),
+    );
+  }
+
+  /// The net worth move this month, the mockup's green delta under the figure.
+  ///
+  /// Reads the SAME netWorthTrend the Overview hero reads and matches its
+  /// icon-and-colour convention (up in the brand accent, down in muted ink, a
+  /// flat month in words), so a person who sees both heroes never finds them
+  /// disagreeing. The wording is "this month" per the mockup; Overview says
+  /// "from last month"; both describe the one move since last month's snapshot.
+  Widget _monthTrendLine(Map<String, dynamic> trend) {
+    final delta = trend['delta'] as double;
+    final pct = trend['pct'] as double?;
+    final flat = delta.abs() < 0.005;
+    final up = delta > 0;
+    final color = up ? Barako.primary : Barako.muted;
+    final iconName = flat ? 'forward' : (up ? 'growth' : 'decline');
+    final pctText = pct == null ? '' : ' (${pct.abs().toStringAsFixed(1)}%)';
+    final label = flat
+        ? 'No change this month'
+        : '${up ? 'Up' : 'Down'} ${formatMoney(delta.abs())}$pctText this month';
+    return Row(
+      children: [
+        Icon(salapifyIcon(iconName), size: IconSizes.dense, color: color),
+        const SizedBox(width: Gap.xs),
+        Flexible(
+          child: Text(
+            label,
+            style: AppText.small.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+              // Tabular figures so "PHP7,545 (3.4%)" holds its column when the
+              // month's numbers change, the same rule as every peso figure.
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -580,7 +760,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (owedPct > 0)
         Expanded(
           flex: owedPct,
-          child: ColoredBox(color: Barako.warningStrong),
+          child: ColoredBox(color: Barako.warning),
         ),
     ];
     return Semantics(
@@ -626,7 +806,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       '$owedPct% owed',
-                      style: AppText.caption.tint(Barako.warningStrong).w6,
+                      style: AppText.caption.tint(Barako.warning).w6,
                     ),
                   ),
                 ),
@@ -638,25 +818,75 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  Widget _miniStat(String label, double value, Color color) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: AppText.caption),
-      const SizedBox(height: 2),
-      // Scale down, never truncate: an ellipsized peso figure reads as a
-      // DIFFERENT amount. Same pattern as the net worth hero above, and the
-      // 16pt resize fork on amountRow dies with it.
-      FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          formatMoneyText(value),
-          maxLines: 1,
-          style: AppText.amountRow.tint(color),
+  /// One of the two hero totals. When [onTap] is set it opens the assets or
+  /// liabilities breakdown, a named button for a screen reader with the raw
+  /// Column excluded so it is one destination, not a stream of fragments.
+  Widget _miniStat(
+    String label,
+    double value,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    final column = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.caption,
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: Gap.xs),
+              Icon(
+                salapifyIcon('forward'),
+                size: IconSizes.dense,
+                color: Barako.muted,
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 2),
+        // Scale down, never truncate: an ellipsized peso figure reads as a
+        // DIFFERENT amount. Same pattern as the net worth hero above, and the
+        // 16pt resize fork on amountRow dies with it.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            formatMoneyText(value),
+            maxLines: 1,
+            style: AppText.amountRow.tint(color),
+          ),
+        ),
+      ],
+    );
+    if (onTap == null) return column;
+    return Semantics(
+      button: true,
+      label: '$label ${formatMoneyText(value)}. Opens the breakdown.',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: column,
         ),
       ),
-    ],
-  );
+    );
+  }
+
+  void _openBreakdown(BuildContext context, AssetsView view) {
+    Haptics.select();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssetsLiabilitiesScreen(store: store, initial: view),
+      ),
+    );
+  }
 
   /// The four things a person opens Accounts to do, as one compact row under
   /// the net worth number. Icons carry the meaning, one short word confirms it.
@@ -2307,27 +2537,57 @@ class _TransferSheetState extends State<_TransferSheet> {
       });
       return;
     }
-    // A receipt, so the largest single-tap money move in the app confirms what
-    // happened, the way every other write here already does. No Undo: deleting
-    // a transfer row does not reverse the balances (see transfers.dart), so the
-    // honest thing is to confirm, not offer an undo that would not undo. The
-    // messenger is captured BEFORE the pop, because the sheet's own context is
-    // gone the moment it closes.
-    final messenger = ScaffoldMessenger.of(context);
+    // The mockup's success confirmation, replacing the old snackbar receipt: it
+    // shows the move, both new balances, and a checkmark. Values are captured
+    // BEFORE the pop, because the sheet's own context and state are gone the
+    // moment it closes; the balances are already the post-transfer figures. No
+    // Undo, the same reason as before (deleting a transfer row does not reverse
+    // the balances, see transfers.dart), so the honest thing is to confirm.
+    final nav = Navigator.of(context);
     final moved = amountOf(_amount.text.replaceAll(RegExp(r'[, ]'), ''));
     final fromName = _nameOf(_fromId);
     final toName = _nameOf(_toId);
-    // Felt, not just shown, the word every committed money write speaks. The
-    // refusal and error paths above stay silent on purpose.
+    final fromBalance = _balanceOf(_fromId);
+    final toBalance = _balanceOf(_toId);
+    final fromColor = institutionBrandColor(
+      _rowOf(_fromId)['institutionId']?.toString(),
+    );
+    final toColor = institutionBrandColor(
+      _rowOf(_toId)['institutionId']?.toString(),
+    );
+    // Felt, not just shown, the word every committed money write speaks. A
+    // transfer is a ROUTINE write, not a milestone, so it gets moneyWritten,
+    // not milestone, and the success screen stays a calm confirmation with no
+    // reserved celebration confetti. The refusal and error paths stay silent.
     Haptics.moneyWritten();
-    Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          'Moved ${formatMoneyText(moved)} from $fromName to $toName.',
-        ),
+    nav.pop();
+    await showDialog<void>(
+      context: nav.context,
+      barrierColor: Barako.overlay,
+      builder: (_) => _TransferSuccessDialog(
+        moved: moved,
+        fromName: fromName,
+        toName: toName,
+        fromBalance: fromBalance,
+        toBalance: toBalance,
+        fromColor: fromColor,
+        toColor: toColor,
       ),
     );
+  }
+
+  double _balanceOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return amountOf(a['balance']);
+    }
+    return 0;
+  }
+
+  Map<String, dynamic> _rowOf(String id) {
+    for (final a in _accounts) {
+      if ('${a['id']}' == id) return a;
+    }
+    return const {};
   }
 
   /// The refusal as a sentence that cannot contradict itself.
@@ -2534,6 +2794,159 @@ class _TransferSheetState extends State<_TransferSheet> {
         ),
     ],
   );
+}
+
+/// The transfer success confirmation, the mockup's "Transfer successful" screen.
+///
+/// A calm confirmation, not a celebration: a transfer is a routine money write,
+/// so this uses a checkmark that scales in (gated through Motion.of for
+/// reduce-motion) rather than the reserved milestone confetti. It shows the two
+/// accounts with their NEW balances and the amount moved, so the person sees
+/// exactly what happened before dismissing.
+class _TransferSuccessDialog extends StatelessWidget {
+  final double moved;
+  final String fromName;
+  final String toName;
+  final double fromBalance;
+  final double toBalance;
+  final Color? fromColor;
+  final Color? toColor;
+  // ignore: prefer_const_constructors_in_immutables
+  _TransferSuccessDialog({
+    required this.moved,
+    required this.fromName,
+    required this.toName,
+    required this.fromBalance,
+    required this.toBalance,
+    this.fromColor,
+    this.toColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.all(Gap.xl),
+      child: Padding(
+        padding: const EdgeInsets.all(Gap.gutter),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Transfer successful',
+              style: AppText.subtitle.w8.tint(Barako.text),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: Gap.xl),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _accountChip(fromName, fromBalance, fromColor)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Gap.sm),
+                  child: _check(context),
+                ),
+                Expanded(child: _accountChip(toName, toBalance, toColor)),
+              ],
+            ),
+            const SizedBox(height: Gap.xl),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                formatMoneyText(moved),
+                maxLines: 1,
+                style: AppText.amountLg.w8,
+              ),
+            ),
+            const SizedBox(height: Gap.xs),
+            Text(
+              'Successfully transferred',
+              style: AppText.small.tint(Barako.muted),
+            ),
+            const SizedBox(height: Gap.xl),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The checkmark, scaling in on first build, gated through Motion.of so
+  /// reduce-motion shows it settled instantly.
+  Widget _check(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Motion.of(context, Motion.reveal),
+      curve: Curves.elasticOut,
+      builder: (context, t, child) =>
+          Transform.scale(scale: t.clamp(0.0, 1.0), child: child),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Barako.income.withValues(alpha: BarakoAlpha.tint),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          salapifyIcon('done'),
+          size: IconSizes.inline,
+          color: Barako.income,
+        ),
+      ),
+    );
+  }
+
+  /// One account, with its NEW balance, tinted by its brand colour where one is
+  /// known. Never draws money in the brand colour: the tint is a thin top
+  /// stripe, the figure stays in full ink so it always clears contrast.
+  Widget _accountChip(String name, double balance, Color? brand) {
+    final accent = brand ?? Barako.primary;
+    return Container(
+      decoration: BoxDecoration(
+        color: Barako.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: Barako.border),
+      ),
+      padding: const EdgeInsets.all(Gap.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 4,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+          ),
+          const SizedBox(height: Gap.sm),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.small.w6.tint(Barako.text),
+          ),
+          const SizedBox(height: 2),
+          Text('New balance', style: AppText.caption.tint(Barako.muted)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatMoneyText(balance),
+              maxLines: 1,
+              style: AppText.amountRow.tint(Barako.text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The rate dialog, as a widget rather than a local in an async function.

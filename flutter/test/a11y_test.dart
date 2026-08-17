@@ -119,17 +119,37 @@ Future<void> _meetsAll(WidgetTester tester, String where) async {
 }
 
 void main() {
-  testWidgets('every primary destination meets all four guidelines', (
+  testWidgets('every bar destination meets all four guidelines', (
     tester,
   ) async {
     await _boot(tester);
-    for (final label in ['Home', 'Activity', 'Budget', 'Utang', 'Insights']) {
+    for (final label in ['Home', 'Activity', 'Insights', 'Accounts']) {
       await goToTab(tester, label);
       await _meetsAll(tester, 'the $label tab');
     }
-    // Utang's second segment is a different screen wearing the same tab.
-    await goToOwedToMe(tester);
-    await _meetsAll(tester, 'the Utang tab, Owed to me segment');
+  });
+
+  testWidgets('the Budget screen meets all four guidelines', (tester) async {
+    // Budget left the bar (founder direction, matching the mockup's four-tab
+    // bar) and is a pushed screen off the Menu now. Its own guideline pass
+    // still runs, just over a route instead of a resident tab.
+    await _boot(tester);
+    await goToTab(tester, 'Budget');
+    await _meetsAll(tester, 'the Budget screen');
+  });
+
+  testWidgets('the Utang screen meets all four guidelines, both segments', (
+    tester,
+  ) async {
+    // Utang is also a pushed screen now, opening on "I owe". Both segments get
+    // checked from one push: "Owed to me" is a different screen wearing the
+    // same header, and the empty-vs-rich control counts differ between them.
+    await _boot(tester);
+    await goToTab(tester, 'Utang');
+    await _meetsAll(tester, 'the Utang screen, I owe segment');
+    await tester.tap(find.text('Owed to me'));
+    await tester.pumpAndSettle();
+    await _meetsAll(tester, 'the Utang screen, Owed to me segment');
   });
 
   testWidgets('Menu meets all four guidelines, every screenful', (

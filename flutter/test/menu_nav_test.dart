@@ -46,24 +46,28 @@ void main() {
     // viewport. This assertion only ever meant "the real dashboard rendered".
     expect(find.text('NET WORTH'), findsOneWidget);
     expect(find.text('Calculators'), findsNothing);
-    expect(find.text('Accounts'), findsNothing);
     expect(find.text('Goals'), findsNothing);
+    // 'Accounts' is deliberately NOT asserted absent any more: it became a
+    // bottom-bar destination (the mockup's Home / Activity / Insights /
+    // Accounts), so its label lives in the NavigationBar now, which is exactly
+    // where a place you go often belongs. Calculators and Goals stay Menu-only.
 
-    // Five destinations, and Menu is NOT one of them. A bottom bar is for
-    // places you go often; Menu is a drawer of everything else and it was
-    // taking a sixth of the most valuable strip on the screen. The bar's own
-    // theme had been shrunk below Material's defaults specifically to fit six.
+    // Four destinations, and Menu is NOT one of them. A bottom bar is for
+    // places you go often; Menu is a drawer of everything else. Budget and
+    // Utang moved off the bar into the Menu (matching the mockup), so the strip
+    // that had shrunk below Material's defaults to fit six now holds four.
     //
     // Scoped to the NavigationBar rather than searching the whole tree, because
     // the mounted destinations render their own headers with the same words.
     expect(navDestination('Menu'), findsNothing);
     expect(navDestination('Insights'), findsOneWidget);
+    expect(navDestination('Accounts'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(NavigationBar),
         matching: find.byType(NavigationDestination),
       ),
-      findsNWidgets(5),
+      findsNWidgets(4),
     );
 
     // And Menu is still one tap away, from the header.
@@ -80,7 +84,27 @@ void main() {
       findsNothing,
       reason: 'The Debts tile came back. Its one home is the Utang tab.',
     );
-    for (final row in const ['Accounts', 'Goals', 'Ask Pan', 'Calculators']) {
+    // Accounts is absent for the same reason Debts is: it became a resident
+    // bottom-bar tab, so a Menu tile would be a rootless second door with no
+    // bottom bar. The MONEY grid it used to sit in is at the top of Menu, on
+    // screen right here, so this findsNothing measures the real place.
+    expect(
+      find.text('Accounts'),
+      findsNothing,
+      reason:
+          'The Accounts tile came back. It is a bottom-bar tab now, one tap '
+          'away; a Menu copy is the second-door antipattern.',
+    );
+    // Budget and Utang, on the other hand, MUST be here: they left the bar and
+    // this Menu is their home now. A typed set is a promise, so the IA-lock
+    // test names the exact members this move added, not just the survivors.
+    for (final row in const [
+      'Budget',
+      'Utang',
+      'Goals',
+      'Ask Pan',
+      'Calculators',
+    ]) {
       await tester.scrollUntilVisible(
         find.text(row),
         100,

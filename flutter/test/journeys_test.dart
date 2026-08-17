@@ -297,6 +297,25 @@ Future<void> _tap(WidgetTester tester, Finder f) async {
   await tester.pumpAndSettle();
 }
 
+/// Reach the Utang screen the way a person does now.
+///
+/// Utang left the bottom bar (it went from six destinations to Home, Activity,
+/// Insights, Accounts), so there is no bottom-bar Utang to tap any more. The
+/// canonical door is the Menu: open it, tap the Utang tile, and the shell
+/// PUSHES MoneyScreen on the "I owe" side, the same default the old bottom-bar
+/// Utang tab landed on.
+///
+/// Two things the caller must respect. It must already be on a Menu-bearing bar
+/// tab (Home, Activity, Insights, Accounts all carry the Menu key; a pushed
+/// screen does not). And the push leaves the Menu route UNDERNEATH the pushed
+/// MoneyScreen (stack: ...Home -> Menu -> MoneyScreen), so returning to a
+/// Menu-bearing tab afterwards takes TWO pops, not one: the MoneyScreen and the
+/// Menu beneath it.
+Future<void> _openUtang(WidgetTester tester) async {
+  await _tap(tester, find.byTooltip('Menu'));
+  await _tap(tester, find.text('Utang'));
+}
+
 /// Everything the app has stored, as one comparable string.
 ///
 /// The did-anything-happen half of every journey, made into a machine rather
@@ -382,7 +401,8 @@ void main() {
     final before = _netWorth(store);
     final stateBefore = _storedState(store);
 
-    await _tap(tester, find.byTooltip('Menu'));
+    // Accounts is a bottom-bar tab now, tapped straight on the bar (its Menu
+    // tile was retired when it got its own bar seat).
     await _tap(tester, find.text('Accounts'));
     // Transfer now lives in the quick-actions row under the net worth card.
     await _tap(tester, find.text('Transfer'));
@@ -432,12 +452,12 @@ void main() {
     final owedBefore = _debt(store, 'card');
     final cashBefore = _balance(store, 'cash');
 
-    // Reached from the bottom nav, not the Menu. Debts and utang were merged
-    // into one tab, "I owe" first, so there is no Debts destination to open.
-    // Discovering that from a failing test is itself worth something: a
-    // journey written from memory of where things used to be is a journey
-    // nobody could follow either.
-    await _tap(tester, find.text('Utang'));
+    // Reached from the Menu now, not the bottom nav. Utang left the bar (Home,
+    // Activity, Insights, Accounts), so it is a pushed screen opened from the
+    // Menu's Utang tile, landing on "I owe" first. Discovering the door moved
+    // from a failing test is itself worth something: a journey written from
+    // memory of where things used to be is a journey nobody could follow.
+    await _openUtang(tester);
     await _tap(tester, find.text('BPI card'));
     // The payment box arrives PREFILLED with the minimum, which is 1000 here,
     // so nothing is typed. That is deliberate: it exercises the default a real
@@ -478,7 +498,8 @@ void main() {
     // Net worth 21,800 - 8,000 = 13,800.
     expect(_netWorth(store), closeTo(13800, 0.001));
 
-    await _tap(tester, find.byTooltip('Menu'));
+    // Accounts is a bottom-bar tab now, tapped straight on the bar (its Menu
+    // tile was retired when it got its own bar seat).
     await _tap(tester, find.text('Accounts'));
     // The hero on Accounts, from netWorthParts, and the engine, from the same
     // call. If these two ever part company the screen is doing its own maths.
@@ -500,7 +521,7 @@ void main() {
     final before = _netWorth(store);
     final cashBefore = _balance(store, 'cash');
 
-    await _tap(tester, find.text('Utang'));
+    await _openUtang(tester);
     await _tap(tester, find.text('Owed to me'));
     await _tap(tester, find.text('New'));
     await tester.enterText(find.byType(TextField).at(0), 'Ana');
@@ -580,7 +601,7 @@ void main() {
       final before = _netWorth(store);
       final owed = _debt(store, 'loan');
 
-      await _tap(tester, find.text('Utang'));
+      await _openUtang(tester);
       await _tap(tester, find.text('Salary Loan'));
       expect(find.text('LOG A PAYMENT'), findsOneWidget);
 
@@ -721,7 +742,7 @@ void main() {
     final before = _netWorth(store);
     final cashBefore = _balance(store, 'cash');
 
-    await _tap(tester, find.text('Utang'));
+    await _openUtang(tester);
     await _tap(tester, find.text('Owed to me'));
     await _tap(tester, find.text('New'));
     await tester.enterText(find.byType(TextField).at(0), 'Ben');
@@ -791,7 +812,7 @@ void main() {
       reason: 'a hand-zeroed debt with no payments is not a shareable win',
     );
 
-    await _tap(tester, find.text('Utang'));
+    await _openUtang(tester);
     await _tap(tester, find.text('Old ghost'));
     expect(find.text('Paid off'), findsWidgets);
     expect(
@@ -1097,8 +1118,8 @@ void main() {
         ),
       });
 
-      // Back out of Pan and Menu the way a person does, then pay the debt
-      // through the real pay flow on the Utang tab.
+      // Back out of Pan and the Menu beneath it, the way a person does, to
+      // land on Home (a Menu-bearing bar tab). Two pops: Pan, then Menu.
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.pageBack();
@@ -1106,7 +1127,11 @@ void main() {
 
       final owedBefore = _debt(store, 'card');
       final cashBefore = _balance(store, 'cash');
-      await _tap(tester, find.text('Utang'));
+      // Pay the debt through the real pay flow on the Utang screen, reached
+      // from the Menu now (it left the bottom bar). This PUSHES MoneyScreen
+      // over Home -> Menu, so the stack is Home -> Menu -> MoneyScreen and the
+      // walk back to the Menu key below has to unwind both.
+      await _openUtang(tester);
       await _tap(tester, find.text('BPI card'));
       // The prefilled minimum, 1000 in this seed, paid from Cash: the default
       // a real person taps straight through, same as the older debt journey.
@@ -1150,6 +1175,15 @@ void main() {
         closeTo(1000, 0.001),
         reason: 'the plan scored a different amount than was paid',
       );
+
+      // Back out of the pushed Utang screen and the Menu beneath it, to Home,
+      // so the Menu key below is present again: a pushed MoneyScreen carries a
+      // Back arrow, not a Menu, so reaching Pan means unwinding both pops the
+      // Menu-door push added.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
       // Back into Pan. The card's progress bar must draw the engine's own
       // fraction, computed here from the same status rather than a literal so
@@ -1311,12 +1345,14 @@ void main() {
     );
 
     // And the debts screen agrees, on the screen a person would go check: the
-    // debt the plan pointed at still owes exactly what it owed.
+    // debt the plan pointed at still owes exactly what it owed. Back out of Pan
+    // and the Menu beneath it to Home (two pops), then reach Utang from the
+    // Menu, its home now that it left the bottom bar.
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await _tap(tester, find.text('Utang'));
+    await _openUtang(tester);
     expect(_debt(store, 'card'), closeTo(owedBefore, 0.001));
     expect(
       find.text(formatMoney(owedBefore)),
@@ -1505,9 +1541,12 @@ void main() {
             'entirely the payment under test',
       );
 
-      // Pay through the real debts screen, the prefilled minimum (1000 in
-      // this seed) from Cash: the default a person taps straight through.
-      await _tap(tester, find.text('Utang'));
+      // Pay through the real debts screen, reached from the Menu now (Utang
+      // left the bottom bar), the prefilled minimum (1000 in this seed) from
+      // Cash: the default a person taps straight through. This pushes
+      // MoneyScreen over Home -> Menu, so returning to the Menu below unwinds
+      // both.
+      await _openUtang(tester);
       await _tap(tester, find.text('BPI card'));
       expect(find.text('LOG A PAYMENT'), findsOneWidget);
       await _tap(tester, find.text('Cash'));
@@ -1545,6 +1584,14 @@ void main() {
             'the goal moved because something wrote to it; a debt goal must '
             'derive, never copy',
       );
+
+      // Back out of the pushed Utang screen and the Menu beneath it, to Home,
+      // so the Menu key below is present again: a pushed MoneyScreen carries a
+      // Back arrow, not a Menu.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
       // The Goals list retells the payment, through the same engine call and
       // the same formatMoney the card uses.

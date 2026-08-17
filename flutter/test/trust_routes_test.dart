@@ -4,14 +4,16 @@
 //
 //   "See who owes me" switched to the Utang tab on its DEFAULT segment, "I
 //   owe", a screen with none of their receivables on it.
-//   "Pay off a debt" PUSHED a standalone Debts screen over the shell, stranding
-//   the person on a copy of the tab with no bottom bar to get back.
+//   "Pay off a debt" PUSHED a standalone Debts screen over the shell, a bare
+//   copy of the tab with none of the segment control around it.
 //   Accounts told people to "Manage debts on the Debts screen", a screen that
 //   is only a fallback, not the canonical home.
 //
-// These assert the landing, the visible create action, and that the bottom bar
-// (or the tab itself) is intact, so a future segment reshuffle cannot send a
-// first-run tap somewhere wrong again in silence.
+// Utang left the bottom bar (founder direction, matching the mockup) and is a
+// pushed screen now, so these assert the landing SEGMENT, the visible create
+// action, the header Back arrow, and that the canonical MoneyScreen (with both
+// segments) opened rather than a bare DebtsScreen, so a future segment
+// reshuffle cannot send a first-run tap somewhere wrong again in silence.
 
 import 'dart:convert';
 
@@ -51,11 +53,11 @@ void main() {
     expect(find.text('What you owe, and the plan to zero'), findsNothing);
     // Its create action is there,
     expect(find.widgetWithText(FilledButton, 'New'), findsOneWidget);
-    // and so is the bottom bar.
-    expect(find.byType(NavigationBar), findsOneWidget);
+    // and the pushed screen carries its own way back where a bottom bar can't.
+    expect(find.byTooltip('Back'), findsOneWidget);
   });
 
-  testWidgets('empty Home "Pay off a debt" opens the I owe segment in the tab', (
+  testWidgets('empty Home "Pay off a debt" opens the I owe segment', (
     tester,
   ) async {
     await _bootEmptyHome(tester);
@@ -65,12 +67,13 @@ void main() {
     await tester.tap(lane);
     await tester.pumpAndSettle();
 
-    // We are on the Utang tab (its segment control exists) on the "I owe" half.
+    // The canonical Utang surface (its segment control exists) on the "I owe"
+    // half, not a bare DebtsScreen copy.
     expect(find.text('Owed to me'), findsOneWidget);
     expect(find.text('What you owe, and the plan to zero'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'New'), findsOneWidget);
-    // The bottom bar is intact,
-    expect(find.byType(NavigationBar), findsOneWidget);
+    // The pushed screen carries its own Back arrow,
+    expect(find.byTooltip('Back'), findsOneWidget);
     // and no standalone Debts screen was pushed over the shell.
     expect(find.byType(DebtsScreen), findsNothing);
   });
@@ -96,6 +99,12 @@ void main() {
     final store = SalapifyStore();
     await store.load();
     var opened = false;
+    // A real phone surface: the accounts list is lazy, and on the short 800x600
+    // test default the debt note at the bottom sat below the built range, so the
+    // tap missed it. A phone builds it.
+    tester.view.physicalSize = const Size(1170, 6000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),

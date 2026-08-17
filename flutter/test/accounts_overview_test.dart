@@ -26,6 +26,15 @@ Future<void> _pump(
   SalapifyStore store, {
   VoidCallback? onOpenPayables,
 }) async {
+  // A real phone surface, not the 800x600 test default. The accounts list is a
+  // lazy ListView, so a group below the viewport plus cache extent never builds
+  // and a find.text for its name returns zero. On the short default the taller
+  // hero pushed the Investments group off the bottom; a realistic tall surface
+  // builds it, exactly as a phone does. One test below sets its own taller size
+  // for a 40-row list and still works, since this is the same shape.
+  tester.view.physicalSize = const Size(1170, 6000);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
       home: AccountsScreen(store: store, onOpenPayables: onOpenPayables),

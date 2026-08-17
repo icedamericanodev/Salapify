@@ -46,6 +46,8 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/assets_liabilities.dart';
+import 'package:salapify/screens/net_worth_trend.dart';
 import 'package:salapify/screens/appearance.dart';
 import 'package:salapify/screens/bnpl_calculator.dart';
 import 'package:salapify/screens/budget.dart';
@@ -398,6 +400,8 @@ void main() {
     'Financial guides': (s) => FinancialGuidesScreen(store: s),
     'Appearance': (s) => AppearanceScreen(store: s),
     'Accounts': (s) => AccountsScreen(store: s),
+    'Net worth trend': (s) => NetWorthTrendScreen(store: s),
+    'Assets and liabilities': (s) => AssetsLiabilitiesScreen(store: s),
     'Account detail': (s) => AccountDetailScreen(
       store: s,
       id: 'bpi',
@@ -616,6 +620,8 @@ void main() {
       'path_screen.dart',
       'appearance.dart',
       'accounts.dart',
+      'net_worth_trend.dart',
+      'assets_liabilities.dart',
       'account_detail.dart',
       'categories.dart',
       'reports.dart',

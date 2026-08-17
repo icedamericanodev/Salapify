@@ -71,6 +71,8 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/assets_liabilities.dart';
+import 'package:salapify/screens/net_worth_trend.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
 import 'package:salapify/screens/tax_deadlines.dart';
@@ -1384,8 +1386,8 @@ void main() {
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
-    await tester.tap(navDestination('Utang'));
-    await tester.pumpAndSettle();
+    // Utang left the bar and is a pushed screen off the Menu now.
+    await goToTab(tester, 'Utang');
     await tester.tap(find.text('Owed to me'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
@@ -1395,6 +1397,14 @@ void main() {
       matchesGoldenFile('shots/utang-new-sheet-dark.png'),
     );
     await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // Back out of the pushed Utang screen (its header Back arrow) and the Menu
+    // beneath it (its AppBar back) to the shell, so the bottom bar is reachable
+    // again for the next shot.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     // The edit sheet, opened from a real Activity row, prefilled.
@@ -1466,8 +1476,8 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/activity-rows-dark.png'),
     );
-    await tester.tap(navDestination('Budget'));
-    await tester.pumpAndSettle();
+    // Budget left the bar and is a pushed screen off the Menu now.
+    await goToTab(tester, 'Budget');
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('shots/budget-today-dark.png'),
@@ -2488,6 +2498,187 @@ void main() {
         matchesGoldenFile('shots/accounts-overview-${b.name}.png'),
       );
     }
+  });
+
+  testWidgets('the Net worth trend screen, light and dark', (tester) async {
+    // Reached by tapping the net worth figure on the Accounts hero. The
+    // lived-in fixture carries eleven months of history, so the line draws
+    // rather than showing the not-enough-history state. Light then dark.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: NetWorthTrendScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/net-worth-trend-${b.name}.png'),
+      );
+    }
+  });
+
+  testWidgets('the Assets vs Liabilities donut, light and dark', (tester) async {
+    // Reached by tapping a hero total. The lived-in fixture has assets across
+    // several categories and some debts, so the donut and legend fill in.
+    // Own (assets) is the default view, matching the mockup. Light then dark.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AssetsLiabilitiesScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/assets-liabilities-${b.name}.png'),
+      );
+    }
+  });
+
+  testWidgets('the account detail This month figures, light and dark', (
+    tester,
+  ) async {
+    // A dedicated fixture so the This month In/Out/Net card shows real numbers
+    // (the shared lived-in book has no bpi movements). Current-month dates so
+    // the month filter always includes them. In 36,250, Out 25,000 + 5,000
+    // transfer = 30,000, Net 6,250, matching the mockup. Light then dark.
+    await loadRealFonts(tester);
+    final now = DateTime.now();
+    String d(int back) {
+      final t = DateTime(now.year, now.month, now.day).subtract(Duration(days: back));
+      return '${t.year.toString().padLeft(4, '0')}-'
+          '${t.month.toString().padLeft(2, '0')}-'
+          '${t.day.toString().padLeft(2, '0')}';
+    }
+
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {
+            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
+            'balance': 48000, 'subtype': 'savings_account',
+            'institutionId': 'bpi',
+          },
+          {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000},
+        ],
+        'transactions': [
+          {'id': 'i1', 'type': 'income', 'label': 'Salary deposit', 'amount': 36250, 'date': d(0), 'accountId': 'bpi'},
+          {'id': 'o1', 'type': 'expense', 'label': 'Rent', 'amount': 25000, 'date': d(2), 'accountId': 'bpi'},
+          {
+            'id': 'x1', 'type': 'transfer', 'label': 'Transfer to GCash',
+            'amount': 5000, 'date': d(4),
+            'transferFromId': 'bpi', 'transferToId': 'gcash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AccountDetailScreen(
+            store: store,
+            id: 'bpi',
+            accountStore: AccountStore.accounts,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/account-detail-month-${b.name}.png'),
+      );
+    }
+  });
+
+  testWidgets('the transfer success confirmation, dark', (tester) async {
+    // Drives a real transfer end to end (open the sheet, enter an amount, tap
+    // Move it) so the success dialog it renders is the real one, not a mock.
+    // Dark only, the founder's mode, like the other dialogs and sheets.
+    await loadRealFonts(tester);
+    Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode({
+        'schemaVersion': 12,
+        'settings': {'onboarded': true},
+        'accounts': [
+          {
+            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
+            'balance': 48000, 'subtype': 'savings_account',
+            'institutionId': 'bpi',
+          },
+          {
+            'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000,
+            'institutionId': 'gcash',
+          },
+        ],
+      }),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Barako.current),
+        debugShowCheckedModeBanner: false,
+        home: AccountsScreen(store: store),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Transfer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '5000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move it'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/transfer-success-dark.png'),
+    );
   });
 
   testWidgets('the account groups, expanded and collapsed', (tester) async {

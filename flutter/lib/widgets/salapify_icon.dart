@@ -150,6 +150,11 @@ const Map<String, IconData> _icons = {
   // The display fallback for a treat whose emoji field is empty. The emoji
   // a user typed stays theirs; this is only what WE draw when there is none.
   'treat': Icons.local_cafe_outlined,
+  // The brand's coffee mark. Salapify is a coffee-warm brand (Barako), so this
+  // is our own decorative full stop, e.g. the warm accent on the Accounts
+  // hero where the mockup put a latte. Ours to draw, so it is a glyph in the
+  // accent, never an emoji sticker.
+  'coffee': Icons.local_cafe_outlined,
   'paused': Icons.pause_circle_outline,
   // A paused decision sitting in the Money Mindset Waiting list, counting
   // down to its Do you still want this? check-in.
@@ -256,6 +261,10 @@ const Map<String, IconData> _filled = {
   'activity': Icons.receipt_long,
   'utang': Icons.handshake,
   'insights': Icons.insights,
+  // Accounts joined the bottom bar (the mockup's four-tab strip), so its glyph
+  // needs a filled twin like the other destinations: the tab you are ON must
+  // differ by shape, not colour alone.
+  'wallet': Icons.account_balance_wallet,
   'menu': Icons.grid_view,
 };
 

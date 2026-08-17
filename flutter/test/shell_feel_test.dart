@@ -51,10 +51,13 @@ void main() {
     await tester.pumpAndSettle();
     final haptics = _recordHaptics(tester);
 
-    await goToTab(tester, 'Budget');
+    // A BAR tab, not Budget: Budget left the bar and is a pushed screen now, so
+    // switching to it is a route push, not the selection this haptic guards.
+    // Activity is a real neighbour on the bar, which is what clicks.
+    await goToTab(tester, 'Activity');
     expect(haptics, hasLength(1), reason: 'a real tab change clicks once');
 
-    await goToTab(tester, 'Budget');
+    await goToTab(tester, 'Activity');
     expect(
       haptics,
       hasLength(1),

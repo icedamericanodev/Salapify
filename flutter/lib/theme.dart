@@ -617,6 +617,31 @@ class Barako {
   static Color get positiveBorder => current.positiveBorder;
   static Color get overlay => current.overlay;
 
+  /// The one hero warmth, the coffee glow the Accounts hero wears where the
+  /// mockup put a latte. A soft top-right wash of the brand accent over
+  /// surfaceRaised, fading to plain surfaceRaised. ONE recipe, read live off
+  /// the getters, so every hero that ever wants warmth pulls the same gradient
+  /// and a mood switch cannot warm one screen and leave another cold.
+  ///
+  /// NOT const, the same rule as every colour getter: a const gradient would
+  /// freeze the palette and go cold on a theme or night-mode flip. It never
+  /// darkens below surfaceRaised, so it adds warmth without inventing a new
+  /// elevation; hierarchy still comes from the fill and the border. The hot
+  /// stop is [BarakoAlpha.tint] (0.12) rather than wash (0.06) because at 6%
+  /// the orange was imperceptible over the near-black dark surface the founder
+  /// runs, and only one corner ever reaches full strength.
+  static LinearGradient get heroWash => LinearGradient(
+    begin: Alignment.topRight,
+    end: Alignment.bottomLeft,
+    colors: [
+      Color.alphaBlend(
+        current.primary.withValues(alpha: BarakoAlpha.tint),
+        current.surfaceRaised,
+      ),
+      current.surfaceRaised,
+    ],
+  );
+
   /// Categorical data colours for charts and category breakdowns: donut slices,
   /// legend dots, per-category bars. THEME-INVARIANT by rule, the same reasoning
   /// as the win gold and Pan's orange. A category should read as the same colour
@@ -1001,9 +1026,11 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       indicatorColor: p.primary,
-      // Five tabs share the width. The 10px labels date from the six-tab era;
-      // they still keep every label on one line down to a 320dp phone, and
-      // raising them is a separate, sweep-verified decision.
+      // Four tabs share the width now (Home, Activity, Insights, Accounts),
+      // down from five when Budget and Utang left the bar. The 10px labels date
+      // from the six-tab era; with more room per tab they still keep every
+      // label on one line down to a 320dp phone, and raising them is a
+      // separate, sweep-verified decision.
       height: 68,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(

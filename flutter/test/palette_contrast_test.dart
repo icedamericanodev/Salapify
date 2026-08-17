@@ -69,6 +69,15 @@ const List<Pair> _pairs = [
   ('text on background', _text, _background, 4.5),
   ('text on card', _text, _card, 4.5),
   ('text on raised surface', _text, _surfaceRaised, 4.5),
+  // The Accounts hero sits on surfaceRaised and draws more than plain text on
+  // it: the NET WORTH kicker and mini-stat labels are muted, the assets figure
+  // and owned share are primaryText, the owed figure and owed share are
+  // warning. surfaceRaised is LIGHTER than card in every dark palette, so a
+  // pair that clears AA on card can fail here, which is exactly how the owed
+  // figure shipped under 4.5 on this surface once. These three close that gap.
+  ('muted on raised surface', _muted, _surfaceRaised, 4.5),
+  ('primary text on raised surface', _primaryText, _surfaceRaised, 4.5),
+  ('warning on raised surface', _warning, _surfaceRaised, 4.5),
   ('secondary text on card', _textSecondary, _card, 4.5),
 
   // Muted is the sub line under a row title: a real sentence, read once.
