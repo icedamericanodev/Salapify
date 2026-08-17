@@ -14,7 +14,6 @@ import 'package:flutter/services.dart';
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/format.dart' show formatMoney;
-import '../money/greeting.dart' show greetingFor;
 import '../money/net_worth_history.dart'
     show netWorthHistoryOf, netWorthMonthKey, netWorthTrend;
 import '../money/ledger.dart' show amountOf;
@@ -532,67 +531,38 @@ class _AccountsScreenState extends State<AccountsScreen> {
       netWorthMonthKey(now),
       netWorth,
     );
-    final greeting = greetingFor(now, name: store.displayName);
-    // The one raised hero, warmed. surfaceRaised is the base, with a soft
-    // top-right glow of the brand accent standing in for the mockup's latte:
-    // pure paint, so it ships over the air, and low enough alpha that the light
-    // text on top keeps its measured contrast (the gradient never darkens below
-    // surfaceRaised, so no pair the contrast sweep checks is weakened).
+    // The one raised hero, warmed by Barako.heroWash (the tokenized coffee
+    // glow). No greeting: Home already greets at the app's front door, and a
+    // hello on a tab the user re-enters all day steals the top line from the
+    // one number this screen exists to show. The warmth comes from the wash
+    // and a single small coffee mark on the kicker row, per the expert panel.
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.hero),
         border: Border.all(color: Barako.border),
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Color.alphaBlend(
-              Barako.primary.withValues(alpha: BarakoAlpha.wash),
-              Barako.surfaceRaised,
-            ),
-            Barako.surfaceRaised,
-          ],
-        ),
+        gradient: Barako.heroWash,
       ),
       padding: Insets.hero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Text(
-                  greeting,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.small.w6.tint(Barako.textSecondary),
-                ),
-              ),
-              // The coffee mark: Salapify's own glyph in the accent, a warm
-              // full stop to the greeting where the mockup put a latte. An
-              // icon, not an emoji, so the palette owns it and it renders
-              // rather than drawing a box in a review shot.
-              const SizedBox(width: Gap.sm),
-              Container(
-                width: IconSizes.disc,
-                height: IconSizes.disc,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  salapifyIcon('coffee'),
-                  size: IconSizes.inline,
-                  color: Barako.primaryText,
-                ),
+              Text('NET WORTH', style: Barako.kickerStyle),
+              const Spacer(),
+              // The coffee mark: Salapify's own glyph in the accent, the one
+              // warm full stop the panel kept, where the mockup put a latte.
+              // Drawn by the shared SalapifyGlyph (40 disc, 20 glyph) so the
+              // disc recipe cannot drift, and excluded from semantics so a
+              // screen reader does not read "coffee" between the kicker and
+              // the net worth figure: it is decoration, not information.
+              ExcludeSemantics(
+                child: SalapifyGlyph('coffee', size: IconSizes.inline),
               ),
             ],
           ),
-          const SizedBox(height: Gap.lg),
-          Text('NET WORTH', style: Barako.kickerStyle),
-          const SizedBox(height: Gap.xs),
+          const SizedBox(height: Gap.sm),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -614,7 +584,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
               ),
               const SizedBox(width: Gap.lg),
               Flexible(
-                child: _miniStat('Total owed', liabilities, Barako.warningStrong),
+                // Owed draws in Barako.warning, not warningStrong. warningStrong
+                // was tuned to clear AA on the card surface (theme.dart), but
+                // the hero sits on surfaceRaised, which is LIGHTER in every dark
+                // palette, and warningStrong measured under 4.5 there for a
+                // money figure. warning is the lighter red and clears it; the
+                // ownership bar's owed segment uses the same colour so the two
+                // read as one thought. Guarded by palette_contrast_test now.
+                child: _miniStat('Total owed', liabilities, Barako.warning),
               ),
             ],
           ),
@@ -656,6 +633,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
               color: color,
               fontWeight: FontWeight.w600,
               height: 1.3,
+              // Tabular figures so "PHP7,545 (3.4%)" holds its column when the
+              // month's numbers change, the same rule as every peso figure.
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),
@@ -682,7 +662,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       if (owedPct > 0)
         Expanded(
           flex: owedPct,
-          child: ColoredBox(color: Barako.warningStrong),
+          child: ColoredBox(color: Barako.warning),
         ),
     ];
     return Semantics(
@@ -728,7 +708,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       '$owedPct% owed',
-                      style: AppText.caption.tint(Barako.warningStrong).w6,
+                      style: AppText.caption.tint(Barako.warning).w6,
                     ),
                   ),
                 ),
