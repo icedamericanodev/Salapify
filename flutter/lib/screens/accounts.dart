@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import '../money/accounts_calc.dart';
 import '../money/debtmath.dart' show formatMoneyText;
 import '../money/format.dart' show formatMoney;
+import '../money/greeting.dart' show greetingFor;
 import '../money/net_worth_history.dart'
     show netWorthHistoryOf, netWorthMonthKey, netWorthTrend;
 import '../money/ledger.dart' show amountOf;
@@ -547,10 +548,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
       netWorth,
     );
     // The one raised hero, warmed by Barako.heroWash (the tokenized coffee
-    // glow). No greeting: Home already greets at the app's front door, and a
-    // hello on a tab the user re-enters all day steals the top line from the
-    // one number this screen exists to show. The warmth comes from the wash
-    // and a single small coffee mark on the kicker row, per the expert panel.
+    // glow). Matches the founder's mockup top to bottom: a greeting with a
+    // warm coffee mark where the mockup put a latte, then NET WORTH, the
+    // figure, the month move, the two totals and the owned/owed bar. The
+    // greeting is the founder's explicit "as close as possible" call, which
+    // overrides the panel's tidier preference to drop it.
+    final greeting = greetingFor(now, name: store.displayName);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.hero),
@@ -564,20 +567,29 @@ class _AccountsScreenState extends State<AccountsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text('NET WORTH', style: Barako.kickerStyle),
-              const Spacer(),
-              // The coffee mark: Salapify's own glyph in the accent, the one
-              // warm full stop the panel kept, where the mockup put a latte.
-              // Drawn by the shared SalapifyGlyph (40 disc, 20 glyph) so the
-              // disc recipe cannot drift, and excluded from semantics so a
-              // screen reader does not read "coffee" between the kicker and
-              // the net worth figure: it is decoration, not information.
+              Expanded(
+                child: Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.small.w6.tint(Barako.textSecondary),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              // The coffee mark: Salapify's own glyph in the accent, where the
+              // mockup put a latte. A photo cannot ship over the air (the patch
+              // carries no new assets), so the brand glyph is the closest
+              // OTA-safe stand-in. Drawn by the shared SalapifyGlyph (40 disc,
+              // 20 glyph) so the disc recipe cannot drift, and excluded from
+              // semantics since it is decoration, not information.
               ExcludeSemantics(
                 child: SalapifyGlyph('coffee', size: IconSizes.inline),
               ),
             ],
           ),
-          const SizedBox(height: Gap.sm),
+          const SizedBox(height: Gap.lg),
+          Text('NET WORTH', style: Barako.kickerStyle),
+          const SizedBox(height: Gap.xs),
           // The figure and its delta open the full trend screen, one tap from
           // the number, the "am I winning over time" view the panel put first.
           // A named button so a screen reader gets a destination, not a stream
