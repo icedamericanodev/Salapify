@@ -41,8 +41,15 @@ class FinancialInstitution {
   /// the Philippine Islands", not the string we happened to choose.
   final List<String> aliases;
 
-  /// Null until a logo file is cleared for use. Nothing reads it yet.
+  /// The bundled WORDMARK logo asset, drawn on a white chip on the account
+  /// card. Null keeps the text-and-color treatment. Shown only to identify the
+  /// user's own account; Salapify is not affiliated with any institution.
   final String? localAssetPath;
+
+  /// The bundled standalone SYMBOL/mark asset (no wordmark), drawn in the round
+  /// account avatar where a wide wordmark would not fit. Null falls back to
+  /// [localAssetPath], then to initials.
+  final String? symbolAssetPath;
 
   /// The brand FILL color, ported from mobile/lib/banks.js by id. Null for the
   /// escape hatches (something else, no institution) and anything without a
@@ -56,6 +63,7 @@ class FinancialInstitution {
     required this.type,
     this.aliases = const [],
     this.localAssetPath,
+    this.symbolAssetPath,
     this.brandColor,
   });
 
@@ -106,6 +114,7 @@ const List<FinancialInstitution> institutions = [
     displayName: 'BPI',
     type: InstitutionType.bank,
     aliases: ['Bank of the Philippine Islands', 'BPI Family'],
+    localAssetPath: 'assets/institutions/bpi.png',
     brandColor: Color(0xFFB11116),
   ),
   FinancialInstitution(
@@ -120,6 +129,8 @@ const List<FinancialInstitution> institutions = [
     displayName: 'UnionBank',
     type: InstitutionType.bank,
     aliases: ['Union Bank of the Philippines', 'UBP'],
+    localAssetPath: 'assets/institutions/unionbank.png',
+    symbolAssetPath: 'assets/institutions/unionbank_symbol.png',
     brandColor: Color(0xFFFF7A00),
   ),
   FinancialInstitution(
@@ -201,6 +212,7 @@ const List<FinancialInstitution> institutions = [
     displayName: 'GoTyme',
     type: InstitutionType.digitalBank,
     aliases: ['GoTyme Bank'],
+    localAssetPath: 'assets/institutions/gotyme.png',
     brandColor: Color(0xFF001E28),
   ),
   FinancialInstitution(
@@ -243,6 +255,8 @@ const List<FinancialInstitution> institutions = [
     displayName: 'GCash',
     type: InstitutionType.eWallet,
     aliases: ['G-Cash', 'Globe GCash'],
+    localAssetPath: 'assets/institutions/gcash.png',
+    symbolAssetPath: 'assets/institutions/gcash_symbol.png',
     brandColor: Color(0xFF007DFE),
   ),
   FinancialInstitution(
@@ -250,6 +264,7 @@ const List<FinancialInstitution> institutions = [
     displayName: 'Maya',
     type: InstitutionType.eWallet,
     aliases: ['PayMaya', 'Maya Wallet'],
+    localAssetPath: 'assets/institutions/maya.png',
     brandColor: Color(0xFF0C0C0C),
   ),
   FinancialInstitution(
@@ -350,6 +365,17 @@ FinancialInstitution? institutionById(String? id) {
 /// is never a broken screen. This is the ONE lookup anything painting a bank
 /// should use, so a color only ever lives in the catalog above.
 Color? institutionBrandColor(String? id) => institutionById(id)?.brandColor;
+
+/// The bundled WORDMARK logo asset for an institution id, or null when none has
+/// been cleared for use. Used on the account card's white brand chip.
+String? institutionLogoAsset(String? id) => institutionById(id)?.localAssetPath;
+
+/// The bundled mark for the round account avatar: the standalone symbol if there
+/// is one, otherwise the wordmark, otherwise null so the caller draws initials.
+String? institutionSymbolAsset(String? id) {
+  final i = institutionById(id);
+  return i?.symbolAssetPath ?? i?.localAssetPath;
+}
 
 /// What to show for a row: the catalog entry's name, the typed custom name, or
 /// nothing.

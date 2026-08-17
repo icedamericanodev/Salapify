@@ -406,7 +406,7 @@ class InstitutionAvatar extends StatelessWidget {
     final inst = institutionById(id);
     final name = inst?.displayName ?? (customName ?? '');
     final letters = name.isEmpty ? '?' : initialsFor(name);
-    return Container(
+    final initials = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
@@ -422,6 +422,37 @@ class InstitutionAvatar extends StatelessWidget {
           fontSize: size * 0.34,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
+        ),
+      ),
+    );
+    final symbol = institutionSymbolAsset(id);
+    if (symbol == null) return initials;
+    // The real mark on a white disc, the neutral field brand guidelines want,
+    // never the app surface which many logos would vanish against. A load
+    // failure drops back to the initials disc, so a bad file is never a blank.
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * 0.17),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Barako.border),
+      ),
+      child: Image.asset(
+        symbol,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, _, _) => Center(
+          child: Text(
+            letters,
+            style: TextStyle(
+              color: const Color(0xFF6B7280),
+              fontSize: size * 0.30,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ),
     );

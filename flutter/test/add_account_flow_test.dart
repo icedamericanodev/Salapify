@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/money/account_taxonomy.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/add_account_flow.dart' show InstitutionAvatar;
 import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -348,8 +349,16 @@ void main() {
     final a = _rows(store, 'accounts').first;
     expect(a['icon'], '');
     expect(a['institutionId'], 'gcash');
-    // And the list actually draws the initials rather than a blank gap.
-    expect(find.text('GC'), findsOneWidget);
+    // And the list actually draws the bank's avatar rather than a blank gap.
+    // GCash now ships a bundled logo, so the avatar draws the mark; a bank with
+    // no logo still draws initials. Either way the row renders the institution
+    // avatar for the chosen bank, which is the "not a blank gap" guarantee this
+    // check is really about (the icon-not-overwritten rule is the two asserts
+    // above).
+    expect(
+      find.byWidgetPredicate((w) => w is InstitutionAvatar && w.id == 'gcash'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a TYPED icon always wins over the bank initials', (
