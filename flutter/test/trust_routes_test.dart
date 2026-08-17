@@ -96,6 +96,12 @@ void main() {
     final store = SalapifyStore();
     await store.load();
     var opened = false;
+    // A real phone surface: the accounts list is lazy, and on the short 800x600
+    // test default the debt note at the bottom sat below the built range, so the
+    // tap missed it. A phone builds it.
+    tester.view.physicalSize = const Size(1170, 6000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),

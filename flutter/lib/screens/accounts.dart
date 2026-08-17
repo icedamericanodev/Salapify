@@ -32,6 +32,7 @@ import '../data/qr_vault.dart';
 import '../money/account_taxonomy.dart';
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
+import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
 import 'net_worth_trend.dart' show NetWorthTrendScreen;
 import '../money/institutions.dart'
     show institutionBrandColor, institutionById, institutionLabel;
@@ -646,7 +647,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
           Row(
             children: [
               Flexible(
-                child: _miniStat('Total assets', assets, Barako.primaryText),
+                child: _miniStat(
+                  'Total assets',
+                  assets,
+                  Barako.primaryText,
+                  onTap: () => _openBreakdown(context, AssetsView.own),
+                ),
               ),
               const SizedBox(width: Gap.lg),
               Flexible(
@@ -657,7 +663,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 // money figure. warning is the lighter red and clears it; the
                 // ownership bar's owed segment uses the same colour so the two
                 // read as one thought. Guarded by palette_contrast_test now.
-                child: _miniStat('Total owed', liabilities, Barako.warning),
+                child: _miniStat(
+                  'Total owed',
+                  liabilities,
+                  Barako.warning,
+                  onTap: () => _openBreakdown(context, AssetsView.owe),
+                ),
               ),
             ],
           ),
@@ -786,25 +797,75 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  Widget _miniStat(String label, double value, Color color) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: AppText.caption),
-      const SizedBox(height: 2),
-      // Scale down, never truncate: an ellipsized peso figure reads as a
-      // DIFFERENT amount. Same pattern as the net worth hero above, and the
-      // 16pt resize fork on amountRow dies with it.
-      FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          formatMoneyText(value),
-          maxLines: 1,
-          style: AppText.amountRow.tint(color),
+  /// One of the two hero totals. When [onTap] is set it opens the assets or
+  /// liabilities breakdown, a named button for a screen reader with the raw
+  /// Column excluded so it is one destination, not a stream of fragments.
+  Widget _miniStat(
+    String label,
+    double value,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    final column = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.caption,
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: Gap.xs),
+              Icon(
+                salapifyIcon('forward'),
+                size: IconSizes.dense,
+                color: Barako.muted,
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 2),
+        // Scale down, never truncate: an ellipsized peso figure reads as a
+        // DIFFERENT amount. Same pattern as the net worth hero above, and the
+        // 16pt resize fork on amountRow dies with it.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            formatMoneyText(value),
+            maxLines: 1,
+            style: AppText.amountRow.tint(color),
+          ),
+        ),
+      ],
+    );
+    if (onTap == null) return column;
+    return Semantics(
+      button: true,
+      label: '$label ${formatMoneyText(value)}. Opens the breakdown.',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: column,
         ),
       ),
-    ],
-  );
+    );
+  }
+
+  void _openBreakdown(BuildContext context, AssetsView view) {
+    Haptics.select();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AssetsLiabilitiesScreen(store: store, initial: view),
+      ),
+    );
+  }
 
   /// The four things a person opens Accounts to do, as one compact row under
   /// the net worth number. Icons carry the meaning, one short word confirms it.

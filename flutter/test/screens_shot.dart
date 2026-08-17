@@ -71,6 +71,7 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/assets_liabilities.dart';
 import 'package:salapify/screens/net_worth_trend.dart';
 import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/tax_calculator.dart';
@@ -2519,6 +2520,38 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('shots/net-worth-trend-${b.name}.png'),
+      );
+    }
+  });
+
+  testWidgets('the Assets vs Liabilities donut, light and dark', (tester) async {
+    // Reached by tapping a hero total. The lived-in fixture has assets across
+    // several categories and some debts, so the donut and legend fill in.
+    // Own (assets) is the default view, matching the mockup. Light then dark.
+    await loadRealFonts(tester);
+    SharedPreferences.setMockInitialValues({
+      storageKey: jsonEncode(livedInBlob),
+    });
+    final store = SalapifyStore();
+    await store.load();
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    for (final b in [Brightness.light, Brightness.dark]) {
+      Barako.current = Barako.currentTheme.resolve(b);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: AssetsLiabilitiesScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/assets-liabilities-${b.name}.png'),
       );
     }
   });
