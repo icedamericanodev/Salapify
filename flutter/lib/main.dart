@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.49 · Bank logos, four more marks: RCBC, COL, CIMB and OwnBank on their account avatars.';
+    'f4.50 · Accounts redesign: refreshed hero, Pan insight, and a Money you can reach now card.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

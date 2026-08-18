@@ -34,6 +34,7 @@ import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
 import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
 import 'net_worth_trend.dart' show NetWorthTrendScreen;
+import '../widgets/pan_mascot.dart' show PanMascot, PanEmotion;
 import '../money/institutions.dart'
     show
         institutionBrandColor,
@@ -226,7 +227,24 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Accounts'),
+        toolbarHeight: 64,
+        // Title plus the time-of-day greeting, the mockup's header. The greeting
+        // moved here out of the hero card so the hero can lead with the number,
+        // the way the mockup opens. greetingFor reads the clock and the stored
+        // display name; both change rarely, so computing it in build is fine.
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Accounts'),
+            Text(
+              greetingFor(DateTime.now(), name: store.displayName),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.caption.tint(Barako.textSecondary),
+            ),
+          ],
+        ),
         // The Menu action only when this is the resident bar tab. A bar tab has
         // no back button, so without this Accounts would be the one primary
         // screen with no one-tap way into the Menu. On a deep push onMenu is
@@ -266,6 +284,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
               }
             }
             final parts = netWorthParts(store.data, fx: store.fxTable);
+            // The same golden-locked month move the hero reads, computed once
+            // here so Pan's insight card and the hero can never disagree about
+            // "this month". Null until there is a prior month to compare.
+            final insightTrend = netWorthTrend(
+              netWorthHistoryOf(store.data),
+              netWorthMonthKey(DateTime.now()),
+              parts['netWorth'] as double,
+            );
 
             double amountOfRow((Map<String, dynamic>, AccountStore) e) =>
                 switch (e.$2) {
@@ -275,6 +301,50 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 };
 
             final anyRows = groups.values.any((g) => g.isNotEmpty);
+
+            // "Money you can reach now": the sum of genuinely LIQUID asset
+            // accounts, the mockup's Available card. The definition is the
+            // financial-coach ruling, chosen so the one honest sentence under
+            // the figure stays true: cash, e-wallets, digital banks, and the
+            // deposit accounts (savings, checking, payroll), and NOTHING else.
+            // Time deposits are locked, so "use or transfer today" would be a
+            // lie about them; investments, property and credit are not money you
+            // can spend right now. Rows the app cannot price (a foreign balance
+            // with no rate) count as zero, exactly as they do in net worth, and
+            // an archived or excluded row is left out via countsInNetWorth. The
+            // amount is the SAME _countedAmount the subtotals use (base as-is,
+            // foreign converted, unpriceable zero), summed at its real signed
+            // value so a negative account is not hidden. No new arithmetic: this
+            // folds the same per-row counting the rest of the screen already
+            // trusts, so it can never disagree with the totals.
+            const liquidSubtypes = {
+              'cash_on_hand',
+              'savings_account',
+              'checking_account',
+              'payroll_account',
+              'digital_bank',
+              'ewallet',
+            };
+            final liquidRows = groups['cash_equivalents']!
+                .where(
+                  (e) =>
+                      liquidSubtypes.contains(
+                        resolveKind(e.$1, e.$2).subtype.id,
+                      ) &&
+                      countsInNetWorth(e.$1),
+                )
+                .toList();
+            final liquidTotal = liquidRows.fold(
+              0.0,
+              (t, e) => t + _countedAmount(e, amountOfRow(e)),
+            );
+            final liquidCount = liquidRows.length;
+            // A tilde marks the figure as approximate when a foreign row was
+            // converted into it, the same honesty the total above carries.
+            final liquidApprox = liquidRows.any(
+              (e) => _foreignCodeOf(e.$1) != null,
+            );
+
             // The cards shown in the swipeable carousel: every cash or wallet
             // account, then any credit card. The grouped list below still shows
             // and edits all of them, so this is a hero on top, not a
@@ -285,14 +355,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
             // to peek at is not one; a single account keeps the familiar row and
             // gains the card the moment a second account joins it.
             // Cash is money you hold, not an account at an institution, so it is
-            // NOT a card: it gets its own compact "Cash on hand" section (a
-            // CashBalanceTile per cash account) above the card carousel, which is
-            // bank and credit only. The hero zone appears at two or more accounts
-            // TOTAL, the same threshold as before, so a single account keeps just
-            // its list row and no one loses a card when cash moves out of the
-            // deck (the carousel itself handles a lone bank card, dots suppressed).
+            // NOT a card: it folds into the "Money you can reach now" summary
+            // above the carousel and still lives, openable, in the account list
+            // below. The carousel is bank and credit only. The hero zone appears
+            // at two or more accounts TOTAL, so a single account keeps just its
+            // list row (the carousel itself handles a lone bank card, dots
+            // suppressed).
             final all = _cardItems(groups);
-            final cashItems = all.where((it) => it.isCash).toList();
             final cardItems = all.where((it) => !it.isCash).toList();
             final showHero = all.length > 1;
 
@@ -362,37 +431,15 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     canTransfer: groups['cash_equivalents']!.length > 1,
                   ),
                 ],
-                if (showHero && cashItems.isNotEmpty) ...[
+                // "Money you can reach now", the mockup's Available card. It
+                // replaces the old per-cash-account tiles with one honest
+                // summary of everything liquid; the individual cash accounts
+                // still live in the account list below, where they can be
+                // opened and edited. Shown whenever there is at least one liquid
+                // account.
+                if (liquidCount > 0) ...[
                   const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 10),
-                    child: Text('CASH ON HAND', style: Barako.kickerStyle),
-                  ),
-                  for (var i = 0; i < cashItems.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 10),
-                    PressableScale(
-                      // A named button, not a stream of fragments: TalkBack
-                      // had no role and no destination for this tap.
-                      child: Semantics(
-                        button: true,
-                        label:
-                            '${cashItems[i].name}, '
-                            '${cashItems[i].amountText ?? formatMoneyText(cashItems[i].amount)}. '
-                            'Opens the account.',
-                        child: ExcludeSemantics(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => _openCard(context, cashItems[i]),
-                            child: CashBalanceTile(
-                              name: cashItems[i].name,
-                              balance: cashItems[i].amount,
-                              amountText: cashItems[i].amountText,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  _availableCard(liquidTotal, liquidCount, liquidApprox),
                 ],
                 if (showHero && cardItems.isNotEmpty) ...[
                   const SizedBox(height: 20),
@@ -413,6 +460,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
                         true,
                     onFirstFlip: () => store.setSetting('flipHintSeen', true),
                   ),
+                ],
+                // Pan's read on the month, the mockup's insight card. It reuses
+                // the golden-locked trend the hero shows, so the two can never
+                // disagree, and opens the full trend on tap. Shown only when
+                // there is a prior month to compare against.
+                if (insightTrend != null) ...[
+                  const SizedBox(height: 20),
+                  _panInsight(insightTrend),
                 ],
                 // Add and Move money now live in the quick-actions row above,
                 // one tap from the net worth number rather than a scroll past
@@ -592,12 +647,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
       netWorth,
     );
     // The one raised hero, warmed by Barako.heroWash (the tokenized coffee
-    // glow). Matches the founder's mockup top to bottom: a greeting with a
-    // warm coffee mark where the mockup put a latte, then NET WORTH, the
-    // figure, the month move, the two totals and the owned/owed bar. The
-    // greeting is the founder's explicit "as close as possible" call, which
-    // overrides the panel's tidier preference to drop it.
-    final greeting = greetingFor(now, name: store.displayName);
+    // glow). Matches the founder's richer mockup: the NET WORTH figure leads
+    // with Pan resting to its right, then the two totals split by a hairline
+    // with a status dot and a chevron each, the owned/owed bar, and a single
+    // "View financial position" button. The greeting moved up into the AppBar,
+    // where the mockup puts it, so the hero can open on the number.
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.hero),
@@ -609,117 +663,239 @@ class _AccountsScreenState extends State<AccountsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  greeting,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.small.w6.tint(Barako.textSecondary),
-                ),
-              ),
-              const SizedBox(width: Gap.sm),
-              // The coffee mark: Salapify's own glyph in the accent, where the
-              // mockup put a latte. A photo cannot ship over the air (the patch
-              // carries no new assets), so the brand glyph is the closest
-              // OTA-safe stand-in. Drawn by the shared SalapifyGlyph (40 disc,
-              // 20 glyph) so the disc recipe cannot drift, and excluded from
-              // semantics since it is decoration, not information.
-              ExcludeSemantics(
-                child: SalapifyGlyph('coffee', size: IconSizes.inline),
-              ),
-            ],
-          ),
-          const SizedBox(height: Gap.lg),
-          Text('NET WORTH', style: Barako.kickerStyle),
-          const SizedBox(height: Gap.xs),
-          // The figure and its delta open the full trend screen, one tap from
-          // the number, the "am I winning over time" view the panel put first.
-          // A named button so a screen reader gets a destination, not a stream
-          // of fragments.
-          Semantics(
-            button: true,
-            label:
-                'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
-            child: ExcludeSemantics(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Haptics.select();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => NetWorthTrendScreen(store: store),
-                    ),
-                  );
-                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              formatMoneyText(netWorth),
-                              maxLines: 1,
-                              style: AppText.amountLg.w8,
-                            ),
+                    Text('NET WORTH', style: Barako.kickerStyle),
+                    const SizedBox(height: Gap.xs),
+                    // The figure and its delta open the full trend screen, one
+                    // tap from the number. A named button so a screen reader
+                    // gets a destination, not a stream of fragments.
+                    Semantics(
+                      button: true,
+                      label:
+                          'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
+                      child: ExcludeSemantics(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            Haptics.select();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    NetWorthTrendScreen(store: store),
+                              ),
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  formatMoneyText(netWorth),
+                                  maxLines: 1,
+                                  style: AppText.amountLg.w8,
+                                ),
+                              ),
+                              if (trend != null) ...[
+                                const SizedBox(height: Gap.sm),
+                                _monthTrendLine(trend),
+                              ],
+                            ],
                           ),
                         ),
-                        const SizedBox(width: Gap.sm),
-                        Icon(
-                          salapifyIcon('forward'),
-                          size: IconSizes.inline,
-                          color: Barako.muted,
-                        ),
-                      ],
+                      ),
                     ),
-                    if (trend != null) ...[
-                      const SizedBox(height: Gap.sm),
-                      _monthTrendLine(trend),
-                    ],
                   ],
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: Gap.lg),
-          Row(
-            children: [
-              Flexible(
-                child: _miniStat(
-                  'Total assets',
-                  assets,
-                  Barako.primaryText,
-                  onTap: () => _openBreakdown(context, AssetsView.own),
-                ),
-              ),
-              const SizedBox(width: Gap.lg),
-              Flexible(
-                // Owed draws in Barako.warning, not warningStrong. warningStrong
-                // was tuned to clear AA on the card surface (theme.dart), but
-                // the hero sits on surfaceRaised, which is LIGHTER in every dark
-                // palette, and warningStrong measured under 4.5 there for a
-                // money figure. warning is the lighter red and clears it; the
-                // ownership bar's owed segment uses the same colour so the two
-                // read as one thought. Guarded by palette_contrast_test now.
-                child: _miniStat(
-                  'Total owed',
-                  liabilities,
-                  Barako.warning,
-                  onTap: () => _openBreakdown(context, AssetsView.owe),
-                ),
+              const SizedBox(width: Gap.sm),
+              // Pan, content, the mockup's mascot. An already-bundled asset, so
+              // this ships over the air with no APK. Decoration here, so it is
+              // kept out of the hero's semantics.
+              ExcludeSemantics(
+                child: PanMascot.emotion(emotion: PanEmotion.content, size: 76),
               ),
             ],
+          ),
+          const SizedBox(height: Gap.lg),
+          // Total assets and total liabilities, split by a hairline, each with
+          // a status dot and a chevron into its own breakdown. Assets keep the
+          // brand accent and owed keeps Barako.warning, the same two colours the
+          // ownership bar below uses, so the three read as one thought (and the
+          // owed contrast stays the palette_contrast_test-guarded lighter red,
+          // not warningStrong which measured under AA on this raised surface).
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _heroTotal(
+                    'Total assets',
+                    assets,
+                    Barako.primaryText,
+                    Barako.primary,
+                    () => _openBreakdown(context, AssetsView.own),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  color: Barako.border,
+                  margin: const EdgeInsets.symmetric(horizontal: Gap.lg),
+                ),
+                Expanded(
+                  child: _heroTotal(
+                    'Total liabilities',
+                    liabilities,
+                    Barako.warning,
+                    Barako.warning,
+                    () => _openBreakdown(context, AssetsView.owe),
+                  ),
+                ),
+              ],
+            ),
           ),
           if (ownedPct != null) ...[
             const SizedBox(height: Gap.lg),
             _ownershipBar(ownedPct),
           ],
+          const SizedBox(height: Gap.lg),
+          _positionButton(),
         ],
+      ),
+    );
+  }
+
+  /// One hero total: an uppercase label with a status dot, the peso figure in
+  /// its meaning colour, and a chevron into that side's breakdown. The dot and
+  /// figure share a colour so a colourblind reader still gets the label word,
+  /// never meaning on colour alone.
+  Widget _heroTotal(
+    String label,
+    double value,
+    Color valueColor,
+    Color dotColor,
+    VoidCallback onTap,
+  ) {
+    return Semantics(
+      button: true,
+      label: '$label ${formatMoneyText(value)}. Opens the breakdown.',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            Haptics.select();
+            onTap();
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: Gap.xs),
+                  Flexible(
+                    child: Text(
+                      label.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Barako.kickerStyle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Gap.xs),
+              Row(
+                children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatMoneyText(value),
+                        maxLines: 1,
+                        style: AppText.amountRow.w8.tint(valueColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Gap.xs),
+                  Icon(
+                    salapifyIcon('forward'),
+                    size: IconSizes.dense,
+                    color: Barako.muted,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The mockup's "View financial position" button: one full-width tap into the
+  /// assets-and-liabilities breakdown, the net-worth view. Reuses _openBreakdown
+  /// so it lands on the same screen the totals do, just without preselecting a
+  /// side.
+  Widget _positionButton() {
+    return Semantics(
+      button: true,
+      label: 'View financial position. Opens assets and liabilities.',
+      child: ExcludeSemantics(
+        child: Material(
+          color: Barako.surfaceRaised,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Radii.control),
+            onTap: () {
+              Haptics.select();
+              _openBreakdown(context, AssetsView.netWorth);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Gap.lg,
+                vertical: Gap.md,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Radii.control),
+                border: Border.all(color: Barako.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    salapifyIcon('chart'),
+                    size: IconSizes.inline,
+                    color: Barako.primaryText,
+                  ),
+                  const SizedBox(width: Gap.sm),
+                  Expanded(
+                    child: Text(
+                      'View financial position',
+                      style: AppText.body.w7,
+                    ),
+                  ),
+                  Icon(
+                    salapifyIcon('forward'),
+                    size: IconSizes.inline,
+                    color: Barako.muted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -840,72 +1016,189 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  /// One of the two hero totals. When [onTap] is set it opens the assets or
-  /// liabilities breakdown, a named button for a screen reader with the raw
-  /// Column excluded so it is one destination, not a stream of fragments.
-  Widget _miniStat(
-    String label,
-    double value,
-    Color color, {
-    VoidCallback? onTap,
-  }) {
-    final column = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.caption,
-              ),
-            ),
-            if (onTap != null) ...[
-              const SizedBox(width: Gap.xs),
-              Icon(
-                salapifyIcon('forward'),
-                size: IconSizes.dense,
-                color: Barako.muted,
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 2),
-        // Scale down, never truncate: an ellipsized peso figure reads as a
-        // DIFFERENT amount. Same pattern as the net worth hero above, and the
-        // 16pt resize fork on amountRow dies with it.
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            formatMoneyText(value),
-            maxLines: 1,
-            style: AppText.amountRow.tint(color),
-          ),
-        ),
-      ],
-    );
-    if (onTap == null) return column;
-    return Semantics(
-      button: true,
-      label: '$label ${formatMoneyText(value)}. Opens the breakdown.',
-      child: ExcludeSemantics(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: column,
-        ),
-      ),
-    );
-  }
-
   void _openBreakdown(BuildContext context, AssetsView view) {
     Haptics.select();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AssetsLiabilitiesScreen(store: store, initial: view),
+      ),
+    );
+  }
+
+  /// Pan's read on the month, the mockup's insight card. One plain sentence
+  /// built from the SAME golden-locked trend the hero shows, never a second
+  /// opinion, with Pan beside it and a tap into the full trend. Pan is kind:
+  /// a rise is celebrated, a dip is stated plainly and pointed at the detail,
+  /// never scolded. A flat month says so rather than faking a number.
+  Widget _panInsight(Map<String, dynamic> trend) {
+    final delta = trend['delta'] as double;
+    final flat = delta.abs() < 0.005;
+    final up = delta > 0;
+    final amount = formatMoney(delta.abs());
+    final String line;
+    if (flat) {
+      line = 'Your net worth held steady this month. Steady is progress too.';
+    } else if (up) {
+      line = 'Great job! Your net worth went up by $amount this month.';
+    } else {
+      line = 'Your net worth dipped by $amount this month. Tap to see where.';
+    }
+    return Semantics(
+      button: true,
+      label: 'Pan insight. $line Opens the trend over time.',
+      child: ExcludeSemantics(
+        child: Material(
+          color: Barako.card,
+          borderRadius: BorderRadius.circular(Radii.hero),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Radii.hero),
+            onTap: () {
+              Haptics.select();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => NetWorthTrendScreen(store: store),
+                ),
+              );
+            },
+            child: Container(
+              padding: Insets.hero,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Radii.hero),
+                border: Border.all(color: Barako.border),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("PAN'S INSIGHT", style: Barako.kickerStyle),
+                        const SizedBox(height: Gap.sm),
+                        Text(
+                          line,
+                          style: AppText.body.w6.copyWith(height: 1.4),
+                        ),
+                        const SizedBox(height: Gap.sm),
+                        Row(
+                          children: [
+                            Text(
+                              'See more insights',
+                              style: AppText.small.w7.tint(Barako.primaryText),
+                            ),
+                            const SizedBox(width: Gap.xs),
+                            Icon(
+                              salapifyIcon('forward'),
+                              size: IconSizes.dense,
+                              color: Barako.primaryText,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Gap.md),
+                  ExcludeSemantics(
+                    child: PanMascot.emotion(
+                      emotion: up || flat
+                          ? PanEmotion.content
+                          : PanEmotion.worried,
+                      size: 56,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// "Money you can reach now", the mockup's Available card. One honest summary
+  /// of everything liquid. The title is deliberately NOT "available to spend":
+  /// per the financial-coach ruling that overpromises, since an emergency fund
+  /// in a savings account is reachable but not free to spend. The sentence under
+  /// it names exactly what is left out so the number cannot mislead, and puts
+  /// bills and savings first without a nag or a warning colour.
+  Widget _availableCard(double total, int count, bool approx) {
+    final amountText = '${approx ? '~' : ''}${formatMoneyText(total)}';
+    final accountsWord = count == 1 ? 'account' : 'accounts';
+    return Semantics(
+      label:
+          'Money you can reach now, $amountText across $count liquid $accountsWord. '
+          'Everyday money you can use or transfer today. It leaves out time '
+          'deposits, investments, and credit. Cover your bills and savings first.',
+      child: ExcludeSemantics(
+        child: Container(
+          padding: Insets.hero,
+          decoration: BoxDecoration(
+            color: Barako.card,
+            borderRadius: BorderRadius.circular(Radii.hero),
+            border: Border.all(color: Barako.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'MONEY YOU CAN REACH NOW',
+                          style: Barako.kickerStyle,
+                        ),
+                        const SizedBox(height: Gap.xs),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            amountText,
+                            maxLines: 1,
+                            style: AppText.amountLg.w8.tint(Barako.primaryText),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Across $count liquid $accountsWord',
+                          style: AppText.caption,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Gap.md),
+                  // The wallet mark where the mockup drew a wallet-and-bills
+                  // illustration. A photo would need a new bundled asset and an
+                  // APK; the brand glyph on a tinted disc is the OTA-safe mark.
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      salapifyIcon('wallet'),
+                      size: IconSizes.inline,
+                      color: Barako.primaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Gap.md),
+              Text(
+                'Everyday money you can use or transfer today. It leaves out '
+                'time deposits, investments, and credit. Cover your bills and '
+                'savings first.',
+                style: AppText.caption.copyWith(height: 1.4),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -922,7 +1215,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
         'Move money between accounts',
         () => _onTransfer(context, canTransfer),
       ),
-      _QuickAction('add', 'Add', 'Add an account', () => _add(context)),
+      _QuickAction(
+        'add',
+        'Add Account',
+        'Add an account',
+        () => _add(context),
+        filled: true,
+      ),
       _QuickAction(
         'receipt',
         'Pay',
@@ -980,19 +1279,26 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     height: 34,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+                      // The primary action fills its disc with the accent and a
+                      // white glyph; the rest wear the quiet tinted wash. On is
+                      // Colors.white deliberately, not a palette token, so the
+                      // glyph clears the filled accent in every mood.
+                      color: a.filled
+                          ? Barako.primary
+                          : Barako.primary.withValues(alpha: BarakoAlpha.tint),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       salapifyIcon(a.icon),
                       size: IconSizes.inline,
-                      color: Barako.primaryText,
+                      color: a.filled ? Colors.white : Barako.primaryText,
                     ),
                   ),
                   const SizedBox(height: Gap.sm),
                   Text(
                     a.label,
-                    maxLines: 1,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
                     style: AppText.small.w6.tint(Barako.text),
                   ),
@@ -1755,7 +2061,17 @@ class _QuickAction {
   final String label;
   final String semantic;
   final VoidCallback onTap;
-  const _QuickAction(this.icon, this.label, this.semantic, this.onTap);
+
+  /// The primary action wears a filled accent disc with a white glyph, the way
+  /// the mockup makes Add Account stand out from the outlined rest.
+  final bool filled;
+  const _QuickAction(
+    this.icon,
+    this.label,
+    this.semantic,
+    this.onTap, {
+    this.filled = false,
+  });
 }
 
 /// The add/edit sheet for an account or an asset.

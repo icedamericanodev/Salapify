@@ -173,21 +173,22 @@ void main() {
     expect(find.text('Add an account'), findsOneWidget);
   });
 
-  testWidgets('the quick-actions row offers Transfer, Add, Pay and More', (
-    tester,
-  ) async {
-    final store = await _storeWith({
-      'accounts': [
-        {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
-      ],
-    });
-    await _pump(tester, store);
+  testWidgets(
+    'the quick-actions row offers Transfer, Add Account, Pay and More',
+    (tester) async {
+      final store = await _storeWith({
+        'accounts': [
+          {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
+        ],
+      });
+      await _pump(tester, store);
 
-    expect(find.text('Transfer'), findsOneWidget);
-    expect(find.text('Add'), findsOneWidget);
-    expect(find.text('Pay'), findsOneWidget);
-    expect(find.text('More'), findsOneWidget);
-  });
+      expect(find.text('Transfer'), findsOneWidget);
+      expect(find.text('Add Account'), findsOneWidget);
+      expect(find.text('Pay'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+    },
+  );
 
   testWidgets('Transfer with a single account explains why it cannot run yet', (
     tester,

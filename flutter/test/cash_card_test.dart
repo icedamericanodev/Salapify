@@ -1,9 +1,12 @@
-// Cash is a compact wallet TILE, not a bank card, and it lives in its own
-// section, not the card carousel. These tests hold that line: the tile shows
-// the name, a "Physical cash" subtitle and the balance with NO masked number
-// and NO card aspect ratio; the Accounts screen renders cash in its own section
-// (never inside the swipe deck) and keeps a lone bank card as a standalone card;
-// a tap opens the account; and the detail hero is the same tile, never a card.
+// Cash is a compact wallet TILE, not a bank card. The tile is the hero of the
+// account DETAIL screen; on the Accounts LIST cash now folds into the "Money
+// you can reach now" summary (the mockup's Available card) and shows as an
+// openable row, never a per-cash tile in the deck. These tests hold that line:
+// the tile widget shows the name, a "Physical cash" subtitle and the balance
+// with NO masked number and NO card aspect ratio; the Accounts screen
+// summarizes cash in the Available card (never inside the swipe deck), keeps a
+// lone bank card as a standalone card, opens a cash row's editor on tap, and
+// the detail hero is the same tile, never a card.
 
 import 'dart:convert';
 
@@ -170,61 +173,67 @@ void main() {
 
   // --- Placement and the gate, driven through the real Accounts screen ------
 
-  testWidgets('cash sits in its own section, banks in the swipe deck', (
+  testWidgets('cash folds into the Available card, banks in the swipe deck', (
     tester,
   ) async {
-    // 1 cash + 2 banks: one tile, and a PageView carousel for the two cards.
+    // 1 cash + 1 bank + 1 wallet. Cash no longer draws its own tile: it folds
+    // into the "Money you can reach now" summary and appears as a list row. The
+    // bank and wallet ride the carousel.
     await _pumpAccounts(tester, await _load(_blob([_cash, _bank, _wallet])));
-    expect(find.byType(CashBalanceTile), findsOneWidget);
-    expect(find.text('CASH ON HAND'), findsOneWidget);
-    expect(find.byType(PageView), findsOneWidget); // the carousel
-    // The tile is NOT inside the carousel's PageView.
-    expect(
-      find.descendant(
-        of: find.byType(PageView),
-        matching: find.byType(CashBalanceTile),
-      ),
-      findsNothing,
-    );
+    expect(find.byType(CashBalanceTile), findsNothing);
+    expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget); // BPI + GCash carousel
+    // Cash still has a home: an openable row in the account list.
+    expect(find.text('Cash on hand'), findsWidgets);
   });
 
   testWidgets('a lone bank card plus cash keeps the card, standalone no deck', (
     tester,
   ) async {
-    // The regression guard: pulling cash out must not cost the 1-bank user
-    // their card. 1 cash + 1 bank -> a tile AND a standalone flip card, no
-    // PageView (a lone card is not a swipe deck).
+    // The regression guard: folding cash into the summary must not cost the
+    // 1-bank user their card. 1 cash + 1 bank -> a standalone flip card, the
+    // Available card, no carousel, and no cash tile.
     await _pumpAccounts(tester, await _load(_blob([_cash, _bank])));
-    expect(find.byType(CashBalanceTile), findsOneWidget);
+    expect(find.byType(CashBalanceTile), findsNothing);
     expect(find.byType(FlipBankCard), findsOneWidget);
     expect(find.byType(PageView), findsNothing);
+    expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
   });
 
-  testWidgets('only cash: tiles, no card deck at all', (tester) async {
-    final cash2 = _account('cash2', 'Envelope', 'cash', 500);
-    await _pumpAccounts(tester, await _load(_blob([_cash, cash2])));
-    expect(find.byType(CashBalanceTile), findsNWidgets(2));
-    expect(find.byType(FlipBankCard), findsNothing);
-    expect(find.byType(PageView), findsNothing);
-  });
-
-  testWidgets('a single account shows no hero zone, same as before', (
+  testWidgets('only cash: the Available card, no card deck at all', (
     tester,
   ) async {
-    // Total of one account: no hero tile or card, cash appears only in the
-    // list below, exactly the shipped single-account behavior.
+    final cash2 = _account('cash2', 'Envelope', 'cash', 500);
+    await _pumpAccounts(tester, await _load(_blob([_cash, cash2])));
+    expect(find.byType(CashBalanceTile), findsNothing);
+    expect(find.byType(FlipBankCard), findsNothing);
+    expect(find.byType(PageView), findsNothing);
+    expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
+    // Both cash accounts appear as rows in the list below.
+    expect(find.text('Cash on hand'), findsWidgets);
+    expect(find.text('Envelope'), findsWidgets);
+  });
+
+  testWidgets('a single account shows no card hero, cash in the summary', (
+    tester,
+  ) async {
+    // One account: no carousel and no cash tile. Cash shows in the Available
+    // summary and as its list row, which is the single-account behavior now.
     await _pumpAccounts(tester, await _load(_blob([_cash])));
     expect(find.byType(CashBalanceTile), findsNothing);
     expect(find.byType(FlipBankCard), findsNothing);
+    expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
   });
 
-  testWidgets('tapping the cash tile opens the account, it does not flip', (
-    tester,
-  ) async {
+  testWidgets('tapping the cash row opens its editor', (tester) async {
     await _pumpAccounts(tester, await _load(_blob([_cash, _bank])));
-    await tester.tap(find.byType(CashBalanceTile));
+    // The name and the "Cash on hand" subtype label both render, so target the
+    // first; both sit inside the one row GestureDetector.
+    await tester.tap(find.text('Cash on hand').first);
     await tester.pumpAndSettle();
-    expect(find.byType(AccountDetailScreen), findsOneWidget);
+    // Cash opens like any account row now: its manage-and-edit sheet, which
+    // carries a Save action.
+    expect(find.text('Save'), findsOneWidget);
   });
 
   testWidgets('the cash detail hero is the tile, never a bank card', (

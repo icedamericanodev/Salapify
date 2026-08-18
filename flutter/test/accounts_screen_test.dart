@@ -53,6 +53,15 @@ void main() {
 
     expect(_accounts(store).length, 1);
     expect((_accounts(store).first as Map)['balance'], 5000.0);
+    // The redesigned hero, quick actions and Available card push a single
+    // account's row below the fold, so scroll it into view (which also builds
+    // the lazy row) before reading or tapping it.
+    await tester.scrollUntilVisible(
+      find.text('GCash'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('GCash'), findsOneWidget);
 
     // Edit balance up: posts a Balance adjustment and moves the balance.
@@ -76,6 +85,12 @@ void main() {
     );
 
     // Delete.
+    await tester.scrollUntilVisible(
+      find.text('GCash'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('GCash'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Delete'));
@@ -111,6 +126,12 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('BTC'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('BTC'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(1), '1500');
