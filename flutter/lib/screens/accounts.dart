@@ -35,7 +35,11 @@ import 'account_detail.dart' show AccountDetailScreen;
 import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
 import 'net_worth_trend.dart' show NetWorthTrendScreen;
 import '../money/institutions.dart'
-    show institutionBrandColor, institutionById, institutionLabel;
+    show
+        institutionBrandColor,
+        institutionById,
+        institutionLabel,
+        institutionLogoAsset;
 import '../theme.dart';
 import '../typography.dart';
 import 'add_account_flow.dart'
@@ -478,6 +482,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     actionLabel: 'Add an account',
                     onAction: () => _add(context),
                   ),
+                if (anyRows) ...[
+                  const SizedBox(height: 18),
+                  _nonAffiliationNote(),
+                ],
               ],
             );
           },
@@ -485,6 +493,20 @@ class _AccountsScreenState extends State<AccountsScreen> {
       ),
     );
   }
+
+  /// The trademark non-affiliation line the logo work requires: a bank's mark
+  /// is shown only to identify the user's OWN account, never to imply a tie to
+  /// the bank. Quiet, plain English, under the list once there is at least one
+  /// account that could carry a logo.
+  Widget _nonAffiliationNote() => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+    child: Text(
+      'Bank and e-wallet logos are shown only to help you identify your own '
+      'accounts. Salapify is not affiliated with, endorsed by, or connected to '
+      'any bank or e-wallet.',
+      style: AppText.caption,
+    ),
+  );
 
   /// The one sentence under the total.
   ///
@@ -1596,6 +1618,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           amount: bal,
           amountText: code == null ? null : formatConverted(bal, code),
           monogram: institutionById(row['institutionId']?.toString())?.initials,
+          logoAsset: institutionLogoAsset(row['institutionId']?.toString()),
           variant: BankCardVariant.savings,
           isCash: row['kind']?.toString() == 'cash',
           isWallet: row['kind']?.toString() == 'ewallet',
@@ -1616,6 +1639,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           amount: amountOf(row['remaining']),
           limit: amountOf(row['creditLimit']),
           monogram: institutionById(row['institutionId']?.toString())?.initials,
+          logoAsset: institutionLogoAsset(row['institutionId']?.toString()),
           networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
           variant: BankCardVariant.credit,
         ),
@@ -3053,6 +3077,11 @@ class _CardItem {
   final String? last4;
   final double amount;
 
+  /// The bundled wordmark logo for this institution, drawn on a white chip in
+  /// place of the bank-name text. Null keeps the name text. Resolved from the
+  /// catalog by institution id.
+  final String? logoAsset;
+
   /// The preformatted amount for a foreign-currency account (its own symbol).
   /// Null for a base-currency account, where the card formats [amount] as pesos.
   final String? amountText;
@@ -3081,6 +3110,7 @@ class _CardItem {
     required this.last4,
     required this.amount,
     required this.variant,
+    this.logoAsset,
     this.amountText,
     this.monogram,
     this.limit,
@@ -3287,6 +3317,7 @@ class _AccountsCarouselState extends State<_AccountsCarousel>
       balance: it.amount,
       amountText: it.amountText,
       monogram: it.monogram,
+      logoAsset: it.logoAsset,
       creditLimit: it.limit,
       networkMark: it.networkMark,
       variant: it.variant,

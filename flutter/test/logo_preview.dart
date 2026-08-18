@@ -3,10 +3,8 @@
 //   flutter test test/logo_preview.dart --update-goldens
 // Output: test/shots/logo-preview-dark.png (gitignored), for LOOKING at.
 //
-// It renders the five representative institutions (a wide wordmark, a colored
-// emblem wallet, a dark wordmark, a bank with a distinct symbol, a digital
-// bank) as real BankCards plus the account avatars, so the logo treatment can
-// be reviewed on the actual widgets before the full set is wired.
+// It renders every institution avatar that carries a logo plus a spread of
+// real BankCards, so the full logo set can be reviewed on the actual widgets.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,16 +18,26 @@ import 'screens_shot.dart' show loadRealFonts;
 void main() {
   testWidgets('logo preview', (tester) async {
     await loadRealFonts(tester);
-    tester.view.physicalSize = const Size(1200, 3400);
+    tester.view.physicalSize = const Size(1200, 4200);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
     Barako.current = Barako.currentTheme.resolve(Brightness.dark);
 
-    Widget card(String id, String name, String type, double bal,
-        {BankCardVariant variant = BankCardVariant.savings,
-        double? limit,
-        String? network,
-        bool wallet = false}) {
+    final withLogo = [
+      for (final i in institutions)
+        if (institutionLogoAsset(i.id) != null) i,
+    ];
+
+    Widget card(
+      String id,
+      String name,
+      String type,
+      double bal, {
+      BankCardVariant variant = BankCardVariant.savings,
+      double? limit,
+      String? network,
+      bool wallet = false,
+    }) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: SizedBox(
@@ -50,21 +58,6 @@ void main() {
       );
     }
 
-    Widget avatar(String id) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: InstitutionAvatar(id: id, size: 48),
-        );
-
-    const assetPaths = [
-      'assets/institutions/bpi.png',
-      'assets/institutions/gcash.png',
-      'assets/institutions/gcash_symbol.png',
-      'assets/institutions/maya.png',
-      'assets/institutions/unionbank.png',
-      'assets/institutions/unionbank_symbol.png',
-      'assets/institutions/gotyme.png',
-    ];
-
     await tester.pumpWidget(
       MaterialApp(
         theme: salapifyTheme(Barako.current),
@@ -77,30 +70,45 @@ void main() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Account avatars', style: Barako.kickerStyle),
-                  const SizedBox(height: 10),
-                  Row(
+                  Text(
+                    'All account avatars (${withLogo.length})',
+                    style: Barako.kickerStyle,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
                     children: [
-                      avatar('bpi'),
-                      avatar('gcash'),
-                      avatar('maya'),
-                      avatar('unionbank'),
-                      avatar('gotyme'),
-                      avatar('bdo'), // no logo yet -> initials fallback
+                      for (final i in withLogo)
+                        InstitutionAvatar(id: i.id, size: 46),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   Text('Cards', style: Barako.kickerStyle),
                   const SizedBox(height: 12),
-                  card('bpi', 'BPI', 'Savings', 24500),
-                  card('gcash', 'GCash', 'Wallet', 3120.50, wallet: true),
-                  card('maya', 'Maya', 'Wallet', 8890, wallet: true),
-                  card('unionbank', 'UnionBank', 'Credit', 12400,
-                      variant: BankCardVariant.credit,
-                      limit: 50000,
-                      network: 'VISA'),
-                  card('gotyme', 'GoTyme', 'Savings', 45000),
-                  card('bdo', 'BDO', 'Savings', 15000), // fallback: name text
+                  card('bdo', 'BDO', 'Savings', 24500),
+                  card('metrobank', 'Metrobank', 'Savings', 61000),
+                  card(
+                    'securitybank',
+                    'Security Bank',
+                    'Credit',
+                    12400,
+                    variant: BankCardVariant.credit,
+                    limit: 60000,
+                    network: 'Mastercard',
+                  ),
+                  card('seabank', 'SeaBank', 'Savings', 8200),
+                  card(
+                    'homecredit',
+                    'Home Credit',
+                    'Credit',
+                    5400,
+                    variant: BankCardVariant.credit,
+                    limit: 15000,
+                  ),
+                  card('grabpay', 'GrabPay', 'Wallet', 1750, wallet: true),
+                  card('pnb', 'PNB', 'Savings', 33000),
+                  card('gsis', 'GSIS', 'Savings', 12000),
                 ],
               ),
             ),
@@ -108,13 +116,20 @@ void main() {
         ),
       ),
     );
+
     // Real image decode runs on the true event loop, which testWidgets' fake
-    // clock never advances. Precache each asset inside runAsync so the golden
-    // captures the decoded logo, not an undecoded blank. Same reason the fonts
-    // load inside runAsync.
+    // clock never advances. Precache every logo/symbol asset inside runAsync so
+    // the golden captures decoded logos, not undecoded blanks.
     final ctx = tester.element(find.byType(Scaffold));
+    final paths = <String>{};
+    for (final i in institutions) {
+      final l = institutionLogoAsset(i.id);
+      final s = institutionSymbolAsset(i.id);
+      if (l != null) paths.add(l);
+      if (s != null) paths.add(s);
+    }
     await tester.runAsync(() async {
-      for (final p in assetPaths) {
+      for (final p in paths) {
         await precacheImage(AssetImage(p), ctx);
       }
     });
