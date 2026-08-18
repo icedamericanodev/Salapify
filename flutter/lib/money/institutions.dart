@@ -7,12 +7,16 @@
 // asset path, because a renamed or removed image would then corrupt stored
 // data and break a screen.
 //
-// No logos ship here, on purpose. Image assets cannot travel in a Shorebird
-// patch, so every batch of them costs the founder a base APK and a manual
-// install, and using a bank's mark needs permission this project does not
-// have. `InstitutionAvatar` will draw initials, which look deliberate, work
-// offline, cost nothing, and never need clearing. `localAssetPath` exists so
-// that decision can be revisited without a data change.
+// Logos DO ship now (founder decision, 2026-08-18), as bundled assets under
+// assets/institutions/, cleared first by a trademark read (nominative use with
+// guardrails). They are image files, so they cannot travel in a Shorebird
+// patch: a change to them costs a base APK and a manual install. A logo is
+// shown ONLY to identify the user's own account; Salapify is not affiliated
+// with any institution, a non-affiliation notice the accounts screen carries.
+// `localAssetPath` is the card wordmark, `symbolAssetPath` the round-avatar
+// mark; both are null for anything without a cleared logo, where
+// `InstitutionAvatar` still draws initials, which look deliberate, work
+// offline, cost nothing, and never need clearing.
 //
 // USD IS NOT AN INSTITUTION. Currency is chosen after the institution and
 // lives in its own field. Worth saying out loud because the screen this
@@ -41,8 +45,15 @@ class FinancialInstitution {
   /// the Philippine Islands", not the string we happened to choose.
   final List<String> aliases;
 
-  /// Null until a logo file is cleared for use. Nothing reads it yet.
+  /// The bundled WORDMARK logo asset, drawn on a white chip on the account
+  /// card. Null keeps the text-and-color treatment. Shown only to identify the
+  /// user's own account; Salapify is not affiliated with any institution.
   final String? localAssetPath;
+
+  /// The bundled standalone SYMBOL/mark asset (no wordmark), drawn in the round
+  /// account avatar where a wide wordmark would not fit. Null falls back to
+  /// [localAssetPath], then to initials.
+  final String? symbolAssetPath;
 
   /// The brand FILL color, ported from mobile/lib/banks.js by id. Null for the
   /// escape hatches (something else, no institution) and anything without a
@@ -56,6 +67,7 @@ class FinancialInstitution {
     required this.type,
     this.aliases = const [],
     this.localAssetPath,
+    this.symbolAssetPath,
     this.brandColor,
   });
 
@@ -96,6 +108,7 @@ const List<FinancialInstitution> institutions = [
   // Universal and commercial banks. Brand colors ported from banks.js by id.
   FinancialInstitution(
     id: 'bdo',
+    localAssetPath: 'assets/institutions/bdo.png',
     displayName: 'BDO',
     type: InstitutionType.bank,
     aliases: ['Banco de Oro', 'BDO Unibank'],
@@ -106,10 +119,13 @@ const List<FinancialInstitution> institutions = [
     displayName: 'BPI',
     type: InstitutionType.bank,
     aliases: ['Bank of the Philippine Islands', 'BPI Family'],
+    localAssetPath: 'assets/institutions/bpi.png',
     brandColor: Color(0xFFB11116),
   ),
   FinancialInstitution(
     id: 'metrobank',
+    localAssetPath: 'assets/institutions/metrobank.png',
+    symbolAssetPath: 'assets/institutions/metrobank_symbol.png',
     displayName: 'Metrobank',
     type: InstitutionType.bank,
     aliases: ['Metropolitan Bank and Trust Company', 'MBTC'],
@@ -120,10 +136,14 @@ const List<FinancialInstitution> institutions = [
     displayName: 'UnionBank',
     type: InstitutionType.bank,
     aliases: ['Union Bank of the Philippines', 'UBP'],
+    localAssetPath: 'assets/institutions/unionbank.png',
+    symbolAssetPath: 'assets/institutions/unionbank_symbol.png',
     brandColor: Color(0xFFFF7A00),
   ),
   FinancialInstitution(
     id: 'securitybank',
+    localAssetPath: 'assets/institutions/securitybank.png',
+    symbolAssetPath: 'assets/institutions/securitybank_symbol.png',
     displayName: 'Security Bank',
     type: InstitutionType.bank,
     aliases: ['SBC'],
@@ -131,6 +151,9 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'rcbc',
+    // No logo: RCBC's mark is a very light cyan hexagon that vanishes on the
+    // white chip and disc, so the clean initials read better. A higher-contrast
+    // asset could restore it later.
     displayName: 'RCBC',
     type: InstitutionType.bank,
     aliases: ['Rizal Commercial Banking Corporation'],
@@ -138,6 +161,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'pnb',
+    localAssetPath: 'assets/institutions/pnb.png',
     displayName: 'PNB',
     type: InstitutionType.bank,
     aliases: ['Philippine National Bank'],
@@ -145,6 +169,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'landbank',
+    localAssetPath: 'assets/institutions/landbank.png',
     displayName: 'LandBank',
     type: InstitutionType.bank,
     aliases: ['Land Bank of the Philippines', 'LBP'],
@@ -152,6 +177,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'chinabank',
+    localAssetPath: 'assets/institutions/chinabank.png',
     displayName: 'China Bank',
     type: InstitutionType.bank,
     aliases: ['China Banking Corporation', 'Chinabank Savings'],
@@ -159,6 +185,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'eastwest',
+    localAssetPath: 'assets/institutions/eastwest.png',
     displayName: 'EastWest',
     type: InstitutionType.bank,
     aliases: ['EastWest Bank', 'EW'],
@@ -168,6 +195,7 @@ const List<FinancialInstitution> institutions = [
   // and color only, never a logo.
   FinancialInstitution(
     id: 'psbank',
+    localAssetPath: 'assets/institutions/psbank.png',
     displayName: 'PSBank',
     type: InstitutionType.bank,
     aliases: ['Philippine Savings Bank'],
@@ -175,6 +203,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'aub',
+    localAssetPath: 'assets/institutions/aub.png',
     displayName: 'AUB',
     type: InstitutionType.bank,
     aliases: ['Asia United Bank'],
@@ -191,6 +220,7 @@ const List<FinancialInstitution> institutions = [
   // Digital banks.
   FinancialInstitution(
     id: 'mayabank',
+    localAssetPath: 'assets/institutions/maya.png',
     displayName: 'Maya Bank',
     type: InstitutionType.digitalBank,
     aliases: ['Maya Savings'],
@@ -201,6 +231,7 @@ const List<FinancialInstitution> institutions = [
     displayName: 'GoTyme',
     type: InstitutionType.digitalBank,
     aliases: ['GoTyme Bank'],
+    localAssetPath: 'assets/institutions/gotyme.png',
     brandColor: Color(0xFF001E28),
   ),
   FinancialInstitution(
@@ -212,12 +243,14 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'seabank',
+    localAssetPath: 'assets/institutions/seabank.png',
     displayName: 'SeaBank',
     type: InstitutionType.digitalBank,
     brandColor: Color(0xFFEE4D2D),
   ),
   FinancialInstitution(
     id: 'tonik',
+    localAssetPath: 'assets/institutions/tonik.png',
     displayName: 'Tonik',
     type: InstitutionType.digitalBank,
     aliases: ['Tonik Bank'],
@@ -243,6 +276,8 @@ const List<FinancialInstitution> institutions = [
     displayName: 'GCash',
     type: InstitutionType.eWallet,
     aliases: ['G-Cash', 'Globe GCash'],
+    localAssetPath: 'assets/institutions/gcash.png',
+    symbolAssetPath: 'assets/institutions/gcash_symbol.png',
     brandColor: Color(0xFF007DFE),
   ),
   FinancialInstitution(
@@ -250,10 +285,12 @@ const List<FinancialInstitution> institutions = [
     displayName: 'Maya',
     type: InstitutionType.eWallet,
     aliases: ['PayMaya', 'Maya Wallet'],
+    localAssetPath: 'assets/institutions/maya.png',
     brandColor: Color(0xFF0C0C0C),
   ),
   FinancialInstitution(
     id: 'grabpay',
+    localAssetPath: 'assets/institutions/grabpay.png',
     displayName: 'GrabPay',
     type: InstitutionType.eWallet,
     aliases: ['Grab Pay', 'Grab'],
@@ -261,6 +298,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'shopeepay',
+    localAssetPath: 'assets/institutions/shopeepay.png',
     displayName: 'ShopeePay',
     type: InstitutionType.eWallet,
     aliases: ['Shopee Pay', 'SPay'],
@@ -272,6 +310,7 @@ const List<FinancialInstitution> institutions = [
   // point of the debts engine.
   FinancialInstitution(
     id: 'homecredit',
+    localAssetPath: 'assets/institutions/homecredit.png',
     displayName: 'Home Credit',
     type: InstitutionType.lender,
     brandColor: Color(0xFFE1272E),
@@ -291,6 +330,8 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'gsis',
+    localAssetPath: 'assets/institutions/gsis.png',
+    symbolAssetPath: 'assets/institutions/gsis_symbol.png',
     displayName: 'GSIS',
     type: InstitutionType.lender,
     aliases: ['Government Service Insurance System'],
@@ -298,6 +339,8 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'pagibig',
+    localAssetPath: 'assets/institutions/pagibig.png',
+    symbolAssetPath: 'assets/institutions/pagibig_symbol.png',
     displayName: 'Pag-IBIG',
     type: InstitutionType.lender,
     aliases: ['HDMF', 'Pag IBIG', 'Pagibig', 'MP2'],
@@ -314,6 +357,7 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'firstmetrosec',
+    localAssetPath: 'assets/institutions/firstmetrosec.png',
     displayName: 'First Metro Sec',
     type: InstitutionType.broker,
     aliases: ['FirstMetroSec', 'FMSBC'],
@@ -350,6 +394,17 @@ FinancialInstitution? institutionById(String? id) {
 /// is never a broken screen. This is the ONE lookup anything painting a bank
 /// should use, so a color only ever lives in the catalog above.
 Color? institutionBrandColor(String? id) => institutionById(id)?.brandColor;
+
+/// The bundled WORDMARK logo asset for an institution id, or null when none has
+/// been cleared for use. Used on the account card's white brand chip.
+String? institutionLogoAsset(String? id) => institutionById(id)?.localAssetPath;
+
+/// The bundled mark for the round account avatar: the standalone symbol if there
+/// is one, otherwise the wordmark, otherwise null so the caller draws initials.
+String? institutionSymbolAsset(String? id) {
+  final i = institutionById(id);
+  return i?.symbolAssetPath ?? i?.localAssetPath;
+}
 
 /// What to show for a row: the catalog entry's name, the typed custom name, or
 /// nothing.

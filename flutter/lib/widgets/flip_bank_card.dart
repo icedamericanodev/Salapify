@@ -51,6 +51,10 @@ class FlipBankCard extends StatefulWidget {
   final double balance;
   final String? amountText;
   final String? monogram;
+
+  /// The bundled wordmark logo asset for this institution, drawn on the front
+  /// face's white brand chip. Null keeps the bank-name text. See [BankCard].
+  final String? logoAsset;
   final double? creditLimit;
   final String? networkMark;
   final BankCardVariant variant;
@@ -93,6 +97,7 @@ class FlipBankCard extends StatefulWidget {
     this.last4,
     this.amountText,
     this.monogram,
+    this.logoAsset,
     this.creditLimit,
     this.networkMark,
     this.variant = BankCardVariant.savings,
@@ -319,6 +324,7 @@ class _FlipBankCardState extends State<FlipBankCard>
           balance: widget.balance,
           amountText: widget.amountText,
           monogram: widget.monogram,
+          logoAsset: widget.logoAsset,
           creditLimit: widget.creditLimit,
           networkMark: widget.networkMark,
           variant: widget.variant,

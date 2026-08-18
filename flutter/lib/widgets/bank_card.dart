@@ -59,6 +59,15 @@ class BankCard extends StatelessWidget {
   /// Shown top left. Already resolved to a name, never a logo image.
   final String bankName;
 
+  /// The bundled wordmark logo asset for this institution, or null. When set,
+  /// it draws on a clean white chip in place of [bankName] text (never on the
+  /// colored gradient, which brand guidelines forbid). Null keeps the text
+  /// name. A load failure falls back to the name too, so a missing file is
+  /// never a blank card. Logos are shown only to identify the user's own
+  /// account and Salapify is not affiliated with any bank; see the
+  /// non-affiliation notice on the accounts screen.
+  final String? logoAsset;
+
   /// Shown top right, e.g. "Savings" or "Credit". Short.
   final String accountType;
 
@@ -107,6 +116,7 @@ class BankCard extends StatelessWidget {
     required this.bankName,
     required this.accountType,
     required this.balance,
+    this.logoAsset,
     this.brandColor,
     this.last4,
     this.amountText,
@@ -171,21 +181,24 @@ class BankCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // The faint brand monogram, a logo stand-in, bleeding off the
-                    // bottom-right corner. Text and color only.
-                    Positioned(
-                      right: -6,
-                      bottom: -18,
-                      child: Text(
-                        mark,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          fontSize: 96,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -2,
+                    // The faint brand monogram, a logo STAND-IN, bleeding off the
+                    // bottom-right corner. Text and color only, and only when
+                    // there is no real logo: once the wordmark chip is present
+                    // the monogram is redundant, so a logo'd card drops it.
+                    if (logoAsset == null)
+                      Positioned(
+                        right: -6,
+                        bottom: -18,
+                        child: Text(
+                          mark,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            fontSize: 96,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -2,
+                          ),
                         ),
                       ),
-                    ),
                     Padding(
                       // 16 horizontal, 12 vertical. The credit face's fixed
                       // furniture summed about 9px past the 1.586 aspect at a
@@ -203,15 +216,23 @@ class BankCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: Text(
-                                  bankName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: logoAsset == null
+                                      ? Text(
+                                          bankName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        )
+                                      : _BrandChip(
+                                          logoAsset: logoAsset!,
+                                          fallbackName: bankName,
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -680,6 +701,54 @@ class _CardChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
             border: Border.all(
               color: const Color(0xFF9A6E08).withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bank's real wordmark on a clean white chip, the ONE place a logo is
+/// allowed. White because brand guidelines want their mark on a neutral field,
+/// not baked into a colored gradient, and because a white chip reads in every
+/// palette and both brightnesses. A load failure degrades to the bank name in
+/// dark text on the same chip, so a missing or bad file never blanks the card.
+class _BrandChip extends StatelessWidget {
+  final String logoAsset;
+  final String fallbackName;
+  const _BrandChip({required this.logoAsset, required this.fallbackName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(7),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 150, maxHeight: 22),
+        child: Image.asset(
+          logoAsset,
+          fit: BoxFit.contain,
+          height: 20,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, _, _) => Text(
+            fallbackName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF1A1A1A),
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
