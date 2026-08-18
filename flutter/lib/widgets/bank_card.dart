@@ -181,21 +181,24 @@ class BankCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // The faint brand monogram, a logo stand-in, bleeding off the
-                    // bottom-right corner. Text and color only.
-                    Positioned(
-                      right: -6,
-                      bottom: -18,
-                      child: Text(
-                        mark,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          fontSize: 96,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -2,
+                    // The faint brand monogram, a logo STAND-IN, bleeding off the
+                    // bottom-right corner. Text and color only, and only when
+                    // there is no real logo: once the wordmark chip is present
+                    // the monogram is redundant, so a logo'd card drops it.
+                    if (logoAsset == null)
+                      Positioned(
+                        right: -6,
+                        bottom: -18,
+                        child: Text(
+                          mark,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            fontSize: 96,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -2,
+                          ),
                         ),
                       ),
-                    ),
                     Padding(
                       // 16 horizontal, 12 vertical. The credit face's fixed
                       // furniture summed about 9px past the 1.586 aspect at a

@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.47 · Bank logos on cards and avatars for 23 institutions, initials fallback, non-affiliation note.';
+    'f4.48 · Bank logos, 23 institutions on cards and avatars; the corner monogram hides behind a logo.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
