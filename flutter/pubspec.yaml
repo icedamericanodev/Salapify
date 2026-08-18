@@ -17,7 +17,7 @@ publish_to: 'none'
 # (home_widget, a manifest receiver, Kotlin); Pan's redrawn artwork (assets are
 # not patchable either); and flutter_local_notifications plus timezone on top of
 # local_auth.
-version: 0.9.2+17
+version: 0.9.3+18
 
 environment:
   sdk: ^3.12.2

@@ -151,9 +151,12 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'rcbc',
-    // No logo: RCBC's mark is a very light cyan hexagon that vanishes on the
-    // white chip and disc, so the clean initials read better. A higher-contrast
-    // asset could restore it later.
+    // Symbol only, no card wordmark: RCBC's brand lockup is the navy hexagon
+    // with the RCBC letters inside, which reads clean on the white avatar disc.
+    // The earlier light cyan hexagon that vanished on white is retired; this is
+    // the high-contrast variant that note asked for. The card keeps the "RCBC"
+    // text because there is no wide wordmark asset to sit on the chip.
+    symbolAssetPath: 'assets/institutions/rcbc_symbol.png',
     displayName: 'RCBC',
     type: InstitutionType.bank,
     aliases: ['Rizal Commercial Banking Corporation'],
@@ -236,6 +239,9 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'cimb',
+    // Symbol only: CIMB's mark is the red chevron. There is no wide wordmark
+    // asset, so the card keeps the "CIMB" text and the avatar wears the chevron.
+    symbolAssetPath: 'assets/institutions/cimb_symbol.png',
     displayName: 'CIMB',
     type: InstitutionType.digitalBank,
     aliases: ['CIMB Bank Philippines', 'GSave'],
@@ -265,6 +271,8 @@ const List<FinancialInstitution> institutions = [
   ),
   FinancialInstitution(
     id: 'ownbank',
+    // Symbol only: OwnBank's mark is the green ring. Card keeps the text.
+    symbolAssetPath: 'assets/institutions/ownbank_symbol.png',
     displayName: 'OwnBank',
     type: InstitutionType.digitalBank,
     brandColor: Color(0xFF0A8F5B),
@@ -350,6 +358,8 @@ const List<FinancialInstitution> institutions = [
   // Brokers and funds.
   FinancialInstitution(
     id: 'copstrade',
+    // Symbol only: COL Financial's circular mark. Card keeps the text.
+    symbolAssetPath: 'assets/institutions/copstrade_symbol.png',
     displayName: 'COL Financial',
     type: InstitutionType.broker,
     aliases: ['COL', 'Citiseconline'],
