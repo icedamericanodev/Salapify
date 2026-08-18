@@ -23,9 +23,11 @@ void main() {
     addTearDown(tester.view.reset);
     Barako.current = Barako.currentTheme.resolve(Brightness.dark);
 
+    // Anything with an avatar mark, wordmark or standalone symbol, so the
+    // symbol-only institutions (RCBC, COL, CIMB, OwnBank) show up here too.
     final withLogo = [
       for (final i in institutions)
-        if (institutionLogoAsset(i.id) != null) i,
+        if (institutionSymbolAsset(i.id) != null) i,
     ];
 
     Widget card(
