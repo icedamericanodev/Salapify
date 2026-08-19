@@ -93,9 +93,13 @@ void main() {
     expect(find.byIcon(salapifyIcon('contactless')), findsOneWidget);
   });
 
-  testWidgets('Accounts carries the own and owe superstructure', (
+  testWidgets('each category tab carries its own asset-or-owed class cue', (
     tester,
   ) async {
+    // The own/owe superstructure survived the move from stacked headings to the
+    // category tabs: each tab's subtotal names its class in words plus a colour
+    // (an asset tab in the accent, the Liabilities tab in the warning red), so
+    // the asset-liability boundary is never colour alone.
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
         'schemaVersion': 12,
@@ -118,14 +122,22 @@ void main() {
     await store.load();
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
-    // The sections sit below the summary and add buttons in a lazy list.
+    // The section sits below the summary in a lazy list.
     await tester.scrollUntilVisible(
-      find.text('WHAT YOU OWE'),
+      find.text('ACCOUNTS BY CATEGORY'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('WHAT YOU OWN'), findsOneWidget);
-    expect(find.text('WHAT YOU OWE'), findsOneWidget);
+    await tester.pumpAndSettle();
+    // Bank is the default tab: an asset subtotal cue.
+    expect(find.text('BANK TOTAL'), findsOneWidget);
+    // Switch to Liabilities: the owed cue, with the debt row underneath.
+    await tester.ensureVisible(find.text('Liabilities'));
+    await tester.tap(find.text('Liabilities'));
+    await tester.pumpAndSettle();
+    expect(find.text('LIABILITIES TOTAL'), findsOneWidget);
+    // The debt shows in the tab (and also on its card in the carousel above).
+    expect(find.text('BPI card'), findsWidgets);
   });
 
   testWidgets('the credit face says YOU OWE and warns in words only when '

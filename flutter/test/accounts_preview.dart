@@ -56,5 +56,21 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/accounts-full-dark.png'),
     );
+
+    // Switch to the Liabilities tab to review the owed (red) subtotal cue and
+    // the manage-debts note.
+    await tester.scrollUntilVisible(
+      find.text('ACCOUNTS BY CATEGORY'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Liabilities'));
+    await tester.tap(find.text('Liabilities'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/accounts-liabilities-dark.png'),
+    );
   });
 }
