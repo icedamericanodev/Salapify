@@ -10,6 +10,149 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-18, session 40: f4.49 delivered clean as a base APK, a phantom branch name in the task prompt that changed nothing, and the "new asset shows initials on the phone" trap found to be double-guarded already
+
+**What we believed / What was true.**
+
+On delivery, belief and reality match. The publisher wrote this row into
+`docs/delivery-log.md` on `origin/main`:
+
+    | 2026-08-18 12:22 UTC | f4.49 | none | release | 0.9.3+18 | 087a4e61 |
+
+Mode `release`, not `patch`, so this is a NEW base APK the founder installs by
+hand, not an over-the-air update. The founder confirmed f4.49 on the phone,
+which for a release means they actually installed it, the one proof no test can
+give. The stamp string in `flutter/lib/main.dart` reads `f4.49 · Bank logos,
+four more marks: RCBC, COL, CIMB and OwnBank on their account avatars.`, one
+line, 90 characters, inside the 120 character cap. `pubspec.yaml` reads
+`0.9.3+18`, the exact version the delivery row names. There is nothing wrong
+with this delivery and this session does not invent something.
+
+The claimed work is all really there. The four institutions f4.48 had deferred
+to initials now carry avatar symbols: `flutter/lib/money/institutions.dart`
+declares `symbolAssetPath` on `rcbc`, `copstrade` (whose `displayName` is
+"COL Financial"), `cimb` and `ownbank`, and the four files
+`{rcbc,copstrade,cimb,ownbank}_symbol.png` exist under
+`flutter/assets/institutions/`. The RCBC entry's own comment records the choice
+the f4.48 note asked for: the light-cyan hexagon that vanished on white is
+retired for the high-contrast navy lockup. The cards for these four keep their
+text, as claimed, because none has a wide wordmark asset.
+
+**Timeline, with evidence.**
+
+- PR #430 (`83e5e75`, merged as `087a4e6`) touched `flutter/`, so the preview
+  publisher triggered and shipped. Because `pubspec.yaml` moved from `0.9.2+17`
+  (f4.48's release) to `0.9.3+18`, the publisher found no existing release for
+  the new version and built a base APK: `flutter-preview.yml` line 118 to 120,
+  `mode=release`. Run 32135188281, delivery row at 12:22 UTC.
+- The pubspec bump was NOT optional book-keeping, it was forced by the assets.
+  `flutter-preview.yml` lines 98 to 100 record that Shorebird refuses to patch
+  a change that touches assets (`UnpatchableChangeException`, the f0.14
+  failure). Adding four PNGs without bumping the version would have made the
+  publisher attempt a patch against the still-existing `0.9.2+17` release and
+  gone RED, shipping nothing and writing no row. So the base-APK path here is
+  the machine working exactly as designed, and the founder's manual install was
+  the correct, unavoidable cost of new image assets.
+
+**Root cause.**
+
+There is no divergence to name. The stamp on the phone, the delivery-log row,
+the pubspec version and the source stamp all agree, and the release mode was
+the correct and forced consequence of shipping image bytes. A clean patch is a
+real outcome. This entry is the audit, not a search for a wound.
+
+**Lessons, each with its guard and its strength.**
+
+- The task prompt named a working branch, `claude/flutter-3-47-install-e0bx9w`,
+  that does not exist in this repository. `git branch -a` shows only
+  `claude/salapify-bank-logos-brandfetch-d1jekg` and `main`. Work proceeded on
+  the real designated branch, which already carried the merged f4.48 work and
+  was level with `main` (its tip `83e5e75` is the pre-delivery commit `main`
+  then merged and stamped on top of). This changed nothing and it is not a new
+  risk, because the existing rule already routes around it: `CLAUDE.md`'s
+  development-workflow note says a branch ref that "couldn't find remote ref"
+  means restart with `git checkout -B <branch> origin/main`, "always safe
+  because origin/main is never older than the branch's last delivered commit".
+  A branch name in a prompt is an INPUT, not repository state, so no machine in
+  the repo can guard it, and none needs to: the moment the ref does not resolve,
+  the safe fallback is `origin/main`, which is what happened. Guard: the
+  existing `checkout -B origin/main` rule (MEDIUM, a rule that already held).
+  No new guard warranted.
+
+- The failure mode a new logo could have caused, a `symbolAssetPath` pointing
+  at a file the phone never received, so `InstitutionAvatar`'s `errorBuilder`
+  silently shows initials while every build stays green, turns out to be
+  guarded twice over, and this session is where that was confirmed rather than
+  assumed. First guard: `flutter/test/institution_assets_test.dart` fails the
+  build when a declared `localAssetPath` or `symbolAssetPath` names a file not
+  on disk, proven both ways in its own comment, with a `checked > 20` floor so
+  it cannot pass vacuously if the catalog ever stops declaring paths. Second
+  guard, and the stronger one: Shorebird itself refuses to ship an asset change
+  as an over-the-air patch (`flutter-preview.yml` lines 98 to 100), so the only
+  way new PNGs reach the phone at all is a base-APK release, which the founder
+  installs and can see. Both held this session. Guard: the on-disk existence
+  test (STRONG, automated, fails loudly) plus Shorebird's own
+  `UnpatchableChangeException` (STRONG, automated, and outside the repo).
+
+- One boundary worth stating so a future session does not narrow it by
+  accident: `institution_assets_test.dart` proves a declared path is a file ON
+  DISK, and the files reach the APK because `pubspec.yaml:62` declares the whole
+  `assets/institutions/` directory, so anything on disk there bundles. If a
+  future change ever switched that to a per-file asset list, an on-disk file
+  that was never added to the list would pass the test and still not bundle. It
+  is correct today and not a defect; it is only a note that the test proves
+  existence, not membership in the manifest, and the directory declaration is
+  what closes the gap. Lesson still OPEN only in the weak sense that no test
+  asserts the directory-declaration style is kept; not worth a machine while the
+  directory form is in use.
+
+**Open lessons carried forward.**
+
+Session 38's strong guard is still in place and still working:
+`WidgetController.hitTestWarningShouldBeFatal = true` now sits at
+`flutter/test/screens_shot.dart` line 696 (it was 694 when session 39 read it,
+moved by later edits, not removed), so the file's bare taps still fail loudly at
+the tap. Nothing has routed around it.
+
+Session 38's smaller open item is still open and unchanged: the render harness
+was never added to `.githooks/pre-push`, which still runs only
+`check-stamp-unique.sh`. CI runs the harness unconditionally either way, so this
+stays a round-trip saver rather than an outage risk. Carried forward, still
+optional.
+
+Session 39 recommended five guards and left all five open. One is now BUILT and
+this is the most valuable re-check finding of the session: the toolchain pin
+test, `flutter/test/toolchain_pin_test.dart`, landed in f4.43 (`1eaf958`, "build
+the retrospective's guards"), the delivery after session 39 was written. It
+derives every Flutter version string from the workflow files each run, fails if
+they disagree, fails if fewer than five places name a version (its
+vacuous-pass floor), and separately fails if `flutter/README.md` names a version
+number instead of the rule. Confirmed working: the pin is a single value,
+`3.44.6`, across exactly the five machine-read places rule 5 names
+(`flutter-check.yml` once, `flutter-preview.yml` twice including the
+`--flutter-version` argument to `shorebird release`, `flutter-prod-aab.yml`,
+`pages.yml`). The other four session-39 guards remain UNBUILT and therefore
+open: the decision-log existence test (`decision_log_test.dart` does not exist),
+the section-42 citation test, the whole-tree `pub get` drift check with the
+`font_compare.dart` path fix, and the `Stop` hook that would read the final chat
+message for undelivered stamp claims (`.claude/settings.json` still wires only
+`PreToolUse` and `PostToolUse`, no `Stop`). The readability-sweep coverage gap
+session 39 measured (about 41 of the 62 files in `lib/screens`) is carried
+forward, unchanged and not touched this session.
+
+`CLAUDE.md` factual re-check, done as a step and not a favour. Every path
+checked exists where it says: `.github/workflows/flutter-check.yml`,
+`flutter-preview.yml`, `flutter-prod-aab.yml`, `pages.yml`,
+`.github/scripts/check-stamp-unique.sh`, `.githooks/pre-push`,
+`flutter/shorebird.yaml`, `flutter/test/screens_shot.dart`. Rule 5's claim about
+where the pin lives was checked with `grep` rather than trusted and holds
+exactly: `flutter-check.yml`, `flutter-preview.yml` twice including the
+Shorebird argument, `flutter-prod-aab.yml` and `pages.yml`, all reading
+`3.44.6`. The three-command delivery check ran as written and produced the row
+quoted at the top of this entry. Nothing in `CLAUDE.md` read false today.
+
+---
+
 ## 2026-08-16, session 39: f4.42 delivered clean, a durable record filed under the wrong authority, and a confident citation to a constitution section that does not contain what it was cited for
 
 **What we believed / What was true.**

@@ -107,11 +107,11 @@ void main() {
     expect(find.text('99% owed'), findsOneWidget);
   });
 
-  testWidgets('an account group collapses and expands its rows', (
+  testWidgets('a category tab filters the list to its own accounts', (
     tester,
   ) async {
-    // One bank account (so no card hero duplicates the row) plus one investment
-    // asset, whose "Bitcoin" row appears only inside the Investments group.
+    // One bank account plus one investment asset. The Investments row shows only
+    // under the Investments tab, not under the default Bank tab.
     final store = await _storeWith({
       'accounts': [
         {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
@@ -122,44 +122,35 @@ void main() {
     });
     await _pump(tester, store);
 
-    // Expanded by default: nothing a user has is hidden on open.
-    expect(find.text('Investments'), findsOneWidget);
-    expect(find.text('Bitcoin'), findsOneWidget);
-
-    // Collapse: the row hides, but the group total stays in the header.
-    await tester.tap(find.text('Investments'));
-    await tester.pumpAndSettle();
+    // Bank is the default tab: the bank account row shows, the investment does
+    // not (it lives in a tab that is not built until selected).
+    expect(find.text('BPI'), findsWidgets);
     expect(find.text('Bitcoin'), findsNothing);
-    expect(find.text('₱5,000'), findsOneWidget);
 
-    // Expand again: the row returns.
+    // Switch to Investments: the investment and its subtotal appear.
     await tester.tap(find.text('Investments'));
     await tester.pumpAndSettle();
     expect(find.text('Bitcoin'), findsOneWidget);
+    expect(find.text('INVESTMENTS TOTAL'), findsOneWidget);
+    expect(find.text('₱5,000'), findsWidgets);
   });
 
-  testWidgets('a group header names how many accounts it holds', (
-    tester,
-  ) async {
-    // A tall viewport so the lazy list builds every group in one frame: with
-    // two accounts the card hero pushes the groups down past a short surface.
-    tester.view.physicalSize = const Size(1170, 6000);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
+  testWidgets('a tab subtotal totals the accounts in that tab', (tester) async {
     final store = await _storeWith({
       'accounts': [
         {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
         {'id': 'a2', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000},
       ],
-      'assets': [
-        {'id': 'x1', 'name': 'Bitcoin', 'kind': 'crypto', 'value': 5000},
-      ],
     });
     await _pump(tester, store);
-    // Counts live only in the group headers, so they are unambiguous even when
-    // the card hero repeats an account above.
-    expect(find.text('2 accounts'), findsOneWidget);
-    expect(find.text('1 account'), findsOneWidget);
+    // Bank tab: the deposit account's subtotal.
+    expect(find.text('BANK TOTAL'), findsOneWidget);
+    expect(find.text('₱48,000'), findsWidgets);
+    // E-Wallets tab: GCash and its own subtotal, a different number.
+    await tester.tap(find.text('E-Wallets'));
+    await tester.pumpAndSettle();
+    expect(find.text('E-WALLETS TOTAL'), findsOneWidget);
+    expect(find.text('₱2,000'), findsWidgets);
   });
 
   testWidgets('the ownership ratio is hidden on an empty book', (tester) async {
@@ -173,21 +164,22 @@ void main() {
     expect(find.text('Add an account'), findsOneWidget);
   });
 
-  testWidgets('the quick-actions row offers Transfer, Add, Pay and More', (
-    tester,
-  ) async {
-    final store = await _storeWith({
-      'accounts': [
-        {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
-      ],
-    });
-    await _pump(tester, store);
+  testWidgets(
+    'the quick-actions row offers Transfer, Add Account, Pay and More',
+    (tester) async {
+      final store = await _storeWith({
+        'accounts': [
+          {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
+        ],
+      });
+      await _pump(tester, store);
 
-    expect(find.text('Transfer'), findsOneWidget);
-    expect(find.text('Add'), findsOneWidget);
-    expect(find.text('Pay'), findsOneWidget);
-    expect(find.text('More'), findsOneWidget);
-  });
+      expect(find.text('Transfer'), findsOneWidget);
+      expect(find.text('Add Account'), findsOneWidget);
+      expect(find.text('Pay'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+    },
+  );
 
   testWidgets('Transfer with a single account explains why it cannot run yet', (
     tester,

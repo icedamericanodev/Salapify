@@ -48,6 +48,18 @@ Future<void> _open(WidgetTester tester, SalapifyStore store) async {
   await tester.pumpAndSettle();
 }
 
+/// Scroll the account list until [f] is on screen, so a lazy row far below the
+/// redesigned hero, Available card and carousel actually builds before a tap or
+/// a check reads it. The account list is the first Scrollable; inside a modal
+/// sheet use _tap (ensureVisible) instead, its rows are already built.
+Future<void> _reveal(WidgetTester t, Finder f) async {
+  // Pass the base finder, never f.first: scrollUntilVisible evaluates it while
+  // the row is still off-screen and unbuilt, and calling .first on an empty
+  // finder throws "No element" instead of scrolling.
+  await t.scrollUntilVisible(f, 200, scrollable: find.byType(Scrollable).first);
+  await t.pumpAndSettle();
+}
+
 /// Type into the field carrying this hint or label.
 ///
 /// `.first` on purpose: the account form has TWO fields hinted '0', a balance
@@ -242,6 +254,7 @@ void main() {
       ],
     });
     await _open(tester, store);
+    await _reveal(tester, find.text('Wallet'));
     await _tap(tester, find.text('Wallet'));
     expect(find.text('Edit account'), findsOneWidget);
     await _tap(tester, find.text('Save'));
@@ -308,6 +321,7 @@ void main() {
       ],
     });
     await _open(tester, store);
+    await _reveal(tester, find.text('Wallet'));
     await _tap(tester, find.text('Wallet'));
     expect(find.text('Kind'), findsOneWidget);
   });
@@ -355,6 +369,10 @@ void main() {
     // avatar for the chosen bank, which is the "not a blank gap" guarantee this
     // check is really about (the icon-not-overwritten rule is the two asserts
     // above).
+    await _reveal(
+      tester,
+      find.byWidgetPredicate((w) => w is InstitutionAvatar && w.id == 'gcash'),
+    );
     expect(
       find.byWidgetPredicate((w) => w is InstitutionAvatar && w.id == 'gcash'),
       findsOneWidget,
@@ -382,6 +400,7 @@ void main() {
     final a = _rows(store, 'accounts').first;
     expect(a['icon'], '🐷');
     expect(a['institutionId'], 'gcash');
+    await _reveal(tester, find.text('🐷'));
     expect(find.text('🐷'), findsOneWidget);
     expect(find.text('GC'), findsNothing, reason: 'the choice was overwritten');
   });
@@ -403,6 +422,7 @@ void main() {
       ],
     });
     await _open(tester, store);
+    await _reveal(tester, find.text('💵'));
     expect(find.text('💵'), findsOneWidget);
   });
 
@@ -440,6 +460,8 @@ void main() {
     // and it OFFERS a way out rather than just stating a limit.
     expect(find.textContaining('no rate for USD'), findsOneWidget);
     expect(find.text('Set a USD rate'), findsOneWidget);
+    // The row amount sits below the redesigned hero, so scroll it into view.
+    await _reveal(tester, find.text('\$1,000.00'));
     expect(find.text('\$1,000.00'), findsOneWidget);
   });
 
