@@ -821,7 +821,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ),
               ),
               const SizedBox(width: Gap.sm),
-              Expanded(
+              // The label is a short fixed phrase ("You own"/"You owe"), so it
+              // gets a loose 1 share it barely uses, and the figure gets a tight
+              // 3 share: three quarters of the free width, so a big balance like
+              // a billion pesos still renders at full size instead of being
+              // shrunk to half the row. The label still ellipsizes rather than
+              // overflow if a translation ever runs long.
+              Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
@@ -830,7 +836,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ),
               ),
               const SizedBox(width: Gap.sm),
-              Flexible(
+              Expanded(
+                flex: 3,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
@@ -1044,7 +1051,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
         final amt = amountOf(row['remaining']);
         if (amt <= 0) continue;
         if (best == null || amt > best.$2) {
-          best = (row['name']?.toString() ?? 'a balance', amt);
+          // Guard empty and whitespace names, not just null, so a malformed or
+          // imported backup row can never make Pan say "clear is , PHP12,500".
+          // This matches the ?? 'Debt' / ?? 'Account' fallbacks the list rows use.
+          final rawName = row['name']?.toString().trim() ?? '';
+          best = (rawName.isEmpty ? 'a balance' : rawName, amt);
         }
       }
     }
