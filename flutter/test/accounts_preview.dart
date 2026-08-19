@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/accounts.dart';
 import 'package:salapify/theme.dart';
+import 'package:salapify/widgets/salapify_icon.dart' show salapifyIcon;
 
 import 'screens_shot.dart' show loadRealFonts, livedInBlob;
 
@@ -57,20 +58,36 @@ void main() {
       matchesGoldenFile('shots/accounts-full-dark.png'),
     );
 
-    // Switch to the Liabilities tab to review the owed (red) subtotal cue and
-    // the manage-debts note.
-    await tester.scrollUntilVisible(
-      find.text('ACCOUNTS BY CATEGORY'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Liabilities'));
-    await tester.tap(find.text('Liabilities'));
+    // Masked state: tap the hide-balances eye (visible at the top before any
+    // group scrolls the hero away) and render, to review that every figure
+    // hides at once and nothing leaks. Then unmask before expanding.
+    await tester.tap(find.byIcon(salapifyIcon('reveal')));
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('shots/accounts-liabilities-dark.png'),
+      matchesGoldenFile('shots/accounts-hidden-dark.png'),
+    );
+    await tester.tap(find.byIcon(salapifyIcon('hide')));
+    await tester.pumpAndSettle();
+
+    // Expand every category group to review the accordion open state: bank rows
+    // with real logos, the rich credit-card treatment, and the loan rows.
+    for (final label in const [
+      'E-Wallets',
+      'Investments',
+      'Property',
+      'Credit Cards',
+      'Loans',
+    ]) {
+      final header = find.text(label);
+      if (header.evaluate().isEmpty) continue;
+      await tester.ensureVisible(header.first);
+      await tester.tap(header.first);
+      await tester.pumpAndSettle();
+    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('shots/accounts-expanded-dark.png'),
     );
   });
 }

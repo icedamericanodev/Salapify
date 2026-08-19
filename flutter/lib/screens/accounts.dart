@@ -17,7 +17,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/format.dart' show formatMoney;
 import '../money/greeting.dart' show greetingFor;
 import '../money/net_worth_history.dart'
-    show netWorthHistoryOf, netWorthMonthKey, netWorthTrend;
+    show netWorthHistoryOf, netWorthMonthKey, netWorthTrend, netWorthWindow;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
     show baseCurrencyOf, excludedNotice, manualRatesOf;
@@ -28,7 +28,6 @@ import '../money/transfers.dart'
     show TransferOutcome, TransferRefusal, balanceLabel;
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
-import '../data/qr_vault.dart';
 import '../money/account_taxonomy.dart';
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
@@ -48,7 +47,7 @@ import 'add_account_flow.dart'
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/bank_card.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/flip_bank_card.dart';
+import '../widgets/net_worth_sparkline.dart' show NetWorthSparkline;
 import '../widgets/pressable_scale.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/salapify_icon.dart';
@@ -123,70 +122,72 @@ class _AccountsScreenState extends State<AccountsScreen> {
   String? _highlightId;
   Timer? _fade;
 
-  /// Which "Accounts by category" tab is showing, by a STABLE key
-  /// (bank / ewallets / investments / property / liabilities), never an index:
-  /// the Property tab appears only when the person owns property, so an index
-  /// would shift under it. In memory only, so it resets on a fresh open, the
-  /// same non-persisted choice the old per-group collapse made.
-  String _selectedTab = 'bank';
+  /// Which category groups are EXPANDED in the Accounts Overview accordion, by
+  /// their stable group id (cash_bank / ewallets / investments / property /
+  /// credit / loans). In memory only, so a fresh open starts from the calm
+  /// collapsed overview; the choice is transient the same way the old per-group
+  /// collapse was. Seeded in initState so the screen never opens all-collapsed
+  /// (the first non-empty group opens) and a searched account's group is open.
+  final Set<String> _expanded = {};
 
-  /// Whether the person has TAPPED a category chip. Until they do, the section
-  /// shows the first NON-EMPTY tab rather than a blank Bank tab: somebody whose
-  /// only account is a GCash wallet should not open Accounts to "No bank
-  /// accounts yet". Once they choose a chip, their choice is honoured even if
-  /// that tab is empty (so tapping an empty Investments shows its empty state).
-  bool _tabChosen = false;
+  /// Whether the collapsed-state seed has run. The seed needs the built groups,
+  /// which only exist inside build, so it runs once on the first build rather
+  /// than in initState where the store rows are not yet grouped.
+  bool _seededExpansion = false;
 
-  /// Loaded once and passed down to the flipped card's QR shortcut, so the
-  /// carousel does not re-read the documents directory per card. Best effort:
-  /// off a device (web, tests) this stays null and the QR button simply does
-  /// not appear, exactly as the detail screen behaves.
-  QrVault? _vault;
+  /// The active class filter for the overview: 'all', 'assets', 'liabilities',
+  /// or 'hidden'. 'hidden' surfaces accounts the person archived or excluded
+  /// from net worth, which are otherwise left out of the counted groups. In
+  /// memory only, resets to 'all' on a fresh open.
+  String _filter = 'all';
+
+  /// How many trailing months the hero sparkline plots, or null for the whole
+  /// recorded history. The period selector sets it; the chart never invents a
+  /// point, so a short history simply draws fewer. In memory only.
+  int? _sparkMonths;
 
   @override
   void initState() {
     super.initState();
-    QrVault.inAppDocuments()
-        .then((v) {
-          if (mounted) setState(() => _vault = v);
-        })
-        .catchError((_) {});
     final id = widget.focusAccountId;
     if (id != null) {
       _highlightId = id;
-      // A deep-linked account only builds inside its OWN tab, so select that
-      // tab up front or the reveal scroll finds no element (search targets
-      // accounts, which live in Bank or E-Wallets). Mark it chosen so the
-      // first-non-empty fallback never redirects away from the focused row.
-      _selectedTab = _tabKeyForAccount(id);
-      _tabChosen = true;
+      // A deep-linked account only builds inside its OWN group, and only when
+      // that group is EXPANDED (a collapsed group does not render its rows), so
+      // open the account's group up front or the reveal scroll finds no
+      // element. Search targets accounts, which live in Cash & Bank or
+      // E-Wallets. Marking it seeded stops the first-non-empty seed from also
+      // opening a second group and pushing the focused row further down.
+      _expanded.add(_groupIdForAccount(id));
+      _seededExpansion = true;
+      // A hidden (archived or excluded) account is filtered out of the default
+      // "all" view, so its row would never render and the reveal would land on
+      // nothing. Open the Hidden filter for it, so the focused row is actually
+      // built in the group above and the scroll and flash have something to
+      // reach.
+      for (final r in _rows('accounts')) {
+        if ('${r['id']}' == id && !countsInNetWorth(r)) {
+          _filter = 'hidden';
+          break;
+        }
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) => _revealFocus(id));
     }
   }
 
-  /// The category tab a stored account id belongs to, for the search reveal.
+  /// The overview group a stored account id belongs to, for the search reveal.
   /// Accounts are the only focus targets, so the answer is E-Wallets for an
-  /// e-wallet subtype and Bank for everything else in the accounts store.
-  String _tabKeyForAccount(String id) {
+  /// e-wallet subtype and Cash & Bank for everything else in the accounts
+  /// store.
+  String _groupIdForAccount(String id) {
     for (final r in _rows('accounts')) {
       if ('${r['id']}' == id) {
         return resolveKind(r, AccountStore.accounts).subtype.id == 'ewallet'
             ? 'ewallets'
-            : 'bank';
+            : 'cash_bank';
       }
     }
-    return 'bank';
-  }
-
-  /// Open the edit sheet for a card, the same one "View full details" reaches a
-  /// tap deeper. Accounts and debts have different editors, so the card's own
-  /// collection decides which one opens.
-  void _editCard(BuildContext context, _CardItem it) {
-    if (it.store == AccountStore.debts) {
-      showDebtFormSheet(context, store, debt: it.row);
-    } else {
-      _openForm(context, isAccount: true, item: it.row);
-    }
+    return 'cash_bank';
   }
 
   @override
@@ -247,6 +248,26 @@ class _AccountsScreenState extends State<AccountsScreen> {
         if (a is Map) a.cast<String, dynamic>(),
     ];
   }
+
+  /// Whether balances are masked on this screen. A privacy toggle the eye in the
+  /// hero flips, persisted in settings (the same free settings map the widget's
+  /// hide-amount preference uses), so a shoulder-surfer glance never reveals a
+  /// figure and the choice survives a reopen. Read live from the store, not held
+  /// in local state, so the toggle and every masked figure can never disagree.
+  bool get _hideBalances =>
+      (store.data['settings'] as Map?)?['accountsHideBalances'] == true;
+
+  void _toggleHideBalances() {
+    Haptics.select();
+    store.setSetting('accountsHideBalances', !_hideBalances);
+  }
+
+  /// A money figure for display, masked to dots when the privacy toggle is on.
+  /// Every peso figure on the screen routes through this so one flag hides them
+  /// all at once, and nothing that is hidden can leak through a stray call site.
+  /// The real formatting stays formatMoneyText, so an unmasked figure is byte
+  /// for byte what it was before this toggle existed.
+  String _money(double v) => _hideBalances ? '₱ ••••' : formatMoneyText(v);
 
   @override
   Widget build(BuildContext context) {
@@ -370,42 +391,25 @@ class _AccountsScreenState extends State<AccountsScreen> {
               (e) => _foreignCodeOf(e.$1) != null,
             );
 
-            // The cards shown in the swipeable carousel: every cash or wallet
-            // account, then any credit card. The grouped list below still shows
-            // and edits all of them, so this is a hero on top, not a
-            // replacement, and the net worth subtotals it owns are untouched.
-            //
-            // Shown only with TWO or more cards. A carousel is a "swipe between
-            // several" affordance, so a lone card with one page dot and nothing
-            // to peek at is not one; a single account keeps the familiar row and
-            // gains the card the moment a second account joins it.
-            // Cash is money you hold, not an account at an institution, so it is
-            // NOT a card: it folds into the "Money you can reach now" summary
-            // above the carousel and still lives, openable, in the account list
-            // below. The carousel is bank and credit only. The hero zone appears
-            // at two or more accounts TOTAL, so a single account keeps just its
-            // list row (the carousel itself handles a lone bank card, dots
-            // suppressed).
-            final all = _cardItems(groups);
-            final cardItems = all.where((it) => !it.isCash).toList();
-            final showHero = all.length > 1;
-            // The founder's split: real cards live apart from accounts. "Your
-            // Cards" is credit cards only (the one thing the data can truthfully
-            // call a card: a debt whose type is a credit card, carrying a limit
-            // and a network). "Your Accounts" is the deposit and e-wallet
-            // accounts. There is no debit-card concept in the data, so a deposit
-            // account is never labelled a card. Cash stays folded into "Money you
-            // can reach now" as before.
-            final depositCards = cardItems
-                .where((it) => it.variant != BankCardVariant.credit)
-                .toList();
-            final creditCards = cardItems
-                .where((it) => it.variant == BankCardVariant.credit)
-                .toList();
-            // The first-time flip nudge belongs to whichever section shows first,
-            // so it is never offered twice on one screen.
-            final flipHintPending =
-                (store.data['settings'] as Map?)?['flipHintSeen'] != true;
+            // Seed the accordion's open state once, on the first build that has
+            // real groups: open the first non-empty COUNTED group so the screen
+            // never lands all-collapsed with the person's money one tap away,
+            // yet still reads as the calm overview the mockup opens on. A search
+            // deep-link already seeded its own group in initState and set the
+            // flag, so this never fights it.
+            if (!_seededExpansion) {
+              for (final g in _overviewGroups(groups, 'all')) {
+                if (g.rows.isNotEmpty) {
+                  _expanded.add(g.id);
+                  // Only consume the seed once a group actually opened, so a
+                  // fresh install (no groups yet) still auto-opens the first
+                  // group the moment the person adds their first account,
+                  // rather than burning the seed on the empty first build.
+                  _seededExpansion = true;
+                  break;
+                }
+              }
+            }
 
             return ListView(
               // Extra bottom room so the last account or the manage-debts note is
@@ -487,65 +491,25 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   const SizedBox(height: 20),
                   _availableCard(liquidTotal, liquidCount, liquidApprox),
                 ],
-                // Your Accounts: the deposit and e-wallet accounts, shown as
-                // cards. The grouped list below still shows and edits all of
-                // them, so this is a hero on top, not a replacement.
-                if (showHero && depositCards.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 10),
-                    child: Text('YOUR ACCOUNTS', style: Barako.kickerStyle),
-                  ),
-                  _AccountsCarousel(
-                    items: depositCards,
-                    store: store,
-                    vault: _vault,
-                    onOpen: (it) => _openCard(context, it),
-                    onEdit: (it) => _editCard(context, it),
-                    // The first-time flip nudge, shown until the founder flips any
-                    // card once. Persisted so it never returns on the next open.
-                    showHint: flipHintPending,
-                    onFirstFlip: () => store.setSetting('flipHintSeen', true),
-                  ),
+                // Accounts Overview: the mockup's expandable category groups.
+                // Each category collapses to a one-line header (icon, name,
+                // count, class-coloured total, a chevron) and expands to its
+                // accounts, with credit cards drawn as real cards. A class
+                // filter row above it narrows to assets, liabilities, or the
+                // accounts hidden from net worth. This replaces the old one-tab
+                // chip filter; every peso still folds the SAME _countedAmount
+                // the hero totals use, so a group total can never diverge.
+                if (anyRows) ...[
+                  const SizedBox(height: 24),
+                  _overviewSection(context, groups, amountOfRow),
                 ],
-                // Your Cards: credit cards only, kept apart from accounts so the
-                // word "card" means an actual card. The flip hint shows here only
-                // when there is no accounts section above to carry it.
-                if (showHero && creditCards.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 10),
-                    child: Text('YOUR CARDS', style: Barako.kickerStyle),
-                  ),
-                  _AccountsCarousel(
-                    items: creditCards,
-                    store: store,
-                    vault: _vault,
-                    onOpen: (it) => _openCard(context, it),
-                    onEdit: (it) => _editCard(context, it),
-                    showHint: flipHintPending && depositCards.isEmpty,
-                    onFirstFlip: () => store.setSetting('flipHintSeen', true),
-                  ),
-                ],
-                // Pan's read on the month, the mockup's insight card. It reuses
+                // Pan's read on the month, the mockup's Pan AI card. It reuses
                 // the golden-locked trend the hero shows, so the two can never
                 // disagree, and opens the full trend on tap. Shown only when
                 // there is a prior month to compare against.
                 if (insightTrend != null) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   _panInsight(insightTrend, _largestLiability(groups)),
-                ],
-                // Add and Move money now live in the quick-actions row above,
-                // one tap from the net worth number rather than a scroll past
-                // every account. The single Add path (ask what it is, then open
-                // the form that can record it) is unchanged; only its home moved.
-                // Accounts by category: the mockup's tabbed filter. It replaces
-                // the old stacked own/owe groups; the owned-versus-owed meaning
-                // survives in each tab's class-coloured subtotal (a dot, a
-                // colour and the word TOTAL, never colour alone).
-                if (anyRows) ...[
-                  const SizedBox(height: 20),
-                  _categorySection(context, groups, amountOfRow),
                 ],
                 if (!anyRows)
                   // The shared empty-state shape. It carries the Add button
@@ -665,17 +629,27 @@ class _AccountsScreenState extends State<AccountsScreen> {
     // until there is a prior month to compare against, and the line is simply
     // omitted then rather than faking a zero.
     final now = DateTime.now();
-    final trend = netWorthTrend(
-      netWorthHistoryOf(store.data),
-      netWorthMonthKey(now),
+    final monthKey = netWorthMonthKey(now);
+    final history = netWorthHistoryOf(store.data);
+    final trend = netWorthTrend(history, monthKey, netWorth);
+    // The sparkline plots the recorded snapshots plus today's live figure, cut
+    // to the selected window. Fewer than two points draws nothing (the widget
+    // and this guard agree), so the chart and its selector only appear once a
+    // trend exists to show. Values, not the raw doubles, so the window applies.
+    final sparkPoints = netWorthWindow(
+      history,
+      monthKey,
       netWorth,
+      months: _sparkMonths,
     );
+    final sparkValues = [for (final p in sparkPoints) p.value];
+    final hasSpark = sparkValues.length >= 2;
+
     // The one raised hero, warmed by Barako.heroWash (the tokenized coffee
-    // glow). Matches the founder's richer mockup: the NET WORTH figure leads
-    // with Pan resting to its right, then the two totals split by a hairline
-    // with a status dot and a chevron each, the owned/owed bar, and a single
-    // "View financial position" button. The greeting moved up into the AppBar,
-    // where the mockup puts it, so the hero can open on the number.
+    // glow). The mockup's dashboard card: the NET WORTH kicker with a
+    // hide-balances eye and a period selector on top, the figure and its
+    // percentage move, the trend sparkline, then the assets-and-liabilities
+    // split, the owned/owe bar, and one "View financial position" button.
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.hero),
@@ -686,84 +660,80 @@ class _AccountsScreenState extends State<AccountsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Kicker row: NET WORTH and the eye on the left, the period selector
+          // on the right, the way the mockup lays out the card's top line.
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
+              Text('NET WORTH', style: Barako.kickerStyle),
+              const SizedBox(width: Gap.xs),
+              _eyeToggle(),
+              const Spacer(),
+              if (hasSpark) _periodSelector(),
+            ],
+          ),
+          const SizedBox(height: Gap.xs),
+          // The figure and its delta open the full trend screen, one tap from
+          // the number. A named button so a screen reader gets a destination,
+          // not a stream of fragments, and it says "hidden" when masked.
+          Semantics(
+            button: true,
+            label: _hideBalances
+                ? 'Net worth hidden. Opens the trend over time.'
+                : 'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Haptics.select();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => NetWorthTrendScreen(store: store),
+                    ),
+                  );
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('NET WORTH', style: Barako.kickerStyle),
-                    const SizedBox(height: Gap.xs),
-                    // The figure and its delta open the full trend screen, one
-                    // tap from the number. A named button so a screen reader
-                    // gets a destination, not a stream of fragments.
-                    Semantics(
-                      button: true,
-                      label:
-                          'Net worth ${formatMoneyText(netWorth)}. Opens the trend over time.',
-                      child: ExcludeSemantics(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            Haptics.select();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    NetWorthTrendScreen(store: store),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  formatMoneyText(netWorth),
-                                  maxLines: 1,
-                                  style: AppText.amountLg.w8,
-                                ),
-                              ),
-                              if (trend != null) ...[
-                                const SizedBox(height: Gap.sm),
-                                _monthTrendLine(trend),
-                              ],
-                            ],
-                          ),
-                        ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _money(netWorth),
+                        maxLines: 1,
+                        style: AppText.amountLg.w8,
                       ),
                     ),
+                    if (trend != null) ...[
+                      const SizedBox(height: Gap.sm),
+                      _monthTrendLine(trend),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: Gap.sm),
-              // Pan, content, the mockup's mascot, now the hand-drawn panda.
-              // The art is a bundled PNG, and Shorebird cannot patch assets, so
-              // a change to Pan's face ships in a base APK, never over the air.
-              // Decoration here, so it is kept out of the hero's semantics.
-              ExcludeSemantics(
-                child: PanMascot.emotion(emotion: PanEmotion.content, size: 64),
-              ),
-            ],
+            ),
           ),
+          // The trend sparkline, the rising line the mockup draws under the
+          // figure. Decorative shape only (no axis, no labels), so it is kept
+          // out of semantics and stays even when balances are masked: it shows
+          // the shape of the move, never a peso figure.
+          if (hasSpark) ...[
+            const SizedBox(height: Gap.md),
+            ExcludeSemantics(
+              child: NetWorthSparkline(values: sparkValues, height: 56),
+            ),
+          ],
           const SizedBox(height: Gap.lg),
-          // What you own and what you owe, stacked full width. The old design put
-          // them side by side, which squeezed each label into half the card and
-          // truncated "TOTAL LIABILITIES" to "TOTAL LIABILITI..." on a narrow
-          // phone. Stacked, each label reads in plain words at full width and the
-          // peso figure right-aligns with tabular digits so own and owe line up.
-          // Each line taps into its own breakdown. Assets keep the brand accent
-          // and owed keeps Barako.warning, the same two colours the ownership bar
-          // below uses (the owed contrast stays the palette_contrast_test-guarded
-          // lighter red, not warningStrong which measured under AA here), and a
-          // status dot carries the meaning alongside the colour, never colour
-          // alone.
+          // Assets and liabilities, stacked full width. The old design put them
+          // side by side, which truncated "TOTAL LIABILITIES" on a narrow
+          // phone; stacked, each reads at full width and the figure right-aligns
+          // with tabular digits so the two line up. Each taps into its own
+          // breakdown. Assets keep the brand accent, liabilities the warning
+          // red (the palette_contrast_test-guarded lighter red), and a status
+          // dot carries the meaning alongside the colour, never colour alone.
           Container(height: 1, color: Barako.border),
           const SizedBox(height: Gap.lg),
           _heroLine(
-            'You own',
+            'Assets',
             assets,
             Barako.primaryText,
             Barako.primary,
@@ -771,7 +741,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           ),
           const SizedBox(height: Gap.md),
           _heroLine(
-            'You owe',
+            'Liabilities',
             liabilities,
             Barako.warning,
             Barako.warning,
@@ -784,6 +754,82 @@ class _AccountsScreenState extends State<AccountsScreen> {
           const SizedBox(height: Gap.lg),
           _positionButton(),
         ],
+      ),
+    );
+  }
+
+  /// The hide-balances eye in the hero kicker. Flipping it masks every peso
+  /// figure on the screen at once and persists the choice, so a shoulder glance
+  /// never reads a balance. An icon control, so it carries its own spoken label.
+  Widget _eyeToggle() {
+    final hidden = _hideBalances;
+    return Semantics(
+      button: true,
+      label: hidden ? 'Show balances' : 'Hide balances',
+      child: ExcludeSemantics(
+        child: InkResponse(
+          radius: 22,
+          onTap: _toggleHideBalances,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(
+              salapifyIcon(hidden ? 'hide' : 'reveal'),
+              size: IconSizes.inline,
+              color: Barako.muted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The sparkline's period selector, the mockup's "This Month" control turned
+  /// into an honest chart-range picker: it changes how many trailing months the
+  /// trend line plots, nothing more. Labelled by the current window, never a
+  /// period the numbers below it do not actually cover.
+  Widget _periodSelector() {
+    const options = <(int?, String, String)>[
+      (6, '6M', 'Last 6 months'),
+      (12, '1Y', 'Last 12 months'),
+      (null, 'All', 'All time'),
+    ];
+    final current = options.firstWhere(
+      (o) => o.$1 == _sparkMonths,
+      orElse: () => options.last,
+    );
+    return Semantics(
+      button: true,
+      label: 'Trend range, ${current.$3}. Opens a range picker.',
+      child: ExcludeSemantics(
+        child: PopupMenuButton<int?>(
+          initialValue: _sparkMonths,
+          tooltip: 'Trend range',
+          onSelected: (v) => setState(() => _sparkMonths = v),
+          itemBuilder: (_) => [
+            for (final (months, _, long) in options)
+              PopupMenuItem<int?>(value: months, child: Text(long)),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Barako.card,
+              borderRadius: BorderRadius.circular(Radii.pill),
+              border: Border.all(color: Barako.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(current.$2, style: AppText.small.w6.tint(Barako.text)),
+                const SizedBox(width: 2),
+                Icon(
+                  salapifyIcon('expand'),
+                  size: IconSizes.dense,
+                  color: Barako.muted,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -802,7 +848,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
   ) {
     return Semantics(
       button: true,
-      label: '$label ${formatMoneyText(value)}. Opens the breakdown.',
+      label: _hideBalances
+          ? '$label hidden. Opens the breakdown.'
+          : '$label ${formatMoneyText(value)}. Opens the breakdown.',
       child: ExcludeSemantics(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -821,12 +869,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ),
               ),
               const SizedBox(width: Gap.sm),
-              // The label is a short fixed phrase ("You own"/"You owe"), so it
-              // gets a loose 1 share it barely uses, and the figure gets a tight
-              // 3 share: three quarters of the free width, so a big balance like
-              // a billion pesos still renders at full size instead of being
-              // shrunk to half the row. The label still ellipsizes rather than
-              // overflow if a translation ever runs long.
+              // The label ("Assets" / "Liabilities") gets an equal Flexible
+              // share with the figure. In the shipped Jakarta font it fits at
+              // full size (so it never truncates, which is what the readability
+              // sweep checks), and it ellipsizes only as a last resort at a very
+              // large system font rather than overflowing the row.
               Flexible(
                 child: Text(
                   label,
@@ -837,12 +884,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
               ),
               const SizedBox(width: Gap.sm),
               Expanded(
-                flex: 3,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: Text(
-                    formatMoneyText(value),
+                    _money(value),
                     maxLines: 1,
                     style: AppText.amountRow.w8.tint(valueColor),
                   ),
@@ -931,9 +977,20 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final color = up ? Barako.primary : Barako.muted;
     final iconName = flat ? 'forward' : (up ? 'growth' : 'decline');
     final pctText = pct == null ? '' : ' (${pct.abs().toStringAsFixed(1)}%)';
-    final label = flat
-        ? 'No change this month'
-        : '${up ? 'Up' : 'Down'} ${formatMoney(delta.abs())}$pctText this month';
+    // Masked, the line drops the peso amount and shows the percentage only, so
+    // the delta never leaks the absolute figure the eye is hiding. With no
+    // meaningful percentage it falls back to the direction alone.
+    final String label;
+    if (flat) {
+      label = 'No change this month';
+    } else if (_hideBalances) {
+      label = pct == null
+          ? '${up ? 'Up' : 'Down'} this month'
+          : '${up ? 'Up' : 'Down'} ${pct.abs().toStringAsFixed(1)}% this month';
+    } else {
+      label =
+          '${up ? 'Up' : 'Down'} ${formatMoney(delta.abs())}$pctText this month';
+    }
     return Row(
       children: [
         Icon(salapifyIcon(iconName), size: IconSizes.dense, color: color),
@@ -1073,16 +1130,25 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final delta = trend['delta'] as double;
     final flat = delta.abs() < 0.005;
     final up = delta > 0;
+    // Masked, Pan keeps the sentiment but drops the peso figures, so the eye
+    // that hides every other number on the screen hides these too (the card,
+    // and the screen-reader label built from the same line).
+    final hide = _hideBalances;
     final amount = formatMoney(delta.abs());
     final String line;
     if (up) {
-      line = 'Great month. Your net worth grew by $amount.';
+      line = hide
+          ? 'Great month. Your net worth grew this month.'
+          : 'Great month. Your net worth grew by $amount.';
     } else if (!flat) {
-      line = 'Your net worth dipped by $amount this month. Tap to see where.';
+      line = hide
+          ? 'Your net worth dipped this month. Tap to see where.'
+          : 'Your net worth dipped by $amount this month. Tap to see where.';
     } else if (largestOwed != null) {
-      line =
-          'Steady month. Your biggest balance to clear is ${largestOwed.$1}, '
-          '${formatMoney(largestOwed.$2)}.';
+      line = hide
+          ? 'Steady month. Your biggest balance to clear is ${largestOwed.$1}.'
+          : 'Steady month. Your biggest balance to clear is ${largestOwed.$1}, '
+                '${formatMoney(largestOwed.$2)}.';
     } else {
       line = 'Your net worth held steady this month. Steady is progress too.';
     }
@@ -1125,9 +1191,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
                         const SizedBox(height: Gap.sm),
                         Row(
                           children: [
-                            Text(
-                              'See more insights',
-                              style: AppText.small.w7.tint(Barako.primaryText),
+                            Flexible(
+                              child: Text(
+                                'See more insights',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.small.w7.tint(Barako.primaryText),
+                              ),
                             ),
                             const SizedBox(width: Gap.xs),
                             Icon(
@@ -1165,11 +1235,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
   /// it names exactly what is left out so the number cannot mislead, and puts
   /// bills and savings first without a nag or a warning colour.
   Widget _availableCard(double total, int count, bool approx) {
-    final amountText = '${approx ? '~' : ''}${formatMoneyText(total)}';
+    final amountText = _hideBalances
+        ? _money(total)
+        : '${approx ? '~' : ''}${formatMoneyText(total)}';
     final accountsWord = count == 1 ? 'account' : 'accounts';
     return Semantics(
       label:
-          'Money you can reach now, $amountText across $count liquid $accountsWord. '
+          'Money you can reach now, ${_hideBalances ? 'hidden' : amountText} across $count liquid $accountsWord. '
           'Everyday money you can use or transfer today. It leaves out time '
           'deposits, investments, and credit. Cover your bills and savings first.',
       child: ExcludeSemantics(
@@ -1246,258 +1318,373 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  /// The mockup's "Accounts by category" section: a chip row that filters the
-  /// account list (Bank, E-Wallets, Investments, Property when owned,
-  /// Liabilities), a class-coloured subtotal that keeps the owned-versus-owed
-  /// meaning the old stacked headings carried, the matching rows, and a per-tab
-  /// Add button. It replaces the stacked groups. Every amount still folds the
-  /// SAME _countedAmount the hero totals use, so a tab subtotal can never
-  /// diverge from them; there is no new arithmetic here.
-  Widget _categorySection(
+  /// The overview's category groups, in the mockup's order, already filtered by
+  /// the active class filter. The single cash_equivalents category is split at
+  /// the SUBTYPE level (e-wallets out of the rest) and installments fold into
+  /// Loans, so a person sees the five familiar buckets the mockup draws rather
+  /// than the six raw taxonomy ids. Every row still resolves through the same
+  /// taxonomy, so nothing is reclassified; this only regroups for display.
+  ///
+  /// [filter] decides which rows and which groups survive:
+  ///  - 'hidden' keeps only the rows left OUT of net worth (archived or
+  ///    excluded), across every class, so a hidden account always has a home.
+  ///  - 'all' / 'assets' / 'liabilities' keep only the COUNTED rows, then drop
+  ///    the groups whose class does not match ('all' keeps both classes).
+  /// A group with no surviving rows is dropped, so an empty category never
+  /// draws a header the person cannot open onto anything.
+  List<_GroupSpec> _overviewGroups(
+    Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
+    String filter,
+  ) {
+    bool wallet((Map<String, dynamic>, AccountStore) e) =>
+        resolveKind(e.$1, e.$2).subtype.id == 'ewallet';
+    // The row test for the current filter: hidden shows only the uncounted
+    // rows; every other filter shows only the counted ones.
+    bool keep((Map<String, dynamic>, AccountStore) e) => filter == 'hidden'
+        ? !countsInNetWorth(e.$1)
+        : countsInNetWorth(e.$1);
+
+    List<(Map<String, dynamic>, AccountStore)> pick(
+      Iterable<(Map<String, dynamic>, AccountStore)> src,
+    ) => [
+      for (final e in src)
+        if (keep(e)) e,
+    ];
+
+    final cash = groups['cash_equivalents']!;
+    final bank = pick(cash.where((e) => !wallet(e)));
+    final wallets = pick(cash.where(wallet));
+    final investments = pick(groups['investments']!);
+    final property = pick(groups['property']!);
+    final credit = pick(groups['credit']!);
+    final loans = pick([...groups['loans']!, ...groups['installments']!]);
+
+    final specs = <_GroupSpec>[
+      _GroupSpec('cash_bank', 'Cash & Bank', 'bank', AccountClass.asset, bank,
+          'Add account in Cash & Bank'),
+      _GroupSpec('ewallets', 'E-Wallets', 'wallet', AccountClass.asset, wallets,
+          'Add account in E-Wallets'),
+      _GroupSpec('investments', 'Investments', 'growth', AccountClass.asset,
+          investments, 'Add investment account'),
+      _GroupSpec('property', 'Property', 'house', AccountClass.asset, property,
+          'Add property'),
+      _GroupSpec('credit', 'Credit Cards', 'card', AccountClass.liability,
+          credit, 'Add credit card'),
+      _GroupSpec('loans', 'Loans', 'document', AccountClass.liability, loans,
+          'Add loan account'),
+    ];
+
+    return [
+      for (final s in specs)
+        if (s.rows.isNotEmpty &&
+            (filter == 'all' ||
+                filter == 'hidden' ||
+                (filter == 'assets' && s.cls == AccountClass.asset) ||
+                (filter == 'liabilities' && s.cls == AccountClass.liability)))
+          s,
+    ];
+  }
+
+  /// The Accounts Overview: a class-filter row, then the expandable category
+  /// groups. It replaces the old one-tab chip filter with independent
+  /// accordions the mockup draws, and gives the class filters (All, Assets,
+  /// Liabilities, Hidden) their own axis above the grouping. Every peso still
+  /// folds the SAME _countedAmount the hero uses, so a group total can never
+  /// disagree with the totals.
+  Widget _overviewSection(
     BuildContext context,
     Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
     double Function((Map<String, dynamic>, AccountStore)) amountOfRow,
   ) {
-    final tabs = _categoryTabs(groups);
-    // The selected key may have vanished (its tab emptied since last build), so
-    // fall back to the first tab rather than crashing on firstWhere.
-    var tab = tabs.firstWhere(
-      (t) => t.key == _selectedTab,
-      orElse: () => tabs.first,
-    );
-    // Until the person taps a chip, show the first tab that actually has
-    // accounts, never a blank Bank tab in front of their real money.
-    if (!_tabChosen && tab.rows.isEmpty) {
-      tab = tabs.firstWhere((t) => t.rows.isNotEmpty, orElse: () => tabs.first);
-    }
-    final subtotal = tab.rows.fold(
-      0.0,
-      (t, e) => t + _countedAmount(e, amountOfRow(e)),
-    );
+    final visible = _overviewGroups(groups, _filter);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text('ACCOUNTS BY CATEGORY', style: Barako.kickerStyle),
-            ),
-            _viewAllLink(),
-          ],
-        ),
-        const SizedBox(height: Gap.md),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final t in tabs) ...[
-                _CategoryChip(
-                  label: t.label,
-                  selected: t.key == tab.key,
-                  onTap: () {
-                    Haptics.select();
-                    setState(() {
-                      _selectedTab = t.key;
-                      _tabChosen = true;
-                    });
-                  },
-                ),
-                const SizedBox(width: Gap.sm),
-              ],
-            ],
-          ),
-        ),
+        _classFilterRow(groups),
         const SizedBox(height: Gap.lg),
-        _tabSubtotalLine(tab.label, subtotal, tab.cls),
+        Text('ACCOUNTS OVERVIEW', style: Barako.kickerStyle),
+        const SizedBox(height: Gap.xs),
+        Text(
+          _filter == 'hidden'
+              ? 'Accounts you hid from net worth'
+              : 'Tap a category to open its accounts',
+          style: AppText.caption,
+        ),
         const SizedBox(height: Gap.md),
-        if (tab.rows.isEmpty)
-          _emptyTab(tab)
+        if (visible.isEmpty)
+          _emptyFilter(
+            hasHidden: _overviewGroups(groups, 'hidden').isNotEmpty,
+          )
         else
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final e in tab.rows) _taxonomyRow(context, e),
-                // The "manage debts elsewhere" note, once, under the debts.
-                if (tab.cls == AccountClass.liability) _manageDebtsNote(),
-              ],
-            ),
-          ),
-        const SizedBox(height: Gap.md),
-        _addCategoryButton(tab),
+          for (final spec in visible) ...[
+            _categoryGroup(context, spec, amountOfRow),
+            const SizedBox(height: Gap.md),
+          ],
       ],
     );
   }
 
-  /// The category tabs, in the mockup's order. The chips split the single
-  /// cash_equivalents category at the SUBTYPE level (e-wallets out of the rest),
-  /// which is why this filters resolved rows rather than mapping whole
-  /// categories. Property gets its own chip ONLY when the person owns some, so
-  /// a house is never mislabelled under "Investments" and the typical user
-  /// still sees exactly the four the mockup shows. Cash on hand and time
-  /// deposits stay under Bank (deposit accounts with one list home), and cash
-  /// also appears in the Available card above, the same hero-plus-list pattern
-  /// the carousel already uses.
-  List<_CatTab> _categoryTabs(
+  /// The class filter chips (All, Assets, Liabilities, Hidden), each with the
+  /// count of accounts it holds. All / Assets / Liabilities count only the rows
+  /// that COUNT in net worth (so All == Assets + Liabilities); Hidden counts the
+  /// rows left out of net worth. Selecting one re-filters the accordion below.
+  Widget _classFilterRow(
     Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
   ) {
-    bool wallet((Map<String, dynamic>, AccountStore) e) =>
-        resolveKind(e.$1, e.$2).subtype.id == 'ewallet';
-    final cash = groups['cash_equivalents']!;
-    final bank = [
-      for (final e in cash)
-        if (!wallet(e)) e,
+    int rowsIn(String filter, {AccountClass? cls}) {
+      var n = 0;
+      for (final spec in _overviewGroups(groups, filter)) {
+        if (cls == null || spec.cls == cls) n += spec.rows.length;
+      }
+      return n;
+    }
+
+    final allN = rowsIn('all');
+    final assetN = rowsIn('all', cls: AccountClass.asset);
+    final liabN = rowsIn('all', cls: AccountClass.liability);
+    final hiddenN = rowsIn('hidden');
+
+    final chips = <(String, String, int)>[
+      ('all', 'All', allN),
+      ('assets', 'Assets', assetN),
+      ('liabilities', 'Liabilities', liabN),
+      // Hidden only appears once there is something hidden, so the common case
+      // is the three the person needs, not a chip that always reads zero.
+      if (hiddenN > 0) ('hidden', 'Hidden', hiddenN),
     ];
-    final wallets = [
-      for (final e in cash)
-        if (wallet(e)) e,
-    ];
-    final property = groups['property']!;
-    return [
-      _CatTab(
-        'bank',
-        'Bank',
-        AccountClass.asset,
-        bank,
-        'Add bank account',
-        'No bank accounts yet',
-        'Add a savings, checking, or payroll account to see it here.',
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (key, label, count) in chips) ...[
+            _CategoryChip(
+              // Keyed so a test can target the filter chip unambiguously: its
+              // label ("Assets" / "Liabilities") also appears in the hero above.
+              key: ValueKey('accounts-filter-$key'),
+              label: label,
+              count: count,
+              selected: _filter == key,
+              onTap: () {
+                Haptics.select();
+                setState(() => _filter = key);
+              },
+            ),
+            const SizedBox(width: Gap.sm),
+          ],
+        ],
       ),
-      _CatTab(
-        'ewallets',
-        'E-Wallets',
-        AccountClass.asset,
-        wallets,
-        'Add e-wallet',
-        'No e-wallets yet',
-        'Add GCash, Maya, or another wallet to track it here.',
-      ),
-      _CatTab(
-        'investments',
-        'Investments',
-        AccountClass.asset,
-        groups['investments']!,
-        'Add investment',
-        'No investments yet',
-        'Add stocks, a fund, crypto, or MP2 to track what you own.',
-      ),
-      if (property.isNotEmpty)
-        _CatTab(
-          'property',
-          'Property',
-          AccountClass.asset,
-          property,
-          'Add property',
-          'No property yet',
-          'Add a home, a vehicle, or another thing you own.',
-        ),
-      _CatTab(
-        'liabilities',
-        'Liabilities',
-        AccountClass.liability,
-        [...groups['credit']!, ...groups['loans']!, ...groups['installments']!],
-        'Add a debt',
-        'Nothing owed here',
-        'Nice. Add a credit card or loan here if you ever need to.',
-      ),
-    ];
+    );
   }
 
-  /// "View all", top-right of the section: stop filtering, open the whole
-  /// assets-and-liabilities picture, the same destination the hero button uses.
-  Widget _viewAllLink() {
-    return Semantics(
+  /// One expandable category group: a tappable header (icon disc, name, account
+  /// count, class-coloured total, a chevron that rotates on open) and, when
+  /// expanded, the accounts inside with a per-category Add button. Credit cards
+  /// render as real cards; every other account is a compact row. The header
+  /// total folds the SAME _countedAmount the hero uses.
+  Widget _categoryGroup(
+    BuildContext context,
+    _GroupSpec spec,
+    double Function((Map<String, dynamic>, AccountStore)) amountOfRow,
+  ) {
+    final open = _expanded.contains(spec.id);
+    final owed = spec.cls == AccountClass.liability;
+    final total = spec.rows.fold(
+      0.0,
+      (t, e) => t + _countedAmount(e, amountOfRow(e)),
+    );
+    final totalColor = owed ? Barako.warning : Barako.text;
+    final discColor = owed ? Barako.warning : Barako.primary;
+    final count = spec.rows.length;
+    final countWord = count == 1 ? 'account' : 'accounts';
+    final totalText = (owed && !_hideBalances && total.abs() >= 0.005)
+        ? '-${_money(total)}'
+        : _money(total);
+
+    final header = Semantics(
       button: true,
-      label: 'View all accounts. Opens assets and liabilities.',
+      expanded: open,
+      label:
+          '${spec.label}, $count $countWord, ${owed ? 'owed ' : ''}$totalText',
       child: ExcludeSemantics(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.card),
           onTap: () {
             Haptics.select();
-            _openBreakdown(context, AssetsView.netWorth);
+            setState(() {
+              if (open) {
+                _expanded.remove(spec.id);
+              } else {
+                _expanded.add(spec.id);
+              }
+            });
           },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'View all',
-                style: AppText.small.w7.tint(Barako.primaryText),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: discColor.withValues(alpha: BarakoAlpha.tint),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    salapifyIcon(spec.glyph),
+                    size: IconSizes.inline,
+                    color: discColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        spec.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body.w7,
+                      ),
+                      const SizedBox(height: 2),
+                      Text('$count $countWord', style: AppText.caption),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      totalText,
+                      maxLines: 1,
+                      style: AppText.amountRow.w7.tint(totalColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Gap.xs),
+                AnimatedRotation(
+                  turns: open ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  child: Icon(
+                    salapifyIcon('expand'),
+                    size: IconSizes.inline,
+                    color: Barako.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // The expanded body: the accounts, a per-category Add button, and (for the
+    // liability groups) the one manage-debts note. Cross-faded so the collapse
+    // is a smooth height-and-opacity move, not a jump; the collapsed side is an
+    // empty full-width box so the card keeps its width.
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(height: 1, color: Barako.border),
+        for (final e in spec.rows)
+          if (spec.id == 'credit' && !_hideBalances)
+            _creditCardTile(context, e.$1)
+          else
+            _taxonomyRow(context, e),
+        if (owed) ...[
+          const Divider(height: 1),
+          _manageDebtsNote(),
+        ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+          child: _addInGroupButton(spec.addLabel),
+        ),
+      ],
+    );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          header,
+          // AnimatedSize animates the height as the body appears or leaves; the
+          // collapsed side is an empty full-width box, so a collapsed group does
+          // NOT build its rows (they are off the tree, out of finders, and cheap
+          // to skip), while an expanded group builds them eagerly so a search
+          // reveal can scroll to a row inside it.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: open
+                ? body
+                : const SizedBox(width: double.infinity, height: 0),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A credit card row drawn as a real card: the mockup's richer treatment for
+  /// the one account the data can truthfully call a card (a debt whose type is a
+  /// credit card, carrying a limit and a network). Tapping opens its full
+  /// detail. Only reached in the non-masked view; the masked view falls back to
+  /// a compact row so no owed figure or limit leaks.
+  Widget _creditCardTile(BuildContext context, Map<String, dynamic> row) {
+    final name = row['name']?.toString() ?? 'Credit card';
+    final instId = row['institutionId']?.toString();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+      child: PressableScale(
+        child: Semantics(
+          button: true,
+          label: '$name credit card. Opens card details.',
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _openCard(context, row, AccountStore.debts),
+              child: BankCard(
+                bankName: name,
+                accountType: 'Credit',
+                balance: amountOf(row['remaining']),
+                brandColor: institutionBrandColor(instId),
+                last4: _last4Of(row),
+                monogram: institutionById(instId)?.initials,
+                logoAsset: institutionLogoAsset(instId),
+                creditLimit: amountOf(row['creditLimit']),
+                networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
+                variant: BankCardVariant.credit,
               ),
-              const SizedBox(width: Gap.xs),
-              Icon(
-                salapifyIcon('forward'),
-                size: IconSizes.dense,
-                color: Barako.primaryText,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  /// One tab's subtotal: a status dot, the tab name plus TOTAL, and the figure,
-  /// all in the class colour (assets in the accent, owed in the warning red).
-  /// The dot AND the word carry the meaning, so a colourblind reader is never
-  /// left with colour alone, the same rule the hero totals follow.
-  Widget _tabSubtotalLine(String label, double subtotal, AccountClass cls) {
-    final owed = cls == AccountClass.liability;
-    final color = owed ? Barako.warning : Barako.primaryText;
-    final dot = owed ? Barako.warning : Barako.primary;
-    return Semantics(
-      label:
-          '$label total ${formatMoneyText(subtotal)}. ${owed ? 'Owed.' : 'Asset.'}',
-      child: ExcludeSemantics(
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: Gap.xs),
-            Expanded(
-              child: Text(
-                '${label.toUpperCase()} TOTAL',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Barako.kickerStyle,
-              ),
-            ),
-            const SizedBox(width: Gap.md),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  formatMoneyText(subtotal),
-                  style: AppText.amountRow.w7.tint(color),
-                ),
-              ),
-            ),
-          ],
-        ),
+  /// A calm state when a class filter matches nothing (for example the person
+  /// taps Liabilities but owes nothing). Never the whole-screen empty state,
+  /// which is the fresh-install case.
+  Widget _emptyFilter({bool hasHidden = false}) {
+    final (title, body) = switch (_filter) {
+      'liabilities' => ('Nothing owed', 'You have no debts recorded. Nice.'),
+      'assets' => ('No assets here', 'Add an account to see it in this view.'),
+      'hidden' => ('Nothing hidden', 'Accounts you hide from net worth show up here.'),
+      // When the "all" view is empty only because every account is hidden, point
+      // to the Hidden chip rather than claiming there is nothing here at all.
+      _ when hasHidden => (
+        'All your accounts are hidden',
+        'Tap the Hidden filter above to see them.',
       ),
-    );
-  }
-
-  /// The per-tab Add button. It opens the one Add flow (which asks what is being
-  /// added), so no money path is duplicated; the label just names the tab.
-  Widget _addCategoryButton(_CatTab tab) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _add(context),
-        icon: Icon(salapifyIcon('add'), size: IconSizes.inline),
-        label: Text(tab.addLabel),
-        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-      ),
-    );
-  }
-
-  /// An empty tab: a calm title and one line, never the whole-screen empty
-  /// state (that is the fresh-install case). The Add button renders below it.
-  Widget _emptyTab(_CatTab tab) {
+      _ => ('Nothing here yet', 'Add an account to get started.'),
+    };
     return Container(
       width: double.infinity,
       padding: Insets.hero,
@@ -1508,14 +1695,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
       ),
       child: Column(
         children: [
-          Text(
-            tab.emptyTitle,
-            textAlign: TextAlign.center,
-            style: AppText.body.w7,
-          ),
+          Text(title, textAlign: TextAlign.center, style: AppText.body.w7),
           const SizedBox(height: Gap.xs),
           Text(
-            tab.emptyBody,
+            body,
             textAlign: TextAlign.center,
             style: AppText.caption.copyWith(height: 1.4),
           ),
@@ -1524,6 +1707,34 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
+  /// The per-category Add button inside an expanded group. It opens the one Add
+  /// flow (which asks what is being added), so no money path is duplicated; the
+  /// label just names where the person is adding.
+  Widget _addInGroupButton(String label) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () => _add(context),
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+        // A plain OutlinedButton with a max-width Row, not OutlinedButton.icon,
+        // so the label sits in a Flexible and ellipsizes instead of overflowing
+        // the button at a large system font on a narrow phone.
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(salapifyIcon('add'), size: IconSizes.inline),
+            const SizedBox(width: Gap.sm),
+            Flexible(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "View all", top-right of the section: stop filtering, open the whole
+  /// assets-and-liabilities picture, the same destination the hero button uses.
   /// The four things a person opens Accounts to do, as one compact row under
   /// the net worth number. Icons carry the meaning, one short word confirms it.
   /// Every action routes to a flow that already exists: nothing here fakes a
@@ -1882,11 +2093,23 @@ class _AccountsScreenState extends State<AccountsScreen> {
     // Nothing is lost by replacing. The subtype is a category the row already
     // sits under, and the institution is drawn as its own avatar two
     // centimetres to the left.
+    // The masked account number is the mockup's sub line (BDO Savings ·
+    // ••••1234), the fact that answers "which of my accounts is this". It wins
+    // over the subtype-and-institution line when a last4 is stored, since the
+    // institution is already drawn as the avatar to the left. A savings TARGET
+    // still wins over both: progress toward a goal is the more useful fact and a
+    // third clause would not fit on one line at any font size.
+    final last4 = _last4Of(a);
     double? progress;
     if (target > 0) {
       final pct = ((balance / target) * 100).clamp(0, 999).round();
-      sub = '$pct% of ${formatMoneyText(target)}';
+      // Masked, the goal amount is dropped so the target (and the balance a
+      // shoulder-surfer could derive from the percent and it) stays hidden; the
+      // progress bar still shows the ratio, which is not a peso figure.
+      sub = _hideBalances ? 'Savings goal' : '$pct% of ${formatMoneyText(target)}';
       progress = (balance / target).clamp(0.0, 1.0);
+    } else if (last4 != null) {
+      sub = '•••• $last4';
     } else if (sub == null && brand.isNotEmpty) {
       sub = brand;
     }
@@ -2033,12 +2256,17 @@ class _AccountsScreenState extends State<AccountsScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  foreignCode == null
-                      ? formatMoneyText(amount)
-                      : formatConverted(amount, foreignCode),
+                  // Masked to dots when the privacy toggle is on, so a shoulder
+                  // glance never reads a balance. Otherwise the exact figure,
+                  // byte for byte what it was before the toggle existed.
+                  _hideBalances
+                      ? '₱ ••••'
+                      : (foreignCode == null
+                            ? formatMoneyText(amount)
+                            : formatConverted(amount, foreignCode)),
                   style: AppText.amountRow.tint(amountColor ?? Barako.text),
                 ),
-                if (foreignCode != null)
+                if (foreignCode != null && !_hideBalances)
                   Text(
                     _foreignSubLabel(foreignCode, amount),
                     style: AppText.micro.w4,
@@ -2067,74 +2295,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
     return rowKey == null ? result : KeyedSubtree(key: rowKey, child: result);
   }
 
-  /// The cards for the carousel: cash and wallet accounts as savings cards,
-  /// then credit cards as credit cards. Order matches the sections below.
-  List<_CardItem> _cardItems(
-    Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
-  ) {
-    final out = <_CardItem>[];
-    for (final (row, which) in groups['cash_equivalents']!) {
-      final kind = resolveKind(row, which);
-      final inst = institutionLabel(row);
-      // A foreign account is shown in its OWN currency on the card, the same
-      // way the row does, so the card never prints a peso symbol on dollars.
-      // Net worth already leaves an unpriced currency out and the row says so;
-      // the card just has to be honest about the symbol.
-      final code = _foreignCodeOf(row);
-      final bal = amountOf(row['balance']);
-      out.add(
-        _CardItem(
-          row: row,
-          store: which,
-          name: row['name']?.toString() ?? 'Account',
-          typeLabel: _shortType(row['kind']?.toString()),
-          subtitle: [kind.subtype.label, ?inst].join(' · '),
-          // A cash or unlisted account has no brand color, so the card falls
-          // back to the neutral gradient rather than looking broken.
-          brandColor: institutionBrandColor(row['institutionId']?.toString()),
-          last4: _last4Of(row),
-          amount: bal,
-          amountText: code == null ? null : formatConverted(bal, code),
-          monogram: institutionById(row['institutionId']?.toString())?.initials,
-          logoAsset: institutionLogoAsset(row['institutionId']?.toString()),
-          variant: BankCardVariant.savings,
-          isCash: row['kind']?.toString() == 'cash',
-          isWallet: row['kind']?.toString() == 'ewallet',
-        ),
-      );
-    }
-    for (final (row, which) in groups['credit']!) {
-      final inst = institutionLabel(row);
-      out.add(
-        _CardItem(
-          row: row,
-          store: which,
-          name: row['name']?.toString() ?? 'Credit card',
-          typeLabel: 'Credit',
-          subtitle: ['Credit card', ?inst].join(' · '),
-          brandColor: institutionBrandColor(row['institutionId']?.toString()),
-          last4: _last4Of(row),
-          amount: amountOf(row['remaining']),
-          limit: amountOf(row['creditLimit']),
-          monogram: institutionById(row['institutionId']?.toString())?.initials,
-          logoAsset: institutionLogoAsset(row['institutionId']?.toString()),
-          networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
-          variant: BankCardVariant.credit,
-        ),
-      );
-    }
-    return out;
-  }
-
-  /// The short top-right label on a card, from the legacy kind.
-  String _shortType(String? kind) => switch (kind) {
-    'savings' => 'Savings',
-    'checking' => 'Checking',
-    'ewallet' => 'E-wallet',
-    'cash' => 'Cash',
-    _ => 'Account',
-  };
-
   /// The last four digits, only when a stored value is exactly four digits.
   /// Anything else (absent, or a longer string a backup should never carry)
   /// shows as masked dots with no digits.
@@ -2145,26 +2305,29 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   /// Tapping a card opens its full detail screen, the wallet page for that one
   /// account: the card, its numbers, the secure information, a saved receiving
-  /// QR, and recent activity, with Edit, Archive and Delete inside. This
-  /// replaces the old shortcut that jumped straight to the edit sheet; editing
-  /// still lives one tap deeper, and a credit card's CARD reaches the right
-  /// screen even though the debt LIST ROW below stays non-tappable.
-  void _openCard(BuildContext context, _CardItem it) {
-    final id = it.row['id'];
+  /// QR, and recent activity, with Edit, Archive and Delete inside. A credit
+  /// card's CARD reaches the right screen even though the debt LIST ROW stays
+  /// non-tappable.
+  void _openCard(
+    BuildContext context,
+    Map<String, dynamic> row,
+    AccountStore which,
+  ) {
+    final id = row['id'];
     if (id is! String || id.isEmpty) {
       // A hand-edited backup row with no id cannot be addressed by the detail
       // screen, so fall back to the old editor rather than opening a blank page.
-      if (it.store == AccountStore.debts) {
-        showDebtFormSheet(context, store, debt: it.row);
+      if (which == AccountStore.debts) {
+        showDebtFormSheet(context, store, debt: row);
       } else {
-        _openForm(context, isAccount: true, item: it.row);
+        _openForm(context, isAccount: true, item: row);
       }
       return;
     }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
-            AccountDetailScreen(store: store, id: id, accountStore: it.store),
+            AccountDetailScreen(store: store, id: id, accountStore: which),
       ),
     );
   }
@@ -2231,48 +2394,54 @@ class _AccountsScreenState extends State<AccountsScreen> {
 /// One "Accounts by category" tab: its stable key, chip label, net-worth class
 /// (for the subtotal colour), the rows it holds, and the copy for its Add
 /// button and empty state.
-class _CatTab {
-  final String key;
+/// One overview category group: its stable id, mockup label, Salapify glyph
+/// name, net-worth class (for the total colour), the rows it holds after the
+/// active filter, and the copy for its per-category Add button.
+class _GroupSpec {
+  final String id;
   final String label;
+  final String glyph;
   final AccountClass cls;
   final List<(Map<String, dynamic>, AccountStore)> rows;
   final String addLabel;
-  final String emptyTitle;
-  final String emptyBody;
-  const _CatTab(
-    this.key,
+  const _GroupSpec(
+    this.id,
     this.label,
+    this.glyph,
     this.cls,
     this.rows,
     this.addLabel,
-    this.emptyTitle,
-    this.emptyBody,
   );
 }
 
-/// A category filter chip. Not const: it reads Barako colours, which change with
-/// the mood. Selected wears the filled accent with white ink (the mockup's
-/// brown chip); unselected is an outlined card chip. 44dp min height for the tap
-/// target, and `selected:` in semantics so a screen reader announces the state.
+/// A class-filter chip, optionally carrying a count badge. Not const: it reads
+/// Barako colours, which change with the mood. Selected wears the filled accent
+/// with white ink (the mockup's brown chip); unselected is an outlined card
+/// chip. 44dp min height for the tap target, and `selected:` in semantics so a
+/// screen reader announces the state, with the count spoken in the label.
 class _CategoryChip extends StatelessWidget {
   final String label;
+  final int? count;
   final bool selected;
   final VoidCallback onTap;
 
   // ignore: prefer_const_constructors_in_immutables
   _CategoryChip({
+    super.key,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.count,
   });
 
   @override
   Widget build(BuildContext context) {
+    final ink = selected ? Colors.white : Barako.textSecondary;
     return PressableScale(
       child: Semantics(
         button: true,
         selected: selected,
-        label: label,
+        label: count == null ? label : '$label, $count',
         child: ExcludeSemantics(
           child: Material(
             color: Colors.transparent,
@@ -2292,11 +2461,27 @@ class _CategoryChip extends StatelessWidget {
                   borderRadius: BorderRadius.circular(Radii.control),
                   border: selected ? null : Border.all(color: Barako.border),
                 ),
-                child: Text(
-                  label,
-                  style: selected
-                      ? AppText.small.w7.tint(Colors.white)
-                      : AppText.small.w6.tint(Barako.textSecondary),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: selected
+                          ? AppText.small.w7.tint(ink)
+                          : AppText.small.w6.tint(ink),
+                    ),
+                    if (count != null) ...[
+                      const SizedBox(width: Gap.xs),
+                      Text(
+                        '$count',
+                        style: AppText.small.w7.tint(
+                          selected
+                              ? Colors.white
+                              : Barako.muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -3632,379 +3817,3 @@ class _ManualRateDialogState extends State<_ManualRateDialog> {
   }
 }
 
-/// One card's worth of data for the carousel, resolved from a stored row so the
-/// PageView and the detail panel never re-read the raw map.
-class _CardItem {
-  final Map<String, dynamic> row;
-  final AccountStore store;
-  final String name;
-  final String typeLabel;
-  final String subtitle;
-  final Color? brandColor;
-  final String? last4;
-  final double amount;
-
-  /// The bundled wordmark logo for this institution, drawn on a white chip in
-  /// place of the bank-name text. Null keeps the name text. Resolved from the
-  /// catalog by institution id.
-  final String? logoAsset;
-
-  /// The preformatted amount for a foreign-currency account (its own symbol).
-  /// Null for a base-currency account, where the card formats [amount] as pesos.
-  final String? amountText;
-
-  /// The bank's initials for the card's corner watermark, or null to let the
-  /// card derive them from the name.
-  final String? monogram;
-  final double? limit;
-
-  /// The card network's wordmark ("VISA"), or null. Credit cards only.
-  final String? networkMark;
-  final BankCardVariant variant;
-  final bool isWallet;
-
-  /// Physical cash: rendered as a wallet, not a bank card, and it does not flip
-  /// (there is no number, chip, network or QR to turn over to). A tap opens the
-  /// account instead.
-  final bool isCash;
-  const _CardItem({
-    required this.row,
-    required this.store,
-    required this.name,
-    required this.typeLabel,
-    required this.subtitle,
-    required this.brandColor,
-    required this.last4,
-    required this.amount,
-    required this.variant,
-    this.logoAsset,
-    this.amountText,
-    this.monogram,
-    this.limit,
-    this.networkMark,
-    this.isCash = false,
-    this.isWallet = false,
-  });
-}
-
-/// A horizontal, peeking carousel of bank cards.
-///
-/// viewportFraction 0.88 leaves the next card peeking from the right, so it
-/// reads as swipeable at a glance. A light selection tick fires when the page
-/// settles on a new card, and the card in focus drives the detail panel below.
-class _AccountsCarousel extends StatefulWidget {
-  final List<_CardItem> items;
-  final SalapifyStore store;
-  final QrVault? vault;
-
-  /// Open the full wallet page for a card (its back's "View full details").
-  final void Function(_CardItem) onOpen;
-
-  /// Open the edit sheet for a card (its back's edit action).
-  final void Function(_CardItem) onEdit;
-
-  /// Show the one-time "Tap to view details" nudge on the focused front.
-  final bool showHint;
-
-  /// The founder flipped a card for the first time; persist that the nudge is
-  /// no longer needed.
-  final VoidCallback onFirstFlip;
-
-  const _AccountsCarousel({
-    required this.items,
-    required this.store,
-    required this.vault,
-    required this.onOpen,
-    required this.onEdit,
-    required this.showHint,
-    required this.onFirstFlip,
-  });
-
-  @override
-  State<_AccountsCarousel> createState() => _AccountsCarouselState();
-}
-
-class _AccountsCarouselState extends State<_AccountsCarousel>
-    with WidgetsBindingObserver {
-  final _controller = PageController(viewportFraction: 0.88);
-  int _index = 0;
-
-  /// Which card is currently flipped to its back, or null for all-front. A
-  /// single int is what enforces "only one card flipped at a time" for free.
-  int? _flipped;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Backgrounding returns every card to its front. The FlipBankCard re-masks
-    // any revealed digits itself; this is the other half, the cards' faces.
-    if (state != AppLifecycleState.resumed && _flipped != null) {
-      setState(() => _flipped = null);
-    }
-  }
-
-  @override
-  void didUpdateWidget(_AccountsCarousel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // A card was deleted while this was open and the focus now points past the
-    // last page. Clamp it and jump the controller after the frame, so the
-    // viewport does not sit on a blank page the swipe never corrected.
-    final last = widget.items.length - 1;
-    if (_index > last && last >= 0) {
-      _index = last;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _controller.hasClients) _controller.jumpToPage(last);
-      });
-    }
-    // A flipped card that no longer exists (deleted, filtered) returns to none.
-    if (_flipped != null && _flipped! > last) _flipped = null;
-  }
-
-  void _onPageChanged(int i) {
-    if (i == _index) return;
-    // Swiping to another card returns the one we left to its front, so a list
-    // never scrolls with a card sitting open behind the one in focus.
-    setState(() {
-      _index = i;
-      _flipped = null;
-    });
-    // The page settled on a new card: a light tick, the same feel as a native
-    // wallet flicking between cards. Through the house vocabulary class, so
-    // one grep audits every haptic in the app.
-    Haptics.select();
-  }
-
-  void _flip(int i, bool want) {
-    if (want && widget.showHint) widget.onFirstFlip();
-    setState(() => _flipped = want ? i : null);
-  }
-
-  void _open(_CardItem it) {
-    // Leaving for the full page returns the card to its front, so it is not
-    // sitting flipped when the founder swipes back.
-    setState(() => _flipped = null);
-    widget.onOpen(it);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = widget.items;
-    // Defensive: the parent only builds this with two or more cards, but a
-    // clamp on an empty list throws, so never assume it.
-    if (items.isEmpty) return const SizedBox.shrink();
-    final focus = _index.clamp(0, items.length - 1);
-    // A card is never wider than a phone-sized card, even on a tablet or a wide
-    // window: past this it becomes a giant rectangle, and it also pushed the
-    // account list far enough down that a lazy sliver stopped building it.
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final cardWidth = constraints.maxWidth * 0.88 - 12;
-            // The card's own aspect ratio, plus a little room for its tinted
-            // shadow so the shadow is not clipped by the PageView's bounds.
-            final height = cardWidth / 1.586 + 22;
-            // A lone card is not a "swipe between several": show it centred with
-            // no page dots, rather than a one-page PageView that peeks at empty
-            // space. It still flips and reveals through the same state. This is
-            // the case that keeps a user with one bank card and cash from losing
-            // their card when cash moved out of the deck.
-            final single = items.length == 1;
-            return Column(
-              children: [
-                SizedBox(
-                  height: height,
-                  child: single
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: _card(items[0], 0, focus),
-                        )
-                      : PageView.builder(
-                          controller: _controller,
-                          onPageChanged: _onPageChanged,
-                          itemCount: items.length,
-                          itemBuilder: (context, i) => Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            child: _emphasised(
-                              i,
-                              focus,
-                              _card(items[i], i, focus),
-                            ),
-                          ),
-                        ),
-                ),
-                const SizedBox(height: 10),
-                if (!single) _pageIndicator(items.length, focus),
-                if (!single) const SizedBox(height: 12),
-                _CardDetail(item: items[focus]),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  /// One flip card in the deck. Extracted so the single-card layout and the
-  /// PageView share exactly one construction (same key discipline, same flip
-  /// wiring), and the itemBuilder stays a one-liner.
-  Widget _card(_CardItem it, int i, int focus) => PressableScale(
-    child: FlipBankCard(
-      // Key by the stored id so deleting a card disposes the RIGHT card
-      // (releasing its secure latch), but fall back to the index for a malformed
-      // row whose id is missing or an empty string, so two such rows cannot
-      // collapse to the same key and trip Flutter's duplicate-key assertion.
-      key: ValueKey(
-        (it.row['id'] is String && (it.row['id'] as String).isNotEmpty)
-            ? it.row['id']
-            : i,
-      ),
-      row: it.row,
-      vault: widget.vault,
-      bankName: it.name,
-      accountType: it.typeLabel,
-      brandColor: it.brandColor,
-      last4: it.last4,
-      balance: it.amount,
-      amountText: it.amountText,
-      monogram: it.monogram,
-      logoAsset: it.logoAsset,
-      creditLimit: it.limit,
-      networkMark: it.networkMark,
-      variant: it.variant,
-      isWallet: it.isWallet,
-      flipped: _flipped == i,
-      // The nudge sits only on the focused, front-facing card, never on the
-      // peeking neighbour.
-      showHint: widget.showHint && i == focus && _flipped == null,
-      onFlip: (want) => _flip(i, want),
-      onViewFullDetails: () => _open(it),
-      onEdit: () => widget.onEdit(it),
-    ),
-  );
-
-  /// Give the focused card stronger presence: the neighbours it sits between
-  /// scale down a touch as they slide away, so the card in focus reads as the
-  /// one you are holding. Pure presentation over the card that is already
-  /// built, so nothing about its flip, masking or secure reveal is touched.
-  ///
-  /// It follows the swipe (a Transform driven by the live scroll position),
-  /// which is finger-following feedback rather than an autoplaying animation,
-  /// so it does not gate on reduce-motion; at rest it is simply a static size
-  /// difference between the focused card and its neighbours.
-  Widget _emphasised(int i, int focus, Widget child) {
-    return AnimatedBuilder(
-      animation: _controller,
-      // The card subtree is passed as `child` so the AnimatedBuilder rebuilds
-      // only the cheap Transform on each scroll tick, never the card itself.
-      child: child,
-      builder: (context, built) {
-        // Before the PageView has laid out, `page` is null; fall back to the
-        // settled index so the first frame is not unscaled-then-jump.
-        final page =
-            (_controller.hasClients && _controller.position.haveDimensions)
-            ? (_controller.page ?? _index.toDouble())
-            : _index.toDouble();
-        final distance = (page - i).abs().clamp(0.0, 1.0);
-        // Focused 1.0, a full page away 0.92. Subtle on purpose: enough to
-        // pick out the card in focus, not so much it looks like a bug.
-        final scale = 1.0 - distance * 0.08;
-        return Transform.scale(scale: scale, child: built);
-      },
-    );
-  }
-
-  /// Dots for a handful of cards, a compact "n of m" once there are enough that
-  /// a row of dots would overflow a narrow phone.
-  Widget _pageIndicator(int count, int focus) {
-    if (count > 8) {
-      return Text('${focus + 1} of $count', style: AppText.caption);
-    }
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < count; i++)
-          Container(
-            width: i == focus ? 18 : 6,
-            height: 6,
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              color: i == focus ? Barako.primary : Barako.border,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The panel under the carousel, driven by the focused card.
-///
-/// It deliberately does NOT repeat the card's name or its big balance, which
-/// the card already shows two centimetres above. It adds what the card cannot:
-/// what the account IS (subtype and institution), and, for a credit card, how
-/// much room is left. Keeping the name off this panel is also what stops it
-/// colliding with the card in a "find this account once" test: the card is the
-/// one on-screen copy of the name, and tapping it opens the editor.
-class _CardDetail extends StatelessWidget {
-  final _CardItem item;
-  const _CardDetail({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final isCredit = item.variant == BankCardVariant.credit;
-    final limit = item.limit ?? 0;
-    final available = (limit - item.amount)
-        .clamp(0, double.infinity)
-        .toDouble();
-    return Card(
-      color: Barako.surfaceRaised,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.body.w6,
-            ),
-            if (isCredit && limit > 0) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Available credit', style: AppText.caption),
-                  Text(
-                    formatMoneyText(available),
-                    style: AppText.amountRow.tint(Barako.primaryText),
-                  ),
-                ],
-              ),
-            ] else ...[
-              const SizedBox(height: 4),
-              Text('Tap the card to flip it over.', style: AppText.caption),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -93,13 +93,14 @@ void main() {
     expect(find.byIcon(salapifyIcon('contactless')), findsOneWidget);
   });
 
-  testWidgets('each category tab carries its own asset-or-owed class cue', (
+  testWidgets('each category group carries its own asset-or-owed class cue', (
     tester,
   ) async {
-    // The own/owe superstructure survived the move from stacked headings to the
-    // category tabs: each tab's subtotal names its class in words plus a colour
-    // (an asset tab in the accent, the Liabilities tab in the warning red), so
-    // the asset-liability boundary is never colour alone.
+    // The own/owe superstructure survived the move from category tabs to the
+    // expandable groups: a liability group states its owed class both by a minus
+    // sign on its total (never colour alone) and by living behind the
+    // Liabilities filter, so the asset-liability boundary is legible without
+    // colour, and the class filter narrows the accordion to one side at a time.
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
         'schemaVersion': 12,
@@ -120,23 +121,33 @@ void main() {
     });
     final store = SalapifyStore();
     await store.load();
+    // A tall surface so the whole screen builds and the filter chips (which sit
+    // above the ACCOUNTS OVERVIEW kicker) are on-screen and tappable without
+    // fragile scrolling.
+    tester.view.physicalSize = const Size(1170, 6000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(home: AccountsScreen(store: store)));
     await tester.pumpAndSettle();
-    // The section sits below the summary in a lazy list.
-    await tester.scrollUntilVisible(
-      find.text('ACCOUNTS BY CATEGORY'),
-      300,
-      scrollable: find.byType(Scrollable).first,
+    // Both a cash (asset) group and a credit (liability) group exist. The
+    // liability group's total carries a minus sign, the colour-independent owed
+    // cue.
+    expect(find.text('Cash & Bank'), findsOneWidget);
+    expect(find.text('Credit Cards'), findsOneWidget);
+    expect(find.text('-₱12,000'), findsOneWidget);
+    // Filter to Liabilities: the asset group drops out, the liability group
+    // stays. The chip text repeats the hero's "Liabilities" label, so target the
+    // keyed filter chip, not the text.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('accounts-filter-liabilities')),
     );
+    await tester.tap(find.byKey(const ValueKey('accounts-filter-liabilities')));
     await tester.pumpAndSettle();
-    // Bank is the default tab: an asset subtotal cue.
-    expect(find.text('BANK TOTAL'), findsOneWidget);
-    // Switch to Liabilities: the owed cue, with the debt row underneath.
-    await tester.ensureVisible(find.text('Liabilities'));
-    await tester.tap(find.text('Liabilities'));
+    expect(find.text('Cash & Bank'), findsNothing);
+    expect(find.text('Credit Cards'), findsOneWidget);
+    // Expanding it reveals the debt, drawn as its credit card.
+    await tester.tap(find.text('Credit Cards'));
     await tester.pumpAndSettle();
-    expect(find.text('LIABILITIES TOTAL'), findsOneWidget);
-    // The debt shows in the tab (and also on its card in the carousel above).
     expect(find.text('BPI card'), findsWidgets);
   });
 
