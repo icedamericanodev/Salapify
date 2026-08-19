@@ -23,7 +23,7 @@ Future<void> _accounts(WidgetTester tester, Brightness b, String out) async {
   final store = SalapifyStore();
   await store.load();
 
-  tester.view.physicalSize = const Size(1170, 3200);
+  tester.view.physicalSize = const Size(1170, 5200);
   tester.view.devicePixelRatio = 3.0;
   addTearDown(tester.view.reset);
 

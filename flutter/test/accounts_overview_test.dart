@@ -61,8 +61,8 @@ void main() {
     await _pump(tester, store);
 
     // The ratio is spelled out, so the meaning never rides on colour alone.
-    expect(find.text('83% owned'), findsOneWidget);
-    expect(find.text('17% owed'), findsOneWidget);
+    expect(find.text('83% assets'), findsOneWidget);
+    expect(find.text('17% liabilities'), findsOneWidget);
   });
 
   testWidgets('an underwater book reads 0% owned, never a positive share', (
@@ -80,15 +80,15 @@ void main() {
       ],
     });
     await _pump(tester, store);
-    expect(find.text('0% owned'), findsOneWidget);
-    expect(find.text('100% owed'), findsOneWidget);
+    expect(find.text('0% assets'), findsOneWidget);
+    expect(find.text('100% liabilities'), findsOneWidget);
   });
 
   testWidgets('a tiny-but-real owned side never rounds away to 0%', (
     tester,
   ) async {
     // Assets 1, owed 999999: the owned share rounds toward 0, but a side with
-    // real money must not read "0% owned" beside a "Total assets" figure.
+    // real money must not read "0% assets" beside a "You own" figure.
     final store = await _storeWith({
       'accounts': [
         {'id': 'a1', 'name': 'Peso', 'kind': 'cash', 'balance': 1},
@@ -103,8 +103,8 @@ void main() {
       ],
     });
     await _pump(tester, store);
-    expect(find.text('1% owned'), findsOneWidget);
-    expect(find.text('99% owed'), findsOneWidget);
+    expect(find.text('1% assets'), findsOneWidget);
+    expect(find.text('99% liabilities'), findsOneWidget);
   });
 
   testWidgets('a category tab filters the list to its own accounts', (
@@ -159,7 +159,7 @@ void main() {
 
     // Nothing on the book: no ratio to draw, and the quick-actions row is
     // hidden in favour of the empty state's own Add button.
-    expect(find.textContaining('% owned'), findsNothing);
+    expect(find.textContaining('% assets'), findsNothing);
     expect(find.text('Transfer'), findsNothing);
     expect(find.text('Add an account'), findsOneWidget);
   });

@@ -389,9 +389,30 @@ class _AccountsScreenState extends State<AccountsScreen> {
             final all = _cardItems(groups);
             final cardItems = all.where((it) => !it.isCash).toList();
             final showHero = all.length > 1;
+            // The founder's split: real cards live apart from accounts. "Your
+            // Cards" is credit cards only (the one thing the data can truthfully
+            // call a card: a debt whose type is a credit card, carrying a limit
+            // and a network). "Your Accounts" is the deposit and e-wallet
+            // accounts. There is no debit-card concept in the data, so a deposit
+            // account is never labelled a card. Cash stays folded into "Money you
+            // can reach now" as before.
+            final depositCards = cardItems
+                .where((it) => it.variant != BankCardVariant.credit)
+                .toList();
+            final creditCards = cardItems
+                .where((it) => it.variant == BankCardVariant.credit)
+                .toList();
+            // The first-time flip nudge belongs to whichever section shows first,
+            // so it is never offered twice on one screen.
+            final flipHintPending =
+                (store.data['settings'] as Map?)?['flipHintSeen'] != true;
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              // Extra bottom room so the last account or the manage-debts note is
+              // never trapped under the shell's floating "Log" button, which
+              // floats over this list at the bottom right. 96 clears the extended
+              // FAB and its margin; normal scrolling reveals everything above it.
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
               // When a search deep-link focuses an account, the reveal scrolls
               // to its row with Scrollable.ensureVisible, which needs the row's
               // group already BUILT: the group is a direct child of this lazy
@@ -466,23 +487,43 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   const SizedBox(height: 20),
                   _availableCard(liquidTotal, liquidCount, liquidApprox),
                 ],
-                if (showHero && cardItems.isNotEmpty) ...[
+                // Your Accounts: the deposit and e-wallet accounts, shown as
+                // cards. The grouped list below still shows and edits all of
+                // them, so this is a hero on top, not a replacement.
+                if (showHero && depositCards.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 10),
+                    child: Text('YOUR ACCOUNTS', style: Barako.kickerStyle),
+                  ),
+                  _AccountsCarousel(
+                    items: depositCards,
+                    store: store,
+                    vault: _vault,
+                    onOpen: (it) => _openCard(context, it),
+                    onEdit: (it) => _editCard(context, it),
+                    // The first-time flip nudge, shown until the founder flips any
+                    // card once. Persisted so it never returns on the next open.
+                    showHint: flipHintPending,
+                    onFirstFlip: () => store.setSetting('flipHintSeen', true),
+                  ),
+                ],
+                // Your Cards: credit cards only, kept apart from accounts so the
+                // word "card" means an actual card. The flip hint shows here only
+                // when there is no accounts section above to carry it.
+                if (showHero && creditCards.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 10),
                     child: Text('YOUR CARDS', style: Barako.kickerStyle),
                   ),
                   _AccountsCarousel(
-                    items: cardItems,
+                    items: creditCards,
                     store: store,
                     vault: _vault,
                     onOpen: (it) => _openCard(context, it),
                     onEdit: (it) => _editCard(context, it),
-                    // The first-time nudge, shown until the founder flips any
-                    // card once. Persisted so it never returns on the next open.
-                    showHint:
-                        (store.data['settings'] as Map?)?['flipHintSeen'] !=
-                        true,
+                    showHint: flipHintPending && depositCards.isEmpty,
                     onFirstFlip: () => store.setSetting('flipHintSeen', true),
                   ),
                 ],
@@ -492,7 +533,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 // there is a prior month to compare against.
                 if (insightTrend != null) ...[
                   const SizedBox(height: 20),
-                  _panInsight(insightTrend),
+                  _panInsight(insightTrend, _largestLiability(groups)),
                 ],
                 // Add and Move money now live in the quick-actions row above,
                 // one tap from the net worth number rather than a scroll past
@@ -703,46 +744,38 @@ class _AccountsScreenState extends State<AccountsScreen> {
               // a change to Pan's face ships in a base APK, never over the air.
               // Decoration here, so it is kept out of the hero's semantics.
               ExcludeSemantics(
-                child: PanMascot.emotion(emotion: PanEmotion.content, size: 76),
+                child: PanMascot.emotion(emotion: PanEmotion.content, size: 64),
               ),
             ],
           ),
           const SizedBox(height: Gap.lg),
-          // Total assets and total liabilities, split by a hairline, each with
-          // a status dot and a chevron into its own breakdown. Assets keep the
-          // brand accent and owed keeps Barako.warning, the same two colours the
-          // ownership bar below uses, so the three read as one thought (and the
-          // owed contrast stays the palette_contrast_test-guarded lighter red,
-          // not warningStrong which measured under AA on this raised surface).
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _heroTotal(
-                    'Total assets',
-                    assets,
-                    Barako.primaryText,
-                    Barako.primary,
-                    () => _openBreakdown(context, AssetsView.own),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  color: Barako.border,
-                  margin: const EdgeInsets.symmetric(horizontal: Gap.lg),
-                ),
-                Expanded(
-                  child: _heroTotal(
-                    'Total liabilities',
-                    liabilities,
-                    Barako.warning,
-                    Barako.warning,
-                    () => _openBreakdown(context, AssetsView.owe),
-                  ),
-                ),
-              ],
-            ),
+          // What you own and what you owe, stacked full width. The old design put
+          // them side by side, which squeezed each label into half the card and
+          // truncated "TOTAL LIABILITIES" to "TOTAL LIABILITI..." on a narrow
+          // phone. Stacked, each label reads in plain words at full width and the
+          // peso figure right-aligns with tabular digits so own and owe line up.
+          // Each line taps into its own breakdown. Assets keep the brand accent
+          // and owed keeps Barako.warning, the same two colours the ownership bar
+          // below uses (the owed contrast stays the palette_contrast_test-guarded
+          // lighter red, not warningStrong which measured under AA here), and a
+          // status dot carries the meaning alongside the colour, never colour
+          // alone.
+          Container(height: 1, color: Barako.border),
+          const SizedBox(height: Gap.lg),
+          _heroLine(
+            'You own',
+            assets,
+            Barako.primaryText,
+            Barako.primary,
+            () => _openBreakdown(context, AssetsView.own),
+          ),
+          const SizedBox(height: Gap.md),
+          _heroLine(
+            'You owe',
+            liabilities,
+            Barako.warning,
+            Barako.warning,
+            () => _openBreakdown(context, AssetsView.owe),
           ),
           if (ownedPct != null) ...[
             const SizedBox(height: Gap.lg),
@@ -755,11 +788,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  /// One hero total: an uppercase label with a status dot, the peso figure in
-  /// its meaning colour, and a chevron into that side's breakdown. The dot and
-  /// figure share a colour so a colourblind reader still gets the label word,
-  /// never meaning on colour alone.
-  Widget _heroTotal(
+  /// One stacked hero line: a status dot, a plain-words label on the left, and
+  /// the peso figure in its meaning colour with a chevron on the right. Full
+  /// width, so the label never truncates the way the old side-by-side halves did,
+  /// and the figure right-aligns with tabular digits so own and owe line up. The
+  /// dot carries the meaning alongside the colour, never colour alone.
+  Widget _heroLine(
     String label,
     double value,
     Color valueColor,
@@ -776,51 +810,42 @@ class _AccountsScreenState extends State<AccountsScreen> {
             Haptics.select();
             onTap();
           },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: dotColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: Gap.xs),
-                  Flexible(
-                    child: Text(
-                      label.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Barako.kickerStyle,
-                    ),
-                  ),
-                ],
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
               ),
-              const SizedBox(height: Gap.xs),
-              Row(
-                children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatMoneyText(value),
-                        maxLines: 1,
-                        style: AppText.amountRow.w8.tint(valueColor),
-                      ),
-                    ),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body.w6.tint(Barako.text),
+                ),
+              ),
+              const SizedBox(width: Gap.sm),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    formatMoneyText(value),
+                    maxLines: 1,
+                    style: AppText.amountRow.w8.tint(valueColor),
                   ),
-                  const SizedBox(width: Gap.xs),
-                  Icon(
-                    salapifyIcon('forward'),
-                    size: IconSizes.dense,
-                    color: Barako.muted,
-                  ),
-                ],
+                ),
+              ),
+              const SizedBox(width: Gap.xs),
+              Icon(
+                salapifyIcon('forward'),
+                size: IconSizes.dense,
+                color: Barako.muted,
               ),
             ],
           ),
@@ -946,7 +971,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         ),
     ];
     return Semantics(
-      label: '$ownedPct percent owned, $owedPct percent owed.',
+      label: '$ownedPct percent assets, $owedPct percent liabilities.',
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,34 +990,29 @@ class _AccountsScreenState extends State<AccountsScreen> {
               ),
             ),
             const SizedBox(height: Gap.sm),
-            // Scale down, never overflow: at a large system font the two labels
-            // together can exceed the card, so each shrinks within its half
-            // rather than pushing off the edge. The peso figures above stay full
-            // size; these are the secondary, reinforcing read.
-            Row(
-              children: [
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '$ownedPct% owned',
-                      style: AppText.caption.tint(Barako.primaryText).w6,
-                    ),
+            // One caption in words, the meaning never on colour alone: assets in
+            // the brand accent, liabilities in the warning ink, joined by a
+            // middot. Scale down rather than overflow at a large system font; the
+            // peso figures above stay full size, this is the reinforcing read.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Text(
+                    '$ownedPct% assets',
+                    style: AppText.caption.tint(Barako.primaryText).w6,
                   ),
-                ),
-                const SizedBox(width: Gap.md),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '$owedPct% owed',
-                      style: AppText.caption.tint(Barako.warning).w6,
-                    ),
+                  Text(
+                    '  ·  ',
+                    style: AppText.caption.tint(Barako.muted).w6,
                   ),
-                ),
-              ],
+                  Text(
+                    '$owedPct% liabilities',
+                    style: AppText.caption.tint(Barako.warning).w6,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1009,23 +1029,51 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  /// Pan's read on the month, the mockup's insight card. One plain sentence
-  /// built from the SAME golden-locked trend the hero shows, never a second
-  /// opinion, with Pan beside it and a tap into the full trend. Pan is kind:
-  /// a rise is celebrated, a dip is stated plainly and pointed at the detail,
-  /// never scolded. A flat month says so rather than faking a number.
-  Widget _panInsight(Map<String, dynamic> trend) {
+  /// The single biggest balance the person still owes, as (name, amount), or
+  /// null when they owe nothing. Read from the same debt rows the screen already
+  /// groups: any row that lives in the debts store with a positive remaining
+  /// balance qualifies, so it covers credit cards, loans and installments
+  /// without depending on a category key. Presentation only, never written.
+  (String, double)? _largestLiability(
+    Map<String, List<(Map<String, dynamic>, AccountStore)>> groups,
+  ) {
+    (String, double)? best;
+    for (final entries in groups.values) {
+      for (final (row, which) in entries) {
+        if (which != AccountStore.debts) continue;
+        final amt = amountOf(row['remaining']);
+        if (amt <= 0) continue;
+        if (best == null || amt > best.$2) {
+          best = (row['name']?.toString() ?? 'a balance', amt);
+        }
+      }
+    }
+    return best;
+  }
+
+  /// Pan's read on the month: a data-driven line, not one fixed sentence, so the
+  /// mascot does a job instead of decorating. It is built from the SAME
+  /// golden-locked trend the hero shows (never a second opinion) plus, on a flat
+  /// month, the single biggest balance left to clear, named from the same
+  /// liabilities the screen already lists. Pan is kind: a rise is celebrated, a
+  /// dip is stated plainly and pointed at the detail, never scolded; a steady
+  /// month turns into a concrete, gentle nudge. All read-only.
+  Widget _panInsight(Map<String, dynamic> trend, (String, double)? largestOwed) {
     final delta = trend['delta'] as double;
     final flat = delta.abs() < 0.005;
     final up = delta > 0;
     final amount = formatMoney(delta.abs());
     final String line;
-    if (flat) {
-      line = 'Your net worth held steady this month. Steady is progress too.';
-    } else if (up) {
-      line = 'Great job! Your net worth went up by $amount this month.';
-    } else {
+    if (up) {
+      line = 'Great month. Your net worth grew by $amount.';
+    } else if (!flat) {
       line = 'Your net worth dipped by $amount this month. Tap to see where.';
+    } else if (largestOwed != null) {
+      line =
+          'Steady month. Your biggest balance to clear is ${largestOwed.$1}, '
+          '${formatMoney(largestOwed.$2)}.';
+    } else {
+      line = 'Your net worth held steady this month. Steady is progress too.';
     }
     return Semantics(
       button: true,
@@ -1524,9 +1572,12 @@ class _AccountsScreenState extends State<AccountsScreen> {
             borderRadius: BorderRadius.circular(Radii.field),
             onTap: a.onTap,
             child: Container(
-              constraints: const BoxConstraints(minHeight: 78),
+              // Compacter than the old 78px tile: vertical space is expensive on
+              // a finance screen, so the disc and label sit tighter while the
+              // 44px minimum tap target is still cleared by the whole tile.
+              constraints: const BoxConstraints(minHeight: 62),
               padding: const EdgeInsets.symmetric(
-                vertical: Gap.md,
+                vertical: Gap.sm,
                 horizontal: Gap.xs,
               ),
               decoration: BoxDecoration(
@@ -1537,8 +1588,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 30,
+                    height: 30,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       // The primary action fills its disc with the accent and a

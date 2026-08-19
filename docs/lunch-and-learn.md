@@ -10,6 +10,157 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-19, session 41: f4.51 delivered clean as a base APK (Pan becomes a panda), and a real dark-mode contrast defect the machine renders showed but the founder's eye caught first
+
+**What we believed / What was true.**
+
+On delivery, belief and reality match on every axis. The publisher wrote this
+row into `docs/delivery-log.md` on `origin/main`:
+
+    | 2026-08-19 05:47 UTC | f4.51 | none | release | 0.9.4+19 | 6fb99e45 |
+
+Mode `release`, not `patch`, so this is a NEW base APK the founder installs by
+hand, not an over-the-air update. The founder replied "updated to f4.51", which
+for a release is the one proof no test can give: they actually installed the
+APK and read the stamp. The stamp string in `flutter/lib/main.dart` (line 35)
+reads `f4.51 · Pan is now a hand drawn panda, on the redesigned Accounts
+screen.`, one line, 81 characters, inside the 120 cap and with no em or en dash.
+`flutter/pubspec.yaml` line 20 reads `0.9.4+19`, the exact version the row
+names. Merge commit `6fb99e4`, run `32219796369`. Nothing about this delivery is
+wrong, and this session does not manufacture a wound to justify itself.
+
+The claimed work is all really there. `flutter/lib/widgets/pan_mascot.dart`
+declares six `PanEmotion` values (content, worried, sad, angry, tired, and the
+new `celebrate` at line 89), and six PNGs sit under
+`flutter/assets/pan/emotions/`: the five prior faces grew in byte size (the cup
+art replaced by the panda render, for example `pan-content.png` 116770 to 186718
+bytes) and `pan-celebrate.png` is brand new (0 to 245975 bytes). The f4.50
+Accounts redesign was absorbed into the same base APK: the merge (`6fb99e4`)
+carries `flutter/lib/screens/accounts.dart` rewritten (+1313 lines) alongside the
+mascot, and `docs/reviews/` holds both the `f4.50-accounts-redesign-report.md`
+and `f4.51-panda-mascot.md` artifacts. The QA-log row for f4.51 exists
+(`docs/qa-log.md` line 206), so `qa_record_test.dart` is satisfied.
+
+**Timeline, with evidence.**
+
+- The Accounts redesign landed first on the branch (`2ba93a6` WIP hero and Pan
+  insight card, `2f61333` category tabs and its QA row) carrying stamp f4.50, but
+  was never delivered on its own: it sat on the branch as banked, not shipped.
+- The panda swap followed (`9051550` "Pan becomes a panda: hand-drawn mascot art,
+  plus a celebrate feeling"), re-stamped to f4.51. So one base APK shipped both.
+- The art pipeline is recorded in `docs/reviews/f4.51-panda-mascot.md` lines 11
+  to 26: the founder supplied source art via a Google Drive folder; it was
+  background-removed with a border connectivity flood-fill (PIL) that keeps Pan's
+  cream body while stripping the cream field and drop-shadow, normalised onto one
+  512px canvas at an identical scale and baseline, then a soft cream silhouette
+  halo was baked behind Pan.
+- PR merged as `6fb99e4`. Because `pubspec.yaml` moved from `0.9.3+18` (f4.49's
+  release) to `0.9.4+19`, and because Shorebird refuses to patch an asset change
+  (`UnpatchableChangeException`, recorded in session 40 and again in this review
+  artifact line 75), the publisher built a base APK: `mode=release`, delivery row
+  at 05:47 UTC. The founder's manual install was the correct and unavoidable cost
+  of shipping new image bytes, not a mistake.
+
+**Root cause.**
+
+For delivery, there is no divergence to name. Stamp on the phone, delivery-log
+row, pubspec version and source stamp all agree, and the release mode was the
+forced consequence of new image assets. A clean base-APK patch is a real
+outcome, and this is one.
+
+The one defect worth the session sits inside the build, not the delivery: the
+dark-mode legibility of the new mascot. The first render put Pan on the dark
+Accounts hero and his dark-brown fur (ears, arms, legs) sat at almost the exact
+value of the warm dark hero wash, so those parts dissolved and Pan read as a
+floating cream face and belly (`f4.51-panda-mascot.md` lines 20 to 26;
+`docs/qa-log.md` line 206). The honest root cause is not "Claude did not look",
+because Claude DID render and look: the emotion board was viewed on a card
+surface and Pan was viewed on the hero. The root cause is that the machine render
+step produces a picture, and judging a dark image asset against a dark surface is
+work only an eye does, so the picture existed and was opened and the low-contrast
+fur-on-wash still was not flagged until the FOUNDER asked "what happened to panda
+in darkmode?". The render-and-look rule was followed and still let a real contrast
+problem reach the founder's eyes first. That is a gap in what the look can be
+relied on to catch, not a gap in whether the look happened.
+
+**Lessons, each with its guard and its strength.**
+
+- Mascot-on-surface contrast is, in the general case, an EYE-ONLY check, and this
+  is stated after reading the tools rather than assuming it, per this repo's own
+  "read the tool, not the rule" discipline. `test/palette_contrast_test.dart` is
+  pure WCAG luminance arithmetic over the theme registry's `Color` PAIRS (its own
+  header, lines 18 to 20: "pure arithmetic over the registry"); it never samples
+  an image asset. `test/screen_readability_test.dart` measures LAYOUT (overflow,
+  blank screens, sentences off the edge, ellipsis, raw dates) at 1.0x and 1.5x
+  font (its header, lines 12 to 23); it throws the pictures away and never reads a
+  pixel's colour. Neither can see a dark PNG dissolving into a dark wash, and no
+  small edit makes them able to. Guard: none is warranted, and inventing one would
+  be worse than saying so. The tempting machine guard, asserting each emotion
+  PNG's opaque perimeter is light so the baked halo is present, would CRY WOLF on
+  `celebrate`, whose confetti and raised arms spread coloured, non-cream pixels to
+  the frame edge (`pan_mascot.dart` line 60), and this repo has a written rule
+  that a guard which cries wolf gets its battery taken out and is then absent for
+  the real fire. So the lesson stays OPEN with no machine guard: the only
+  automatic check available is a flaky one that would be disabled, and the only
+  reliable check is a habit ("when the mascot is dark, judge it against the dark
+  surface specifically"), which is the weakest kind and fails the moment anyone is
+  busy. Naming it open is the honest result, not a failure of the session.
+
+- The durable improvement that DID land is a fix to the asset, not a test: the
+  baked cream silhouette halo. It lifts the dark fur off any dark surface and is
+  cream-on-light so it is invisible on the light theme and neutral surfaces, and
+  it was verified on the real hero wash, the dark card and the light surface
+  BEFORE baking, then re-rendered on the actual Accounts screen in both themes and
+  the PNGs sent to the founder (`f4.51-panda-mascot.md` lines 22 to 26 and 57 to
+  60). This reduces recurrence structurally: the next dark surface Pan lands on
+  inherits the separation for free. It is not a guard against a future art drop
+  that ships without the halo, for the cry-wolf reason above; it is a property of
+  the six PNGs that shipped. Strength: this is a structural asset fix (better than
+  a habit, weaker than an automated check, because nothing fails if a future art
+  drop forgets it).
+
+- One machine guard genuinely landed alongside the mascot and was proven:
+  `flutter/test/pan_asset_test.dart` asserts every `PanEmotion.values` entry has a
+  real PNG over 4000 bytes at `panEmotionAsset(e)`, closing the "add the enum
+  value, forget the file, and only the rare cup fallback shows" gap. The review
+  artifact records it was proven failing first by moving `pan-celebrate.png` aside
+  and watching it name the missing file, then restored (lines 54 to 56). Guard:
+  the on-disk asset-existence test (STRONG, automated, fails loudly, proven both
+  ways). This one covers "the file is missing", NOT "the file is illegible on a
+  dark surface"; the two are different failures and only the first has a machine.
+
+**Open lessons carried forward.**
+
+New open lesson from this session: mascot-on-dark-surface contrast has no machine
+guard and no strong human guard, only the baked-halo asset property and an eye. It
+is carried forward as genuinely open, not as a guard in waiting.
+
+Session 40's carried items are unchanged and still hold: the render harness is
+still not wired into `.githooks/pre-push` (CI runs it either way, so this stays a
+round-trip saver, not an outage risk). Session 39's four unbuilt guards remain
+open (the decision-log existence test, the section-42 citation test, the
+whole-tree `pub get` drift check, and the `Stop` hook for undelivered-stamp chat
+claims); `toolchain_pin_test.dart`, the one that was built, still holds at
+`3.44.6` and the f4.51 build ran on that pin (`f4.51-panda-mascot.md` line 51,
+"the pinned 3.44.6, the CI build SDK"). The readability-sweep screen-coverage gap
+is carried forward, untouched this session.
+
+`CLAUDE.md` factual re-check, done as a step and not a favour. Every path and
+claim I leaned on was checked against the tree, not trusted. The four files the
+"look at the screen" section names all exist where it says:
+`flutter/test/screens_shot.dart`, `test/palette_contrast_test.dart`,
+`test/screen_readability_test.dart`, and the committed harness for the next Pan
+change `test/pan_panda_preview.dart` (present and correctly WITHOUT a `_test`
+suffix, so `flutter test` never collects it, exactly as the rule promises). The
+render command as written, `cd flutter && flutter test test/screens_shot.dart
+--update-goldens`, names a file that exists. The icons rule's claim that
+Salapify's own icons resolve through `flutter/lib/widgets/salapify_icon.dart` and
+that user category/treat/account/goal icons stay emoji held true against this
+change: the mascot is authored art, not a user icon, and lives correctly under
+`assets/pan/`, not in the icon resolver. Nothing in `CLAUDE.md` read false today.
+
+---
+
 ## 2026-08-18, session 40: f4.49 delivered clean as a base APK, a phantom branch name in the task prompt that changed nothing, and the "new asset shows initials on the phone" trap found to be double-guarded already
 
 **What we believed / What was true.**
