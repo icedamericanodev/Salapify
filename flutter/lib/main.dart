@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.50 · Accounts redesign: new hero, Pan insight, reachable-money card, and category tabs.';
+    'f4.51 · Pan is now a hand drawn panda, on the redesigned Accounts screen.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -698,9 +698,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ),
               ),
               const SizedBox(width: Gap.sm),
-              // Pan, content, the mockup's mascot. An already-bundled asset, so
-              // this ships over the air with no APK. Decoration here, so it is
-              // kept out of the hero's semantics.
+              // Pan, content, the mockup's mascot, now the hand-drawn panda.
+              // The art is a bundled PNG, and Shorebird cannot patch assets, so
+              // a change to Pan's face ships in a base APK, never over the air.
+              // Decoration here, so it is kept out of the hero's semantics.
               ExcludeSemantics(
                 child: PanMascot.emotion(emotion: PanEmotion.content, size: 76),
               ),

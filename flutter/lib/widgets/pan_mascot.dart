@@ -1,16 +1,21 @@
-// Pan, the mascot cup, as ONE reusable widget shared by the Home check-in and
-// the Ask Pan header. It takes a PanMood (mapped in money/pan_mood.dart from
-// either the coach or a chat reply) and shows kapeng Barako reacting: calm rests
-// with a slow wisp, nudge leans in attentive, worried goes wide-eyed with a
-// bead of sweat, happy beams with lively steam. Motion is change-driven, a short
-// one-shot bob when the mood actually changes, never a constant loop, to protect
-// battery. His colour is his own and never comes from the active palette.
+// Pan, the panda mascot, as ONE reusable widget shared by the Home check-in and
+// the Ask Pan header. He is a soft-3D chibi panda who cradles his cup of kapeng
+// Barako, with a peso sign rising in the steam and a coffee-cherry sprout on his
+// head, and he reacts to your money with a feeling on his face. He takes a
+// PanMood (mapped in money/pan_mood.dart from either the coach or a chat reply),
+// or a PanEmotion directly, and the rendered art wears that feeling. Motion is
+// change-driven, a short one-shot bob when the feeling actually changes, never a
+// constant loop, to protect battery. His look is his own and never comes from
+// the active palette.
 //
 // ==========================================================================
-// Pan is drawn from four rendered PNGs (assets/pan/), one per mood. The
+// Pan is drawn from rendered PNGs (assets/pan/emotions/), one per feeling. The
 // code-drawn PanCupPainter is NOT dead: it is the errorBuilder fallback here,
 // and the share cards still paint through it with a baked brand palette so an
-// exported image never inherits the sender's theme.
+// exported image never inherits the sender's theme. The fallback and the share
+// cards still draw the earlier cup-only mark, not the panda; converting them to
+// the panda art is a tracked follow-up, and it only shows on the rare
+// asset-load-failure path and on exported share cards, never in the app itself.
 //
 // Pan is ONE colour on every theme, and that is a decision rather than a
 // limitation (founder, 2026-07-26). The machinery to reskin him per theme was
@@ -48,11 +53,13 @@ const String kPanRivAsset = 'assets/pan/pan.riv';
 /// One file per mood rather than a sprite sheet: four small PNGs are simpler
 /// to swap, and a sheet would have to be re-cut every time a face is redrawn.
 ///
-/// All four are rendered on one 360px canvas with the cup at an IDENTICAL
-/// width, centre, and baseline, so swapping moods changes the face and
-/// nothing else. Per-image cropping would resize Pan between moods, and a
-/// character who grows when he smiles reads as a glitch rather than a
-/// reaction.
+/// Each is rendered on one 512px canvas with the panda at an IDENTICAL scale,
+/// centre, and baseline, so swapping feelings changes the face and nothing
+/// else. Per-image cropping would resize Pan between feelings, and a character
+/// who grows when he smiles reads as a glitch rather than a reaction. The one
+/// exception is celebrate, whose confetti and raised arms spread wider on the
+/// same baseline and body scale, so the burst reads as extra energy rather than
+/// a bigger Pan.
 /// Pan's emotional vocabulary: rendered feeling faces, the way Pan actually
 /// reacts to your money. The reaction machine speaks in [PanMood] (calm, nudge,
 /// worried, happy) and maps into this set, but ANY screen, and Pan the
@@ -75,6 +82,11 @@ enum PanEmotion {
   // user. If it ever ships, gate it on a neutral context (a very late-night
   // log), never a judgement on the numbers.
   tired,
+  // arms up, confetti, sparkle eyes: a genuine win worth cheering. Reserved for
+  // real milestones the user earned (a goal reached, a debt cleared, a streak
+  // kept), never the ambient mood, so the cheer keeps its meaning and never
+  // fires at someone who just slipped.
+  celebrate,
 }
 
 /// Where each feeling's rendered art lives. One file per emotion, transparent
@@ -102,6 +114,7 @@ PanMood _moodForEmotion(PanEmotion e) => switch (e) {
   // which matches content far better than happy's big beaming grin. This only
   // shows on the rare path where a bundled emotion PNG fails to load.
   PanEmotion.content => PanMood.calm,
+  PanEmotion.celebrate => PanMood.happy,
   PanEmotion.worried || PanEmotion.sad || PanEmotion.tired => PanMood.worried,
   PanEmotion.angry => PanMood.worried,
 };
@@ -242,6 +255,7 @@ class _PanMascotState extends State<PanMascot>
     PanEmotion.sad => 'sad',
     PanEmotion.angry => 'frustrated',
     PanEmotion.tired => 'weary',
+    PanEmotion.celebrate => 'celebrating',
   };
 }
 
