@@ -132,19 +132,36 @@ List<DateTime> _rawDueCandidates(Map<String, dynamic> debt, DateTime from) {
   return null;
 }
 
-/// Debts with money still owed and a resolvable bank-adjusted due date, no
-/// window cutoff. Used to count how many existing debts a reminder could
-/// actually help with, regardless of how soon the due date lands, so a
-/// nudge to turn reminders on can say "N of your debts" without duplicating
-/// the same remaining-and-schedule rule [upcomingDues] and the bills
-/// reminder itself already follow.
+/// The two fire times a bill-due-date reminder queues for one due date: 3
+/// days before at 6pm, and the due day itself at 9am. The exact schedule
+/// money/reminders.dart's bills block computes; shared here so a caller
+/// deciding whether a reminder can still help (like the existing-debts
+/// nudge below) uses the identical rule the scheduler follows, rather than
+/// a due-date check that can quietly drift out of sync with it. A debt due
+/// TODAY has only the 9am fire time left, and past 9am even that one is
+/// gone: turning the reminder on then schedules nothing for that debt until
+/// its next cycle, so a caller that only checks "is there a due date" would
+/// promise a reminder the scheduler would not actually queue.
+List<DateTime> billReminderTimes(DateTime due) => [
+  DateTime(due.year, due.month, due.day - 3, 18),
+  DateTime(due.year, due.month, due.day, 9),
+];
+
+/// Debts with money still owed and a due date that would still queue at
+/// least one bill reminder fire time from "from", no window cutoff. Used to
+/// count how many existing debts turning Bills due on would actually help,
+/// so a nudge to turn reminders on can say "N of your debts" and mean it,
+/// rather than counting a debt whose only fire times have already passed
+/// today.
 List<Map<String, dynamic>> debtsWithSchedule(dynamic debts, DateTime from) {
   final out = <Map<String, dynamic>>[];
   for (final raw in (debts is List ? debts : const [])) {
     if (raw is! Map) continue;
     final d = raw.cast<String, dynamic>();
     if (!(amountOf(d['remaining']) > 0)) continue;
-    if (bankDueDate(d, from) == null) continue;
+    final due = bankDueDate(d, from);
+    if (due == null) continue;
+    if (!billReminderTimes(due.date).any((t) => t.isAfter(from))) continue;
     out.add(d);
   }
   return out;

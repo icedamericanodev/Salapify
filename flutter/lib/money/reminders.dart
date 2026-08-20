@@ -22,7 +22,7 @@
 // Every peso here is read from the data, never invented. Non-finite and bad
 // dates are guarded, matching the rest of the money layer.
 
-import 'commitments.dart' show bankDueDate;
+import 'commitments.dart' show bankDueDate, billReminderTimes;
 import 'ledger.dart' show amountOf;
 import 'sample_data.dart' show sampleTxIds;
 import 'schedule.dart' show hasExplicitPaydaySchedule, nextPayday;
@@ -229,6 +229,7 @@ List<PlannedReminder> plannedReminders(
       final remaining = amountOf(d['remaining']);
       final hasMin = min > 0;
       final minTxt = _peso(min < remaining ? min : remaining);
+      final fireTimes = billReminderTimes(due);
       // Generic title in both modes; the debt name goes in the body and only
       // when detailed is on. See the plannedReminders doc comment.
       add(
@@ -236,7 +237,7 @@ List<PlannedReminder> plannedReminders(
         detailed
             ? '$name is due in 3 days. ${hasMin ? 'Pay in full to avoid interest, or at least $minTxt to avoid late fees.' : 'Pay in full to avoid interest, or at least the minimum on your SOA to avoid late fees.'} GCash and over the counter payments can take 1 to 3 days to post, so pay early.'
             : 'One of your bills is due in 3 days. Open Salapify to see which and how much. GCash and over the counter payments can take 1 to 3 days to post, so pay early.',
-        DateTime(due.year, due.month, due.day - 3, 18),
+        fireTimes[0],
       );
       add(
         'A bill is due today',
@@ -245,7 +246,7 @@ List<PlannedReminder> plannedReminders(
                   ? '$name is due today. Pay at least $minTxt today to avoid penalties.'
                   : '$name is due today. Pay at least the minimum on your SOA today to avoid penalties.')
             : 'A bill is due today. Open Salapify to pay at least the minimum and avoid penalties.',
-        DateTime(due.year, due.month, due.day, 9),
+        fireTimes[1],
       );
     }
     // Recurring EXPENSE bills (rent, subscriptions) nudge here too, under the

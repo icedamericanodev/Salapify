@@ -158,17 +158,7 @@ class NotificationsSecurityScreen extends StatelessWidget {
                 children: [
                   Text(label, style: AppText.caption.w6),
                   const SizedBox(height: 6),
-                  TextButton(
-                    onPressed: () => toggle('bills', true),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Barako.primary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(0, 32),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      alignment: Alignment.centerLeft,
-                    ),
-                    child: const Text('Turn on Bills due'),
-                  ),
+                  _BillsNudgeButton(onPressed: () => toggle('bills', true)),
                 ],
               ),
             ),
@@ -408,6 +398,50 @@ class NotificationsSecurityScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The existing-debts nudge's own CTA, guarded against a double tap firing
+/// two concurrent permission requests: `toggle` awaits
+/// Reminders.requestPermission() before writing anything, so a second tap in
+/// that window would show a second snackbar or race a second reschedule.
+/// Reminders.reschedule's own run-token guard already makes the later call
+/// win, so nothing corrupts either way; this only avoids the visible
+/// double-ask. Left enabled again once the call returns: on the success path
+/// the whole callout unmounts anyway (the card disappears the moment Bills
+/// due turns on), and on a denial it should stay tappable, not stuck
+/// disabled by one "no".
+class _BillsNudgeButton extends StatefulWidget {
+  final Future<void> Function() onPressed;
+  const _BillsNudgeButton({required this.onPressed});
+
+  @override
+  State<_BillsNudgeButton> createState() => _BillsNudgeButtonState();
+}
+
+class _BillsNudgeButtonState extends State<_BillsNudgeButton> {
+  bool _busy = false;
+
+  Future<void> _handle() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: _busy ? null : _handle,
+    style: TextButton.styleFrom(
+      foregroundColor: Barako.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      minimumSize: const Size(0, 44),
+      alignment: Alignment.centerLeft,
+    ),
+    child: const Text('Turn on Bills due'),
+  );
 }
 
 /// One reminder toggle: icon, title, switch, and an explanation that starts
