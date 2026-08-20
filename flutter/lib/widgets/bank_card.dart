@@ -26,6 +26,7 @@ import '../money/debtmath.dart' show formatMoneyText;
 import '../money/institutions.dart' show initialsFor;
 import '../theme.dart';
 import '../typography.dart';
+import 'pan_mask_widget.dart' show CardNumberMask;
 import 'salapify_icon.dart' show salapifyIcon, SalapifyGlyph;
 
 /// Which face a [BankCard] shows. Savings shows one balance; credit shows the
@@ -307,15 +308,20 @@ class BankCard extends StatelessWidget {
                                       RegExp(r'^\d{4}$').hasMatch(last4!))
                                   ? 'Card number ending $last4'
                                   : 'Card number hidden here',
+                              // Three masked groups then the last four. Geometric
+                              // dots and tabular digits so the line holds its
+                              // width and looks identical in every font and
+                              // brightness (widgets/pan_mask_widget.dart). The
+                              // caller decides whether real digits are passed;
+                              // when they are, the widget shows them, otherwise
+                              // dots, so this stays honest either way.
                               child: ExcludeSemantics(
-                                child: Text(
-                                  _maskedNumber(last4),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 2.0,
-                                  ),
+                                child: CardNumberMask(
+                                  last4: last4,
+                                  revealed: true,
+                                  groups: 3,
+                                  color: Colors.white,
+                                  fontSize: 15,
                                 ),
                               ),
                             ),
@@ -767,12 +773,6 @@ Widget _footerKicker(String text) => Text(
     letterSpacing: 1.4,
   ),
 );
-
-String _maskedNumber(String? last4) {
-  final ok = last4 != null && RegExp(r'^\d{4}$').hasMatch(last4);
-  return '•••• •••• '
-      '•••• ${ok ? last4 : '••••'}';
-}
 
 // --- Color math: darken a bright brand color until white text clears AA. ---
 

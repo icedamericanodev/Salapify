@@ -32,6 +32,7 @@ import '../screens/account_detail.dart' show showAccountQrSheet;
 import '../services/secure_window.dart';
 import 'bank_card.dart';
 import 'lock_gate.dart' show LockAuthenticator, BiometricAuthenticator;
+import 'pan_mask_widget.dart';
 import 'salapify_icon.dart';
 
 /// How long a revealed number stays visible before it remasks itself.
@@ -456,9 +457,6 @@ class _FlipBankCardState extends State<FlipBankCard>
 
   Widget _numberRow() {
     final last4 = widget.last4;
-    final masked = last4 == null
-        ? '•••• ••••'
-        : (_revealed ? '•••• $last4' : '•••• ••••');
     return Row(
       children: [
         Text(
@@ -479,19 +477,19 @@ class _FlipBankCardState extends State<FlipBankCard>
         Expanded(
           child: Align(
             alignment: Alignment.centerLeft,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: ExcludeSemantics(
-                child: Text(
-                  masked,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                  ),
-                ),
+            // Geometric dots plus tabular last four, so revealing the digits
+            // cannot change the line's width and the mask reads the same in
+            // every font and both brightnesses (widgets/pan_mask_widget.dart).
+            // One leading dot group then the last four, matching the old
+            // "•••• ••••" the back showed. Excluded from semantics because the
+            // number's spoken state lives on the reveal button beside it.
+            child: ExcludeSemantics(
+              child: CardNumberMask(
+                last4: last4,
+                revealed: _revealed,
+                groups: 1,
+                color: Colors.white,
+                fontSize: 15,
               ),
             ),
           ),
