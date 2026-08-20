@@ -10,6 +10,137 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-08-20, session 42: f4.53 delivered clean over the air (Accounts dashboard redesign), and three real in-session lessons turned into two proven tests and one hard-won test-font rule
+
+**What we believed / What was true.**
+
+On delivery, belief and reality match on every axis. The publisher wrote this
+row into `docs/delivery-log.md` on `origin/main`:
+
+    | 2026-08-20 03:07 UTC | f4.53 | 2 | patch | 0.9.4+19 | 77dc5988 |
+
+Mode `patch`, not `release`, so this one shipped OVER THE AIR: the installed
+base APK (`0.9.4+19`, the one the founder hand-installed for f4.51) updated
+itself on reopen, no manual install needed. The founder confirmed f4.53 on the
+phone as patch 2, which is the one proof no test can give. The stamp string in
+`flutter/lib/main.dart` (line 35) reads `f4.53 · Accounts: expandable category
+groups, class filters, a hide-balances toggle, net worth sparkline.`, one line,
+inside the 120 character cap and with no em or en dash. `flutter/pubspec.yaml`
+line 20 reads `0.9.4+19`, the exact version the row names, so this correctly
+patched the existing release rather than stranding it. Merge commit `77dc5988`,
+run `32326105714`. Nothing about this delivery is wrong, and this session does
+not manufacture a wound to justify itself.
+
+The process ran the way the rules ask. The stamp was bumped first, not last. An
+independent qa-tester pass ran and left a real row in `docs/qa-log.md` (line
+208), so `qa_record_test.dart` is satisfied. The new privacy guard was proven by
+break-then-prove before it was trusted. The screen was rendered dark in three
+states (default, all-expanded, and masked) and the PNGs were shown to the
+founder. The merge waited for the founder's explicit go and CI green, and the
+delivery-log row was read before the number was called live. This is a clean
+patch, and clean is a real result.
+
+**Timeline, with evidence.**
+
+There is no delivery divergence to reconstruct, so this timeline is the three
+defects that were caught and closed INSIDE the build, before the merge, each one
+a lesson that now has a guard.
+
+- The redesign added a hide-balances eye to the net worth hero
+  (`accounts.dart` lines 252 to 270): `_hideBalances` reads a view-only settings
+  flag, and `_money(v)` returns `'₱ ••••'` when it is on. The intent is that
+  EVERY peso figure routes through `_money()` so one toggle masks the whole
+  screen. The first implementation missed two surfaces that each formatted their
+  own figure instead: Pan's insight card still printed the month move (`grew by
+  PHP7,545`) and a savings-goal sub-line still printed `49% of PHP10,000`, which
+  also let the hidden balance be derived from the percentage. Both the visible
+  text AND the screen-reader label leaked.
+- The independent qa-tester agent caught both as must-fix (recorded verbatim in
+  `docs/qa-log.md` line 208). The Pan card now drops the peso under the mask and
+  shows direction and percentage only, and the goal sub-line collapses to the
+  neutral `Savings goal`.
+- The expandable category accordion first used a widget that kept the collapsed
+  child in the tree, so a test asserting a collapsed group's row is NOT shown
+  failed because `find.text` still found the row. It was switched to
+  `AnimatedSize` with the body present only when the group is open: the
+  collapsed side is an empty full-width box, so a collapsed group does not build
+  its rows at all.
+- Relabelling the hero total to the longer word `Liabilities` overflowed the
+  hero line. One instance surfaced in the real-font readability sweep; a SECOND,
+  separate overflow surfaced only in a widget test running the default
+  `flutter_test` font, which is wider than the shipped Jakarta. Both were fixed
+  by making the label `Flexible` with an ellipsis.
+
+**Root cause.**
+
+For delivery there is no divergence point: stamp on the phone, delivery-log row,
+pubspec version and source stamp all agree, and `patch` mode correctly reused
+the base APK. The three in-build defects share one shape worth naming: a
+screen-wide property (one privacy mask, one collapse rule, one label that fits)
+is only as true as its least-disciplined call site or its least-realistic
+fixture. None of the three roots is "someone did not check". The mask leaked
+because two surfaces formatted money outside the shared helper and no test
+toggled the eye and asserted a known figure was gone. The collapse test failed
+because "hidden" in an animation widget does not always mean "off the tree". The
+second overflow hid because a layout can pass under the shipped font and fail
+under the wider default test font, and vice versa.
+
+**Lessons, each with its guard and its strength.**
+
+- A screen-wide privacy mask is only as good as its least-disciplined call site,
+  and a "route everything through `_money()`" rule is a promise until a test
+  actually flips the eye and checks that no known figure survives. Guard: the
+  new break-then-prove test `test('the hide-balances eye masks every figure,
+  including Pan and a savings goal')` in
+  `flutter/test/accounts_overview_test.dart`. It seeds a goal of 77,777 (a
+  number that appears ONLY in the progress sub-line) and a prior-month snapshot
+  so Pan names a peso move, taps the semantics-labelled `Hide balances` control,
+  then asserts `77,777`, `30,000` and `grew by` are all `findsNothing` while the
+  masked `••••` appears. It was proven to bite: reverting the Pan gate made
+  `grew by PHP7,545` reappear (recorded in the qa-log row). Strength: STRONG,
+  automated, fails loudly, proven both ways. This one covers "a known figure
+  survives the mask"; it does not prove a brand-new future surface routes
+  through `_money()`, so a call site added later still needs its own line here.
+
+- "Hidden" in an animation widget does not always mean "gone from the tree";
+  when collapse must mean not-built, choose the widget that actually removes the
+  child. Guard: the collapse assertion already in
+  `accounts_overview_test.dart`, which taps a group shut and asserts its row is
+  `findsNothing`. Be honest about what this is: it is the specific test that
+  failed under the first widget and passes under `AnimatedSize`, not a general
+  rule that fires on any future "hidden but built" choice elsewhere in the app.
+  Strength: STRONG for this accordion, narrow in scope. The structural half of
+  the fix (a collapsed group builds no rows at all) is what makes the test
+  honest rather than incidentally green.
+
+- A layout can pass with the shipped Jakarta font and still overflow under the
+  wider default `flutter_test` font, and the reverse, so the real-font
+  readability sweep and the plain widget tests are BOTH load-bearing and neither
+  substitutes for the other. Guard: the two tests that caught the two overflows,
+  kept as a matched pair. `test/screen_readability_test.dart` loads the real
+  fonts via `loadRealFonts` and runs at 1.0x and 1.5x, and the credit-face
+  widget tests deliberately judge layout in the default test font, with a
+  comment naming the trap. Strength: STRONG, both automated, but this is a RULE
+  about keeping both, more than a single test: the danger is a future session
+  deleting one as "redundant with the other". They are not redundant; they
+  disagree on purpose.
+
+**Open lessons carried forward.**
+
+No new open lesson from this session; all three lessons closed with a guard, two
+STRONG-automated and one a STRONG pair held together by a rule.
+
+Session 41's open lesson still stands: mascot-on-dark-surface contrast has no
+machine guard and no strong human guard, only the baked-halo asset property and
+an eye. Nothing this session touched Pan, so it is unchanged. Session 40's
+carried items are unchanged: the render harness is still not wired into
+`.githooks/pre-push` (CI runs it regardless, so this is a round-trip saver, not
+an outage risk), and session 39's four unbuilt guards remain open. This session
+did exercise the readability sweep on the redesigned Accounts screen, which is
+one of the screens it does cover.
+
+---
+
 ## 2026-08-19, session 41: f4.51 delivered clean as a base APK (Pan becomes a panda), and a real dark-mode contrast defect the machine renders showed but the founder's eye caught first
 
 **What we believed / What was true.**
