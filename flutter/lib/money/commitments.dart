@@ -132,6 +132,24 @@ List<DateTime> _rawDueCandidates(Map<String, dynamic> debt, DateTime from) {
   return null;
 }
 
+/// Debts with money still owed and a resolvable bank-adjusted due date, no
+/// window cutoff. Used to count how many existing debts a reminder could
+/// actually help with, regardless of how soon the due date lands, so a
+/// nudge to turn reminders on can say "N of your debts" without duplicating
+/// the same remaining-and-schedule rule [upcomingDues] and the bills
+/// reminder itself already follow.
+List<Map<String, dynamic>> debtsWithSchedule(dynamic debts, DateTime from) {
+  final out = <Map<String, dynamic>>[];
+  for (final raw in (debts is List ? debts : const [])) {
+    if (raw is! Map) continue;
+    final d = raw.cast<String, dynamic>();
+    if (!(amountOf(d['remaining']) > 0)) continue;
+    if (bankDueDate(d, from) == null) continue;
+    out.add(d);
+  }
+  return out;
+}
+
 /// All payments coming due in the next windowDays across every debt with a
 /// schedule and money still owed, bank adjusted, soonest first. Each entry:
 /// { debt, dueISO, inDays, moved, amount } where amount is the minimum due.

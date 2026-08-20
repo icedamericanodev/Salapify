@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.55 · Payment due dates: holiday aware preview, Accounts due line, reminder opt in.';
+    'f4.56 · Notifications screen nudges existing debts with a due date to turn reminders on.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
