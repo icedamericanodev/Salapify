@@ -137,10 +137,11 @@ void main() {
   testWidgets('each segment carries its own create action', (tester) async {
     await _boot(tester);
     await goToTab(tester, 'Utang');
-    // I owe: the New button opens the debt form.
+    // I owe: the New button opens the debt form (a wizard, titled by type and
+    // opening on "The basics").
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
-    expect(find.text('Add debt'), findsOneWidget);
+    expect(find.text('The basics'), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 

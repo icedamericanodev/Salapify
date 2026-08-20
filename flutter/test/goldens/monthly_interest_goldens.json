@@ -76,6 +76,46 @@
     "monthlyRate": "3"
    },
    "result": 360
+  },
+  {
+   "name": "18pct pa card 50000 stored 1.5 monthly",
+   "debt": {
+    "remaining": 50000,
+    "monthlyRate": 1.5
+   },
+   "result": 750
+  },
+  {
+   "name": "zero rate 50000",
+   "debt": {
+    "remaining": 50000,
+    "monthlyRate": 0
+   },
+   "result": 0
+  },
+  {
+   "name": "PH card 3pct monthly on 12480",
+   "debt": {
+    "remaining": 12480,
+    "monthlyRate": 3
+   },
+   "result": 374
+  },
+  {
+   "name": "18pct pa on 12345 rounds down",
+   "debt": {
+    "remaining": 12345,
+    "monthlyRate": 1.5
+   },
+   "result": 185
+  },
+  {
+   "name": "20pct pa to 1.6667 monthly on 30000",
+   "debt": {
+    "remaining": 30000,
+    "monthlyRate": 1.6666666666666667
+   },
+   "result": 500
   }
  ]
 }

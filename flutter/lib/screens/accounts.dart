@@ -291,16 +291,24 @@ class _AccountsScreenState extends State<AccountsScreen> {
             ),
           ],
         ),
-        // The Menu action only when this is the resident bar tab. A bar tab has
-        // no back button, so without this Accounts would be the one primary
-        // screen with no one-tap way into the Menu. On a deep push onMenu is
-        // null and the AppBar's own back arrow is the way out.
-        actions: widget.onMenu == null
-            ? null
-            : [
-                MenuAction(onTap: widget.onMenu!),
-                const SizedBox(width: Gap.sm),
-              ],
+        // Pan greets from the header, the way the mockup opens the screen, and
+        // the Menu action follows when this is the resident bar tab. A bar tab
+        // has no back button, so without the Menu action Accounts would be the
+        // one primary screen with no one-tap way into the Menu; on a deep push
+        // onMenu is null and the AppBar's own back arrow is the way out. Pan is
+        // decoration, kept out of semantics.
+        actions: [
+          ExcludeSemantics(
+            child: Padding(
+              padding: const EdgeInsets.only(right: Gap.xs),
+              child: PanMascot.emotion(emotion: PanEmotion.content, size: 40),
+            ),
+          ),
+          if (widget.onMenu != null) ...[
+            MenuAction(onTap: widget.onMenu!),
+            const SizedBox(width: Gap.sm),
+          ],
+        ],
       ),
       body: SafeArea(
         child: ListenableBuilder(
