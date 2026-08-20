@@ -1088,7 +1088,14 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
           !widget.store.notifOn('bills') &&
           (widget.store.data['settings'] as Map?)?['billReminderOffered'] !=
               true) {
-        await _offerReminderOptIn(context);
+        // The debt is already durably saved at this point. Its own try/catch,
+        // separate from the one below: a problem in this OPTIONAL follow-up
+        // (the sheet, the OS permission call, the SnackBar) must never be
+        // reported as "Nothing was changed", which would be a straight-up
+        // lie about a save that already succeeded.
+        try {
+          await _offerReminderOptIn(context);
+        } catch (_) {}
       }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -1973,8 +1980,15 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
   /// new money or date logic: it is a live preview of what the person is about
   /// to save, so the promise on screen and the reminder that actually fires
   /// can never disagree. Null while there is no schedule to resolve yet (an
-  /// empty due day, and for a card, no statement day plus grace days either).
+  /// empty due day, and for a card, no statement day plus grace days either),
+  /// and ALSO null once the balance is zero: the `bills` reminder's own gate
+  /// (money/reminders.dart) is `remaining > 0`, the exact same rule the
+  /// Accounts due line already follows (`accounts.dart`'s `_dueMeta`), so a
+  /// paid-off debt gets no "next payment" promise here either, and the
+  /// opt-in below, which is gated on this being non-null, never offers a
+  /// reminder the app could not actually send.
   ({DateTime date, DateTime raw, bool moved, String reason})? get _previewDue {
+    if (!((parseAmount(remaining.text) ?? 0) > 0)) return null;
     return bankDueDate({
       'dueDay': dueDay.text.trim(),
       'statementDay': statementDay.text.trim(),
@@ -1993,7 +2007,16 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
           'Payment due day',
           hint: 'e.g. 15',
           optional: true,
-          helper: 'Day of the month the payment is due.',
+          // A card can also work out its due date from statement day plus
+          // grace days below; the engine (money/commitments.dart) always
+          // prefers an explicit due day over that when both are filled in, so
+          // a card owner who fills in all three fields should know which one
+          // wins rather than wondering why the preview ignored their
+          // statement cycle.
+          helper: isCard
+              ? 'Day of the month the payment is due. If set, this is used '
+                    'instead of the statement cycle below.'
+              : 'Day of the month the payment is due.',
           onChanged: (_) => setState(() {}),
         ),
         if (isCard) ...[
