@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.57 · Account cards gain metal skins, a per-account PDF statement, and a steadier masked number.';
+    'f4.58 · Fix: on a card with no saved QR, the QR Ph button now opens the details where you can add one.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
