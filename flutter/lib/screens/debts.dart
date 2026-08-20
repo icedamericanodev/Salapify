@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../data/store.dart';
 import '../money/account_taxonomy.dart' show AccountSubtype, kCardNetworks;
-import '../money/card_products.dart' show networksForIssuer;
+import '../money/card_products.dart' show cardNetworkById, networksForIssuer;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/institutions.dart' show institutionById;
@@ -930,6 +930,18 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
   String? error;
   bool busy = false;
 
+  /// Which wizard step is showing (0-based). The sheet is a short guided flow
+  /// (basics, what you owe, schedule, review) instead of one long wall of
+  /// fields; every field still writes the same debt, this only paces the entry.
+  int _step = 0;
+
+  /// Whether the interest field is being entered as a PER-YEAR rate. The stored
+  /// value is ALWAYS the monthly rate (the one the golden-locked engine reads),
+  /// so this is a display-and-input unit only: annual in, divided by twelve to
+  /// store; monthly out, multiplied by twelve to show. Defaults to per-month for
+  /// a credit card (PH card statements quote monthly) and per-year otherwise.
+  late bool _rateAnnual;
+
   @override
   void initState() {
     super.initState();
@@ -956,8 +968,14 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     remaining = TextEditingController(
       text: d != null ? _rateText(amountOf(d['remaining'])) : '',
     );
+    // Per-month for a card, per-year otherwise. The stored monthlyRate is shown
+    // in that unit: annual shows monthly times twelve.
+    _rateAnnual = type != 'credit card';
+    final storedMonthly = amountOf(d?['monthlyRate']);
     rateCtl = TextEditingController(
-      text: d != null ? _rateText(amountOf(d['monthlyRate'])) : '',
+      text: d != null && storedMonthly != 0
+          ? _rateText(_rateAnnual ? storedMonthly * 12 : storedMonthly)
+          : '',
     );
     minPay = TextEditingController(
       text: d != null ? _rateText(amountOf(d['minPayment'])) : '',
@@ -1011,7 +1029,12 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
           'name': name.text,
           'type': type,
           'remaining': remaining.text,
-          'monthlyRate': rateCtl.text,
+          // ALWAYS the monthly rate the engine reads. A per-month entry is
+          // stored verbatim (no parse-and-reformat drift); a per-year entry is
+          // divided by twelve. The display unit never reaches storage.
+          'monthlyRate': _rateAnnual
+              ? _effectiveMonthlyRate.toString()
+              : rateCtl.text,
           'minPayment': minPay.text,
           'dueDay': dueDay.text,
           'statementDay': statementDay.text,
@@ -1038,8 +1061,10 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
             'cardNetwork': kCardNetworks.contains(network) ? network : '',
             'last4': last4Text,
             if (last4Text.isNotEmpty) 'sensitiveDataProtectionVersion': 1,
-            if (double.tryParse(annualFee.text.trim()) != null)
-              'annualFee': double.parse(annualFee.text.trim()),
+            // Always written, and comma-tolerant, so clearing the field on an
+            // edit actually removes the fee (a blank saves 0) and "1,500" is not
+            // silently dropped the way a bare double.parse dropped it.
+            'annualFee': parseAmount(annualFee.text) ?? 0,
           },
         };
         await widget.store.patchDebtMeta(id, meta);
@@ -1057,22 +1082,441 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     }
   }
 
-  Widget _field(
+  /// A form field with its label ABOVE the box, a short hint inside, and an
+  /// optional wrapping helper below. Replaces the old in-field labelText, which
+  /// clipped long labels; a label above a field can never truncate.
+  Widget _labeledField(
     TextEditingController c,
     String label, {
+    String? hint,
+    String? helper,
     bool number = true,
     int? maxLen,
+    bool optional = false,
+    ValueChanged<String>? onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: c,
-        keyboardType: number
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : TextInputType.text,
-        maxLength: maxLen,
-        style: TextStyle(color: Barako.text),
-        decoration: InputDecoration(labelText: label),
+      padding: const EdgeInsets.only(bottom: Gap.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppText.small.w6.tint(Barako.textSecondary),
+                ),
+              ),
+              if (optional) ...[
+                const SizedBox(width: Gap.xs),
+                Text('optional', style: AppText.micro.tint(Barako.faint)),
+              ],
+            ],
+          ),
+          const SizedBox(height: Gap.xs),
+          TextField(
+            controller: c,
+            keyboardType: number
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
+            maxLength: maxLen,
+            buildCounter:
+                (_, {required currentLength, required isFocused, maxLength}) =>
+                    null,
+            onChanged: onChanged,
+            style: AppText.body.tint(Barako.text),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Barako.faint),
+              helperText: helper,
+              helperStyle: AppText.caption.tint(Barako.muted),
+              helperMaxLines: 3,
+              filled: true,
+              fillColor: Barako.card,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Radii.field),
+                borderSide: BorderSide(color: Barako.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Radii.field),
+                borderSide: BorderSide(color: Barako.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Radii.field),
+                borderSide: BorderSide(color: Barako.primary),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The monthly rate the engine reads, derived from the field and the unit
+  /// toggle. Annual entries divide by twelve. Zero when the field is blank.
+  double get _effectiveMonthlyRate {
+    final v = double.tryParse(rateCtl.text.trim()) ?? 0;
+    return _rateAnnual ? v / 12 : v;
+  }
+
+  /// The estimated interest for one month, the SAME golden-locked function every
+  /// other screen uses (balance times the monthly rate, rounded like the RN
+  /// engine), so the figure on the form can never disagree with the rest of the
+  /// app. No new money math is invented here.
+  double get _estimatedMonthly => monthlyInterest({
+    'remaining': (parseAmount(remaining.text) ?? 0),
+    'monthlyRate': _effectiveMonthlyRate,
+  });
+
+  /// Switch the interest unit, converting the value in the field so the number
+  /// keeps its meaning (1.5 per month becomes 18 per year, and back).
+  void _setRateUnit(bool annual) {
+    if (annual == _rateAnnual) return;
+    final v = double.tryParse(rateCtl.text.trim());
+    setState(() {
+      _rateAnnual = annual;
+      if (v != null && v != 0) {
+        rateCtl.text = _rateText(annual ? v * 12 : v / 12);
+      }
+    });
+  }
+
+  String _iconForType(String t) => switch (t) {
+    'credit card' => 'card',
+    'bnpl' => 'quick',
+    'personal loan' => 'cash',
+    'mortgage' => 'house',
+    'auto' => 'cash',
+    'short term' => 'quick',
+    'long term' => 'calendar',
+    'insurance' => 'protected',
+    _ => 'wallet',
+  };
+
+  String _typeGloss(String t) => switch (t) {
+    'credit card' => 'A card you pay off monthly.',
+    'bnpl' => 'Installments like Home Credit or a pay-later plan.',
+    'personal loan' => 'A cash loan from a bank or lender.',
+    'mortgage' => 'A home or property loan.',
+    'auto' => 'A car or motorcycle loan.',
+    'short term' => 'Due soon, within about a year.',
+    'long term' => 'Paid over several years.',
+    'insurance' => 'Premiums you owe on a policy.',
+    _ => 'Anything else you owe.',
+  };
+
+  /// The type as a single selectable row (a glyph, the plain-English label, a
+  /// one-line gloss, a chevron) that opens a compact picker, instead of a wall
+  /// of nine equal chips printing raw machine strings.
+  Widget _typeRow() {
+    return Material(
+      color: Barako.card,
+      borderRadius: BorderRadius.circular(Radii.field),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.field),
+        onTap: _showTypePicker,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.field),
+            border: Border.all(color: Barako.border),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              SalapifyGlyph(_iconForType(type), size: IconSizes.inline),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _typeLabel(type),
+                      style: AppText.label.w6.tint(Barako.text),
+                    ),
+                    Text(
+                      _typeGloss(type),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.micro.tint(Barako.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                salapifyIcon('expand'),
+                color: Barako.faint,
+                size: IconSizes.inline,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTypePicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Barako.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Gap.gutter,
+                  Gap.gutter,
+                  Gap.gutter,
+                  Gap.sm,
+                ),
+                child: Text('What kind of debt?', style: AppText.subtitle),
+              ),
+              for (final t in kDebtTypes)
+                ListTile(
+                  leading: SalapifyGlyph(_iconForType(t), size: IconSizes.inline),
+                  title: Text(_typeLabel(t), style: AppText.bodyLg.w6),
+                  subtitle: Text(
+                    _typeGloss(t),
+                    style: AppText.small.tint(Barako.muted),
+                  ),
+                  trailing: t == type
+                      ? Icon(salapifyIcon('selected'), color: Barako.primary)
+                      : null,
+                  onTap: () => Navigator.of(ctx).pop(t),
+                ),
+              const SizedBox(height: Gap.sm),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => type = picked);
+  }
+
+  /// The live card preview, code-drawn (no asset, ships over the air), filling
+  /// in as the person types. Only shown for a credit card; other debts get a
+  /// slim summary strip instead, so a family loan is not dressed as plastic.
+  Widget _cardPreview() {
+    final nm = name.text.trim();
+    final l4 = last4.text.trim();
+    final netName = cardNetworkById(network)?.displayName;
+    return AspectRatio(
+      aspectRatio: 1.7,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: Barako.heroWash,
+          borderRadius: BorderRadius.circular(Radii.hero),
+          border: Border.all(color: Barako.border),
+        ),
+        padding: Insets.hero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                InstitutionAvatar(id: institutionId, size: 34),
+                const Spacer(),
+                Icon(
+                  salapifyIcon('contactless'),
+                  color: Barako.faint,
+                  size: IconSizes.inline,
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              nm.isEmpty ? 'Your card' : nm,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.subtitle.tint(Barako.text),
+            ),
+            const SizedBox(height: Gap.xs),
+            Row(
+              children: [
+                Text(
+                  l4.isEmpty ? '••••  ••••  ••••  ••••' : '••••  $l4',
+                  style: AppText.body.w6.tint(Barako.textSecondary),
+                ),
+                const Spacer(),
+                if (netName != null)
+                  Text(netName, style: AppText.small.w7.tint(Barako.muted)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _debtPreview() {
+    final nm = name.text.trim();
+    final amt = (parseAmount(remaining.text) ?? 0);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: Barako.heroWash,
+        borderRadius: BorderRadius.circular(Radii.hero),
+        border: Border.all(color: Barako.border),
+      ),
+      padding: Insets.hero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SalapifyGlyph(_iconForType(type), size: IconSizes.inline),
+              const SizedBox(width: Gap.sm),
+              Expanded(
+                child: Text(
+                  nm.isEmpty ? _typeLabel(type) : nm,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.subtitle.tint(Barako.text),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.sm),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              amt > 0 ? formatMoney(amt) : 'Amount owed',
+              maxLines: 1,
+              style: amt > 0
+                  ? AppText.amountLg.w8.tint(Barako.warning)
+                  : AppText.amountLg.w8.tint(Barako.faint),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The interest field with a per-month / per-year toggle, the live estimated
+  /// monthly cost, the honest caveat, and the load-bearing add-on warning. The
+  /// stored value is always monthly; the toggle is display only.
+  Widget _rateSection() {
+    final est = _estimatedMonthly;
+    final hasRate = (double.tryParse(rateCtl.text.trim()) ?? 0) > 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Interest rate',
+                style: AppText.small.w6.tint(Barako.textSecondary),
+              ),
+            ),
+            _RateUnitToggle(annual: _rateAnnual, onChanged: _setRateUnit),
+          ],
+        ),
+        const SizedBox(height: Gap.xs),
+        _labeledField(
+          rateCtl,
+          _rateAnnual ? 'Percent per year' : 'Percent per month',
+          hint: _rateAnnual ? 'e.g. 18' : 'e.g. 1.5',
+          helper: 'On the remaining balance. Enter 0 if none.',
+          onChanged: (_) => setState(() {}),
+        ),
+        if (hasRate) _estimateCallout(est),
+        _rateWarning(),
+      ],
+    );
+  }
+
+  Widget _estimateCallout(double est) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: Gap.md),
+      padding: const EdgeInsets.all(Gap.md),
+      decoration: BoxDecoration(
+        color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+        borderRadius: BorderRadius.circular(Radii.control),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('growth'), size: IconSizes.dense, color: Barako.primaryText),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'About ${formatMoneyAbout(est)} interest a month',
+                  style: AppText.small.w7.tint(Barako.primaryText),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Estimate on today’s balance. Your bank charges on your '
+                  'average daily balance and may add fees, so the real figure '
+                  'can differ.',
+                  style: AppText.caption.copyWith(height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rateWarning() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: Gap.md),
+      padding: const EdgeInsets.all(Gap.md),
+      decoration: BoxDecoration(
+        color: Barako.positiveSurface,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: Barako.positiveBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('help'), size: IconSizes.dense, color: Barako.caramel),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Text(
+              'If your lender quoted a rate on the original loan amount (add-on), '
+              'the real rate here is roughly double what they said.',
+              style: AppText.small.copyWith(height: 1.35).tint(Barako.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _safetyNote() {
+    return Padding(
+      padding: const EdgeInsets.only(top: Gap.xs, bottom: Gap.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('lock'), size: IconSizes.dense, color: Barako.muted),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Text(
+              'For your safety, save only the last four digits. Never store your '
+              'PIN, CVV, password, or OTP. Everything you type stays on this phone.',
+              style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1174,106 +1618,467 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     );
   }
 
+  static const _stepTitles = [
+    'The basics',
+    'What you owe',
+    'Payment schedule',
+    'Review',
+  ];
+
+  /// The header line the sheet opens on: "Add credit card" reads truer than
+  /// "Add a debt" when the type is already a card, and "Edit" when editing.
+  String get _sheetTitle {
+    if (widget.debt != null) return 'Edit ${_typeLabel(type).toLowerCase()}';
+    return 'Add ${_typeLabel(type).toLowerCase()}';
+  }
+
+  void _back() {
+    if (_step == 0) {
+      Navigator.of(context).pop();
+    } else {
+      setState(() => _step -= 1);
+    }
+  }
+
+  void _next() {
+    // Only the first step gates: a debt needs a name to be worth saving. The
+    // rest are optional or default to zero, so nothing else blocks the flow.
+    if (_step == 0 && name.text.trim().isEmpty) {
+      setState(() => error = 'Give this a name first, like "BPI card".');
+      return;
+    }
+    setState(() {
+      error = null;
+      _step += 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isCard = type == 'credit card';
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.debt != null ? 'Edit debt' : 'Add a debt',
-              style: AppText.heading.w8,
+    final maxH = MediaQuery.of(context).size.height * 0.92;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: Column(
+        children: [
+          // Drag handle.
+          Padding(
+            padding: const EdgeInsets.only(top: Gap.md, bottom: Gap.sm),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Barako.border,
+                borderRadius: BorderRadius.circular(Radii.pill),
+              ),
             ),
-            const SizedBox(height: 12),
-            _field(name, 'Name, like BPI card or a family loan', number: false),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          ),
+          _wizardHeader(),
+          const SizedBox(height: Gap.md),
+          Expanded(
+            child: IndexedStack(
+              index: _step,
+              sizing: StackFit.expand,
               children: [
-                for (final t in kDebtTypes)
-                  ChoiceChip(
-                    label: Text(t),
-                    selected: type == t,
-                    onSelected: (_) => setState(() => type = t),
-                    selectedColor: Barako.primary,
-                    backgroundColor: Barako.background,
-                    labelStyle: TextStyle(
-                      color: type == t
-                          ? Barako.onPrimary
-                          : Barako.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                _stepScroll(_basicsStep()),
+                _stepScroll(_owedStep()),
+                _stepScroll(_scheduleStep()),
+                _stepScroll(_reviewStep()),
               ],
             ),
-            const SizedBox(height: 12),
-            _institutionRow(),
-            const SizedBox(height: 12),
-            _field(remaining, 'Remaining balance'),
-            _field(rateCtl, 'Interest % per month, on the remaining balance'),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              // The single most damaging ambiguity a lending screen can
-              // carry: PH lenders overwhelmingly quote ADD-ON rates on the
-              // original amount, whose true diminishing-balance rate is
-              // roughly double. A borrower typing the quoted 2.5% would see
-              // about half their real interest cost, with full confidence.
-              child: Text(
-                'If your lender quoted a rate on the original loan amount '
-                '(add-on), the real rate here is roughly double what they '
-                'said. 0 if none.',
-                style: AppText.caption.copyWith(height: 1.35),
+          ),
+          _wizardFooter(),
+        ],
+      ),
+    );
+  }
+
+  /// The header: a back or close control, the title, and the step progress.
+  Widget _wizardHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gap.sm, 0, Gap.gutter, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: _back,
+                icon: Icon(
+                  salapifyIcon(_step == 0 ? 'close' : 'back'),
+                  color: Barako.muted,
+                ),
+                tooltip: _step == 0 ? 'Close' : 'Back',
               ),
-            ),
-            _field(minPay, 'Minimum payment (0 if none)'),
-            _field(dueDay, 'Payment due day of the month (optional)'),
-            if (isCard) ...[
-              _field(statementDay, 'Statement day (optional)'),
-              _field(graceDays, 'Days after statement until due (optional)'),
-              _field(creditLimit, 'Credit limit (optional)'),
-              const SizedBox(height: 4),
-              _networkPicker(),
-              _field(
-                last4,
-                'Card number, last 4 only (optional)',
-                number: true,
-                maxLen: 4,
+              Expanded(
+                child: Text(
+                  _sheetTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.title,
+                ),
               ),
-              _field(annualFee, 'Annual fee (optional)'),
-              const SizedBox(height: 4),
               Text(
-                'For your safety, save only the last four digits. Never store '
-                'your PIN, CVV, password, or OTP.',
-                style: AppText.caption.tint(Barako.muted),
+                '${_step + 1} of ${_stepTitles.length}',
+                style: AppText.small.tint(Barako.muted),
               ),
-              const SizedBox(height: 12),
             ],
-            if (error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  error!,
-                  style: AppText.caption
-                      .tint(Barako.warning)
-                      .copyWith(height: 1.4),
-                ),
-              ),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: busy ? null : _save,
-                child: Text(
-                  widget.debt != null ? 'Save changes' : 'Add debt',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
+          ),
+          const SizedBox(height: Gap.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.sm),
+            child: Row(
+              children: [
+                for (var i = 0; i < _stepTitles.length; i++) ...[
+                  Expanded(
+                    // Tappable so a person editing an existing debt can jump
+                    // straight to the field or the review, instead of stepping
+                    // through every screen to save one change.
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() {
+                        error = null;
+                        _step = i;
+                      }),
+                      child: Container(
+                        height: 4,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: i <= _step ? Barako.primary : Barako.border,
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (i < _stepTitles.length - 1) const SizedBox(width: 6),
+                ],
+              ],
             ),
-          ],
+          ),
+          const SizedBox(height: Gap.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gap.sm),
+            child: Text(
+              _stepTitles[_step],
+              style: Barako.kickerStyle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepScroll(Widget child) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.sm, Gap.gutter, Gap.lg),
+    child: child,
+  );
+
+  Widget _basicsStep() {
+    final isCard = type == 'credit card';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isCard) _cardPreview() else _debtPreview(),
+        const SizedBox(height: Gap.lg),
+        _labeledField(
+          name,
+          'Name',
+          hint: 'BPI card, or a family loan',
+          number: false,
+          onChanged: (_) => setState(() {}),
         ),
+        Text(
+          'Type',
+          style: AppText.small.w6.tint(Barako.textSecondary),
+        ),
+        const SizedBox(height: Gap.xs),
+        _typeRow(),
+        const SizedBox(height: Gap.md),
+        Text(
+          'Bank or lender',
+          style: AppText.small.w6.tint(Barako.textSecondary),
+        ),
+        const SizedBox(height: Gap.xs),
+        _institutionRow(),
+        if (isCard) ...[
+          const SizedBox(height: Gap.md),
+          _networkPicker(),
+          _labeledField(
+            last4,
+            'Card number, last 4 only',
+            hint: '1234',
+            number: true,
+            maxLen: 4,
+            optional: true,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _owedStep() {
+    final isCard = type == 'credit card';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _labeledField(
+          remaining,
+          isCard ? 'Current balance' : 'Remaining balance',
+          hint: '0',
+          onChanged: (_) => setState(() {}),
+        ),
+        _rateSection(),
+        _labeledField(
+          minPay,
+          'Minimum payment',
+          hint: '0',
+          helper: 'Enter 0 if none.',
+        ),
+        if (isCard) ...[
+          _labeledField(
+            creditLimit,
+            'Credit limit',
+            hint: '0',
+            optional: true,
+          ),
+          _labeledField(annualFee, 'Annual fee', hint: '0', optional: true),
+        ],
+      ],
+    );
+  }
+
+  Widget _scheduleStep() {
+    final isCard = type == 'credit card';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _labeledField(
+          dueDay,
+          'Payment due day',
+          hint: 'e.g. 15',
+          optional: true,
+          helper: 'Day of the month the payment is due.',
+        ),
+        if (isCard) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _labeledField(
+                  statementDay,
+                  'Statement day',
+                  hint: 'e.g. 5',
+                  optional: true,
+                ),
+              ),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: _labeledField(
+                  graceDays,
+                  'Grace days',
+                  hint: 'e.g. 21',
+                  optional: true,
+                ),
+              ),
+            ],
+          ),
+          _safetyNote(),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(top: Gap.xs),
+            child: Text(
+              'A due day lets Salapify remind you before a payment is due. '
+              'You can leave it blank.',
+              style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _reviewStep() {
+    final isCard = type == 'credit card';
+    final rows = <(String, String)>[
+      ('Name', name.text.trim().isEmpty ? 'Not set' : name.text.trim()),
+      ('Type', _typeLabel(type)),
+      if (institutionId.isNotEmpty)
+        (
+          'Bank or lender',
+          institutionById(institutionId)?.displayName ?? 'Not set',
+        ),
+      (
+        isCard ? 'Current balance' : 'Remaining balance',
+        formatMoney((parseAmount(remaining.text) ?? 0)),
+      ),
+      if ((double.tryParse(rateCtl.text.trim()) ?? 0) > 0) ...[
+        (
+          'Interest rate',
+          '${rateCtl.text.trim()}% ${_rateAnnual ? 'per year' : 'per month'}',
+        ),
+        ('Est. interest / month', 'About ${formatMoneyAbout(_estimatedMonthly)}'),
+      ],
+      if ((parseAmount(minPay.text) ?? 0) > 0)
+        ('Minimum payment', formatMoney((parseAmount(minPay.text) ?? 0))),
+      if (dueDay.text.trim().isNotEmpty) ('Payment due day', dueDay.text.trim()),
+      if (isCard) ...[
+        if (creditLimit.text.trim().isNotEmpty)
+          ('Credit limit', formatMoney((parseAmount(creditLimit.text) ?? 0))),
+        if (statementDay.text.trim().isNotEmpty)
+          ('Statement day', statementDay.text.trim()),
+        if (network.isNotEmpty)
+          ('Card network', cardNetworkById(network)?.displayName ?? network),
+        if (last4.text.trim().isNotEmpty) ('Card number', '•••• ${last4.text.trim()}'),
+        if (annualFee.text.trim().isNotEmpty)
+          ('Annual fee', formatMoney((parseAmount(annualFee.text) ?? 0))),
+      ],
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isCard) _cardPreview() else _debtPreview(),
+        const SizedBox(height: Gap.lg),
+        Container(
+          decoration: BoxDecoration(
+            color: Barako.card,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: Barako.border),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: Gap.lg, vertical: Gap.sm),
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: Barako.border),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          rows[i].$1,
+                          style: AppText.small.tint(Barako.muted),
+                        ),
+                      ),
+                      const SizedBox(width: Gap.md),
+                      Flexible(
+                        child: Text(
+                          rows[i].$2,
+                          textAlign: TextAlign.right,
+                          style: AppText.small.w6.tint(Barako.text),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _wizardFooter() {
+    final last = _step == _stepTitles.length - 1;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(Gap.gutter, Gap.md, Gap.gutter, Gap.lg),
+      decoration: BoxDecoration(
+        color: Barako.card,
+        border: Border(top: BorderSide(color: Barako.border)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (error != null) _errorBanner(error!),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: busy ? null : (last ? _save : _next),
+              child: busy
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      last
+                          ? (widget.debt != null ? 'Save changes' : 'Add debt')
+                          : 'Continue',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _errorBanner(String msg) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: Gap.md),
+      padding: const EdgeInsets.all(Gap.md),
+      decoration: BoxDecoration(
+        color: Barako.warning.withValues(alpha: BarakoAlpha.wash),
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: Barako.warning.withValues(alpha: BarakoAlpha.hint)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(salapifyIcon('error'), size: IconSizes.dense, color: Barako.warning),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Text(
+              msg,
+              style: AppText.small.copyWith(height: 1.4).tint(Barako.warning),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A compact per-month / per-year segmented toggle for the interest unit.
+class _RateUnitToggle extends StatelessWidget {
+  final bool annual;
+  final ValueChanged<bool> onChanged;
+
+  // ignore: prefer_const_constructors_in_immutables
+  _RateUnitToggle({required this.annual, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget seg(String label, bool isAnnual) {
+      final on = annual == isAnnual;
+      return GestureDetector(
+        onTap: () => onChanged(isAnnual),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: on ? Barako.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(Radii.pill),
+          ),
+          child: Text(
+            label,
+            style: on
+                ? AppText.micro.w7.tint(Barako.onPrimary)
+                : AppText.micro.w6.tint(Barako.muted),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Barako.background,
+        borderRadius: BorderRadius.circular(Radii.pill),
+        border: Border.all(color: Barako.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [seg('Per month', false), seg('Per year', true)],
       ),
     );
   }

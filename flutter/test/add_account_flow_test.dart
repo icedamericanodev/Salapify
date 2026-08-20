@@ -194,13 +194,18 @@ void main() {
     // showing a list of one.
     await _tap(tester, find.text('Credit cards'));
     expect(
-      find.text('Add a debt'),
+      find.text('Add credit card'),
       findsOneWidget,
       reason: 'a one-subtype category showed a list of one, or misrouted',
     );
 
-    await _type(tester, 'Name, like BPI card or a family loan', 'BPI card');
-    await _type(tester, 'Remaining balance', '5000');
+    // The debt form is a short wizard now: name on step 1, balance on step 2,
+    // then Continue to the review, then Add debt.
+    await _type(tester, 'BPI card, or a family loan', 'BPI card');
+    await _tap(tester, find.text('Continue'));
+    await _type(tester, '0', '5000');
+    await _tap(tester, find.text('Continue'));
+    await _tap(tester, find.text('Continue'));
     await _tap(tester, find.text('Add debt'));
 
     expect(_rows(store, 'accounts'), isEmpty);
@@ -226,8 +231,11 @@ void main() {
     await _tap(tester, find.text('Add an account'));
     await _tap(tester, find.text('Loans'));
     await _tap(tester, find.text('Car or motorcycle loan'));
-    await _type(tester, 'Name, like BPI card or a family loan', 'Car loan');
-    await _type(tester, 'Remaining balance', '180000');
+    await _type(tester, 'BPI card, or a family loan', 'Car loan');
+    await _tap(tester, find.text('Continue'));
+    await _type(tester, '0', '180000');
+    await _tap(tester, find.text('Continue'));
+    await _tap(tester, find.text('Continue'));
     await _tap(tester, find.text('Add debt'));
 
     final debts = _rows(store, 'debts');

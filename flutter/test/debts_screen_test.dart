@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/widgets/salapify_icon.dart' show salapifyIcon;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/app_harness.dart';
@@ -134,37 +135,37 @@ void main() {
     // itself "Add debt".
     await tester.tap(find.widgetWithText(FilledButton, 'New'));
     await tester.pumpAndSettle();
+    // The form is a wizard now: name (step 1), balance (step 2), statement day
+    // (step 3, a credit card by default), then Add debt on the review.
     await tester.enterText(
-      find.widgetWithText(TextField, 'Name, like BPI card or a family loan'),
+      find.widgetWithText(TextField, 'BPI card, or a family loan'),
       'Metrobank',
     );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Remaining balance'),
-      '8,000',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Statement day (optional)'),
-      '3',
-    );
-    await tester.ensureVisible(find.text('Add debt').last);
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add debt').last);
+    await tester.enterText(find.widgetWithText(TextField, '0').first, '8,000');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 5'), '3');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add debt'));
     await tester.pumpAndSettle();
     expect(
       find.textContaining('Add the days after statement until due'),
       findsOneWidget,
     );
 
-    await tester.enterText(
-      find.widgetWithText(
-        TextField,
-        'Days after statement until due (optional)',
-      ),
-      '21',
-    );
-    await tester.ensureVisible(find.text('Add debt').last);
+    // Go back to the schedule step to fill grace days where the field is on
+    // screen, then continue and save.
+    // The debts screen behind the modal also has a back arrow, so target the
+    // sheet header's, which is later in the tree.
+    await tester.tap(find.byIcon(salapifyIcon('back')).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add debt').last);
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 21'), '21');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add debt'));
     await tester.pumpAndSettle();
 
     final debts = (store.data['debts'] as List).cast<Map<String, dynamic>>();
@@ -203,6 +204,14 @@ void main() {
     await tester.tap(find.text('Huge Loan'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    // Step through the wizard to the review without changing anything, then
+    // save. The balance must round trip untouched.
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Save changes'));
     await tester.pumpAndSettle();

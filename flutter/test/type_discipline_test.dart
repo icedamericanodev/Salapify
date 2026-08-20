@@ -55,7 +55,7 @@ const Map<String, int> _baseline = {
   'lib/screens/cashflow.dart': 1,
   'lib/screens/categories.dart': 3,
   'lib/screens/contribution_calculator.dart': 2,
-  'lib/screens/debts.dart': 6,
+  'lib/screens/debts.dart': 5,
   'lib/screens/goal_create.dart': 1,
   'lib/screens/goal_detail.dart': 12,
   'lib/screens/goals.dart': 4,

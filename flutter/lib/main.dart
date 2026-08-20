@@ -32,7 +32,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.53 · Accounts: expandable category groups, class filters, a hide-balances toggle, net worth sparkline.';
+    'f4.54 · Add a debt redesign: live card preview, labelled fields, collapsible card details, cleaner type picker.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
