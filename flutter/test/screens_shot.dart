@@ -80,6 +80,7 @@ import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/milestone_share.dart'
     show showMilestoneCelebration;
 import 'package:salapify/money/milestones.dart' show Milestone;
+import 'package:salapify/screens/notifications_security.dart';
 import 'package:salapify/screens/privacy_receipt.dart';
 import 'package:salapify/services/diagnostics.dart';
 import 'package:salapify/screens/year_end_tax.dart';
@@ -2008,6 +2009,41 @@ void main() {
       matchesGoldenFile('shots/menu-notifications-dark.png'),
     );
   });
+
+  testWidgets(
+    'the existing-debts reminder nudge on Notifications and security, dark',
+    (tester) async {
+      // f4.56: livedInBlob already carries two debts with a dueDay and money
+      // still owed, and bills is off by default, so this is the exact state
+      // a real person with real debts sees the first time they open this
+      // screen after the update, not a fixture built to force the nudge on.
+      await loadRealFonts(tester);
+      SharedPreferences.setMockInitialValues({
+        storageKey: jsonEncode(livedInBlob),
+      });
+      final store = SalapifyStore();
+      await store.load();
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      Barako.current = Barako.currentTheme.resolve(Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(Barako.current),
+          debugShowCheckedModeBanner: false,
+          home: NotificationsSecurityScreen(store: store, showBillsNudge: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('shots/notifications-security-bills-nudge-dark.png'),
+      );
+    },
+  );
 
   testWidgets('the sample data card in Menu, both states, dark', (
     tester,

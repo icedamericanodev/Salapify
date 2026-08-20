@@ -16,6 +16,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../money/commitments.dart' show debtsWithSchedule;
 import '../services/notifications.dart';
 import '../theme.dart';
 import '../typography.dart';
@@ -25,7 +26,19 @@ import '../widgets/section.dart';
 
 class NotificationsSecurityScreen extends StatelessWidget {
   final SalapifyStore store;
-  const NotificationsSecurityScreen({super.key, required this.store});
+
+  /// Test seam for the existing-debts reminder nudge below, null in real
+  /// use where Reminders.supported decides (same pattern as onboarding's
+  /// showNudge, for the same reason: the widget test platform is never
+  /// Android or iOS, so Reminders.supported is always false there and the
+  /// nudge could never be proven to render without a way to force it).
+  final bool? showBillsNudge;
+
+  const NotificationsSecurityScreen({
+    super.key,
+    required this.store,
+    this.showBillsNudge,
+  });
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -103,6 +116,57 @@ class NotificationsSecurityScreen extends StatelessWidget {
           onChanged: (v) => toggle(key, v),
         );
 
+    // f4.55 only offers the reminder at the moment a debt is saved, so a
+    // debt that already existed before that shipped, or one somebody saved
+    // and then declined the ask on, never gets asked again. This is the
+    // same offer surfaced where it never expires: as long as Bills due is
+    // off and at least one debt still has a resolvable due date, the
+    // callout says so. It needs no settings flag of its own, unlike the
+    // wizard's one-time ask; it is not an interruption someone can be
+    // nagged by, only a fact shown on a screen they navigated to, and it
+    // disappears the moment the reminder is on or every such debt is paid
+    // off, self-healing exactly like the wizard preview and the Accounts
+    // due line already do. Gated on Reminders.supported for the same reason
+    // the wizard and onboarding gate it: asking a device that cannot show a
+    // reminder is a question with no honest answer.
+    final billsNudgeSupported = showBillsNudge ?? Reminders.supported;
+    final needsReminder = billsNudgeSupported && !store.notifOn('bills')
+        ? debtsWithSchedule(store.data['debts'], DateTime.now()).length
+        : 0;
+
+    Widget billsNudge() {
+      final label = needsReminder == 1
+          ? 'One of your debts has a due date but no reminder set yet.'
+          : '$needsReminder of your debts have a due date but no reminder '
+                'set yet.';
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Barako.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Barako.primary.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(salapifyIcon('card'), color: Barako.primary, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppText.caption.w6),
+                  const SizedBox(height: 6),
+                  _BillsNudgeButton(onPressed: () => toggle('bills', true)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -128,6 +192,7 @@ class NotificationsSecurityScreen extends StatelessWidget {
               'A morning ping on payday to plan the money before it goes.',
             ),
             const Divider(height: 24),
+            if (needsReminder > 0) billsNudge(),
             row(
               'bills',
               salapifyIcon('card'),
@@ -333,6 +398,50 @@ class NotificationsSecurityScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The existing-debts nudge's own CTA, guarded against a double tap firing
+/// two concurrent permission requests: `toggle` awaits
+/// Reminders.requestPermission() before writing anything, so a second tap in
+/// that window would show a second snackbar or race a second reschedule.
+/// Reminders.reschedule's own run-token guard already makes the later call
+/// win, so nothing corrupts either way; this only avoids the visible
+/// double-ask. Left enabled again once the call returns: on the success path
+/// the whole callout unmounts anyway (the card disappears the moment Bills
+/// due turns on), and on a denial it should stay tappable, not stuck
+/// disabled by one "no".
+class _BillsNudgeButton extends StatefulWidget {
+  final Future<void> Function() onPressed;
+  const _BillsNudgeButton({required this.onPressed});
+
+  @override
+  State<_BillsNudgeButton> createState() => _BillsNudgeButtonState();
+}
+
+class _BillsNudgeButtonState extends State<_BillsNudgeButton> {
+  bool _busy = false;
+
+  Future<void> _handle() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: _busy ? null : _handle,
+    style: TextButton.styleFrom(
+      foregroundColor: Barako.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      minimumSize: const Size(0, 44),
+      alignment: Alignment.centerLeft,
+    ),
+    child: const Text('Turn on Bills due'),
+  );
 }
 
 /// One reminder toggle: icon, title, switch, and an explanation that starts
