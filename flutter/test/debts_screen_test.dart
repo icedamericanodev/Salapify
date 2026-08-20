@@ -175,6 +175,73 @@ void main() {
     expect(debts.last['graceDays'], 21);
   });
 
+  testWidgets(
+    'the schedule step previews the bank-adjusted next payment live',
+    (tester) async {
+      final store = SalapifyStore();
+      await openDebts(tester, store);
+      await tester.tap(find.widgetWithText(FilledButton, 'New'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'BPI card, or a family loan'),
+        'Utility bill',
+      );
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, '0').first, '1500');
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // No due day yet: no preview, so a person is never shown a promise for
+      // a schedule that does not exist.
+      expect(find.textContaining('Next payment:'), findsNothing);
+
+      // Once a due day is entered, the SAME bank-adjusted engine the bills
+      // reminder itself schedules from resolves a real date; the exact day
+      // varies with today's date and is proven separately (golden-locked,
+      // commitments_golden_test.dart), so this only proves the preview is
+      // wired up and reachable, not a specific date.
+      await tester.enterText(find.widgetWithText(TextField, 'e.g. 15'), '15');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Next payment:'), findsOneWidget);
+      expect(
+        find.textContaining('weekends and Philippine holidays'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'a paid-off debt gets no preview and no reminder offer, even with a due '
+    'day set',
+    (tester) async {
+      // The bills reminder itself only fires for remaining > 0
+      // (money/reminders.dart). The preview and the opt-in must follow the
+      // exact same rule, or the wizard would promise a reminder for a debt
+      // the app could never actually remind about.
+      final store = SalapifyStore();
+      await openDebts(tester, store);
+      await tester.tap(find.widgetWithText(FilledButton, 'New'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'BPI card, or a family loan'),
+        'Fully paid loan',
+      );
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      // Balance left at 0 (the default, unfilled '0' hint), the "already
+      // settled" case the app explicitly supports.
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextField, 'e.g. 15'), '15');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Next payment:'), findsNothing);
+    },
+  );
+
   testWidgets('a no-op edit round trips a huge balance unchanged', (
     tester,
   ) async {

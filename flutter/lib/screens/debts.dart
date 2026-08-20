@@ -12,10 +12,13 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../money/account_taxonomy.dart' show AccountSubtype, kCardNetworks;
 import '../money/card_products.dart' show cardNetworkById, networksForIssuer;
+import '../money/commitments.dart'
+    show bankDueDate, daysUntil, daysUntilWords, shortDueDate;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/institutions.dart' show institutionById;
 import '../money/ledger.dart' show amountOf;
+import '../services/notifications.dart' show Reminders;
 import 'add_account_flow.dart' show InstitutionAvatar, showInstitutionPicker;
 import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
@@ -1069,6 +1072,31 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
         };
         await widget.store.patchDebtMeta(id, meta);
       }
+      // Offer the reminder ONLY when there is something to remind about (a
+      // resolvable schedule), only when it is not already on, only on a
+      // device that can actually show one (Reminders.supported is false on
+      // web/desktop/tests, the same gate onboarding's own nudge step already
+      // uses), and only ONCE EVER: without the settings flag this asked again
+      // on every single save of every debt with a schedule, which for someone
+      // editing a card's balance weekly reads as nagging, not the "ask
+      // cleanly, once" pattern the rest of the app follows. "Not now" still
+      // counts as asked; a person who wants the reminder later can still turn
+      // it on from Notifications and security, the same door this always had.
+      if (mounted &&
+          Reminders.supported &&
+          _previewDue != null &&
+          !widget.store.notifOn('bills') &&
+          (widget.store.data['settings'] as Map?)?['billReminderOffered'] !=
+              true) {
+        // The debt is already durably saved at this point. Its own try/catch,
+        // separate from the one below: a problem in this OPTIONAL follow-up
+        // (the sheet, the OS permission call, the SnackBar) must never be
+        // reported as "Nothing was changed", which would be a straight-up
+        // lie about a save that already succeeded.
+        try {
+          await _offerReminderOptIn(context);
+        } catch (_) {}
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
@@ -1079,6 +1107,105 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
               : 'Nothing was changed. $e';
         });
       }
+    }
+  }
+
+  /// Offered once, right after a successful save, never as a background
+  /// auto-enable: the person taps Enable or Not now, exactly the "ask
+  /// cleanly, once, in context" pattern onboarding's nudge step already uses.
+  /// Enabling routes through the SAME two calls the Notifications and
+  /// security screen's own toggle uses (store.setNotifPref then
+  /// Reminders.reschedule), and a refusal shows the EXACT same guidance
+  /// sentence that screen already shows, so there is one permission story
+  /// across the app, not two. Nothing here invents a new reminder: it turns
+  /// on the existing, already-tested `bills` reminder in money/reminders.dart.
+  Future<void> _offerReminderOptIn(BuildContext context) async {
+    // Recorded the moment the sheet opens, not after a choice, so "Not now"
+    // is remembered exactly like "Enable": both mean the person has been
+    // asked, and the whole point is to never ask a second time uninvited.
+    await widget.store.setSetting('billReminderOffered', true);
+    if (!context.mounted) return;
+    final enable = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Barako.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.sheet)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Gap.gutter,
+            Gap.gutter,
+            Gap.gutter,
+            Gap.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SalapifyGlyph('calendar', size: IconSizes.inline),
+                  const SizedBox(width: Gap.sm),
+                  Expanded(
+                    child: Text(
+                      'Want a reminder before this is due?',
+                      style: AppText.subtitle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Gap.sm),
+              Text(
+                'Salapify will remind you a few days before, and check '
+                'weekends and Philippine holidays automatically so the '
+                'reminder still lands on a day you can actually pay.',
+                style: AppText.body
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
+              ),
+              const SizedBox(height: Gap.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Not now'),
+                    ),
+                  ),
+                  const SizedBox(width: Gap.md),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Enable'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (enable != true || !context.mounted) return;
+    final granted = await Reminders.requestPermission();
+    if (!context.mounted) return;
+    if (!granted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Allow notifications for Salapify in your phone settings, '
+              'then try again.',
+            ),
+          ),
+        );
+      return;
+    }
+    await widget.store.setNotifPref('bills', true);
+    if (mounted) {
+      await Reminders.reschedule(widget.store.data, DateTime.now());
     }
   }
 
@@ -1847,8 +1974,31 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     );
   }
 
+  /// The bank-adjusted next due date for the SCHEDULE AS TYPED SO FAR, using
+  /// the same golden-locked `bankDueDate` the Debts screen forecast and the
+  /// `bills` reminder already read (`money/commitments.dart`). Nothing here is
+  /// new money or date logic: it is a live preview of what the person is about
+  /// to save, so the promise on screen and the reminder that actually fires
+  /// can never disagree. Null while there is no schedule to resolve yet (an
+  /// empty due day, and for a card, no statement day plus grace days either),
+  /// and ALSO null once the balance is zero: the `bills` reminder's own gate
+  /// (money/reminders.dart) is `remaining > 0`, the exact same rule the
+  /// Accounts due line already follows (`accounts.dart`'s `_dueMeta`), so a
+  /// paid-off debt gets no "next payment" promise here either, and the
+  /// opt-in below, which is gated on this being non-null, never offers a
+  /// reminder the app could not actually send.
+  ({DateTime date, DateTime raw, bool moved, String reason})? get _previewDue {
+    if (!((parseAmount(remaining.text) ?? 0) > 0)) return null;
+    return bankDueDate({
+      'dueDay': dueDay.text.trim(),
+      'statementDay': statementDay.text.trim(),
+      'graceDays': graceDays.text.trim(),
+    }, DateTime.now());
+  }
+
   Widget _scheduleStep() {
     final isCard = type == 'credit card';
+    final preview = _previewDue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1857,7 +2007,17 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
           'Payment due day',
           hint: 'e.g. 15',
           optional: true,
-          helper: 'Day of the month the payment is due.',
+          // A card can also work out its due date from statement day plus
+          // grace days below; the engine (money/commitments.dart) always
+          // prefers an explicit due day over that when both are filled in, so
+          // a card owner who fills in all three fields should know which one
+          // wins rather than wondering why the preview ignored their
+          // statement cycle.
+          helper: isCard
+              ? 'Day of the month the payment is due. If set, this is used '
+                    'instead of the statement cycle below.'
+              : 'Day of the month the payment is due.',
+          onChanged: (_) => setState(() {}),
         ),
         if (isCard) ...[
           Row(
@@ -1869,6 +2029,7 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
                   'Statement day',
                   hint: 'e.g. 5',
                   optional: true,
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: Gap.md),
@@ -1878,21 +2039,78 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
                   'Grace days',
                   hint: 'e.g. 21',
                   optional: true,
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ],
           ),
-          _safetyNote(),
         ] else
           Padding(
-            padding: const EdgeInsets.only(top: Gap.xs),
+            padding: const EdgeInsets.only(top: Gap.xs, bottom: Gap.md),
             child: Text(
               'A due day lets Salapify remind you before a payment is due. '
               'You can leave it blank.',
               style: AppText.caption.tint(Barako.muted).copyWith(height: 1.4),
             ),
           ),
+        if (preview != null) _dueDatePreview(preview),
+        if (isCard) _safetyNote(),
       ],
+    );
+  }
+
+  /// "Next payment: Jun 15 · in 12 days", adjusted the moment the due date
+  /// would otherwise land on a weekend or a Philippine holiday, the exact
+  /// same wording the Debts screen forecast already uses ("moved, a
+  /// Saturday"), so a person sees one vocabulary for this idea everywhere in
+  /// the app. Always-on reassurance, never a claim about a specific holiday
+  /// list: the engine already fails safe (an unlisted date is simply not
+  /// adjusted, never adjusted wrongly), so the copy promises the CHECK, not a
+  /// guarantee no PH holiday was ever missed.
+  Widget _dueDatePreview(
+    ({DateTime date, DateTime raw, bool moved, String reason}) due,
+  ) {
+    final days = daysUntil(due.date, DateTime.now());
+    return Container(
+      margin: const EdgeInsets.only(bottom: Gap.md),
+      padding: const EdgeInsets.all(Gap.md),
+      decoration: BoxDecoration(
+        color: Barako.primary.withValues(alpha: BarakoAlpha.tint),
+        borderRadius: BorderRadius.circular(Radii.control),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            salapifyIcon('calendar'),
+            size: IconSizes.dense,
+            color: Barako.primaryText,
+          ),
+          const SizedBox(width: Gap.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Next payment: ${shortDueDate(due.date)} · ${daysUntilWords(days)}',
+                  style: AppText.small.w7.tint(Barako.primaryText),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  due.moved
+                      ? 'Moved from ${shortDueDate(due.raw)} because it falls '
+                            'on ${due.reason}. We check weekends and Philippine '
+                            'holidays automatically.'
+                      : 'We check weekends and Philippine holidays '
+                            'automatically, and move the reminder earlier when '
+                            'one falls on your due date.',
+                  style: AppText.caption.copyWith(height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
