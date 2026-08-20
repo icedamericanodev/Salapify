@@ -19,6 +19,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
+import '../money/account_flow.dart' show accountMonthFlow;
 import '../money/ledger.dart' show amountOf;
 import '../money/statements.dart';
 import 'save_to_device.dart';
@@ -122,21 +123,9 @@ List<int> transactionsXlsx(Map data) {
 /// A one-page PDF report: net worth now, this month's income statement, and the
 /// month's transactions. Read-only, from the golden-locked engine.
 Future<Uint8List> reportPdf(Map data, DateTime ref) async {
-  // Use the app's bundled font so peso signs and Filipino characters (ñ, and
-  // Tagalog labels) render, instead of the default Helvetica which cannot. If
-  // the asset bundle is unavailable (e.g. a plain unit test), fall back to the
-  // built-in font; the PDF still generates.
-  pw.ThemeData? theme;
-  try {
-    final base = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/PlusJakartaSans-Regular.ttf'),
-    );
-    final bold = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/PlusJakartaSans-Bold.ttf'),
-    );
-    theme = pw.ThemeData.withFont(base: base, bold: bold);
-  } catch (_) {}
-  final doc = pw.Document(theme: theme);
+  // The app's bundled font (see [_pdfTheme]) so peso signs and Filipino
+  // characters render instead of Helvetica which cannot.
+  final doc = pw.Document(theme: await _pdfTheme());
   final typed = data.cast<String, dynamic>();
   final nw = netWorthParts(typed);
   final inc = incomeStatement(typed, ref);
@@ -230,6 +219,199 @@ Future<Uint8List> reportPdf(Map data, DateTime ref) async {
   );
   return doc.save();
 }
+
+/// The app's bundled font as a PDF theme, so peso signs and Filipino characters
+/// render instead of Helvetica which cannot. Null (the built-in font) when the
+/// asset bundle is unavailable, e.g. a plain unit test; the PDF still generates.
+/// Shared by every builder here so the font load lives in one place.
+Future<pw.ThemeData?> _pdfTheme() async {
+  try {
+    final base = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/PlusJakartaSans-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/PlusJakartaSans-Bold.ttf'),
+    );
+    return pw.ThemeData.withFont(base: base, bold: bold);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The masked number line for the statement header. Only the last four are ever
+/// stored (the security contract), so this shows dots and, when present, the
+/// real last four, exactly what the card face shows.
+String _maskedNumberFor(Map account) {
+  final raw = account['last4'];
+  final last4 = (raw is String && RegExp(r'^\d{4}$').hasMatch(raw))
+      ? raw
+      : null;
+  return last4 == null ? 'Number ending ••••' : 'Number ending $last4';
+}
+
+/// A one page PDF statement for a SINGLE account: its balance now, this month's
+/// in, out and net for that account (the golden tested [accountMonthFlow], the
+/// same figures the account detail screen shows), and the month's own
+/// transactions for that account. Read only, and every number comes from the
+/// golden locked engine, never invented here. The full card number is never
+/// present because it is never stored (see [_maskedNumberFor]).
+Future<Uint8List> accountStatementPdf(
+  Map data,
+  Map<String, dynamic> account,
+  DateTime ref,
+) async {
+  final doc = pw.Document(theme: await _pdfTheme());
+  final id = account['id']?.toString() ?? '';
+  final name = (account['name']?.toString() ?? '').trim().isEmpty
+      ? 'Account'
+      : account['name'].toString();
+  // A card (in the debts collection) carries its outstanding as 'remaining';
+  // an account or asset carries 'balance'. Read whichever the row has, without
+  // any arithmetic of our own.
+  final balance = account.containsKey('remaining')
+      ? amountOf(account['remaining'])
+      : amountOf(account['balance']);
+
+  final monthKey =
+      '${ref.year.toString().padLeft(4, '0')}-'
+      '${ref.month.toString().padLeft(2, '0')}';
+  final typed = data.cast<String, dynamic>();
+  final flow = accountMonthFlow(typed, id, monthKey);
+
+  // This account's own rows for the month: an income or expense tagged to it,
+  // or a transfer with either leg on it. Signed from THIS account's point of
+  // view (money arriving is positive, leaving is negative) so the statement
+  // reads like a bank statement, not the app's category view.
+  final rows =
+      _txns(data).where((t) {
+        final date = (t['date'] ?? '').toString();
+        if (!date.startsWith(monthKey)) return false;
+        if (t['type'] == 'transfer') {
+          return t['transferFromId'] == id || t['transferToId'] == id;
+        }
+        return t['accountId'] == id;
+      }).toList()..sort(
+        (a, b) => (a['date'] ?? '').toString().compareTo(
+          (b['date'] ?? '').toString(),
+        ),
+      );
+
+  double signedFor(Map<String, dynamic> t) {
+    final amt = amountOf(t['amount']);
+    if (t['type'] == 'transfer') {
+      return t['transferToId'] == id ? amt : -amt;
+    }
+    final flowIn =
+        t['flow'] == 'in' || (t['flow'] == null && t['type'] == 'income');
+    return flowIn ? amt : -amt;
+  }
+
+  String directionOf(Map<String, dynamic> t) {
+    if (t['type'] == 'transfer') {
+      return t['transferToId'] == id ? 'Transfer in' : 'Transfer out';
+    }
+    final flowIn =
+        t['flow'] == 'in' || (t['flow'] == null && t['type'] == 'income');
+    return flowIn ? 'In' : 'Out';
+  }
+
+  pw.Widget line(String label, num value) => pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+    child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [pw.Text(label), pw.Text(_peso(value))],
+    ),
+  );
+
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      build: (context) => [
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            'Salapify statement',
+            style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
+        pw.Text(name, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        pw.Text(_maskedNumberFor(account)),
+        pw.Text(
+          'As of ${ref.year}-${ref.month.toString().padLeft(2, '0')}-'
+          '${ref.day.toString().padLeft(2, '0')}',
+        ),
+        pw.SizedBox(height: 16),
+        line('Balance', balance),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          'This month',
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+        ),
+        line('Money in', flow.inflow),
+        line('Money out', flow.outflow),
+        line('Net for the month', flow.net),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          'Transactions this month',
+          style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        if (rows.isEmpty)
+          pw.Text('No transactions on this account this month.')
+        else
+          pw.TableHelper.fromTextArray(
+            headers: const ['Date', 'Direction', 'Label', 'Amount'],
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+            ),
+            data: [
+              for (final t in rows)
+                [
+                  (t['date'] ?? '').toString(),
+                  directionOf(t),
+                  (t['label'] ?? '').toString(),
+                  _peso(signedFor(t)),
+                ],
+            ],
+          ),
+        pw.SizedBox(height: 20),
+        pw.Text(
+          'Made with Salapify. Numbers are from your own logged data.',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+        ),
+      ],
+    ),
+  );
+  return doc.save();
+}
+
+/// Save one account's statement to a file the user picks.
+Future<bool> saveAccountStatementPdfToDevice(
+  Map data,
+  Map<String, dynamic> account,
+  DateTime ref,
+) async {
+  final bytes = await accountStatementPdf(data, account, ref);
+  return saveBytesToDevice(bytes, 'salapify-statement-${_saveStamp(ref)}.pdf');
+}
+
+/// Share one account's statement through the system share sheet.
+Future<void> shareAccountStatementPdf(
+  Map data,
+  Map<String, dynamic> account,
+  DateTime ref,
+) => _guard(() async {
+  final bytes = await accountStatementPdf(data, account, ref);
+  await _shareBytes(
+    bytes,
+    '${_exportPrefix}statement-${ref.year.toString().padLeft(4, '0')}-'
+        '${ref.month.toString().padLeft(2, '0')}.pdf',
+    'application/pdf',
+    'Salapify statement',
+  );
+});
 
 // Only one export runs at a time. Without this, a second tap (or a tap on
 // another export while the PDF is still building) would start a second share

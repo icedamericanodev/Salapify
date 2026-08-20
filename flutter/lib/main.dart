@@ -11,6 +11,7 @@ import 'data/storage_bootstrap.dart';
 import 'data/store.dart';
 import 'money/currencies.dart' show resolveBaseCurrency;
 import 'build_flags.dart';
+import 'services/card_skins.dart';
 import 'services/home_tile.dart';
 import 'services/diagnostics.dart';
 import 'services/notifications.dart';
@@ -32,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.56 · Notifications screen nudges existing debts with a due date to turn reminders on.';
+    'f4.57 · Account cards gain metal skins, a per-account PDF statement, and a steadier masked number.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
@@ -49,6 +50,9 @@ void main() async {
   // plaintext in on first run; it falls back to the plaintext store if the
   // encrypted store cannot be opened, so startup never fails on storage.
   final repository = await buildLedgerRepository();
+  // Load the local card skin choices. Cosmetic and never part of the backup, so
+  // it can never block or fail startup; load() swallows its own errors.
+  await CardSkinStore.instance.load();
   runApp(SalapifyApp(store: SalapifyStore(repository: repository)));
 }
 

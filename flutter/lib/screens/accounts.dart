@@ -32,9 +32,17 @@ import '../money/account_taxonomy.dart';
 import '../money/commitments.dart'
     show bankDueDate, daysUntil, daysUntilWords, shortDueDate;
 import '../money/card_products.dart' show cardNetworkWordmark;
-import 'account_detail.dart' show AccountDetailScreen;
+import '../data/export_files.dart' show shareAccountStatementPdf;
+import '../data/qr_vault.dart' show QrVault;
+import '../services/card_skins.dart' show CardSkinStore;
+import 'account_detail.dart' show AccountDetailScreen, showAccountQrSheet;
 import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
+import 'history.dart' show HistoryScreen;
+import 'log_sheet.dart' show showLogSheet;
 import 'net_worth_trend.dart' show NetWorthTrendScreen;
+import '../widgets/account_action_sheet.dart' show showAccountActionSheet;
+import '../widgets/card_skin_studio.dart' show showCardSkinStudio;
+import '../widgets/floating_pan_card.dart' show FloatingPanCard;
 import '../widgets/pan_mascot.dart' show PanMascot, PanEmotion;
 import '../money/institutions.dart'
     show
@@ -1077,10 +1085,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     '$ownedPct% assets',
                     style: AppText.caption.tint(Barako.primaryText).w6,
                   ),
-                  Text(
-                    '  ·  ',
-                    style: AppText.caption.tint(Barako.muted).w6,
-                  ),
+                  Text('  ·  ', style: AppText.caption.tint(Barako.muted).w6),
                   Text(
                     '$owedPct% liabilities',
                     style: AppText.caption.tint(Barako.warning).w6,
@@ -1136,7 +1141,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
   /// liabilities the screen already lists. Pan is kind: a rise is celebrated, a
   /// dip is stated plainly and pointed at the detail, never scolded; a steady
   /// month turns into a concrete, gentle nudge. All read-only.
-  Widget _panInsight(Map<String, dynamic> trend, (String, double)? largestOwed) {
+  Widget _panInsight(
+    Map<String, dynamic> trend,
+    (String, double)? largestOwed,
+  ) {
     final delta = trend['delta'] as double;
     final flat = delta.abs() < 0.005;
     final up = delta > 0;
@@ -1206,7 +1214,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                                 'See more insights',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppText.small.w7.tint(Barako.primaryText),
+                                style: AppText.small.w7.tint(
+                                  Barako.primaryText,
+                                ),
                               ),
                             ),
                             const SizedBox(width: Gap.xs),
@@ -1350,9 +1360,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
         resolveKind(e.$1, e.$2).subtype.id == 'ewallet';
     // The row test for the current filter: hidden shows only the uncounted
     // rows; every other filter shows only the counted ones.
-    bool keep((Map<String, dynamic>, AccountStore) e) => filter == 'hidden'
-        ? !countsInNetWorth(e.$1)
-        : countsInNetWorth(e.$1);
+    bool keep((Map<String, dynamic>, AccountStore) e) =>
+        filter == 'hidden' ? !countsInNetWorth(e.$1) : countsInNetWorth(e.$1);
 
     List<(Map<String, dynamic>, AccountStore)> pick(
       Iterable<(Map<String, dynamic>, AccountStore)> src,
@@ -1370,18 +1379,54 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final loans = pick([...groups['loans']!, ...groups['installments']!]);
 
     final specs = <_GroupSpec>[
-      _GroupSpec('cash_bank', 'Cash & Bank', 'bank', AccountClass.asset, bank,
-          'Add account in Cash & Bank'),
-      _GroupSpec('ewallets', 'E-Wallets', 'wallet', AccountClass.asset, wallets,
-          'Add account in E-Wallets'),
-      _GroupSpec('investments', 'Investments', 'growth', AccountClass.asset,
-          investments, 'Add investment account'),
-      _GroupSpec('property', 'Property', 'house', AccountClass.asset, property,
-          'Add property'),
-      _GroupSpec('credit', 'Credit Cards', 'card', AccountClass.liability,
-          credit, 'Add credit card'),
-      _GroupSpec('loans', 'Loans', 'document', AccountClass.liability, loans,
-          'Add loan account'),
+      _GroupSpec(
+        'cash_bank',
+        'Cash & Bank',
+        'bank',
+        AccountClass.asset,
+        bank,
+        'Add account in Cash & Bank',
+      ),
+      _GroupSpec(
+        'ewallets',
+        'E-Wallets',
+        'wallet',
+        AccountClass.asset,
+        wallets,
+        'Add account in E-Wallets',
+      ),
+      _GroupSpec(
+        'investments',
+        'Investments',
+        'growth',
+        AccountClass.asset,
+        investments,
+        'Add investment account',
+      ),
+      _GroupSpec(
+        'property',
+        'Property',
+        'house',
+        AccountClass.asset,
+        property,
+        'Add property',
+      ),
+      _GroupSpec(
+        'credit',
+        'Credit Cards',
+        'card',
+        AccountClass.liability,
+        credit,
+        'Add credit card',
+      ),
+      _GroupSpec(
+        'loans',
+        'Loans',
+        'document',
+        AccountClass.liability,
+        loans,
+        'Add loan account',
+      ),
     ];
 
     return [
@@ -1422,9 +1467,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         ),
         const SizedBox(height: Gap.md),
         if (visible.isEmpty)
-          _emptyFilter(
-            hasHidden: _overviewGroups(groups, 'hidden').isNotEmpty,
-          )
+          _emptyFilter(hasHidden: _overviewGroups(groups, 'hidden').isNotEmpty)
         else
           for (final spec in visible) ...[
             _categoryGroup(context, spec, amountOfRow),
@@ -1606,10 +1649,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             _creditCardTile(context, e.$1)
           else
             _taxonomyRow(context, e),
-        if (owed) ...[
-          const Divider(height: 1),
-          _manageDebtsNote(),
-        ],
+        if (owed) ...[const Divider(height: 1), _manageDebtsNote()],
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
           child: _addInGroupButton(spec.addLabel),
@@ -1663,22 +1703,36 @@ class _AccountsScreenState extends State<AccountsScreen> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _openCard(context, row, AccountStore.debts),
+              // A long press opens the account's own action sheet (QR, ledger,
+              // log, statement, transfer, skin, edit, hide), all wired to flows
+              // the app already has. A plain tap still opens the full details,
+              // so nothing existing changes.
+              onLongPress: () =>
+                  _openAccountActions(context, row, AccountStore.debts),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BankCard(
-                    bankName: name,
-                    accountType: 'Credit',
-                    balance: amountOf(row['remaining']),
-                    brandColor: institutionBrandColor(instId),
-                    last4: _last4Of(row),
-                    monogram: institutionById(instId)?.initials,
-                    logoAsset: institutionLogoAsset(instId),
-                    creditLimit: amountOf(row['creditLimit']),
-                    networkMark: cardNetworkWordmark(
-                      row['cardNetwork']?.toString(),
+                  // The card follows its chosen skin: a skin is just a different
+                  // seed colour handed to the same AA safe BankCard face, and
+                  // CardSkinStore is a listenable so a pick repaints instantly.
+                  ListenableBuilder(
+                    listenable: CardSkinStore.instance,
+                    builder: (context, _) => BankCard(
+                      bankName: name,
+                      accountType: 'Credit',
+                      balance: amountOf(row['remaining']),
+                      brandColor:
+                          CardSkinStore.instance.seedFor('${row['id']}') ??
+                          institutionBrandColor(instId),
+                      last4: _last4Of(row),
+                      monogram: institutionById(instId)?.initials,
+                      logoAsset: institutionLogoAsset(instId),
+                      creditLimit: amountOf(row['creditLimit']),
+                      networkMark: cardNetworkWordmark(
+                        row['cardNetwork']?.toString(),
+                      ),
+                      variant: BankCardVariant.credit,
                     ),
-                    variant: BankCardVariant.credit,
                   ),
                   if (due != null)
                     Padding(
@@ -1711,6 +1765,99 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
+  /// The floating 3D version of a credit card, re-seeded by an optional skin.
+  /// Used as the preview at the top of the action sheet and inside the skin
+  /// studio. Tilt is opt in because the action sheet scrolls; the studio turns
+  /// it on. Reads the same fields the flat card does, so the two never disagree.
+  Widget _floatingCardFor(
+    Map<String, dynamic> row, {
+    Color? skinSeed,
+    bool enableTilt = true,
+  }) {
+    final instId = row['institutionId']?.toString();
+    return FloatingPanCard(
+      bankName: row['name']?.toString() ?? 'Credit card',
+      accountType: 'Credit',
+      balance: amountOf(row['remaining']),
+      brandColor: institutionBrandColor(instId),
+      skinSeed: skinSeed,
+      last4: _last4Of(row),
+      monogram: institutionById(instId)?.initials,
+      logoAsset: institutionLogoAsset(instId),
+      creditLimit: amountOf(row['creditLimit']),
+      networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
+      variant: BankCardVariant.credit,
+      enableTilt: enableTilt,
+    );
+  }
+
+  /// Open the per account action sheet for one card, wiring every action to a
+  /// flow that already exists. No money behaviour is added here.
+  void _openAccountActions(
+    BuildContext context,
+    Map<String, dynamic> row,
+    AccountStore which,
+  ) {
+    final id = row['id']?.toString() ?? '';
+    final name = row['name']?.toString() ?? 'Account';
+    final qrRef = row['qrRef']?.toString();
+    final hasQr = qrRef != null && qrRef.isNotEmpty;
+    final isArchived = row['isArchived'] == true;
+    final accountCount = (store.data['accounts'] as List?)?.length ?? 0;
+
+    showAccountActionSheet(
+      context,
+      title: name,
+      // The preview wears the card's chosen skin, matching the list card the
+      // user just long-pressed rather than reverting to the brand colour.
+      cardPreview: _floatingCardFor(
+        row,
+        enableTilt: false,
+        skinSeed: CardSkinStore.instance.seedFor(id),
+      ),
+      canTransfer: accountCount >= 2,
+      onViewLedger: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          // Seed the ledger's text filter with the account name so it opens
+          // showing that account's activity, the same seeding a search reveal
+          // uses. No new filter, so no new behaviour to test.
+          builder: (_) =>
+              HistoryScreen(store: store, initialQuery: name, pushed: true),
+        ),
+      ),
+      onLogExpense: () => showLogSheet(context, store),
+      onTransfer: () => _openTransfer(context),
+      onEditDetails: () => showDebtFormSheet(context, store, debt: row),
+      onExportStatement: () =>
+          shareAccountStatementPdf(store.data, row, DateTime.now()),
+      onCustomizeSkin: () => showCardSkinStudio(
+        context,
+        accountId: id,
+        previewBuilder: (seed) => _floatingCardFor(row, skinSeed: seed),
+      ),
+      onArchiveToggle: () {
+        if (id.isEmpty) return;
+        store.patchDebtMeta(id, {'isArchived': !isArchived});
+      },
+      isArchived: isArchived,
+      // A saved receiving QR shows through the existing QR sheet; with none
+      // saved yet, the control opens the card's details where one is attached,
+      // rather than fabricating a code that could not be paid.
+      onShowQr: hasQr
+          ? () async {
+              final vault = await QrVault.inAppDocuments();
+              if (!context.mounted) return;
+              await showAccountQrSheet(
+                context,
+                vault: vault,
+                qrRef: qrRef,
+                label: row['qrLabel']?.toString(),
+              );
+            }
+          : null,
+    );
+  }
+
   /// A calm state when a class filter matches nothing (for example the person
   /// taps Liabilities but owes nothing). Never the whole-screen empty state,
   /// which is the fresh-install case.
@@ -1718,7 +1865,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final (title, body) = switch (_filter) {
       'liabilities' => ('Nothing owed', 'You have no debts recorded. Nice.'),
       'assets' => ('No assets here', 'Add an account to see it in this view.'),
-      'hidden' => ('Nothing hidden', 'Accounts you hide from net worth show up here.'),
+      'hidden' => (
+        'Nothing hidden',
+        'Accounts you hide from net worth show up here.',
+      ),
       // When the "all" view is empty only because every account is hidden, point
       // to the Hidden chip rather than claiming there is nothing here at all.
       _ when hasHidden => (
@@ -2171,7 +2321,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
       // Masked, the goal amount is dropped so the target (and the balance a
       // shoulder-surfer could derive from the percent and it) stays hidden; the
       // progress bar still shows the ratio, which is not a peso figure.
-      sub = _hideBalances ? 'Savings goal' : '$pct% of ${formatMoneyText(target)}';
+      sub = _hideBalances
+          ? 'Savings goal'
+          : '$pct% of ${formatMoneyText(target)}';
       progress = (balance / target).clamp(0.0, 1.0);
     } else if (last4 != null) {
       sub = '•••• $last4';
@@ -2556,9 +2708,7 @@ class _CategoryChip extends StatelessWidget {
                       Text(
                         '$count',
                         style: AppText.small.w7.tint(
-                          selected
-                              ? Colors.white
-                              : Barako.muted,
+                          selected ? Colors.white : Barako.muted,
                         ),
                       ),
                     ],
@@ -3897,4 +4047,3 @@ class _ManualRateDialogState extends State<_ManualRateDialog> {
     );
   }
 }
-

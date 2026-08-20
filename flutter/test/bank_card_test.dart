@@ -7,6 +7,7 @@ import 'package:salapify/money/debtmath.dart' show formatMoneyText;
 import 'package:salapify/money/institutions.dart';
 import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/bank_card.dart';
+import 'package:salapify/widgets/pan_mask_widget.dart' show CardNumberMask;
 
 import 'screens_shot.dart' show loadRealFonts;
 
@@ -52,7 +53,10 @@ void main() {
 
     expect(find.text('BPI Savings'), findsOneWidget);
     expect(find.text('SAVINGS'), findsOneWidget);
-    expect(find.text('•••• •••• •••• 1234'), findsOneWidget);
+    // The number line is the geometric mask now, not a bullet string: the
+    // stored last four show as their own tabular digits, the rest as dots.
+    expect(find.byType(CardNumberMask), findsOneWidget);
+    expect(find.text('1234'), findsOneWidget);
     expect(find.text(formatMoneyText(48500.55)), findsOneWidget);
     // Savings is just the balance: no bar.
     expect(_bar(tester), isNull);
@@ -128,8 +132,18 @@ void main() {
         ),
       );
 
-      expect(find.text('•••• •••• •••• ••••'), findsOneWidget);
-      // A stray non-four-digit value is treated as no number, not shown raw.
+      // No stored number: the mask is present but shows only dots, no digit
+      // run at all. The mask widget's own test proves null renders dots; here
+      // we prove the card draws the mask and no bare four digit text leaks.
+      expect(find.byType(CardNumberMask), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((w) {
+          return w is Text &&
+              w.data != null &&
+              RegExp(r'^\d{4}$').hasMatch(w.data!);
+        }),
+        findsNothing,
+      );
     },
   );
 

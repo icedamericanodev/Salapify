@@ -18,6 +18,7 @@ import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/bank_card.dart';
 import 'package:salapify/widgets/flip_bank_card.dart';
 import 'package:salapify/widgets/lock_gate.dart' show LockAuthenticator;
+import 'package:salapify/widgets/pan_mask_widget.dart' show CardNumberMask;
 
 import 'screens_shot.dart' show loadRealFonts;
 
@@ -197,8 +198,20 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-const _masked = '•••• ••••';
-const _revealed = '•••• 1234';
+// The masked line is geometric dots now (widgets/pan_mask_widget.dart), not a
+// bullet string. "Revealed" is proven by the real last four appearing as their
+// own tabular Text; "masked" by that digit run being absent while the mask
+// widget is still on screen. These helpers read the same intent the old bullet
+// constants did.
+void _expectRevealed(String last4) {
+  expect(find.byType(CardNumberMask), findsWidgets);
+  expect(find.text(last4), findsOneWidget);
+}
+
+void _expectMasked(String last4) {
+  expect(find.byType(CardNumberMask), findsWidgets);
+  expect(find.text(last4), findsNothing);
+}
 
 void main() {
   testWidgets('tap flips the card to its back', (tester) async {
@@ -251,8 +264,7 @@ void main() {
 
   testWidgets('the number is masked by default on the back', (tester) async {
     await _pump(tester, _credit(true));
-    expect(find.text(_masked), findsOneWidget);
-    expect(find.text(_revealed), findsNothing);
+    _expectMasked('9012');
   });
 
   testWidgets('a successful auth reveals only the last four', (tester) async {
@@ -263,8 +275,7 @@ void main() {
     await tester.tap(find.byTooltip('Reveal the last four digits'));
     await tester.pumpAndSettle();
     expect(auth.prompts, 1);
-    expect(find.text(_revealed), findsOneWidget);
-    expect(find.text(_masked), findsNothing);
+    _expectRevealed('1234');
   });
 
   testWidgets('a failed or cancelled auth does NOT reveal', (tester) async {
@@ -275,8 +286,7 @@ void main() {
     await tester.tap(find.byTooltip('Reveal the last four digits'));
     await tester.pumpAndSettle();
     expect(auth.prompts, 1);
-    expect(find.text(_masked), findsOneWidget);
-    expect(find.text(_revealed), findsNothing);
+    _expectMasked('1234');
   });
 
   testWidgets('a revealed number re-masks itself after the timeout', (
@@ -285,11 +295,10 @@ void main() {
     await _pump(tester, _credit(true, auth: _FakeAuth(can: false)));
     await tester.tap(find.byTooltip('Reveal the last four digits'));
     await tester.pumpAndSettle();
-    expect(find.text('•••• 9012'), findsOneWidget);
+    _expectRevealed('9012');
     await tester.pump(const Duration(seconds: 31));
     await tester.pump();
-    expect(find.text('•••• 9012'), findsNothing);
-    expect(find.text(_masked), findsOneWidget);
+    _expectMasked('9012');
   });
 
   testWidgets('backgrounding the app re-masks a revealed number', (
@@ -298,12 +307,12 @@ void main() {
     await _pump(tester, _credit(true, auth: _FakeAuth(can: false)));
     await tester.tap(find.byTooltip('Reveal the last four digits'));
     await tester.pumpAndSettle();
-    expect(find.text('•••• 9012'), findsOneWidget);
+    _expectRevealed('9012');
     // resumed -> inactive is the first valid step of leaving the foreground; the
     // card re-masks on any non-resumed state, so this is the moment digits go.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
-    expect(find.text('•••• 9012'), findsNothing);
+    _expectMasked('9012');
   });
 
   testWidgets('a reveal finishing after a flip-back does not reveal', (
@@ -322,8 +331,7 @@ void main() {
     // Flip to the back again: still masked, the stale auth did not leak through.
     await tester.tap(find.byType(FlipBankCard));
     await tester.pumpAndSettle();
-    expect(find.text(_revealed), findsNothing);
-    expect(find.text(_masked), findsOneWidget);
+    _expectMasked('1234');
   });
 
   testWidgets('only one card is flipped at a time', (tester) async {
@@ -377,8 +385,9 @@ void main() {
     await _pump(tester, _credit(true, auth: _FakeAuth(can: false)));
     await tester.tap(find.byTooltip('Reveal the last four digits'));
     await tester.pumpAndSettle();
-    // Revealed shows exactly the last four, behind the mask prefix.
-    expect(find.text('•••• 9012'), findsOneWidget);
+    // Revealed shows exactly the last four as their own tabular run, behind the
+    // geometric dot prefix.
+    _expectRevealed('9012');
     // And nowhere in the tree is there a run of five or more digits, so a full
     // card number can never appear, by contract and in the render.
     final runs = tester
