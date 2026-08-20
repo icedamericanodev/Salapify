@@ -164,6 +164,60 @@ void main() {
     expect(find.text('GCash'), findsOneWidget);
   });
 
+  testWidgets(
+    'a debt with a due day shows a Due line, a paid-off one does not',
+    (tester) async {
+      // A due day 3 days out (safe from month-end/weekend edge cases the
+      // golden-locked bankDueDate suite already covers exhaustively) on an
+      // owed loan; a second, PAID OFF debt with the same due day; a third,
+      // owed debt with no due day at all. Only the first should ever show a
+      // "Due" line, since that is the exact gate the bills reminder itself
+      // uses (remaining > 0 and a resolvable schedule). The row must never
+      // promise a reminder the app could not also send.
+      final due = DateTime.now().add(const Duration(days: 3));
+      final store = await _storeWith({
+        // A cash account so Cash & Bank, not Loans, is the sole non-empty
+        // group and opens by default; the tap below then genuinely EXPANDS
+        // Loans rather than collapsing an already-open group.
+        'accounts': [
+          {'id': 'a1', 'name': 'Wallet', 'kind': 'cash', 'balance': 500},
+        ],
+        'debts': [
+          {
+            'id': 'd1',
+            'name': 'Personal loan',
+            'type': 'other',
+            'remaining': 5000,
+            'dueDay': due.day,
+          },
+          {
+            'id': 'd2',
+            'name': 'Old loan',
+            'type': 'other',
+            'remaining': 0,
+            'dueDay': due.day,
+          },
+          {
+            'id': 'd3',
+            'name': 'Undated debt',
+            'type': 'other',
+            'remaining': 2000,
+          },
+        ],
+      });
+      await _pump(tester, store);
+      // Loans is a liability group, collapsed by default (Cash & Bank opens
+      // first); expand it to build its rows.
+      await tester.tap(find.text('Loans'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Due '), findsOneWidget);
+      expect(find.text('Personal loan'), findsOneWidget);
+      expect(find.text('Old loan'), findsOneWidget);
+      expect(find.text('Undated debt'), findsOneWidget);
+    },
+  );
+
   testWidgets('the hide-balances eye masks every figure, including Pan and a '
       'savings goal', (tester) async {
     // A savings account with a distinctive goal (77,777, which appears ONLY in

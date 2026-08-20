@@ -58,6 +58,28 @@ int daysUntil(DateTime date, DateTime from) {
   return b.difference(a).inDays;
 }
 
+const List<String> _monthsShort = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// "Jun 15", the one short due-date format every screen showing a
+/// bank-adjusted due date shares (the Accounts overview, the debt wizard's
+/// schedule preview, and the debt detail forecast), so a date reads the same
+/// wherever a person sees it rather than each screen inventing its own
+/// formatter.
+String shortDueDate(DateTime d) => '${_monthsShort[d.month - 1]} ${d.day}';
+
+/// "in 3 days" / "today" / "yesterday" / "3 days ago", the plain-English
+/// companion to a due date so a person does not have to do the subtraction
+/// themselves. `days` is the output of [daysUntil].
+String daysUntilWords(int days) {
+  if (days == 0) return 'today';
+  if (days == 1) return 'tomorrow';
+  if (days == -1) return 'yesterday';
+  return days > 0 ? 'in $days days' : '${-days} days ago';
+}
+
 bool _jsTruthy(dynamic v) =>
     v != null && v != false && v != 0 && v != '' && !(v is double && v.isNaN);
 

@@ -29,6 +29,8 @@ import '../money/transfers.dart'
 import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
+import '../money/commitments.dart'
+    show bankDueDate, daysUntil, daysUntilWords, shortDueDate;
 import '../money/card_products.dart' show cardNetworkWordmark;
 import 'account_detail.dart' show AccountDetailScreen;
 import 'assets_liabilities.dart' show AssetsLiabilitiesScreen, AssetsView;
@@ -1648,27 +1650,59 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget _creditCardTile(BuildContext context, Map<String, dynamic> row) {
     final name = row['name']?.toString() ?? 'Credit card';
     final instId = row['institutionId']?.toString();
+    final due = _dueMeta(row);
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
       child: PressableScale(
         child: Semantics(
           button: true,
-          label: '$name credit card. Opens card details.',
+          label: due == null
+              ? '$name credit card. Opens card details.'
+              : '$name credit card. $due. Opens card details.',
           child: ExcludeSemantics(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _openCard(context, row, AccountStore.debts),
-              child: BankCard(
-                bankName: name,
-                accountType: 'Credit',
-                balance: amountOf(row['remaining']),
-                brandColor: institutionBrandColor(instId),
-                last4: _last4Of(row),
-                monogram: institutionById(instId)?.initials,
-                logoAsset: institutionLogoAsset(instId),
-                creditLimit: amountOf(row['creditLimit']),
-                networkMark: cardNetworkWordmark(row['cardNetwork']?.toString()),
-                variant: BankCardVariant.credit,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BankCard(
+                    bankName: name,
+                    accountType: 'Credit',
+                    balance: amountOf(row['remaining']),
+                    brandColor: institutionBrandColor(instId),
+                    last4: _last4Of(row),
+                    monogram: institutionById(instId)?.initials,
+                    logoAsset: institutionLogoAsset(instId),
+                    creditLimit: amountOf(row['creditLimit']),
+                    networkMark: cardNetworkWordmark(
+                      row['cardNetwork']?.toString(),
+                    ),
+                    variant: BankCardVariant.credit,
+                  ),
+                  if (due != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            salapifyIcon('calendar'),
+                            size: IconSizes.dense,
+                            color: Barako.muted,
+                          ),
+                          const SizedBox(width: Gap.xs),
+                          Expanded(
+                            child: Text(
+                              due,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.caption,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -2067,6 +2101,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           leading: SalapifyGlyph('card', size: 20, boxed: false),
           name: row['name']?.toString() ?? 'Debt',
           sub: parts.join(' · '),
+          meta: _dueMeta(row),
           amount: amountOf(row['remaining']),
           // Neutral ink on purpose: a borrower current on every payment is
           // not in an emergency, and a wall of red is visually punitive.
@@ -2074,6 +2109,28 @@ class _AccountsScreenState extends State<AccountsScreen> {
           // reserved for the Total owed summary and true urgency.
         );
     }
+  }
+
+  /// "Due Jun 15 · in 3 days", bank adjusted for weekends and Philippine
+  /// holidays, the SAME golden-locked `bankDueDate` the `bills` reminder
+  /// itself schedules from (money/commitments.dart), so the promise on this
+  /// row and the reminder that actually fires can never disagree. Gated
+  /// identically to the reminder engine (remaining > 0, a resolvable
+  /// schedule), so a row never shows a due date the app could not also remind
+  /// about. Null for anything paid off or with no due day / statement day set.
+  ///
+  /// A moved date says only "(adjusted)", never the specific reason: a
+  /// Philippine holiday name ("Feast of the Immaculate Conception of Mary")
+  /// can run far longer than a Saturday, and this row is one MAXLINES-1 line
+  /// wide. The full "why" already has room in the wizard's schedule-step
+  /// preview; this compact row would rather say less than truncate mid-word.
+  String? _dueMeta(Map<String, dynamic> row) {
+    if (!(amountOf(row['remaining']) > 0)) return null;
+    final due = bankDueDate(row, DateTime.now());
+    if (due == null) return null;
+    final days = daysUntil(due.date, DateTime.now());
+    final when = '${shortDueDate(due.date)} · ${daysUntilWords(days)}';
+    return due.moved ? 'Due $when (adjusted)' : 'Due $when';
   }
 
   Widget _accountRow(
@@ -2210,6 +2267,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
     required String name,
     double? amount,
     String? sub,
+
+    /// A third line under [sub], for the bank-adjusted "Due Jun 15 · in 3
+    /// days" fact on a debt row. Kept separate from [sub] rather than joined
+    /// with a middot, because [sub] is subtype-and-institution (identity) and
+    /// this is a live, changing fact; conflating them made the subtype the
+    /// part that got truncated on a long row.
+    String? meta,
     double? progress,
     Color? amountColor,
     VoidCallback? onTap,
@@ -2245,6 +2309,15 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppText.caption,
+                  ),
+                ],
+                if (meta != null && meta.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.micro.w6.tint(Barako.primaryText),
                   ),
                 ],
                 if (progress != null) ...[
