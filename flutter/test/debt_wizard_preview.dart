@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/theme.dart';
-import 'package:salapify/widgets/salapify_icon.dart' show salapifyIcon;
 
 import 'screens_shot.dart' show loadRealFonts, livedInBlob;
 
