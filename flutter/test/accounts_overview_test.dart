@@ -107,11 +107,13 @@ void main() {
     expect(find.text('99% liabilities'), findsOneWidget);
   });
 
-  testWidgets('a category tab filters the list to its own accounts', (
+  testWidgets('an expandable group reveals only its own accounts', (
     tester,
   ) async {
-    // One bank account plus one investment asset. The Investments row shows only
-    // under the Investments tab, not under the default Bank tab.
+    // One bank account plus one investment asset. Cash & Bank is the first
+    // non-empty group, so it opens by default and shows the bank row. The
+    // investment sits in a COLLAPSED group, so its row is offstage until the
+    // person taps that group's header to expand it.
     final store = await _storeWith({
       'accounts': [
         {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
@@ -122,20 +124,25 @@ void main() {
     });
     await _pump(tester, store);
 
-    // Bank is the default tab: the bank account row shows, the investment does
-    // not (it lives in a tab that is not built until selected).
+    // Cash & Bank opens by default: the bank row shows. Investments is
+    // collapsed, so its Bitcoin row is not visible yet.
     expect(find.text('BPI'), findsWidgets);
     expect(find.text('Bitcoin'), findsNothing);
 
-    // Switch to Investments: the investment and its subtotal appear.
+    // Expand Investments: the row appears. The group total was already in the
+    // header, collapsed or not.
     await tester.tap(find.text('Investments'));
     await tester.pumpAndSettle();
     expect(find.text('Bitcoin'), findsOneWidget);
-    expect(find.text('INVESTMENTS TOTAL'), findsOneWidget);
     expect(find.text('₱5,000'), findsWidgets);
+
+    // Collapsing it again hides the row.
+    await tester.tap(find.text('Investments'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bitcoin'), findsNothing);
   });
 
-  testWidgets('a tab subtotal totals the accounts in that tab', (tester) async {
+  testWidgets('each category header carries its own total', (tester) async {
     final store = await _storeWith({
       'accounts': [
         {'id': 'a1', 'name': 'BPI', 'kind': 'savings', 'balance': 48000},
@@ -143,14 +150,62 @@ void main() {
       ],
     });
     await _pump(tester, store);
-    // Bank tab: the deposit account's subtotal.
-    expect(find.text('BANK TOTAL'), findsOneWidget);
+    // Both category headers render their own subtotal, whether open or not: the
+    // bank total (48,000) sits under Cash & Bank, the wallet total (2,000) under
+    // E-Wallets. Neither equals the assets hero (50,000), so they are the
+    // groups' own numbers.
+    expect(find.text('Cash & Bank'), findsOneWidget);
     expect(find.text('₱48,000'), findsWidgets);
-    // E-Wallets tab: GCash and its own subtotal, a different number.
+    expect(find.text('E-Wallets'), findsOneWidget);
+    expect(find.text('₱2,000'), findsWidgets);
+    // Expanding E-Wallets reveals the wallet account itself.
     await tester.tap(find.text('E-Wallets'));
     await tester.pumpAndSettle();
-    expect(find.text('E-WALLETS TOTAL'), findsOneWidget);
-    expect(find.text('₱2,000'), findsWidgets);
+    expect(find.text('GCash'), findsOneWidget);
+  });
+
+  testWidgets('the hide-balances eye masks every figure, including Pan and a '
+      'savings goal', (tester) async {
+    // A savings account with a distinctive goal (77,777, which appears ONLY in
+    // its progress sub-line) plus a prior-month snapshot so Pan's insight names
+    // a peso move. Toggling the eye must hide all of them: the net worth, the
+    // goal figure, and the peso amount in Pan's line.
+    final store = await _storeWith({
+      'accounts': [
+        {
+          'id': 'a1',
+          'name': 'House fund',
+          'kind': 'savings',
+          'balance': 30000,
+          'target': 77777,
+        },
+      ],
+      'settings': {
+        'onboarded': true,
+        'netWorthHistory': [
+          {'month': '2020-01', 'value': 22455},
+        ],
+      },
+    });
+    await _pump(tester, store);
+
+    // Before hiding: the goal figure and Pan's peso move are visible.
+    expect(find.textContaining('77,777'), findsWidgets);
+    expect(find.textContaining('grew by'), findsOneWidget);
+    expect(find.text('₱30,000'), findsWidgets);
+
+    // Tap the eye. It is an icon control labelled for a screen reader.
+    await tester.tap(find.bySemanticsLabel('Hide balances'));
+    await tester.pumpAndSettle();
+
+    // Nothing leaks: the net worth, the goal, and Pan's peso are all gone, and
+    // the masked placeholder appears in their place.
+    expect(find.textContaining('77,777'), findsNothing);
+    expect(find.textContaining('30,000'), findsNothing);
+    expect(find.textContaining('grew by'), findsNothing);
+    expect(find.text('Savings goal'), findsWidgets);
+    expect(find.textContaining('grew this month'), findsOneWidget);
+    expect(find.textContaining('••••'), findsWidgets);
   });
 
   testWidgets('the ownership ratio is hidden on an empty book', (tester) async {

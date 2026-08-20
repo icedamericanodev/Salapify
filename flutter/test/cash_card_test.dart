@@ -173,31 +173,43 @@ void main() {
 
   // --- Placement and the gate, driven through the real Accounts screen ------
 
-  testWidgets('cash folds into the Available card, banks in the swipe deck', (
+  testWidgets('cash folds into the Available card, banks in the category group', (
     tester,
   ) async {
     // 1 cash + 1 bank + 1 wallet. Cash no longer draws its own tile: it folds
     // into the "Money you can reach now" summary and appears as a list row. The
-    // bank and wallet ride the carousel.
+    // bank and wallet live in the Accounts Overview category groups, not a
+    // carousel: the first non-empty group (Cash & Bank) opens by default, so
+    // its accounts show without a tap.
     await _pumpAccounts(tester, await _load(_blob([_cash, _bank, _wallet])));
     expect(find.byType(CashBalanceTile), findsNothing);
     expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
-    expect(find.byType(PageView), findsOneWidget); // BPI + GCash carousel
-    // Cash still has a home: an openable row in the account list.
+    // No carousel any more: no PageView and no flip card on the list.
+    expect(find.byType(PageView), findsNothing);
+    expect(find.byType(FlipBankCard), findsNothing);
+    // The Cash & Bank group is present and, being the first non-empty group,
+    // opens by default, so the bank account shows as a row inside it.
+    expect(find.text('Cash & Bank'), findsOneWidget);
+    expect(find.text('BPI Savings'), findsWidgets);
+    // Cash still has a home: an openable row in the same group.
     expect(find.text('Cash on hand'), findsWidgets);
+    // The wallet's own group header exists too (its rows sit behind a tap).
+    expect(find.text('E-Wallets'), findsOneWidget);
   });
 
-  testWidgets('a lone bank card plus cash keeps the card, standalone no deck', (
+  testWidgets('a lone bank plus cash shows the bank as a row, no deck', (
     tester,
   ) async {
-    // The regression guard: folding cash into the summary must not cost the
-    // 1-bank user their card. 1 cash + 1 bank -> a standalone flip card, the
-    // Available card, no carousel, and no cash tile.
+    // Folding cash into the summary and dropping the carousel must not cost the
+    // 1-bank user their account: the bank shows as a row inside the default-open
+    // Cash & Bank group, with the Available card above and no carousel.
     await _pumpAccounts(tester, await _load(_blob([_cash, _bank])));
     expect(find.byType(CashBalanceTile), findsNothing);
-    expect(find.byType(FlipBankCard), findsOneWidget);
+    expect(find.byType(FlipBankCard), findsNothing);
     expect(find.byType(PageView), findsNothing);
     expect(find.text('MONEY YOU CAN REACH NOW'), findsOneWidget);
+    expect(find.text('Cash & Bank'), findsOneWidget);
+    expect(find.text('BPI Savings'), findsWidgets);
   });
 
   testWidgets('only cash: the Available card, no card deck at all', (
