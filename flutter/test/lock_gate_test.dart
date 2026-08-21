@@ -48,7 +48,7 @@ Future<void> _pump(
   SalapifyStore store,
   _FakeAuth auth,
 ) async {
-  Barako.currentTheme = themeForKey('barako');
+  Barako.currentTheme = themeForKey('palawan');
   Barako.current = Barako.currentTheme.resolve(Brightness.dark);
   await tester.pumpWidget(
     MaterialApp(

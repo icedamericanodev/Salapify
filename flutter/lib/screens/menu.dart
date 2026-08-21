@@ -436,11 +436,11 @@ class MenuScreen extends StatelessWidget {
           child: Row(
             children: [
               // The disc is not decoration. Pan is a fixed orange and this
-              // banner is filled with the accent, which on Barako is the SAME
-              // orange, so without something behind him he dissolves into his
-              // own background. A dark disc is what gives him an edge, and it
-              // works on every theme because the fill is always the accent and
-              // the disc is always darker than it.
+              // banner is filled with the accent, so on a warm-accented theme
+              // the two can read as the SAME colour and without something
+              // behind him he dissolves into his own background. A dark disc is
+              // what gives him an edge, and it works on every theme because the
+              // fill is always the accent and the disc is always darker than it.
               //
               // Excluded from semantics: the whole banner is already one
               // button announcing Ask Pan, so letting the mascot announce his

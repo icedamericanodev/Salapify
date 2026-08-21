@@ -138,7 +138,7 @@ void main() {
           'which on the fixed dark card means invisible',
     );
 
-    Barako.currentTheme = barakoThemes.firstWhere((t) => t.key == 'voltage');
+    Barako.currentTheme = barakoThemes.firstWhere((t) => t.key == 'obsidian');
     Barako.current = Barako.currentTheme.resolve(Brightness.dark);
     expect(
       HomeTile.buildValues(store, now)['yn_accent'],

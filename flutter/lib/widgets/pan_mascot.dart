@@ -121,9 +121,10 @@ PanMood _moodForEmotion(PanEmotion e) => switch (e) {
 
 /// Pan's signature colour, and the ONLY colour he is ever drawn in.
 ///
-/// It matches Barako's primary because Barako is the Salapify look, but the
-/// two are now independent on purpose: if Barako is ever retuned, Pan does
-/// NOT follow. That is the whole point of a signature. Change this only when
+/// A fixed brand orange, deliberately independent of any theme: whatever look
+/// the user picks, and however the palette is retuned, Pan does NOT follow.
+/// That is the whole point of a signature (it started life matching the old
+/// Barako primary, which is why it is this orange). Change this only when
 /// deliberately restyling the character, and expect to redraw the artwork to
 /// match, because the PNGs carry this colour baked in.
 const Color panSignatureColor = Color(0xFFFF8A3D);

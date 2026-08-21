@@ -19,39 +19,42 @@ void main() {
     SharedPreferences.setMockInitialValues(onboardedEmptyStorage());
   });
 
-  test('themeForKey maps keys and falls back to Barako', () {
-    expect(themeForKey('barako').key, 'barako');
-    expect(themeForKey('tidal').key, 'tidal');
-    expect(themeForKey('mint').key, 'mint');
-    expect(themeForKey('disco').key, 'barako');
-    expect(themeForKey(null).key, 'barako');
-    expect(themeForKey(42).key, 'barako');
+  test('themeForKey maps keys and falls back to the default', () {
+    expect(themeForKey('palawan').key, 'palawan');
+    expect(themeForKey('mayon').key, 'mayon');
+    expect(themeForKey('obsidian').key, 'obsidian');
+    // A retired theme a backup still names, and pure junk, both fall back to
+    // the default (Palawan, the first theme), not to a crash.
+    expect(themeForKey('tidal').key, 'palawan');
+    expect(themeForKey('disco').key, 'palawan');
+    expect(themeForKey(null).key, 'palawan');
+    expect(themeForKey(42).key, 'palawan');
   });
 
   test('resolveThemeChoice honors new keys and maps the legacy mood', () {
-    expect(resolveThemeChoice(const {}), ('barako', 'system'));
+    expect(resolveThemeChoice(const {}), ('palawan', 'system'));
     expect(resolveThemeChoice(const {'themeMood': 'latte'}), (
-      'barako',
+      'palawan',
       'light',
     ));
     expect(resolveThemeChoice(const {'themeMood': 'barako'}), (
-      'barako',
+      'palawan',
       'dark',
     ));
     expect(resolveThemeChoice(const {'themeMood': 'milktea'}), (
-      'barako',
+      'palawan',
       'dark',
     ));
     expect(
-      resolveThemeChoice(const {'themeKey': 'tidal', 'themeMode': 'dark'}),
-      ('tidal', 'dark'),
+      resolveThemeChoice(const {'themeKey': 'obsidian', 'themeMode': 'dark'}),
+      ('obsidian', 'dark'),
     );
-    expect(resolveThemeChoice(const {'themeKey': 'tidal'}), (
-      'tidal',
+    expect(resolveThemeChoice(const {'themeKey': 'obsidian'}), (
+      'obsidian',
       'system',
     ));
     expect(resolveThemeChoice(const {'themeMode': 'light'}), (
-      'barako',
+      'palawan',
       'light',
     ));
   });
@@ -76,10 +79,10 @@ void main() {
       final store = SalapifyStore();
       await store.load();
       await store.setThemeMode('dark');
-      await store.setThemeKey('mint');
+      await store.setThemeKey('obsidian');
       final s = store.data['settings'] as Map;
       expect(s['themeMode'], 'dark');
-      expect(s['themeKey'], 'mint');
+      expect(s['themeKey'], 'obsidian');
       expect(s['monthlyLimit'], 5000); // untouched
     },
   );
@@ -88,17 +91,17 @@ void main() {
     tester,
   ) async {
     // Fresh store: system mode, and the test platform is light, so the app
-    // opens on Barako light.
+    // opens on the default (Palawan Lagoon) light.
     final store = SalapifyStore();
     await tester.pumpWidget(SalapifyApp(store: store));
     await tester.pumpAndSettle();
 
-    expect(Barako.currentTheme.key, 'barako');
+    expect(Barako.currentTheme.key, 'palawan');
     expect(Barako.current.brightness, Brightness.light);
     final beforeApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(
       beforeApp.theme!.scaffoldBackgroundColor,
-      themeForKey('barako').light.background,
+      themeForKey('palawan').light.background,
     );
 
     // The picker moved off Menu and onto its own screen, so the row is the way
@@ -114,23 +117,24 @@ void main() {
       scope: find.byType(MenuScreen),
       delta: 100,
     );
-    expect(find.text('Barako, System'), findsOneWidget);
+    expect(find.text('Palawan Lagoon, System'), findsOneWidget);
     await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
 
-    // Pick the Tidal theme. scrollUntilVisible can land a tile flush against a
-    // fold, so lift it into view before tapping to keep its center tappable.
+    // Pick the Mayon Sunset theme. scrollUntilVisible can land a tile flush
+    // against a fold, so lift it into view before tapping to keep its center
+    // tappable.
     await tester.scrollUntilVisible(
-      find.text('Tidal'),
+      find.text('Mayon Sunset'),
       100,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tidal'));
+    await tester.tap(find.text('Mayon Sunset'));
     await tester.pumpAndSettle();
-    expect(Barako.currentTheme.key, 'tidal');
+    expect(Barako.currentTheme.key, 'mayon');
     expect(Barako.current.brightness, Brightness.light);
 
     // Switch appearance to Dark.
@@ -146,14 +150,14 @@ void main() {
     final afterApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(
       afterApp.theme!.scaffoldBackgroundColor,
-      themeForKey('tidal').dark.background,
+      themeForKey('mayon').dark.background,
     );
 
     // Both choices survive a restart through settings.
     final fresh = SalapifyStore();
     await fresh.load();
     final s = fresh.data['settings'] as Map;
-    expect(s['themeKey'], 'tidal');
+    expect(s['themeKey'], 'mayon');
     expect(s['themeMode'], 'dark');
   });
 }

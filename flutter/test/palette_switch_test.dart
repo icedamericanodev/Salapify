@@ -27,10 +27,10 @@ import 'package:salapify/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Two palettes chosen to be as far apart as this app allows: the default
-/// warm light one, and a cold dark one. If a colour does not move between
-/// these two, it is not following the palette at all.
-final _paletteA = themeForKey('barako').light;
-final _paletteB = themeForKey('tidal').dark;
+/// light one (Palawan), and a near-black dark one (BGC Obsidian). If a colour
+/// does not move between these two, it is not following the palette at all.
+final _paletteA = themeForKey('palawan').light;
+final _paletteB = themeForKey('obsidian').dark;
 
 Future<void> _pumpWith(WidgetTester tester, Widget child) async {
   await tester.pumpWidget(
@@ -50,14 +50,14 @@ Future<(Color?, Color?)> _colourAcrossPalettes(
   Widget Function() build,
   Color? Function(WidgetTester) read,
 ) async {
-  Barako.currentTheme = themeForKey('barako');
+  Barako.currentTheme = themeForKey('palawan');
   Barako.current = _paletteA;
   await _pumpWith(tester, build());
   final first = read(tester);
 
   // Exactly what the app does on a theme switch or a night-mode flip: change
   // the palette, then rebuild the same tree.
-  Barako.currentTheme = themeForKey('tidal');
+  Barako.currentTheme = themeForKey('obsidian');
   Barako.current = _paletteB;
   await _pumpWith(tester, build());
   final second = read(tester);
@@ -70,7 +70,7 @@ void main() {
   });
 
   tearDown(() {
-    Barako.currentTheme = themeForKey('barako');
+    Barako.currentTheme = themeForKey('palawan');
     Barako.current = _paletteA;
   });
 

@@ -104,7 +104,7 @@ class AppearanceScreen extends StatelessWidget {
                 Kicker('COLOR THEME'),
                 const SizedBox(height: Gap.sm),
                 Text(
-                  'Barako is the Salapify look. Your money, entries and '
+                  'Pick the look that fits you. Your money, entries and '
                   'settings never change.',
                   style: AppText.caption.copyWith(height: 1.3),
                 ),
