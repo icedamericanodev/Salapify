@@ -1840,9 +1840,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
         store.patchDebtMeta(id, {'isArchived': !isArchived});
       },
       isArchived: isArchived,
-      // A saved receiving QR shows through the existing QR sheet; with none
-      // saved yet, the control opens the card's details where one is attached,
-      // rather than fabricating a code that could not be paid.
+      // A saved receiving QR shows through the existing QR sheet. With none
+      // saved yet, this opens the card's DETAIL screen, whose "Receiving QR"
+      // section has an "Add a QR image" button, rather than the edit form (which
+      // has no QR field) and never a fabricated code that could not be paid.
       onShowQr: hasQr
           ? () async {
               final vault = await QrVault.inAppDocuments();
@@ -1854,7 +1855,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 label: row['qrLabel']?.toString(),
               );
             }
-          : null,
+          : () => _openCard(context, row, which),
     );
   }
 
