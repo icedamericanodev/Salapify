@@ -2279,14 +2279,21 @@ void main() {
     // the mechanism (no filter, baked fallback palette); this proves the
     // RESULT, which is the thing a person would actually notice.
     //
-    // Eight identical cups is the passing picture here. That reads as a
-    // boring shot and it is the entire point: Pan is meant to be the one
-    // fixed thing on a screen the user can repaint. If a future change
-    // reintroduces theming, this strip turns into a rainbow and says so at a
-    // glance.
+    // A row of identical cups, one per theme, is the passing picture here.
+    // That reads as a boring shot and it is the entire point: Pan is meant to
+    // be the one fixed thing on a screen the user can repaint. If a future
+    // change reintroduces theming, this strip turns into a rainbow and says so
+    // at a glance.
     await loadRealFonts(tester);
     await loadPanFaces(tester);
-    tester.view.physicalSize = const Size(2100, 300);
+    // Size the canvas from the registry, not a fixed width: every theme gets a
+    // 72px cup plus breathing room, so adding a theme widens the strip instead
+    // of overflowing the Row. A hard-coded width silently overflowed the day a
+    // batch of new themes landed (the count in prose rots; the registry does
+    // not).
+    const cellLogical = 96.0;
+    final stripLogical = barakoThemes.length * cellLogical;
+    tester.view.physicalSize = Size(stripLogical * 3.0, 300);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -2568,7 +2575,9 @@ void main() {
     }
   });
 
-  testWidgets('the Assets vs Liabilities donut, light and dark', (tester) async {
+  testWidgets('the Assets vs Liabilities donut, light and dark', (
+    tester,
+  ) async {
     // Reached by tapping a hero total. The lived-in fixture has assets across
     // several categories and some debts, so the donut and legend fill in.
     // Own (assets) is the default view, matching the mockup. Light then dark.
@@ -2610,7 +2619,11 @@ void main() {
     await loadRealFonts(tester);
     final now = DateTime.now();
     String d(int back) {
-      final t = DateTime(now.year, now.month, now.day).subtract(Duration(days: back));
+      final t = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: back));
       return '${t.year.toString().padLeft(4, '0')}-'
           '${t.month.toString().padLeft(2, '0')}-'
           '${t.day.toString().padLeft(2, '0')}';
@@ -2622,19 +2635,40 @@ void main() {
         'settings': {'onboarded': true},
         'accounts': [
           {
-            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
-            'balance': 48000, 'subtype': 'savings_account',
+            'id': 'bpi',
+            'name': 'BPI Savings',
+            'kind': 'savings',
+            'balance': 48000,
+            'subtype': 'savings_account',
             'institutionId': 'bpi',
           },
           {'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000},
         ],
         'transactions': [
-          {'id': 'i1', 'type': 'income', 'label': 'Salary deposit', 'amount': 36250, 'date': d(0), 'accountId': 'bpi'},
-          {'id': 'o1', 'type': 'expense', 'label': 'Rent', 'amount': 25000, 'date': d(2), 'accountId': 'bpi'},
           {
-            'id': 'x1', 'type': 'transfer', 'label': 'Transfer to GCash',
-            'amount': 5000, 'date': d(4),
-            'transferFromId': 'bpi', 'transferToId': 'gcash',
+            'id': 'i1',
+            'type': 'income',
+            'label': 'Salary deposit',
+            'amount': 36250,
+            'date': d(0),
+            'accountId': 'bpi',
+          },
+          {
+            'id': 'o1',
+            'type': 'expense',
+            'label': 'Rent',
+            'amount': 25000,
+            'date': d(2),
+            'accountId': 'bpi',
+          },
+          {
+            'id': 'x1',
+            'type': 'transfer',
+            'label': 'Transfer to GCash',
+            'amount': 5000,
+            'date': d(4),
+            'transferFromId': 'bpi',
+            'transferToId': 'gcash',
           },
         ],
       }),
@@ -2679,12 +2713,18 @@ void main() {
         'settings': {'onboarded': true},
         'accounts': [
           {
-            'id': 'bpi', 'name': 'BPI Savings', 'kind': 'savings',
-            'balance': 48000, 'subtype': 'savings_account',
+            'id': 'bpi',
+            'name': 'BPI Savings',
+            'kind': 'savings',
+            'balance': 48000,
+            'subtype': 'savings_account',
             'institutionId': 'bpi',
           },
           {
-            'id': 'gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 2000,
+            'id': 'gcash',
+            'name': 'GCash',
+            'kind': 'ewallet',
+            'balance': 2000,
             'institutionId': 'gcash',
           },
         ],

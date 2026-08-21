@@ -17,6 +17,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
+import 'theme/salapify_theme.dart';
+
+export 'theme/salapify_theme.dart' show SalapifyColors, SalapifyThemePreset;
+
 /// One brightness worth of colors. Pure color DATA, so it stays const; identity
 /// (key, label) lives on BarakoTheme, not here.
 class BarakoPalette {
@@ -486,6 +490,187 @@ const _mintLight = BarakoPalette(
 /// mint hint) before this change and have now diverged deliberately: the light
 /// Forest palette below is fixed here and left alone in RN, which stays frozen
 /// for testers. Treat the RN file as a sibling, not a source.
+// --- f4.59 modern looks. Designed from the SalapifyColors presets
+// (theme/salapify_theme.dart) and tuned so every pair clears WCAG AA in
+// palette_contrast_test; the win gold stays theme-invariant (dark FFC24D, light
+// 8A5A00), same rule as every other theme. Each carries both brightnesses so
+// the picker and the system light/dark switch always have a coherent answer.
+
+const _palawanDark = BarakoPalette(
+  brightness: Brightness.dark,
+  background: Color(0xFF0B131F),
+  card: Color(0xFF131F30),
+  surfaceRaised: Color(0xFF1B2C44),
+  border: Color(0xFF1E3A5F),
+  primary: Color(0xFF00E5A3),
+  primaryText: Color(0xFF34E7B0),
+  caramel: Color(0xFF66E6C6),
+  text: Color(0xFFF8FAFC),
+  textSecondary: Color(0xFFC4D2E0),
+  muted: Color(0xFF9FB2C6),
+  faint: Color(0xFF93A6BB),
+  warning: Color(0xFFF87086),
+  warningStrong: Color(0xFFFB8D9D),
+  onPrimary: Color(0xFF04231A),
+  celebrate: Color(0xFFFFC24D),
+  positiveSurface: Color(0xFF10241C),
+  positiveBorder: Color(0xFF1E4034),
+  overlay: Color.fromRGBO(4, 9, 15, 0.64),
+);
+const _palawanLight = BarakoPalette(
+  brightness: Brightness.light,
+  background: Color(0xFFF4FAF8),
+  card: Color(0xFFFFFFFF),
+  surfaceRaised: Color(0xFFFFFFFF),
+  border: Color(0xFFD9E7E1),
+  primary: Color(0xFF04795E),
+  primaryText: Color(0xFF04795E),
+  caramel: Color(0xFF0E6E86),
+  text: Color(0xFF0B2A24),
+  textSecondary: Color(0xFF3F6B60),
+  muted: Color(0xFF4A6B63),
+  faint: Color(0xFF557067),
+  warning: Color(0xFFB0243C),
+  warningStrong: Color(0xFF8C1329),
+  onPrimary: Color(0xFFFFFFFF),
+  celebrate: Color(0xFF8A5A00),
+  positiveSurface: Color(0xFFE2F3EC),
+  positiveBorder: Color(0xFFCFE6DB),
+  overlay: Color.fromRGBO(8, 28, 24, 0.42),
+);
+
+const _mayonDark = BarakoPalette(
+  brightness: Brightness.dark,
+  background: Color(0xFF140E1B),
+  card: Color(0xFF22172C),
+  surfaceRaised: Color(0xFF31223E),
+  border: Color(0xFF3A2A45),
+  primary: Color(0xFFF27457),
+  primaryText: Color(0xFFFF8A6E),
+  caramel: Color(0xFFFFB27A),
+  text: Color(0xFFFFF1F2),
+  textSecondary: Color(0xFFFDA4AF),
+  muted: Color(0xFFE7B4BE),
+  faint: Color(0xFFDFA9B4),
+  warning: Color(0xFFF87086),
+  warningStrong: Color(0xFFFF9AAA),
+  onPrimary: Color(0xFF2A0F08),
+  celebrate: Color(0xFFFFC24D),
+  positiveSurface: Color(0xFF15251C),
+  positiveBorder: Color(0xFF2C4030),
+  overlay: Color.fromRGBO(10, 7, 14, 0.64),
+);
+const _mayonLight = BarakoPalette(
+  brightness: Brightness.light,
+  // A warmer sunset peach, deep enough to read apart from Ember's cream page
+  // (appearance_test's distinguishability floor); every text pair still clears
+  // AA on it.
+  background: Color(0xFFFFE8DC),
+  card: Color(0xFFFFFFFF),
+  surfaceRaised: Color(0xFFFFFFFF),
+  border: Color(0xFFF0DDD5),
+  primary: Color(0xFFB3402A),
+  primaryText: Color(0xFFB3402A),
+  caramel: Color(0xFF8A4B20),
+  text: Color(0xFF2A1712),
+  textSecondary: Color(0xFF7A5348),
+  muted: Color(0xFF6E4C42),
+  faint: Color(0xFF795750),
+  warning: Color(0xFFB0243C),
+  warningStrong: Color(0xFF8C1329),
+  onPrimary: Color(0xFFFFFFFF),
+  celebrate: Color(0xFF8A5A00),
+  positiveSurface: Color(0xFFF2E7E1),
+  positiveBorder: Color(0xFFE7D3C8),
+  overlay: Color.fromRGBO(28, 16, 10, 0.42),
+);
+
+const _obsidianDark = BarakoPalette(
+  brightness: Brightness.dark,
+  background: Color(0xFF07090E),
+  card: Color(0xFF0F141C),
+  surfaceRaised: Color(0xFF171F2C),
+  border: Color(0xFF1E293B),
+  primary: Color(0xFF00F0FF),
+  primaryText: Color(0xFF3DE0EC),
+  caramel: Color(0xFF8FB4D9),
+  text: Color(0xFFFFFFFF),
+  textSecondary: Color(0xFFAEBAC9),
+  muted: Color(0xFF9DB0C4),
+  faint: Color(0xFF8CA0B6),
+  warning: Color(0xFFFF6B81),
+  warningStrong: Color(0xFFFF8EA0),
+  onPrimary: Color(0xFF03181C),
+  celebrate: Color(0xFFFFC24D),
+  positiveSurface: Color(0xFF0C2620),
+  positiveBorder: Color(0xFF16463C),
+  overlay: Color.fromRGBO(3, 4, 8, 0.66),
+);
+const _obsidianLight = BarakoPalette(
+  brightness: Brightness.light,
+  background: Color(0xFFF6F8FB),
+  card: Color(0xFFFFFFFF),
+  surfaceRaised: Color(0xFFFFFFFF),
+  border: Color(0xFFE2E8F0),
+  primary: Color(0xFF0E6E9E),
+  primaryText: Color(0xFF0E6E9E),
+  caramel: Color(0xFF0E6E86),
+  text: Color(0xFF0B1622),
+  textSecondary: Color(0xFF46586B),
+  muted: Color(0xFF4E5E70),
+  faint: Color(0xFF5A6A7C),
+  warning: Color(0xFFB0243C),
+  warningStrong: Color(0xFF8C1329),
+  onPrimary: Color(0xFFFFFFFF),
+  celebrate: Color(0xFF8A5A00),
+  positiveSurface: Color(0xFFE6F0F5),
+  positiveBorder: Color(0xFFD3E3EC),
+  overlay: Color.fromRGBO(7, 13, 22, 0.42),
+);
+
+const _pearlLight = BarakoPalette(
+  brightness: Brightness.light,
+  background: Color(0xFFF8FAFC),
+  card: Color(0xFFFFFFFF),
+  surfaceRaised: Color(0xFFF1F5F9),
+  border: Color(0xFFE2E8F0),
+  primary: Color(0xFF005CEE),
+  primaryText: Color(0xFF005CEE),
+  caramel: Color(0xFF0D7A6E),
+  text: Color(0xFF0F172A),
+  textSecondary: Color(0xFF55606E),
+  muted: Color(0xFF5B6472),
+  faint: Color(0xFF64748B),
+  warning: Color(0xFFC81E1E),
+  warningStrong: Color(0xFF8C1329),
+  onPrimary: Color(0xFFFFFFFF),
+  celebrate: Color(0xFF8A5A00),
+  positiveSurface: Color(0xFFE7F3EC),
+  positiveBorder: Color(0xFFD3E7DA),
+  overlay: Color.fromRGBO(15, 23, 42, 0.34),
+);
+const _pearlDark = BarakoPalette(
+  brightness: Brightness.dark,
+  background: Color(0xFF0B1220),
+  card: Color(0xFF121A2A),
+  surfaceRaised: Color(0xFF1B2536),
+  border: Color(0xFF26334A),
+  primary: Color(0xFF4D9AFF),
+  primaryText: Color(0xFF6FB0FF),
+  caramel: Color(0xFF8FB4D9),
+  text: Color(0xFFF1F5F9),
+  textSecondary: Color(0xFFC2CCD9),
+  muted: Color(0xFFA7B4C4),
+  faint: Color(0xFF98A6B8),
+  warning: Color(0xFFFF6B81),
+  warningStrong: Color(0xFFFF8EA0),
+  onPrimary: Color(0xFF06121F),
+  celebrate: Color(0xFFFFC24D),
+  positiveSurface: Color(0xFF10241C),
+  positiveBorder: Color(0xFF1E4034),
+  overlay: Color.fromRGBO(5, 9, 16, 0.64),
+);
+
 const List<BarakoTheme> barakoThemes = [
   BarakoTheme(
     key: 'barako',
@@ -542,6 +727,34 @@ const List<BarakoTheme> barakoThemes = [
     hint: 'Deep green, warm orange.',
     light: _forestLight,
     dark: _forestDark,
+  ),
+  BarakoTheme(
+    key: 'palawan',
+    label: 'Palawan Lagoon',
+    hint: 'Emerald and cyan on lagoon navy.',
+    light: _palawanLight,
+    dark: _palawanDark,
+  ),
+  BarakoTheme(
+    key: 'mayon',
+    label: 'Mayon Sunset',
+    hint: 'Warm coral over a dusk plum.',
+    light: _mayonLight,
+    dark: _mayonDark,
+  ),
+  BarakoTheme(
+    key: 'obsidian',
+    label: 'BGC Obsidian',
+    hint: 'Neon cyan on near-black titanium.',
+    light: _obsidianLight,
+    dark: _obsidianDark,
+  ),
+  BarakoTheme(
+    key: 'pearl',
+    label: 'Pearl',
+    hint: 'Clean blue on a soft pearl white.',
+    light: _pearlLight,
+    dark: _pearlDark,
   ),
 ];
 
@@ -970,6 +1183,24 @@ ThemeData salapifyTheme([BarakoPalette? palette]) {
     fontFamily: 'Jakarta',
     scaffoldBackgroundColor: p.background,
     colorScheme: scheme,
+    // The forward-facing ThemeExtension, sourced from the SAME active palette
+    // the screens read through Barako, so SalapifyColors.of(context) and Barako
+    // can never disagree. New widgets may read this; existing ones keep reading
+    // Barako. See theme/salapify_theme.dart.
+    extensions: [
+      SalapifyColors(
+        primary: p.primary,
+        secondary: p.caramel,
+        background: p.background,
+        surface: p.card,
+        surfaceSubtle: p.surfaceRaised,
+        textPrimary: p.text,
+        textSecondary: p.textSecondary,
+        cardBorder: p.border,
+        accentSuccess: p.celebrate,
+        accentDanger: p.warningStrong,
+      ),
+    ],
     splashColor: p.primary.withValues(alpha: BarakoAlpha.wash),
     highlightColor: p.primary.withValues(alpha: BarakoAlpha.wash),
     cardTheme: CardThemeData(
