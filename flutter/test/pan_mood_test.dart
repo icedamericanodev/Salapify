@@ -71,9 +71,9 @@ void main() {
   });
 
   testWidgets('PanMascot renders for every mood without error', (tester) async {
-    // The placeholder cup reads the active Barako palette, so set one first,
-    // exactly as the app does before any screen builds.
-    Barako.currentTheme = themeForKey('barako');
+    // The placeholder cup reads the active palette, so set one first, exactly
+    // as the app does before any screen builds.
+    Barako.currentTheme = themeForKey('palawan');
     Barako.current = Barako.currentTheme.resolve(Brightness.light);
     for (final m in PanMood.values) {
       await tester.pumpWidget(

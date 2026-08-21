@@ -34,8 +34,8 @@ int _channelGap(Color a, Color b) {
 
 /// How far apart two palettes are, judged on the four tokens a person actually
 /// sees: the page, the card on it, the accent, and the win color. A theme only
-/// has to win on ONE of them, because Tidal and Voltage legitimately share a
-/// near identical pale blue page and are told apart entirely by their accents.
+/// has to win on ONE of them: two looks can legitimately share a near identical
+/// page and be told apart entirely by their accents.
 int _distance(BarakoPalette a, BarakoPalette b) => [
   _channelGap(a.background, b.background),
   _channelGap(a.card, b.card),
@@ -58,7 +58,7 @@ Future<SalapifyStore> _store([Map<String, dynamic>? settings]) async {
 }
 
 Future<void> _pump(WidgetTester tester, SalapifyStore store) async {
-  // Tall enough that all eight tiles build. A tile that was never built reports
+  // Tall enough that all four tiles build. A tile that was never built reports
   // "not found" for the wrong reason.
   tester.view.physicalSize = const Size(1100, 3000);
   tester.view.devicePixelRatio = 1.0;
@@ -79,11 +79,12 @@ Future<void> _pump(WidgetTester tester, SalapifyStore store) async {
 void main() {
   group('no two themes may be the same theme', () {
     test('every pair is distinguishable in both brightnesses', () {
-      // 15 is chosen against the real data, not picked out of the air. Before
-      // the fix, Barako and Forest in light scored 8, which is invisible. After
-      // it, the tightest pair in the whole system is Barako and Ember in light
-      // at 19. So this threshold sits in the gap: it fails the bug and passes
-      // everything that legitimately ships.
+      // 15 is chosen against real data, not picked out of the air. The bug that
+      // set it: two themes that scored 8 on this metric in light were the same
+      // theme to the eye, and a user who switched between them thought the
+      // picker was broken. The four shipping looks all clear it comfortably (one
+      // light, three dark with distinct accents), so the threshold fails the bug
+      // and passes everything that legitimately ships.
       const floor = 15;
       for (final b in [Brightness.light, Brightness.dark]) {
         for (var i = 0; i < barakoThemes.length; i++) {
@@ -101,24 +102,6 @@ void main() {
             );
           }
         }
-      }
-    });
-
-    test('a theme claiming green is green in BOTH brightnesses', () {
-      // Forest specifically, because its hint promises green and for a long
-      // time it only delivered in the dark. Green means the green channel leads
-      // in the surfaces, which is exactly what a cream page fails.
-      for (final b in [Brightness.light, Brightness.dark]) {
-        final p = themeForKey('forest').resolve(b);
-        int ch(double v) => (v * 255).round();
-        expect(
-          ch(p.background.g),
-          greaterThan(ch(p.background.r)),
-          reason:
-              'Forest promises deep green and its ${b.name} page is not green. '
-              'That is the exact shape of the original bug: the theme was only '
-              'green in the dark, and its own hint was false in the light.',
-        );
       }
     });
   });
@@ -143,8 +126,21 @@ void main() {
       }
     });
 
-    test('Barako is still first, because first reads as recommended', () {
-      expect(barakoThemes.first.key, 'barako');
+    test('Palawan is first, because first reads as recommended', () {
+      expect(barakoThemes.first.key, 'palawan');
+    });
+
+    test('the picker is curated to exactly four looks', () {
+      // Founder direction: four distinct moods, not a scroll through near
+      // twins. A derived count, so adding or dropping a theme reddens here on
+      // purpose and forces the decision back to the founder.
+      expect(barakoThemes.length, 4);
+      expect(barakoThemes.map((t) => t.key).toList(), [
+        'palawan',
+        'mayon',
+        'obsidian',
+        'pearl',
+      ]);
     });
 
     test('every hint is short enough to sit in a tile', () {
@@ -177,17 +173,17 @@ void main() {
         );
       }
 
-      await tester.tap(find.text('Voltage'));
+      await tester.tap(find.text('BGC Obsidian'));
       await tester.pumpAndSettle();
-      expect((store.data['settings'] as Map)['themeKey'], 'voltage');
+      expect((store.data['settings'] as Map)['themeKey'], 'obsidian');
 
       final fresh = SalapifyStore();
       await fresh.load();
-      expect((fresh.data['settings'] as Map)['themeKey'], 'voltage');
+      expect((fresh.data['settings'] as Map)['themeKey'], 'obsidian');
     });
 
     testWidgets('selection is never carried by colour alone', (tester) async {
-      final store = await _store({'themeKey': 'mint', 'themeMode': 'light'});
+      final store = await _store({'themeKey': 'pearl', 'themeMode': 'light'});
       await _pump(tester, store);
 
       // Exactly one check badge, and it belongs to the selected theme. A ring
@@ -197,23 +193,25 @@ void main() {
 
       // ThemeTile's own root Semantics, not whichever ancestor happens to be
       // outermost. Semantics is the first thing its build returns.
-      final mintTile = find.ancestor(
-        of: find.text('Mint'),
+      final pearlTile = find.ancestor(
+        of: find.text('Pearl'),
         matching: find.byType(ThemeTile),
       );
       final selected = tester.widget<Semantics>(
-        find.descendant(of: mintTile, matching: find.byType(Semantics)).first,
+        find.descendant(of: pearlTile, matching: find.byType(Semantics)).first,
       );
       expect(selected.properties.selected, isTrue);
 
       // And the tile that is NOT selected says so, which is the half that
       // makes the assertion above mean anything.
-      final barakoTile = find.ancestor(
-        of: find.text('Barako'),
+      final palawanTile = find.ancestor(
+        of: find.text('Palawan Lagoon'),
         matching: find.byType(ThemeTile),
       );
       final unselected = tester.widget<Semantics>(
-        find.descendant(of: barakoTile, matching: find.byType(Semantics)).first,
+        find
+            .descendant(of: palawanTile, matching: find.byType(Semantics))
+            .first,
       );
       expect(unselected.properties.selected, isFalse);
     });
@@ -222,9 +220,12 @@ void main() {
       'the preview draws the theme it is previewing, not the active one',
       (tester) async {
         // The trap this guards: a preview that reads Barako.* getters shows the
-        // CURRENT theme eight times, so every tile looks identical and the
+        // CURRENT theme on every tile, so they all look identical and the
         // picker silently becomes useless while still rendering perfectly.
-        final store = await _store({'themeKey': 'barako', 'themeMode': 'dark'});
+        final store = await _store({
+          'themeKey': 'palawan',
+          'themeMode': 'dark',
+        });
         await _pump(tester, store);
 
         final seen = <Color>{};
@@ -242,14 +243,16 @@ void main() {
             if (d is BoxDecoration && d.color != null) seen.add(d.color!);
           }
         }
-        // Eight themes, each contributing its own page, card, accent and win
-        // colour. If the preview read the live palette they would collapse into
-        // a handful of repeats.
+        // Four themes, each contributing its own page, card and accent (the win
+        // gold is theme-invariant, so it does NOT add four). If the preview read
+        // the live palette they would collapse to one palette's handful. Eight
+        // cleanly separates "each draws its own" (~12) from "all draw the active
+        // one" (~4 or fewer).
         expect(
           seen.length,
-          greaterThan(16),
+          greaterThan(8),
           reason:
-              'The eight previews are drawing from too few distinct colours, '
+              'The four previews are drawing from too few distinct colours, '
               'which is what happens when they read the ACTIVE palette instead '
               'of the one they are meant to be showing.',
         );

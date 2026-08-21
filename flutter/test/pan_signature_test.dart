@@ -38,8 +38,8 @@ Widget _pan() => MaterialApp(
 
 void main() {
   tearDown(() {
-    Barako.currentTheme = themeForKey('barako');
-    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    Barako.currentTheme = themeForKey('palawan');
+    Barako.current = themeForKey('palawan').resolve(Brightness.dark);
   });
 
   testWidgets('no colour filter is ever applied to the artwork', (
@@ -101,9 +101,10 @@ void main() {
   });
 
   test('the signature is independent of the palette, not derived from it', () {
-    // They are equal TODAY because Barako is the Salapify look. The point is
-    // that Pan owns his colour: if Barako is ever retuned, Pan must not
-    // silently follow, so nothing may compute the signature from the palette.
+    // The signature is a fixed literal, not read from any theme. The point is
+    // that Pan owns his colour: whatever look the user picks, and however the
+    // palette is retuned, Pan must not silently follow, so nothing may compute
+    // the signature from the palette.
     expect(panSignatureColor.toARGB32(), 0xFFFF8A3D);
     expect(kPanSignaturePalette.cup, panSignatureColor);
   });
@@ -114,24 +115,24 @@ void main() {
     // The property stated end to end, rather than as three separate
     // mechanisms. Whatever route a future change takes, this is what must
     // stay true.
-    Barako.currentTheme = themeForKey('barako');
-    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    Barako.currentTheme = themeForKey('palawan');
+    Barako.current = themeForKey('palawan').resolve(Brightness.dark);
     await tester.pumpWidget(_pan());
     await tester.pumpAndSettle();
-    final onBarako = _panColors(tester);
-    final filteredOnBarako = find.byType(ColorFiltered).evaluate().length;
+    final onPalawan = _panColors(tester);
+    final filteredOnPalawan = find.byType(ColorFiltered).evaluate().length;
 
-    Barako.currentTheme = themeForKey('mint');
-    Barako.current = themeForKey('mint').resolve(Brightness.light);
+    Barako.currentTheme = themeForKey('pearl');
+    Barako.current = themeForKey('pearl').resolve(Brightness.light);
     await tester.pumpWidget(_pan());
     await tester.pumpAndSettle();
 
-    expect(_panColors(tester), onBarako);
+    expect(_panColors(tester), onPalawan);
     expect(
       find.byType(ColorFiltered).evaluate().length,
-      filteredOnBarako,
+      filteredOnPalawan,
       reason:
-          'Pan is drawn differently on Mint than on Barako. He is meant to be '
+          'Pan is drawn differently on Pearl than on Palawan. He is meant to be '
           'the one fixed thing on a screen the user can repaint.',
     );
   });

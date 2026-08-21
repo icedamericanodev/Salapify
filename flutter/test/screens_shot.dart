@@ -1838,21 +1838,21 @@ void main() {
     );
   });
 
-  testWidgets('appearance, with a non-Barako theme selected, dark', (
+  testWidgets('appearance, with a non-default theme selected, dark', (
     tester,
   ) async {
-    // The default shots open on Barako, where the selected tile, the ring and
-    // the check badge are all the same orange as the rest of the app, so they
-    // prove almost nothing. This one picks Voltage: the ring and badge become
-    // electric blue against seven other palettes, which is the only frame that
-    // actually shows selection reading as selection.
+    // The default shots open on Palawan (the recommended first tile), where the
+    // selected tile is easy to miss among the others. This one picks BGC
+    // Obsidian: its neon-cyan ring and check badge stand out against the other
+    // palettes, which is the frame that actually shows selection reading as
+    // selection.
     await loadRealFonts(tester);
     SharedPreferences.setMockInitialValues({
       storageKey: jsonEncode({
         'schemaVersion': 12,
         'accounts': <Map<String, dynamic>>[],
         'transactions': <Map<String, dynamic>>[],
-        'settings': {'themeKey': 'voltage', 'themeMode': 'dark'},
+        'settings': {'themeKey': 'obsidian', 'themeMode': 'dark'},
       }),
     });
     final store = SalapifyStore();
@@ -1862,7 +1862,7 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    Barako.currentTheme = themeForKey('voltage');
+    Barako.currentTheme = themeForKey('obsidian');
     Barako.current = Barako.currentTheme.resolve(Brightness.dark);
     await tester.pumpWidget(
       MaterialApp(
@@ -1874,10 +1874,10 @@ void main() {
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(MaterialApp),
-      matchesGoldenFile('shots/appearance-voltage-dark.png'),
+      matchesGoldenFile('shots/appearance-obsidian-dark.png'),
     );
-    Barako.currentTheme = themeForKey('barako');
-    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    Barako.currentTheme = themeForKey('palawan');
+    Barako.current = themeForKey('palawan').resolve(Brightness.dark);
   });
 
   testWidgets('the diagnostics dialog, before anything is copied', (
@@ -2330,8 +2330,8 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('shots/pan-themes-dark.png'),
     );
-    Barako.currentTheme = themeForKey('barako');
-    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    Barako.currentTheme = themeForKey('palawan');
+    Barako.current = themeForKey('palawan').resolve(Brightness.dark);
   });
 
   testWidgets('the Pan emotions', (tester) async {
@@ -2340,8 +2340,8 @@ void main() {
     // than only where it happens to be wired in.
     await loadRealFonts(tester);
     await loadPanFaces(tester);
-    Barako.currentTheme = themeForKey('barako');
-    Barako.current = themeForKey('barako').resolve(Brightness.dark);
+    Barako.currentTheme = themeForKey('palawan');
+    Barako.current = themeForKey('palawan').resolve(Brightness.dark);
     tester.view.physicalSize = const Size(2100, 460);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
