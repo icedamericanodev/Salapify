@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.60 · Appearance trimmed to four looks: Palawan Lagoon, Mayon Sunset, BGC Obsidian, Pearl.';
+    'f4.61 · New type: IBM Plex Sans for ledgers and PDFs, a mono face for card numbers. New base APK.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

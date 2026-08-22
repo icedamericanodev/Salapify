@@ -20,7 +20,10 @@ void main() {
       final s = AppText.amountReference;
       expect(s.fontSize, TypeScale.body); // 15
       expect(s.fontWeight, TypeWeight.medium); // w600
-      expect(s.fontFamily, Barako.bodyFont);
+      expect(
+        s.fontFamily,
+        Barako.ledgerFont,
+      ); // the ledger face (IBM Plex Sans)
       expect(s.color, Barako.textSecondary);
       expect(s.fontFeatures, contains(const FontFeature.tabularFigures()));
     });

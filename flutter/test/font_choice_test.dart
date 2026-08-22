@@ -31,13 +31,12 @@ void main() {
       final lines = f.readAsLinesSync();
       for (var i = 0; i < lines.length; i++) {
         final m = RegExp(r"fontFamily:\s*'(\w+)'").firstMatch(lines[i]);
-        // 'monospace' is a platform GENERIC, not a bundled family. It resolves
-        // to whatever fixed-width face the phone has, which is the entire
-        // point at the two call sites that use it (a receipt-style block that
-        // must align in columns). Naming it is the correct thing to do, and
-        // routing it through the theme would imply Salapify ships a mono face
-        // it does not.
-        if (m != null && m.group(1) != 'monospace') {
+        // No exception for 'monospace' any more. Salapify now ships a real mono
+        // face (Barako.monoFont, IBM Plex Mono), so the receipt-style blocks
+        // that used to name the platform generic route through the theme like
+        // everything else, and a raw 'monospace' is once again a family named
+        // outside the one place families live.
+        if (m != null) {
           offenders.add('${f.path}:${i + 1} -> ${m.group(1)}');
         }
       }

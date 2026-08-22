@@ -2107,7 +2107,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       style: TextStyle(
                         color: Barako.textSecondary,
                         fontSize: 11,
-                        fontFamily: 'monospace',
+                        fontFamily: Barako.monoFont,
                       ),
                     ),
                   ),
@@ -2383,7 +2383,7 @@ class _ImportScreenState extends State<ImportScreen> {
                   style: TextStyle(
                     color: Barako.text,
                     fontSize: 12,
-                    fontFamily: 'monospace',
+                    fontFamily: Barako.monoFont,
                   ),
                   decoration: InputDecoration(
                     hintText: '{"app":"salapify", ...}',

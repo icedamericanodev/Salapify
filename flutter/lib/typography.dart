@@ -109,11 +109,15 @@ const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 /// Use `.tint(color)` for that, and `.w6` / `.w7` / `.w8` to shift weight,
 /// rather than spelling out a fresh TextStyle.
 abstract final class AppText {
-  // Money. Jakarta with tabular figures so a changing figure holds its column
-  // instead of jittering, which is exactly why the app's hero number is
-  // Jakarta and not Fraunces (Fraunces ships no tnum table). displayFont and
-  // bodyFont are the same family today; naming them keeps the door open to
-  // giving hero numbers their own face again without touching call sites.
+  // Money, in two deliberate faces (founder direction, 2026-08-22). The DISPLAY
+  // numbers (the hero, the card figure, the metric tiles) stay Jakarta; the
+  // LEDGER numbers (row and reference amounts, the working money in a list or a
+  // table) draw in IBM Plex Sans, so a dense column of figures reads as a
+  // ledger rather than a wall of hero type. Both carry tabular figures so a
+  // changing figure holds its column instead of jittering, which is why neither
+  // is Fraunces (it ships no tnum table). The families live on Barako
+  // (displayFont / ledgerFont), so a face change is one edit, not a call-site
+  // sweep.
 
   /// The net worth hero, the one biggest number on the app.
   static TextStyle get amountHero => TextStyle(
@@ -150,14 +154,16 @@ abstract final class AppText {
   );
 
   /// Money inline in a list row: body size, bold, tabular, so a column of
-  /// amounts lines up on the decimal.
+  /// amounts lines up on the decimal. Drawn in the LEDGER face (IBM Plex Sans),
+  /// the working-money face that the display hero (Jakarta) deliberately does
+  /// not share, so a dense list of figures reads as a ledger.
   ///
   /// STRICT, deliberately. A row amount read five different ways in five
   /// screens before this rule: never resize it, never reweight it. The only
   /// permitted modifier is `.tint(color)`, for direction or warning color.
   /// A screen that wants a bigger figure wants [amount], not a resized row.
   static TextStyle get amountRow => TextStyle(
-    fontFamily: Barako.bodyFont,
+    fontFamily: Barako.ledgerFont,
     fontSize: TypeScale.body,
     fontWeight: TypeWeight.bold,
     height: 1.2,
@@ -173,7 +179,7 @@ abstract final class AppText {
   /// site, exactly like amountRow: pass Barako.text where it sits on full ink
   /// beside a tinted primary, or Barako.muted on a surface that allows it.
   static TextStyle get amountReference => TextStyle(
-    fontFamily: Barako.bodyFont,
+    fontFamily: Barako.ledgerFont,
     fontSize: TypeScale.body,
     fontWeight: TypeWeight.medium,
     height: 1.2,
