@@ -114,7 +114,10 @@ void main() {
     // this guards, is that a SEGMENT flip within one open Utang keeps the pick.
     await _boot(tester);
     await goToTab(tester, 'Utang');
-    await tester.tap(find.text('Avalanche'));
+    // Tap the PAYOFF PLAN strategy chip specifically. "Avalanche" also appears
+    // now as a column header in the Avalanche vs Snowball comparison card, so a
+    // bare text finder is ambiguous; the chip is what this test is about.
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Avalanche'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Owed to me'));
