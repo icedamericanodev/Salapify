@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.64 · Avalanche vs Snowball on Debts: compare the two payoff orders and see the interest each one costs.';
+    'f4.65 · Pan, a little draggable helper on every tab, with swipeable tips that open the right screen or ask Pan.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -22,6 +22,8 @@ import '../services/home_tile.dart';
 import '../theme.dart';
 import '../widgets/pressable_scale.dart';
 import '../widgets/salapify_icon.dart';
+import '../money/pan_tips.dart';
+import '../widgets/pan_helper_bubble.dart';
 import 'accounts.dart';
 import 'budget.dart';
 import 'history.dart';
@@ -30,6 +32,7 @@ import 'log_sheet.dart';
 import 'menu.dart';
 import 'money.dart';
 import 'overview.dart';
+import 'pan.dart' show PanScreen;
 
 enum Destination {
   // The four bottom-bar destinations, in bar order (see [bar]).
@@ -295,6 +298,46 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
+  /// Open Pan's plain-words Q&A, optionally seeded with a question. Wired with
+  /// the same navigation callbacks Menu hands it, so Pan's own CTAs keep working.
+  void _openPan([String? question]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanScreen(
+          store: widget.store,
+          onSwitchTab: _select,
+          onOpenReceivables: _openReceivables,
+          onOpenPayables: _openPayables,
+          initialQuestion: question,
+        ),
+      ),
+    );
+  }
+
+  /// Whether Pan's floating helper is shown. On by default; turned off in
+  /// Appearance. Read live so the toggle takes effect on the next frame.
+  bool get _panHelperEnabled =>
+      (widget.store.data['settings'] as Map?)?['panHelperEnabled'] != false;
+
+  /// Map a tapped tip to real navigation. The bubble owns no routes; this is the
+  /// one place a tip target becomes a screen.
+  void _onPanTip(PanTip tip) {
+    switch (tip.target) {
+      case PanTipTarget.home:
+        _select(Destination.home);
+      case PanTipTarget.activity:
+        _select(Destination.history);
+      case PanTipTarget.insights:
+        _select(Destination.insights);
+      case PanTipTarget.accounts:
+        _select(Destination.accounts);
+      case PanTipTarget.debts:
+        _openPayables();
+      case PanTipTarget.askPan:
+        _openPan(tip.panQuestion);
+    }
+  }
+
   /// The body for a BAR destination. Budget and Utang are never asked for here:
   /// they are pushed routes, not resident tabs, so this switch only covers the
   /// four bar tabs. The default is unreachable (tab is always a bar member) and
@@ -348,22 +391,36 @@ class _ShellScreenState extends State<ShellScreen> {
               ),
             )
           : null,
-      body: IndexedStack(
-        // Indexed over the BAR list, not the enum: Budget and Utang are not
-        // bodies here, so tab.index (an enum index) would point past the
-        // children. tab is always a bar member, so this always resolves.
-        index: Destination.bar.indexOf(tab),
+      // The tab body, with Pan's floating helper riding over it. The helper is
+      // in the SAME Stack as the body so it sits above the screens but below the
+      // Log FAB and the nav bar (which the Scaffold paints on top). It is only
+      // mounted when enabled and only over the resident bar tabs; a pushed
+      // screen (Budget, Utang, a detail) covers it, which is the right behaviour
+      // (Pan is a home-surface helper, not an overlay on a focused task).
+      body: Stack(
         children: [
-          for (final d in Destination.bar)
-            // An unvisited destination is an empty box until it is first
-            // opened. IndexedStack keeps every child it is given, so this is
-            // what makes the laziness real rather than nominal.
-            _visited.contains(d)
-                ? PrimaryScrollController(
-                    controller: _controllers[d]!,
-                    child: _bodyFor(d),
-                  )
-                : const SizedBox.shrink(),
+          IndexedStack(
+            // Indexed over the BAR list, not the enum: Budget and Utang are not
+            // bodies here, so tab.index (an enum index) would point past the
+            // children. tab is always a bar member, so this always resolves.
+            index: Destination.bar.indexOf(tab),
+            children: [
+              for (final d in Destination.bar)
+                // An unvisited destination is an empty box until it is first
+                // opened. IndexedStack keeps every child it is given, so this is
+                // what makes the laziness real rather than nominal.
+                _visited.contains(d)
+                    ? PrimaryScrollController(
+                        controller: _controllers[d]!,
+                        child: _bodyFor(d),
+                      )
+                    : const SizedBox.shrink(),
+            ],
+          ),
+          if (_panHelperEnabled)
+            Positioned.fill(
+              child: PanHelperBubble(store: widget.store, onTipTap: _onPanTip),
+            ),
         ],
       ),
       // No inline colors: navigationBarTheme owns the bar's background, the
