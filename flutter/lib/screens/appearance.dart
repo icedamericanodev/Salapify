@@ -113,6 +113,30 @@ class AppearanceScreen extends StatelessWidget {
                   selectedKey: currentKey,
                   onPick: (key) => save(() => store.setThemeKey(key)),
                 ),
+                const SizedBox(height: Gap.xl),
+                Kicker('PAN HELPER'),
+                const SizedBox(height: Gap.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'A little draggable Pan on your main tabs, with quick '
+                        'tips that open the right screen. Drag it anywhere, or '
+                        'turn it off here.',
+                        style: AppText.caption.copyWith(height: 1.3),
+                      ),
+                    ),
+                    const SizedBox(width: Gap.md),
+                    Switch(
+                      value:
+                          (store.data['settings'] as Map?)?['panHelperEnabled'] !=
+                          false,
+                      onChanged: (v) => save(
+                        () async => store.setSetting('panHelperEnabled', v),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

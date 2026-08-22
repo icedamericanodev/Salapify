@@ -34,6 +34,13 @@ Map<String, Object> _calmStorage() {
       'settings': {
         'onboarded': true,
         'paydaySchedule': {'mode': 'monthly', 'day': payday.day},
+        // These tests pump the whole app to check the HOME check-in row, and
+        // assert on PanMascot to prove the calm all-clear is a quiet row rather
+        // than the full Pan card. The f4.65 floating Pan helper also draws a
+        // PanMascot in the shell chrome, which is a different surface with its
+        // own tests, so it is turned off here to keep this finder measuring only
+        // the check-in card.
+        'panHelperEnabled': false,
       },
       'accounts': [
         {'id': 'cash', 'name': 'Cash', 'kind': 'cash', 'balance': 30000},
