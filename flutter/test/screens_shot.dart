@@ -71,6 +71,7 @@ import 'package:salapify/screens/onboarding.dart';
 import 'package:salapify/money/account_taxonomy.dart' show AccountStore;
 import 'package:salapify/screens/account_detail.dart';
 import 'package:salapify/screens/accounts.dart';
+import 'package:salapify/screens/debts.dart' show DebtsScreen;
 import 'package:salapify/screens/assets_liabilities.dart';
 import 'package:salapify/screens/net_worth_trend.dart';
 import 'package:salapify/screens/categories.dart';
@@ -714,6 +715,10 @@ void main() {
     'budget': (s) => BudgetScreen(store: s, onMenu: () {}),
     'history': (s) => HistoryScreen(store: s, onMenu: () {}),
     'utang': (s) => MoneyScreen(store: s, onMenu: () {}),
+    // The Debts screen, which now opens on the Credit Radar (f4.63) above the
+    // payoff plan. The lived-in fixture carries a BPI card with a limit, so the
+    // radar renders a real ratio rather than an empty state.
+    'debts': (s) => DebtsScreen(store: s),
     'insights': (s) =>
         InsightsScreen(store: s, onSwitchTab: (_) {}, onMenu: () {}),
     'menu': (s) => MenuScreen(store: s, onSwitchTab: (_) {}),
