@@ -14,6 +14,7 @@ import '../money/account_taxonomy.dart' show AccountSubtype, kCardNetworks;
 import '../money/card_products.dart' show cardNetworkById, networksForIssuer;
 import '../money/commitments.dart'
     show bankDueDate, daysUntil, daysUntilWords, shortDueDate;
+import '../money/credit_utilization.dart' show creditUtilization;
 import '../money/debtmath.dart'
     show cardForecast, debtFreeProjection, monthlyInterest, splitDebtPayment;
 import '../money/institutions.dart' show institutionById;
@@ -24,6 +25,7 @@ import '../money/milestones.dart' show milestoneFor;
 import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
+import '../widgets/credit_radar_card.dart' show CreditRadarCard;
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
@@ -265,6 +267,14 @@ class _DebtsViewState extends State<DebtsView> {
                       ),
                     ),
                   ),
+                  // Credit Utilization Radar: how full each card is against its
+                  // limit, and overall, against the 30% healthy line. Shown only
+                  // when there is at least one credit card to measure; a loans-
+                  // only book skips it entirely.
+                  if (creditUtilization(debts) case final radar?) ...[
+                    const SizedBox(height: 12),
+                    CreditRadarCard(radar: radar, money: formatMoney),
+                  ],
                   const SizedBox(height: 12),
                   Card(
                     child: Padding(

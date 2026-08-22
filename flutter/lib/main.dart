@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.62 · Safe to spend: a 14-day buffer on Accounts, your liquid cash minus the bills and card minimums due soon.';
+    'f4.63 · Credit radar on Debts: how much of each card limit you are using, against the 30 percent healthy line.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
