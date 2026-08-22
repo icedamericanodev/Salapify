@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/theme.dart';
 import 'package:salapify/widgets/safe_to_spend_card.dart';
 
 void main() {
@@ -107,7 +106,7 @@ void main() {
   });
 
   testWidgets('the toggle switches to the net worth lens', (tester) async {
-    var picked;
+    SafeToSpendView? picked;
     await pump(
       tester,
       buffer: healthy(),
