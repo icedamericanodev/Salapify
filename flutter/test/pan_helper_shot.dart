@@ -6,7 +6,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:salapify/data/ledger_repository.dart' show storageKey;
+// storageKey is re-exported by store.dart, so importing it here too is an
+// unnecessary_import the analyzer (and the preview build) rejects.
 import 'package:salapify/data/store.dart';
 import 'package:salapify/screens/shell.dart';
 import 'package:salapify/theme.dart';
