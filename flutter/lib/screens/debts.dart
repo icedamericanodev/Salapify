@@ -26,6 +26,7 @@ import '../theme.dart';
 import '../typography.dart';
 import '../widgets/celebration.dart';
 import '../widgets/credit_radar_card.dart' show CreditRadarCard;
+import '../widgets/payoff_compare_card.dart' show PayoffCompareCard;
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
@@ -345,6 +346,15 @@ class _DebtsViewState extends State<DebtsView> {
                       ),
                     ),
                   ),
+                  // Avalanche vs Snowball: the two payoff orders side by side, so
+                  // a person can see the trade. Shown whenever there is more than
+                  // one debt to reorder; with a single debt the order is moot and
+                  // the payoff plan above already tells the story.
+                  if (debts.where((d) => amountOf(d['remaining']) > 0).length >
+                      1) ...[
+                    const SizedBox(height: 12),
+                    PayoffCompareCard(debts: debts, money: formatMoney),
+                  ],
                   if (shortTerm.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Kicker('SHORT TERM'),

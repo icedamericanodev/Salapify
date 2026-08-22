@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.63 · Credit radar on Debts: how much of each card limit you are using, against the 30 percent healthy line.';
+    'f4.64 · Avalanche vs Snowball on Debts: compare the two payoff orders and see the interest each one costs.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
