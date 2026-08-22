@@ -17,7 +17,7 @@ publish_to: 'none'
 # (home_widget, a manifest receiver, Kotlin); Pan's redrawn artwork (assets are
 # not patchable either); and flutter_local_notifications plus timezone on top of
 # local_auth.
-version: 0.9.4+19
+version: 0.9.5+20
 
 environment:
   sdk: ^3.12.2
@@ -77,3 +77,22 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
           weight: 800
+    # The ledger face: row and reference amounts and the PDF statement. Same
+    # weight ladder (400/600/700) the display roles use, so only the face
+    # changes, never a weight. See Barako.ledgerFont.
+    - family: IBMPlexSans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSans-Bold.ttf
+          weight: 700
+    # The mono face: masked card numbers and reference/receipt blocks. Ships
+    # 400/600. See Barako.monoFont.
+    - family: IBMPlexMono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexMono-SemiBold.ttf
+          weight: 600

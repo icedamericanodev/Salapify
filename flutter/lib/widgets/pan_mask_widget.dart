@@ -96,13 +96,16 @@ class CardNumberMask extends StatelessWidget {
           Text(
             last4!,
             style: TextStyle(
-              fontFamily: Barako.displayFont,
+              // The mono face, so a card number reads like a card number and
+              // its digits sit on a fixed advance. Tabular is redundant on a
+              // true monospace but kept as a belt-and-braces guarantee that the
+              // column cannot move if the face is ever swapped. w600 because
+              // the mono face ships 400 and 600, not 700.
+              fontFamily: Barako.monoFont,
               fontSize: fontSize,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               letterSpacing: 2,
               color: ink,
-              // The single reason the digits do not jitter: a fixed advance per
-              // glyph, so 1189 and 8000 occupy the same width.
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           )

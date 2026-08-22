@@ -220,17 +220,19 @@ Future<Uint8List> reportPdf(Map data, DateTime ref) async {
   return doc.save();
 }
 
-/// The app's bundled font as a PDF theme, so peso signs and Filipino characters
-/// render instead of Helvetica which cannot. Null (the built-in font) when the
-/// asset bundle is unavailable, e.g. a plain unit test; the PDF still generates.
-/// Shared by every builder here so the font load lives in one place.
+/// The ledger face (IBM Plex Sans) as a PDF theme, so peso signs and Filipino
+/// characters render instead of Helvetica which cannot, and a statement reads
+/// in the same working-money face as the on-screen ledger (founder direction,
+/// 2026-08-22). Null (the built-in font) when the asset bundle is unavailable,
+/// e.g. a plain unit test; the PDF still generates. Shared by every builder
+/// here so the font load lives in one place.
 Future<pw.ThemeData?> _pdfTheme() async {
   try {
     final base = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/PlusJakartaSans-Regular.ttf'),
+      await rootBundle.load('assets/fonts/IBMPlexSans-Regular.ttf'),
     );
     final bold = pw.Font.ttf(
-      await rootBundle.load('assets/fonts/PlusJakartaSans-Bold.ttf'),
+      await rootBundle.load('assets/fonts/IBMPlexSans-Bold.ttf'),
     );
     return pw.ThemeData.withFont(base: base, bold: bold);
   } catch (_) {

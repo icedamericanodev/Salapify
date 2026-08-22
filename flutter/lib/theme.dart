@@ -482,7 +482,8 @@ class Barako {
   /// test that fails on any file naming a font family directly.
   static const displayFont = 'Jakarta';
 
-  /// The workhorse: every sentence, label, heading and row amount.
+  /// The workhorse: every sentence, label and heading. (Row amounts moved to
+  /// [ledgerFont]; hero numbers stay on [displayFont].)
   ///
   /// Same family as [displayFont] today. They are kept as two constants
   /// anyway, because they answer two different questions ("what does a hero
@@ -496,6 +497,24 @@ class Barako {
   /// is exactly how a font change ships everywhere the founder looks and
   /// nowhere they do not, until somebody shares a win and sees the old face.
   static const bodyFont = 'Jakarta';
+
+  /// The ledger face: on-screen row amounts (amountRow, amountReference) and
+  /// the PDF statement. Founder direction, 2026-08-22: the working money in a
+  /// list or a table reads in IBM Plex Sans while the display hero stays
+  /// Jakarta, so the big brand number and the dense ledger have distinct,
+  /// deliberate faces. Ships the SAME weight ladder Jakarta uses for these
+  /// roles (400 / 600 / 700), so the money hierarchy is unchanged; only the
+  /// face swaps, and no row goes soft on a synthetic weight. Bundled fonts, so
+  /// a change here is a base APK, not an over-the-air patch.
+  static const ledgerFont = 'IBMPlexSans';
+
+  /// The mono face: masked card numbers (PANs) and reference-id / receipt
+  /// blocks that must line up in columns. A true fixed-advance face, so digits
+  /// never jitter and a reference reads unambiguously (0 vs O, 1 vs l vs I).
+  /// Replaces the platform 'monospace' generic those blocks used to name, which
+  /// drew a different face on every phone and a box in the render harness.
+  /// Ships 400 / 600. Bundled, so it is part of the base APK.
+  static const monoFont = 'IBMPlexMono';
 
   /// The section kicker: the small uppercase label above a card's content.
   ///

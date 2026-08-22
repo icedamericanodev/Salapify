@@ -98,6 +98,15 @@ const _fonts = {
     'assets/fonts/PlusJakartaSans-Bold.ttf',
     'assets/fonts/PlusJakartaSans-ExtraBold.ttf',
   ],
+  'IBMPlexSans': [
+    'assets/fonts/IBMPlexSans-Regular.ttf',
+    'assets/fonts/IBMPlexSans-SemiBold.ttf',
+    'assets/fonts/IBMPlexSans-Bold.ttf',
+  ],
+  'IBMPlexMono': [
+    'assets/fonts/IBMPlexMono-Regular.ttf',
+    'assets/fonts/IBMPlexMono-SemiBold.ttf',
+  ],
 };
 
 /// The Material icon font, loaded separately because it lives in the SDK
