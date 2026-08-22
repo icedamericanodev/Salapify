@@ -314,6 +314,112 @@ Map<String, dynamic> safeToSpend(Map<String, dynamic> data, DateTime ref) {
   };
 }
 
+/// The Safe-to-Spend BUFFER, founder rule 2026-08-22 ("minimum due only,
+/// conservative-safe"): the liquid pesos a person can reach right now, minus
+/// every payment that lands in the next [windowDays] days. Unlike [safeToSpend]
+/// above, which paces the runway to the NEXT PAYDAY and divides into a daily
+/// number, this is a fixed two-week horizon reported as one lump the person can
+/// safely spend without missing a due bill.
+///
+/// "Minimum due only" is the whole rule: a credit card is counted for its
+/// MINIMUM payment due, treated as a bill and never as a full payoff, exactly
+/// the amount [upcomingDues] already computes (min of minPayment and remaining).
+/// Recurring bills that fall in the window and are not already posted this cycle
+/// are added the same way [upcomingCommitments] counts them.
+///
+/// Liquid is the SAME definition [safeToSpend] protects: cash, e-wallets, and
+/// checking, never savings, and never a foreign balance (a dollar account is
+/// not spendable pesos). This composes only golden-locked primitives, so it
+/// cannot drift from the numbers the rest of the app already trusts.
+///
+/// Returns { liquid, cardDue, billsDue, committed, buffer, dueCount, minsUnset,
+/// windowDays }, where buffer = liquid - committed and may be negative (already
+/// overcommitted for the fortnight, which the card must say plainly, not hide).
+/// minsUnset counts debts due in the window with no minimum saved, which are
+/// deliberately left OUT of committed rather than reserved at their full balance
+/// (see the loop below), so the card can flag them instead of showing nonsense.
+Map<String, dynamic> safeToSpendBuffer(
+  Map<String, dynamic> data,
+  DateTime ref, {
+  int windowDays = 14,
+}) {
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final base = baseCurrencyOf(data);
+
+  var liquid = 0.0;
+  for (final raw
+      in (data['accounts'] is List ? data['accounts'] as List : const [])) {
+    if (raw is Map &&
+        liquidKinds.contains(raw['kind']) &&
+        inBaseCurrency(raw, base)) {
+      liquid += amountOf(raw['balance']);
+    }
+  }
+
+  // Card and loan minimums due inside the window. upcomingDues is the
+  // golden-locked, bank-adjusted engine, so weekends and PH holidays move a due
+  // date exactly as the bank would before it is tested against the window.
+  //
+  // One guard the bank-officer review (2026-08-22) asked for: when a debt has NO
+  // minimum saved, upcomingDues falls back to the whole remaining balance, which
+  // for a mortgage or an untouched card would drop a six-figure number into the
+  // fortnight and drive the buffer meaninglessly negative. That is not a real
+  // two-week obligation, it is a blank field. So a due whose debt has no
+  // positive minPayment is NOT subtracted; it is counted in minsUnset instead,
+  // and the card can say "N debts have no minimum set" rather than silently
+  // reserving a balance nobody owes this fortnight.
+  var cardDue = 0.0;
+  var dueCount = 0;
+  var minsUnset = 0;
+  for (final d in upcomingDues(data['debts'], windowDays, today)) {
+    final debt = d['debt'];
+    final minPay = debt is Map ? amountOf(debt['minPayment']) : 0.0;
+    if (!(minPay > 0)) {
+      minsUnset += 1;
+      continue;
+    }
+    final amt = amountOf(d['amount']);
+    if (amt > 0) {
+      cardDue += amt;
+      dueCount += 1;
+    }
+  }
+
+  // Recurring bills that land in the window and have not already been posted
+  // this month, counted the same way upcomingCommitments counts them so the
+  // two surfaces never disagree about what a bill is.
+  final windowEnd = _addDays(today, windowDays);
+  final monthKey = '${today.year}-${today.month.toString().padLeft(2, '0')}';
+  var billsDue = 0.0;
+  for (final raw
+      in (data['recurring'] is List ? data['recurring'] as List : const [])) {
+    if (raw is! Map) continue;
+    final r = raw.cast<String, dynamic>();
+    if (r['type'] != 'expense') continue;
+    final lastPosted = r['lastPosted'];
+    final posted = lastPosted is String && lastPosted.compareTo(monthKey) >= 0;
+    if (posted) continue;
+    final amt = amountOf(r['amount']).clamp(0, double.infinity).toDouble();
+    final due = nextOccurrence(r['dayOfMonth'], today);
+    if (due != null && !due.isAfter(windowEnd) && amt > 0) {
+      billsDue += amt;
+      dueCount += 1;
+    }
+  }
+
+  final committed = cardDue + billsDue;
+  return {
+    'liquid': liquid,
+    'cardDue': cardDue,
+    'billsDue': billsDue,
+    'committed': committed,
+    'buffer': liquid - committed,
+    'dueCount': dueCount,
+    'minsUnset': minsUnset,
+    'windowDays': windowDays,
+  };
+}
+
 /// Your recent DISCRETIONARY spend per day, averaged over the trailing 14
 /// days. Deliberately excludes anything safeToSpend already sets aside in
 /// `committed`: transfers, debt principal, and adjustments are not expenses;

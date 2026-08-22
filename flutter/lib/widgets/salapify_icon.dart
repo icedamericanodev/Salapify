@@ -175,6 +175,7 @@ const Map<String, IconData> _icons = {
   'greeting': Icons.waving_hand_outlined,
 
   // Feature domains that had no name yet.
+  'info': Icons.info_outline,
   'note': Icons.sticky_note_2_outlined,
   'document': Icons.description_outlined,
   'pdf': Icons.picture_as_pdf_outlined,

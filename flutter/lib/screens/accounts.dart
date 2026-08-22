@@ -30,7 +30,12 @@ import '../money/statements.dart' show netWorthParts;
 import '../data/store.dart';
 import '../money/account_taxonomy.dart';
 import '../money/commitments.dart'
-    show bankDueDate, daysUntil, daysUntilWords, shortDueDate;
+    show
+        bankDueDate,
+        daysUntil,
+        daysUntilWords,
+        safeToSpendBuffer,
+        shortDueDate;
 import '../money/card_products.dart' show cardNetworkWordmark;
 import '../data/export_files.dart' show shareAccountStatementPdf;
 import '../data/qr_vault.dart' show QrVault;
@@ -43,6 +48,8 @@ import 'net_worth_trend.dart' show NetWorthTrendScreen;
 import '../widgets/account_action_sheet.dart' show showAccountActionSheet;
 import '../widgets/card_skin_studio.dart' show showCardSkinStudio;
 import '../widgets/floating_pan_card.dart' show FloatingPanCard;
+import '../widgets/safe_to_spend_card.dart'
+    show SafeToSpendCard, SafeToSpendView;
 import '../widgets/pan_mascot.dart' show PanMascot, PanEmotion;
 import '../money/institutions.dart'
     show
@@ -270,6 +277,21 @@ class _AccountsScreenState extends State<AccountsScreen> {
   void _toggleHideBalances() {
     Haptics.select();
     store.setSetting('accountsHideBalances', !_hideBalances);
+  }
+
+  /// Which lens the Safe-to-Spend card shows, read live from the store so the
+  /// choice survives a reopen, exactly like the privacy eye above. Defaults to
+  /// the buffer: the daily-decision number is what the card is for.
+  SafeToSpendView get _bufferView =>
+      (store.data['settings'] as Map?)?['accountsBufferView'] == 'netWorth'
+      ? SafeToSpendView.netWorth
+      : SafeToSpendView.buffer;
+
+  void _setBufferView(SafeToSpendView v) {
+    store.setSetting(
+      'accountsBufferView',
+      v == SafeToSpendView.netWorth ? 'netWorth' : 'buffer',
+    );
   }
 
   /// A money figure for display, masked to dots when the privacy toggle is on.
@@ -508,6 +530,32 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 if (liquidCount > 0) ...[
                   const SizedBox(height: 20),
                   _availableCard(liquidTotal, liquidCount, liquidApprox),
+                ],
+                // Safe to spend: the fortnight buffer. It takes the liquid cash
+                // the Available card above just named and subtracts the bills
+                // and card minimums due in the next 14 days, so the person sees
+                // what is genuinely free to spend, not just what is sitting
+                // there. Shown whenever there is liquid to spend or a due to
+                // warn about; an empty book meets the empty state below instead.
+                if (() {
+                  final b = safeToSpendBuffer(store.data, DateTime.now());
+                  return (b['liquid'] as double) != 0 ||
+                      (b['committed'] as double) > 0;
+                }()) ...[
+                  const SizedBox(height: 20),
+                  SafeToSpendCard(
+                    view: _bufferView,
+                    onView: (v) => setState(() => _setBufferView(v)),
+                    buffer: safeToSpendBuffer(store.data, DateTime.now()),
+                    netWorth: parts['netWorth'] as double,
+                    money: _money,
+                    hideBalances: _hideBalances,
+                    onOpenTrend: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => NetWorthTrendScreen(store: store),
+                      ),
+                    ),
+                  ),
                 ],
                 // Accounts Overview: the mockup's expandable category groups.
                 // Each category collapses to a one-line header (icon, name,
