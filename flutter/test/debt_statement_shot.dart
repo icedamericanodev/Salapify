@@ -6,8 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:salapify/data/ledger_repository.dart' show storageKey;
-import 'package:salapify/data/store.dart';
+import 'package:salapify/data/store.dart' show SalapifyStore, storageKey;
 import 'package:salapify/screens/debt_statement.dart';
 import 'package:salapify/theme.dart';
 
