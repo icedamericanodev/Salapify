@@ -55,6 +55,7 @@ import 'package:salapify/screens/categories.dart';
 import 'package:salapify/screens/contribution_calculator.dart';
 import 'package:salapify/screens/currency_converter.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
+import 'package:salapify/screens/debt_statement.dart';
 import 'package:salapify/screens/debts.dart';
 import 'package:salapify/screens/reports.dart';
 import 'package:salapify/screens/goal_create.dart';
@@ -420,6 +421,7 @@ void main() {
     // it, which is the difference between a rule and a list.
     'Reports': (s) => ReportsScreen(store: s),
     'Debts': (s) => DebtsScreen(store: s),
+    'Your debts': (s) => DebtStatementScreen(store: s),
     // Everything else a person can actually open, added when the coverage
     // assertion below stopped this map being a promise and started making it
     // account for the fifty files in lib/screens one by one.
@@ -626,6 +628,7 @@ void main() {
       'categories.dart',
       'reports.dart',
       'debts.dart',
+      'debt_statement.dart',
       'goals.dart',
       'goal_create.dart',
       'goal_detail.dart',
