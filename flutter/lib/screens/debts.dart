@@ -27,6 +27,7 @@ import '../typography.dart';
 import '../widgets/celebration.dart';
 import '../widgets/credit_radar_card.dart' show CreditRadarCard;
 import '../widgets/payoff_compare_card.dart' show PayoffCompareCard;
+import 'debt_statement.dart' show DebtStatementScreen;
 import 'milestone_share.dart' show showMilestoneCelebration;
 import '../widgets/section.dart';
 import '../widgets/salapify_icon.dart';
@@ -263,6 +264,20 @@ class _DebtsViewState extends State<DebtsView> {
                           _line(
                             'Interest cost per month',
                             formatMoney(totalInterest),
+                          ),
+                          const SizedBox(height: 12),
+                          // One tap to the whole-picture view: every debt in one
+                          // place, saveable as a PDF. Honest by construction (see
+                          // DebtStatementScreen), never a bank statement.
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    DebtStatementScreen(store: widget.store),
+                              ),
+                            ),
+                            icon: Icon(salapifyIcon('document'), size: 18),
+                            label: const Text('See all your debts, save a PDF'),
                           ),
                         ],
                       ),

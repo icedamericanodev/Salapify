@@ -20,6 +20,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 import '../money/account_flow.dart' show accountMonthFlow;
+import '../money/debt_statement.dart'
+    show DebtStatementRow, consolidatedDebtStatement, maskDebtName;
 import '../money/ledger.dart' show amountOf;
 import '../money/statements.dart';
 import 'save_to_device.dart';
@@ -420,6 +422,250 @@ Future<void> shareAccountStatementPdf(
 // whose leftover-sweep could delete the first share's temp file out from under
 // the receiving app.
 bool _exporting = false;
+
+// The one honest disclaimer, on screen and in the PDF, so a formal-looking
+// layout can never be mistaken for a bank document. Kept here as the single
+// source of truth for the export; the screen imports the same words.
+const String debtStatementDisclaimer =
+    'Prepared by you in Salapify, offline, from the figures you entered '
+    'yourself. This is not a bank statement, not a Statement of Account, and '
+    'not financial, tax, or legal advice. Salapify does not connect to any bank '
+    'and did not verify these numbers. It does not include late fees, '
+    'penalties, annual fees, past-due amounts, or over-limit charges. Treat it '
+    'as a personal summary, not an official document.';
+
+/// The short mark repeated on every PDF page, because pages get separated.
+const String _debtPdfPageMark =
+    'Not a bank statement. Prepared by you in Salapify from your own figures.';
+
+String _longDate(String? iso) {
+  if (iso == null || iso.isEmpty) return '';
+  final p = iso.split('-');
+  if (p.length < 3) return iso;
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final m = int.tryParse(p[1]);
+  final d = int.tryParse(p[2]);
+  if (m == null || d == null || m < 1 || m > 12) return iso;
+  return '${months[m - 1]} $d, ${p[0]}';
+}
+
+/// The consolidated debt statement as a PDF, built from the same
+/// [consolidatedDebtStatement] the on-screen view uses. Honest by construction:
+/// a plain title, the user-entered figures, and the disclaimer above. No badge,
+/// no "verified", no encryption or regulator claim.
+Future<Uint8List> consolidatedDebtStatementPdf(
+  Map<String, dynamic> data,
+  DateTime ref,
+) async {
+  final doc = pw.Document(theme: await _pdfTheme());
+  final s = consolidatedDebtStatement(data, ref);
+
+  pw.Widget summary(String label, String value) => pw.Expanded(
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          label,
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          value,
+          style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+        ),
+      ],
+    ),
+  );
+
+  final rows = (s?['rows'] as List<DebtStatementRow>?) ?? const [];
+  final util = s?['utilization'] as double?;
+  final payoff = s?['payoff'] as Map<String, dynamic>?;
+  final minsUnset = (s?['minsUnset'] as int?) ?? 0;
+
+  String rateCell(DebtStatementRow r) {
+    if (r.aprAnnual == null) return '-';
+    final nominal = r.aprAnnual!.toStringAsFixed(1);
+    final eff = r.aprEffective?.toStringAsFixed(1);
+    return eff == null ? '$nominal%' : '$nominal% ($eff% comp.)';
+  }
+
+  String minTotalText() {
+    final total = _peso(s!['totalMinDue'] as double);
+    if (minsUnset == 0) return total;
+    if ((s['totalMinDue'] as double) == 0) return 'not set';
+    return '$total + $minsUnset not set';
+  }
+
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      footer: (context) => pw.Padding(
+        padding: const pw.EdgeInsets.only(top: 8),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Expanded(
+              child: pw.Text(
+                _debtPdfPageMark,
+                style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600),
+              ),
+            ),
+            pw.Text(
+              'Page ${context.pageNumber} of ${context.pagesCount}',
+              style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600),
+            ),
+          ],
+        ),
+      ),
+      build: (context) => [
+        pw.Text(
+          'Your debts in one place',
+          style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          'Salapify debt overview  ·  As of ${_longDate(_stamp(ref))}',
+          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          debtStatementDisclaimer,
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+        ),
+        pw.SizedBox(height: 16),
+        if (s == null)
+          pw.Text('You have no debts recorded, so there is nothing to show.')
+        else ...[
+          pw.Row(
+            children: [
+              summary('Total you owe', _peso(s['totalDebt'] as double)),
+              summary('Total of your minimums', minTotalText()),
+              summary(
+                'Est. interest this month',
+                _peso(s['estMonthlyInterest'] as double),
+              ),
+              summary(
+                'Card usage',
+                util == null ? 'n/a' : '${(util * 100).round()}%',
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Est. interest is at today\'s balances and counts interest only, not '
+            'fees. If you pay a card in full by its due date, that card owes no '
+            'interest, so your real cost is lower.',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+          ),
+          pw.SizedBox(height: 16),
+          pw.TableHelper.fromTextArray(
+            headers: const [
+              'Debt',
+              'Type',
+              'Balance',
+              'Min. due',
+              'Due date',
+              'Your yearly rate',
+            ],
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            cellAlignments: {
+              2: pw.Alignment.centerRight,
+              3: pw.Alignment.centerRight,
+              5: pw.Alignment.centerRight,
+            },
+            data: [
+              for (final r in rows)
+                [
+                  maskDebtName(r.name),
+                  r.typeLabel,
+                  _peso(r.balance),
+                  r.minDue == null ? '-' : _peso(r.minDue!),
+                  _longDate(r.dueISO),
+                  rateCell(r),
+                ],
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'Your yearly rate is the monthly rate you entered times twelve, not '
+            'compounded. The figure in brackets adds monthly compounding, so it '
+            'is closer to the true yearly cost, and it is still not the bank\'s '
+            'official rate because that also includes fees.',
+            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+          ),
+          pw.SizedBox(height: 16),
+          if (payoff != null && (payoff['months'] as int) > 0)
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.amber50,
+                borderRadius: pw.BorderRadius.circular(6),
+              ),
+              child: pw.Text(
+                'Paying only the minimum each month keeps a debt alive far '
+                'longer and adds a lot of interest. If you keep paying about '
+                '${_peso(s['totalMinDue'] as double)} in total every month and '
+                'put each finished debt\'s payment straight onto the next one, '
+                'you would be debt free around '
+                '${_longDate(payoff['date'] as String)} and pay about '
+                '${_peso(payoff['totalInterest'] as double)} in interest along '
+                'the way. Pay less than that, or stop rolling the freed payments '
+                'forward, and it takes longer and costs more.',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+            )
+          else if (s['totalDebt'] as double > 0)
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.amber50,
+                borderRadius: pw.BorderRadius.circular(6),
+              ),
+              child: pw.Text(
+                'On these payments the balance never clears, because the '
+                'interest keeps pace with what is being paid. Paying more than '
+                'the minimum is what starts bringing the balance down.',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+            ),
+        ],
+        pw.SizedBox(height: 20),
+        pw.Text(
+          'Made with Salapify. Numbers are from your own entered data.',
+          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+        ),
+      ],
+    ),
+  );
+  return doc.save();
+}
+
+/// Save the consolidated debt statement to a file the user picks.
+Future<bool> saveConsolidatedDebtStatementPdfToDevice(
+  Map<String, dynamic> data,
+  DateTime ref,
+) async {
+  final bytes = await consolidatedDebtStatementPdf(data, ref);
+  return saveBytesToDevice(bytes, 'salapify-debts-${_saveStamp(ref)}.pdf');
+}
+
+/// Share the consolidated debt statement through the system share sheet.
+Future<void> shareConsolidatedDebtStatementPdf(
+  Map<String, dynamic> data,
+  DateTime ref,
+) => _guard(() async {
+  final bytes = await consolidatedDebtStatementPdf(data, ref);
+  await _shareBytes(
+    bytes,
+    '${_exportPrefix}debts-${_saveStamp(ref)}.pdf',
+    'application/pdf',
+    'Salapify debt overview',
+  );
+});
 
 Future<void> _guard(Future<void> Function() task) async {
   if (_exporting) return;
