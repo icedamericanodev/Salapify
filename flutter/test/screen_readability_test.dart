@@ -57,6 +57,7 @@ import 'package:salapify/screens/currency_converter.dart';
 import 'package:salapify/screens/diagnostics_screen.dart';
 import 'package:salapify/screens/debt_statement.dart';
 import 'package:salapify/screens/debts.dart';
+import 'package:salapify/screens/bills_spending.dart';
 import 'package:salapify/screens/reports.dart';
 import 'package:salapify/screens/goal_create.dart';
 import 'package:salapify/screens/goal_detail.dart';
@@ -422,6 +423,7 @@ void main() {
     'Reports': (s) => ReportsScreen(store: s),
     'Debts': (s) => DebtsScreen(store: s),
     'Your debts': (s) => DebtStatementScreen(store: s),
+    'Bills and spending': (s) => BillsSpendingScreen(store: s),
     // Everything else a person can actually open, added when the coverage
     // assertion below stopped this map being a promise and started making it
     // account for the fifty files in lib/screens one by one.
@@ -629,6 +631,7 @@ void main() {
       'reports.dart',
       'debts.dart',
       'debt_statement.dart',
+      'bills_spending.dart',
       'goals.dart',
       'goal_create.dart',
       'goal_detail.dart',

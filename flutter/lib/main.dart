@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.66 · Your debts in one place: read them all together and save a PDF, built only from your own figures.';
+    'f4.67 · Bills and spending: your month split into committed vs everyday, bills by week or year, and what is due next.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
