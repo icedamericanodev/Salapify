@@ -42,6 +42,7 @@ import 'privacy_receipt.dart';
 import 'search.dart';
 import 'payday.dart';
 import 'recap_share.dart';
+import 'bills_spending.dart';
 import 'recurring.dart';
 import 'reports.dart';
 import 'tools.dart';
@@ -177,6 +178,19 @@ class MenuScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => RecurringScreen(store: store),
+                      ),
+                    ),
+                  ),
+                  // Bills and spending grows next to Recurring: it reads the
+                  // same recurring bills plus this month's spending into one
+                  // committed-vs-everyday view, a bills-by-period figure, and a
+                  // due-date radar. All derived, nothing new stored.
+                  NavTile(
+                    icon: 'balance',
+                    label: 'Bills and spending',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BillsSpendingScreen(store: store),
                       ),
                     ),
                   ),
