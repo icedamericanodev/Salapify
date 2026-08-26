@@ -419,7 +419,11 @@ class _ShellScreenState extends State<ShellScreen> {
           ),
           if (_panHelperEnabled)
             Positioned.fill(
-              child: PanHelperBubble(store: widget.store, onTipTap: _onPanTip),
+              child: PanHelperBubble(
+                store: widget.store,
+                onTipTap: _onPanTip,
+                onOpenChat: _openPan,
+              ),
             ),
         ],
       ),

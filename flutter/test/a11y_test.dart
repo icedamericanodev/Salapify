@@ -80,7 +80,14 @@ Map<String, dynamic> _rich() => {
       'dueDate': '2026-08-15',
     },
   ],
-  'settings': {'monthlyLimit': 15000},
+  // The floating Pan helper is turned OFF for this sweep on purpose. It is an
+  // app-level, user-movable, user-dismissable overlay, not part of any screen's
+  // content, and when mounted it sits over a tab's content and makes the
+  // contrast guideline read an occluded label (a date behind the pill) rather
+  // than the screen's own text. The helper's own accessibility (a 48 tap
+  // target, its semantics label, the Chat with Pan button) is covered by
+  // pan_helper_bubble_test; here we measure each screen's content.
+  'settings': {'monthlyLimit': 15000, 'panHelperEnabled': false},
 };
 
 Future<void> _boot(WidgetTester tester) async {
