@@ -20,14 +20,22 @@ void main() {
     await store.load();
   });
 
-  Future<void> pump(WidgetTester tester, void Function(PanTip) onTip) {
+  Future<void> pump(
+    WidgetTester tester,
+    void Function(PanTip) onTip, {
+    VoidCallback? onOpenChat,
+  }) {
     return tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 400,
             height: 700,
-            child: PanHelperBubble(store: store, onTipTap: onTip),
+            child: PanHelperBubble(
+              store: store,
+              onTipTap: onTip,
+              onOpenChat: onOpenChat ?? () {},
+            ),
           ),
         ),
       ),
@@ -56,6 +64,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(tapped, isNotNull);
     expect(tapped!.target, panTips.first.target);
+    expect(find.text('Pan says'), findsNothing);
+  });
+
+  testWidgets('the sheet leads with a Chat with Pan button that opens chat', (
+    tester,
+  ) async {
+    var openedChat = false;
+    await pump(tester, (_) {}, onOpenChat: () => openedChat = true);
+    await tester.tap(find.bySemanticsLabel(RegExp('Pan, your money helper')));
+    await tester.pumpAndSettle();
+
+    // The headline button is present and opens the chat, then closes the sheet.
+    expect(find.widgetWithText(FilledButton, 'Chat with Pan'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Chat with Pan'));
+    await tester.pumpAndSettle();
+    expect(openedChat, isTrue);
     expect(find.text('Pan says'), findsNothing);
   });
 
