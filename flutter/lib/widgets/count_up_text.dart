@@ -35,6 +35,26 @@ class CountUpText extends StatelessWidget {
     // breaks the ValueKey (NaN != NaN), which would restart the roll on every
     // rebuild forever.
     final safe = value.isFinite ? value : 0.0;
+
+    // Two reasons to skip the roll and just show the figure, both about not
+    // misleading the reader for the sake of a flourish:
+    //   - The OS "reduce motion" setting is on, which a vestibular-sensitive
+    //     user relies on; a hero number is exactly the kind of large motion it
+    //     is meant to suppress.
+    //   - The value is negative. Rolling up from zero would animate a red
+    //     shortfall (a negative safe-to-spend buffer, a net worth underwater)
+    //     UP from an innocent-looking near-zero, briefly reading rosier than
+    //     the truth on the one figure the card exists to be honest about.
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduceMotion || safe < 0) {
+      return Text(
+        format(safe),
+        style: style,
+        maxLines: 1,
+        semanticsLabel: format(safe),
+      );
+    }
     return Semantics(
       value: format(safe),
       child: ExcludeSemantics(

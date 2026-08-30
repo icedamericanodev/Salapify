@@ -48,6 +48,27 @@ class Kicker extends StatelessWidget {
       Text(text, style: inCard ? Barako.cardKickerStyle : Barako.kickerStyle);
 }
 
+/// A PAGE-level section band heading, one tier above [Kicker].
+///
+/// A screen that groups its content into named bands ("DO NEXT", "THIS
+/// MONTH") wants those band headings to carry more weight than the quiet
+/// kicker that sits inside a single card, so the page reads as sections
+/// rather than a flat stack of equal labels. This is that heading, reading
+/// [AppText.sectionTitle], so every band on every screen draws the one way
+/// and a raw Text with a hand-rolled uppercase style is drift, not a normal
+/// thing to type. Like [Kicker] it is deliberately NOT const: the style is a
+/// getter over the live palette, and a const call site would freeze it in the
+/// previous theme's ink after a switch.
+class SectionTitle extends StatelessWidget {
+  final String text;
+
+  // ignore: prefer_const_constructors_in_immutables
+  SectionTitle(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Text(text, style: AppText.sectionTitle);
+}
+
 /// A section label with an optional total on the right.
 ///
 /// The shape a grouped list wants: `SHORT TERM            ₱4,000`. Naming the

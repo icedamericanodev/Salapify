@@ -299,6 +299,25 @@ abstract final class AppText {
   /// The uppercase overline above a card or section. Delegated to
   /// Barako.kickerStyle so the one kicker definition cannot fork again.
   static TextStyle get kicker => Barako.kickerStyle;
+
+  /// A PAGE-level section band title, one clear tier above the card kicker.
+  ///
+  /// The kicker (12, medium, muted) is a card's own quiet overline; a screen
+  /// that stacks several bands ("DO NEXT", "THIS MONTH", "THE BIGGER PICTURE")
+  /// was drawing those bands in that same quiet kicker, so the page had no
+  /// rhythm and every band read at the weight of a card's inner label. This is
+  /// the band: still an uppercase overline so it pairs with the kickers beneath
+  /// it, but heavy and on full ink (heavy is the weight reserved for money and
+  /// titles, and a page section earns it), with tighter tracking so the heavier
+  /// letters do not smear. One rung, named, so a band stops being a hand-rolled
+  /// Text and a second screen gets the exact same heading.
+  static TextStyle get sectionTitle => TextStyle(
+    fontSize: TypeScale.small,
+    fontWeight: TypeWeight.heavy,
+    height: 1.2,
+    letterSpacing: 0.6,
+    color: Barako.text,
+  );
 }
 
 /// Terse, exact tweaks at the call site, so a variant is a modifier rather than

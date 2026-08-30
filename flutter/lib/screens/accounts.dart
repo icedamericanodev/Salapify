@@ -64,6 +64,7 @@ import 'add_account_flow.dart'
     show InstitutionAvatar, showAddAccountSheet, showInstitutionPicker;
 import 'debts.dart' show showDebtFormSheet;
 import '../widgets/bank_card.dart';
+import '../widgets/count_up_text.dart' show CountUpText;
 import '../widgets/empty_state.dart';
 import '../widgets/net_worth_sparkline.dart' show NetWorthSparkline;
 import '../widgets/pressable_scale.dart';
@@ -764,11 +765,23 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        _money(netWorth),
-                        maxLines: 1,
-                        style: AppText.amountLg.w8,
-                      ),
+                      // The hero number rolls up when it is visible; a masked
+                      // figure is dots, which cannot roll, so it stays a plain
+                      // Text under the privacy eye. The spoken value is the
+                      // outer Semantics label above, so CountUpText's own
+                      // announcement is harmlessly dropped by that
+                      // ExcludeSemantics.
+                      child: _hideBalances
+                          ? Text(
+                              _money(netWorth),
+                              maxLines: 1,
+                              style: AppText.amountLg.w8,
+                            )
+                          : CountUpText(
+                              value: netWorth,
+                              format: _money,
+                              style: AppText.amountLg.w8,
+                            ),
                     ),
                     if (trend != null) ...[
                       const SizedBox(height: Gap.sm),
@@ -3843,9 +3856,7 @@ class _TransferSheetState extends State<_TransferSheet> {
     children: [
       for (final a in list)
         ChoiceChip(
-          label: Text(
-            '${a['name'] ?? 'Account'}  ${_chipBalance(a)}',
-          ),
+          label: Text('${a['name'] ?? 'Account'}  ${_chipBalance(a)}'),
           selected: selected == '${a['id']}',
           onSelected: (_) => onPick('${a['id']}'),
           selectedColor: Barako.primary,
