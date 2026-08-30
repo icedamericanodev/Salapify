@@ -18,6 +18,7 @@ import '../money/format.dart' show formatMoney;
 import '../money/greeting.dart' show greetingFor;
 import '../money/net_worth_history.dart'
     show netWorthHistoryOf, netWorthMonthKey, netWorthTrend, netWorthWindow;
+import '../money/account_currency.dart' show accountForeignCode;
 import '../money/ledger.dart' show amountOf;
 import '../money/base_currency_scope.dart'
     show baseCurrencyOf, excludedNotice, manualRatesOf;
@@ -3823,6 +3824,15 @@ class _TransferSheetState extends State<_TransferSheet> {
   /// The account chips, each showing what it holds, because "can I move 5,000
   /// out of GCash" is answered by seeing the balance, not by being told no
   /// after typing.
+  /// A transfer chip's balance: a base account keeps the truncating peso
+  /// balanceLabel, a foreign account shows its own symbol (formatConverted) so
+  /// the chip does not label a dollar balance with a peso sign.
+  String _chipBalance(Map<String, dynamic> a) {
+    final code = accountForeignCode(a, baseCurrencyOf(widget.store.data));
+    final bal = amountOf(a['balance']);
+    return code == null ? balanceLabel(bal) : formatConverted(bal, code);
+  }
+
   Widget _picker(
     List<Map<String, dynamic>> list,
     String selected,
@@ -3834,7 +3844,7 @@ class _TransferSheetState extends State<_TransferSheet> {
       for (final a in list)
         ChoiceChip(
           label: Text(
-            '${a['name'] ?? 'Account'}  ${balanceLabel(amountOf(a['balance']))}',
+            '${a['name'] ?? 'Account'}  ${_chipBalance(a)}',
           ),
           selected: selected == '${a['id']}',
           onSelected: (_) => onPick('${a['id']}'),

@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.69 · Moving money now only works between accounts in the same currency, so a transfer can never dent your net worth.';
+    'f4.70 · A foreign-currency account now shows its own symbol, like a dollar or yen sign, on its balance, not a peso.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
