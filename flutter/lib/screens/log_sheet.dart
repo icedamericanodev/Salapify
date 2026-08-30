@@ -88,6 +88,12 @@ class _LogSheetState extends State<LogSheet> {
   final labelController = TextEditingController();
   late String type = widget.initialType == 'income' ? 'income' : 'expense';
   String? accountId;
+
+  /// The spending category chosen for this expense, or null for none. Writes
+  /// the transaction's categoryId, an existing field the breakdowns read; no
+  /// stored-data shape or migration changes. Cleared when the type flips to
+  /// income, which has no category.
+  String? categoryId;
   String? error;
   bool saving = false;
 
@@ -152,6 +158,8 @@ class _LogSheetState extends State<LogSheet> {
       'amount': amount,
       'date': _logIso,
       if (accountId != null) 'accountId': accountId,
+      // Only an expense carries a category, and only when one was chosen.
+      if (type == 'expense' && categoryId != null) 'categoryId': categoryId,
     };
     // Captured before the await and the pop: this sheet's own context dies
     // with the pop, and the messenger lives on the root Scaffold, so the
@@ -226,12 +234,27 @@ class _LogSheetState extends State<LogSheet> {
     // tap on a chip, not retyping. Recomputes when the type toggles.
     final recents = recentLabels(widget.store.data['transactions'], type);
 
+    // The spending categories, offered as chips for an expense so the breakdown
+    // is captured at log time. Only rows with a real string id, so an odd
+    // imported row can never crash the chip. The body hides the section for
+    // income and when the list is empty.
+    final categories = (widget.store.data['categories'] as List? ?? const [])
+        .whereType<Map>()
+        .map((c) => c.cast<String, dynamic>())
+        .where((c) => c['id'] is String && (c['id'] as String).isNotEmpty)
+        .toList();
+
     // The whole body is the shared form language (widgets/entry_form.dart),
     // the same dialect the edit sheet speaks; only the state and the save
     // semantics stay this sheet's own.
     return EntryFormBody(
       type: type,
-      onType: (v) => setState(() => type = v),
+      // Switching to income clears any chosen category: income has no spending
+      // bucket, and a stale categoryId must never ride an income row.
+      onType: (v) => setState(() {
+        type = v;
+        if (v != 'expense') categoryId = null;
+      }),
       amountController: amountController,
       labelController: labelController,
       amountAutofocus: true,
@@ -241,6 +264,9 @@ class _LogSheetState extends State<LogSheet> {
       accounts: accounts,
       accountId: accountId,
       onAccount: (v) => setState(() => accountId = v),
+      categories: categories,
+      categoryId: categoryId,
+      onCategory: (v) => setState(() => categoryId = v),
       error: error,
       saving: saving,
       saveLabel: 'Save entry',

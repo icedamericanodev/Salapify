@@ -95,6 +95,19 @@ class EntryFormBody extends StatelessWidget {
   final String accountsKicker;
   final String noAccountLabel;
 
+  /// The category trio, the audit's P0-1: capture the spending category at log
+  /// time so the breakdowns fill in without a later tagging pass. Optional so a
+  /// caller that does not offer categories (the edit sheet, for now) is
+  /// unchanged; the section only renders for an EXPENSE, when categories exist
+  /// and onCategory is wired. It writes the transaction's `categoryId`, a field
+  /// the schema already round-trips and spentByCategory/whereItWent already
+  /// read, so nothing about stored data or migrations changes.
+  final List<Map<String, dynamic>> categories;
+  final String? categoryId;
+  final ValueChanged<String?>? onCategory;
+  final String categoriesKicker;
+  final String noCategoryLabel;
+
   final String? error;
   final bool saving;
   final String saveLabel;
@@ -123,6 +136,11 @@ class EntryFormBody extends StatelessWidget {
     required this.onAccount,
     this.accountsKicker = 'FROM WHICH ACCOUNT',
     this.noAccountLabel = 'No account',
+    this.categories = const [],
+    this.categoryId,
+    this.onCategory,
+    this.categoriesKicker = 'CATEGORY',
+    this.noCategoryLabel = 'No category',
     this.error,
     required this.saving,
     required this.saveLabel,
@@ -205,6 +223,36 @@ class EntryFormBody extends StatelessWidget {
                           offset: label.length,
                         );
                       },
+                    ),
+                ],
+              ),
+            ],
+            // CATEGORY, for an expense only (income has no spending bucket).
+            // Optional and hidden when the caller offers no categories, so the
+            // edit sheet is unchanged. Writes the transaction's categoryId, an
+            // existing field the breakdowns already read.
+            if (type == 'expense' &&
+                categories.isNotEmpty &&
+                onCategory != null) ...[
+              const SizedBox(height: Gap.lg),
+              Kicker(categoriesKicker, inCard: true),
+              const SizedBox(height: Gap.sm),
+              Wrap(
+                spacing: Gap.sm,
+                runSpacing: Gap.sm,
+                children: [
+                  SalapifyChoiceChip(
+                    label: noCategoryLabel,
+                    selected: categoryId == null,
+                    onSelected: (_) => onCategory!(null),
+                  ),
+                  for (final c in categories)
+                    SalapifyChoiceChip(
+                      label:
+                          '${(c['icon'] ?? '').toString()} ${c['name'] ?? 'Category'}'
+                              .trim(),
+                      selected: categoryId == c['id'],
+                      onSelected: (_) => onCategory!(c['id'] as String),
                     ),
                 ],
               ),

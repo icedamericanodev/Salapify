@@ -75,6 +75,72 @@ void main() {
     expect(cash['balance'], 750);
   });
 
+  testWidgets('logging an expense with a category saves the categoryId', (
+    tester,
+  ) async {
+    final blob = seedBlob();
+    blob['categories'] = [
+      {'id': 'cat_food', 'name': 'Food', 'icon': '🍜', 'monthlyCap': 0},
+      {'id': 'cat_load', 'name': 'Load', 'icon': '📱', 'monthlyCap': 0},
+    ];
+    tester.view.physicalSize = const Size(1200, 3600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Log'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '250');
+    await tester.enterText(find.byType(TextField).at(1), 'Lunch');
+    // Pick the Food category. Its label is "🍜 Food"; the emoji renders as a
+    // box in the sandbox (no emoji font) but the string still carries the name.
+    await tester.tap(find.textContaining('Food'));
+    await tester.pump();
+    await tester.tap(find.text('Save entry'));
+    await tester.pumpAndSettle();
+
+    // It persisted with the categoryId, the existing field the breakdowns read.
+    final fresh = SalapifyStore();
+    await fresh.load();
+    final txs = (fresh.data['transactions'] as List);
+    expect(txs.length, 1);
+    expect((txs.first as Map)['categoryId'], 'cat_food');
+    expect((txs.first as Map)['label'], 'Lunch');
+  });
+
+  testWidgets('switching to income hides the category section', (tester) async {
+    final blob = seedBlob();
+    blob['categories'] = [
+      {'id': 'cat_food', 'name': 'Food', 'icon': '🍜', 'monthlyCap': 0},
+    ];
+    tester.view.physicalSize = const Size(1200, 3600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({storageKey: jsonEncode(blob)});
+    final store = SalapifyStore();
+    await tester.pumpWidget(SalapifyApp(store: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Log'));
+    await tester.pumpAndSettle();
+    // Expense shows the CATEGORY section.
+    expect(find.text('CATEGORY'), findsOneWidget);
+    expect(find.textContaining('Food'), findsOneWidget);
+
+    // Income has no spending bucket, so the section disappears. Tap the chip
+    // specifically (the Home tile behind the sheet also says "Income").
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Income'));
+    await tester.pumpAndSettle();
+    expect(find.text('CATEGORY'), findsNothing);
+    expect(find.textContaining('Food'), findsNothing);
+  });
+
   testWidgets('junk, non-finite, and comma-decimal amounts are refused', (
     tester,
   ) async {

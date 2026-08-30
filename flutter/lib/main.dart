@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.70 · A foreign-currency account now shows its own symbol, like a dollar or yen sign, on its balance, not a peso.';
+    'f4.71 · Tag an expense with a category right when you log it, so your spending breakdowns fill in with no extra step.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
