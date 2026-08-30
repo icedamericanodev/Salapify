@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.68 · Pan is now a lowkey Chat with Pan pill: drag it anywhere, tap to ask about your money or grab a quick tip.';
+    'f4.69 · Moving money now only works between accounts in the same currency, so a transfer can never dent your net worth.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform
