@@ -13,6 +13,7 @@
 // whatever comes back; it does no arithmetic of its own, which is the rule
 // that put monthlyInterest and whatIfLadder in the money layer too.
 
+import 'base_currency_scope.dart' show baseCurrencyOf;
 import 'debtmath.dart' show formatMoneyText;
 import 'ledger.dart' as ledger;
 
@@ -100,8 +101,23 @@ String balanceLabel(num value) {
 }
 
 /// Why a transfer was refused, so a screen can say the honest thing without
-/// the engine having to change the message it is golden-locked to.
-enum TransferRefusal { amount, accounts, overdraft }
+/// the engine having to change the message it is golden-locked to. `currency`
+/// has no RN counterpart: the RN app has no per-account currency, so it could
+/// never hit this. It exists because a Flutter account CAN carry its own
+/// currencyCode, and moving 1:1 between two currencies would silently dent net
+/// worth (see the guard in applyTransfer).
+enum TransferRefusal { amount, accounts, overdraft, currency }
+
+/// An account's effective currency: its own currencyCode when it carries a
+/// valid one, otherwise the base currency (an account with no code has always
+/// meant "the app's one currency", the same rule base_currency_scope uses).
+String _effectiveCurrency(Map<String, dynamic> account, String base) {
+  final code = account['currencyCode'];
+  if (code is String && RegExp(r'^[A-Za-z]{3}$').hasMatch(code)) {
+    return code.toUpperCase();
+  }
+  return base;
+}
 
 /// What a transfer attempt produced: either a message to show, or the new
 /// store data. Never both, and never neither.
@@ -186,6 +202,21 @@ TransferOutcome applyTransfer(
     return const TransferOutcome.failed(
       'Pick two different accounts.',
       TransferRefusal.accounts,
+    );
+  }
+  // A cross-currency move is refused, not converted. The engine moves the same
+  // number out of one balance and into the other, so moving 50 from a dollar
+  // account to a peso account would take $50 and add P50, and net worth (which
+  // converts each balance) would drop by the difference. The app never stores a
+  // conversion rate on purpose (an offline rate goes stale silently), so the
+  // honest move is to refuse and let the person log the exchange at the real
+  // rate they got. A same-currency move, which is every move the golden vectors
+  // cover, is unaffected.
+  final base = baseCurrencyOf(data);
+  if (_effectiveCurrency(from, base) != _effectiveCurrency(to, base)) {
+    return const TransferOutcome.failed(
+      'Move money only works between accounts in the same currency.',
+      TransferRefusal.currency,
     );
   }
   final fromBal = ledger.amountOf(from['balance']);
