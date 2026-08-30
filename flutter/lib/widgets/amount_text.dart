@@ -66,6 +66,16 @@ class AmountText extends StatelessWidget {
 
   final TextAlign? textAlign;
 
+  /// A preformatted string to draw INSTEAD of formatMoney(value), at the same
+  /// role style. The one legitimate use is a FOREIGN account's own balance,
+  /// which must show its own currency symbol (formatConverted) rather than the
+  /// base peso formatMoney would apply; see money/account_currency.dart. Null
+  /// keeps the default peso formatting, so no existing call site changes.
+  ///
+  /// NOT named `override`: a field called `override` shadows the `@override`
+  /// annotation inside this class and quietly breaks it.
+  final String? overrideText;
+
   // NOT const. The style getters read the live Barako palette during build,
   // and a const call site would freeze the color after a theme switch. Same
   // rule as every shared widget here.
@@ -77,6 +87,7 @@ class AmountText extends StatelessWidget {
     this.tint,
     this.signed = false,
     this.textAlign,
+    this.overrideText,
   });
 
   /// The ladder style for a role. Public so a text INPUT showing an amount
@@ -107,7 +118,8 @@ class AmountText extends StatelessWidget {
         _ => Alignment.centerLeft,
       },
       child: Text(
-        '${signed && value > 0 ? '+' : ''}${formatMoney(value)}',
+        overrideText ??
+            '${signed && value > 0 ? '+' : ''}${formatMoney(value)}',
         maxLines: 1,
         textAlign: textAlign,
         style: style,

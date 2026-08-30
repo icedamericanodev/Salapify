@@ -29,6 +29,8 @@ import '../data/store.dart';
 import '../money/account_taxonomy.dart';
 import '../money/account_flow.dart' show accountMonthFlow;
 import '../money/card_products.dart';
+import '../money/account_currency.dart' show accountAmountText;
+import '../money/base_currency_scope.dart' show baseCurrencyOf;
 import '../money/format.dart' show formatMoney, prettyDay;
 import '../money/ledger.dart' show amountOf;
 import '../money/net_worth_history.dart' show netWorthMonthKey;
@@ -307,6 +309,15 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
     // shows, so tapping the wallet never opens onto a bank card with a chip and
     // a masked number cash does not have.
     final isCash = !_isDebt && row['kind']?.toString() == 'cash';
+    // A foreign account's card face shows its own symbol; null for a base
+    // account leaves the peso formatting the card does itself.
+    final foreignText = _isDebt
+        ? null
+        : accountAmountText(
+            amountOf(row['balance']),
+            row,
+            baseCurrencyOf(widget.store.data),
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -314,6 +325,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
           CashBalanceTile(
             name: row['name']?.toString() ?? bankName,
             balance: amountOf(row['balance']),
+            amountText: foreignText,
           )
         // The hero follows the reveal: hidden by default it shows only dots, so
         // the digits are in one place on this screen (behind the reveal), not
@@ -336,6 +348,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
             brandColor: institutionBrandColor(instId),
             last4: _revealed ? last4 : null,
             balance: amountOf(row['balance']),
+            amountText: foreignText,
             monogram: institutionById(instId)?.initials,
           ),
         const SizedBox(height: 12),
@@ -387,12 +400,28 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
       final fee = amountOf(row['annualFee']);
       if (fee > 0) rows.add(_moneyStat('Annual fee', fee));
     } else {
+      // A foreign account shows its own symbol on its own balance and target,
+      // not the base peso sign; the override is null for a base account, so
+      // nothing changes there. Totals elsewhere still exclude a foreign account.
+      final base = baseCurrencyOf(widget.store.data);
+      final balance = amountOf(row['balance']);
       rows.add(
-        _moneyStat('Current balance', amountOf(row['balance']), strong: true),
+        _moneyStat(
+          'Current balance',
+          balance,
+          strong: true,
+          overrideText: accountAmountText(balance, row, base),
+        ),
       );
       final target = amountOf(row['target']);
       if (target > 0) {
-        rows.add(_moneyStat('Maintaining or target', target));
+        rows.add(
+          _moneyStat(
+            'Maintaining or target',
+            target,
+            overrideText: accountAmountText(target, row, base),
+          ),
+        );
       }
     }
     return Column(
@@ -462,7 +491,12 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
   /// restores the body weight _stat used for them and adds tabular figures.
   /// Hierarchy reads by the primary's bold weight and tint against the
   /// reference's medium ink.
-  Widget _moneyStat(String label, num value, {bool strong = false}) => Row(
+  Widget _moneyStat(
+    String label,
+    num value, {
+    bool strong = false,
+    String? overrideText,
+  }) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       Flexible(child: Text(label, style: AppText.body.tint(Barako.muted))),
@@ -473,6 +507,7 @@ class _AccountDetailScreenState extends State<AccountDetailScreen>
           role: strong ? AmountRole.row : AmountRole.reference,
           textAlign: TextAlign.right,
           tint: strong ? Barako.primaryText : Barako.text,
+          overrideText: overrideText,
         ),
       ),
     ],
