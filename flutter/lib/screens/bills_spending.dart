@@ -18,6 +18,7 @@ import '../money/format.dart' show formatMoney;
 import '../money/spending_breakdown.dart';
 import '../theme.dart';
 import '../typography.dart';
+import '../widgets/salapify_card.dart';
 import '../widgets/salapify_icon.dart';
 import '../widgets/segmented.dart';
 import 'recurring.dart' show RecurringScreen;
@@ -65,9 +66,9 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
               Text(
                 'A plain read on where your money goes each month, built only '
                 'from what you have logged. Nothing here leaves your phone.',
-                style: AppText.small.tint(Barako.textSecondary).copyWith(
-                  height: 1.4,
-                ),
+                style: AppText.small
+                    .tint(Barako.textSecondary)
+                    .copyWith(height: 1.4),
               ),
               const SizedBox(height: Gap.lg),
               Text('THIS MONTH', style: Barako.kickerStyle),
@@ -96,13 +97,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
     final total = split['total'] as double;
     final pct = (split['committedPct'] as double).round();
 
-    return Container(
-      padding: Insets.card,
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.border),
-      ),
+    return SalapifyCard(
       child: total <= 0
           ? Text(
               'No spending logged this month yet. Once you start logging, this '
@@ -151,11 +146,16 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
     );
   }
 
-  Widget _figure(String label, String value, Color color,
-      {bool alignEnd = false}) {
+  Widget _figure(
+    String label,
+    String value,
+    Color color, {
+    bool alignEnd = false,
+  }) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -193,10 +193,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
     if (!ok) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(Radii.pill),
-        child: SizedBox(
-          height: 16,
-          child: ColoredBox(color: Barako.border),
-        ),
+        child: SizedBox(height: 16, child: ColoredBox(color: Barako.border)),
       );
     }
     final cFlex = (committed / total * 10000).round();
@@ -212,10 +209,16 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (cFlex > 0)
-              Expanded(flex: cFlex, child: ColoredBox(color: Barako.celebrate)),
+              Expanded(
+                flex: cFlex,
+                child: ColoredBox(color: Barako.celebrate),
+              ),
             if (cFlex > 0 && eFlex > 0) const SizedBox(width: 2),
             if (eFlex > 0)
-              Expanded(flex: eFlex, child: ColoredBox(color: Barako.primary)),
+              Expanded(
+                flex: eFlex,
+                child: ColoredBox(color: Barako.primary),
+              ),
           ],
         ),
       ),
@@ -225,13 +228,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
   // ---- Recurring bills, per week / month / year -------------------------
 
   Widget _billsCard(BuildContext context, double monthly, int count) {
-    return Container(
-      padding: Insets.card,
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.border),
-      ),
+    return SalapifyCard(
       child: count == 0
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,9 +294,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
   Widget _manageButton(BuildContext context, String label) {
     return OutlinedButton.icon(
       onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => RecurringScreen(store: widget.store),
-        ),
+        MaterialPageRoute(builder: (_) => RecurringScreen(store: widget.store)),
       ),
       icon: Icon(salapifyIcon('repeat'), size: IconSizes.dense),
       label: Text(label),
@@ -311,13 +306,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
   Widget _radarCard(Map<String, dynamic> commitments, DateTime now) {
     final bills = (commitments['bills'] as List).cast<Map<String, dynamic>>();
     final payday = _parseISO((commitments['payday'] ?? '').toString());
-    return Container(
-      padding: Insets.card,
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.border),
-      ),
+    return SalapifyCard(
       child: bills.isEmpty
           ? Text(
               payday == null
@@ -338,8 +327,7 @@ class _BillsSpendingScreenState extends State<BillsSpendingScreen> {
                   ),
                 const SizedBox(height: Gap.sm),
                 for (var i = 0; i < bills.length; i++) ...[
-                  if (i > 0)
-                    Divider(height: Gap.md, color: Barako.border),
+                  if (i > 0) Divider(height: Gap.md, color: Barako.border),
                   _radarRow(bills[i], now),
                 ],
                 const SizedBox(height: Gap.md),

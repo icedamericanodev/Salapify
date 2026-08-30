@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.71 · Tag an expense with a category right when you log it, so your spending breakdowns fill in with no extra step.';
+    'f4.72 · Cleaner cards, clearer section headings, and hero numbers that roll up when they change.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

@@ -318,8 +318,8 @@ class InsightsScreen extends StatelessWidget {
                 // used to sit above them and only restated the count, which was
                 // words before the first real content; it was cut for that.
                 if (candidates.isNotEmpty) ...[
-                  Kicker('DO NEXT'),
-                  SizedBox(height: 8),
+                  SectionTitle('DO NEXT'),
+                  const SizedBox(height: 8),
                   for (final c in candidates.take(3)) _decisionCard(c),
                 ] else
                   Card(
@@ -379,7 +379,7 @@ class InsightsScreen extends StatelessWidget {
                 // list here duplicated Reports' better one; both were
                 // replaced by these interpreted versions in Phase 5.
                 const SizedBox(height: 18),
-                Kicker('THIS MONTH'),
+                SectionTitle('THIS MONTH'),
                 const SizedBox(height: 8),
                 _monthStoryChart(context, series, forecast, ref),
                 const SizedBox(height: Gap.lg),
@@ -402,7 +402,7 @@ class InsightsScreen extends StatelessWidget {
                 const SizedBox(height: Gap.md),
                 _reportsLinkRow(context),
                 const SizedBox(height: 18),
-                Kicker('THE BIGGER PICTURE'),
+                SectionTitle('THE BIGGER PICTURE'),
                 const SizedBox(height: 8),
                 // Always open, deliberately, unlike TOOLS below: these
                 // cards ARE the reason someone opens this tab, not a preview
@@ -438,7 +438,7 @@ class InsightsScreen extends StatelessWidget {
                 // fold to one line each came earlier). Values inside are
                 // untouched.
                 const SizedBox(height: 18),
-                Kicker('TOOLS'),
+                SectionTitle('TOOLS'),
                 const SizedBox(height: 8),
                 // "Kaya mo ba ito?" always shows: a tool anyone can reach
                 // for before a purchase, so it does not gate on having debt

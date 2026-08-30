@@ -25,6 +25,8 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../typography.dart';
+import 'count_up_text.dart';
+import 'salapify_card.dart';
 import 'salapify_icon.dart';
 import 'segmented.dart';
 
@@ -80,13 +82,10 @@ class SafeToSpendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Barako.card,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: Barako.border),
-      ),
-      padding: Insets.card,
+    // No kicker on this card: its top line is the Segmented lens control, not
+    // an overline, so it leads with the control and SalapifyCard just owns the
+    // fill, border, radius and the one interior padding.
+    return SalapifyCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -135,11 +134,21 @@ class SafeToSpendCard extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(
-                money(_buffer),
-                maxLines: 1,
-                style: AppText.amountLg.w8.tint(figureColor),
-              ),
+              // Rolls up when the figure is visible; a masked figure is dots,
+              // which cannot roll, so it stays a plain Text under the eye. The
+              // spoken value is the outer Semantics label above, so CountUpText's
+              // own announcement is harmlessly dropped by this ExcludeSemantics.
+              child: hideBalances
+                  ? Text(
+                      money(_buffer),
+                      maxLines: 1,
+                      style: AppText.amountLg.w8.tint(figureColor),
+                    )
+                  : CountUpText(
+                      value: _buffer,
+                      format: money,
+                      style: AppText.amountLg.w8.tint(figureColor),
+                    ),
             ),
           ),
         ),
@@ -201,9 +210,7 @@ class SafeToSpendCard extends StatelessWidget {
       children: [
         Icon(salapifyIcon('info'), size: IconSizes.dense, color: Barako.muted),
         const SizedBox(width: Gap.xs),
-        Expanded(
-          child: Text(text, style: AppText.caption.tint(Barako.muted)),
-        ),
+        Expanded(child: Text(text, style: AppText.caption.tint(Barako.muted))),
       ],
     );
   }
@@ -234,11 +241,17 @@ class SafeToSpendCard extends StatelessWidget {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        money(netWorth),
-                        maxLines: 1,
-                        style: AppText.amountLg.w8,
-                      ),
+                      child: hideBalances
+                          ? Text(
+                              money(netWorth),
+                              maxLines: 1,
+                              style: AppText.amountLg.w8,
+                            )
+                          : CountUpText(
+                              value: netWorth,
+                              format: money,
+                              style: AppText.amountLg.w8,
+                            ),
                     ),
                   ),
                   const SizedBox(width: Gap.sm),

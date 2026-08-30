@@ -15,11 +15,12 @@ void main() {
     bool hideBalances = false,
     void Function(SafeToSpendView)? onView,
     VoidCallback? onOpenTrend,
-  }) {
+  }) async {
     // Mirrors the screen's _money: masks to dots when the privacy eye is on, so
     // the test exercises the card exactly as it is wired in accounts.dart.
-    String money(double v) => hideBalances ? '₱ ••••' : '₱${v.toStringAsFixed(0)}';
-    return tester.pumpWidget(
+    String money(double v) =>
+        hideBalances ? '₱ ••••' : '₱${v.toStringAsFixed(0)}';
+    await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
@@ -36,6 +37,10 @@ void main() {
         ),
       ),
     );
+    // Settle the hero count-up roll (f4.72) so the figure assertions below read
+    // the destination value, not frame zero of the animation. A masked or
+    // negative figure renders as plain Text and settles instantly.
+    await tester.pumpAndSettle();
   }
 
   Map<String, dynamic> healthy() => {
@@ -59,25 +64,23 @@ void main() {
     expect(find.textContaining('free to spend'), findsOneWidget);
     expect(find.textContaining('card minimums'), findsWidgets);
     // A card is in the window, so the minimum-only caveat is present.
-    expect(
-      find.textContaining('Paying just the minimum'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Paying just the minimum'), findsOneWidget);
   });
 
-  testWidgets('a negative buffer leads with the shortfall, not a spend figure', (
-    tester,
-  ) async {
-    final broke = {
-      ...healthy(),
-      'liquid': 2000.0,
-      'buffer': 2000.0 - 19300.0,
-    };
-    await pump(tester, buffer: broke);
-    // The shortfall is shown as a positive "short" amount, never "-₱".
-    expect(find.textContaining('short for the next 14 days'), findsOneWidget);
-    expect(find.textContaining('free to spend'), findsNothing);
-  });
+  testWidgets(
+    'a negative buffer leads with the shortfall, not a spend figure',
+    (tester) async {
+      final broke = {
+        ...healthy(),
+        'liquid': 2000.0,
+        'buffer': 2000.0 - 19300.0,
+      };
+      await pump(tester, buffer: broke);
+      // The shortfall is shown as a positive "short" amount, never "-₱".
+      expect(find.textContaining('short for the next 14 days'), findsOneWidget);
+      expect(find.textContaining('free to spend'), findsNothing);
+    },
+  );
 
   testWidgets('a debt with no minimum set is flagged on the card', (
     tester,
