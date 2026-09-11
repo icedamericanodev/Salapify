@@ -5,23 +5,32 @@ Gen Z, millennials, and working corporate adults. React Native with Expo
 SDK 54 lives in mobile/. There is no backend; all data stays on the device
 in AsyncStorage under the key salapify_data_v2.
 
-## Canonical masterfile (founder direction, 2026-08-12)
+## Canonical masterfile (founder direction, 2026-09-11)
 
-The governing product and engineering masterfile is
-docs/Salapify_Master_Constitution.md (Master Constitution v2), adopted by
-founder direction on 2026-08-12. It supersedes previous Salapify master
-plans, implementation frameworks, package plans, UI and UX plans, connector
-plans, and architectural guidance, and it is the top authority below direct
-founder direction. These working rules stay fully in force as the concrete
-enforcement of that constitution (stamp discipline, golden locks,
-delivery-log truth, the guard hooks, the merge rules, no em or en dashes,
-and the rest); where a genuine conflict exists, the constitution wins. The
-constitution runs an autonomous-by-default Tier 1 and Tier 2 model: routine
-engineering proceeds without asking, and the founder-gated categories
-(money methodology, data or migration, security or privacy, material
-product or UX forks, cloud, external cost, irreversible changes, merge or
-release) still stop for the founder. That model layers on top of, and does
-not loosen, the specific STOP conditions already written below.
+The governing document set is docs/revamp/ (start at docs/revamp/README.md),
+adopted by founder direction on 2026-09-11: rebuild Salapify from the ground
+up, documentation first, then architecture, then UI and UX design, then
+features, for the founder's own daily use before anyone else's. It replaces
+docs/Salapify_Master_Constitution.md (Master Constitution v2, 2026-08-12) as
+the top authority below direct founder direction. The constitution file stays
+in the repository unedited, as history and because
+flutter/test/constitution_citation_test.dart reads its path; nothing in it
+binds work any more, and where the two disagree docs/revamp wins.
+
+These working rules stay fully in force as the concrete enforcement layer
+(stamp discipline, golden locks, delivery-log truth, the guard hooks, the
+merge rules, no em or en dashes, and the rest). docs/revamp/09-working-rules.md
+carries the short autonomy model: routine engineering inside an approved
+phase proceeds without asking, and the founder-gated categories (money
+meaning, stored data, security or privacy, a real product fork, deleting
+files that exist on main, merge or release) still stop for the founder. That
+layers on top of, and does not loosen, the STOP conditions written below.
+
+Until the new app in app/ replaces it on the founder's phone (Phase 4 in
+docs/revamp/05-roadmap.md), flutter/ is FROZEN: no feature work, only a fix
+the founder needs on the phone they use daily. Every rule below about
+flutter/ delivery still applies to such a fix. mobile/ is frozen the same
+way. Neither is deleted until the founder says so (decision D5).
 
 The constitution file is a verbatim reproduction of the founder's document,
 so its own punctuation is preserved exactly as delivered. Do NOT normalize

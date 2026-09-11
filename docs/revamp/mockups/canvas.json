@@ -1,0 +1,15 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 412, "h": 915, "title": "Home (dark)" },
+    { "file": "Log.dc.html", "x": 500, "y": 0, "w": 412, "h": 915, "title": "Log sheet" },
+    { "file": "Accounts.dc.html", "x": 1000, "y": 0, "w": 412, "h": 915, "title": "Accounts" },
+    { "file": "Budget.dc.html", "x": 1500, "y": 0, "w": 412, "h": 915, "title": "Plan / Budget" },
+    { "file": "HomeLight.dc.html", "x": 2000, "y": 0, "w": 412, "h": 915, "title": "Home (light)" },
+    { "file": "DirectionB.dc.html", "x": 0, "y": 1110, "w": 412, "h": 915, "title": "Alternate: soft and rounded (low-fi)" }
+  ],
+  "annotations": [
+    { "id": "read-me", "x": 0, "y": -200, "w": 460, "text": "Salapify 3 design direction, 'Sweldo': calm dark surfaces, one warm orange accent, Plus Jakarta Sans, big tabular peso numbers, four tabs plus a centre Log button.\nAll figures are sample values.\nThe Brand tweak on the Home artboard flips the accent to teal, violet or green for comparison." },
+    { "id": "alt-note", "x": 500, "y": 1110, "w": 360, "text": "Low-fi alternate for comparison only: rounder shapes, Nunito, a filled teal hero, pill navigation. Warmer and more playful, less precise. Pick one direction before Phase 1 builds every screen." }
+  ],
+  "launch": { "view": "canvas" }
+}
