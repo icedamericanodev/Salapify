@@ -65,21 +65,53 @@ Recommendation: yes, do the move as the first PR after this one.
 
 Needed before: end of Phase 0.
 
-## D7. Typography: two families, each with a place. ANSWERED 2026-09-12
+## D7. Typography: two families, each with a place. ANSWERED 2026-09-12 (revised the same day)
 
-Fraunces for the hero amount and the cycle title only; Plus Jakarta Sans
-for everything else, including every row amount (tabular figures). No
-handwriting font: the panel found a script face reads as a template, and
-the stamp works in Jakarta. Both families are already licensed and
-bundled. Recorded from the five-reviewer panel and the founder's
-direction to pick one theme.
+Bricolage Grotesque for the hero amount, the screen title and the payday
+rail label only; DM Sans for everything else, including every row amount
+(tabular figures). Both are on Google Fonts and load in Figma. No serif and
+no handwriting font anywhere: the founder rejected both in the Papel and
+Kwaderno round. The first answer (Fraunces plus Plus Jakarta Sans) was
+recorded from the five-reviewer panel in the morning and withdrawn when the
+founder rejected that theme; this answer comes from the moodboard round.
 
-## D8. Accent: terracotta. ANSWERED 2026-09-12
+## D8. Accent: coral. ANSWERED 2026-09-12 (revised the same day)
 
-#A8390F on paper, #EE7A45 on ink. Not the green every finance app uses,
-not Tarsi-adjacent, and continuous with the orange Salapify wordmark. The
-only accent; the full palette is in 03-design-system.md. The contrast test
-is the judge of the exact values.
+#BE3A1B in light, #FF8A6A in dark, with a darker #8F2A12 edge under the two
+primary buttons. Taken from image 2 on the moodboard (Bear, "coral") and
+image 4 (Headspace, one strong warm accent on off-white), then darkened
+until white text on it passed 4.5:1. Not the green every finance app uses,
+not Tarsi-adjacent. The only accent; positive green is the only other strong
+colour and it means money coming to you. The full palette and every
+contrast ratio are in 03-design-system.md. The first answer (terracotta
+#A8390F on paper) went with the rejected Papel theme.
+
+### How the theme was chosen (the keep-or-kill list)
+
+Twelve real light-mode screens on the Figma moodboard, decided by the
+design-director agent after the founder delegated the round:
+
+1. Things 3: calm. Taken: thin rules between rows instead of boxes.
+2. Bear: coral. Taken: the coral accent on a clean white ground.
+3. Craft: kill. Beige paper and serif body, the rejected Papel look.
+4. Headspace: keep. Warm off-white ground, one strong warm accent, pill
+   buttons, bold sans headline, friendly without being childish.
+5. Duolingo: chunky. Taken: the thick bottom edge on the primary button,
+   limited to two buttons so the app never reads as Duolingo.
+6. Structured: rail. Taken: a timeline rail with dots; became the payday
+   rail.
+7. Gentler Streak: keep. A chart that states its conclusion in a sentence,
+   and a soft green band.
+8. Notion: kill. Dense monochrome, the boring the founder named.
+9. Monarch: kill. Serif over cream plus a hero chart; parent of two
+   rejected variants.
+10. YNAB: keep. Amounts inside soft coloured pills.
+11. Spendee: kill. Generic icon grid on lavender.
+12. Ivy Wallet: kill. Dark cards, teal and black; the rejected first draft.
+
+The moodboard is private inspiration. Nothing on it is copied into
+Salapify; what carries over is a colour feeling, a rail, a pill, and a
+sentence under a chart, all redrawn. The utang beam is Salapify's own.
 
 ## D9. Charts by hand, not a library
 
@@ -91,15 +123,15 @@ Needed before: Phase 2.
 
 ## D10. One theme, light primary, dark optional. ANSWERED 2026-09-12
 
-Founder direction: Papel (light) is the primary and reference look; Tinta
-(dark) is an option in Settings, derived from the same tokens. No theme
-picker. The old four themes are retired and may return in Phase 5 if
-missed. 01-vision principle 4 was rewritten to match.
+Founder direction: light is the primary and reference look; dark is an
+option in Settings, derived from the same tokens. The one theme is Sinag
+(03-design-system.md). No theme picker. The old four themes are retired and
+may return in Phase 5 if missed. 01-vision principle 4 was rewritten to
+match.
 
 Consequence for the founder: they use dark today. Phase 1 renders every
-screen in Papel first, then Tinta, and the founder should look at both,
-because they will likely live in Tinta while the design is judged in
-Papel.
+screen in light first, then dark, and the founder should look at both,
+because they will likely live in dark while the design is judged in light.
 
 ## D11. Where utang lives
 
@@ -117,8 +149,9 @@ Needed before: Phase 1 finishes the Home mockup (it is drawn as (a)).
 
 Once the Phase 1 mockups are approved, these do not change without a
 founder decision: the accent, the two type families and where each is
-allowed, Papel as reference with Tinta derived, one way to render a peso
-amount, ledger-row physics, the stamp as the only celebration, no cards on
-the main screens, the tab bar shape. The two-week test in 03 is the check.
+allowed, light as reference with dark derived, one way to render a peso
+amount, the rail, the beam and the pill, the clear as the only celebration,
+no cards on the main screens beyond the three tiles, the tab bar shape. The
+two-week test in 03 is the check.
 
 Needed before: end of Phase 1.

@@ -77,3 +77,15 @@ the app.
 Why this replaced the earlier loop: eight text-driven variants were drawn and
 rejected in one day. Designing from words guesses at taste; designing from
 reactions measures it.
+
+First run, 2026-09-12: twelve references on the moodboard, the founder
+delegated the keep-or-kill round to the agent, and the agent derived Sinag
+(03-design-system.md), built the two token collections and the swatch and
+type sheets on page 2, and the six screens now in mockups/ and on page 3.
+One practical note for the next run: the Figma starter plan allows one mode
+per variable collection, so light and dark are two collections (Sinag Light,
+Sinag Dark) rather than two modes of one. And the Figma calls that build a
+whole screen as native frames in one go can hang without returning; the
+screens were rendered from HTML with the real fonts instead and uploaded as
+images, which is what the founder reviews. Native Figma frames are worth
+building once a screen is approved, not before.

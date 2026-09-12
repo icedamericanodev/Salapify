@@ -64,12 +64,17 @@ replaces it on the founder's phone.
 
 ## The pictures
 
-docs/revamp/mockups/ holds the rendered mockups of the chosen theme, Papel
-(Home, Log sheet, Accounts, Plan, then Home in Tinta, the dark option),
-the three direction sketches the theme was chosen from, and the artboard
-sources. The same set is an editable canvas the founder can tweak by hand:
-https://claude.ai/code/artifact/3e662418-389c-4486-a0ff-2e9a1e60e656
-(private to the founder). All figures in them are sample values.
+docs/revamp/mockups/ holds the rendered mockups of the chosen theme, Sinag
+(Home, Log sheet, Accounts, Plan, Utang, then Home in dark), and under
+source/ the HTML, CSS, fonts and render script that produced them, so a
+change to a token can be re-rendered the same way. The same screens sit on
+page "3 Screens" of the Figma file "Salapify 3 Design", next to the
+moodboard they came from and the token collections. All figures in them
+are sample values.
 
-The first draft (dark, cards, one orange accent) was rejected on
-2026-09-12 as a Tarsi copy and is kept on the canvas only for comparison.
+Three earlier rounds were rejected on 2026-09-12 and are not kept in the
+repo: the first draft (dark, cards, one orange accent, a Tarsi copy), the
+Papel and Kwaderno notebook look, and four text-driven variants. The
+earlier canvas at
+https://claude.ai/code/artifact/3e662418-389c-4486-a0ff-2e9a1e60e656
+still shows them for comparison.

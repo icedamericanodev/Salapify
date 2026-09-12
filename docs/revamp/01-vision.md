@@ -38,9 +38,9 @@ and if it slows down logging or adds confusion it stays out.
 3. One design hand. One accent colour, one type family, one card shape, one
    list physics. If two screens show a peso amount differently, that is a
    bug.
-4. Light first. Papel, the paper look, is the reference; every screen is
-   designed in Papel and then derived into Tinta, the dark option. The
-   founder uses dark today, so both are rendered and both are looked at.
+4. Light first. Sinag, the warm white look, is the reference; every screen
+   is designed in light and then derived into the dark option. The founder
+   uses dark today, so both are rendered and both are looked at.
 5. Calm by default, alive at moments. No ambient animation, no confetti for
    ordinary saves. Numbers roll when they change, sheets glide, a cleared
    debt gets one earned celebration.
@@ -68,7 +68,7 @@ current app's code stays in git as reference for any that return.
 | Calculators as separate screens (tax, salary, 13th month, loan, BNPL, contribution, currency, year-end tax, tax deadlines) | Nine tools with nine screens. One or two may return as a single Tools sheet once the core is loved. |
 | Treats, wins, milestones, recap share, milestone share, week chain | Gamification layered on before the core felt good. |
 | Paluwagan, split expense, notes, CSV import, card skin studio, flip bank card | Each is a screen or two the founder does not open daily. CSV import may return under Settings. |
-| Four colour themes and the appearance studio | One theme, Papel, with Tinta as the dark option. More themes are a feature for other people, later. |
+| Four colour themes and the appearance studio | One theme, Sinag, with a dark option. More themes are a feature for other people, later. |
 | Reports PDF statement, debt statement PDF | Later, under an account or debt's overflow menu, if wanted. |
 
 ## What is kept, and made much better
