@@ -57,3 +57,23 @@ white, text #17161A, accent #D9540E".
   first. The mockup is the target; the render is the proof.
 - Package APIs are checked on Context7 against the pinned version before
   Claude uses them, per CLAUDE.md.
+
+## The design director (added 2026-09-12)
+
+The founder is not a designer and should not have to be. The
+design-director agent (.claude/agents/design-director.md) owns the visual
+direction from here: it finds real reference screenshots, builds the
+founder's Figma moodboard, runs a keep-or-kill round, derives one theme from
+what the founder kept, builds tokens and screens in Figma, and hands off to
+flutter-ux-craftsman. The founder's only job in that loop is to react to
+pictures.
+
+The Figma file of record is "Salapify 3 Design"
+(https://www.figma.com/design/VuiHCeU3Pz4irpIJBMHJkC): page 1 is the
+moodboard, page 2 the tokens, page 3 the screens. Anything on the moodboard
+is private inspiration with its source named; nothing on it is copied into
+the app.
+
+Why this replaced the earlier loop: eight text-driven variants were drawn and
+rejected in one day. Designing from words guesses at taste; designing from
+reactions measures it.
