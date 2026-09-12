@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #17110E; color: #F5EDE2; -webkit-font-smoothing: antialiased; }
+    a { color: #F2B544; } a:hover { color: #FFD27A; }
+    .num { font-variant-numeric: tabular-nums; font-weight: 800; }
+    .stop { display: flex; align-items: center; gap: 14px; min-height: 60px; position: relative; }
+    .dot { width: 14px; height: 14px; border-radius: 999px; background: #3A2C24; border: 2px solid #17110E; box-shadow: 0 0 0 2px #3A2C24; flex-shrink: 0; margin-left: 15px; }
+    .lbl { flex-grow: 1; display: flex; flex-direction: column; }
+    .t { font-size: 16px; line-height: 22px; }
+    .c { font-size: 12px; line-height: 16px; color: #A8967F; }
+  </style>
+</helmet>
+<div style="width: 412px; height: 915px; background: #17110E; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="display: flex; flex-direction: column; padding: 52px 20px 0 20px; flex-grow: 1; overflow: hidden;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 40px; height: 40px; border-radius: 999px; background: #F2B544; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #17110E;">P</div>
+        <div style="display: flex; flex-direction: column;"><div style="font-size: 12px; color: #A8967F;">Pan says</div><div style="font-size: 15px; font-weight: 600;">Steady week. Bills are covered.</div></div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: center; margin-top: 22px;">
+      <div style="position: relative; width: 236px; height: 236px;">
+        <svg width="236" height="236" viewBox="0 0 236 236" style="position: absolute; inset: 0;">
+          <circle cx="118" cy="118" r="104" fill="none" stroke="#2A1F19" stroke-width="14"></circle>
+          <circle cx="118" cy="118" r="104" fill="none" stroke="#F2B544" stroke-width="14" stroke-linecap="round" stroke-dasharray="653" stroke-dashoffset="176" transform="rotate(-90 118 118)"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">
+          <div style="font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: #A8967F; font-weight: 700;">Safe to spend</div>
+          <div style="display: flex; align-items: baseline; gap: 3px;"><span style="font-size: 22px; font-weight: 800; color: #F2B544;">₱</span><span class="num" style="font-size: 44px; line-height: 48px; letter-spacing: -1px;">6,240</span></div>
+          <div style="font-size: 13px; color: #A8967F;">₱1,560 a day</div>
+          <div style="margin-top: 8px; font-size: 12px; font-weight: 700; color: #F2B544; background: rgba(242,181,68,0.12); border-radius: 999px; padding: 4px 10px;">4 days to sweldo</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; margin-top: 18px; position: relative;">
+      <div style="position: absolute; left: 21px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(#3A2C24, #F2B544 55%, #3A2C24);"></div>
+
+      <div class="stop"><div class="dot" style="background: #F5EDE2; box-shadow: 0 0 0 2px #F5EDE2;"></div><div class="lbl"><div class="t" style="font-weight: 700;">Today, Thu Sep 11</div><div class="c">₱18,450 spent so far this cycle</div></div></div>
+      <div class="stop"><div class="dot"></div><div class="lbl"><div class="t">Meralco</div><div class="c">Sat Sep 13 · electricity</div></div><div class="num" style="font-size: 15px;">-₱2,340</div></div>
+      <div class="stop"><div class="dot"></div><div class="lbl"><div class="t">Spotify</div><div class="c">Sun Sep 14 · subscription</div></div><div class="num" style="font-size: 15px;">-₱149</div></div>
+      <div class="stop" style="min-height: 76px;"><div class="dot" style="width: 22px; height: 22px; margin-left: 11px; background: #F2B544; box-shadow: 0 0 0 4px rgba(242,181,68,0.25);"></div><div class="lbl" style="background: #241B16; border-radius: 16px; padding: 12px 14px;"><div style="display: flex; justify-content: space-between; align-items: baseline;"><div class="t" style="font-weight: 800; color: #F2B544;">Sweldo</div><div class="num" style="font-size: 17px; color: #F2B544;">+₱42,000</div></div><div class="c">Mon Sep 15 · about ₱12,400 carries over</div></div></div>
+      <div class="stop"><div class="dot"></div><div class="lbl"><div class="t">Home Credit</div><div class="c">Sat Sep 20 · utang, 3 of 6</div></div><div class="num" style="font-size: 15px;">-₱2,000</div></div>
+      <div class="stop"><div class="dot"></div><div class="lbl"><div class="t">Kuya Jun pays back</div><div class="c">no date yet · owed to you</div></div><div class="num" style="font-size: 15px; color: #6FCF97;">+₱3,500</div></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #100B09; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: start; padding-top: 12px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 999px; background: #F2B544;"></div><div style="font-size: 12px; font-weight: 700; color: #F2B544;">Today</div></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 999px; background: #3A2C24;"></div><div style="font-size: 12px; font-weight: 700; color: #A8967F;">Cycle</div></div>
+    <div style="display: flex; flex-direction: column; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 18px; background: #F2B544; display: flex; align-items: center; justify-content: center; margin-top: -26px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#17110E" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 999px; background: #3A2C24;"></div><div style="font-size: 12px; font-weight: 700; color: #A8967F;">People</div></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 999px; background: #3A2C24;"></div><div style="font-size: 12px; font-weight: 700; color: #A8967F;">Wallet</div></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -14,17 +14,23 @@ Exit: the founder has read this folder, answered the decisions, and said
 
 ## Phase 1. Design
 
-Do: turn 03 and 04 into pictures before any code. Three deliverables:
+Do: turn 03 and 04 into pictures before any code. The theme itself was
+decided on 2026-09-12 (Papel, see 03 and D7 to D12), so Phase 1 is about
+every screen obeying it, not about choosing it. Three deliverables:
 1. A component sheet (every kit component, dark and light) as a design
    canvas or Stitch export.
-2. The five core screens (Home, Log, Activity, Plan > Budget, Accounts) as
-   high-fidelity mockups in dark, then light.
+2. The five core screens (Home, Log, Ledger, Plan > Budget, Accounts) as
+   high-fidelity mockups in Papel, then Tinta.
 3. One prototype flow the founder can tap through: open app, tap Log, type
    "jollibee 250", save, see Home update.
 
 Tools: Google Stitch for fast exploration of layouts, Figma (connected to
 Claude Code) as the file of record, Claude's design canvas for quick
 in-conversation revisions. See 06-tooling.md.
+
+Theme-blind Phase 2 work (project setup, the money core with its golden
+vectors, typed models, the router shell) may start in parallel, because none
+of it knows what colour anything is. Only the tokens and the kit wait.
 
 Exit: the founder looks at the five screens beside Tarsi's and says v3
 looks like the one they want to open. Any screen that does not pass gets
@@ -54,7 +60,7 @@ conversation and a journey test that taps through it:
 
 1. Log sheet with the fast-log field (the heartbeat; everything else is
    read-only without it).
-2. Activity.
+2. Ledger.
 3. Accounts and account detail.
 4. Home.
 5. Plan > Budget.

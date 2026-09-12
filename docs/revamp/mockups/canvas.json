@@ -1,15 +1,30 @@
 {
+  "pages": [
+    { "id": "page-1", "name": "Papel, the chosen theme" },
+    { "id": "page-2", "name": "The three directions it came from" },
+    { "id": "page-3", "name": "First draft (rejected as generic)" }
+  ],
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 412, "h": 915, "title": "Home (dark)" },
-    { "file": "Log.dc.html", "x": 500, "y": 0, "w": 412, "h": 915, "title": "Log sheet" },
-    { "file": "Accounts.dc.html", "x": 1000, "y": 0, "w": 412, "h": 915, "title": "Accounts" },
-    { "file": "Budget.dc.html", "x": 1500, "y": 0, "w": 412, "h": 915, "title": "Plan / Budget" },
-    { "file": "HomeLight.dc.html", "x": 2000, "y": 0, "w": 412, "h": 915, "title": "Home (light)" },
-    { "file": "DirectionB.dc.html", "x": 0, "y": 1110, "w": 412, "h": 915, "title": "Alternate: soft and rounded (low-fi)" }
+    { "file": "PapelHome.dc.html", "x": 0, "y": 0, "w": 412, "h": 915, "title": "Home", "page": "page-1" },
+    { "file": "PapelLog.dc.html", "x": 500, "y": 0, "w": 412, "h": 915, "title": "Log sheet", "page": "page-1" },
+    { "file": "PapelAccounts.dc.html", "x": 1000, "y": 0, "w": 412, "h": 915, "title": "Accounts", "page": "page-1" },
+    { "file": "PapelPlan.dc.html", "x": 1500, "y": 0, "w": 412, "h": 915, "title": "Plan / Budget", "page": "page-1" },
+    { "file": "PapelUtang.dc.html", "x": 2000, "y": 0, "w": 412, "h": 915, "title": "Utang, with the stamp", "page": "page-1" },
+    { "file": "TintaHome.dc.html", "x": 2500, "y": 0, "w": 412, "h": 915, "title": "Home in Tinta (dark option)", "page": "page-1" },
+    { "file": "Kwaderno.dc.html", "x": 0, "y": 0, "w": 412, "h": 915, "title": "A. Kwaderno (the utang notebook)", "page": "page-2" },
+    { "file": "River.dc.html", "x": 500, "y": 0, "w": 412, "h": 915, "title": "B. Sweldo River (time first)", "page": "page-2" },
+    { "file": "Editorial.dc.html", "x": 1000, "y": 0, "w": 412, "h": 915, "title": "C. Barako Editorial (type first)", "page": "page-2" },
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 412, "h": 915, "title": "Home (dark)", "page": "page-3" },
+    { "file": "Log.dc.html", "x": 500, "y": 0, "w": 412, "h": 915, "title": "Log sheet", "page": "page-3" },
+    { "file": "Accounts.dc.html", "x": 1000, "y": 0, "w": 412, "h": 915, "title": "Accounts", "page": "page-3" },
+    { "file": "Budget.dc.html", "x": 1500, "y": 0, "w": 412, "h": 915, "title": "Plan / Budget", "page": "page-3" },
+    { "file": "HomeLight.dc.html", "x": 2000, "y": 0, "w": 412, "h": 915, "title": "Home (light)", "page": "page-3" },
+    { "file": "DirectionB.dc.html", "x": 2500, "y": 0, "w": 412, "h": 915, "title": "Alternate: soft and rounded (low-fi)", "page": "page-3" }
   ],
   "annotations": [
-    { "id": "read-me", "x": 0, "y": -200, "w": 460, "text": "Salapify 3 design direction, 'Sweldo': calm dark surfaces, one warm orange accent, Plus Jakarta Sans, big tabular peso numbers, four tabs plus a centre Log button.\nAll figures are sample values.\nThe Brand tweak on the Home artboard flips the accent to teal, violet or green for comparison." },
-    { "id": "alt-note", "x": 500, "y": 1110, "w": 360, "text": "Low-fi alternate for comparison only: rounder shapes, Nunito, a filled teal hero, pill navigation. Warmer and more playful, less precise. Pick one direction before Phase 1 builds every screen." }
+    { "id": "papel-note", "x": 0, "y": -240, "w": 520, "text": "Papel: your utang notebook, typeset. Chosen 2026-09-12 by a five-reviewer panel (Flutter UX, user panel, product, brand, competitor benchmark) as the mix of Kwaderno and Barako Editorial.\nLight is the primary look; Tinta (dark) is an option derived from the same tokens. One accent, terracotta. Fraunces only for the hero number and the cycle title; Plus Jakarta Sans for everything else. Three signature devices: the ledger row, the serif hero, the BAYAD NA stamp. No cards, no ruled lines, no mascot, no ring.\nAll figures are sample values.", "page": "page-1" },
+    { "id": "read-me", "x": 0, "y": -200, "w": 480, "text": "The three directions the theme was chosen from. A and C were mixed; B was dropped except for the days-to-payday line in the header.", "page": "page-2" },
+    { "id": "generic-note", "x": 0, "y": -160, "w": 420, "text": "Kept for comparison only. The generic dark fintech template (near-black, cards, one orange accent) the founder rejected as a Tarsi copy.", "page": "page-3" }
   ],
-  "launch": { "view": "canvas" }
+  "launch": { "view": "canvas", "page": "page-1" }
 }

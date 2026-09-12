@@ -2,7 +2,7 @@
 
 Each needs an answer before the phase that depends on it. Each has a
 recommendation so the founder can answer "yes to the recommendation" in one
-word. Answered decisions get a date and move to the bottom.
+word. Answered decisions carry the date.
 
 ## D1. Stack: Flutter again, in a new folder app/
 
@@ -18,23 +18,23 @@ Needed before: Phase 2.
 ## D2. The cut list
 
 Vision 01 cuts Courses, Mindset, Pan, the calculators, treats and wins,
-paluwagan, splits, notes, four themes, PDF statements. Everything stays in
-git history and can return in Phase 5.
+paluwagan, splits, notes, the extra themes, PDF statements. Everything
+stays in git history and can return in Phase 5.
 
 Recommendation: cut all of it for v3. The founder can name any item they
 use weekly today and it moves to "kept".
 
 Needed before: Phase 1, because it decides which screens get designed.
 
-## D3. Tabs and where Utang lives
+## D3. Tabs
 
-Options: (a) four tabs, Home · Activity · Plan · Accounts, Log in the
-centre, Utang as a section on Accounts and Home with its own screen; (b)
-five tabs with Utang as a tab; (c) Utang inside Plan.
+Options: (a) four tabs, Home · Ledger · Plan · Accounts, Log in the centre;
+(b) five tabs with Utang as a tab; (c) Utang inside Plan.
 
-Recommendation: (a). Utang is money owed, so it belongs with what you own
-and owe, and it keeps the bar to four labels, which is what fits on a
-phone without shrinking text.
+Recommendation: (a), with Utang as the first section on Home and its own
+screen (see D11). Four labels fit a phone without shrinking text. The names
+avoid Tarsi's set (Home, Wallet, Plan, History); "Ledger" is Salapify's own
+word.
 
 Needed before: Phase 1.
 
@@ -65,33 +65,60 @@ Recommendation: yes, do the move as the first PR after this one.
 
 Needed before: end of Phase 0.
 
-## D7. Single font family
+## D7. Typography: two families, each with a place. ANSWERED 2026-09-12
 
-Recommendation: keep Plus Jakarta Sans as the only family; drop Fraunces
-and IBM Plex. If the founder wants a more rounded feel like Tarsi's, the
-one alternative worth trying in Stitch is Nunito Sans; decide by looking at
-the Home mockup in both.
+Fraunces for the hero amount and the cycle title only; Plus Jakarta Sans
+for everything else, including every row amount (tabular figures). No
+handwriting font: the panel found a script face reads as a template, and
+the stamp works in Jakarta. Both families are already licensed and
+bundled. Recorded from the five-reviewer panel and the founder's
+direction to pick one theme.
 
-Needed before: Phase 1.
+## D8. Accent: terracotta. ANSWERED 2026-09-12
 
-## D8. Accent colour
-
-Recommendation: the warm orange (#FF8A3D dark, #D9540E light) because it
-is already the wordmark and it is not the green every other finance app
-uses. Stitch can show Home in orange, in a teal, and in a violet in one
-prompt if the founder wants to see alternatives before committing.
-
-Needed before: Phase 1.
+#A8390F on paper, #EE7A45 on ink. Not the green every finance app uses,
+not Tarsi-adjacent, and continuous with the orange Salapify wordmark. The
+only accent; the full palette is in 03-design-system.md. The contrast test
+is the judge of the exact values.
 
 ## D9. Charts by hand, not a library
 
 Recommendation: draw the four launch charts with CustomPainter under one
-grammar and drop fl_chart. Fewer dependencies, and every chart looks like
-the same app. If a chart in Phase 5 needs more than the grammar gives, that
-is the moment to reconsider.
+grammar (ink and accent) and drop fl_chart. Fewer dependencies, and every
+chart looks like the same app.
 
 Needed before: Phase 2.
 
-## Answered
+## D10. One theme, light primary, dark optional. ANSWERED 2026-09-12
 
-(none yet)
+Founder direction: Papel (light) is the primary and reference look; Tinta
+(dark) is an option in Settings, derived from the same tokens. No theme
+picker. The old four themes are retired and may return in Phase 5 if
+missed. 01-vision principle 4 was rewritten to match.
+
+Consequence for the founder: they use dark today. Phase 1 renders every
+screen in Papel first, then Tinta, and the founder should look at both,
+because they will likely live in Tinta while the design is judged in
+Papel.
+
+## D11. Where utang lives
+
+Options: (a) first section on Home plus its own screen, reached from Home
+and Accounts; (b) its own tab, replacing Plan or Accounts in the bar.
+
+Recommendation: (a) for the first two weeks of daily use. The ledger row
+for utang is the one element no other app has, and the panel's working
+parent wanted it above bills, so it leads Home. If the founder opens the
+Utang screen more than Plan in those two weeks, it takes Plan's tab.
+
+Needed before: Phase 1 finishes the Home mockup (it is drawn as (a)).
+
+## D12. The theme lock
+
+Once the Phase 1 mockups are approved, these do not change without a
+founder decision: the accent, the two type families and where each is
+allowed, Papel as reference with Tinta derived, one way to render a peso
+amount, ledger-row physics, the stamp as the only celebration, no cards on
+the main screens, the tab bar shape. The two-week test in 03 is the check.
+
+Needed before: end of Phase 1.

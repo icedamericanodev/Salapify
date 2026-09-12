@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&family=Caveat:wght@600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #F6EFE3; color: #2B2117; -webkit-font-smoothing: antialiased; }
+    a { color: #B5461F; } a:hover { color: #8F3416; }
+    .serif { font-family: 'Fraunces', Georgia, serif; }
+    .hand { font-family: 'Caveat', 'Segoe Script', cursive; }
+    .num { font-variant-numeric: tabular-nums; font-family: 'Fraunces', Georgia, serif; font-weight: 700; }
+    .row { display: flex; align-items: baseline; gap: 8px; height: 44px; }
+    .lead { flex-grow: 1; border-bottom: 1.5px dotted #B9A78F; height: 0.6em; }
+    .cap { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: #8A7660; font-weight: 700; }
+  </style>
+</helmet>
+<div style="width: 412px; height: 915px; background: #F6EFE3; background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(43,33,23,0.07) 31px 32px); display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="position: absolute; left: 44px; top: 0; bottom: 0; width: 1.5px; background: rgba(181,70,31,0.35);"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px; padding: 52px 24px 0 60px; flex-grow: 1; overflow: hidden;">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+      <div style="display: flex; flex-direction: column;">
+        <div class="cap">Kwaderno · notebook</div>
+        <div class="serif" style="font-size: 28px; line-height: 34px; font-weight: 600; font-style: italic;">Sept, 2nd half</div>
+      </div>
+      <div class="hand" style="font-size: 22px; color: #B5461F; transform: rotate(-6deg);">4 days to sweldo!</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 18px;">
+      <div class="cap">Pwede pang gastusin · safe to spend</div>
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <span class="serif" style="font-size: 26px; font-weight: 600; color: #B5461F;">₱</span>
+        <span class="num" style="font-size: 60px; line-height: 64px; letter-spacing: -1px;">6,240</span>
+      </div>
+      <div style="font-size: 14px; line-height: 20px; color: #5E4E3E;">about ₱1,560 a day until the 15th, bills already set aside.</div>
+    </div>
+
+    <div style="height: 1.5px; background: #2B2117; margin-top: 22px;"></div>
+    <div class="cap" style="margin-top: 10px;">Listahan · this cycle</div>
+    <div style="display: flex; flex-direction: column;">
+      <div class="row"><span style="font-size: 16px;">Meralco</span><span style="font-size: 12px; color: #8A7660;">Sep 13</span><span class="lead"></span><span class="num" style="font-size: 17px;">2,340</span></div>
+      <div class="row"><span style="font-size: 16px;">Spotify</span><span style="font-size: 12px; color: #8A7660;">Sep 14</span><span class="lead"></span><span class="num" style="font-size: 17px;">149</span></div>
+      <div class="row"><span style="font-size: 16px; font-weight: 700;">Sweldo</span><span style="font-size: 12px; color: #8A7660;">Sep 15</span><span class="lead"></span><span class="num" style="font-size: 17px; color: #1F6B45;">+42,000</span></div>
+      <div class="row"><span style="font-size: 16px;">Home Credit</span><span style="font-size: 12px; color: #8A7660;">Sep 20</span><span class="lead"></span><span class="num" style="font-size: 17px;">2,000</span></div>
+    </div>
+
+    <div style="height: 1.5px; background: #2B2117; margin-top: 14px;"></div>
+    <div class="cap" style="margin-top: 10px;">Utang · both ways</div>
+    <div style="display: flex; flex-direction: column;">
+      <div class="row" style="position: relative;"><span style="font-size: 16px;">Kuya Jun owes me</span><span class="lead"></span><span class="num" style="font-size: 17px;">3,500</span></div>
+      <div class="row" style="position: relative;"><span style="font-size: 16px; text-decoration: line-through; color: #8A7660;">Ate Mae, lunch</span><span class="lead"></span><span class="num" style="font-size: 17px; text-decoration: line-through; color: #8A7660;">450</span>
+        <div class="hand" style="position: absolute; right: 40px; top: 4px; font-size: 20px; color: #B5461F; border: 2px solid #B5461F; border-radius: 6px; padding: 0 8px; transform: rotate(-8deg); opacity: 0.85;">BAYAD NA</div>
+      </div>
+      <div class="row"><span style="font-size: 16px;">I owe Home Credit</span><span class="lead"></span><span class="num" style="font-size: 17px; color: #B5461F;">12,000</span></div>
+    </div>
+
+    <div style="height: 1.5px; background: #2B2117; margin-top: 14px;"></div>
+    <div class="cap" style="margin-top: 10px;">Latest</div>
+    <div style="display: flex; flex-direction: column;">
+      <div class="row"><span style="font-size: 16px;">Jollibee</span><span style="font-size: 12px; color: #8A7660;">food · GCash</span><span class="lead"></span><span class="num" style="font-size: 17px;">250</span></div>
+      <div class="row"><span style="font-size: 16px;">Grab</span><span style="font-size: 12px; color: #8A7660;">transport · GCash</span><span class="lead"></span><span class="num" style="font-size: 17px;">180</span></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 88px; display: flex; align-items: flex-end; padding: 0 16px; gap: 6px;">
+    <div style="flex: 1; height: 52px; background: #2B2117; color: #F6EFE3; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 1px;">HOME</div>
+    <div style="flex: 1; height: 44px; background: #E9DFCF; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #5E4E3E;">CYCLE</div>
+    <div style="width: 64px; height: 64px; border-radius: 999px; background: #B5461F; color: #F6EFE3; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 6px 16px rgba(43,33,23,0.25);"><span class="hand" style="font-size: 24px;">+ log</span></div>
+    <div style="flex: 1; height: 44px; background: #E9DFCF; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #5E4E3E;">PEOPLE</div>
+    <div style="flex: 1; height: 44px; background: #E9DFCF; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #5E4E3E;">WALLET</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -64,10 +64,12 @@ replaces it on the founder's phone.
 
 ## The pictures
 
-docs/revamp/mockups/ holds the first rendering of the proposed look (Home,
-Log sheet, Accounts, Plan, dark first, then Home in light) and the artboard
-sources behind them. The same set is an editable canvas the founder can
-tweak by hand: https://claude.ai/code/artifact/3e662418-389c-4486-a0ff-2e9a1e60e656
-(private to the founder). All figures in them are sample values. The
-mockups are a proposal for decisions D7 and D8 and the Phase 1 starting
-point, not a finished design.
+docs/revamp/mockups/ holds the rendered mockups of the chosen theme, Papel
+(Home, Log sheet, Accounts, Plan, then Home in Tinta, the dark option),
+the three direction sketches the theme was chosen from, and the artboard
+sources. The same set is an editable canvas the founder can tweak by hand:
+https://claude.ai/code/artifact/3e662418-389c-4486-a0ff-2e9a1e60e656
+(private to the founder). All figures in them are sample values.
+
+The first draft (dark, cards, one orange accent) was rejected on
+2026-09-12 as a Tarsi copy and is kept on the canvas only for comparison.
