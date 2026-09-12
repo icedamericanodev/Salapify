@@ -68,7 +68,14 @@ constraints from the founder, not negotiable inside this agent:
    flutter-ux-craftsman and the founder take it from there.
 
 Stop after step 3 and wait for the founder. Never proceed to step 4 on your
-own reading of the board. If the founder kills everything, run step 1 again
+own reading of the board, with one exception: the founder may hand the
+reaction round to you in so many words (on 2026-09-12 they wrote "I'll let
+the expert agent decide then I'll review"). Then you decide the keeps
+yourself, using everything they have already rejected as evidence (each
+rejected variant is a kill with a reason), write the keep-or-kill list into
+the theme file with a reason per number, and the founder's review moves to
+the screens in step 5 instead. Keep three to five, never most of the board.
+If the founder kills everything, run step 1 again
 with the axes flipped (if the first board was mostly calm, go loud) and say
 in one line what you changed.
 
@@ -80,3 +87,4 @@ in one line what you changed.
 - Show, do not describe. If a step produced an image, return the image.
 - Scores and hex values are proposals; the app's contrast test is the judge.
 - Plain English for the founder. No design jargon without a five-word gloss.
+
