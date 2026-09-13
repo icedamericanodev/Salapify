@@ -35,10 +35,27 @@ android {
         //   data comes across as a backup file import instead. Safer to trial,
         //   one extra step to carry the data.
         //
-        // Nothing in Phase B builds or installs, so either value is harmless
-        // today. It stops being harmless at Phase D. Do not ship a build from
-        // this file until the line above is a decision rather than a default.
-        applicationId = "dev.icedamericano.salapify"
+        // ANSWERED by the founder on 2026-09-13: BESIDE IT. See D4 in
+        // docs/revamp/07-decisions.md.
+        //
+        // So this is no longer flutter create's default, it is a decision, and
+        // the id below deliberately differs from the shipped app's
+        // "dev.icedamericano.salapify" by one character group. Two consequences
+        // that are easy to forget and expensive to remember late:
+        //
+        //   1. v3 starts EMPTY on the founder's phone, always. Android sandboxes
+        //      storage per application id, so v3 cannot see the old store even
+        //      though both apps are on the same device. Backup then Restore is
+        //      the only bridge, which promotes restore from a Phase 4 fallback
+        //      to something on the critical path.
+        //   2. versionCode restarts at 1 (pubspec 1.0.0+1). It was +21 only to
+        //      out-rank the old app's +20 so a build would install over it, and
+        //      that is no longer the plan. The two version lines now have
+        //      nothing to do with each other.
+        //
+        // The launcher label is "Salapify 3" in AndroidManifest.xml for the
+        // same reason: two icons both reading "Salapify" is a trap.
+        applicationId = "dev.icedamericano.salapify3"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

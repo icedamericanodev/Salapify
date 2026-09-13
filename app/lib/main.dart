@@ -11,6 +11,7 @@
 // machinery that keeps it honest.
 import 'package:flutter/material.dart';
 
+import 'app/ledger_scope.dart';
 import 'app/router.dart';
 import 'core/data/ledger_store.dart';
 import 'core/data/storage_bootstrap.dart';
@@ -30,24 +31,30 @@ Future<void> main() async {
 class SalapifyApp extends StatelessWidget {
   const SalapifyApp({super.key, required this.store});
 
-  /// Held here and handed down. Phase C gives each feature a view model that
-  /// reads from it; nothing reaches into it from a widget directly.
+  /// Held here and handed down through [LedgerScope]. Each feature owns a view
+  /// model that reads from it; no widget reaches into storage directly.
   final LedgerStore store;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Salapify',
-      debugShowCheckedModeBanner: false,
+    // The scope wraps the whole app rather than sitting inside the router,
+    // because the Log sheet is pushed OUTSIDE the tab shell and would not see
+    // a scope placed within it.
+    return LedgerScope(
+      store: store,
+      child: MaterialApp.router(
+        title: 'Salapify 3',
+        debugShowCheckedModeBanner: false,
 
-      // Hapon light, Gabi dark, and the phone's own setting decides. Both are
-      // built from the same tokens, so the only difference between them is
-      // colour. See D10.
-      theme: salapifyTheme(hapon),
-      darkTheme: salapifyTheme(gabi),
-      themeMode: ThemeMode.system,
+        // Hapon light, Gabi dark, and the phone's own setting decides. Both are
+        // built from the same tokens, so the only difference between them is
+        // colour. See D10.
+        theme: salapifyTheme(hapon),
+        darkTheme: salapifyTheme(gabi),
+        themeMode: ThemeMode.system,
 
-      routerConfig: buildRouter(),
+        routerConfig: buildRouter(),
+      ),
     );
   }
 }

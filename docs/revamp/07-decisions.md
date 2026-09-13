@@ -48,13 +48,38 @@ Accounts.
 
 Needed before: Phase 1.
 
-## D4. Same applicationId and signing key
+## D4. applicationId: a SEPARATE one. ANSWERED 2026-09-13
 
-Recommendation: yes. The new APK then installs over the old one and finds
-the founder's data in place. The alternative, a second app id, means two
-Salapify icons and a manual export and import.
+Salapify 3 installs BESIDE the founder's daily app, not over it.
+`dev.icedamericano.salapify3`, launcher label "Salapify 3", versionCode
+restarting at 1.
 
-Needed before: Phase 2.
+The recommendation in this slot used to be the opposite, and the founder
+overruled it, correctly. Its argument was convenience: the same id means the
+new APK installs over the old one and finds the data already in place, with no
+export and import. What that argument leaves out is that the founder is a
+beginner with one phone, and the app it would replace is the one they use to
+run their actual money. "Install over it" means the working app is gone the
+moment they try the half-built one, with nothing to fall back to but a file.
+Two icons is a small cost against that.
+
+Three consequences, written here because each is easy to forget and expensive
+to remember late:
+
+1. **v3 always starts EMPTY.** Android sandboxes storage per application id, so
+   v3 cannot read the old store even though both apps sit on the same device.
+   There is no clever way around this and there should not be one.
+2. **Restore is now on the critical path**, not a Phase 4 safety net. Backup
+   then Restore is the ONLY bridge for the founder's real data, so it has to
+   work before v3 is worth opening twice. B2's peso-level round-trip test was
+   already the right thing to have built first; this makes it load-bearing.
+3. **versionCode restarts at 1.** The +21 existed only to out-rank the shipped
+   app's +20 under the old plan. The two version lines are now unrelated.
+
+At cutover (Phase 4) the founder uninstalls the old app when they are ready,
+which is now their decision on their own timing rather than a side effect of an
+install. Whether v3 ever takes over the original applicationId on Play is a
+separate question and is not answered here.
 
 ## D5. Delete flutter/ and mobile/ after cutover
 
@@ -292,3 +317,103 @@ everything looked green.
 It arrives in Phase D, with the publisher, the guard and the log row together.
 `.github/workflows/app-check.yml` says the same thing at the top of the file so
 nobody adds it early out of tidiness.
+
+## D16. Over budget is a SHAPE, not a colour. Founder call still open on one part
+
+The founder looked at the B3 component sheet, saw the "over budget" bar sitting
+very close to the accent, and asked for an expert opinion rather than picking a
+colour. The right answer turned out not to be a colour at all.
+
+Measured facts first, so nobody reruns this:
+
+| | accent | bad | hue gap | lightness ratio |
+|---|---|---|---|---|
+| Hapon | #B03C09, lum 0.125 | #9E2C1B, lum 0.092 | 10.5 deg | 1.37 to 1 |
+| Gabi | #FF9A52, lum 0.450 | #FF8A6E, lum 0.405 | 13.4 deg | **1.10 to 1** |
+
+### Why no hex value fixes this
+
+The two colours are pinned into the same small box BY THE RULES, not by a
+mistake. D8 forces both to clear 4.7 to 1 against the same page and the same
+card, which pins their lightness. The warm-family rule pins their hue. Two
+colours squeezed into one small box look like siblings; that is arithmetic.
+
+Gabi is the worse of the two at 1.10 to 1, and Gabi is the skin the founder
+actually uses.
+
+Separating them by lightness instead is closed off by our own contrast floor:
+carrying the signal on lightness alone needs roughly 3 to 1 between the fills,
+which in Hapon drives `bad` to a near-black maroon around 16 to 1 on the page,
+turning every outgoing peso figure in the app into heavy black ink.
+
+Separating them by hue buys nothing where it matters. Both colours live at the
+long-wavelength end, so under deuteranopia they converge to nearly the same
+ochre and under protanopia the over-budget bar reads as slightly DIMMER, which
+is noise rather than a warning. And the element is 5dp tall: chromatic
+discrimination collapses on a sliver that thin, so everyone is partly
+colour-blind here. Hue was never going to carry this.
+
+### The real defect is geometry
+
+`ThinBar` clamps `fraction` to 0..1, so a category at exactly 100 percent and
+one at 300 percent draw the IDENTICAL picture. "Exactly on budget" and "triple
+over" differ by ten degrees of hue and nothing else. That is the actual bug and
+it would still be a bug if `bad` were bright blue. A widget that silently
+discards the most important number on the screen is the root cause.
+
+### And the render misled the founder
+
+The component sheet stacks the two bars 14dp apart inside one panel with
+generic labels. That is the ONLY surface in the product where these two colours
+sit adjacent with the words stripped out; the real Plan screen carries a
+right-hand figure and a caption on every row, so the state is spoken before
+colour gets a vote. The glance test was run against a review artifact
+engineered to fail it. The sheet is fixed to carry the real figures and
+captions, because a review surface that hides the cues carrying the meaning
+cannot tell anyone whether the meaning arrives.
+
+### A spec and code contradiction this turned up
+
+04-screens.md says "under 25 percent left turns the bar accent". `ThinBar`'s
+DEFAULT fill is already the accent. So the near-limit warning is a silent
+no-op today, and a Plan screen with six categories would glow accent on every
+row: the app shouting while nothing is wrong. There is currently no way to say
+"heads up" before "too late".
+
+### Decided, and requiring no new colour
+
+No new colours, no changed hex values, nothing added to the palette.
+
+1. An over-budget bar rescales so the full width is the SPEND, fills in `bad`,
+   and cuts a 2dp notch in the card colour where the limit sits. The eye reads
+   "the fill went past the line" in greyscale, at any colour vision, and it is
+   quantitative. The notch clamps to 15..88 percent of the width so a 1 percent
+   overshoot still shows a tail and a 400 percent overshoot still shows a head.
+2. Words lead and colour follows: the right-hand figure changes its WORDING,
+   "P1,250.00 left" becoming "P320.00 over", not just its colour.
+3. A fill-versus-track contrast group joins palette_contrast_test, asserting
+   every bar fill clears WCAG's 3.0 non-text bar against `line`. Measured and
+   already passing: Hapon 4.68 / 4.64 / 5.74 / 5.55, Gabi 4.96 / 6.16 / 5.61 /
+   6.42 for calm, near-limit, over and set-aside.
+
+### The one part that is the founder's, and is NOT decided
+
+Giving the bar four states means the CALM state stops being the accent and
+becomes `text3`, with the accent reserved for "under 25 percent left". The
+sentence becomes: the fill answers "is anything needed from me?"
+
+| State | Fill |
+|---|---|
+| In budget, calm | `text3` |
+| Under 25 percent left | `accent` |
+| Over budget | `bad`, full width, plus the limit notch |
+| Fully set aside | `good` |
+
+Goals stay the exception and keep the accent all the way up, because a goal
+filling IS the win.
+
+That changes the default appearance of a surface the founder has already
+approved across 24 renders, so it is a product decision and not a routine one.
+Nothing is built until they say. It is not urgent: Budget is step 5 of 10 in
+Phase 3, so the question can be answered against a real screen with real
+numbers rather than against a sample bar.
