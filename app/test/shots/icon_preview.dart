@@ -1174,69 +1174,328 @@ class BasoHorizon extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-List<IconCandidate> buildCandidates() {
-  IconCandidate c(String key, String name, String idea, Widget ground) =>
-      IconCandidate(
-        key: key,
-        name: name,
-        idea: idea,
-        loud: true,
-        ground: ground,
-        mark: const SizedBox.shrink(),
-      );
+// =============================================================== round four
+//
+// The founder picked one direction and gave it one note: "Buto but the S is
+// too hidden." So this is a REFINEMENT round, not a new one. Buto only, plus
+// two controls so the change is visible rather than asserted.
+//
+// WHY THE S IS HIDDEN, read off the round three render rather than guessed.
+// Four causes, and they compound:
+//
+//   1. The crease is transformed by the SAME -32 degree matrix as the bean, so
+//      the letter is tilted off its own axis. A tilted S stops being parsed as
+//      a letter and becomes a squiggle. This is the biggest single cause.
+//   2. It is one shallow cubic. An S needs two real bowls and hooked
+//      terminals; a wave is not an S.
+//   3. Stroke 9 against a bean 84 wide. Barely over the 6 unit floor, so it
+//      reads as a thin slot in a large mass.
+//   4. Both terminals stop inside the bean, so it reads as an enclosed slit
+//      rather than a stroke that shapes the form.
+//
+// Contrast is NOT one of them. The groove clears through to the hero gradient,
+// which is the app's own onHero pair. This is shape and weight only.
 
+/// A proper S, as a stroked centre line, upright and centred on ([cx], [cy]).
+///
+/// Shared by four of the five refinements so they draw the SAME letter and the
+/// comparison is about the treatment rather than about four near misses.
+///
+/// Coordinates are given in a normalised -1 to 1 box and scaled, so changing
+/// the height or the width ratio never redraws the curve. [widthRatio] is 0.70
+/// because that is roughly where Jakarta's own S sits; wider and it reads as a
+/// wave again, which is cause 2 above.
+///
+/// The caller owns the stroke width, and it owns the safe circle with it: the
+/// drawn extent is [height] plus the stroke, so height 52 at stroke 12 reaches
+/// 32 units from centre and the guaranteed circle is 33.
+Path sSpine({
+  required double cx,
+  required double cy,
+  required double height,
+  double widthRatio = 0.70,
+}) {
+  final hh = height / 2;
+  final hw = height * widthRatio / 2;
+  double x(double t) => cx + t * hw;
+  double y(double t) => cy + t * hh;
+
+  return Path()
+    // Top right terminal, hooked back so the eye sees a letter ending rather
+    // than a line stopping.
+    ..moveTo(x(0.86), y(-0.60))
+    ..cubicTo(x(0.70), y(-0.96), x(0.18), y(-1.00), x(-0.13), y(-1.00))
+    // Down the left of the upper bowl.
+    ..cubicTo(x(-0.70), y(-1.00), x(-1.00), y(-0.76), x(-1.00), y(-0.44))
+    // The waist, one long diagonal through the middle. This is the segment
+    // that makes an S an S.
+    ..cubicTo(x(-1.00), y(-0.04), x(1.00), y(0.08), x(1.00), y(0.52))
+    // Round the bottom.
+    ..cubicTo(x(1.00), y(0.84), x(0.65), y(1.00), x(0.09), y(1.00))
+    // Bottom left terminal, hooked to match the top.
+    ..cubicTo(x(-0.22), y(1.00), x(-0.70), y(0.92), x(-0.86), y(0.60));
+}
+
+/// The bean, as an ellipse rotated onto the diagonal.
+///
+/// Pulled out of [ButoBean] so every refinement shares one bean and the only
+/// thing that varies between rows is the treatment of the S.
+Path butoBean({double width = 84, double height = 66}) {
+  final bean = Path()
+    ..addOval(
+      Rect.fromCenter(
+        center: const Offset(54, 54),
+        width: width,
+        height: height,
+      ),
+    );
+  final m = Matrix4.identity()
+    ..translateByDouble(54, 54, 0, 1)
+    ..rotateZ(-32 * math.pi / 180)
+    ..translateByDouble(-54, -54, 0, 1);
+  return bean.transform(m.storage);
+}
+
+/// A stroke for the S, and it PAINTS rather than clears.
+///
+/// Round three cleared the crease with [BlendMode.clear], and the first render
+/// of this round showed what that really does: it punches a hole through the
+/// entire tile. The S then takes the colour of whatever is behind the icon, so
+/// the same artwork showed a near black S on a dark home screen and a white
+/// one on a light home screen. That is a fifth cause of the founder's note,
+/// because the dark wallpaper case is the one that hides it.
+///
+/// An adaptive icon has a background layer that would catch such a hole, but
+/// this artwork is one layer, so the hole is genuinely transparent and a
+/// launcher shows wallpaper through it. Painting the gradient into the stroke
+/// gives the same look with none of that: the tile is opaque everywhere and
+/// looks identical on every wallpaper.
+Paint _grooveStroke(double w, Rect r) => Paint()
+  ..shader = _heroShader(r)
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = w
+  ..strokeCap = StrokeCap.round;
+
+/// 1. BUTO TUWID. The bean stays tilted, the S stands upright.
+///
+/// Isolates cause 1 and nothing else, so if this alone fixes it we know why.
+/// Stroke 12, which is double the floor rather than one unit over it.
+class ButoTuwid extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+    canvas.drawPath(butoBean(), Paint()..color = kInk);
+    canvas.drawPath(sSpine(cx: 54, cy: 54, height: 52), _grooveStroke(12, r));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 2. BUTO HIWA. The S cuts clean THROUGH the outline at both ends.
+///
+/// Fixes cause 4. The bean stops being one mass with a slot in it and becomes
+/// two interlocking halves, which makes the gap the figure rather than the
+/// background. The bean is shrunk to 72 x 56 deliberately: at that size it
+/// fits inside the guaranteed circle, so the two places the cut crosses the
+/// outline, the part that carries the whole idea, survive a circular launcher.
+class ButoHiwa extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+    canvas.drawPath(butoBean(width: 72, height: 56), Paint()..color = kInk);
+    // Taller than the bean on purpose, so both terminals run past its edge.
+    canvas.drawPath(sSpine(cx: 54, cy: 54, height: 68), _grooveStroke(13, r));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 3. BUTO JAKARTA. The crease is the real letter, not a drawing of one.
+///
+/// Plus Jakarta Sans ExtraBold, the family the app ships and the wordmark is
+/// set in, cleared straight through the bean. The strongest brand argument
+/// available: the icon's S then IS the wordmark's S, and no letterform has to
+/// be invented by hand.
+///
+/// The risk it carries is Jakarta's own thin joins at the waist, which are
+/// narrower than the stems. That is what the 48px column is for.
+class ButoJakarta extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+    canvas.drawPath(butoBean(), Paint()..color = kInk);
+
+    // Jakarta's cap height is close to 0.72 of the em, so this size puts the
+    // cap at about 53 units, the same as the drawn variants.
+    const fontSize = 74.0;
+    final tp = TextPainter(
+      text: TextSpan(
+        text: 'S',
+        style: TextStyle(
+          fontFamily: 'Jakarta',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+          height: 1.0,
+          foreground: Paint()..shader = _heroShader(r),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    // Centre on the CAP, not on the line box: a line box carries descender
+    // room the letter S never uses, so centring on it sits the S high.
+    final baseline = tp.computeDistanceToActualBaseline(
+      TextBaseline.alphabetic,
+    );
+    const capHeight = fontSize * 0.72;
+    tp.paint(canvas, Offset(54 - tp.width / 2, 54 + capHeight / 2 - baseline));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 4. BUTO SOLID. The S sits ON the bean instead of being cut out of it.
+///
+/// Fixes the deepest version of the note. An absence reads as texture and a
+/// presence reads as a letter, and every version so far has been an absence.
+///
+/// Cream on ink measures 13.30 to 1. Cream could NOT go on the gradient: cream
+/// on the accent is 1.58, which is why the bean has to stay dark here.
+class ButoSolid extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+    canvas.drawPath(butoBean(), Paint()..color = kInk);
+    canvas.drawPath(
+      sSpine(cx: 54, cy: 54, height: 52),
+      Paint()
+        ..color = kCream
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 12
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 5. BUTO BALIGTAD. The tile turned inside out.
+///
+/// Ink ground, the bean in the hero gradient, the S painted back in the ink.
+///
+/// It TRADES the Play problem rather than solving it, and the measurements say
+/// so plainly: an ink tile is 17.68 against Play's white listing page and 1.10
+/// against its dark surface, while an orange tile is 1.61 and 9.99. No single
+/// value wins twice, which is exactly the round two finding. Only a split tile
+/// does, and no Buto variant is one.
+class ButoBaligtad extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..color = kInk);
+    canvas.drawPath(butoBean(), Paint()..shader = _heroShader(r));
+    // Painted in the ground's own ink rather than cleared, for the reason on
+    // _grooveStroke: a cleared S is a hole and takes the wallpaper's colour.
+    canvas.drawPath(
+      sSpine(cx: 54, cy: 54, height: 52),
+      Paint()
+        ..color = kInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 12
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+List<IconCandidate> buildCandidates() {
+  IconCandidate c(
+    String key,
+    String name,
+    String idea,
+    Widget ground, {
+    bool loud = true,
+  }) => IconCandidate(
+    key: key,
+    name: name,
+    idea: idea,
+    loud: loud,
+    ground: ground,
+    mark: const SizedBox.shrink(),
+  );
+
+  // Round four. Buto only, plus two controls, because the founder picked a
+  // direction and gave it one note. Every row after the first attacks a
+  // different one of the four causes listed above, so the sheet answers WHY
+  // rather than just offering five more pictures.
   return [
     c(
-      'barako',
-      'Barako',
-      'Pan\'s cup of kapeng Barako. The theme system is NAMED after this '
-          'coffee, so the warm palette finally has its reason drawn on the '
-          'tile. Pan without being a panda.',
-      _painted(BarakoCup()),
-    ),
-    c(
-      'barako-piso',
-      'Barako Piso',
-      'The cup cropped off the bottom edge with a big peso rising as the '
-          'steam, which is literally what Pan\'s artwork shows. Money and '
-          'coffee in one object.',
-      _painted(BarakoPiso()),
-    ),
-    c(
-      'buto',
-      'Buto',
-      'A coffee bean whose centre crease IS an S. One shape doing two jobs: '
-          'Barako, and the initial of Salapify.',
+      'buto-r3',
+      'Buto, round three',
+      'CONTROL, unchanged. The one the founder said hides its S. It also has a '
+          'defect nobody had seen: its crease is a HOLE through the tile, so '
+          'the S takes the wallpaper\'s colour. Compare the two home screens.',
       _painted(ButoBean()),
     ),
     c(
-      'bunga',
-      'Bunga',
-      'The coffee cherry and leaves from Pan\'s own head. Off centre and '
-          'small, the most delicate of the seven and the likeliest to fail at '
-          '48px.',
-      _painted(BungaCherry()),
+      'buto-tuwid',
+      'Buto Tuwid',
+      'The bean stays tilted and the S stands UPRIGHT. Fixes the biggest '
+          'cause on its own: round three rotated the letter with the bean, and '
+          'a tilted S reads as a squiggle. Stroke 12, double the floor.',
+      _painted(ButoTuwid()),
     ),
     c(
-      'pan',
-      'Pan',
-      'The panda as pure geometry, not soft 3D. Included because the founder '
-          'named Pan and should see one rather than be told it cannot work.',
-      _painted(PandaHead()),
+      'buto-hiwa',
+      'Buto Hiwa',
+      'FAILED, kept so the failure is on the record. The S cuts clean through '
+          'the outline at both ends, and it eats the bean: what is left reads '
+          'as a wave with two fangs, and at 48px as noise.',
+      _painted(ButoHiwa()),
     ),
     c(
-      'pan-cut',
-      'Pan cut out',
-      'The same head as negative space punched from a slab of ink.',
-      _painted(PandaCut()),
+      'buto-jakarta',
+      'Buto Jakarta',
+      'The crease is the REAL letter: Plus Jakarta Sans ExtraBold, the family '
+          'the app ships and the wordmark is set in, cut into the bean in the '
+          'hero ramp. The icon\'s S is then literally the wordmark\'s S. '
+          'Measured 10.96 against the ink.',
+      _painted(ButoJakarta()),
     ),
     c(
-      'baso',
-      'Baso',
-      'The cup astride a horizon, inverting where it crosses. Carries the one '
-          'measured win from round two: a split tile is the only kind that '
-          'holds an edge on BOTH Play surfaces.',
-      _painted(BasoHorizon()),
+      'buto-solid',
+      'Buto Solid',
+      'The S sits ON the bean in cream instead of being cut out of it. An '
+          'absence reads as texture and a presence reads as a letter, and every '
+          'version so far has been an absence. Cream on ink measures 13.30.',
+      _painted(ButoSolid()),
+    ),
+    c(
+      'buto-baligtad',
+      'Buto Baligtad',
+      'The tile inside out: ink ground, bean in the hero gradient, S painted '
+          'back in the ink. It TRADES the Play problem rather than solving it. '
+          'Ink is 17.68 on Play\'s white page and 1.10 on its dark one; orange '
+          'is 1.61 and 9.99. Nothing here wins twice.',
+      _painted(ButoBaligtad()),
+      loud: false,
+    ),
+    c(
+      'barako',
+      'Barako',
+      'CONTROL, unchanged. The runner up from round three, kept so we can see '
+          'whether a fixed Buto now beats it.',
+      _painted(BarakoCup()),
     ),
   ];
 }

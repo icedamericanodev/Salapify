@@ -417,3 +417,43 @@ approved across 24 renders, so it is a product decision and not a routine one.
 Nothing is built until they say. It is not urgent: Budget is step 5 of 10 in
 Phase 3, so the question can be answered against a real screen with real
 numbers rather than against a sample bar.
+
+## D17. The app icon: Buto, a coffee bean whose crease is an S. Variant OPEN
+
+Salapify has never had an icon. Both the shipped app and `app/` carry the stock
+Flutter logo.
+
+Four rounds. Rounds one and two were rejected wholesale, and the founder's note
+on the second was the one both deserved: "make it related to Salapify or Pan
+atleast." Round three answered it by reading
+`flutter/lib/widgets/pan_mascot.dart`, which describes Pan as a chibi panda who
+"cradles his cup of kapeng Barako, with a peso sign rising in the steam and a
+coffee-cherry sprout on his head". That is why the palette is warm: the theme
+system is named Barako, after Philippine coffee. The colour was never
+arbitrary.
+
+The founder picked **Buto**, a coffee bean whose centre crease is an S, so one
+shape does two jobs, Barako and the initial of Salapify. Their note was that the
+S was too hidden, and round four is that note: five refinements plus two
+controls in `docs/revamp/mockups/hapon/icon/README.md`.
+
+Settled by this decision:
+
+1. The direction is Buto. Not the cup, not the cherry, not the panda.
+2. **Icon only. Pan stays cut**, so D2 is untouched. The icon inherits Pan's
+   object, not his face. That also sidesteps a real trap: this rebuild exists
+   because of "it looks like we copy the Tarsi", and an animal mascot on the
+   icon beside a competitor named after an animal invites the comparison.
+3. The S is **painted**, never cleared. A cleared crease is a hole through the
+   whole tile, so the S takes the wallpaper's colour: near black on a dark home
+   screen, white on a light one. Round three shipped that defect in every render
+   and nobody had seen it until the two home screens were compared side by side.
+
+Still OPEN, and it is the founder's call: which of the five. The recommendation
+is **Buto Jakarta**, whose crease is the real Plus Jakarta Sans ExtraBold letter
+S, because it is the cleanest letterform, it keeps the bean reading as a bean
+rather than a badge, and the icon's S is then literally the wordmark's S.
+
+Nothing is built until they choose. Building means five mipmap densities, a real
+adaptive icon with background, foreground and monochrome layers, the 512 store
+icon, and a guard test that every density exists.
