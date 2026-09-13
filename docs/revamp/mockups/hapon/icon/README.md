@@ -39,6 +39,26 @@ the founder picked one with one note:
 |---|---|
 | ![Light](icon-home-light.png) | ![Dark](icon-home-dark.png) |
 
+### The Play search result, on both of Play's surfaces
+
+![Play](icon-play.png)
+
+This view is new, and it immediately corrected something this page had been
+repeating for three rounds. The measurement is real: orange is **1.61** against
+Play's white listing page. The conclusion drawn from it, that an orange tile
+therefore loses that surface, is **wrong**, because Play adds its own drop
+shadow to every listing icon and that shadow supplies the edge the colour does
+not. Rendered with the shadow, the orange tiles hold the white page perfectly
+well. The dark tile really does lose the dark surface, exactly as measured.
+
+The lesson is worth more than the finding: a contrast number is about two flat
+colours meeting, and Play's tile is not two flat colours meeting. Three rounds
+of reasoning rested on a number nobody had drawn.
+
+The candidate sheet also gained a **circle mask** column, the harshest launcher
+crop, showing what is actually left rather than where the crop would fall. The
+safe-zone overlay predicts; this one shows. Barako loses its handle to it.
+
 ## Why the S was hidden
 
 Read off the round three render rather than guessed. Four causes, and they

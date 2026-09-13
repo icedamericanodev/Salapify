@@ -251,7 +251,7 @@ void main() {
     final candidates = buildCandidates();
 
     tester.view.physicalSize = Size(
-      920 * 2,
+      1012 * 2,
       (150 + candidates.length * 133) * 2.0,
     );
     await tester.pumpWidget(_Sheet(candidates: candidates));
@@ -259,6 +259,28 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('out/icon-sheet.png'),
+    );
+  });
+
+  testWidgets('icon candidates in a Play search result', (tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    final candidates = buildCandidates();
+
+    // Both of Play's surfaces in one image. The dual-surface problem has been
+    // measured since round two and never looked at, and a number in a document
+    // has never once stopped a tile shipping.
+    tester.view.physicalSize = Size(
+      760 * 2,
+      (100 + candidates.length * 80) * 2.0,
+    );
+    await tester.pumpWidget(_PlayStrip(candidates: candidates));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/icon-play.png'),
     );
   });
 
@@ -370,6 +392,104 @@ class _HomeScreen extends StatelessWidget {
   }
 }
 
+/// The Play Store search result, on both of Play's surfaces at once.
+///
+/// This exists because the dual-surface problem has been MEASURED for three
+/// rounds and never LOOKED AT. "Ink is 17.68 against the white page and 1.10
+/// against the dark one" is a true sentence that nobody can picture, and a
+/// number in a document has never once stopped a tile shipping. Here the same
+/// tile sits on both surfaces, side by side, at the size a person scrolling
+/// actually sees it, with a title and a rating line beside it because an icon
+/// in a search result is never alone.
+///
+/// Play masks the listing icon at 30 percent and adds its own drop shadow, so
+/// both are drawn: [IconMask.play] and a soft shadow underneath. Without the
+/// shadow a pale tile on the white page looks worse here than it does in the
+/// store, which would be its own kind of lie.
+class _PlayStrip extends StatelessWidget {
+  const _PlayStrip({required this.candidates});
+  final List<IconCandidate> candidates;
+
+  static const _white = Color(0xFFFFFFFF);
+  static const _dark = Color(0xFF202124);
+
+  Widget _surface(String label, Color bg, Color fg, Color sub) => Expanded(
+    child: Container(
+      color: bg,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TypeScale.captionSm(sub)),
+          const SizedBox(height: 14),
+          for (final c in candidates) ...[
+            Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(64 * 0.30),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x33000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconTile(candidate: c, size: 64, mask: IconMask.play),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Salapify', style: TypeScale.rowTitle(fg)),
+                      const SizedBox(height: 2),
+                      Text(c.name, style: TypeScale.captionSm(sub)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '4.8 star  Finance',
+                        style: TypeScale.captionSm(sub),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    key: UniqueKey(),
+    debugShowCheckedModeBanner: false,
+    theme: salapifyTheme(hapon),
+    home: Scaffold(
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _surface(
+            'Play listing page, white',
+            _white,
+            const Color(0xFF202124),
+            const Color(0xFF5F6368),
+          ),
+          _surface(
+            'Play dark surface',
+            _dark,
+            const Color(0xFFE8EAED),
+            const Color(0xFF9AA0A6),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _Sheet extends StatelessWidget {
   const _Sheet({required this.candidates});
   final List<IconCandidate> candidates;
@@ -394,8 +514,10 @@ class _Sheet extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Each row: the tile at review size, at 48px (the app drawer), '
-                'and with the Android safe zones drawn over it. The cyan '
-                'circle is the only area guaranteed visible on every launcher.',
+                'under the CIRCLE mask (the harshest launcher, and what is '
+                'left after it crops), and with the Android safe zones drawn '
+                'over it. The cyan circle is the only area guaranteed visible '
+                'on every launcher.',
                 style: TypeScale.hint(const Color(0xFFAC9E92)),
               ),
               const SizedBox(height: 24),
@@ -428,6 +550,19 @@ class _Row extends StatelessWidget {
             IconTile(candidate: candidate, size: 48),
             const SizedBox(height: 6),
             Text('48px', style: TypeScale.captionSm(const Color(0xFF8A7F75))),
+          ],
+        ),
+        const SizedBox(width: 20),
+        // The HARSHEST launcher mask, and the one nothing here has ever been
+        // drawn against. The safe circle overlay only says where the crop
+        // WOULD fall; this shows what is actually left after it. A bleed, a
+        // crop, a split or a corner device can look right in the squircle and
+        // lose its whole idea here.
+        Column(
+          children: [
+            IconTile(candidate: candidate, size: 72, mask: IconMask.circle),
+            const SizedBox(height: 6),
+            Text('circle', style: TypeScale.captionSm(const Color(0xFF8A7F75))),
           ],
         ),
         const SizedBox(width: 20),
