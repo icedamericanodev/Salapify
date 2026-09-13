@@ -596,10 +596,14 @@ any of these, however clean the change looks:
    destructive reset, dropping commits whose contents you are unsure of,
    deleting another actor's work, or rewriting shared history. Never force-push
    unless a rule in this file names that exact situation.
-9. Merge or release. Never merge a PR, trigger a manual production release, or
-   publish a Shorebird patch outside the repository's own automatic flow. The
-   founder approves the final merge (this revises the 2026-07-03 rule below);
-   everything else in the merge rules still binds.
+9. Release, but no longer the merge. Never trigger a manual production release
+   or publish a Shorebird patch outside the repository's own automatic flow.
+   MERGING IS NO LONGER A STOP: founder direction on 2026-09-13 handed it to
+   Claude ("Happy for you to merge we have agents for that"). See the merge
+   rules below, whose conditions every merge must still satisfy in full. The
+   founder removed the approval step, not the checks, and conditions 1 to 8
+   above are untouched: they stop the WORK, before it is done, not the merge at
+   the end.
 
 One writer per feature branch. One phase or feature branch is owned by one
 active writing Claude session; subagents inside that session are fine. Separate
@@ -649,13 +653,40 @@ GitHub's mergeability metadata is ambiguous, an "unstable" or "pending" legacy
 status while the authoritative required check is green, report the nuance and do
 not treat the legacy field as the truth. Still do not merge; the founder does.
 
-## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10)
+## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10 and again 2026-09-13)
 
-The FINAL merge is the founder's decision, not Claude's (see Autonomous phase
-execution above). Claude reviews, prepares, verifies and PRESENTS every PR under
-all the conditions below; the founder approves the merge itself. Everything else
-in this section stands unchanged, and the conditions below are now the bar for
-presenting a PR for that approval, when ALL of these hold:
+Claude merges. Founder direction, 2026-09-13, verbatim: "Happy for you to merge
+we have agents for that, fix any issues and flag to any major that needed my
+review". This replaces the 2026-08-10 rule that reserved the final merge for
+the founder, and it replaces STOP condition 9's first clause in the autonomy
+section above. Do not stop and ask for a merge; merge, and report what
+happened.
+
+Everything else in this section is UNCHANGED and still binds. The conditions
+below were the bar for presenting a PR; they are now the bar for merging one,
+and every one of them still has to hold. The founder removed the approval step,
+not the checks. In particular, a red or unfinished check is still a stop, "the
+founder said merge" is not a waiver, and the delivery rules after this section
+apply exactly as before: merged is still not delivered.
+
+Two things this direction does NOT delegate, because they are not merges:
+1. The founder-gated categories in STOP conditions 1 to 8 above (money meaning,
+   stored data, security or privacy, a real product fork, scope expansion, a
+   behavioural conflict, an intent change, a destructive git operation). Those
+   still stop, BEFORE the work, not at the merge.
+2. Anything that could permanently lose user data, which that section already
+   says goes to the founder before merging and still does.
+
+"Flag any major that needed my review" is the other half of the direction and
+carries equal weight. Merging without asking is not merging without telling.
+Say clearly, right after the merge, what shipped and why it is significant,
+using the existing definition of significant in this section: stored data shape
+or migration logic, money math, backup and restore, security or app lock,
+notifications scheduling, monetization or pricing, deleting or replacing user
+data, or anything requiring an APK rebuild. A merge that is none of those gets
+a short factual line, not a silence and not an essay.
+
+The conditions, ALL of which must hold before the merge:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked. Record it as a row in
   docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when

@@ -32,7 +32,23 @@ looks:
   hierarchy, a workflow or a financial interpretation.
 - Deleting or archiving files that exist on main (moves are fine on a branch
   once the founder has seen the inventory).
-- Merging, releasing, or publishing anything.
+- Releasing or publishing anything.
+
+Merging is NOT on that list any more. Founder direction, 2026-09-13: "Happy
+for you to merge we have agents for that, fix any issues and flag to any
+major that needed my review". So Claude merges its own PRs. Every merge
+condition in CLAUDE.md still has to hold first, unchanged: the approval step
+went, the checks did not. A red check is still a stop, and "the founder said
+merge" is not a waiver for one.
+
+The second half of that direction is a duty, not a courtesy. Say what was
+merged and why it matters, right after merging, using CLAUDE.md's own
+definition of significant. Merging without asking is not merging without
+telling.
+
+Note the shape of the list above: those items stop the WORK, before it is
+started or while it is being done. Merging was the odd one out, a gate at the
+end of work already finished, which is exactly the loop the founder closed.
 
 ## Show, do not describe
 
