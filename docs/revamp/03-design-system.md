@@ -10,6 +10,17 @@ night. They are one design at two times of day, and the renders prove it:
 both come out of identical layout code, so the only thing that differs
 between the two pictures is colour. Anything else that differs is a bug.
 
+### Why not Umaga
+
+The founder asked this on 2026-09-13 and the answer is settled, so it does
+not need asking again. Umaga (morning) is the tidier opposite of Gabi, and
+Hapon and Gabi are adjacent times rather than poles, which is a fair
+objection. It loses anyway on the thing that matters more: the palette is
+peach, apricot and amber, which is golden hour light. Morning light reads
+cool and blue, so Umaga would name one thing and show another. Araw and
+Liwanag were both offered as alternatives. The founder kept Hapon and Gabi:
+being honest about the colour beats being tidy about the pairing.
+
 ## How it was chosen, so nobody reruns the experiment
 
 Decided 2026-09-13 by the design-director agent, after the founder delegated
