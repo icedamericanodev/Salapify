@@ -11,7 +11,12 @@ void main() {
     // 9000 / 30000 = 0.30, exactly on the healthy line (<= 30% is healthy).
     {'id': 'A', 'type': 'credit card', 'remaining': 9000, 'creditLimit': 30000},
     // 24000 / 30000 = 0.80, high.
-    {'id': 'B', 'type': 'credit card', 'remaining': 24000, 'creditLimit': 30000},
+    {
+      'id': 'B',
+      'type': 'credit card',
+      'remaining': 24000,
+      'creditLimit': 30000,
+    },
     // 5000 / 10000 = 0.50, watch (> 30%, not yet high).
     {'id': 'C', 'type': 'credit card', 'remaining': 5000, 'creditLimit': 10000},
     // Paid off: 0 / 20000 = 0.0, healthy.
@@ -19,9 +24,19 @@ void main() {
     // No limit saved: flagged, excluded from the overall ratio.
     {'id': 'E', 'type': 'credit card', 'remaining': 15000, 'creditLimit': 0},
     // Over the limit: 33000 / 30000 = 1.10, maxed.
-    {'id': 'F', 'type': 'credit card', 'remaining': 33000, 'creditLimit': 30000},
+    {
+      'id': 'F',
+      'type': 'credit card',
+      'remaining': 33000,
+      'creditLimit': 30000,
+    },
     // A loan is not a revolving card: excluded entirely.
-    {'id': 'G', 'type': 'personal loan', 'remaining': 50000, 'minPayment': 2000},
+    {
+      'id': 'G',
+      'type': 'personal loan',
+      'remaining': 50000,
+      'minPayment': 2000,
+    },
   ];
 
   test('per-card ratios and bands match the hand-computed vector', () {
@@ -82,7 +97,12 @@ void main() {
     // journey tests tap by name.
     expect(
       creditUtilization([
-        {'id': 'a', 'type': 'credit card', 'name': 'BPI card', 'remaining': 8000},
+        {
+          'id': 'a',
+          'type': 'credit card',
+          'name': 'BPI card',
+          'remaining': 8000,
+        },
         {'id': 'b', 'type': 'credit card', 'remaining': 3000, 'creditLimit': 0},
       ]),
       isNull,
@@ -92,7 +112,12 @@ void main() {
   test('a card exactly one centavo over the line is watch, not healthy', () {
     // Directional guard on the 30% boundary: 30% is healthy, a hair over is not.
     final r = creditUtilization([
-      {'id': 'X', 'type': 'credit card', 'remaining': 3001, 'creditLimit': 10000},
+      {
+        'id': 'X',
+        'type': 'credit card',
+        'remaining': 3001,
+        'creditLimit': 10000,
+      },
     ])!;
     final c = (r['cards'] as List<CardUtilization>).single;
     expect(c.utilization, closeTo(0.3001, 1e-9));

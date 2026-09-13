@@ -90,28 +90,35 @@ void main() {
     expect(b['windowDays'], 14);
   });
 
-  test('a debt with no minimum set is flagged, not reserved at full balance', () {
-    // Bank-officer finding (2026-08-22): upcomingDues falls back to the whole
-    // remaining balance when minPayment is unset, which would drop a mortgage
-    // into a fortnight buffer. The buffer must exclude it and flag it instead.
-    final blobNoMin = {
-      'accounts': [
-        {'id': 'c', 'kind': 'cash', 'balance': 10000},
-      ],
-      'debts': [
-        // A 300k loan due in 4 days with NO minimum saved. If it leaked in at
-        // full balance the buffer would read about minus 290000.
-        {'id': 'M', 'remaining': 300000, 'dueDay': 20},
-      ],
-      'recurring': <Map<String, dynamic>>[],
-      'settings': <String, dynamic>{},
-    };
-    final b = safeToSpendBuffer(blobNoMin, ref);
-    expect(b['cardDue'], 0.0, reason: 'a blank minimum must not be reserved');
-    expect(b['buffer'], 10000.0, reason: 'the buffer is just the liquid cash');
-    expect(b['dueCount'], 0);
-    expect(b['minsUnset'], 1);
-  });
+  test(
+    'a debt with no minimum set is flagged, not reserved at full balance',
+    () {
+      // Bank-officer finding (2026-08-22): upcomingDues falls back to the whole
+      // remaining balance when minPayment is unset, which would drop a mortgage
+      // into a fortnight buffer. The buffer must exclude it and flag it instead.
+      final blobNoMin = {
+        'accounts': [
+          {'id': 'c', 'kind': 'cash', 'balance': 10000},
+        ],
+        'debts': [
+          // A 300k loan due in 4 days with NO minimum saved. If it leaked in at
+          // full balance the buffer would read about minus 290000.
+          {'id': 'M', 'remaining': 300000, 'dueDay': 20},
+        ],
+        'recurring': <Map<String, dynamic>>[],
+        'settings': <String, dynamic>{},
+      };
+      final b = safeToSpendBuffer(blobNoMin, ref);
+      expect(b['cardDue'], 0.0, reason: 'a blank minimum must not be reserved');
+      expect(
+        b['buffer'],
+        10000.0,
+        reason: 'the buffer is just the liquid cash',
+      );
+      expect(b['dueCount'], 0);
+      expect(b['minsUnset'], 1);
+    },
+  );
 
   test('savings is protected: dropping it changes nothing', () {
     final withSavings = safeToSpendBuffer(blob(), ref);

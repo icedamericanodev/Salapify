@@ -9,12 +9,13 @@ here now.
 
 ## What is here
 
-    lib/core/money/     the money engine, 64 files, ported byte for byte
+    lib/core/money/     the money engine, 66 files, ported byte for byte
+    lib/core/data/      the encrypted store, the backup format, LedgerStore
     test/core/money/    30 golden replays of the same vectors
+    test/core/data/     the storage tests, plus the backup round trip
     test/goldens/       34 JSON fixtures, byte identical to the shipped app's
 
-Nothing else yet. No screens, no storage, no state layer. Those are Phase B2
-and B3.
+No screens and no design tokens yet. That is Phase B3.
 
 ## The one guarantee this folder makes
 
@@ -28,6 +29,49 @@ byte-identical to their originals under `flutter/`, and 215 tests pass without
 one vector being touched. `.github/workflows/app-check.yml` re-checks that
 byte-for-byte on every push, because a suite goes green whether a vector was
 honoured or edited, and only the comparison can tell those apart.
+
+## The storage layer
+
+SQLCipher over SQLite holding the JSON document, with the database key in
+EncryptedSharedPreferences wrapped by the Android Keystore. Copied unmodified,
+because it already works on the founder's phone. Deliberately no biometric gate
+on the key, per ADR 0001: App Lock is the UI gate, and a sensor reset must never
+cost data.
+
+**`store.dart` was NOT copied.** It is 3,196 lines holding the blob, every
+mutation for every feature, and the notifying, in one class every screen reached
+into, and `02-architecture.md` names it as the mistake to avoid.
+`ledger_store.dart` is the part of its job that was sound: load, hold, save,
+notify, and nothing that knows what a debt is. Features get their own view
+models. That one rule is what stops the 3,196 lines reassembling.
+
+Its order is persist, then swap, then notify, which is the opposite of
+convenient. A UI that updates before the write lands tells the founder their
+money is saved when it may not be. Reversing those three lines reddens exactly
+the test that names it.
+
+### Restore is proven, not assumed
+
+`backup_round_trip_test.dart` loads a realistic schema v12 backup, sends it
+through JSON and back the way a real restore does, and checks the money rather
+than the format. Restore is the founder's only safety net if the cutover goes
+wrong, so it is proven before anything leans on it.
+
+The net worth assertion is a HAND-COMPUTED figure, not a comparison against the
+other side of the same function. That distinction is not pedantry: comparing
+restored against original passed straight through a deliberate break that
+rounded every balance to whole pesos, because both sides rounded identically.
+The arithmetic is written out in the test above the number.
+
+Writing it also caught two things about the data model worth knowing:
+
+- Debts total on `remaining`, not `balance`.
+- A receivable counts toward net worth only when `cashLeg` is true, meaning
+  real money left the founder's pocket. A note that someone owes a share of
+  something does not move net worth.
+
+Both were errors in the first draft of the fixture, and the hand-computed total
+is what found them.
 
 ## Why the engine needs no dependencies
 

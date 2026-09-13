@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup and transfer rules for Android 12 (API 31) and NEWER, wired in via
+  android:dataExtractionRules in the manifest.
+
+  Salapify keeps the whole ledger on the device. allowBackup is already false,
+  which turns OFF Google cloud backup. But on Android 12 and newer, allowBackup
+  being false does NOT by itself stop a device-to-device transfer: that path is
+  controlled separately by the <device-transfer> section below. So both
+  sections exclude everything, and financial data can leave the phone only by
+  the user's own backup export.
+
+  Every app data domain is excluded with path=".", which means the whole domain
+  directory and everything under it: root (the app's internal data root), file
+  (getFilesDir, where the encrypted database and the frozen fallback live),
+  database, sharedpref (where the Keystore-wrapped key handle and settings
+  live), and external. With no <include> rules present, an exclude-only list
+  means nothing at all is eligible.
+
+  Docs: https://developer.android.com/identity/data/autobackup
+        https://developer.android.com/privacy-and-security/risks/backup-best-practices
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

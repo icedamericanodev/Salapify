@@ -73,18 +73,21 @@ void main() {
     expect(r['monthsSaved'], 0);
   });
 
-  test('equal rates: same total interest, so the card must not claim a saving', () {
-    // With equal rates the total balance falls the same way whichever order you
-    // pay, so total interest and months are identical.
-    final debts = [
-      {'id': 'A', 'remaining': 4000, 'monthlyRate': 2.0, 'minPayment': 600},
-      {'id': 'B', 'remaining': 15000, 'monthlyRate': 2.0, 'minPayment': 900},
-    ];
-    final r = avalancheVsSnowball(debts, ref: ref);
-    expect(r['sameInterest'], isTrue);
-    expect(r['interestSaved'], 0.0);
-    expect(r['monthsSaved'], 0);
-  });
+  test(
+    'equal rates: same total interest, so the card must not claim a saving',
+    () {
+      // With equal rates the total balance falls the same way whichever order you
+      // pay, so total interest and months are identical.
+      final debts = [
+        {'id': 'A', 'remaining': 4000, 'monthlyRate': 2.0, 'minPayment': 600},
+        {'id': 'B', 'remaining': 15000, 'monthlyRate': 2.0, 'minPayment': 900},
+      ];
+      final r = avalancheVsSnowball(debts, ref: ref);
+      expect(r['sameInterest'], isTrue);
+      expect(r['interestSaved'], 0.0);
+      expect(r['monthsSaved'], 0);
+    },
+  );
 
   test('an extra payment is passed through to both strategies', () {
     final debts = [
@@ -105,46 +108,63 @@ void main() {
     );
   });
 
-  test('avalanche is never worse than snowball, the invariant the card leans on', () {
-    // The whole verdict depends on interestSaved and monthsSaved never being
-    // negative (avalanche, greedy on the highest rate, never costs more or takes
-    // longer). Prove it across a spread of debts and extras rather than assume
-    // it, because the copy prints "pays X less" and a negative would read as
-    // nonsense.
-    final books = [
-      spread(),
-      [
-        {'id': 'A', 'remaining': 3000, 'monthlyRate': 2.0, 'minPayment': 300},
-        {'id': 'B', 'remaining': 9000, 'monthlyRate': 3.5, 'minPayment': 700},
-        {'id': 'C', 'remaining': 25000, 'monthlyRate': 6.0, 'minPayment': 1200},
-      ],
-      [
-        {'id': 'A', 'remaining': 15000, 'monthlyRate': 0.0, 'minPayment': 1000},
-        {'id': 'B', 'remaining': 4000, 'monthlyRate': 8.0, 'minPayment': 400},
-      ],
-    ];
-    for (final book in books) {
-      for (final extra in [0, 500, 1000, 3000, 8000]) {
-        final r = avalancheVsSnowball(book, extra: extra.toDouble(), ref: ref);
-        final saved = r['interestSaved'] as double?;
-        final monthsSaved = r['monthsSaved'] as int?;
-        if (saved != null) {
-          expect(
-            saved,
-            greaterThanOrEqualTo(-0.005),
-            reason: 'avalanche cost MORE interest at extra=$extra',
+  test(
+    'avalanche is never worse than snowball, the invariant the card leans on',
+    () {
+      // The whole verdict depends on interestSaved and monthsSaved never being
+      // negative (avalanche, greedy on the highest rate, never costs more or takes
+      // longer). Prove it across a spread of debts and extras rather than assume
+      // it, because the copy prints "pays X less" and a negative would read as
+      // nonsense.
+      final books = [
+        spread(),
+        [
+          {'id': 'A', 'remaining': 3000, 'monthlyRate': 2.0, 'minPayment': 300},
+          {'id': 'B', 'remaining': 9000, 'monthlyRate': 3.5, 'minPayment': 700},
+          {
+            'id': 'C',
+            'remaining': 25000,
+            'monthlyRate': 6.0,
+            'minPayment': 1200,
+          },
+        ],
+        [
+          {
+            'id': 'A',
+            'remaining': 15000,
+            'monthlyRate': 0.0,
+            'minPayment': 1000,
+          },
+          {'id': 'B', 'remaining': 4000, 'monthlyRate': 8.0, 'minPayment': 400},
+        ],
+      ];
+      for (final book in books) {
+        for (final extra in [0, 500, 1000, 3000, 8000]) {
+          final r = avalancheVsSnowball(
+            book,
+            extra: extra.toDouble(),
+            ref: ref,
           );
-        }
-        if (monthsSaved != null) {
-          expect(
-            monthsSaved,
-            greaterThanOrEqualTo(0),
-            reason: 'avalanche was SLOWER at extra=$extra',
-          );
+          final saved = r['interestSaved'] as double?;
+          final monthsSaved = r['monthsSaved'] as int?;
+          if (saved != null) {
+            expect(
+              saved,
+              greaterThanOrEqualTo(-0.005),
+              reason: 'avalanche cost MORE interest at extra=$extra',
+            );
+          }
+          if (monthsSaved != null) {
+            expect(
+              monthsSaved,
+              greaterThanOrEqualTo(0),
+              reason: 'avalanche was SLOWER at extra=$extra',
+            );
+          }
         }
       }
-    }
-  });
+    },
+  );
 
   test('no debts: both sides are the trivial zero projection, no saving', () {
     final r = avalancheVsSnowball(const [], ref: ref);

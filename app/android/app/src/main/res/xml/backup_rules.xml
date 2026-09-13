@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup rules for Android 11 (API 30) and LOWER, wired in via
+  android:fullBackupContent in the manifest.
+
+  The Android documentation is explicit that this separate file must ALWAYS be
+  specified, even though the app targets Android 12 or higher, because Android
+  11 and lower read this format and ignore data_extraction_rules.xml. Leaving it
+  out would mean the old cloud-backup behavior applies on those devices.
+
+  Every app data domain is excluded, so nothing is eligible for backup. With no
+  <include> present, an exclude-only list means nothing is backed up. allowBackup
+  is already false, which is the primary control on these versions; this file is
+  defense in depth so the exclusion survives even if that attribute is ever
+  changed.
+
+  Docs: https://developer.android.com/identity/data/autobackup
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

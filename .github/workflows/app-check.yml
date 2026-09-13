@@ -75,7 +75,7 @@ jobs:
       # uses. This step dies with flutter/ at cutover, and by then the vectors
       # will have been green against two independent implementations for
       # months, which is the only reason it is safe to lose.
-      - name: No golden vector was edited to make a test pass
+      - name: The port is still a port, byte for byte
         run: |
           cd "$GITHUB_WORKSPACE"
           if [ ! -d flutter/test/goldens ]; then
@@ -84,6 +84,9 @@ jobs:
             exit 0
           fi
           fail=0
+
+          # The vectors. A suite goes green whether a vector was honoured or
+          # edited, so only this comparison can tell those apart.
           for f in app/test/goldens/*.json; do
             b=$(basename "$f")
             old="flutter/test/goldens/$b"
@@ -95,7 +98,32 @@ jobs:
               fail=1
             fi
           done
+
+          # The ENGINE ITSELF, added after `dart format` silently reflowed four
+          # of these files and the vector check above sailed past it. Logic was
+          # untouched and every test stayed green, which is exactly the problem:
+          # the whole claim this app rests on is that the money code is the same
+          # code, and a diff nobody can see is a claim nobody can check.
+          #
+          # taglish.dart is the one intended rename (pan/normalize.dart), so it
+          # is compared against its real source rather than skipped.
+          for f in app/lib/core/money/*.dart; do
+            b=$(basename "$f")
+            if [ "$b" = "taglish.dart" ]; then
+              old="flutter/lib/money/pan/normalize.dart"
+            else
+              old="flutter/lib/money/$b"
+            fi
+            if [ ! -f "$old" ]; then
+              echo "::error::$b is in app/lib/core/money with no counterpart in flutter/. New money code is not a port."
+              fail=1
+            elif ! cmp -s "$f" "$old"; then
+              echo "::error::$b differs from the shipped engine. If this is a reformat, revert it; if it is a fix, it belongs in both."
+              fail=1
+            fi
+          done
+
           if [ $fail -eq 0 ]; then
-            echo "All $(ls app/test/goldens/*.json | wc -l) fixtures are byte-identical to the shipped app's."
+            echo "$(ls app/test/goldens/*.json | wc -l) fixtures and $(ls app/lib/core/money/*.dart | wc -l) engine files are byte-identical to the shipped app's."
           fi
           exit $fail
