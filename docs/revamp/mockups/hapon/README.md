@@ -145,3 +145,9 @@ the rebuild itself, and rendered again from the real router.
 **[Phase B3 renders, and the component sheet](b3/)** shows the component
 vocabulary in both skins, the four tabs, and the Log sheet, all captured from
 `app/` rather than from the preview.
+
+## Phase C1: it saves
+
+**[Phase C1 renders](c1/)**: the Log sheet mid-type with the fast-log parser
+reading the line, and the Ledger showing what it saved. The first batch where
+the app does something rather than showing something.

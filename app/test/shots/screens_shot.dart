@@ -30,10 +30,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/app/router.dart';
+import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/design/type.dart';
+
+import '../support/memory_store.dart';
 
 /// Loads the real shipped faces. Exported because any test that MEASURES
 /// layout has to use it too: Flutter's default test font is wider than Plus
@@ -105,13 +109,16 @@ String? _walkUpToFlutterRoot(String exe) {
 /// one skin. Rendering the actual router rather than a stand-in is the whole
 /// point: a picture of a hand-built copy of the shell proves nothing about the
 /// shell.
-Widget _app(Skin s) => MaterialApp.router(
-  key: UniqueKey(),
-  debugShowCheckedModeBanner: false,
-  theme: salapifyTheme(hapon),
-  darkTheme: salapifyTheme(gabi),
-  themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
-  routerConfig: buildRouter(),
+Widget _app(Skin s, LedgerStore store) => LedgerScope(
+  store: store,
+  child: MaterialApp.router(
+    key: UniqueKey(),
+    debugShowCheckedModeBanner: false,
+    theme: salapifyTheme(hapon),
+    darkTheme: salapifyTheme(gabi),
+    themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
+    routerConfig: buildRouter(),
+  ),
 );
 
 Future<void> _shoot(WidgetTester tester, String name) async {
@@ -132,7 +139,14 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(_app(s));
+      // A LIVED-IN store, and that is the whole point of this line. The
+      // shipped app's harness spent most of its life shooting an EMPTY one, so
+      // sixteen images across two brightnesses were all first-run welcome
+      // screens and not one of them ever contained a peso figure. A
+      // crossed-out peso sign sat on Home through dozens of renders and
+      // reached the founder's phone. Never shrink this fixture for a tidier
+      // picture: a tidy shot of an empty screen is exactly what it replaced.
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-home');
 
@@ -152,6 +166,13 @@ void main() {
       await tester.tap(find.text('Log'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-log');
+
+      // And the sheet MID-TYPE, which is the state the whole feature exists
+      // for. An empty sheet cannot show whether the "Got it" line reads well,
+      // and that line is the app's promise about what it is going to save.
+      await tester.enterText(find.byType(TextField), 'jollibee 250');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-log-typed');
     });
 
     testWidgets('component sheet ${s.key}', (tester) async {
@@ -254,24 +275,64 @@ class _ComponentSheet extends StatelessWidget {
             const SizedBox(height: 26),
             const Head(title: 'Surfaces and bars'),
             const SizedBox(height: 10),
+            // Each bar carries the RIGHT-HAND FIGURE and the caption it has on
+            // the real screen, and that is a correction rather than a detail.
+            //
+            // The first version stacked two bare bars 14dp apart with generic
+            // labels, which is the only place in the whole product where those
+            // two colours sit adjacent with the words stripped out. The
+            // founder looked at it and reasonably asked whether over budget
+            // was distinguishable. A review surface that hides the cues
+            // carrying the meaning cannot tell anyone whether the meaning
+            // arrives. See D16.
             Panel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Groceries', style: TypeScale.rowTitle(skin.text)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Groceries',
+                          style: TypeScale.rowTitle(skin.text),
+                        ),
+                      ),
+                      Text(
+                        '₱3,600.00 left',
+                        style: TypeScale.rowAmount(skin.text),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
-                  const ThinBar(fraction: 0.35),
-                  const SizedBox(height: 14),
+                  const ThinBar(fraction: 0.4),
+                  const SizedBox(height: 6),
                   Text(
-                    '₱2,400 of ₱6,000 spent',
+                    '₱2,400.00 of ₱6,000.00 spent',
                     style: TypeScale.caption(skin.text3),
                   ),
-                  const SizedBox(height: 14),
-                  ThinBar(fraction: 0.92, fill: skin.bad),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Food',
+                          style: TypeScale.rowTitle(skin.text),
+                        ),
+                      ),
+                      // The words flip, not just the colour. "over" is doing
+                      // the work here; the colour only agrees with it.
+                      Text(
+                        '₱740.00 over',
+                        style: TypeScale.rowAmount(skin.bad),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ThinBar(fraction: 1.0, fill: skin.bad),
+                  const SizedBox(height: 6),
                   Text(
-                    'Over budget uses the outgoing colour, never the accent.',
-                    style: TypeScale.hint(skin.text3),
+                    '₱5,740.00 of ₱5,000.00 spent',
+                    style: TypeScale.caption(skin.text3),
                   ),
                 ],
               ),

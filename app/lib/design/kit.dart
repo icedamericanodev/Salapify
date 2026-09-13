@@ -96,11 +96,38 @@ class ScreenTitle extends StatelessWidget {
   }
 }
 
-/// A section heading inside a screen, with an optional trailing action.
+/// A section heading inside a screen, with an optional trailing action OR a
+/// trailing amount.
+///
+/// Those are two different things and keeping them apart is the point. An
+/// ACTION is a word you can tap, so it is drawn in the accent. An AMOUNT is
+/// money, so it is drawn in a direction colour and never in the accent.
+///
+/// The Ledger's day totals were the proof. Passing them through [action] drew
+/// every one in the accent, so a day the founder EARNED eighteen thousand
+/// pesos rendered in exactly the same orange as a day they spent it, on a
+/// screen whose entire job is telling those apart. Colour means direction, so
+/// a number that borrows the accent is a number lying about its direction.
 class Head extends StatelessWidget {
-  const Head({super.key, required this.title, this.action});
+  const Head({
+    super.key,
+    required this.title,
+    this.action,
+    this.amount,
+    this.tone = Tone.plain,
+  }) : assert(
+         action == null || amount == null,
+         'A heading has a tappable action or a money figure, not both.',
+       );
+
   final String title;
+
+  /// A tappable word. Accent.
   final String? action;
+
+  /// A money figure. Direction colour, per [tone].
+  final String? amount;
+  final Tone tone;
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +139,15 @@ class Head extends StatelessWidget {
       children: [
         Text(title, style: TypeScale.sectionHead(skin.text)),
         if (action != null) Text(action!, style: TypeScale.action(skin.accent)),
+        if (amount != null)
+          Text(
+            amount!,
+            style: TypeScale.rowAmount(switch (tone) {
+              Tone.plain => skin.text2,
+              Tone.good => skin.good,
+              Tone.owe => skin.accent,
+            }),
+          ),
       ],
     );
   }

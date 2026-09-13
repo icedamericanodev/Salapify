@@ -7,19 +7,29 @@
 // its own.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/app/router.dart';
+import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/design/tokens.dart';
 
-Widget _app() => MaterialApp.router(
-  theme: salapifyTheme(hapon),
-  darkTheme: salapifyTheme(gabi),
-  routerConfig: buildRouter(),
+import '../support/memory_store.dart';
+
+/// The app over an EMPTY store, which is what a fresh install shows and is the
+/// right fixture for a navigation test: the tabs have to work before there is
+/// any money in them.
+Widget _app(LedgerStore store) => LedgerScope(
+  store: store,
+  child: MaterialApp.router(
+    theme: salapifyTheme(hapon),
+    darkTheme: salapifyTheme(gabi),
+    routerConfig: buildRouter(),
+  ),
 );
 
 void main() {
   testWidgets('opens on Home with all four tabs in the bar', (tester) async {
-    await tester.pumpWidget(_app());
+    await tester.pumpWidget(_app(await memoryStore()));
     await tester.pumpAndSettle();
 
     // Home twice, because the tab label and the screen's own title say the
@@ -39,7 +49,7 @@ void main() {
   });
 
   testWidgets('tapping a tab shows that screen', (tester) async {
-    await tester.pumpWidget(_app());
+    await tester.pumpWidget(_app(await memoryStore()));
     await tester.pumpAndSettle();
 
     for (var i = 1; i < NavBar.tabs.length; i++) {
@@ -60,7 +70,7 @@ void main() {
   });
 
   testWidgets('the Log pill opens the sheet over the screen', (tester) async {
-    await tester.pumpWidget(_app());
+    await tester.pumpWidget(_app(await memoryStore()));
     await tester.pumpAndSettle();
 
     expect(find.text('Save entry'), findsNothing);

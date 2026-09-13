@@ -71,7 +71,41 @@ class LedgerStore extends ChangeNotifier {
   Future<void> mutate(void Function(Map<String, dynamic> draft) change) async {
     final draft = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
     change(draft);
-    final next = sanitizeData(draft);
+    await _commit(sanitizeData(draft));
+  }
+
+  /// Change the ledger with a PURE function, and persist the result.
+  ///
+  /// This is the one features should reach for, because it is the shape the
+  /// money engine already speaks. Every function in core/money takes a state
+  /// and returns a new one:
+  ///
+  ///     store.apply((s) => addTransaction(s, tx));
+  ///
+  /// That line is the whole of saving an entry. `addTransaction` appends the
+  /// transaction AND moves the linked account's balance by the signed amount,
+  /// and it is golden locked to the centavo, so no screen ever computes a
+  /// balance for itself. A feature that reaches past this to adjust a balance
+  /// by hand is a bug, however small the adjustment looks.
+  ///
+  /// [change] receives a deep COPY, so a half-finished change that throws
+  /// cannot leave the live ledger in a state nobody designed, and the result
+  /// only becomes live after sanitizeData has accepted it and the write has
+  /// returned. Same order as [mutate], for the same reason.
+  Future<void> apply(
+    Map<String, dynamic> Function(Map<String, dynamic> state) change,
+  ) async {
+    final copy = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
+    await _commit(sanitizeData(change(copy)));
+  }
+
+  /// Persist, then swap, then notify. Shared by [mutate] and [apply] so the
+  /// two can never drift into different guarantees.
+  ///
+  /// The order is the opposite of convenient and that is the point: a UI that
+  /// updates before the write lands tells the founder their money is saved
+  /// when it may not be.
+  Future<void> _commit(Map<String, dynamic> next) async {
     await _repo.writeLedger(jsonEncode(next));
     _data = next;
     notifyListeners();

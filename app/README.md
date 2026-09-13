@@ -14,15 +14,42 @@ here now.
     lib/core/money/     the money engine, 66 files, ported byte for byte
     lib/core/data/      the encrypted store, the backup format, LedgerStore
     lib/design/         the tokens, the type ladder and the component kit
-    lib/features/       one folder per screen
+    lib/features/       one folder per screen, each with its own view model
     test/core/money/    30 golden replays of the same vectors
     test/core/data/     the storage tests, plus the backup round trip
     test/design/        the contrast sweep and the type discipline guard
     test/goldens/       34 JSON fixtures, byte identical to the shipped app's
     test/shots/         the render harness (not collected by flutter test)
 
-The app boots, shows four tabs in the approved look, and opens the Log sheet.
-The screens are EMPTY: connecting them to the ledger is Phase C.
+The app boots, shows four tabs in the approved look, and **saves money**: type
+"jollibee 250" into the Log sheet and a P250 expense lands in the ledger,
+tagged Food, with the account balance moved. The Ledger tab shows it.
+
+Home, Plan and Accounts are still empty. That is the roadmap's order, not an
+oversight: the Log sheet comes first because everything else is read-only
+without it.
+
+## The fast-log parser
+
+`lib/core/money/fastlog.dart`, and it is the one piece of money-adjacent code
+in v3 that is NOT a port. There is no parser like it in the shipped app or the
+React Native app before it; what exists there is `quickadd.dart`, 76 lines of
+recent-label chips that do no parsing at all.
+
+Two of its pieces ARE ported and golden locked, and it leans on both rather
+than reinventing them: `normalize` (Taglish folding, so sweldo and sahod arrive
+as "payday" for free) and `extractAmount` (the money number, which handles
+"1.5k", "2,000" and "P350"). The amount always comes from `extractAmount` and
+only from there. The parser finds the number's POSITION separately, purely to
+cut the label around it, so if the two ever disagreed the label would be
+slightly wrong and the money would still be right. A test asserts they agree
+anyway.
+
+Its category guessing is deliberately timid, and the asymmetry is the reason:
+a category the founder taps costs one tap, while a wrong category they never
+notice quietly poisons every budget and report that reads it, for months.
+So no keyword match means no guess, a guess must point at a category that
+still exists in their ledger, and income and transfers never get one.
 
 ## Looking at it without a phone
 
@@ -30,8 +57,17 @@ The screens are EMPTY: connecting them to the ledger is Phase C.
     flutter test test/shots/screens_shot.dart --update-goldens
 
 Renders every screen in Hapon and Gabi to `test/shots/out` (gitignored). The
-reviewed ones are committed to `docs/revamp/mockups/hapon/b3/` and embedded in
-that folder's README, which is what GitHub actually renders.
+reviewed ones are committed under `docs/revamp/mockups/hapon/` (one folder per
+batch, latest is `c1/`) and embedded in that folder's README, which is what
+GitHub actually renders.
+
+It renders against a LIVED-IN store, and that sentence is the point of this
+paragraph. The shipped app's harness spent most of its life shooting an EMPTY
+one, so every image was a first-run welcome screen and not one of them ever
+contained a peso figure; a crossed-out peso sign survived dozens of renders and
+reached the founder's phone. Both C1 defects (a transfer counted as spending, a
+day total drawn in the accent) were only visible because the fixture has real
+money in it. Never shrink it for a tidier picture.
 
 ## The design layer
 
@@ -60,7 +96,7 @@ centavo. A rebuild that quietly changes someone's balance is worse than no
 rebuild, so the engine came across unmodified and the vectors came with it.
 
 Verified rather than asserted: all 66 engine files and all 34 fixtures are
-byte-identical to their originals under `flutter/`, and 316 tests pass without
+byte-identical to their originals under `flutter/`, and 362 tests pass without
 one vector being touched. `.github/workflows/app-check.yml` re-checks that
 byte-for-byte on every push, because a suite goes green whether a vector was
 honoured or edited, and only the comparison can tell those apart.

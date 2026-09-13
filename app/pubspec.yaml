@@ -5,13 +5,12 @@ publish_to: 'none'
 # versionName + versionCode. The Android side reads BOTH from this one line and
 # nowhere else, so this file is the only place a version is set.
 #
-# +21 is one above the shipped app's +20, so a build of this app installs OVER
-# the old one rather than being refused as a downgrade. That is only the right
-# answer if v3 keeps the same applicationId, which is decision D4 and is NOT
-# settled: see the note in android/app/build.gradle.kts. If the founder chooses
-# a separate id so v3 can sit BESIDE their daily app, this resets to +1 and the
-# two version lines stop having anything to do with each other.
-version: 1.0.0+21
+# It starts at +1, and that is D4 rather than a fresh-project default. The
+# founder chose on 2026-09-13 that v3 installs BESIDE their daily app under its
+# own applicationId, so this build never has to out-rank the shipped app's +20
+# and the two version lines have nothing to do with each other. It was briefly
+# +21 for the opposite plan.
+version: 1.0.0+1
 
 environment:
   sdk: ^3.12.2
