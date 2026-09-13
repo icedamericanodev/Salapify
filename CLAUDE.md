@@ -149,6 +149,27 @@ and when the next change builds on it. Founder request, 2026-08-01: screenshots
 of what shipped belong in the conversation, not only in a gitignored shots
 folder nobody opens. Dark is what the founder uses, so show dark first.
 
+Restated and widened by the founder on 2026-09-13: "make sure to show my the
+screen for the features added and built so I can review and we can make the
+necessary adjustments". Three things that sentence settles:
+
+1. It covers EVERY feature added or built, not only a change to an existing
+   screen. A new screen, a new sheet, a new state of an old screen: if a person
+   can see it, the founder sees it before it is called done.
+2. The purpose is ADJUSTMENT, not applause. Show it while it is still cheap to
+   change. A preview costs minutes to redraw and app code costs a day, so the
+   picture goes out at the preview stage and again when it is built, not once
+   at the end.
+3. Showing means the founder can actually open it. Four attachments on a phone
+   is worse than one page, and on 2026-09-13 a set of screenshots was sent and
+   simply did not reach them. So for anything past a couple of images, publish
+   the review page as an artifact AND commit the PNGs to the repo, then give
+   the link. Two routes, because one of them failing silently is what caused
+   the founder to ask twice.
+
+A feature reported as finished with no picture the founder can open is not
+finished, however green the tests are.
+
 It renders against a LIVED-IN phone, and that sentence is the whole point of
 this paragraph. For most of the harness's life every per-tab shot used an EMPTY
 store, so sixteen images at two brightnesses were all first-run welcome
