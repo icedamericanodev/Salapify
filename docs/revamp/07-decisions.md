@@ -243,3 +243,52 @@ One word is deliberately left alone: "sweldo". The app already says payday
 everywhere the user reads, and sweldo survives only in internal names like
 the Sweldo Timeline. If the founder wants that gone too, say so and it is a
 five minute change.
+
+## D14. The skin is a ThemeExtension, not a global. ANSWERED 2026-09-13
+
+The preview that produced the approved renders held the palette in a mutable
+global, `Skin skin = hapon;`, which is fine for a preview: it draws one screen
+at a time, has no user, and nothing ever changes brightness while it is
+running. A real app has to follow the phone's own light or dark setting, and
+`ThemeExtension` is what Flutter provides for exactly that.
+
+So `Skin` hangs off `ThemeData`. `MaterialApp` gets `theme: salapifyTheme(hapon)`
+and `darkTheme: salapifyTheme(gabi)` with `themeMode: ThemeMode.system`, and a
+widget reads `context.skin.accent`.
+
+Three things this buys that the global could not:
+
+1. The phone's setting decides, with no code in the app to read it.
+2. The two palettes CROSS-FADE, through the extension's own `lerp`, rather than
+   snapping mid-frame.
+3. A widget cannot accidentally name a skin. Naming `hapon` or `gabi` inside a
+   screen produces a widget that ignores the setting, and the type discipline
+   guard treats reaching past the tokens as a breach.
+
+The cost is a `copyWith` and a `lerp` over twenty fields, written out once in
+`app/lib/design/tokens.dart`. Nothing in the app patches a single token, so
+`copyWith` is never called, but it is implemented properly rather than stubbed:
+a copyWith that silently ignores its arguments is a trap for whoever needs it.
+
+The alternative considered was a plain `InheritedWidget`, six lines against
+forty. It was rejected because following the phone's setting would then need a
+second mechanism bolted beside it (a `MaterialApp.builder` reading
+`Theme.of(context).brightness` and picking a skin), which is two things doing
+one job and gives no cross-fade.
+
+## D15. No update stamp in app/ until Phase D. ANSWERED 2026-09-13
+
+`02-architecture.md` reserves `s3.01` for the stamp row in `app/lib/main.dart`.
+It is deliberately NOT there yet.
+
+The stamp only means anything next to the machinery that keeps it honest: the
+uniqueness guard that reddens a PR reusing a delivered value, the delivery-log
+row the publisher writes, and the phone showing the same number back. `app/`
+has no publisher, so none of that exists, and a stamp with no guard behind it
+is exactly the failure this repository has hit three times (sessions 25, 32 and
+33 in docs/lunch-and-learn.md), each time by a stamp being stale while
+everything looked green.
+
+It arrives in Phase D, with the publisher, the guard and the log row together.
+`.github/workflows/app-check.yml` says the same thing at the top of the file so
+nobody adds it early out of tidiness.

@@ -42,6 +42,7 @@ dependencies:
   # The original storage engine, still read during the one-time migration and
   # still the home of the few keys that must NEVER live inside the ledger blob.
   shared_preferences: ^2.5.5
+  go_router: ^18.0.1
 
 dev_dependencies:
   flutter_test:

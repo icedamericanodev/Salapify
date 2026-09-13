@@ -45,3 +45,10 @@ else
 fi
 
 bash .github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED" "$TOUCHES"
+
+# Second check, added in Phase B3: app/'s money engine must still be byte for
+# byte the engine on the founder's phone. `dart format lib/` reflows four of
+# those files every time it is run over them, and the formatter cannot be told
+# to skip them, so this catches it here rather than a CI round trip later.
+# Same script app-check.yml runs, so the two can never drift.
+bash .github/scripts/check-engine-identical.sh

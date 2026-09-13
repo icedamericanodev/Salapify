@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# The render harness writes here. The PNGs worth reviewing are copied into
+# docs/revamp/mockups/ and embedded in that folder's README, which is the
+# surface GitHub actually renders; a folder of images in git is storage, not a
+# review surface.
+test/shots/out/

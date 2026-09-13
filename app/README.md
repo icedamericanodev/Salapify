@@ -9,13 +9,48 @@ here now.
 
 ## What is here
 
+    lib/main.dart       boots the store, builds both themes, hands off
+    lib/app/            the router and the four-tab shell
     lib/core/money/     the money engine, 66 files, ported byte for byte
     lib/core/data/      the encrypted store, the backup format, LedgerStore
+    lib/design/         the tokens, the type ladder and the component kit
+    lib/features/       one folder per screen
     test/core/money/    30 golden replays of the same vectors
     test/core/data/     the storage tests, plus the backup round trip
+    test/design/        the contrast sweep and the type discipline guard
     test/goldens/       34 JSON fixtures, byte identical to the shipped app's
+    test/shots/         the render harness (not collected by flutter test)
 
-No screens and no design tokens yet. That is Phase B3.
+The app boots, shows four tabs in the approved look, and opens the Log sheet.
+The screens are EMPTY: connecting them to the ledger is Phase C.
+
+## Looking at it without a phone
+
+    cd app
+    flutter test test/shots/screens_shot.dart --update-goldens
+
+Renders every screen in Hapon and Gabi to `test/shots/out` (gitignored). The
+reviewed ones are committed to `docs/revamp/mockups/hapon/b3/` and embedded in
+that folder's README, which is what GitHub actually renders.
+
+## The design layer
+
+`lib/design` is the only place a colour or a text size is decided, and that is
+enforced rather than asked for. `test/design/type_discipline_test.dart` reads
+the source of every file under `lib/features` and `lib/app` and fails on a raw
+`TextStyle`, a `fontSize:`, a hex colour, a `Colors.*` name or a reach into
+Material's own scheme. It found a real breach on its first run: the Log sheet's
+scrim was a hex literal, and it is a token now.
+
+`test/design/palette_contrast_test.dart` measures every pair in both skins
+against WCAG AA plus D8's 0.2 of headroom, and then reads `tokens.dart`'s own
+source to prove no colour was added without being measured. Both halves earned
+themselves: the first version checked the bare 4.5 and let the REJECTED accent
+back through, and the first version of the coverage regex could not see an
+initialised field.
+
+The palette itself came across unchanged from the preview that produced the 24
+approved renders. No size, weight, padding, radius or inset moved.
 
 ## The one guarantee this folder makes
 
@@ -24,8 +59,8 @@ is already correct, proven against the React Native app it replaced, to the
 centavo. A rebuild that quietly changes someone's balance is worse than no
 rebuild, so the engine came across unmodified and the vectors came with it.
 
-Verified rather than asserted: all 64 engine files and all 34 fixtures are
-byte-identical to their originals under `flutter/`, and 215 tests pass without
+Verified rather than asserted: all 66 engine files and all 34 fixtures are
+byte-identical to their originals under `flutter/`, and 316 tests pass without
 one vector being touched. `.github/workflows/app-check.yml` re-checks that
 byte-for-byte on every push, because a suite goes green whether a vector was
 honoured or edited, and only the comparison can tell those apart.
@@ -73,12 +108,29 @@ Writing it also caught two things about the data model worth knowing:
 Both were errors in the first draft of the fixture, and the hand-computed total
 is what found them.
 
-## Why the engine needs no dependencies
+## Dependencies
 
-`pubspec.yaml` lists nothing beyond the framework, and that is a property of
-the engine rather than a choice: none of the 64 files imports a package, not
-even Flutter. It is plain Dart doing arithmetic on maps. That is what makes it
-portable, and it is why the golden tests run in under ten seconds.
+Five, and the list is checked rather than inherited.
+
+Four came with the encrypted store, which was copied unmodified because it
+already works on the founder's phone: `sqflite_sqlcipher`,
+`flutter_secure_storage`, `path_provider`, `shared_preferences`.
+
+The fifth is `go_router`, added in B3 for the shell. Not for prettier
+navigation: the home screen widget and a notification both have to open a
+specific screen from outside the app, and with go_router they resolve through
+the same route table as a tap. A `StatefulShellRoute` is also the part that is
+genuinely painful to retrofit, so it went in before there were screens to
+retrofit it around.
+
+**The money engine still contributes zero of them.** None of the 66 files in
+`lib/core/money` imports a package, not even Flutter. It is plain Dart doing
+arithmetic on maps, which is what makes it portable and why the golden tests
+run in seconds.
+
+The old app also carried `csv`, `excel`, `pdf`, `fl_chart`, `animations` and
+`flutter_spinkit`. v3 drops all six: charts are drawn by hand under one grammar
+(D9), and export returns in Phase E if it is missed.
 
 ## What was left behind, and why
 
@@ -114,3 +166,22 @@ today because Phase B builds nothing; not harmless at Phase D.
     cd app
     flutter pub get
     flutter test
+
+## Never run `dart format lib/`
+
+Format the folders you actually changed:
+
+    dart format lib/app lib/design lib/features lib/main.dart test/
+
+`dart format lib/` reaches into `lib/core/money`, and reflows four files
+(`accounts_breakdown`, `commitments`, `debt_statement`, `net_worth_history`)
+whose compact list literals the current formatter expands. Logic untouched,
+every test green, and the one guarantee this folder makes quietly broken.
+
+It has happened twice, in B2 and again in B3, so it is a trap rather than an
+accident. The formatter cannot be told to skip them: `formatter: exclude:` in
+`analysis_options.yaml` is silently ignored by Dart 3.12.2, and
+`// dart format off` would change the very bytes it is meant to protect. So it
+is caught instead, by `.github/scripts/check-engine-identical.sh`, which runs
+both in CI and in `.githooks/pre-push`. If it fires, the fix is the `cp` line
+it prints.
