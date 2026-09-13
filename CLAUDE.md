@@ -458,7 +458,7 @@ behavior stay green, and nothing a user already has moves behind a wall) and
 builds on top of it. The Sweldo Timeline is the pattern to copy: it grew
 INSIDE the existing Cash flow screen, the old free month view stayed the
 default, and every prior figure kept its meaning. When a vision-spec idea
-touches a shipped feature, read docs/Product_Vision_Spec.md's inventory
+touches a shipped feature, read docs/archive/Product_Vision_Spec.md's inventory
 first so the enhancement lands on what exists instead of beside it.
 
 ## Development workflow
