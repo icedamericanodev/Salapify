@@ -2,136 +2,124 @@
 
 ## Start here: there isn't one
 
-Verified 2026-09-13. Both the shipped app in `flutter/` and the rebuild in
-`app/` carry the **stock Flutter logo**, byte for byte identical across all five
-mipmap densities. The blue Flutter F is what sits on the founder's phone right
-now under the name Salapify.
+Verified 2026-09-13. Both the shipped app and the rebuild carry the **stock
+Flutter logo**, byte for byte identical across all five mipmap densities.
+Neither has an adaptive icon, so Android shrinks that logo inside a white blob.
 
-Neither app has an **adaptive icon** either, so Android 8 and later cannot fill
-the launcher's own shape and instead shrink that legacy PNG inside a white blob.
+## Round one was rejected, and the reason was compositional
 
-## Two expert passes, and they agreed
+Six candidates went out (a drawn peso, an S monogram, two opposing arrows, each
+loud and quiet) and the founder rejected all of them.
 
-Run in parallel with deliberately different lenses, because this artefact is
-both a brand mark and a storefront asset.
+The honest diagnosis is not that the palette or the constraints were wrong.
+**All six were the same idea**: one flat symbol, centred, on a plain square
+tile. Three subjects explored once each in one composition, presented as three
+directions.
 
-The store pass predicted the brand pass would disagree with it. **It did not.**
-Both independently landed on the same two things:
+Part of that was imagination and part was the harness: a mark could only be
+drawn ON a ground, so negative space, layering and overlap were not rejected,
+they were unavailable. A tool that can express one composition produces one
+composition every time, and it looks like taste.
 
-1. **Loud, not quiet.** A full-colour tile, not a cream or warm-black one.
-2. **Peso-derived, and DRAWN rather than typed.** Not the keyboard character.
+An exploration pass then looked at eleven real references and named the
+compositional **device** in each, because the device is the transferable part,
+not the subject.
 
-That convergence from two different starting points is the strongest signal in
-this whole exercise.
+## Three measurements that changed the brief
 
-### Why loud won, measured rather than argued
+**1. A one-value tile cannot hold an edge on both Play surfaces. A split tile
+can.**
 
-| Tile | vs Play's white listing page | vs Play's dark surface |
+| Tile value | vs Play's white listing | vs Play's dark surface |
 |---|---|---|
-| Quiet cream `#FFEEDF` | **1.13:1** | 16.55:1 |
-| Quiet warm black `#14100D` | 18.92:1 | **1.01:1** |
-| Loud hero ramp, lightest stop | 1.33:1 | 8.90:1 |
-| Loud deep ramp, lightest stop | 1.61:1 | 6.06:1 |
+| `#FB9C52` loud | 2.10 | 8.90 |
+| `#2A1207` quiet | 17.68 | 1.06 |
+| A tile carrying **both** | 2.10 from one half | 8.90 from the other |
 
-A quiet tile forfeits its own edge on one of Play's two surfaces by physics.
-Cream is invisible on the white listing page; warm black is a hole on the dark
-one. The founder asked to see both and both are rendered below, but this is a
-measurement, not a preference.
+Round one treated loud versus quiet as taste. It is arithmetic, and no
+single-value tile wins twice.
 
-### Why the peso is drawn and not typed
+**2. Two hero-ramp tones cannot be told apart.** `#FFD9B0` against `#FB9C52`
+measures **1.58**, under the 3.0 bar. So any layering direction needs a
+deliberately chosen dark tone at the overlap, never a blend mode: a true
+multiply of those two lands 1.18 from one of them.
 
-Plus Jakarta Sans has a peso glyph, but it is tuned for a 15 point line of
-text: thin bars, small counter, delicate joints, all of which turn to mush at
-icon size. So the mark is redrawn at icon weight, with the relationship to the
-family kept honest by ratio instead. Stem 8 over cap height 44 is 0.18, which
-is exactly where Jakarta ExtraBold sits, so mark and wordmark read as the same
-weight in a lockup.
+**3. The 48px floor, once, as a number.** 108 units render at 0.667px each, so
+**nothing thinner than 6 units and no gap under 6 units**. Round one's peso had
+7-unit bars with an 8-unit gap, which is exactly why its write-up admitted they
+softened.
 
-There is also a commercial reason, and it is the sharper one. In the Philippine
-market a bare typed peso sign on a hot tile is the visual signature of the
-quick-cash lending category. It would pull install intent from people looking
-for a loan rather than a tracker, and those installs churn in a day and leave
-one-star reviews. A custom mark reads as a brand; a typed symbol reads as a
-utility.
-
-## Where the two passes DID disagree, and how it was settled
-
-The store pass wanted a deeper, more saturated tile so it keeps an edge on the
-Play listing. The brand pass wanted the app's own hero panel, which is lighter.
-
-The store pass proposed cream ink on a deep orange ramp as its fix. **That fix
-was measured and it fails**: cream `#FFEEDF` on `#FF9A52` is **1.86:1**, far
-under the 3:1 bar for a non-text mark. It would have shipped a glyph that
-disappears at the light end of its own gradient.
-
-The brand pass had already measured the mirror-image trap: the accent orange
-`#B03C09` on the darkest hero stop is **2.85:1**, also failing. Orange on
-orange is tempting in a mockup and measurably illegible.
-
-So both obvious fixes fail, and the ink has to stay near black. **Piso deep**
-below is the resolution: the hero ramp shifted one step deeper, which improves
-the tile edge from 1.33 to 1.61 while holding the ink at **5.72:1** worst case.
-It is the only option tested that satisfies both arguments.
-
-## The candidates
-
-Each row: the tile at review size, at **48px** (the app drawer, where fine
-detail dies), and with the Android safe zones drawn over it. The cyan circle is
-the only area guaranteed visible on every launcher shape.
+## The eight directions
 
 ![The candidates](icon-sheet.png)
-
-## On a home screen, beside what it competes with
-
-"Does it stand out" is unanswerable for an icon on its own and obvious in a
-grid. The neighbour tiles are plain colours with one letter: colour
-placeholders for a private review, not reproductions of anyone's logo.
-
-**Orange is the open lane.** Blue is closed (the banks and the big wallets),
-green is second-most crowded, purple is filling fast, and amber sits next to
-the cash-lending category. Nobody owns warm red-orange in Philippine personal
-finance.
 
 | Light home screen | Dark home screen |
 |---|---|
 | ![Light](icon-home-light.png) | ![Dark](icon-home-dark.png) |
 
-## What the pictures caught that the specs did not
+## What the renders say, honestly
 
-- **The S was rendering as a squiggle.** SVG's sweep flag and Flutter's
-  `clockwise` are the same idea with opposite spellings, and the first build
-  had both backwards. Invisible to the analyzer, obvious the moment the sheet
-  was looked at.
-- **The Beam is the weakest of the three at icon size.** Its own designer said
-  so in writing (two opposing arrows is the international sign for transfer,
-  sync and swap, so it is the most meaningful and the least ownable) and the
-  render agrees: at 48px it reads as two blobs rather than as arrows.
-- **The peso's two crossbars soften at 48 physical pixels.** This is the honest
-  cost of the recommended direction. It is a softening, not a failure, and it
-  only bites on old mdpi hardware and shrunk thumbnails. The fix if it ever
-  matters is small and does not change the design: thicken the bars to 8 and
-  open the gap to 9.
+**Hapon** is the standout. A disc astride a horizon, inverting where it
+crosses. It says "two directions" without drawing an arrow, which is what the
+Beam failed to do, and it is the only direction whose TILE is measurably strong
+on both Play surfaces. Simplest silhouette in the set, so it cannot break at
+48px. Its stated risk is real: it could be read as a moon or a brightness
+toggle.
+
+**Capiz** is better than anyone predicted on paper. A cropped shell window with
+late afternoon light through it, Filipino by substance rather than by flag or
+jeepney. The grid-ambiguity risk is also real at 48px.
+
+**Dalawa did not survive execution, and that is a finding rather than a
+failure.** On paper it was two overlapping planes with the overlap as a third
+colour. Rendered, the eight degree rotations do not read, the two planes are
+1.58 apart and blend into one shape, and the dark overlap dominates so the tile
+reads as a blob with a stripe. It is in the sheet because the founder should
+see what was tried, not because it works.
+
+**Overshoot** is unbreakable at any size and says nothing about money; it reads
+as a landscape. **Piso Buo** is bold but busy. **Sobre** is clean and is openly
+Monzo's device. **Resibo** is the safest and the least memorable, exactly as
+predicted. **Counterweight** reads well but is 1.06 against Play's dark
+surface.
+
+## The references, and the device taken from each
+
+Nothing was copied. Each was studied for its compositional move only.
+
+| Reference | The device |
+|---|---|
+| [Pentagram, Slack](https://www.pentagram.com/work/slack/story) | Built around a hole, so the emptiness is the recognisable part |
+| [Basic Apple Guy, Boardy](https://basicappleguy.com/basicappleblog/boardy) | A horizontal seam so the tile reads as two halves |
+| [Flighty](https://apps.apple.com/us/app/flighty-live-flight-tracker/id1358823008) | One object at extreme scale, tilted, nothing else in frame |
+| [Threads](https://apps.apple.com/us/app/threads/id6446901002) | A typographic counter blown so far past reading size it becomes a shape |
+| [Nike Run Club](https://apps.apple.com/us/app/nike-run-club/id387771637) | Mark drawn bigger than the tile, running off two edges |
+| [Todoist](https://apps.apple.com/us/app/todoist-to-do-list-planner/id572688855) | Bars of unequal length exiting an edge; length does the work |
+| [Monzo](https://apps.apple.com/us/app/monzo-mobile-banking/id1052238659) | The tile itself is the mark, a single diagonal split, no glyph |
+| [Halide Mark II](https://apps.apple.com/us/app/halide-mark-ii-pro-camera/id885697368) | Depth from flat facets meeting at hard edges, not a gradient |
+| [Pentagram, Mastercard](https://www.pentagram.com/work/mastercard/story) | Two shapes overlapping, the overlap a third colour |
+| [Capiz shell window](https://en.wikipedia.org/wiki/Capiz_shell_window) | A physical object: a grid of translucent panes diffusing tropical sun |
+
+## Two colours that are NOT tokens
+
+`#FFF3E6` (Capiz only, the hero ramp continued one step so the light has a
+peak) and `#8A2F07` (Dalawa only, the one tone clearing 3.0 against both planes
+at once, at 6.35 and 4.01). Both are icon-only and must never enter
+`tokens.dart`.
 
 ## The verified Play spec
 
-From Google's own current documentation, because two numbers commonly repeated
-are out of date:
+From Google's own current documentation, because two commonly quoted numbers
+are out of date: 512 square, 32-bit PNG, sRGB, under 1024KB, submitted as a
+**full square** because "radius will be equivalent to **30%** of icon size" and
+"Google Play will dynamically add a drop shadow around the final icon once
+uploaded". So no rounded corners and no baked shadow.
 
-- 512 x 512, 32-bit PNG, sRGB, under 1024KB
-- Submit a **full square**: "radius will be equivalent to **30%** of icon size",
-  not the 20% still widely quoted
-- "Google Play will dynamically add a drop shadow around the final icon once
-  uploaded", so **do not bake one in**
-- Launcher icon is a **separate asset**: adaptive, 108dp canvas, mark inside the
-  66dp safe circle
-- A **monochrome layer** is needed too, or Android's themed icons derive one
-  automatically from a full-bleed tile and it comes out as a featureless blob
+The launcher icon is a **separate asset**: adaptive, 108dp, mark inside the
+66dp safe circle, plus a **monochrome layer** or Android's themed icons derive
+a featureless blob from a full-bleed tile.
 
 ## How these are made
 
     cd app
     flutter test test/shots/icon_preview.dart --update-goldens
-
-Drawn in Flutter against `lib/design/tokens.dart`, so the candidates read the
-same hex values the app ships and an approved icon cannot drift from the
-palette by a digit nobody would catch.

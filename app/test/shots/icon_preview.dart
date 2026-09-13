@@ -19,6 +19,8 @@
 // dies), inside the Android adaptive-icon safe circle, and in a home screen
 // grid beside the apps it will actually compete with.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/tokens.dart';
@@ -452,151 +454,58 @@ class _Row extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------- the marks
+// ================================================================ round two
 //
-// Every path below is the design pass's own geometry, on the same 108 unit
-// grid Android uses for adaptive icons, so these coordinates drop into a
-// vector drawable with viewportWidth="108" and no conversion.
+// The founder rejected round one entirely: "i dont like anything, you can get
+// inspiration from dribbble or other resources do not limit yourself and
+// explore."
 //
-// Drawn rather than typeset, and that is the point of the whole exercise. Plus
-// Jakarta Sans HAS a peso glyph, but it is tuned for a 15 point line of text:
-// thin bars, small counter, delicate joints, all of which turn to mush at icon
-// size. The relationship to the family is kept honest by ratio instead: stem 8
-// over cap height 44 is 0.18, which is where Jakarta ExtraBold sits, so the
-// mark and the wordmark read as the same weight in a lockup.
+// The exploration that followed looked at eleven real references and came back
+// with a device for each, because the fault in round one was compositional and
+// not chromatic. Every one of those six was a flat symbol centred on a plain
+// tile. It also caught a fourth fault nobody had named: the marks were SMALL,
+// around 45 percent of tile width with dead gradient all round them. Good
+// icons either fill the tile or deliberately crop it.
+//
+// THREE MEASURED FINDINGS THAT CHANGED THE BRIEF.
+//
+// 1. A one-value tile cannot hold an edge on both Play surfaces, and a SPLIT
+//    tile can. #FB9C52 is 2.10 against Play's white listing page and 8.90
+//    against its dark surface; #2A1207 is 17.68 and 1.06. Neither wins twice.
+//    A tile carrying both keeps an edge either way, because whichever surface
+//    eats one half, the other half still cuts. Round one never tested this and
+//    treated loud versus quiet as a matter of taste.
+//
+// 2. Two hero-ramp tones cannot be told apart. #FFD9B0 against #FB9C52
+//    measures 1.58, under the 3.0 non-text bar. (The exploration said 1.87;
+//    re-measuring here gives 1.58, which makes its own point harder, not
+//    softer.) So a layering direction needs a deliberately chosen dark tone at
+//    the overlap, never a blend mode.
+//
+// 3. THE 48px FLOOR, once, as a number. 108 units render to 48px at 0.667px
+//    per unit, so nothing thinner than 6 units and no gap narrower than 6
+//    units. Round one's peso had 7-unit bars with an 8-unit gap, which is
+//    exactly why its own write-up admitted they softened.
+//
+// Two colours below are NOT tokens and must never enter tokens.dart:
+// #FFF3E6 (Capiz only, the hero ramp continued one step so the light has a
+// peak) and #8A2F07 (Dalawa only, the only tone that clears 3.0 against both
+// planes at once, at 6.35 and 4.01).
 
-/// PISO. A drawn Philippine peso sign: money and Philippines in one shape,
-/// with no mascot, flag or coin.
-///
-/// Bowl and stem unioned with two crossbars, then the counter punched out. The
-/// counter's left edge lands exactly on the stem's right edge, which is what a
-/// real P does.
-Path pisoPath() {
-  final bowl = Path()
-    ..moveTo(46, 32)
-    ..lineTo(60, 32)
-    ..arcToPoint(const Offset(60, 60), radius: const Radius.circular(14))
-    ..lineTo(46, 60)
-    ..close();
-  final stem = Path()..addRect(const Rect.fromLTRB(46, 32, 54, 76));
-  final upperBar = Path()..addRect(const Rect.fromLTRB(36, 35, 54, 42));
-  final lowerBar = Path()..addRect(const Rect.fromLTRB(36, 50, 54, 57));
-  final counter = Path()
-    ..addOval(Rect.fromCircle(center: const Offset(60, 46), radius: 6));
+/// The app's own signature hero panel, at its exact token stops.
+const heroStops = [Color(0xFFFFD9B0), Color(0xFFFEC078), Color(0xFFFB9C52)];
 
-  var solid = Path.combine(PathOperation.union, bowl, stem);
-  solid = Path.combine(PathOperation.union, solid, upperBar);
-  solid = Path.combine(PathOperation.union, solid, lowerBar);
-  return Path.combine(PathOperation.difference, solid, counter);
-}
-
-/// SALAPI S. Two ellipses with flat cuts at both ends. An S is already two
-/// directions in one stroke, the top reaching right and the bottom reaching
-/// left, which is what debt in both directions means.
-///
-/// The butt caps are the signature: the path is within about 13 degrees of
-/// vertical at each terminal, so a flat cap reads as a near horizontal slice.
-/// Firmer and more ledger-like than the round terminals most S monograms use.
-/// The source path is `M65.3 42 A12 9 0 1 0 54 54 A12 9 0 1 1 42.7 66`.
-///
-/// SVG's sweep flag and Flutter's `clockwise` are the same idea with opposite
-/// spellings: sweep 0 is `clockwise: false`, sweep 1 is `clockwise: true`. The
-/// first version of this got BOTH backwards and rendered a squiggle rather
-/// than an S. It was obvious the moment the sheet was looked at and completely
-/// invisible to analyze, which is the entire argument for rendering candidates
-/// instead of trusting the paths.
-Path salapiSPath() {
-  return Path()
-    ..moveTo(65.3, 42)
-    ..arcToPoint(
-      const Offset(54, 54),
-      radius: const Radius.elliptical(12, 9),
-      largeArc: true,
-      clockwise: false, // sweep 0
-    )
-    ..arcToPoint(
-      const Offset(42.7, 66),
-      radius: const Radius.elliptical(12, 9),
-      largeArc: true,
-      clockwise: true, // sweep 1
-    );
-}
-
-/// BEAM. Two fat opposing arrows, the app's own debt beam as a mark. Says the
-/// one thing no competitor icon says: money moves both ways here.
-///
-/// Honest about its weakness: two opposing arrows is the international sign for
-/// transfer, sync and swap. The most MEANINGFUL of the three and the least
-/// OWNABLE.
-Path beamPath() {
-  final upper = Path()
-    ..moveTo(40, 33)
-    ..lineTo(62, 33)
-    ..lineTo(73, 40)
-    ..lineTo(62, 47)
-    ..lineTo(40, 47)
-    ..arcToPoint(const Offset(40, 33), radius: const Radius.circular(7))
-    ..close();
-  final lower = Path()
-    ..moveTo(68, 75)
-    ..lineTo(46, 75)
-    ..lineTo(35, 68)
-    ..lineTo(46, 61)
-    ..lineTo(68, 61)
-    ..arcToPoint(const Offset(68, 75), radius: const Radius.circular(7))
-    ..close();
-  return Path.combine(PathOperation.union, upper, lower);
-}
-
-/// Paints a filled path on the 108 grid.
-class MarkPainter extends CustomPainter {
-  const MarkPainter(this.path, this.colour, {this.strokeWidth});
-  final Path path;
-  final Color colour;
-
-  /// When set the path is STROKED rather than filled, with butt caps. Used by
-  /// the S, which is a centreline rather than an outline.
-  final double? strokeWidth;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / kCanvas);
-    final p = Paint()
-      ..color = colour
-      ..isAntiAlias = true;
-    if (strokeWidth != null) {
-      p
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth!
-        ..strokeCap = StrokeCap.butt;
-    }
-    canvas.drawPath(path, p);
-  }
-
-  @override
-  bool shouldRepaint(covariant MarkPainter old) =>
-      old.path != path || old.colour != colour;
-}
-
-Widget mark(Path path, Color colour, {double? strokeWidth}) => SizedBox(
-  width: kCanvas,
-  height: kCanvas,
-  child: CustomPaint(
-    painter: MarkPainter(path, colour, strokeWidth: strokeWidth),
-  ),
-);
+Widget flatGround(Color c) => ColoredBox(color: c);
 
 /// A ground with the mark punched OUT of it, so the mark is the hole and
 /// whatever sits behind shows through.
 ///
-/// The first round of candidates could not express this and it is the reason
-/// they all looked like siblings: every one was a flat shape sitting ON a
-/// tile, because that was the only thing the harness could draw. Negative
-/// space is one of the most common devices in good icon work and it was
-/// literally unavailable.
+/// Round one could not express this, and it is part of why all six looked like
+/// siblings: every mark was a flat shape sitting ON a tile, because that was
+/// the only thing this file could draw.
 ///
-/// It needs its own painter rather than a sibling in the Stack: a widget can
-/// only erase pixels that share its layer, so the ground and the hole have to
+/// It needs its own painter rather than a sibling in the Stack, because a
+/// widget can only erase pixels sharing its layer, so ground and hole have to
 /// be painted together inside one saveLayer.
 class CutoutGround extends StatelessWidget {
   const CutoutGround({
@@ -604,7 +513,6 @@ class CutoutGround extends StatelessWidget {
     required this.path,
     this.colour,
     this.gradient,
-    this.strokeWidth,
   }) : assert(
          colour != null || gradient != null,
          'A cutout ground needs something to cut out of.',
@@ -614,32 +522,21 @@ class CutoutGround extends StatelessWidget {
   final Color? colour;
   final Gradient? gradient;
 
-  /// Punch a stroked path rather than a filled one.
-  final double? strokeWidth;
-
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: kCanvas,
-    height: kCanvas,
-    child: CustomPaint(
-      painter: _CutoutPainter(path, colour, gradient, strokeWidth),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _CutoutPainter(path, colour, gradient));
 }
 
 class _CutoutPainter extends CustomPainter {
-  const _CutoutPainter(this.path, this.colour, this.gradient, this.strokeWidth);
+  const _CutoutPainter(this.path, this.colour, this.gradient);
   final Path path;
   final Color? colour;
   final Gradient? gradient;
-  final double? strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    // Everything inside this layer, so the clear below can reach the ground.
     canvas.saveLayer(rect, Paint());
-
     final ground = Paint();
     if (gradient != null) {
       ground.shader = gradient!.createShader(rect);
@@ -647,173 +544,447 @@ class _CutoutPainter extends CustomPainter {
       ground.color = colour!;
     }
     canvas.drawRect(rect, ground);
-
-    canvas.scale(size.width / kCanvas);
-    final hole = Paint()..blendMode = BlendMode.clear;
-    if (strokeWidth != null) {
-      hole
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth!
-        ..strokeCap = StrokeCap.butt;
-    }
-    canvas.drawPath(path, hole);
-
+    canvas.drawPath(path, Paint()..blendMode = BlendMode.clear);
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _CutoutPainter old) =>
-      old.path != path || old.colour != colour || old.gradient != gradient;
+  bool shouldRepaint(covariant _CutoutPainter old) => false;
 }
 
-// ---------------------------------------------------------------- the grounds
+/// The hero ramp as a shader across an arbitrary rect on the 108 grid.
+Shader _heroShader(Rect r, {Alignment begin = Alignment.topLeft}) =>
+    LinearGradient(
+      begin: begin,
+      end: Alignment.bottomRight,
+      colors: heroStops,
+      stops: const [0.0, 0.5, 1.0],
+    ).createShader(r);
 
-/// The app's own signature hero panel, at its exact token stops.
+const Color kInk = Color(0xFF2A1207); // onHero
+const Color kCream = Color(0xFFFFD9B0); // hero stop 0
+const Color kPeak = Color(0xFFFFF3E6); // Capiz only, not a token
+const Color kOverlap = Color(0xFF8A2F07); // Dalawa only, not a token
+
+/// 1. HAPON, the counterchanged horizon.
 ///
-/// The AXIS matters and is not decoration. Run corner to corner of the full
-/// 108 canvas and the launcher crops the outer ring away, so only the middle
-/// third of the ramp is ever seen and the tile looks flat. Running it from
-/// (18,18) to (90,90) puts the whole peach to orange ramp inside the part a
-/// human actually sees.
-Widget heroGround(List<Color> stops) => DecoratedBox(
-  decoration: BoxDecoration(
-    gradient: LinearGradient(
-      // (18,18) and (90,90) on a 108 grid, in Alignment space.
-      begin: const Alignment(-0.667, -0.667),
-      end: const Alignment(0.667, 0.667),
-      colors: stops,
-    ),
-  ),
-);
-
-Widget flatGround(Color c) => ColoredBox(color: c);
-
-/// Ink for the loud tile. Near black, and it MUST be: the obvious instinct of
-/// putting the accent orange on the orange gradient measures 2.85 to 1 against
-/// the darkest stop, which fails the 3.0 non-text bar. Orange on orange is
-/// tempting in a mockup and measurably illegible.
-const Color loudInk = Color(0xFF2A1207); // the onHero token
-
-/// The hero ramp as the design pass specified it.
-const heroStops = [Color(0xFFFFD9B0), Color(0xFFFEC078), Color(0xFFFB9C52)];
-
-/// The same ramp shifted one step deeper.
+/// One disc astride a horizon line, swapping from dark to light where it
+/// crosses, so the same object is two things at once.
 ///
-/// This exists because the two expert passes disagreed about exactly one
-/// thing and the disagreement was worth measuring rather than splitting. The
-/// store pass argued a light tile loses its edge against Play's white listing
-/// page, which is true: the hero ramp's lightest stop is 1.33 to 1 against
-/// white. Its own proposed fix, cream ink on a deep orange ramp, turned out to
-/// measure 1.86 to 1 at the light end, far under the bar, so that fix was
-/// worse than the problem. Shifting the ramp deeper while KEEPING near black
-/// ink improves the tile edge to 1.61 and still holds the ink at 5.72 worst
-/// case, which is the only option tested that satisfies both arguments.
-const heroStopsDeep = [Color(0xFFFEC078), Color(0xFFFB9C52), Color(0xFFE2751F)];
+/// Device: the split-flap seam from Basic Apple Guy's Boardy, crossed with
+/// heraldic counterchange. It says "two directions" without drawing a single
+/// arrow, which is what the Beam failed to do, and the tile is split so it
+/// keeps an edge on both Play surfaces.
+class HaponHorizon extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const seam = 62.0;
+    final upper = const Rect.fromLTRB(0, 0, 108, seam);
+
+    canvas.drawRect(upper, Paint()..shader = _heroShader(upper));
+    canvas.drawRect(
+      const Rect.fromLTRB(0, seam, 108, 108),
+      Paint()..color = kInk,
+    );
+
+    final disc = Path()
+      ..addOval(Rect.fromCircle(center: const Offset(54, 58), radius: 28));
+
+    canvas.save();
+    canvas.clipPath(disc);
+    // Above the seam the disc is ink; below it the disc is cream. Same object,
+    // inverted across the line.
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, seam),
+      Paint()..color = kInk,
+    );
+    canvas.drawRect(
+      const Rect.fromLTRB(0, seam, 108, 108),
+      Paint()..color = kCream,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 2. CAPIZ, the window.
+///
+/// Not a symbol: a close crop of a capiz shell window with late afternoon
+/// light coming through, brightest at the upper left.
+///
+/// Device: a repeating pattern cropped by the tile so it continues past the
+/// edges, with an off-centre light source. Filipino by substance rather than
+/// costume, which is the opposite of a flag or a jeepney.
+class CapizWindow extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(const Rect.fromLTRB(0, 0, 108, 108), Paint()..color = kInk);
+
+    // Panes bleed off every edge on purpose: the window continues past the
+    // tile rather than being contained by it.
+    const origins = [-21.0, 10.0, 41.0, 72.0, 103.0];
+    final panes = Path();
+    for (final x in origins) {
+      for (final y in origins) {
+        panes.addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(x, y, 24, 24),
+            const Radius.circular(3),
+          ),
+        );
+      }
+    }
+
+    // ONE shader across all of them, not per-pane fills. That is what makes it
+    // read as light falling across a window rather than as a grid of tiles.
+    final light = RadialGradient(
+      center: const Alignment(-0.296, -0.259), // (38, 40) on the 108 grid
+      radius: 78 / 108,
+      colors: const [kPeak, kCream, Color(0xFFFEC078), Color(0xFFFB9C52)],
+      stops: const [0.0, 0.35, 0.65, 1.0],
+    ).createShader(const Rect.fromLTRB(0, 0, 108, 108));
+
+    canvas.drawPath(panes, Paint()..shader = light);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// The peso as a hole, used by direction 3.
+Path counterweightPeso() {
+  final stem = Path()
+    ..addRRect(
+      RRect.fromRectAndCorners(
+        const Rect.fromLTRB(32, 26, 44, 82),
+        bottomLeft: const Radius.circular(4),
+        bottomRight: const Radius.circular(4),
+      ),
+    );
+  var ring = Path.combine(
+    PathOperation.difference,
+    Path()..addOval(Rect.fromCircle(center: const Offset(58, 44), radius: 20)),
+    Path()..addOval(Rect.fromCircle(center: const Offset(58, 44), radius: 9)),
+  );
+  ring = Path.combine(
+    PathOperation.intersect,
+    ring,
+    Path()..addRect(const Rect.fromLTRB(38, 0, 108, 108)),
+  );
+
+  var out = Path.combine(PathOperation.union, stem, ring);
+  for (final r in [
+    const Rect.fromLTRB(26, 38, 50, 46),
+    const Rect.fromLTRB(26, 52, 50, 60),
+  ]) {
+    out = Path.combine(
+      PathOperation.union,
+      out,
+      Path()..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(2))),
+    );
+  }
+  return out;
+}
+
+/// 4. OVERSHOOT, one stroke, cropped.
+///
+/// A single stroke drawn bigger than the tile, entering one edge and leaving
+/// another. Nothing centred, nothing complete.
+///
+/// Device: scale and crop, so the tile is a window onto something larger.
+/// Openly Nike Run Club's move. The most robust of the eight at any size and
+/// the least specific about money.
+class Overshoot extends CustomPainter {
+  const Overshoot({this.bead = true});
+
+  /// A 10 unit disc against a 22 unit stroke: extreme scale contrast. It sits
+  /// ON the stroke, never on the gradient, because cream on #FB9C52 measures
+  /// 1.58 and fails.
+  final bool bead;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final stroke = Path()
+      ..moveTo(-14, 30)
+      ..cubicTo(36, 96, 72, 4, 122, 74);
+    canvas.drawPath(
+      stroke,
+      Paint()
+        ..color = kInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 22
+        ..strokeCap = StrokeCap.butt,
+    );
+
+    if (bead) {
+      canvas.drawCircle(const Offset(40, 62), 5, Paint()..color = kCream);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 5. DALAWA, two planes.
+///
+/// Two overlapping cards, one for what you owe and one for what you are owed,
+/// legible only where they cross.
+///
+/// Device: two identical shapes overlapping with the overlap as a third
+/// colour. Mastercard's move. Structurally honest about the product: take away
+/// the overlap and the mark stops working, which is also true of the feature.
+class DalawaPlanes extends CustomPainter {
+  Path _plane(Rect r, double degrees, Offset about) {
+    final p = Path()
+      ..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(13)));
+    final m = Matrix4.identity()
+      ..translateByDouble(about.dx, about.dy, 0, 1)
+      ..rotateZ(degrees * math.pi / 180)
+      ..translateByDouble(-about.dx, -about.dy, 0, 1);
+    return p.transform(m.storage);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(const Rect.fromLTRB(0, 0, 108, 108), Paint()..color = kInk);
+
+    final a = _plane(
+      const Rect.fromLTRB(20, 28, 66, 80),
+      -8,
+      const Offset(43, 54),
+    );
+    final b = _plane(
+      const Rect.fromLTRB(42, 28, 88, 80),
+      8,
+      const Offset(65, 54),
+    );
+
+    canvas.drawPath(a, Paint()..color = kCream);
+    canvas.drawPath(b, Paint()..color = const Color(0xFFFB9C52));
+    // The two planes are 1.58 apart and cannot be told from each other. It is
+    // this seam that makes the mark readable, which is why a blend mode will
+    // not do: a true multiply lands at 1.18 from plane B.
+    canvas.drawPath(
+      Path.combine(PathOperation.intersect, a, b),
+      Paint()..color = kOverlap,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 6. SOBRE, the bitten corner.
+///
+/// The tile itself is the mark: a large diagonal bite out of one corner, and
+/// one small disc low and left.
+///
+/// Device: the tile shape as the mark with no glyph at all. Monzo's move, and
+/// that is this direction's biggest problem. The bite is deliberately DEEP:
+/// a shallower corner cut sits entirely outside the safe circle and vanishes
+/// on round launchers.
+class SobreCorner extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final bite = Path()
+      ..moveTo(30, 0)
+      ..lineTo(108, 0)
+      ..lineTo(108, 78)
+      ..close();
+    canvas.drawPath(bite, Paint()..color = kInk);
+    canvas.drawCircle(const Offset(36, 70), 13, Paint()..color = kInk);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 7. PISO BUO, the peso at three times scale.
+///
+/// The rejected subject done with no timidity: the bowl fills the safe circle,
+/// the stem runs the full height with no visible ends, both crossbars run off
+/// each side. You do not see a peso on a tile, you see a fragment of a huge
+/// one.
+///
+/// Device: blow one glyph up until it stops being a letter, then crop hard.
+/// Kept in the set on purpose. It isolates the question of whether the SUBJECT
+/// was the problem or the TIMIDITY was, and only the founder can answer that.
+class PisoBuo extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final ink = Paint()..color = kInk;
+    canvas.drawRect(const Rect.fromLTRB(26, -2, 42, 110), ink);
+
+    var ring = Path.combine(
+      PathOperation.difference,
+      Path()
+        ..addOval(Rect.fromCircle(center: const Offset(56, 34), radius: 28)),
+      Path()
+        ..addOval(Rect.fromCircle(center: const Offset(56, 34), radius: 16)),
+    );
+    ring = Path.combine(
+      PathOperation.intersect,
+      ring,
+      Path()..addRect(const Rect.fromLTRB(34, -10, 118, 118)),
+    );
+    canvas.drawPath(ring, ink);
+
+    canvas.drawRect(const Rect.fromLTRB(-2, 62, 110, 72), ink);
+    canvas.drawRect(const Rect.fromLTRB(-2, 80, 110, 90), ink);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 8. RESIBO, the total line.
+///
+/// A receipt: three thin rules and one thick slab, all edge to edge, with one
+/// pale bar inside the slab that is the number that matters.
+///
+/// Device: extreme thickness contrast and full-bleed banding. The safest and
+/// least ownable of the eight, and the exploration said so up front: three
+/// horizontal lines at thumbnail size can read as a hamburger menu.
+class ResiboTotal extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(
+      r,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: heroStops,
+        ).createShader(r),
+    );
+
+    final ink = Paint()..color = kInk;
+    for (final b in [
+      const Rect.fromLTRB(-2, 16, 110, 23),
+      const Rect.fromLTRB(-2, 30, 110, 37),
+      const Rect.fromLTRB(-2, 44, 110, 51),
+      const Rect.fromLTRB(-2, 62, 110, 90), // the total slab
+    ]) {
+      canvas.drawRect(b, ink);
+    }
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTRB(30, 72, 78, 80),
+        const Radius.circular(4),
+      ),
+      Paint()..color = kCream,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+Widget _painted(CustomPainter p) => CustomPaint(painter: p);
 
 List<IconCandidate> buildCandidates() {
-  final piso = pisoPath();
-  final s = salapiSPath();
-  final beam = beamPath();
+  IconCandidate c(String key, String name, String idea, Widget ground) =>
+      IconCandidate(
+        key: key,
+        name: name,
+        idea: idea,
+        loud: true,
+        ground: ground,
+        mark: const SizedBox.shrink(),
+      );
 
   return [
-    // The recommendation from both passes.
-    IconCandidate(
-      key: 'piso-loud',
-      name: 'Piso',
-      idea:
-          'A drawn peso sign on the app\'s own hero panel. Says money and says '
-          'Philippines with no mascot, flag or coin. Ink 8.40:1 worst case.',
-      loud: true,
-      ground: heroGround(heroStops),
-      mark: mark(piso, loudInk),
+    c(
+      'hapon',
+      'Hapon',
+      'A disc astride a horizon, inverting where it crosses. Says two '
+          'directions without an arrow. The only one whose TILE holds an edge '
+          'on both Play surfaces. Ink 8.40:1, cream 13.30:1.',
+      _painted(HaponHorizon()),
     ),
-    IconCandidate(
-      key: 'piso-loud-deep',
-      name: 'Piso deep',
-      idea:
-          'The same mark on a ramp shifted one step deeper, so the tile keeps '
-          'an edge on the Play listing\'s white page. Ink 5.72:1 worst case.',
-      loud: true,
-      ground: heroGround(heroStopsDeep),
-      mark: mark(piso, loudInk),
+    c(
+      'overshoot',
+      'Overshoot',
+      'One stroke drawn bigger than the tile, entering one edge and leaving '
+          'another. Unbreakable at any size and says nothing about money.',
+      _painted(const Overshoot()),
     ),
-    IconCandidate(
-      key: 'piso-quiet',
-      name: 'Piso',
-      idea:
-          'Warm brown black, never blue black, with the Gabi accent. 9.01:1. '
-          'Measures 1.01:1 against Play\'s dark surface, so it vanishes there.',
-      loud: false,
-      ground: flatGround(gabi.bg),
-      mark: mark(piso, gabi.accent),
+    c(
+      'capiz',
+      'Capiz',
+      'A cropped capiz shell window with late afternoon light through it. '
+          'Filipino by substance, not costume. Risk: a 3x3 grid can read as '
+          '"apps" at thumbnail size.',
+      _painted(CapizWindow()),
     ),
-
-    IconCandidate(
-      key: 's-loud',
-      name: 'Salapi S',
-      idea:
-          'Two ellipses with flat cut ends. The most robust of the three at '
-          'small size, and the only one that cannot sit beside the wordmark: '
-          'an S next to Salapify reads as SSalapify.',
-      loud: true,
-      ground: heroGround(heroStops),
-      mark: mark(s, loudInk, strokeWidth: 8),
+    c(
+      'dalawa',
+      'Dalawa',
+      'Two overlapping planes, legible only where they cross. The two planes '
+          'are 1.58 apart and are told apart ONLY by the dark seam.',
+      _painted(DalawaPlanes()),
     ),
-    IconCandidate(
-      key: 's-quiet',
-      name: 'Salapi S',
-      idea: 'The same S on warm brown black.',
-      loud: false,
-      ground: flatGround(gabi.bg),
-      mark: mark(s, gabi.accent, strokeWidth: 8),
+    c(
+      'piso-buo',
+      'Piso Buo',
+      'The rejected subject with no timidity: bowl filling the safe circle, '
+          'stem and bars running clean off the edges. Isolates whether the '
+          'subject was the problem or the smallness was.',
+      _painted(PisoBuo()),
     ),
-
-    IconCandidate(
-      key: 'beam-loud',
-      name: 'Beam',
-      idea:
-          'Two opposing arrows, the debt beam as a mark. Says what no rival '
-          'icon says, and is the least ownable: opposing arrows is the '
-          'international sign for transfer, sync and swap.',
-      loud: true,
-      ground: heroGround(heroStops),
-      mark: mark(beam, loudInk),
+    c(
+      'sobre',
+      'Sobre',
+      'The tile IS the mark: a deep diagonal bite and one disc. Monzo\'s '
+          'device, which is its biggest problem.',
+      _painted(SobreCorner()),
     ),
-    IconCandidate(
-      key: 'beam-quiet',
-      name: 'Beam',
-      idea: 'The same beam on warm brown black.',
-      loud: false,
-      ground: flatGround(gabi.bg),
-      mark: mark(beam, gabi.accent),
+    c(
+      'resibo',
+      'Resibo',
+      'A receipt: three thin rules and one thick total slab, edge to edge. '
+          'The safest and the least ownable.',
+      _painted(ResiboTotal()),
     ),
-
-    // Proof that the cutout capability actually renders, kept in the sheet
-    // because a negative space mark is a genuinely different look and not
-    // just a technical demo. The hole shows the warm black through the tile.
-    IconCandidate(
-      key: 'piso-cutout',
-      name: 'Piso cut out',
-      idea:
-          'The mark is the HOLE, not the shape. Negative space, which the '
-          'first round could not draw at all.',
-      loud: true,
-      ground: Stack(
+    c(
+      'counterweight',
+      'Counterweight',
+      'The peso as the HOLE, cut from a slab of ink. Weakest at 48px by its '
+          'own designer\'s admission, and 1.06 against Play\'s dark surface.',
+      Stack(
         children: [
-          Positioned.fill(child: flatGround(gabi.bg)),
+          // The gradient sits BEHIND and the ink slab is punched through, so
+          // the peso is the light coming through rather than a shape drawn on
+          // top.
           Positioned.fill(
-            child: CutoutGround(
-              path: piso,
-              gradient: const LinearGradient(
-                begin: Alignment(-0.667, -0.667),
-                end: Alignment(0.667, 0.667),
-                colors: heroStops,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: heroStops,
+                ),
               ),
             ),
           ),
+          Positioned.fill(
+            child: CutoutGround(path: counterweightPeso(), colour: kInk),
+          ),
         ],
       ),
-      mark: const SizedBox.shrink(),
     ),
   ];
 }
