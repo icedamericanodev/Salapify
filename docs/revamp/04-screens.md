@@ -1,10 +1,15 @@
 # 04. Screens
 
-Read 03-design-system.md first: the payday rail, the debt beam, the amount
-pill, the hero, the section label, the row and the settled row are the
-whole vocabulary, and no screen adds a device of its own. The pictures
-these words describe are in mockups/ (sinag-*.png) and on page "3 Screens"
-of the Figma file.
+Read 03-design-system.md first: the hero panel, the sweldo rail, the debt
+beam, the section head, the group, the row and the settled row are the whole
+vocabulary, and no screen adds a device of its own. Home is rendered in
+mockups/hapon/, light and dark, at three transactions and at fourteen. Every
+other screen here is words waiting for a render.
+
+One naming note, unresolved: the Home render labels the fourth tab "Wallets"
+and this document says "Accounts". Both readings are defensible and it is a
+one-word change either way. Founder to pick under D3; the docs use Accounts
+until then.
 
 ## Information architecture
 
@@ -16,7 +21,8 @@ Four tabs and a Log button at the right end of the bar:
   the one number.
 - Ledger is every transaction, grouped by day, searchable. (Named Ledger,
   not Activity or History, on purpose: it is the app's word.)
-- Log is a sheet, not a tab. It opens over any screen from the coral pill.
+- Log is a sheet, not a tab. It opens over any screen from the accent pill
+  at the right end of the bar, and from the first quick action on Home.
 - Plan holds Budget, Upcoming and Goals as three segments in one screen.
 - Accounts holds every account with net worth on top, and the debt
   totals as a section.
@@ -29,48 +35,59 @@ from use.
 Everything else (Insights, Settings, details, editors) is pushed over the
 shell.
 
-## The payday rail
+## The hero panel and the sweldo rail
 
-Home and Plan start with the rail tile: "4 days to payday" in the display
-face, "Sep 1 to Sep 15" in caption, the track filled in green up to today
-with a coral today dot and a small dot per bill still to come, and the two
-end labels ("Sep 1, last payday" and "Payday Sep 15" in positive). It is
-the app's clock. The payday setting drives it. Ledger shows it too unless
-the two-week test says it is noise there.
+The rail is not a separate tile. It lives INSIDE the hero panel, under the
+amount, and that is the change the built design made: the rail and the number
+it constrains are one object rather than two stacked ones.
+
+The panel is the light gradient block with dark ink. It carries the kicker
+("SAFE TO SPEND"), the amount, one sentence, the rail, and the two end labels
+("4 days to payday" on the left, "Sep 1 to 15" on the right). The rail track
+is 5 dp, filled to today in the quiet ink. The payday setting drives it. Plan
+gets the same panel with its own number. Ledger gets it too unless the
+two-week test says it is noise there.
 
 ## Home
 
+This screen is rendered. Look at mockups/hapon/ before changing anything
+here.
+
 First viewport, no scroll:
 
-1. The payday rail.
-2. Section label "Safe to spend", then the display hero: the coral peso
-   sign and "6,240.00" in Bricolage, then one sentence in body: "About
-   ₱1,560.00 a day until the 15th, bills already set aside." One phrasing,
-   not three.
-3. Section label "Debt, both ways" with "See all", then the debt beam
-   tile (owed to you in green on the left, you owe in coral on the right,
-   the net sentence under it), then one row per open debt: monogram,
-   name, caption ("You owe · 3 of 6 · due Sep 18"), and the amount in a
-   pill: coral when a payment is due within seven days, green when it is
-   owed to you.
-4. Section label "Coming up, this cycle" with "See all", then rows with a
-   date caption: Meralco Sep 13 and Spotify Sep 14 in coral pills, Payday
-   Sep 15 in a green pill with a plus sign. "See all" opens Plan >
-   Upcoming.
+1. The date and a notifications bell, quiet, one line.
+2. The hero panel: "SAFE TO SPEND", ₱6,240.00 in the measured hero size, then
+   one sentence, "₱1,560 a day until payday on Monday." One phrasing, not
+   three. Then the rail and its two end labels.
+3. Four quick actions in one row, disc and label: Log, Debt, Bills, Move.
+   Four is the ceiling and it is never a grid. That is the GCash convention
+   with the GCash mistake removed.
+4. Section head "Debt, both ways" with "See all", then the debt beam card:
+   "Owed to you" in green on the left, "You owe" in the accent on the right,
+   the split bar under them, and the next payment as one line ("Home Credit,
+   next Sep 18" with its amount).
+5. Section head "Coming up" with "See all", then a card of rows with a date
+   caption: Meralco today, Spotify Sunday, Payday Monday with a plus sign in
+   green. "See all" opens Plan > Upcoming.
 
 Below the fold:
 
-5. Section label "Latest", the last five transactions as rows with a
-   caption of category, account and day. Ordinary amounts sit bare in text
-   colour. "See all" opens Ledger.
-6. One insight sentence with a number, in body, no card. Tap for Insights.
+6. Section head "Latest", the recent transactions as rows in one card, each
+   with a caption of category and account. Ordinary amounts sit bare in text
+   colour; only money coming in is green. "See all" opens Ledger.
+7. One insight sentence with a number, no card. Tap for Insights.
 
 No net worth on Home. Two of three panel users read a big net worth as
 "somebody else's phone". It lives on Accounts.
 
+The Latest list is the reason the dense render exists. At three rows any
+design looks calm. At fourteen the hairlines, the single icon tint and the
+uncoloured amounts are what keep it calm, and all three were added only after
+the dense fixture showed the screen without them.
+
 ## Log sheet
 
-A white sheet glides up in 250 ms over the dimmed screen, tile radius on
+A white sheet glides up in 250 ms over the dimmed screen, card radius on
 its top corners, drag handle, "Log" title with Cancel. From top:
 
 1. Fast-log field, focused, keyboard up: "jollibee 250" or "salary 42000"
@@ -80,10 +97,10 @@ its top corners, drag handle, "Log" title with Cancel. From top:
 2. Type segmented: Expense, Income, Transfer.
 3. The amount, centred, in the hero size.
 4. Category chips, most used first, one tap. Required for expenses. The
-   selected chip is accentSoft with an accent border.
+   selected chip is the accent with its own text colour on it.
 5. Account chips (defaults to last used).
 6. Date (defaults to today) and an optional note, side by side.
-7. Save entry, the coral primary button with the chunky edge. Toast with
+7. Save entry, the accent pill button. Toast with
    Undo. Haptic. The sheet closes and the new row appears in Latest with a
    250 ms insert.
 
@@ -108,15 +125,15 @@ Budget:
   many categories need a look.
 - One row per category: emoji and name on the left, remaining on the
   right ("₱1,250.00 left"), a ThinBar under the label. Under 25 percent
-  left turns the bar amber; over budget shows a red pill "over by
-  ₱320.00" and a red bar; fully set aside shows a green pill "set aside".
+  left turns the bar accent; over budget shows the caption "over by
+  ₱320.00" in bad with a bad bar; fully set aside says "set aside" in green.
 - Tap a row to change its limit.
 - Under the list, one small bar chart, "Spent so far, last six cycles",
-  the current cycle's bar in coral, and a sentence with a number under it.
+  the current cycle's bar in the accent, and a sentence with a number under it.
 
 Upcoming:
 - Rows from today to the payday after next, with date captions; payday
-  rows in a green pill with "about ₱12,400.00 carries over" in the
+  rows with their amount in green and "about ₱12,400.00 carries over" in the
   caption. This is the Sweldo Timeline as a list, the rail as a drawing.
 - Add a recurring item from the top-right action.
 
@@ -134,22 +151,22 @@ Goals:
   from the old app is kept, it is trademark-safe and earned). Credit rows
   show utilisation as a ThinBar with "10% of ₱40,000.00 limit · due Oct 3"
   in the caption.
-- Section label "Debt" with "Open", two rows: "You owe" in a coral pill
-  and "Owed to you" in a green pill, tap for the Debt screen.
+- Section head "Debt" with "Open", two rows: "You owe" in the accent
+  and "Owed to you" in green, tap for the Debt screen.
 - Add account from the top-right action. Tap a row for its detail.
 
 ## Debt
 
 - Title "Debt" with "+ Add", one line under it: "Both ways: what you owe,
   and what is owed to you."
-- The debt beam tile.
+- The debt beam card.
 - Segmented: I owe · Owed to me.
 - Section "Open": rows per person or lender: monogram, name, the amount
-  due in a coral pill when a payment is within seven days, caption with
+  due in the accent when a payment is within seven days, caption with
   what is left, "3 of 6" and the next date, a ThinBar for scheduled ones.
   A debt with no schedule shows its amount bare and "pay when you can".
   Tap for detail: payment history, schedule, edit, mark settled.
-- Section "Settled": settled rows on positiveSoft with the name struck
+- Section "Settled": settled rows tinted green with the name struck
   through, "Settled Sep 3, all paid" in green, and a check.
 - Two buttons at the bottom: "Pay <next due>" (primary) and "Record a
   payment" (secondary).

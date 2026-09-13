@@ -79,13 +79,21 @@ rejected in one day. Designing from words guesses at taste; designing from
 reactions measures it.
 
 First run, 2026-09-12: twelve references on the moodboard, the founder
-delegated the keep-or-kill round to the agent, and the agent derived Sinag
-(03-design-system.md), built the two token collections and the swatch and
-type sheets on page 2, and the six screens now in mockups/ and on page 3.
-One practical note for the next run: the Figma starter plan allows one mode
-per variable collection, so light and dark are two collections (Sinag Light,
-Sinag Dark) rather than two modes of one. And the Figma calls that build a
-whole screen as native frames in one go can hang without returning; the
-screens were rendered from HTML with the real fonts instead and uploaded as
-images, which is what the founder reviews. Native Figma frames are worth
-building once a screen is approved, not before.
+delegated the keep-or-kill round to the agent, and the agent derived Sinag,
+built two token collections and the swatch and type sheets on page 2, and six
+screens on page 3. The founder rejected the result. Two practical notes
+survive it: the Figma starter plan allows one mode per variable collection,
+so light and dark have to be two collections rather than two modes of one;
+and the Figma calls that build a whole screen as native frames in one go can
+hang without returning, so screens are rendered elsewhere and uploaded as
+images. Native Figma frames are worth building once a screen is approved, not
+before.
+
+Second run, 2026-09-13: the founder delegated the choice itself ("I'll let
+the expert agent choose") and the agent produced Hapon and Gabi
+(03-design-system.md). The change that mattered was the medium. The screens
+are now built in REAL FLUTTER and rendered by the shot harness, not drawn in
+HTML or Figma, so what the founder reviews is what the framework actually
+draws with the shipped font at the shipped size. Three rounds were rejected
+while designing in other media; none has been since. Design in the medium you
+ship in.

@@ -65,28 +65,56 @@ Recommendation: yes, do the move as the first PR after this one.
 
 Needed before: end of Phase 0.
 
-## D7. Typography: two families, each with a place. ANSWERED 2026-09-12 (revised the same day)
+## D7. Typography: one family, Plus Jakarta Sans. ANSWERED 2026-09-13
 
-Bricolage Grotesque for the hero amount, the screen title and the payday
-rail label only; DM Sans for everything else, including every row amount
-(tabular figures). Both are on Google Fonts and load in Figma. No serif and
-no handwriting font anywhere: the founder rejected both in the Papel and
-Kwaderno round. The first answer (Fraunces plus Plus Jakarta Sans) was
-recorded from the five-reviewer panel in the morning and withdrawn when the
-founder rejected that theme; this answer comes from the moodboard round.
+One family everywhere, with tabular figures on every number so a column of
+amounts never jiggles. No second display face.
 
-## D8. Accent: coral. ANSWERED 2026-09-12 (revised the same day)
+This revises the two-family answer below, and the reason is worth keeping.
+The two-family rule existed to give the hero amount character. A MEASURED
+hero size did the same job with one less thing to get wrong: Plus Jakarta
+Sans draws a lining figure at 0.750 of its font size, so 47 pt gives a cap
+height that is 8.62 percent of a 412 pt screen, inside the 7.6 to 8.8 percent
+band the reference apps sit in. Character came from the size, not the face.
 
-#BE3A1B in light, #FF8A6A in dark, with a darker #8F2A12 edge under the two
-primary buttons. Taken from image 2 on the moodboard (Bear, "coral") and
-image 4 (Headspace, one strong warm accent on off-white), then darkened
-until white text on it passed 4.5:1. Not the green every finance app uses,
-not Tarsi-adjacent. The only accent; positive green is the only other strong
-colour and it means money coming to you. The full palette and every
-contrast ratio are in 03-design-system.md. The first answer (terracotta
-#A8390F on paper) went with the rejected Papel theme.
+No serif and no handwriting font anywhere: the founder rejected both in the
+Papel and Kwaderno round, and that part has never changed.
 
-### How the theme was chosen (the keep-or-kill list)
+Superseded answers, kept so nobody re-proposes one: Fraunces plus Plus
+Jakarta Sans (2026-09-12 morning, from the five-reviewer panel, withdrawn
+when the founder rejected that theme), then Bricolage Grotesque plus DM Sans
+(2026-09-12, from the moodboard round, withdrawn with the Sinag theme).
+
+## D8. Accent: orange. ANSWERED 2026-09-13
+
+#B03C09 in light, #FF9A52 in dark. One accent, used for the Log pill, links,
+and the "you owe" half of the debt beam, and nothing else. Positive green is
+the only other strong colour and it means money coming to you.
+
+Founder direction drove this: "you can add color to it. Like light orange or
+graduent orange or something like that", then "the background is kinda
+orangey too can you do something like that but very light". So the page is
+warm as well as the accent.
+
+The value carries a rule with it. The accent was #C2410C until it measured
+4.57 to 1 on the warm page, which clears the 4.5 body bar by 0.07. **Nothing
+ships that thin.** #B03C09 is the brightest orange in the same family that
+reaches 5.30. When a measurement lands within 0.2 of a bar, treat it as
+failing. The full palette and every measured ratio are in
+03-design-system.md.
+
+Superseded: terracotta #A8390F on paper (with the rejected Papel theme), then
+coral #BE3A1B with a darker edge under primary buttons (with the rejected
+Sinag theme). The chunky button edge went with it; it was borrowed from
+Duolingo and was one of two borrowed shapes on the screen.
+
+### The moodboard keep-or-kill list (history, and what survived)
+
+This round produced the Sinag theme, which the founder then rejected. It is
+kept because three of its keeps outlived it and are in Hapon today: the thin
+rule between rows, the rail, and one strong warm accent on a light ground.
+Two did not: the amount pill and the chunky button edge, both now explicitly
+banned in D12.
 
 Twelve real light-mode screens on the Figma moodboard, decided by the
 design-director agent after the founder delegated the round:
@@ -121,13 +149,23 @@ chart looks like the same app.
 
 Needed before: Phase 2.
 
-## D10. One theme, light primary, dark optional. ANSWERED 2026-09-12
+## D10. One theme, light primary, dark optional. ANSWERED 2026-09-12 (theme named 2026-09-13)
 
 Founder direction: light is the primary and reference look; dark is an
-option in Settings, derived from the same tokens. The one theme is Sinag
-(03-design-system.md). No theme picker. The old four themes are retired and
-may return in Phase 5 if missed. 01-vision principle 4 was rewritten to
-match.
+option in Settings, derived from the same tokens. The one theme is **Hapon**
+in light and **Gabi** in dark (03-design-system.md). No theme picker. The old
+four themes are retired and may return in Phase 5 if missed. 01-vision
+principle 4 was rewritten to match.
+
+Gabi is not a second design. Both render from identical layout code, so the
+only thing that differs between the light and dark pictures is colour;
+anything else that differs is a bug.
+
+The named theme here was Sinag until 2026-09-13. The founder rejected it,
+along with two further rounds, and then delegated the choice ("I'll let the
+expert agent choose"). The agent chose Hapon on measurement over two warmer
+rivals, and the full comparison table is in 03-design-system.md so the
+experiment is not rerun.
 
 Consequence for the founder: they use dark today. Phase 1 renders every
 screen in light first, then dark, and the founder should look at both,
@@ -148,11 +186,15 @@ Needed before: Phase 1 finishes the Home mockup (it is drawn as (a)).
 ## D12. The theme lock
 
 Once the Phase 1 mockups are approved, these do not change without a
-founder decision: the accent, the two type families and where each is
-allowed, light as reference with dark derived, one way to render a peso
-amount, the rail, the beam and the pill, the clear as the only celebration,
-no cards on the main screens beyond the three tiles, the tab bar shape. The
-two-week test in 03 is the check.
+founder decision: the accent, the one type family, light as reference with
+dark derived, one way to render a peso amount, the hero panel, the rail and
+the beam, no borders and no shadows, the clear as the only celebration, and
+the tab bar shape with the Log pill at its right end. The two-week test in 03
+is the check.
+
+Two things this list used to name are deliberately gone: the amount pill,
+which reads as decoration once a list is long, and the chunky bottom edge on
+primary buttons, which was borrowed. Do not reintroduce either.
 
 Needed before: end of Phase 1.
 

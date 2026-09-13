@@ -64,12 +64,16 @@ replaces it on the founder's phone.
 
 ## The pictures
 
-docs/revamp/mockups/ holds the rendered mockups of the chosen theme, Sinag
-(Home, Log sheet, Accounts, Plan, Debt, then Home in dark), and under
-source/ the HTML, CSS, fonts and render script that produced them, so a
-change to a token can be re-rendered the same way. The same screens sit on
-page "3 Screens" of the Figma file "Salapify 3 Design", next to the
-moodboard they came from and the token collections. All figures in them
+docs/revamp/mockups/hapon/ holds the renders of the chosen theme: Home in
+Hapon (light) and Gabi (dark), each at the first viewport, one scroll down,
+and twice more with fourteen transactions logged rather than three. They are
+real Flutter renders, not drawings, and under source/ are the four files that
+rebuild them, so a change to a token can be re-rendered the same way.
+
+The loose sinag-*.png files one level up are the retired theme, kept as
+history. The Figma file "Salapify 3 Design" still holds the moodboard the
+direction came from; its token and screen pages describe that retired theme
+and are stale. All figures in the current renders
 are sample values.
 
 Three earlier rounds were rejected on 2026-09-12 and are not kept in the

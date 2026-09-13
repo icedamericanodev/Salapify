@@ -15,14 +15,17 @@ Exit: the founder has read this folder, answered the decisions, and said
 ## Phase 1. Design
 
 Do: turn 03 and 04 into pictures before any code. The theme itself was
-decided on 2026-09-12 (Sinag, see 03 and D7 to D12, derived from the
-founder's Figma moodboard by the design-director agent), so Phase 1 is
-about every screen obeying it, not about choosing it. Three deliverables:
-1. A component sheet (every kit component, dark and light) on the Figma
-   tokens page.
+decided on 2026-09-13 (Hapon in light, Gabi in dark, see 03 and D7 to D12,
+chosen by the design-director agent on measurement after the founder
+delegated the choice), so Phase 1 is about every screen obeying it, not about
+choosing it. Three deliverables:
+1. A component sheet (every kit component, dark and light), rendered from
+   real Flutter the way the Home renders were.
 2. The five core screens (Home, Log, Ledger, Plan > Budget, Accounts) as
-   high-fidelity mockups in light, then dark. Home, Log, Accounts, Plan and
-   Debt exist as of 2026-09-12 (mockups/sinag-*.png); Ledger is next.
+   high-fidelity renders in light, then dark. Home exists as of 2026-09-13
+   (mockups/hapon/), at both brightnesses and at a real transaction count;
+   Log, Accounts, Plan, Debt and Ledger are next, and each needs the dense
+   fixture too.
 3. One prototype flow the founder can tap through: open app, tap Log, type
    "jollibee 250", save, see Home update.
 
