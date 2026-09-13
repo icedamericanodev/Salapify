@@ -586,6 +586,86 @@ Widget mark(Path path, Color colour, {double? strokeWidth}) => SizedBox(
   ),
 );
 
+/// A ground with the mark punched OUT of it, so the mark is the hole and
+/// whatever sits behind shows through.
+///
+/// The first round of candidates could not express this and it is the reason
+/// they all looked like siblings: every one was a flat shape sitting ON a
+/// tile, because that was the only thing the harness could draw. Negative
+/// space is one of the most common devices in good icon work and it was
+/// literally unavailable.
+///
+/// It needs its own painter rather than a sibling in the Stack: a widget can
+/// only erase pixels that share its layer, so the ground and the hole have to
+/// be painted together inside one saveLayer.
+class CutoutGround extends StatelessWidget {
+  const CutoutGround({
+    super.key,
+    required this.path,
+    this.colour,
+    this.gradient,
+    this.strokeWidth,
+  }) : assert(
+         colour != null || gradient != null,
+         'A cutout ground needs something to cut out of.',
+       );
+
+  final Path path;
+  final Color? colour;
+  final Gradient? gradient;
+
+  /// Punch a stroked path rather than a filled one.
+  final double? strokeWidth;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: kCanvas,
+    height: kCanvas,
+    child: CustomPaint(
+      painter: _CutoutPainter(path, colour, gradient, strokeWidth),
+    ),
+  );
+}
+
+class _CutoutPainter extends CustomPainter {
+  const _CutoutPainter(this.path, this.colour, this.gradient, this.strokeWidth);
+  final Path path;
+  final Color? colour;
+  final Gradient? gradient;
+  final double? strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    // Everything inside this layer, so the clear below can reach the ground.
+    canvas.saveLayer(rect, Paint());
+
+    final ground = Paint();
+    if (gradient != null) {
+      ground.shader = gradient!.createShader(rect);
+    } else {
+      ground.color = colour!;
+    }
+    canvas.drawRect(rect, ground);
+
+    canvas.scale(size.width / kCanvas);
+    final hole = Paint()..blendMode = BlendMode.clear;
+    if (strokeWidth != null) {
+      hole
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth!
+        ..strokeCap = StrokeCap.butt;
+    }
+    canvas.drawPath(path, hole);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _CutoutPainter old) =>
+      old.path != path || old.colour != colour || old.gradient != gradient;
+}
+
 // ---------------------------------------------------------------- the grounds
 
 /// The app's own signature hero panel, at its exact token stops.
@@ -706,6 +786,34 @@ List<IconCandidate> buildCandidates() {
       loud: false,
       ground: flatGround(gabi.bg),
       mark: mark(beam, gabi.accent),
+    ),
+
+    // Proof that the cutout capability actually renders, kept in the sheet
+    // because a negative space mark is a genuinely different look and not
+    // just a technical demo. The hole shows the warm black through the tile.
+    IconCandidate(
+      key: 'piso-cutout',
+      name: 'Piso cut out',
+      idea:
+          'The mark is the HOLE, not the shape. Negative space, which the '
+          'first round could not draw at all.',
+      loud: true,
+      ground: Stack(
+        children: [
+          Positioned.fill(child: flatGround(gabi.bg)),
+          Positioned.fill(
+            child: CutoutGround(
+              path: piso,
+              gradient: const LinearGradient(
+                begin: Alignment(-0.667, -0.667),
+                end: Alignment(0.667, 0.667),
+                colors: heroStops,
+              ),
+            ),
+          ),
+        ],
+      ),
+      mark: const SizedBox.shrink(),
     ),
   ];
 }
