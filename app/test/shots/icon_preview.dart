@@ -230,13 +230,27 @@ class NeighbourTile extends StatelessWidget {
 }
 
 /// The colours those apps are known by, as flat tiles.
+///
+/// These used to be invented approximations. They are MEASURED now, because
+/// the whole point of the grid is "can I find Salapify in this row" and an
+/// invented neighbour answers a question nobody asked. Brand values come from
+/// Brandfetch; the two orange ones were sampled off the real artwork.
+///
+/// The last two are the ones that matter and they are why this list changed.
+/// A saturated mid orange tile carrying a single white capital letter is not
+/// an empty slot in this market, it is the number three finance app in the
+/// country and the most recognised orange tile in it. Salapify's warm survives
+/// the comparison on VALUE rather than hue: its deepest stop has a relative
+/// luminance of 0.449 against MariBank's 0.258 and Shopee's 0.237, and its
+/// cream stop is 0.740. Light warm is the open lane. Saturated orange is not.
 const neighbours = <(String, Color, Color)>[
-  ('G', Color(0xFF0057FF), Color(0xFFFFFFFF)), // a blue e-wallet
-  ('M', Color(0xFF00C86F), Color(0xFF04331F)), // a green e-wallet
-  ('B', Color(0xFFB01F24), Color(0xFFFFFFFF)), // a red bank
-  ('D', Color(0xFF002B5C), Color(0xFFFFFFFF)), // a navy bank
+  ('G', Color(0xFF1972F9), Color(0xFFFFFFFF)), // GCash blue
+  ('M', Color(0xFF75EEA5), Color(0xFF112432)), // Maya mint
+  ('B', Color(0xFF002B5C), Color(0xFFFFFFFF)), // a navy bank
   ('S', Color(0xFF111318), Color(0xFFE6E8EC)), // a dark utility app
   ('W', Color(0xFFF2F3F5), Color(0xFF20242B)), // a light utility app
+  ('M', Color(0xFFEB5F00), Color(0xFFFFFFFF)), // MariBank orange, sampled
+  ('S', Color(0xFFEE4D2D), Color(0xFFFFFFFF)), // Shopee orange
 ];
 
 void main() {
@@ -1344,22 +1358,36 @@ class BasoHorizon extends CustomPainter {
 /// The caller owns the stroke width, and it owns the safe circle with it: the
 /// drawn extent is [height] plus the stroke, so height 52 at stroke 12 reaches
 /// 32 units from centre and the guaranteed circle is 33.
+/// [hook] scales how far the two terminals curl back, 1.0 being the full hook
+/// a drawn letter wants. A RIBBON wants much less: stroked at 30 units the
+/// hooks curl into the bowls and close them, and the S stops being a letter
+/// and becomes a maze. That is not a hypothesis, it is what the first render
+/// of round five did, in both the dark and the light version.
 Path sSpine({
   required double cx,
   required double cy,
   required double height,
   double widthRatio = 0.70,
+  double hook = 1.0,
 }) {
   final hh = height / 2;
   final hw = height * widthRatio / 2;
   double x(double t) => cx + t * hw;
   double y(double t) => cy + t * hh;
+  double h(double hooked, double open) => hooked * hook + open * (1 - hook);
 
   return Path()
     // Top right terminal, hooked back so the eye sees a letter ending rather
     // than a line stopping.
-    ..moveTo(x(0.86), y(-0.60))
-    ..cubicTo(x(0.70), y(-0.96), x(0.18), y(-1.00), x(-0.13), y(-1.00))
+    ..moveTo(x(h(0.86, 1.04)), y(h(-0.60, -0.26)))
+    ..cubicTo(
+      x(h(0.70, 1.04)),
+      y(h(-0.96, -0.72)),
+      x(0.18),
+      y(-1.00),
+      x(-0.13),
+      y(-1.00),
+    )
     // Down the left of the upper bowl.
     ..cubicTo(x(-0.70), y(-1.00), x(-1.00), y(-0.76), x(-1.00), y(-0.44))
     // The waist, one long diagonal through the middle. This is the segment
@@ -1368,7 +1396,14 @@ Path sSpine({
     // Round the bottom.
     ..cubicTo(x(1.00), y(0.84), x(0.65), y(1.00), x(0.09), y(1.00))
     // Bottom left terminal, hooked to match the top.
-    ..cubicTo(x(-0.22), y(1.00), x(-0.70), y(0.92), x(-0.86), y(0.60));
+    ..cubicTo(
+      x(-0.22),
+      y(1.00),
+      x(h(-0.70, -1.04)),
+      y(h(0.92, 0.72)),
+      x(h(-0.86, -1.04)),
+      y(h(0.60, 0.26)),
+    );
 }
 
 /// The bean, as an ellipse rotated onto the diagonal.
@@ -1553,6 +1588,343 @@ class ButoBaligtad extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
+// =============================================================== round five
+//
+// FOUNDER DIRECTION, with a reference image: "Somethint like this.. Play
+// around this icon. Put the Salapify v3 theme".
+//
+// The reference is a deep blue tile carrying a large S built out of flowing
+// parallel ribbons, a peso coin sitting at the letter's waist, and a small
+// three bar chart in the bottom right corner. Three experts had just reported
+// in with six, five and three directions of their own; the founder's picture
+// outranks all of it, so this round is that picture in Salapify's palette,
+// played with, plus ONE outsider so the alternative is visible rather than
+// argued about.
+//
+// What translating it actually costs, stated up front because two of these
+// are real and neither is obvious from the reference:
+//
+//   1. Cream and the accent CANNOT TOUCH. #FFD9B0 on #FF9A52 is 1.58. The
+//      reference gets away with white against mint because those two are far
+//      apart in value; Salapify's warm ramp is not. So every ribbon lane here
+//      is separated by a lane of the GROUND, which is why the lanes are drawn
+//      as concentric strokes from widest to narrowest rather than as offset
+//      copies. The dark gap is structural, not styling.
+//   2. A ribbon this wide cannot also be a tall letter inside the 66 circle.
+//      The reference's S fills its tile edge to edge, so the translation does
+//      too, and it therefore BLEEDS past the guaranteed circle. That is a real
+//      cost and the circle column is there to show it rather than describe it.
+
+/// Deep warm near black. Gabi's own page colour, so the dark tile is the app's
+/// dark page rather than a new colour. Cream measures 14.24 on it, the accent
+/// 9.01.
+const Color kPage = Color(0xFF14100D);
+
+/// Hapon's page. The light tile is the app's light page, for the same reason.
+const Color kPaper = Color(0xFFFFEEDF);
+
+/// Gabi's accent, which is the ramp tone that survives on a dark ground.
+const Color kAccent = Color(0xFFFF9A52);
+
+/// The reference's flowing ribbon S, as concentric lanes along one spine.
+///
+/// Drawing the same path from widest stroke to narrowest paints lanes along
+/// it, which is what the reference's parallel bands are. Each step is 12 units
+/// so every visible lane is 6, exactly the 48px floor and no thinner.
+///
+/// [lanes] is outermost first. A ground-coloured entry is a GAP, and there has
+/// to be one between any two ramp tones (see the note above on 1.58).
+void agosRibbon(
+  Canvas canvas, {
+  required double height,
+  required List<(double, Color)> lanes,
+  double widthRatio = 0.80,
+  double hook = 0.28,
+  Offset at = const Offset(54, 54),
+}) {
+  final spine = sSpine(
+    cx: at.dx,
+    cy: at.dy,
+    height: height,
+    widthRatio: widthRatio,
+    hook: hook,
+  );
+  for (final (w, c) in lanes) {
+    canvas.drawPath(
+      spine,
+      Paint()
+        ..color = c
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+}
+
+/// A peso drawn to the 48px floor rather than to classical proportions.
+///
+/// [pesoAt] is the wordmark-weight glyph: its stem is 0.18 of the cap height,
+/// which is right for a letterform and hopeless inside a small coin. Stacked
+/// vertically a peso needs a bowl shoulder, a crossbar, a gap, a crossbar and
+/// a stem tail, and at the 6 unit floor that is 30 units of cap height before
+/// anything else. So this one is built from 6 and 7 unit bars instead, and the
+/// arithmetic that follows from it is the real finding:
+///
+///   cap 30 minimum  ->  coin radius 21 minimum  ->  42 units across
+///   the guaranteed circle is 66 across, so the coin alone eats 63 percent
+///
+/// The founder's reference has a coin, so it is drawn properly here rather
+/// than drawn badly and excused. What the sheet then shows is the TRADE: at a
+/// radius where the peso survives the app drawer, the coin dominates and the
+/// S becomes a thin ribbon around it.
+/// The REAL peso, U+20B1, set in the family the app ships.
+///
+/// The first version of this was hand drawn and it was not a Philippine peso:
+/// it put both crossbars below the bowl, which is a ruble. Confirmed by
+/// reading the font's own cmap that PlusJakartaSans-ExtraBold carries U+20B1,
+/// so there is no reason to approximate a letterform a type designer already
+/// drew, and the same argument that made Buto Jakarta the round four pick.
+void agosPeso(
+  Canvas canvas, {
+  required Offset at,
+  required double cap,
+  Color color = kInk,
+}) {
+  final fontSize = cap / 0.72;
+  final tp = TextPainter(
+    text: TextSpan(
+      text: '₱',
+      style: TextStyle(
+        fontFamily: 'Jakarta',
+        fontSize: fontSize,
+        fontWeight: FontWeight.w800,
+        height: 1.0,
+        color: color,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  final baseline = tp.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+  tp.paint(canvas, Offset(at.dx - tp.width / 2, at.dy + cap / 2 - baseline));
+}
+
+/// The reference's coin: a cream disc carrying the peso.
+///
+/// Default radius 23, which is what [agosPesoHeavy]'s arithmetic demands. Ink
+/// on cream measures 13.30.
+void agosCoin(
+  Canvas canvas, {
+  double radius = 23,
+  Offset at = const Offset(54, 54),
+}) {
+  canvas.drawCircle(at, radius, Paint()..color = kCream);
+  agosPeso(canvas, at: at, cap: radius * 1.5);
+}
+
+/// The reference's three bar chart, bottom right.
+void agosChart(Canvas canvas, Color c, Color ground) {
+  const bottom = 92.0;
+  // A gap of ground behind the bars, because in the first render the chart
+  // merged with the ribbon crossing it and read as one orange blob stuck to
+  // the tile edge. Six units of clearance, the same floor as everything else.
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      const Rect.fromLTRB(62, 54, 102, 98),
+      const Radius.circular(8),
+    ),
+    Paint()..color = ground,
+  );
+  var x = 68.0;
+  for (final h in [12.0, 19.0, 26.0]) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(x, bottom - h, x + 8, bottom),
+        const Radius.circular(2),
+      ),
+      Paint()..color = c,
+    );
+    x += 11;
+  }
+}
+
+/// 1. AGOS. The founder's reference, translated whole.
+///
+/// Ribbon S, peso coin, bar chart, on Gabi's page. Faithful on purpose: the
+/// point of drawing it complete is to see which of its three elements actually
+/// survive Salapify's constraints, rather than to decide that in advance.
+class Agos extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, 108),
+      Paint()..color = kPage,
+    );
+    agosRibbon(canvas, height: 82, lanes: const [(18, kCream), (6, kPage)]);
+    agosCoin(canvas);
+    agosChart(canvas, kAccent, kPage);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 2. AGOS PISO. The same, without the chart.
+///
+/// Drops the weakest element first. Three bars 8 units wide with 3 unit gaps
+/// are a cluster at 48px, and "chart" is also the most generic thing a money
+/// icon can say.
+class AgosPiso extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, 108),
+      Paint()..color = kPage,
+    );
+    agosRibbon(canvas, height: 82, lanes: const [(18, kCream), (6, kPage)]);
+    agosCoin(canvas);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 3. AGOS DALISAY. The ribbon alone, sized to survive.
+///
+/// Nothing but the flowing S, smaller so the whole letter sits inside the
+/// guaranteed circle instead of bleeding out of it. The reference's idea with
+/// none of its passengers.
+class AgosDalisay extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, 108),
+      Paint()..color = kPage,
+    );
+    agosRibbon(
+      canvas,
+      height: 44,
+      lanes: const [(30, kCream), (18, kPage), (6, kAccent)],
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 4. AGOS LIWANAG. The tile turned to daylight.
+///
+/// Hapon's page carrying the ribbon in ink and the app's light accent. The
+/// same composition on the light tile, because the reference is dark and
+/// Salapify is a light-first app (principle 4), so the founder should see both
+/// before choosing.
+class AgosLiwanag extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+    agosRibbon(canvas, height: 82, lanes: const [(18, kInk), (6, kCream)]);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 5. AGOS ISA. One ribbon, one echo, nothing else.
+///
+/// The most 48px-proof reading of the reference: a single bold cream S with
+/// one accent line trailing it, separated by a lane of ground so the two ramp
+/// tones never meet. Everything here is 8 units or wider.
+class AgosIsa extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, 108),
+      Paint()..color = kPage,
+    );
+    // The echo first, offset down and right, then a ground-coloured stroke
+    // over the spine to cut the required gap, then the cream ribbon.
+    agosRibbon(
+      canvas,
+      height: 54,
+      at: const Offset(61, 61),
+      lanes: const [(15, kAccent)],
+    );
+    agosRibbon(canvas, height: 54, lanes: const [(29, kPage), (16, kCream)]);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 6. HATI. The outsider, and the only one that wins both Play surfaces.
+///
+/// Not from the reference. The tile is split on a shallow diagonal, paper
+/// above and ink below, and one enormous S is counterchanged across the seam:
+/// ink where it crosses the light half, paper where it crosses the dark. It is
+/// here because it is the one candidate in five rounds that carries a very
+/// light region AND a very dark region, so it holds a silhouette edge on Play's
+/// white page and on its dark surface, and because it means something exact
+/// about this app: the same thing is two things depending on which side of the
+/// line it falls, which is debt in both directions.
+class Hati extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..color = kInk);
+
+    final light = Path()
+      ..moveTo(0, 0)
+      ..lineTo(108, 0)
+      ..lineTo(108, 38)
+      ..lineTo(0, 84)
+      ..close();
+    canvas.drawRect(r, Paint()..color = kInk);
+    canvas.drawPath(light, Paint()..color = kPaper);
+
+    // One letter, painted twice under opposite clips.
+    void s(Color c) {
+      const fontSize = 132.0;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: 'S',
+          style: TextStyle(
+            fontFamily: 'Jakarta',
+            fontSize: fontSize,
+            fontWeight: FontWeight.w800,
+            height: 1.0,
+            color: c,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final baseline = tp.computeDistanceToActualBaseline(
+        TextBaseline.alphabetic,
+      );
+      const capHeight = fontSize * 0.72;
+      tp.paint(
+        canvas,
+        Offset(52 - tp.width / 2, 52 + capHeight / 2 - baseline),
+      );
+    }
+
+    canvas.save();
+    canvas.clipPath(light);
+    s(kInk);
+    canvas.restore();
+
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(PathOperation.difference, Path()..addRect(r), light),
+    );
+    s(kPaper);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
 List<IconCandidate> buildCandidates() {
   IconCandidate c(
     String key,
@@ -1569,34 +1941,62 @@ List<IconCandidate> buildCandidates() {
     mark: const SizedBox.shrink(),
   );
 
-  // Round four. Buto only, plus two controls, because the founder picked a
-  // direction and gave it one note. Every row after the first attacks a
-  // different one of the four causes listed above, so the sheet answers WHY
-  // rather than just offering five more pictures.
+  // Round five. The founder's own reference, translated to Salapify's palette
+  // and then played with, plus one outsider and one control.
   return [
     c(
-      'buto-r3',
-      'Buto, round three',
-      'CONTROL, unchanged. The one the founder said hides its S. It also has a '
-          'defect nobody had seen: its crease is a HOLE through the tile, so '
-          'the S takes the wallpaper\'s colour. Compare the two home screens.',
-      _painted(ButoBean()),
+      'agos',
+      'Agos',
+      'THE REFERENCE, translated whole: ribbon S, peso coin, bar chart, on '
+          'Gabi\'s own page. Faithful on purpose, so which of its three parts '
+          'survive Salapify\'s constraints is something we SEE, not decide in '
+          'advance. Cream on the ground measures 14.24.',
+      _painted(Agos()),
+      loud: false,
     ),
     c(
-      'buto-tuwid',
-      'Buto Tuwid',
-      'The bean stays tilted and the S stands UPRIGHT. Fixes the biggest '
-          'cause on its own: round three rotated the letter with the bean, and '
-          'a tilted S reads as a squiggle. Stroke 12, double the floor.',
-      _painted(ButoTuwid()),
+      'agos-piso',
+      'Agos Piso',
+      'The same without the chart. Three bars 8 wide with 3 unit gaps are one '
+          'cluster at 48px, and a chart is the most generic thing a money icon '
+          'can say.',
+      _painted(AgosPiso()),
+      loud: false,
     ),
     c(
-      'buto-hiwa',
-      'Buto Hiwa',
-      'FAILED, kept so the failure is on the record. The S cuts clean through '
-          'the outline at both ends, and it eats the bean: what is left reads '
-          'as a wave with two fangs, and at 48px as noise.',
-      _painted(ButoHiwa()),
+      'agos-dalisay',
+      'Agos Dalisay',
+      'The flowing S alone, sized so the WHOLE letter sits inside the '
+          'guaranteed circle instead of bleeding out of it. The reference\'s '
+          'idea with none of its passengers.',
+      _painted(AgosDalisay()),
+      loud: false,
+    ),
+    c(
+      'agos-liwanag',
+      'Agos Liwanag',
+      'The same composition in daylight: Hapon\'s ramp carrying the ribbon in '
+          'ink. The reference is dark and Salapify is a light-first app '
+          '(principle 4), so both should be seen before choosing.',
+      _painted(AgosLiwanag()),
+    ),
+    c(
+      'agos-isa',
+      'Agos Isa',
+      'One bold ribbon and one accent echo, nothing else. The most 48px-proof '
+          'reading: every part is 8 units or wider. Cream and accent never '
+          'touch, because 1.58 apart they would merge into one smear.',
+      _painted(AgosIsa()),
+      loud: false,
+    ),
+    c(
+      'hati',
+      'Hati',
+      'THE OUTSIDER, not from the reference. The tile splits on a diagonal and '
+          'one huge S counterchanges across the seam. The only candidate in '
+          'five rounds carrying a very light AND a very dark region, so it '
+          'holds an edge on both Play surfaces. Debt in both directions, drawn.',
+      _painted(Hati()),
     ),
     c(
       'buto-jakarta',
@@ -1606,31 +2006,6 @@ List<IconCandidate> buildCandidates() {
           'hero ramp. The icon\'s S is then literally the wordmark\'s S. '
           'Measured 10.96 against the ink.',
       _painted(ButoJakarta()),
-    ),
-    c(
-      'buto-solid',
-      'Buto Solid',
-      'The S sits ON the bean in cream instead of being cut out of it. An '
-          'absence reads as texture and a presence reads as a letter, and every '
-          'version so far has been an absence. Cream on ink measures 13.30.',
-      _painted(ButoSolid()),
-    ),
-    c(
-      'buto-baligtad',
-      'Buto Baligtad',
-      'The tile inside out: ink ground, bean in the hero gradient, S painted '
-          'back in the ink. It TRADES the Play problem rather than solving it. '
-          'Ink is 17.68 on Play\'s white page and 1.10 on its dark one; orange '
-          'is 1.61 and 9.99. Nothing here wins twice.',
-      _painted(ButoBaligtad()),
-      loud: false,
-    ),
-    c(
-      'barako',
-      'Barako',
-      'CONTROL, unchanged. The runner up from round three, kept so we can see '
-          'whether a fixed Buto now beats it.',
-      _painted(BarakoCup()),
     ),
   ];
 }

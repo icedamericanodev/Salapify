@@ -1,158 +1,115 @@
 # The Salapify app icon
 
-## There isn't one yet
+## Where this landed: the founder's own artwork, recoloured
 
-Verified 2026-09-13. Both the shipped app and the rebuild carry the **stock
-Flutter logo**, byte for byte identical across all five mipmap densities, and
-neither has an adaptive icon.
+Founder direction, 2026-09-13, verbatim: **"use the same icon just change the
+color. make it the same do not change anything but the colot to fit the theme"**.
 
-## Where the direction landed
+So that is what this is. The geometry is untouched, pixel for pixel: the ribbon
+S, the peso coin at the letter's waist, the three bar chart in the corner. Only
+the colour changed.
 
-**Round one** was six candidates and the founder rejected all of them. The
-honest fault: all six were the SAME IDEA, a flat symbol centred on a plain
-tile. Part of that was imagination and part was the harness, which could only
-draw a mark ON a ground, so negative space and layering were not rejected, they
-were unavailable.
+![The recolour](icon-recolour-sheet.png)
 
-**Round two** fixed the composition problem. Eleven real references studied for
-their compositional DEVICE, eight genuinely different directions. The founder's
-answer was the note both rounds deserved: *"make it related to Salapify or Pan
-atleast."*
+| The reference | Salapify dark | Salapify light |
+|---|---|---|
+| ![Reference](salapify-icon-reference.png) | ![Dark](salapify-icon-dark.png) | ![Light](salapify-icon-light.png) |
 
-**Round three** went and found out what Pan actually is. From
-`flutter/lib/widgets/pan_mascot.dart`, Pan is a chibi panda "who cradles his cup
-of **kapeng Barako**, with a **peso sign rising in the steam** and a
-coffee-cherry sprout on his head." That sentence explains something the revamp
-docs never wrote down: **the warm orange palette is coffee.** The theme system
-is named Barako, after Philippine coffee. Seven directions came out of it, and
-the founder picked one with one note:
+Both are 512 square, sRGB, and well under Play's 1024KB, so either can go
+straight to the store listing.
 
-> **"Buto but the S is too hidden."**
+## How the colour was mapped, and why not a hue rotation
 
-**Round four, below, is that one note.** Buto only, plus two controls.
+The obvious move is to spin the hue from blue to orange. It does not work here,
+and the reason is worth writing down.
 
-## Round four
+The reference separates its three elements **by hue**: deep blue ground, mint
+echo, white ribbon. Salapify's palette is monochromatic warm and separates
+**by value**: ink at 0.01 relative luminance, accent at 0.45, cream at 0.74, all
+at roughly the same hue. Rotating blue to orange sends the mint to pink, which
+is not in the theme.
 
-![The candidates](icon-sheet.png)
+So each element is classified and mapped to its Salapify counterpart, with
+anti-aliased pixels blended rather than snapped so no edges fringe:
 
-| Light home screen | Dark home screen |
-|---|---|
-| ![Light](icon-home-light.png) | ![Dark](icon-home-dark.png) |
+| Reference | Salapify dark | Salapify light |
+|---|---|---|
+| deep blue ground | `#14100D` to `#6B2E06`, Gabi's page | `#FB9C52` to `#FEC078`, the hero ramp |
+| white ribbon | `#FFD9B0` cream | `#2A1207` ink |
+| mint echo | `#FF9A52` accent | `#FFD9B0` cream |
 
-### The Play search result, on both of Play's surfaces
+Every one of those is already a token in `app/lib/design/tokens.dart`. No new
+colour was invented. `recolour.py` in this folder reproduces both files.
 
-![Play](icon-play.png)
+## What the size tests say, honestly
 
-This view is new, and it immediately corrected something this page had been
-repeating for three rounds. The measurement is real: orange is **1.61** against
-Play's white listing page. The conclusion drawn from it, that an orange tile
-therefore loses that surface, is **wrong**, because Play adds its own drop
-shadow to every listing icon and that shadow supplies the edge the colour does
-not. Rendered with the shadow, the orange tiles hold the white page perfectly
-well. The dark tile really does lose the dark surface, exactly as measured.
+- **48px, the app drawer.** All three, the reference included, are busy at this
+  size. The S and the coin still read; the bar chart becomes a smudge and the
+  peso becomes a dot. That is the reference's own composition rather than
+  anything the recolour did, and it is the one thing worth knowing before this
+  ships.
+- **The circle mask**, the harshest launcher crop: both survive, and the chart
+  in the bottom right is the part that gets clipped.
+- **The home screen grid**, against measured competitor colours: the dark tile
+  is clearly distinct from everything in the row. The light tile is closer to
+  MariBank and Shopee in hue but far apart in value, so it still separates. That
+  value gap is the real asset: Salapify's deepest ramp stop has a relative
+  luminance of 0.449 against MariBank's 0.258 and Shopee's 0.237.
 
-The lesson is worth more than the finding: a contrast number is about two flat
-colours meeting, and Play's tile is not two flat colours meeting. Three rounds
-of reasoning rested on a number nobody had drawn.
+## One thing to decide before it ships
 
-The candidate sheet also gained a **circle mask** column, the harshest launcher
-crop, showing what is actually left rather than where the crop would fall. The
-safe-zone overlay predicts; this one shows. Barako loses its handle to it.
+The peso glyph is the most documented visual cue of the Philippine quick cash
+lending category, and Salapify must never be filed under that. The founder's
+reference has one, and it is kept here because the direction was explicit. It is
+flagged, not argued: worth a second look before the store listing goes live, and
+easy to drop later since it is one element.
 
-## Why the S was hidden
+## Production notes for when this becomes a real asset
 
-Read off the round three render rather than guessed. Four causes, and they
-compounded:
+- These are rasters. The real launcher asset should be rebuilt as vector so it
+  can carry an adaptive icon's separate background and foreground layers.
+- **Android 16 QPR2 forces themed icons and apps cannot opt out.** Where an app
+  ships no monochrome layer the system generates one from the artwork, so a
+  monochrome layer has to be authored by hand or it will be a surprise on the
+  founder's phone.
+- Play masks the listing icon at **30 percent** and adds its own drop shadow, so
+  the asset is submitted as a full square with no rounded corners of its own.
+  That is why the corners here are filled rather than left transparent.
 
-1. **The crease was rotated with the bean.** The same 32 degree matrix was
-   applied to both, so the letter was tilted off its own axis. A tilted S stops
-   being parsed as a letter and becomes a squiggle. The biggest single cause.
-2. **The curve was one shallow cubic.** An S needs two real bowls and hooked
-   terminals. A wave is not an S.
-3. **The stroke was 9 units** against a bean 84 wide. Barely over the 6 unit
-   floor, so it read as a thin slot in a large mass.
-4. **Both terminals stopped inside the bean**, so it read as an enclosed slit
-   rather than a stroke that shapes the form.
+## The four rounds before this
 
-Contrast was never one of them.
+Kept short, because the direction above supersedes all of them.
 
-## And a fifth cause the render found
+1. Six flat symbols centred on plain tiles. All rejected: one idea, six times.
+2. Eleven references, eight compositional devices. Rejected with "make it
+   related to Salapify or Pan atleast".
+3. Seven directions from Salapify's own material. The founder picked **Buto**, a
+   coffee bean whose crease is an S. This round also found what Pan actually is
+   (a panda cradling a cup of **kapeng Barako**), which is why the palette is
+   warm: the theme system is named after coffee.
+4. Five refinements of Buto, answering "the S is too hidden". Green and
+   delivered, and superseded by the reference above.
 
-The crease was **cleared** with `BlendMode.clear`, which does not reveal the
-gradient underneath. It punches a **hole through the entire tile**, so the S
-takes the colour of whatever is behind the icon. The same artwork therefore
-showed a near black S on a dark home screen and a white one on a light one, and
-the dark case is precisely the one that hides it. An adaptive icon's background
-layer would catch such a hole, but this artwork is one layer, so a launcher
-would show wallpaper through it.
+Two findings from those rounds still bind and are kept here because they cost
+real time to learn:
 
-Every refinement below **paints** the S instead. The tile is opaque everywhere
-and looks identical on both wallpapers, which the two home screen renders now
-show. The round three control still has the hole, deliberately, so the
-difference is visible rather than described.
+- **Never clear a shape with `BlendMode.clear` in single layer icon artwork.**
+  It does not reveal what is underneath, it punches a hole through the whole
+  tile, so the shape takes the wallpaper's colour: near black on a dark home
+  screen, white on a light one. Round three shipped that defect through every
+  render and nobody saw it until the two home screens were compared.
+- **A contrast ratio is about two flat colours meeting, and a Play tile is not
+  two flat colours meeting.** Orange measures 1.61 against Play's white listing
+  page, and three rounds concluded from that number that an orange tile loses
+  that surface. It does not: Play adds its own drop shadow and the shadow
+  supplies the edge the colour does not. Only a near black tile genuinely loses
+  a surface, and it is the dark one it loses.
 
-## What the renders say, honestly
+## The vector harness
 
-### Buto Jakarta, the recommendation
-
-The crease is the **real letter**: Plus Jakarta Sans ExtraBold, the family the
-app ships and the wordmark is set in, cut into the bean in the hero ramp. It is
-the cleanest letterform of the five because it was drawn by a type designer
-rather than by hand, it still reads as a bean with a crease rather than a badge
-with a monogram, and the icon's S is then literally the wordmark's S. Measured
-**10.96** against the ink. Holds at 48px.
-
-### The two that also work
-
-**Buto Solid.** The S sits ON the bean in cream instead of being cut out of it,
-and it is the loudest and most legible of the five. An absence reads as texture
-and a presence reads as a letter. Cream on ink measures **13.30**. The cost is
-that the bean stops reading as a bean and becomes a dark badge behind a
-monogram, so it wins on legibility and loses the coffee story.
-
-**Buto Baligtad.** Ink ground, bean in the hero gradient, S painted back in the
-ink. Reads well and is the only dark tile. It **trades** the Play problem rather
-than solving it, though, and the numbers say so: ink is 17.68 against Play's
-white listing page and 1.10 against its dark surface, while orange is 1.61 and
-9.99. Nothing here wins twice. It also lands close to the plain dark neighbour
-tile in the home screen grid.
-
-### The one that improved but is not there
-
-**Buto Tuwid.** Upright S, stroke 12, groove painted in the ramp. It fixes the
-founder's note on its own and proves cause 1 was the main one. Next to Jakarta
-though, the hand-drawn letter is visibly less resolved.
-
-### The one that failed
-
-**Buto Hiwa.** The S was meant to cut clean through the outline at both ends so
-the bean became two interlocking halves. It eats the bean instead. What is left
-reads as a wave with two fangs, and at 48px it is noise. Kept in the sheet so
-the failure is on the record.
-
-### The control
-
-**Barako**, the runner up from round three, unchanged. Still a good icon. The
-question the sheet answers is whether a fixed Buto beats it, and at 48px and in
-the home grid it now does: Buto is one shape where Barako is four, and one
-shape survives shrinking better.
-
-## The measurements that still bind
-
-- Ink `#2A1207` against the hero ramp: **13.30** on the cream stop, **10.96** on
-  the mid, **8.40** on the deep. All far past the bar.
-- Two hero-ramp tones cannot be told apart: `#FFD9B0` on `#FB9C52` is **1.58**,
-  under the 3.0 bar. Ink stays near black, and cream can never sit on orange.
-- A one-value tile cannot hold an edge on both Play surfaces. Only a split tile
-  does, and no Buto variant is one.
-- The 48px floor: 108 units at 0.667px each, so **nothing thinner than 6 units
-  and no gap under 6**. Every stroke here is 12 or 13.
-- The S sits inside the guaranteed circle: height 52 plus a 12 stroke reaches 32
-  units from centre, and the circle is 33.
-- Play: 512 square, submitted flat, because Play masks at **30%** and adds its
-  own shadow.
-
-## How these are made
+`app/test/shots/icon_preview.dart` still renders vector candidates at review
+size, at 48px, under the circle mask, in both home screen grids and in a Play
+search result on both of Play's surfaces:
 
     cd app
     flutter test test/shots/icon_preview.dart --update-goldens
