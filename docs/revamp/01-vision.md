@@ -32,6 +32,16 @@ and if it slows down logging or adds confusion it stays out.
 1. Logging is the heartbeat. From any screen, one tap opens Log, and a
    typed line like "jollibee 250" is a saved expense with a category. Under
    three seconds from thumb to saved, measured, every release.
+
+   THIS DOES NOT EXIST YET, in either app, and that was discovered on
+   2026-09-13 while looking for the parser to port. What exists is
+   quickadd.dart, 76 lines that offer recent labels as chips and remember the
+   last account used. It does no parsing. Two pieces of the job carried over
+   in `core/money/taglish.dart`: the Taglish folding, and an amount extractor.
+   The rest, splitting a line into label and amount and guessing a category, is
+   NEW WORK in Phase 3, not a port. The line above is the target, not a
+   description of something already built, and it stays because it is the
+   right target.
 2. One screen, one decision. The first viewport of every screen carries one
    number that matters and one action. Everything else is below the fold or
    behind a tap.
@@ -66,7 +76,7 @@ current app's code stays in git as reference for any that return.
 |---|---|
 | Money Courses and lessons, Financial guides, Learn tab | A content product inside a tracker. Large, rarely opened daily, and the maintenance (source verification) is heavier than the whole rest of the app. |
 | Money Mindset (decision score, what-if spectrum, waiting room, subscriptions compare, credit path) | Twenty-seven review reports of features stacked on a feature. Interesting, not daily. |
-| Pan the mascot and the Pan chat | A second brand voice. The parsing behind Pan is kept (it powers the fast log field); the character and the chat screen are not. |
+| Pan the mascot and the Pan chat | A second brand voice. Two pieces of Pan's TEXT layer are kept as `core/money/taglish.dart`: the Taglish folding and the amount extractor. The character and the chat screen are not. |
 | Calculators as separate screens (tax, salary, 13th month, loan, BNPL, contribution, currency, year-end tax, tax deadlines) | Nine tools with nine screens. One or two may return as a single Tools sheet once the core is loved. |
 | Treats, wins, milestones, recap share, milestone share, week chain | Gamification layered on before the core felt good. |
 | Paluwagan, split expense, notes, CSV import, card skin studio, flip bank card | Each is a screen or two the founder does not open daily. CSV import may return under Settings. |

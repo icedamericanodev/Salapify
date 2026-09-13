@@ -16,21 +16,32 @@ version: 1.0.0+21
 environment:
   sdk: ^3.12.2
 
+# Four packages, and the list is checked rather than inherited: these are
+# exactly what `grep "^import 'package:'" lib/` reports, with nothing carried
+# over on the assumption that the old app needed it.
+#
+# The money engine still contributes ZERO of them. All 66 files in
+# lib/core/money import nothing at all, not even Flutter, which is why the
+# golden suite runs in seconds.
+#
+# The old app also carried csv, excel, pdf, fl_chart, animations and
+# flutter_spinkit. v3 drops all six: charts are drawn by hand under one
+# grammar (D9), and export returns in Phase E if it is missed.
 dependencies:
   flutter:
     sdk: flutter
 
-# Deliberately empty beyond the framework, and worth keeping that way.
-#
-# The money engine in lib/core/money is 64 files and imports NOTHING: no
-# package, not even Flutter. That was verified rather than assumed before the
-# port, and it is why 215 golden tests run without a single dependency.
-#
-# The storage layer (Phase B2) adds the four it genuinely needs:
-# sqflite_sqlcipher, flutter_secure_storage, path_provider, shared_preferences.
-# The old app also carried csv, excel, pdf, fl_chart, animations and
-# flutter_spinkit. v3 drops all six: charts are drawn by hand under one grammar
-# (D9), and export returns later if it is missed.
+  # The encrypted ledger. SQLCipher over SQLite, holding the JSON document.
+  sqflite_sqlcipher: ^3.1.0+1
+  # Where the database key lives: EncryptedSharedPreferences, wrapped by a key
+  # the Android Keystore holds. Deliberately NOT behind biometrics, per ADR
+  # 0001: App Lock is the UI gate, and a sensor reset must never cost data.
+  flutter_secure_storage: ^9.2.2
+  # The app documents directory the database file sits in.
+  path_provider: ^2.1.6
+  # The original storage engine, still read during the one-time migration and
+  # still the home of the few keys that must NEVER live inside the ledger blob.
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

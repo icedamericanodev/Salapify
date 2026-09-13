@@ -107,14 +107,18 @@ void main() {
     expect(loan.dueISO, isNotNull);
   });
 
-  test('nominal and compounded rates: a 3%/month card reads 36% and ~42.6%', () {
-    final s = consolidatedDebtStatement(blob(), ref)!;
-    final card = (s['rows'] as List<DebtStatementRow>)
-        .firstWhere((r) => r.name == 'BDO Titanium');
-    expect(card.aprAnnual, closeTo(36.0, 1e-9));
-    // (1.03)^12 - 1 = 0.42576...
-    expect(card.aprEffective, closeTo(42.576, 1e-2));
-  });
+  test(
+    'nominal and compounded rates: a 3%/month card reads 36% and ~42.6%',
+    () {
+      final s = consolidatedDebtStatement(blob(), ref)!;
+      final card = (s['rows'] as List<DebtStatementRow>).firstWhere(
+        (r) => r.name == 'BDO Titanium',
+      );
+      expect(card.aprAnnual, closeTo(36.0, 1e-9));
+      // (1.03)^12 - 1 = 0.42576...
+      expect(card.aprEffective, closeTo(42.576, 1e-2));
+    },
+  );
 
   test('a card-number debt name is masked to its last four', () {
     // The stored name is left alone; only the display is masked.
@@ -127,7 +131,12 @@ void main() {
   test('minsUnset counts debts with no minimum saved', () {
     final b = {
       'debts': [
-        {'id': 'a', 'type': 'credit card', 'remaining': 5000, 'minPayment': 500},
+        {
+          'id': 'a',
+          'type': 'credit card',
+          'remaining': 5000,
+          'minPayment': 500,
+        },
         {'id': 'b', 'type': 'mortgage', 'remaining': 900000}, // no minimum
         {'id': 'c', 'type': 'auto', 'remaining': 40000}, // no minimum
       ],
