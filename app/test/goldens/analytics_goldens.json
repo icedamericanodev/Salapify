@@ -1,0 +1,1195 @@
+{
+  "refISO": "2026-07-16",
+  "monthlySeries": {
+    "rich6": [
+      {
+        "key": "2026-02",
+        "label": "Feb",
+        "income": 28000,
+        "expenses": 12340,
+        "net": 15660
+      },
+      {
+        "key": "2026-03",
+        "label": "Mar",
+        "income": 25500,
+        "expenses": 27060,
+        "net": -1560
+      },
+      {
+        "key": "2026-04",
+        "label": "Apr",
+        "income": 29000,
+        "expenses": 12380,
+        "net": 16620
+      },
+      {
+        "key": "2026-05",
+        "label": "May",
+        "income": 26500,
+        "expenses": 12700,
+        "net": 13800
+      },
+      {
+        "key": "2026-06",
+        "label": "Jun",
+        "income": 30000,
+        "expenses": 13820,
+        "net": 16180
+      },
+      {
+        "key": "2026-07",
+        "label": "Jul",
+        "income": 27500,
+        "expenses": 15150,
+        "net": 12350
+      }
+    ],
+    "rich8": [
+      {
+        "key": "2025-12",
+        "label": "Dec",
+        "income": 27000,
+        "expenses": 11400,
+        "net": 15600
+      },
+      {
+        "key": "2026-01",
+        "label": "Jan",
+        "income": 24500,
+        "expenses": 11720,
+        "net": 12780
+      },
+      {
+        "key": "2026-02",
+        "label": "Feb",
+        "income": 28000,
+        "expenses": 12340,
+        "net": 15660
+      },
+      {
+        "key": "2026-03",
+        "label": "Mar",
+        "income": 25500,
+        "expenses": 27060,
+        "net": -1560
+      },
+      {
+        "key": "2026-04",
+        "label": "Apr",
+        "income": 29000,
+        "expenses": 12380,
+        "net": 16620
+      },
+      {
+        "key": "2026-05",
+        "label": "May",
+        "income": 26500,
+        "expenses": 12700,
+        "net": 13800
+      },
+      {
+        "key": "2026-06",
+        "label": "Jun",
+        "income": 30000,
+        "expenses": 13820,
+        "net": 16180
+      },
+      {
+        "key": "2026-07",
+        "label": "Jul",
+        "income": 27500,
+        "expenses": 15150,
+        "net": 12350
+      }
+    ],
+    "empty": [
+      {
+        "key": "2026-02",
+        "label": "Feb",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      },
+      {
+        "key": "2026-03",
+        "label": "Mar",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      },
+      {
+        "key": "2026-04",
+        "label": "Apr",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      },
+      {
+        "key": "2026-05",
+        "label": "May",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      },
+      {
+        "key": "2026-06",
+        "label": "Jun",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      },
+      {
+        "key": "2026-07",
+        "label": "Jul",
+        "income": 0,
+        "expenses": 0,
+        "net": 0
+      }
+    ]
+  },
+  "categoryMovers": {
+    "rich": [
+      {
+        "label": "Food",
+        "now": 5190,
+        "before": 4220,
+        "change": 970
+      },
+      {
+        "label": "Coffee",
+        "now": 360,
+        "before": 0,
+        "change": 360
+      },
+      {
+        "label": "Transport",
+        "now": 1100,
+        "before": 900,
+        "change": 200
+      },
+      {
+        "label": "Inuman",
+        "now": 1200,
+        "before": 1400,
+        "change": -200
+      },
+      {
+        "label": "Rent",
+        "now": 7000,
+        "before": 7000,
+        "change": 0
+      }
+    ],
+    "richLimit3": [
+      {
+        "label": "Food",
+        "now": 5190,
+        "before": 4220,
+        "change": 970
+      },
+      {
+        "label": "Coffee",
+        "now": 360,
+        "before": 0,
+        "change": 360
+      },
+      {
+        "label": "Transport",
+        "now": 1100,
+        "before": 900,
+        "change": 200
+      }
+    ],
+    "empty": []
+  },
+  "categoryVsAverage": {
+    "rich": [
+      {
+        "label": "Rent",
+        "now": 7000,
+        "avg": 7000,
+        "expected": 3612.9032258064517
+      },
+      {
+        "label": "Food",
+        "now": 5190,
+        "avg": 3920,
+        "expected": 2023.225806451613
+      },
+      {
+        "label": "Inuman",
+        "now": 1200,
+        "avg": 233.33333333333334,
+        "expected": 120.43010752688173
+      },
+      {
+        "label": "Transport",
+        "now": 1100,
+        "avg": 1100,
+        "expected": 567.741935483871
+      },
+      {
+        "label": "Coffee",
+        "now": 360,
+        "avg": 0,
+        "expected": 0
+      }
+    ],
+    "sparse": [
+      {
+        "label": "Food",
+        "now": 0,
+        "avg": 120,
+        "expected": 61.935483870967744
+      }
+    ],
+    "empty": []
+  },
+  "weekdayPattern": {
+    "rich": [
+      {
+        "day": 0,
+        "avg": 580
+      },
+      {
+        "day": 1,
+        "avg": 112.5
+      },
+      {
+        "day": 2,
+        "avg": 981.25
+      },
+      {
+        "day": 3,
+        "avg": 160
+      },
+      {
+        "day": 4,
+        "avg": 875
+      },
+      {
+        "day": 5,
+        "avg": 912.5
+      },
+      {
+        "day": 6,
+        "avg": 0
+      }
+    ],
+    "empty": [
+      {
+        "day": 0,
+        "avg": 0
+      },
+      {
+        "day": 1,
+        "avg": 0
+      },
+      {
+        "day": 2,
+        "avg": 0
+      },
+      {
+        "day": 3,
+        "avg": 0
+      },
+      {
+        "day": 4,
+        "avg": 0
+      },
+      {
+        "day": 5,
+        "avg": 0
+      },
+      {
+        "day": 6,
+        "avg": 0
+      }
+    ]
+  },
+  "savingsRate": {
+    "rich": 0.4490909090909091,
+    "noIncome": null,
+    "empty": null
+  },
+  "forecastMonthEnd": {
+    "rich": {
+      "spent": 15150,
+      "projected": 29353,
+      "daysInMonth": 31,
+      "dayOfMonth": 16
+    },
+    "empty": {
+      "spent": 0,
+      "projected": 0,
+      "daysInMonth": 31,
+      "dayOfMonth": 16
+    }
+  },
+  "emergencyRunway": {
+    "rich": {
+      "buffer": 64501,
+      "avgMonthlyExpense": 12540,
+      "monthsCovered": 5.1,
+      "capped": false,
+      "firstTarget": 10000,
+      "oneMonthTarget": 12540
+    },
+    "sparse": {
+      "buffer": 120000,
+      "avgMonthlyExpense": 0,
+      "monthsCovered": null,
+      "capped": false,
+      "firstTarget": 10000,
+      "oneMonthTarget": 0
+    },
+    "empty": {
+      "buffer": 0,
+      "avgMonthlyExpense": 0,
+      "monthsCovered": null,
+      "capped": false,
+      "firstTarget": 10000,
+      "oneMonthTarget": 0
+    },
+    "hugeBuffer": {
+      "buffer": 9999999,
+      "avgMonthlyExpense": 12540,
+      "monthsCovered": 12,
+      "capped": true,
+      "firstTarget": 10000,
+      "oneMonthTarget": 12540
+    }
+  },
+  "healthScore": {
+    "rich": {
+      "total": 88,
+      "parts": {
+        "savings": 35,
+        "budget": 25,
+        "debt": 19,
+        "logging": 9
+      }
+    },
+    "sparse": {
+      "total": 25,
+      "parts": {
+        "savings": 0,
+        "budget": 0,
+        "debt": 25,
+        "logging": 0
+      }
+    },
+    "empty": {
+      "total": 25,
+      "parts": {
+        "savings": 0,
+        "budget": 0,
+        "debt": 25,
+        "logging": 0
+      }
+    },
+    "noLimit": {
+      "total": 63,
+      "parts": {
+        "savings": 35,
+        "budget": 0,
+        "debt": 19,
+        "logging": 9
+      }
+    }
+  },
+  "previousMonthLeftover": {
+    "rich": 1180,
+    "overspent": 0,
+    "noLimit": 0,
+    "quietMonth": 0
+  },
+  "goalPace": [
+    {
+      "goal": {
+        "id": "g1",
+        "name": "Emergency fund",
+        "target": 30000,
+        "saved": 12000,
+        "targetDate": "2026-12-31"
+      },
+      "result": {
+        "pct": 0.4,
+        "saved": 12000,
+        "target": 30000,
+        "remaining": 18000,
+        "targetDate": "2026-12-31",
+        "done": false,
+        "status": "active",
+        "monthsLeft": 5,
+        "perMonth": 3600,
+        "perWeek": 831
+      }
+    },
+    {
+      "goal": {
+        "id": "g2",
+        "name": "Done goal",
+        "target": 5000,
+        "saved": 5000,
+        "targetDate": "2026-01-01"
+      },
+      "result": {
+        "pct": 1,
+        "saved": 5000,
+        "target": 5000,
+        "remaining": 0,
+        "targetDate": "2026-01-01",
+        "done": true,
+        "status": "done",
+        "monthsLeft": 0,
+        "perMonth": 0,
+        "perWeek": 0
+      }
+    },
+    {
+      "goal": {
+        "id": "g3",
+        "name": "Behind goal",
+        "target": 10000,
+        "saved": 2000,
+        "targetDate": "2026-06-01"
+      },
+      "result": {
+        "pct": 0.2,
+        "saved": 2000,
+        "target": 10000,
+        "remaining": 8000,
+        "targetDate": "2026-06-01",
+        "done": false,
+        "status": "behind",
+        "monthsLeft": -1,
+        "perMonth": 8000,
+        "perWeek": 8000
+      }
+    },
+    {
+      "goal": {
+        "id": "g4",
+        "name": "Due this month",
+        "target": 8000,
+        "saved": 6000,
+        "targetDate": "2026-07-31"
+      },
+      "result": {
+        "pct": 0.75,
+        "saved": 6000,
+        "target": 8000,
+        "remaining": 2000,
+        "targetDate": "2026-07-31",
+        "done": false,
+        "status": "due-soon",
+        "monthsLeft": 0,
+        "perMonth": 2000,
+        "perWeek": 2000
+      }
+    },
+    {
+      "goal": {
+        "id": "g5",
+        "name": "Month only",
+        "target": 12000,
+        "saved": 0,
+        "targetDate": "2026-10"
+      },
+      "result": {
+        "pct": 0,
+        "saved": 0,
+        "target": 12000,
+        "remaining": 12000,
+        "targetDate": "2026-10",
+        "done": false,
+        "status": "active",
+        "monthsLeft": 3,
+        "perMonth": 4000,
+        "perWeek": 924
+      }
+    },
+    {
+      "goal": {
+        "id": "g6",
+        "name": "No date",
+        "target": 9000,
+        "saved": 100,
+        "targetDate": ""
+      },
+      "result": {
+        "pct": 0.011111111111111112,
+        "saved": 100,
+        "target": 9000,
+        "remaining": 8900,
+        "targetDate": "",
+        "done": false,
+        "status": "no-date",
+        "monthsLeft": null,
+        "perMonth": 0,
+        "perWeek": 0
+      }
+    },
+    {
+      "goal": {
+        "id": "g7",
+        "name": "Bad month",
+        "target": 9000,
+        "saved": 100,
+        "targetDate": "2026-99-10"
+      },
+      "result": {
+        "pct": 0.011111111111111112,
+        "saved": 100,
+        "target": 9000,
+        "remaining": 8900,
+        "targetDate": "2026-99-10",
+        "done": false,
+        "status": "no-date",
+        "monthsLeft": null,
+        "perMonth": 0,
+        "perWeek": 0
+      }
+    },
+    {
+      "goal": {
+        "id": "g8",
+        "name": "No target",
+        "target": 0,
+        "saved": 500,
+        "targetDate": "2026-12-31"
+      },
+      "result": {
+        "pct": 0,
+        "saved": 500,
+        "target": 0,
+        "remaining": 0,
+        "done": false,
+        "status": "no-target",
+        "monthsLeft": null,
+        "perMonth": 0,
+        "perWeek": 0,
+        "targetDate": "2026-12-31"
+      }
+    },
+    {
+      "goal": {
+        "id": "g9",
+        "name": "Junk",
+        "target": "abc",
+        "saved": -50,
+        "targetDate": "2026-08-15"
+      },
+      "result": {
+        "pct": 0,
+        "saved": 0,
+        "target": 0,
+        "remaining": 0,
+        "done": false,
+        "status": "no-target",
+        "monthsLeft": null,
+        "perMonth": 0,
+        "perWeek": 0,
+        "targetDate": "2026-08-15"
+      }
+    }
+  ],
+  "chartgeom": {
+    "sharedMax": {
+      "two": 9,
+      "junk": 1,
+      "empty": 0
+    },
+    "linePointsScaled": {
+      "normal": [
+        {
+          "x": 8,
+          "y": 112
+        },
+        {
+          "x": 102.66666666666667,
+          "y": 63.85185185185185
+        },
+        {
+          "x": 197.33333333333334,
+          "y": 15.703703703703702
+        },
+        {
+          "x": 292,
+          "y": 87.92592592592592
+        }
+      ],
+      "single": [
+        {
+          "x": 150,
+          "y": 15.703703703703702
+        }
+      ],
+      "allZero": [
+        {
+          "x": 8,
+          "y": 112
+        },
+        {
+          "x": 150,
+          "y": 112
+        },
+        {
+          "x": 292,
+          "y": 112
+        }
+      ],
+      "tiny": [
+        {
+          "x": 8,
+          "y": 8.537037037037036
+        },
+        {
+          "x": 9,
+          "y": 8.074074074074074
+        }
+      ],
+      "junk": [
+        {
+          "x": 8,
+          "y": 14.222222222222232
+        },
+        {
+          "x": 100,
+          "y": 92
+        },
+        {
+          "x": 192,
+          "y": 92
+        }
+      ]
+    },
+    "linePoints": {
+      "normal": [
+        {
+          "x": 8,
+          "y": 87.92592592592594
+        },
+        {
+          "x": 150,
+          "y": 15.703703703703715
+        },
+        {
+          "x": 292,
+          "y": 63.851851851851855
+        }
+      ],
+      "empty": []
+    }
+  },
+  "fixtures": {
+    "rich": {
+      "accounts": [
+        {
+          "id": "cash",
+          "name": "Cash",
+          "kind": "cash",
+          "balance": 8200
+        },
+        {
+          "id": "gcash",
+          "name": "GCash",
+          "kind": "ewallet",
+          "balance": 4300.5
+        },
+        {
+          "id": "bank",
+          "name": "BPI",
+          "kind": "bank",
+          "balance": 52000
+        }
+      ],
+      "assets": [
+        {
+          "id": "as1",
+          "name": "Bike",
+          "value": 25000
+        }
+      ],
+      "debts": [
+        {
+          "id": "d1",
+          "name": "Credit card",
+          "remaining": 18000,
+          "rate": 3
+        },
+        {
+          "id": "d2",
+          "name": "Utang kay Tita",
+          "remaining": 5000,
+          "rate": 0
+        }
+      ],
+      "payments": [],
+      "transactions": [
+        {
+          "id": "t0",
+          "date": "2025-12-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 24000
+        },
+        {
+          "id": "t1",
+          "date": "2025-12-28",
+          "type": "income",
+          "label": "Side gig",
+          "amount": 3000
+        },
+        {
+          "id": "t2",
+          "date": "2025-12-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t3",
+          "date": "2025-12-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3500
+        },
+        {
+          "id": "t4",
+          "date": "2025-12-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 900
+        },
+        {
+          "id": "t5",
+          "date": "2026-01-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 24500
+        },
+        {
+          "id": "t6",
+          "date": "2026-01-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t7",
+          "date": "2026-01-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3620
+        },
+        {
+          "id": "t8",
+          "date": "2026-01-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 1100
+        },
+        {
+          "id": "t9",
+          "date": "2026-02-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 25000
+        },
+        {
+          "id": "t10",
+          "date": "2026-02-28",
+          "type": "income",
+          "label": "Side gig",
+          "amount": 3000
+        },
+        {
+          "id": "t11",
+          "date": "2026-02-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t12",
+          "date": "2026-02-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3740
+        },
+        {
+          "id": "t13",
+          "date": "2026-02-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 1300
+        },
+        {
+          "id": "t14",
+          "date": "2026-02-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t15",
+          "date": "2026-03-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 25500
+        },
+        {
+          "id": "t16",
+          "date": "2026-03-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t17",
+          "date": "2026-03-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3860
+        },
+        {
+          "id": "t18",
+          "date": "2026-03-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 900
+        },
+        {
+          "id": "t19",
+          "date": "2026-03-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t20",
+          "date": "2026-03-20",
+          "type": "expense",
+          "label": "Hospital",
+          "amount": 15000
+        },
+        {
+          "id": "t21",
+          "date": "2026-04-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 26000
+        },
+        {
+          "id": "t22",
+          "date": "2026-04-28",
+          "type": "income",
+          "label": "Side gig",
+          "amount": 3000
+        },
+        {
+          "id": "t23",
+          "date": "2026-04-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t24",
+          "date": "2026-04-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 3980
+        },
+        {
+          "id": "t25",
+          "date": "2026-04-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 1100
+        },
+        {
+          "id": "t26",
+          "date": "2026-04-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t27",
+          "date": "2026-05-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 26500
+        },
+        {
+          "id": "t28",
+          "date": "2026-05-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t29",
+          "date": "2026-05-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 4100
+        },
+        {
+          "id": "t30",
+          "date": "2026-05-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 1300
+        },
+        {
+          "id": "t31",
+          "date": "2026-05-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t32",
+          "date": "2026-06-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 27000
+        },
+        {
+          "id": "t33",
+          "date": "2026-06-28",
+          "type": "income",
+          "label": "Side gig",
+          "amount": 3000
+        },
+        {
+          "id": "t34",
+          "date": "2026-06-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t35",
+          "date": "2026-06-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 4220
+        },
+        {
+          "id": "t36",
+          "date": "2026-06-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 900
+        },
+        {
+          "id": "t37",
+          "date": "2026-06-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t38",
+          "date": "2026-07-15",
+          "type": "income",
+          "label": "Sweldo",
+          "amount": 27500
+        },
+        {
+          "id": "t39",
+          "date": "2026-07-02",
+          "type": "expense",
+          "label": "Rent",
+          "amount": 7000
+        },
+        {
+          "id": "t40",
+          "date": "2026-07-05",
+          "type": "expense",
+          "label": "Food",
+          "amount": 4340
+        },
+        {
+          "id": "t41",
+          "date": "2026-07-08",
+          "type": "expense",
+          "label": "Transport",
+          "amount": 1100
+        },
+        {
+          "id": "t42",
+          "date": "2026-07-12",
+          "type": "expense",
+          "label": "Load",
+          "amount": 300
+        },
+        {
+          "id": "t43",
+          "date": "2026-07-01",
+          "type": "expense",
+          "label": "Coffee",
+          "amount": 180
+        },
+        {
+          "id": "t44",
+          "date": "2026-07-10",
+          "type": "expense",
+          "label": "Coffee",
+          "amount": 180
+        },
+        {
+          "id": "t45",
+          "date": "2026-07-14",
+          "type": "expense",
+          "label": "Food",
+          "amount": 850
+        },
+        {
+          "id": "t46",
+          "date": "2026-07-06",
+          "type": "income",
+          "label": "Migs paid you back",
+          "amount": 500,
+          "source": "receivable"
+        },
+        {
+          "id": "t47",
+          "date": "2026-07-07",
+          "type": "transfer",
+          "label": "To savings",
+          "amount": 2000,
+          "flow": "out",
+          "accountId": "cash"
+        },
+        null,
+        42,
+        {
+          "id": "junk1",
+          "type": "expense",
+          "label": "Ghost",
+          "amount": "abc",
+          "date": "2026-07-03"
+        },
+        {
+          "id": "t48",
+          "date": "2026-07-03",
+          "type": "expense",
+          "label": "Inuman",
+          "amount": 1200
+        },
+        {
+          "id": "t49",
+          "date": "2026-06-26",
+          "type": "expense",
+          "label": "Inuman",
+          "amount": 1400
+        }
+      ],
+      "settings": {
+        "monthlyLimit": 15000
+      }
+    },
+    "sparse": {
+      "accounts": [
+        {
+          "id": "c",
+          "kind": "cash",
+          "balance": 120000
+        }
+      ],
+      "assets": [],
+      "debts": [],
+      "payments": [],
+      "transactions": [
+        {
+          "id": "x1",
+          "type": "expense",
+          "label": "Food",
+          "amount": 120,
+          "date": "2026-06-20"
+        }
+      ],
+      "settings": {}
+    },
+    "empty": {
+      "accounts": [],
+      "assets": [],
+      "debts": [],
+      "payments": [],
+      "transactions": [],
+      "settings": {}
+    },
+    "goals": [
+      {
+        "id": "g1",
+        "name": "Emergency fund",
+        "target": 30000,
+        "saved": 12000,
+        "targetDate": "2026-12-31"
+      },
+      {
+        "id": "g2",
+        "name": "Done goal",
+        "target": 5000,
+        "saved": 5000,
+        "targetDate": "2026-01-01"
+      },
+      {
+        "id": "g3",
+        "name": "Behind goal",
+        "target": 10000,
+        "saved": 2000,
+        "targetDate": "2026-06-01"
+      },
+      {
+        "id": "g4",
+        "name": "Due this month",
+        "target": 8000,
+        "saved": 6000,
+        "targetDate": "2026-07-31"
+      },
+      {
+        "id": "g5",
+        "name": "Month only",
+        "target": 12000,
+        "saved": 0,
+        "targetDate": "2026-10"
+      },
+      {
+        "id": "g6",
+        "name": "No date",
+        "target": 9000,
+        "saved": 100,
+        "targetDate": ""
+      },
+      {
+        "id": "g7",
+        "name": "Bad month",
+        "target": 9000,
+        "saved": 100,
+        "targetDate": "2026-99-10"
+      },
+      {
+        "id": "g8",
+        "name": "No target",
+        "target": 0,
+        "saved": 500,
+        "targetDate": "2026-12-31"
+      },
+      {
+        "id": "g9",
+        "name": "Junk",
+        "target": "abc",
+        "saved": -50,
+        "targetDate": "2026-08-15"
+      }
+    ]
+  }
+}

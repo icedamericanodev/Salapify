@@ -1,0 +1,101 @@
+name: App check
+
+# The branch gate for app/, Salapify 3.
+#
+# Deliberately has NO paths filter, the same reasoning as flutter-check.yml: a
+# workflow skipped by a paths filter reports as "no check", and no check reads
+# like approval. It is cheap, so it runs.
+#
+# This is analyze and test only. It publishes nothing, because there is nothing
+# to publish yet: app/ has no publisher, no Shorebird app id and no stamp until
+# Phase D. When that arrives, the stamp uniqueness guard and the delivery log
+# row come with it, and this file gains the same checks flutter-check.yml has.
+
+on:
+  push:
+    branches: ['claude/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Push and pull_request fire for the same commit, so dedupe them. Cancelling is
+# safe here precisely because nothing is published.
+concurrency:
+  group: app-check-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # The pin, and it is not a preference. Shorebird decides which Flutter
+      # version the app can ship on, so this number lags stable and moving it
+      # forces a new base APK. It must match every other pin in this repo.
+      - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+          cache: true
+
+      # pub get rewrites pubspec.lock to whichever SDK ran it, and from 3.47
+      # also writes an analyzer.exclude block into analysis_options.yaml.
+      # Neither analyze nor test notices, so the tree is checked directly.
+      - name: pub get on the pinned SDK leaves the tree clean
+        run: |
+          flutter pub get
+          cd "$GITHUB_WORKSPACE"
+          if ! git diff --quiet -- app/pubspec.lock app/analysis_options.yaml; then
+            echo "::error::pub get on the pinned SDK changed pubspec.lock or analysis_options.yaml."
+            echo "Commit the result, or you are testing a tree the runner will not build."
+            git --no-pager diff -- app/pubspec.lock app/analysis_options.yaml
+            exit 1
+          fi
+
+      - name: Analyze (zero tolerance)
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      # The money engine is the reason this app is a port rather than a
+      # rewrite, and its whole guarantee is that not one number moved. A vector
+      # edited to make a test pass turns that guarantee into a story, and it
+      # would otherwise be invisible: the suite goes green either way.
+      #
+      # So the fixtures are compared against the ones the shipped app still
+      # uses. This step dies with flutter/ at cutover, and by then the vectors
+      # will have been green against two independent implementations for
+      # months, which is the only reason it is safe to lose.
+      - name: No golden vector was edited to make a test pass
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ ! -d flutter/test/goldens ]; then
+            echo "flutter/ is gone, so there is nothing left to compare against."
+            echo "Delete this step with it."
+            exit 0
+          fi
+          fail=0
+          for f in app/test/goldens/*.json; do
+            b=$(basename "$f")
+            old="flutter/test/goldens/$b"
+            if [ ! -f "$old" ]; then
+              echo "::error::$b exists in app/ but not in flutter/. A new vector is not a port."
+              fail=1
+            elif ! cmp -s "$f" "$old"; then
+              echo "::error::$b differs from the vector the shipped app uses."
+              fail=1
+            fi
+          done
+          if [ $fail -eq 0 ]; then
+            echo "All $(ls app/test/goldens/*.json | wc -l) fixtures are byte-identical to the shipped app's."
+          fi
+          exit $fail

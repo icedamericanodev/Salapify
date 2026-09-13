@@ -1,0 +1,126 @@
+{
+  "round2": [
+    {
+      "x": 0,
+      "out": 0
+    },
+    {
+      "x": 0.005,
+      "out": 0.01
+    },
+    {
+      "x": 0.004,
+      "out": 0
+    },
+    {
+      "x": 1.005,
+      "out": 1
+    },
+    {
+      "x": 2.675,
+      "out": 2.68
+    },
+    {
+      "x": -0.005,
+      "out": 0
+    },
+    {
+      "x": -1.005,
+      "out": -1
+    },
+    {
+      "x": -2.675,
+      "out": -2.67
+    },
+    {
+      "x": 12.345,
+      "out": 12.35
+    },
+    {
+      "x": -12.345,
+      "out": -12.34
+    },
+    {
+      "x": 100,
+      "out": 100
+    },
+    {
+      "x": 5000.5,
+      "out": 5000.5
+    },
+    {
+      "x": 0.30000000000000004,
+      "out": 0.3
+    },
+    {
+      "x": 999999.999,
+      "out": 1000000
+    },
+    {
+      "x": -0.001,
+      "out": 0
+    }
+  ],
+  "delta": [
+    {
+      "newAmount": 5100,
+      "oldBalance": 5000,
+      "out": 100
+    },
+    {
+      "newAmount": 5000,
+      "oldBalance": 5100,
+      "out": -100
+    },
+    {
+      "newAmount": 0,
+      "oldBalance": 5000,
+      "out": -5000
+    },
+    {
+      "newAmount": 5000,
+      "oldBalance": 0,
+      "out": 5000
+    },
+    {
+      "newAmount": 12.34,
+      "oldBalance": 0,
+      "out": 12.34
+    },
+    {
+      "newAmount": 0,
+      "oldBalance": 12.34,
+      "out": -12.34
+    },
+    {
+      "newAmount": 100.1,
+      "oldBalance": 100.05,
+      "out": 0.05
+    },
+    {
+      "newAmount": 100.05,
+      "oldBalance": 100.1,
+      "out": -0.05
+    },
+    {
+      "newAmount": 5000,
+      "oldBalance": 5000,
+      "out": 0
+    },
+    {
+      "newAmount": 0.3,
+      "oldBalance": 0,
+      "out": 0.3
+    },
+    {
+      "newAmount": 1234.555,
+      "oldBalance": 0,
+      "out": 1234.56
+    },
+    {
+      "newAmount": 0,
+      "oldBalance": 1234.555,
+      "out": -1234.55
+    }
+  ]
+}

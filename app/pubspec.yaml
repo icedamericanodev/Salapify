@@ -1,0 +1,55 @@
+name: salapify
+description: "Salapify 3. An offline budget and debt tracker for the Philippines."
+publish_to: 'none'
+
+# versionName + versionCode. The Android side reads BOTH from this one line and
+# nowhere else, so this file is the only place a version is set.
+#
+# +21 is one above the shipped app's +20, so a build of this app installs OVER
+# the old one rather than being refused as a downgrade. That is only the right
+# answer if v3 keeps the same applicationId, which is decision D4 and is NOT
+# settled: see the note in android/app/build.gradle.kts. If the founder chooses
+# a separate id so v3 can sit BESIDE their daily app, this resets to +1 and the
+# two version lines stop having anything to do with each other.
+version: 1.0.0+21
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+# Deliberately empty beyond the framework, and worth keeping that way.
+#
+# The money engine in lib/core/money is 64 files and imports NOTHING: no
+# package, not even Flutter. That was verified rather than assumed before the
+# port, and it is why 215 golden tests run without a single dependency.
+#
+# The storage layer (Phase B2) adds the four it genuinely needs:
+# sqflite_sqlcipher, flutter_secure_storage, path_provider, shared_preferences.
+# The old app also carried csv, excel, pdf, fl_chart, animations and
+# flutter_spinkit. v3 drops all six: charts are drawn by hand under one grammar
+# (D9), and export returns later if it is missed.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Plus Jakarta Sans, the one family (D7). Copied from flutter/assets/fonts,
+  # which is where the licence and the four weights already live.
+  fonts:
+    - family: Jakarta
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800

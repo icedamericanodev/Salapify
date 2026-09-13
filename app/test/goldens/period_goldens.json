@@ -1,0 +1,2886 @@
+{
+  "ref": "2026-07-28",
+  "labels": [
+    {
+      "name": "all time",
+      "period": {
+        "mode": "all"
+      },
+      "label": "All time"
+    },
+    {
+      "name": "a month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "label": "July 2026"
+    },
+    {
+      "name": "a different month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "label": "January 2026"
+    },
+    {
+      "name": "a december",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "label": "December 2025"
+    },
+    {
+      "name": "a year",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "label": "2026"
+    },
+    {
+      "name": "an old year",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "label": "2019"
+    },
+    {
+      "name": "a full custom range",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "label": "2026-06-01 to 2026-06-15"
+    },
+    {
+      "name": "custom open at the end",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "label": "From 2026-06-01"
+    },
+    {
+      "name": "custom open at the start",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "label": "Until 2026-06-15"
+    },
+    {
+      "name": "custom open at both ends",
+      "period": {
+        "mode": "custom"
+      },
+      "label": "All dates"
+    },
+    {
+      "name": "custom backwards, to before from",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "label": "2026-06-15 to 2026-06-01"
+    },
+    {
+      "name": "custom with a half typed bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "label": "2026 to 2026-06-15"
+    },
+    {
+      "name": "custom with an unpadded bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "label": "From 2026-6-1"
+    },
+    {
+      "name": "a month with no ym",
+      "period": {
+        "mode": "month"
+      },
+      "label": ""
+    },
+    {
+      "name": "a month with junk ym",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "label": ""
+    },
+    {
+      "name": "a year with no y",
+      "period": {
+        "mode": "year"
+      },
+      "label": "__undefined__"
+    },
+    {
+      "name": "a month past december",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "label": "January 2027"
+    },
+    {
+      "name": "a month zero",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "label": ""
+    },
+    {
+      "name": "no period at all",
+      "period": null,
+      "label": "All time"
+    },
+    {
+      "name": "an unknown mode falls through to month",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "label": "July 2026"
+    }
+  ],
+  "membership": [
+    {
+      "name": "all time",
+      "period": {
+        "mode": "all"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": true
+        },
+        {
+          "date": null,
+          "inside": true
+        },
+        {
+          "date": "__undefined__",
+          "inside": true
+        },
+        {
+          "date": 0,
+          "inside": true
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": true
+        }
+      ]
+    },
+    {
+      "name": "a month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a different month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a december",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a year",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "an old year",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a full custom range",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "custom open at the end",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": true
+        }
+      ]
+    },
+    {
+      "name": "custom open at the start",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "custom open at both ends",
+      "period": {
+        "mode": "custom"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": true
+        }
+      ]
+    },
+    {
+      "name": "custom backwards, to before from",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "custom with a half typed bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "custom with an unpadded bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": true
+        }
+      ]
+    },
+    {
+      "name": "a month with no ym",
+      "period": {
+        "mode": "month"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a month with junk ym",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a year with no y",
+      "period": {
+        "mode": "year"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a month past december",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "a month zero",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": false
+        },
+        {
+          "date": "2026-07-01",
+          "inside": false
+        },
+        {
+          "date": "2026-07-31",
+          "inside": false
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": false
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    },
+    {
+      "name": "no period at all",
+      "period": null,
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": true
+        },
+        {
+          "date": "2026-08-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-01",
+          "inside": true
+        },
+        {
+          "date": "2026-06-15",
+          "inside": true
+        },
+        {
+          "date": "2026-06-16",
+          "inside": true
+        },
+        {
+          "date": "2025-12-31",
+          "inside": true
+        },
+        {
+          "date": "2026-01-01",
+          "inside": true
+        },
+        {
+          "date": "2019-05-05",
+          "inside": true
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": true
+        },
+        {
+          "date": null,
+          "inside": true
+        },
+        {
+          "date": "__undefined__",
+          "inside": true
+        },
+        {
+          "date": 0,
+          "inside": true
+        },
+        {
+          "date": "2026-7-4",
+          "inside": true
+        },
+        {
+          "date": "tomorrow",
+          "inside": true
+        }
+      ]
+    },
+    {
+      "name": "an unknown mode falls through to month",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "rows": [
+        {
+          "date": "2026-07-28",
+          "inside": true
+        },
+        {
+          "date": "2026-07-01",
+          "inside": true
+        },
+        {
+          "date": "2026-07-31",
+          "inside": true
+        },
+        {
+          "date": "2026-06-30",
+          "inside": false
+        },
+        {
+          "date": "2026-08-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-01",
+          "inside": false
+        },
+        {
+          "date": "2026-06-15",
+          "inside": false
+        },
+        {
+          "date": "2026-06-16",
+          "inside": false
+        },
+        {
+          "date": "2025-12-31",
+          "inside": false
+        },
+        {
+          "date": "2026-01-01",
+          "inside": false
+        },
+        {
+          "date": "2019-05-05",
+          "inside": false
+        },
+        {
+          "date": "2026-07-28T14:30:00.000Z",
+          "inside": true
+        },
+        {
+          "date": "",
+          "inside": false
+        },
+        {
+          "date": null,
+          "inside": false
+        },
+        {
+          "date": "__undefined__",
+          "inside": false
+        },
+        {
+          "date": 0,
+          "inside": false
+        },
+        {
+          "date": "2026-7-4",
+          "inside": false
+        },
+        {
+          "date": "tomorrow",
+          "inside": false
+        }
+      ]
+    }
+  ],
+  "shifts": [
+    {
+      "name": "all time shifted by -2",
+      "period": {
+        "mode": "all"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "all"
+      }
+    },
+    {
+      "name": "all time shifted by -1",
+      "period": {
+        "mode": "all"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "all"
+      }
+    },
+    {
+      "name": "all time shifted by 1",
+      "period": {
+        "mode": "all"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "all"
+      }
+    },
+    {
+      "name": "all time shifted by 13",
+      "period": {
+        "mode": "all"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "all"
+      }
+    },
+    {
+      "name": "a month shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "2026-05"
+      }
+    },
+    {
+      "name": "a month shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-06"
+      }
+    },
+    {
+      "name": "a month shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-08"
+      }
+    },
+    {
+      "name": "a month shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "2027-08"
+      }
+    },
+    {
+      "name": "a different month shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "2025-11"
+      }
+    },
+    {
+      "name": "a different month shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "2025-12"
+      }
+    },
+    {
+      "name": "a different month shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-02"
+      }
+    },
+    {
+      "name": "a different month shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "2027-02"
+      }
+    },
+    {
+      "name": "a december shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "2025-10"
+      }
+    },
+    {
+      "name": "a december shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "2025-11"
+      }
+    },
+    {
+      "name": "a december shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-01"
+      }
+    },
+    {
+      "name": "a december shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "2027-01"
+      }
+    },
+    {
+      "name": "a year shifted by -2",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "year",
+        "y": "2024"
+      }
+    },
+    {
+      "name": "a year shifted by -1",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "year",
+        "y": "2025"
+      }
+    },
+    {
+      "name": "a year shifted by 1",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "year",
+        "y": "2027"
+      }
+    },
+    {
+      "name": "a year shifted by 13",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "year",
+        "y": "2039"
+      }
+    },
+    {
+      "name": "an old year shifted by -2",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "year",
+        "y": "2017"
+      }
+    },
+    {
+      "name": "an old year shifted by -1",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "year",
+        "y": "2018"
+      }
+    },
+    {
+      "name": "an old year shifted by 1",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "year",
+        "y": "2020"
+      }
+    },
+    {
+      "name": "an old year shifted by 13",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "year",
+        "y": "2032"
+      }
+    },
+    {
+      "name": "a full custom range shifted by -2",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "a full custom range shifted by -1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "a full custom range shifted by 1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "a full custom range shifted by 13",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom open at the end shifted by -2",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom open at the end shifted by -1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom open at the end shifted by 1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom open at the end shifted by 13",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom open at the start shifted by -2",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom open at the start shifted by -1",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom open at the start shifted by 1",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom open at the start shifted by 13",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom open at both ends shifted by -2",
+      "period": {
+        "mode": "custom"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom"
+      }
+    },
+    {
+      "name": "custom open at both ends shifted by -1",
+      "period": {
+        "mode": "custom"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom"
+      }
+    },
+    {
+      "name": "custom open at both ends shifted by 1",
+      "period": {
+        "mode": "custom"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom"
+      }
+    },
+    {
+      "name": "custom open at both ends shifted by 13",
+      "period": {
+        "mode": "custom"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom"
+      }
+    },
+    {
+      "name": "custom backwards, to before from shifted by -2",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom backwards, to before from shifted by -1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom backwards, to before from shifted by 1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom backwards, to before from shifted by 13",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      }
+    },
+    {
+      "name": "custom with a half typed bound shifted by -2",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom with a half typed bound shifted by -1",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom with a half typed bound shifted by 1",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom with a half typed bound shifted by 13",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      }
+    },
+    {
+      "name": "custom with an unpadded bound shifted by -2",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "delta": -2,
+      "out": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      }
+    },
+    {
+      "name": "custom with an unpadded bound shifted by -1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "delta": -1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      }
+    },
+    {
+      "name": "custom with an unpadded bound shifted by 1",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "delta": 1,
+      "out": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      }
+    },
+    {
+      "name": "custom with an unpadded bound shifted by 13",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "delta": 13,
+      "out": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      }
+    },
+    {
+      "name": "a month with no ym shifted by -2",
+      "period": {
+        "mode": "month"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with no ym shifted by -1",
+      "period": {
+        "mode": "month"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with no ym shifted by 1",
+      "period": {
+        "mode": "month"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with no ym shifted by 13",
+      "period": {
+        "mode": "month"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with junk ym shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with junk ym shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with junk ym shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a month with junk ym shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "NaN-NaN"
+      }
+    },
+    {
+      "name": "a year with no y shifted by -2",
+      "period": {
+        "mode": "year"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "year",
+        "y": "NaN"
+      }
+    },
+    {
+      "name": "a year with no y shifted by -1",
+      "period": {
+        "mode": "year"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "year",
+        "y": "NaN"
+      }
+    },
+    {
+      "name": "a year with no y shifted by 1",
+      "period": {
+        "mode": "year"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "year",
+        "y": "NaN"
+      }
+    },
+    {
+      "name": "a year with no y shifted by 13",
+      "period": {
+        "mode": "year"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "year",
+        "y": "NaN"
+      }
+    },
+    {
+      "name": "a month past december shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "2026-11"
+      }
+    },
+    {
+      "name": "a month past december shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-12"
+      }
+    },
+    {
+      "name": "a month past december shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "2027-02"
+      }
+    },
+    {
+      "name": "a month past december shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "2028-02"
+      }
+    },
+    {
+      "name": "a month zero shifted by -2",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "month",
+        "ym": "2025-10"
+      }
+    },
+    {
+      "name": "a month zero shifted by -1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "month",
+        "ym": "2025-11"
+      }
+    },
+    {
+      "name": "a month zero shifted by 1",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "month",
+        "ym": "2026-01"
+      }
+    },
+    {
+      "name": "a month zero shifted by 13",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "month",
+        "ym": "2027-01"
+      }
+    },
+    {
+      "name": "no period at all shifted by -2",
+      "period": null,
+      "delta": -2,
+      "out": null
+    },
+    {
+      "name": "no period at all shifted by -1",
+      "period": null,
+      "delta": -1,
+      "out": null
+    },
+    {
+      "name": "no period at all shifted by 1",
+      "period": null,
+      "delta": 1,
+      "out": null
+    },
+    {
+      "name": "no period at all shifted by 13",
+      "period": null,
+      "delta": 13,
+      "out": null
+    },
+    {
+      "name": "an unknown mode falls through to month shifted by -2",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "delta": -2,
+      "out": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      }
+    },
+    {
+      "name": "an unknown mode falls through to month shifted by -1",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "delta": -1,
+      "out": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      }
+    },
+    {
+      "name": "an unknown mode falls through to month shifted by 1",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "delta": 1,
+      "out": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      }
+    },
+    {
+      "name": "an unknown mode falls through to month shifted by 13",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "delta": 13,
+      "out": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      }
+    }
+  ],
+  "future": [
+    {
+      "name": "all time",
+      "period": {
+        "mode": "all"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-07"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a different month",
+      "period": {
+        "mode": "month",
+        "ym": "2026-01"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a december",
+      "period": {
+        "mode": "month",
+        "ym": "2025-12"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a year",
+      "period": {
+        "mode": "year",
+        "y": "2026"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "an old year",
+      "period": {
+        "mode": "year",
+        "y": "2019"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a full custom range",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01",
+        "to": "2026-06-15"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom open at the end",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-01"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom open at the start",
+      "period": {
+        "mode": "custom",
+        "to": "2026-06-15"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom open at both ends",
+      "period": {
+        "mode": "custom"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom backwards, to before from",
+      "period": {
+        "mode": "custom",
+        "from": "2026-06-15",
+        "to": "2026-06-01"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom with a half typed bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026",
+        "to": "2026-06-15"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "custom with an unpadded bound",
+      "period": {
+        "mode": "custom",
+        "from": "2026-6-1",
+        "to": ""
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a month with no ym",
+      "period": {
+        "mode": "month"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a month with junk ym",
+      "period": {
+        "mode": "month",
+        "ym": "nope"
+      },
+      "isFuture": true
+    },
+    {
+      "name": "a year with no y",
+      "period": {
+        "mode": "year"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "a month past december",
+      "period": {
+        "mode": "month",
+        "ym": "2026-13"
+      },
+      "isFuture": true
+    },
+    {
+      "name": "a month zero",
+      "period": {
+        "mode": "month",
+        "ym": "2026-00"
+      },
+      "isFuture": false
+    },
+    {
+      "name": "no period at all",
+      "period": null,
+      "isFuture": false
+    },
+    {
+      "name": "an unknown mode falls through to month",
+      "period": {
+        "mode": "weekly",
+        "ym": "2026-07"
+      },
+      "isFuture": false
+    }
+  ]
+}

@@ -1,0 +1,783 @@
+{
+ "ref": "2026-07-15",
+ "fixtures": {
+  "rich": {
+   "accounts": [
+    {
+     "id": "cash",
+     "kind": "cash",
+     "balance": 8200
+    },
+    {
+     "id": "bank",
+     "kind": "savings",
+     "balance": 42500.5
+    },
+    {
+     "id": "gcash",
+     "kind": "ewallet",
+     "balance": 1500
+    }
+   ],
+   "assets": [
+    {
+     "id": "a1",
+     "value": 15000
+    }
+   ],
+   "debts": [
+    {
+     "id": "cc",
+     "type": "credit card",
+     "remaining": 12400
+    },
+    {
+     "id": "loan",
+     "type": "personal loan",
+     "remaining": 30000
+    },
+    {
+     "id": "bnpl",
+     "type": "bnpl",
+     "remaining": 2400
+    }
+   ],
+   "receivables": [
+    {
+     "id": "r1",
+     "cashLeg": true,
+     "amount": 2000,
+     "payments": [
+      {
+       "amount": 500
+      }
+     ]
+    },
+    {
+     "id": "r2",
+     "cashLeg": false,
+     "amount": 900
+    },
+    {
+     "id": "r3",
+     "cashLeg": true,
+     "amount": 800,
+     "paid": true
+    }
+   ],
+   "payables": [
+    {
+     "id": "p1",
+     "cashLeg": true,
+     "amount": 1200,
+     "payments": []
+    }
+   ],
+   "transactions": [
+    {
+     "id": "t1",
+     "type": "income",
+     "amount": 32000,
+     "date": "2026-07-01",
+     "accountId": "bank"
+    },
+    {
+     "id": "t2",
+     "type": "income",
+     "amount": 500,
+     "date": "2026-07-03",
+     "accountId": "cash",
+     "source": "receivable"
+    },
+    {
+     "id": "t3",
+     "type": "expense",
+     "amount": 1800,
+     "date": "2026-07-04",
+     "accountId": "gcash"
+    },
+    {
+     "id": "t4",
+     "type": "expense",
+     "amount": 600,
+     "date": "2026-07-05",
+     "source": "interest"
+    },
+    {
+     "id": "t5",
+     "type": "transfer",
+     "amount": 1000,
+     "date": "2026-07-06",
+     "accountId": "cash",
+     "flow": "out"
+    },
+    {
+     "id": "t6",
+     "type": "adjustment",
+     "amount": 250,
+     "date": "2026-07-07",
+     "accountId": "cash",
+     "flow": "in"
+    },
+    {
+     "id": "t7",
+     "type": "expense",
+     "amount": 999,
+     "date": "2026-06-28",
+     "accountId": "cash"
+    },
+    {
+     "id": "t8",
+     "type": "expense",
+     "amount": 75,
+     "date": "2026-07-08"
+    },
+    {
+     "id": "t9",
+     "type": "debt",
+     "amount": 5000,
+     "date": "2026-07-09",
+     "accountId": "bank",
+     "flow": "in"
+    }
+   ],
+   "payments": [
+    {
+     "id": "pay1",
+     "amount": 1500,
+     "interest": 300,
+     "date": "2026-07-10",
+     "account": "bank"
+    },
+    {
+     "id": "pay2",
+     "amount": 800,
+     "date": "2026-07-11",
+     "account": "cash"
+    },
+    {
+     "id": "pay3",
+     "amount": 700,
+     "interest": 100,
+     "date": "2026-07-12"
+    },
+    {
+     "id": "pay4",
+     "amount": 2000,
+     "interest": 50,
+     "date": "2026-06-20",
+     "account": "bank"
+    }
+   ]
+  },
+  "empty": {},
+  "edge": {
+   "accounts": [
+    {
+     "id": "x",
+     "kind": "cash",
+     "balance": "junk"
+    }
+   ],
+   "debts": [
+    {
+     "id": "d",
+     "type": "credit card",
+     "remaining": 100
+    }
+   ],
+   "receivables": [
+    {
+     "id": "r",
+     "cashLeg": true,
+     "amount": 300,
+     "payments": [
+      {
+       "amount": 400
+      }
+     ]
+    }
+   ],
+   "transactions": [
+    {
+     "id": "q1",
+     "type": "income",
+     "amount": 50,
+     "date": "2026-07-02",
+     "accountId": "ghost"
+    },
+    {
+     "id": "q2",
+     "type": "expense",
+     "amount": "NaN",
+     "date": "2026-07-02",
+     "accountId": "x"
+    },
+    {
+     "id": "q3",
+     "type": "income",
+     "amount": 10
+    }
+   ],
+   "payments": [
+    {
+     "id": "p",
+     "amount": 100,
+     "interest": 900,
+     "date": "2026-07-03",
+     "account": "x"
+    }
+   ]
+  }
+ },
+ "statements": {
+  "rich": {
+   "netWorthParts": {
+    "accounts": 52200.5,
+    "holdings": 15000,
+    "receivables": 1500,
+    "payables": 1200,
+    "debts": 44800,
+    "assets": 68700.5,
+    "liabilities": 46000,
+    "netWorth": 22700.5
+   },
+   "balanceSheet": {
+    "cash": 8200,
+    "bank": 44000.5,
+    "receivables": 1500,
+    "investments": 15000,
+    "currentAssets": 53700.5,
+    "longTermAssets": 15000,
+    "totalAssets": 68700.5,
+    "shortDebts": 14800,
+    "longDebts": 30000,
+    "payables": 1200,
+    "currentLiabilities": 16000,
+    "longTermLiabilities": 30000,
+    "totalLiabilities": 46000,
+    "equity": 22700.5,
+    "balances": true
+   },
+   "incomeStatement": {
+    "income": 32000,
+    "expenses": 2475,
+    "interestExpense": 600,
+    "spendingExpense": 1875,
+    "netIncome": 29525
+   },
+   "cashFlowStatement": {
+    "operating": {
+     "in": 32000,
+     "out": 2100,
+     "net": 29900
+    },
+    "investing": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "financing": {
+     "in": 5500,
+     "out": 3000,
+     "net": 2500
+    },
+    "interestPaid": 300,
+    "principalPaid": 2000,
+    "netChange": 32400,
+    "reconciles": true,
+    "recorded": 32400
+   }
+  },
+  "empty": {
+   "netWorthParts": {
+    "accounts": 0,
+    "holdings": 0,
+    "receivables": 0,
+    "payables": 0,
+    "debts": 0,
+    "assets": 0,
+    "liabilities": 0,
+    "netWorth": 0
+   },
+   "balanceSheet": {
+    "cash": 0,
+    "bank": 0,
+    "receivables": 0,
+    "investments": 0,
+    "currentAssets": 0,
+    "longTermAssets": 0,
+    "totalAssets": 0,
+    "shortDebts": 0,
+    "longDebts": 0,
+    "payables": 0,
+    "currentLiabilities": 0,
+    "longTermLiabilities": 0,
+    "totalLiabilities": 0,
+    "equity": 0,
+    "balances": true
+   },
+   "incomeStatement": {
+    "income": 0,
+    "expenses": 0,
+    "interestExpense": 0,
+    "spendingExpense": 0,
+    "netIncome": 0
+   },
+   "cashFlowStatement": {
+    "operating": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "investing": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "financing": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "interestPaid": 0,
+    "principalPaid": 0,
+    "netChange": 0,
+    "reconciles": true,
+    "recorded": 0
+   }
+  },
+  "edge": {
+   "netWorthParts": {
+    "accounts": 0,
+    "holdings": 0,
+    "receivables": 0,
+    "payables": 0,
+    "debts": 100,
+    "assets": 0,
+    "liabilities": 100,
+    "netWorth": -100
+   },
+   "balanceSheet": {
+    "cash": 0,
+    "bank": 0,
+    "receivables": 0,
+    "investments": 0,
+    "currentAssets": 0,
+    "longTermAssets": 0,
+    "totalAssets": 0,
+    "shortDebts": 100,
+    "longDebts": 0,
+    "payables": 0,
+    "currentLiabilities": 100,
+    "longTermLiabilities": 0,
+    "totalLiabilities": 100,
+    "equity": -100,
+    "balances": true
+   },
+   "incomeStatement": {
+    "income": 50,
+    "expenses": 0,
+    "interestExpense": 0,
+    "spendingExpense": 0,
+    "netIncome": 50
+   },
+   "cashFlowStatement": {
+    "operating": {
+     "in": 0,
+     "out": 100,
+     "net": -100
+    },
+    "investing": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "financing": {
+     "in": 0,
+     "out": 0,
+     "net": 0
+    },
+    "interestPaid": 100,
+    "principalPaid": 0,
+    "netChange": -100,
+    "reconciles": true,
+    "recorded": -100
+   }
+  }
+ },
+ "engine": [
+  {
+   "step": [
+    "add",
+    {
+     "id": "s1",
+     "type": "income",
+     "amount": 20000,
+     "accountId": "bank"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 1000
+    },
+    {
+     "id": "bank",
+     "balance": 25000
+    }
+   ],
+   "txIds": [
+    "s1"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s2",
+     "type": "expense",
+     "amount": 250,
+     "accountId": "cash"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 750
+    },
+    {
+     "id": "bank",
+     "balance": 25000
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s3",
+     "type": "expense",
+     "amount": 75
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 750
+    },
+    {
+     "id": "bank",
+     "balance": 25000
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s4",
+     "type": "income",
+     "amount": 300,
+     "accountId": "ghost"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 750
+    },
+    {
+     "id": "bank",
+     "balance": 25000
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s5",
+     "type": "income",
+     "amount": 400,
+     "flow": "out",
+     "accountId": "cash"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 350
+    },
+    {
+     "id": "bank",
+     "balance": 25000
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s6",
+     "type": "transfer",
+     "amount": 900,
+     "flow": "in",
+     "accountId": "bank"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 350
+    },
+    {
+     "id": "bank",
+     "balance": 25900
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6"
+   ]
+  },
+  {
+   "step": [
+    "add",
+    {
+     "id": "s7",
+     "type": "expense",
+     "amount": "junk",
+     "accountId": "cash"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 350
+    },
+    {
+     "id": "bank",
+     "balance": 25900
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "update",
+    "s2",
+    {
+     "amount": 400
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 200
+    },
+    {
+     "id": "bank",
+     "balance": 25900
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "update",
+    "s2",
+    {
+     "accountId": "bank"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 600
+    },
+    {
+     "id": "bank",
+     "balance": 25500
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "update",
+    "s2",
+    {
+     "type": "income"
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 600
+    },
+    {
+     "id": "bank",
+     "balance": 26300
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "update",
+    "missing",
+    {
+     "amount": 1
+    }
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 600
+    },
+    {
+     "id": "bank",
+     "balance": 26300
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "remove",
+    "s5"
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 1000
+    },
+    {
+     "id": "bank",
+     "balance": 26300
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "remove",
+    "s3"
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 1000
+    },
+    {
+     "id": "bank",
+     "balance": 26300
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s4",
+    "s6",
+    "s7"
+   ]
+  },
+  {
+   "step": [
+    "remove",
+    "missing"
+   ],
+   "accounts": [
+    {
+     "id": "cash",
+     "balance": 1000
+    },
+    {
+     "id": "bank",
+     "balance": 26300
+    }
+   ],
+   "txIds": [
+    "s1",
+    "s2",
+    "s4",
+    "s6",
+    "s7"
+   ]
+  }
+ ]
+}

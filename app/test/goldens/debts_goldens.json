@@ -1,0 +1,4952 @@
+{
+ "today": "2026-07-18",
+ "base": {
+  "accounts": [
+   {
+    "id": "acct_gcash",
+    "name": "GCash",
+    "kind": "ewallet",
+    "balance": 25000
+   },
+   {
+    "id": "acct_bank",
+    "name": "BPI",
+    "kind": "bank",
+    "balance": 80000
+   }
+  ],
+  "debts": [
+   {
+    "id": "debt_card",
+    "name": "BPI Card",
+    "type": "credit card",
+    "remaining": 12000,
+    "monthlyRate": 3,
+    "minPayment": 600,
+    "dueDay": 25,
+    "statementDay": 5,
+    "graceDays": 0,
+    "creditLimit": 50000,
+    "interestThroughISO": "2026-06-18"
+   },
+   {
+    "id": "debt_loan",
+    "name": "Salary Loan",
+    "type": "personal loan",
+    "remaining": 40000,
+    "monthlyRate": 1.5,
+    "minPayment": 2000,
+    "dueDay": 15,
+    "statementDay": 0,
+    "graceDays": 0,
+    "creditLimit": 0,
+    "interestThroughISO": "2026-07-03"
+   },
+   {
+    "id": "debt_zero",
+    "name": "Paid Off Loan",
+    "type": "personal loan",
+    "remaining": 0,
+    "monthlyRate": 2,
+    "minPayment": 500,
+    "dueDay": 0,
+    "statementDay": 0,
+    "graceDays": 0,
+    "creditLimit": 0,
+    "interestThroughISO": "2026-05-01"
+   },
+   {
+    "id": "debt_norate",
+    "name": "Utang kay Kuya",
+    "type": "other",
+    "remaining": 5000,
+    "monthlyRate": 0,
+    "minPayment": 0,
+    "dueDay": 0,
+    "statementDay": 0,
+    "graceDays": 0,
+    "creditLimit": 0,
+    "interestThroughISO": "2026-01-10"
+   }
+  ],
+  "payments": [],
+  "transactions": [],
+  "settings": {
+   "defaultAccountId": "acct_gcash"
+  }
+ },
+ "scenarios": [
+  {
+   "name": "saves",
+   "steps": [
+    {
+     "op": "save",
+     "label": "create card full",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "  Metrobank Card ",
+       "type": "credit card",
+       "remaining": "50,000",
+       "monthlyRate": "3.5",
+       "minPayment": "1,500",
+       "dueDay": " 20 ",
+       "statementDay": "3",
+       "graceDays": "21",
+       "creditLimit": "120,000"
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "create loan commas",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "Car Loan",
+       "type": "auto",
+       "remaining": "350,000",
+       "monthlyRate": "0.8",
+       "minPayment": "9,500",
+       "dueDay": "10",
+       "statementDay": "7",
+       "graceDays": "5",
+       "creditLimit": "999"
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err empty name",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "   ",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Please enter a name.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err empty remaining",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Enter a valid remaining balance.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err junk remaining",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "abc",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Enter a valid remaining balance.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err negative rate",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "-2",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Enter a valid interest %.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err junk min",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "x1",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Enter a valid minimum payment.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err due day 32",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "32",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Payment due day should be a day from 1 to 31.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err due day frac",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "2.5",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Payment due day should be a day from 1 to 31.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err stmt day 0",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "0.5",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Statement day should be a day from 1 to 31.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err grace 90",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "3",
+       "graceDays": "90",
+       "creditLimit": ""
+      }
+     },
+     "out": "Days before due should be from 1 to 60.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err limit junk",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": "much"
+      }
+     },
+     "out": "Enter a valid credit limit, or leave it empty.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "err stmt without due",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "X",
+       "type": "credit card",
+       "remaining": "100",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "3",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "Add the days after statement until due (check your SOA, usually about 20), or a fixed due day, so reminders know when payment is due.",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "rate empty is 0",
+     "args": {
+      "form": {
+       "id": null,
+       "name": "Zero Rate",
+       "type": "other",
+       "remaining": "700",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       },
+       {
+        "name": "Zero Rate",
+        "type": "other",
+        "remaining": 700,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g2"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "edit same remaining keeps stamp",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card Gold",
+       "type": "credit card",
+       "remaining": "12000",
+       "monthlyRate": "3.4",
+       "minPayment": "650",
+       "dueDay": "25",
+       "statementDay": "5",
+       "graceDays": "",
+       "creditLimit": "60,000"
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card Gold",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3.4,
+        "minPayment": 650,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 60000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       },
+       {
+        "name": "Zero Rate",
+        "type": "other",
+        "remaining": 700,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g2"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "edit new remaining resets stamp",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "38,000",
+       "monthlyRate": "1.5",
+       "minPayment": "2000",
+       "dueDay": "15",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card Gold",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3.4,
+        "minPayment": 650,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 60000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 38000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       },
+       {
+        "name": "Zero Rate",
+        "type": "other",
+        "remaining": 700,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g2"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "edit card to loan clears card fields",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card Gold",
+       "type": "personal loan",
+       "remaining": "12000",
+       "monthlyRate": "3.4",
+       "minPayment": "650",
+       "dueDay": "25",
+       "statementDay": "5",
+       "graceDays": "21",
+       "creditLimit": "60,000"
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card Gold",
+        "type": "personal loan",
+        "remaining": 12000,
+        "monthlyRate": 3.4,
+        "minPayment": 650,
+        "dueDay": 25,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 38000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       },
+       {
+        "name": "Zero Rate",
+        "type": "other",
+        "remaining": 700,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g2"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "save",
+     "label": "edit missing id resets stamp",
+     "args": {
+      "form": {
+       "id": "debt_ghost",
+       "name": "Ghost",
+       "type": "other",
+       "remaining": "1",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": "",
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card Gold",
+        "type": "personal loan",
+        "remaining": 12000,
+        "monthlyRate": 3.4,
+        "minPayment": 650,
+        "dueDay": 25,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 38000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       },
+       {
+        "name": "Metrobank Card",
+        "type": "credit card",
+        "remaining": 50000,
+        "monthlyRate": 3.5,
+        "minPayment": 1500,
+        "dueDay": 20,
+        "statementDay": 3,
+        "graceDays": 21,
+        "creditLimit": 120000,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g0"
+       },
+       {
+        "name": "Car Loan",
+        "type": "auto",
+        "remaining": 350000,
+        "monthlyRate": 0.8,
+        "minPayment": 9500,
+        "dueDay": 10,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g1"
+       },
+       {
+        "name": "Zero Rate",
+        "type": "other",
+        "remaining": 700,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18",
+        "id": "debts_g2"
+       }
+      ],
+      "payments": [],
+      "transactions": [],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "payments",
+   "steps": [
+    {
+     "op": "apply",
+     "label": "card partial from gcash",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card",
+       "type": "credit card",
+       "remaining": "12000",
+       "monthlyRate": "3",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 2000
+     },
+     "out": {
+      "msg": "Logged ₱2,000 from GCash. ₱360 of it was interest. New balance ₱10,360.",
+      "celebrated": false,
+      "newRem": 10360
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 23000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 10360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "card second same day no accrual",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card",
+       "type": "credit card",
+       "remaining": "12000",
+       "monthlyRate": "3",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 1000
+     },
+     "out": {
+      "msg": "Logged ₱1,000 from GCash. New balance ₱9,360.",
+      "celebrated": false,
+      "newRem": 9360
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "loan payment outside app",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "40000",
+       "monthlyRate": "1.5",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": null,
+      "amt": 2000
+     },
+     "out": {
+      "msg": "Logged ₱2,000. ₱300 of it was interest. New balance ₱38,300.",
+      "celebrated": false,
+      "newRem": 38300
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 38300,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "loan overpay clamped",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "40000",
+       "monthlyRate": "1.5",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_bank",
+      "amt": 999999
+     },
+     "out": {
+      "msg": "Logged ₱38,300 from BPI. ₱961,699 was more than you owed and was not taken. New balance ₱0.",
+      "celebrated": true,
+      "newRem": 0
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "norate payment no interest txn",
+     "args": {
+      "form": {
+       "id": "debt_norate",
+       "name": "",
+       "type": "other",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 500
+     },
+     "out": {
+      "msg": "Logged ₱500 from GCash. New balance ₱4,500.",
+      "celebrated": false,
+      "newRem": 4500
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 21500
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 4500,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 500,
+        "interest": 0,
+        "principal": 500,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g10"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 500,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g11"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "zero amount noop",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card",
+       "type": "credit card",
+       "remaining": "12000",
+       "monthlyRate": "3",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 0
+     },
+     "out": {
+      "msg": "",
+      "celebrated": false,
+      "newRem": null
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 21500
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 4500,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 500,
+        "interest": 0,
+        "principal": 500,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g10"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 500,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g11"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "apply",
+     "label": "missing debt uses form fallback",
+     "args": {
+      "form": {
+       "id": "debt_ghost",
+       "name": "Ghost Debt",
+       "type": "other",
+       "remaining": "900",
+       "monthlyRate": "0",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 400
+     },
+     "out": {
+      "msg": "Logged ₱400 from GCash. New balance ₱500.",
+      "celebrated": false,
+      "newRem": 500
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 21100
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 4500,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 500,
+        "interest": 0,
+        "principal": 500,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g10"
+       },
+       {
+        "debtId": "debt_ghost",
+        "amount": 400,
+        "interest": 0,
+        "principal": 400,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g12"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 500,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g11"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Ghost Debt",
+        "amount": 400,
+        "date": "2026-07-18",
+        "debtId": "debt_ghost",
+        "id": "transactions_g13"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "log",
+     "label": "log payment comma text",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "40000",
+       "monthlyRate": "1.5",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "payAmount": "1,250"
+     },
+     "out": {
+      "msg": "Logged ₱0 from GCash. ₱1,250 was more than you owed and was not taken. New balance ₱0.",
+      "celebrated": false,
+      "newRem": 0
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 21100
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 4500,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 500,
+        "interest": 0,
+        "principal": 500,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g10"
+       },
+       {
+        "debtId": "debt_ghost",
+        "amount": 400,
+        "interest": 0,
+        "principal": 400,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g12"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 0,
+        "interest": 0,
+        "principal": 0,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g14"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 500,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g11"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Ghost Debt",
+        "amount": 400,
+        "date": "2026-07-18",
+        "debtId": "debt_ghost",
+        "id": "transactions_g13"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "log",
+     "label": "log payment junk text noop",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "40000",
+       "monthlyRate": "1.5",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "payAmount": "abc"
+     },
+     "out": {
+      "msg": "",
+      "celebrated": false,
+      "newRem": null
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 21100
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 41700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 9360,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 4500,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_card",
+        "amount": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g3"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 2000,
+        "interest": 300,
+        "principal": 1700,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g5"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 38300,
+        "interest": 0,
+        "principal": 38300,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g8"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 500,
+        "interest": 0,
+        "principal": 500,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g10"
+       },
+       {
+        "debtId": "debt_ghost",
+        "amount": 400,
+        "interest": 0,
+        "principal": 400,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g12"
+       },
+       {
+        "debtId": "debt_loan",
+        "amount": 0,
+        "interest": 0,
+        "principal": 0,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g14"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1640,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 360,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: BPI Card",
+        "amount": 1000,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "id": "transactions_g4"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 1700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g6"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g7"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 38300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g9"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 500,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g11"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Ghost Debt",
+        "amount": 400,
+        "date": "2026-07-18",
+        "debtId": "debt_ghost",
+        "id": "transactions_g13"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "interest-eats-payment",
+   "steps": [
+    {
+     "op": "apply",
+     "label": "tiny payment balance grows",
+     "args": {
+      "form": {
+       "id": "debt_card",
+       "name": "BPI Card",
+       "type": "credit card",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 100
+     },
+     "out": {
+      "msg": "Logged ₱100 from GCash. ₱100 of it was interest. That did not cover the interest, so the balance grew. New balance ₱12,260.",
+      "celebrated": false,
+      "newRem": 12260
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 24900
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12260,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 40000,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-03"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_card",
+        "amount": 100,
+        "interest": 100,
+        "principal": 0,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "pending",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "expense",
+        "label": "Interest: BPI Card",
+        "amount": 100,
+        "date": "2026-07-18",
+        "debtId": "debt_card",
+        "source": "interest",
+        "id": "transactions_g1"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "markpaid",
+   "steps": [
+    {
+     "op": "markpaid",
+     "label": "payoff loan with accrual",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_bank"
+     },
+     "out": {
+      "msg": "Logged ₱40,300 from BPI. ₱300 of it was interest. New balance ₱0.",
+      "celebrated": true
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 39700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 40300,
+        "interest": 300,
+        "principal": 40000,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 40000,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "markpaid",
+     "label": "already zero",
+     "args": {
+      "form": {
+       "id": "debt_zero",
+       "name": "Paid Off Loan",
+       "type": "personal loan",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_bank"
+     },
+     "out": {
+      "msg": "Already at zero.",
+      "celebrated": false
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 39700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 40300,
+        "interest": 300,
+        "principal": 40000,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 40000,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "markpaid",
+     "label": "payoff norate outside app",
+     "args": {
+      "form": {
+       "id": "debt_norate",
+       "name": "Utang kay Kuya",
+       "type": "other",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": null
+     },
+     "out": {
+      "msg": "Logged ₱5,000. New balance ₱0.",
+      "celebrated": true
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 25000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 39700
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 0,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 40300,
+        "interest": 300,
+        "principal": 40000,
+        "date": "2026-07-18",
+        "account": "acct_bank",
+        "status": "posted",
+        "id": "payments_g0"
+       },
+       {
+        "debtId": "debt_norate",
+        "amount": 5000,
+        "interest": 0,
+        "principal": 5000,
+        "date": "2026-07-18",
+        "account": "",
+        "status": "posted",
+        "id": "payments_g3"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 40000,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       },
+       {
+        "type": "debt",
+        "label": "Debt payment: Utang kay Kuya",
+        "amount": 5000,
+        "date": "2026-07-18",
+        "debtId": "debt_norate",
+        "id": "transactions_g4"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "delete",
+   "steps": [
+    {
+     "op": "apply",
+     "label": "pay first",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "Salary Loan",
+       "type": "personal loan",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      },
+      "payFrom": "acct_gcash",
+      "amt": 3000
+     },
+     "out": {
+      "msg": "Logged ₱3,000 from GCash. ₱300 of it was interest. New balance ₱37,300.",
+      "celebrated": false,
+      "newRem": 37300
+     },
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_loan",
+        "name": "Salary Loan",
+        "type": "personal loan",
+        "remaining": 37300,
+        "monthlyRate": 1.5,
+        "minPayment": 2000,
+        "dueDay": 15,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-07-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 3000,
+        "interest": 300,
+        "principal": 2700,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 2700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "del",
+     "label": "delete loan keeps history",
+     "args": {
+      "form": {
+       "id": "debt_loan",
+       "name": "",
+       "type": "credit card",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": null,
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 3000,
+        "interest": 300,
+        "principal": 2700,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 2700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    },
+    {
+     "op": "del",
+     "label": "delete missing noop",
+     "args": {
+      "form": {
+       "id": "debt_ghost",
+       "name": "",
+       "type": "credit card",
+       "remaining": "",
+       "monthlyRate": "",
+       "minPayment": "",
+       "dueDay": "",
+       "statementDay": "",
+       "graceDays": "",
+       "creditLimit": ""
+      }
+     },
+     "out": null,
+     "data": {
+      "accounts": [
+       {
+        "id": "acct_gcash",
+        "name": "GCash",
+        "kind": "ewallet",
+        "balance": 22000
+       },
+       {
+        "id": "acct_bank",
+        "name": "BPI",
+        "kind": "bank",
+        "balance": 80000
+       }
+      ],
+      "debts": [
+       {
+        "id": "debt_card",
+        "name": "BPI Card",
+        "type": "credit card",
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "minPayment": 600,
+        "dueDay": 25,
+        "statementDay": 5,
+        "graceDays": 0,
+        "creditLimit": 50000,
+        "interestThroughISO": "2026-06-18"
+       },
+       {
+        "id": "debt_zero",
+        "name": "Paid Off Loan",
+        "type": "personal loan",
+        "remaining": 0,
+        "monthlyRate": 2,
+        "minPayment": 500,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-05-01"
+       },
+       {
+        "id": "debt_norate",
+        "name": "Utang kay Kuya",
+        "type": "other",
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0,
+        "interestThroughISO": "2026-01-10"
+       }
+      ],
+      "payments": [
+       {
+        "debtId": "debt_loan",
+        "amount": 3000,
+        "interest": 300,
+        "principal": 2700,
+        "date": "2026-07-18",
+        "account": "acct_gcash",
+        "status": "posted",
+        "id": "payments_g0"
+       }
+      ],
+      "transactions": [
+       {
+        "type": "debt",
+        "label": "Debt payment: Salary Loan",
+        "amount": 2700,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "id": "transactions_g1"
+       },
+       {
+        "type": "expense",
+        "label": "Interest: Salary Loan",
+        "amount": 300,
+        "date": "2026-07-18",
+        "debtId": "debt_loan",
+        "source": "interest",
+        "id": "transactions_g2"
+       }
+      ],
+      "settings": {
+       "defaultAccountId": "acct_gcash"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
