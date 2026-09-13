@@ -545,7 +545,7 @@ class _NavBar extends StatelessWidget {
       ('Home', Icons.home_outlined, true),
       ('Ledger', Icons.article_outlined, false),
       ('Plan', Icons.donut_small_outlined, false),
-      ('Wallets', Icons.account_balance_wallet_outlined, false),
+      ('Accounts', Icons.account_balance_wallet_outlined, false),
     ];
     // The fade strip has to finish BEFORE the icon row starts, or the last
     // list row shows through the tabs. It did, in the first render.

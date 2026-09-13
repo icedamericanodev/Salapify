@@ -6,10 +6,12 @@ vocabulary, and no screen adds a device of its own. Home is rendered in
 mockups/hapon/, light and dark, at three transactions and at fourteen. Every
 other screen here is words waiting for a render.
 
-One naming note, unresolved: the Home render labels the fourth tab "Wallets"
-and this document says "Accounts". Both readings are defensible and it is a
-one-word change either way. Founder to pick under D3; the docs use Accounts
-until then.
+The fourth tab is **Accounts**, and the render said "Wallets" for a day. D3
+already settled it and the reason is not taste: D3's own wording picks names
+that avoid Tarsi's set, and Tarsi's word is Wallet. "It looks like we copy
+the Tarsi" is the sentence that started this whole rebuild, so a tab named
+Wallets walks straight back into it. The render was corrected, not the
+document.
 
 ## Information architecture
 

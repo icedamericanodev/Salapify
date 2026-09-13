@@ -36,6 +36,16 @@ screen (see D11). Four labels fit a phone without shrinking text. The names
 avoid Tarsi's set (Home, Wallet, Plan, History); "Ledger" is Salapify's own
 word.
 
+The Log control is a labelled pill at the RIGHT END of the bar, not a round
+button in the centre. The centre FAB is a named signature of the apps this
+must not read as.
+
+Wallet is not a synonym here, and 2026-09-13 proved the clause above earns
+its place. The first Home render labelled the fourth tab "Wallets", which is
+Tarsi's word, in a rebuild that exists because of the sentence "It looks like
+we copy the Tarsi". Nobody noticed for a day. The render was corrected to
+Accounts.
+
 Needed before: Phase 1.
 
 ## D4. Same applicationId and signing key
@@ -183,20 +193,26 @@ Debt screen more than Plan in those two weeks, it takes Plan's tab.
 
 Needed before: Phase 1 finishes the Home mockup (it is drawn as (a)).
 
-## D12. The theme lock
+## D12. The theme lock. ACTIVE from 2026-09-13
 
-Once the Phase 1 mockups are approved, these do not change without a
-founder decision: the accent, the one type family, light as reference with
-dark derived, one way to render a peso amount, the hero panel, the rail and
-the beam, no borders and no shadows, the clear as the only celebration, and
-the tab bar shape with the Log pill at its right end. The two-week test in 03
-is the check.
+The founder approved the Hapon and Gabi Home renders on 2026-09-13 ("i think
+thats good to go"). The list below is now live, not pending: changing any of
+it takes a founder decision, not a good argument.
+
+Locked: the accent, the one type family, light as reference with dark
+derived, one way to render a peso amount, the hero panel, the rail and the
+beam, no borders and no shadows, the clear as the only celebration, and the
+tab bar shape with the Log pill at its right end. The two-week test in 03 is
+the check on whether the lock was right.
 
 Two things this list used to name are deliberately gone: the amount pill,
 which reads as decoration once a list is long, and the chunky bottom edge on
 primary buttons, which was borrowed. Do not reintroduce either.
 
-Needed before: end of Phase 1.
+The lock covers the LOOK, not the screens. Log, Ledger, Plan, Accounts and
+Debt still have to be drawn, and drawing them will raise real questions about
+layout and hierarchy. Those are open. What is not open is answering one of
+them by adding a second accent, a card border, or a new signature device.
 
 ## D13. The app says Debt, not Utang. ANSWERED 2026-09-13
 
