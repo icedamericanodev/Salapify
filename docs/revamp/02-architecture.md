@@ -66,7 +66,7 @@ deletion is a founder decision, listed in 07-decisions.md.
           accounts/
           budget/
           upcoming/
-          utang/
+          debt/
           insights/
           goals/
           settings/

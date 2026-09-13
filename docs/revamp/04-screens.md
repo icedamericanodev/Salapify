@@ -1,6 +1,6 @@
 # 04. Screens
 
-Read 03-design-system.md first: the payday rail, the utang beam, the amount
+Read 03-design-system.md first: the payday rail, the debt beam, the amount
 pill, the hero, the section label, the row and the settled row are the
 whole vocabulary, and no screen adds a device of its own. The pictures
 these words describe are in mockups/ (sinag-*.png) and on page "3 Screens"
@@ -12,16 +12,16 @@ Four tabs and a Log button at the right end of the bar:
 
     [ Home ]  [ Ledger ]  [ Plan ]  [ Accounts ]   ( + Log )
 
-- Home answers "am I okay" and puts utang and what is coming right under
+- Home answers "am I okay" and puts debt and what is coming right under
   the one number.
 - Ledger is every transaction, grouped by day, searchable. (Named Ledger,
   not Activity or History, on purpose: it is the app's word.)
 - Log is a sheet, not a tab. It opens over any screen from the coral pill.
 - Plan holds Budget, Upcoming and Goals as three segments in one screen.
-- Accounts holds every account with net worth on top, and the utang
+- Accounts holds every account with net worth on top, and the debt
   totals as a section.
 
-Utang has its own screen, reached from the Utang section on Home and from
+Debt has its own screen, reached from the Debt section on Home and from
 Accounts. Whether it deserves a tab of its own is decision D11; the
 recommendation is section-plus-screen for the first two weeks, then decide
 from use.
@@ -47,9 +47,9 @@ First viewport, no scroll:
    sign and "6,240.00" in Bricolage, then one sentence in body: "About
    ₱1,560.00 a day until the 15th, bills already set aside." One phrasing,
    not three.
-3. Section label "Utang, both ways" with "See all", then the utang beam
+3. Section label "Debt, both ways" with "See all", then the debt beam
    tile (owed to you in green on the left, you owe in coral on the right,
-   the net sentence under it), then one row per open utang: monogram,
+   the net sentence under it), then one row per open debt: monogram,
    name, caption ("You owe · 3 of 6 · due Sep 18"), and the amount in a
    pill: coral when a payment is due within seven days, green when it is
    owed to you.
@@ -123,7 +123,7 @@ Upcoming:
 Goals:
 - One row per goal: name, saved of target on the right, ThinBar under the
   label, caption "₱X a month to make it by <date>". A reached goal clears
-  like a settled utang.
+  like a settled debt.
 
 ## Accounts
 
@@ -134,15 +134,15 @@ Goals:
   from the old app is kept, it is trademark-safe and earned). Credit rows
   show utilisation as a ThinBar with "10% of ₱40,000.00 limit · due Oct 3"
   in the caption.
-- Section label "Utang" with "Open", two rows: "You owe" in a coral pill
-  and "Owed to you" in a green pill, tap for the Utang screen.
+- Section label "Debt" with "Open", two rows: "You owe" in a coral pill
+  and "Owed to you" in a green pill, tap for the Debt screen.
 - Add account from the top-right action. Tap a row for its detail.
 
-## Utang
+## Debt
 
-- Title "Utang" with "+ Add", one line under it: "Both ways: what you owe,
+- Title "Debt" with "+ Add", one line under it: "Both ways: what you owe,
   and what is owed to you."
-- The utang beam tile.
+- The debt beam tile.
 - Segmented: I owe · Owed to me.
 - Section "Open": rows per person or lender: monogram, name, the amount
   due in a coral pill when a payment is within seven days, caption with

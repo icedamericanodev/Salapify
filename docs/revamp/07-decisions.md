@@ -29,9 +29,9 @@ Needed before: Phase 1, because it decides which screens get designed.
 ## D3. Tabs
 
 Options: (a) four tabs, Home · Ledger · Plan · Accounts, Log in the centre;
-(b) five tabs with Utang as a tab; (c) Utang inside Plan.
+(b) five tabs with Debt as a tab; (c) Debt inside Plan.
 
-Recommendation: (a), with Utang as the first section on Home and its own
+Recommendation: (a), with Debt as the first section on Home and its own
 screen (see D11). Four labels fit a phone without shrinking text. The names
 avoid Tarsi's set (Home, Wallet, Plan, History); "Ledger" is Salapify's own
 word.
@@ -111,7 +111,7 @@ design-director agent after the founder delegated the round:
 
 The moodboard is private inspiration. Nothing on it is copied into
 Salapify; what carries over is a colour feeling, a rail, a pill, and a
-sentence under a chart, all redrawn. The utang beam is Salapify's own.
+sentence under a chart, all redrawn. The debt beam is Salapify's own.
 
 ## D9. Charts by hand, not a library
 
@@ -133,15 +133,15 @@ Consequence for the founder: they use dark today. Phase 1 renders every
 screen in light first, then dark, and the founder should look at both,
 because they will likely live in dark while the design is judged in light.
 
-## D11. Where utang lives
+## D11. Where debt lives
 
 Options: (a) first section on Home plus its own screen, reached from Home
 and Accounts; (b) its own tab, replacing Plan or Accounts in the bar.
 
 Recommendation: (a) for the first two weeks of daily use. The ledger row
-for utang is the one element no other app has, and the panel's working
+for debt is the one element no other app has, and the panel's working
 parent wanted it above bills, so it leads Home. If the founder opens the
-Utang screen more than Plan in those two weeks, it takes Plan's tab.
+Debt screen more than Plan in those two weeks, it takes Plan's tab.
 
 Needed before: Phase 1 finishes the Home mockup (it is drawn as (a)).
 
@@ -155,3 +155,33 @@ no cards on the main screens beyond the three tiles, the tab bar shape. The
 two-week test in 03 is the check.
 
 Needed before: end of Phase 1.
+
+## D13. The app says Debt, not Utang. ANSWERED 2026-09-13
+
+Founder direction, verbatim: "amend the Utang to Debt to make english
+consistent in the entire app".
+
+So every user-facing "Utang" becomes "Debt": the Home section label, the
+screen title, the tab if it ever gets one, the quick action, and every
+sentence. The feature is unchanged. It is still both directions in one
+place, still the thing no other app does well, and the beam that shows both
+at once keeps its shape. Only the word changes.
+
+Scope, so this is not ambiguous later:
+- App UI copy: Debt, everywhere, no exceptions.
+- Code: the feature folder is app/lib/features/debt/, not utang/.
+- These docs: renamed throughout on 2026-09-13.
+- Marketing and ads: NOT changed by this decision, and still governed by
+  CLAUDE.md, which allows Filipino words as product identity flavour. If the
+  founder wants the ads to match the app, that is a separate call.
+- The frozen apps in flutter/ and mobile/ are not touched. They are frozen.
+
+This supersedes the part of CLAUDE.md's writing style rule that let "utang"
+stand as a title with an English gloss beside it. That rule was written on
+2026-07-23 and is now narrower: identity nouns may appear in marketing, not
+in the app.
+
+One word is deliberately left alone: "sweldo". The app already says payday
+everywhere the user reads, and sweldo survives only in internal names like
+the Sweldo Timeline. If the founder wants that gone too, say so and it is a
+five minute change.

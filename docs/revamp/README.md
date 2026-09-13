@@ -65,7 +65,7 @@ replaces it on the founder's phone.
 ## The pictures
 
 docs/revamp/mockups/ holds the rendered mockups of the chosen theme, Sinag
-(Home, Log sheet, Accounts, Plan, Utang, then Home in dark), and under
+(Home, Log sheet, Accounts, Plan, Debt, then Home in dark), and under
 source/ the HTML, CSS, fonts and render script that produced them, so a
 change to a token can be re-rendered the same way. The same screens sit on
 page "3 Screens" of the Figma file "Salapify 3 Design", next to the

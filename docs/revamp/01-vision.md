@@ -18,7 +18,7 @@ Every screen exists to answer one of five questions, and Home answers the
 first one before the user scrolls:
 
 1. Am I okay right now? (safe to spend until payday)
-2. What do I own and owe? (net worth, accounts, utang both ways)
+2. What do I own and owe? (net worth, accounts, debt both ways)
 3. What happened? (activity, searchable)
 4. What is coming? (bills, subscriptions, payday, due dates)
 5. Where does it go? (budget and a few insights that state a conclusion)
@@ -47,10 +47,12 @@ and if it slows down logging or adds confusion it stays out.
 6. Every chart states its own conclusion in a sentence with a number. A
    chart the user has to interpret is decoration.
 7. Offline, private, no account. Unchanged from today and not negotiable.
-8. Filipino by substance, English by copy. Payday cycles, utang both ways,
-   13th month, e-wallets and bank names are first class. Sentences read in
-   plain English; Filipino words appear as identity, with an English gloss
-   beside them.
+8. Filipino by substance, English by copy. Payday cycles, debt both ways,
+   13th month, e-wallets and bank names are first class. Every word the user
+   reads is English. Founder direction, 2026-09-13: "amend the Utang to Debt
+   to make english consistent in the entire app". So the app says Debt, not
+   Utang, everywhere, and the same test applies to any Filipino word that
+   reaches the screen. See D13.
 9. Small and finished beats large and half. Salapify 3 ships with fewer
    features than the app it replaces, every one of them polished.
 
@@ -76,12 +78,12 @@ current app's code stays in git as reference for any that return.
 | Kept | The v3 version |
 |---|---|
 | Log sheet | A fast-log field on top (typed line or amount), category chips, account, date, note. One form language shared with Edit. |
-| Home (Overview) | Safe to spend until payday, net worth, upcoming this week, utang summary. Four blocks, no scroll needed for the first two. |
+| Home (Overview) | Safe to spend until payday, net worth, upcoming this week, debt summary. Four blocks, no scroll needed for the first two. |
 | Accounts | All accounts on one screen with net worth on top. Cash, bank, e-wallet, credit. Bank cards stay (they are already good). |
 | Activity (History) | One list physics, grouped by day, search, filter, swipe to edit or delete. |
 | Budget | Monthly, per category, with remaining not just spent. Safe to spend is derived from it. |
 | Cash flow and the Sweldo Timeline | Becomes Upcoming: bills, subscriptions, due dates, payday, on one timeline. |
-| Utang and Debts | One place for both directions: I owe, owed to me. Payoff progress, next due, pay action. |
+| Debt | One place for both directions: I owe, owed to me. Payoff progress, next due, pay action. Formerly two screens, Utang and Debts, now one word and one place. |
 | Insights | Three to five charts, each with a caption sentence. No wall of cards. |
 | Goals | Simple: target, saved so far, monthly needed. |
 | Recurring | Lives inside Upcoming, not a separate destination. |

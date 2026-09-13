@@ -35,11 +35,11 @@ Three devices, and only three. Everything else in the app is plain.
    bills still to come. Under it, in the display face, "4 days to payday",
    and in caption "Sep 1 to Sep 15". It is the app's clock and the payday
    cycle's home. No other money app has a rail for a sweldo cycle.
-2. **The utang beam.** One horizontal bar split in two: the left part in
+2. **The debt beam.** One horizontal bar split in two: the left part in
    positiveSoft carrying the amount owed to you, the right part in
    accentSoft carrying the amount you owe, widths proportional to the
    amounts, labels above, and one sentence under it: "Net, you owe
-   ₱8,500.00". Utang both ways in one glance, never two stat boxes.
+   ₱8,500.00". Debt both ways in one glance, never two stat boxes.
 3. **The amount pill.** Any amount that carries a state sits in a soft
    tinted pill: green for money in, coral for due within seven days, amber
    for near a limit, red for over. Plain amounts sit bare in text colour.
@@ -48,7 +48,7 @@ Three devices, and only three. Everything else in the app is plain.
 Why this is not a known parent: Tarsi, Copilot and Ivy are dark with cards;
 Monarch is serif and cream; Revolut and Cash App are hero card and grid;
 YNAB has pills but on a blue gradient. Nothing has a payday rail or a
-two-way utang beam.
+two-way debt beam.
 
 What was deliberately left out, and must stay out: paper or beige
 backgrounds, serif type anywhere, handwriting fonts, rubber stamps, dotted
@@ -161,7 +161,7 @@ A 4-point grid: 4, 8, 12, 16, 20, 24, 32, 40. Screen gutter 20. Row height
 | Token | Radius | Used for |
 |---|---|---|
 | pill | 999 | amount pills, chips, buttons, the segmented control, the Log button |
-| tile | 20 | the three white tiles: the rail, the utang beam, the sheet (top corners) |
+| tile | 20 | the three white tiles: the rail, the debt beam, the sheet (top corners) |
 | input | 14 | text and amount fields |
 | tiny | 8 | the ThinBar ends |
 
@@ -171,7 +171,7 @@ things touch, and in dark mode on every tile. One soft shadow exists in the
 whole app, under the open Log sheet.
 
 Rows are separated by a 1 dp hairline, never boxed. Only three things are
-ever a white tile: the payday rail, the utang beam, and the Log sheet.
+ever a white tile: the payday rail, the debt beam, and the Log sheet.
 Everything else sits directly on the page.
 
 The chunky edge: the Log button and the Save button carry a 3 dp solid
@@ -188,7 +188,7 @@ Five verbs, one curve (ease out cubic).
 | glide | sheets, tab switches, row insert and remove | 250 ms |
 | roll | any amount that changes while visible | 400 ms, digits roll in tabular columns |
 | fill | the rail and every ThinBar, on first appearance | 400 ms, from the left |
-| clear | a settled utang row | turns fully positiveSoft, holds 1.2 s, then slides out; medium haptic; the one celebration |
+| clear | a settled debt row | turns fully positiveSoft, holds 1.2 s, then slides out; medium haptic; the one celebration |
 
 Reduce-motion turns every duration to zero. No ambient loops, no shimmer,
 no confetti.
@@ -207,13 +207,13 @@ because they are user data.
 |---|---|
 | AppScaffold | page background, safe area, the screen title row with an optional trailing action, the tab bar |
 | PaydayRail | the white tile with the rail label, the caption, the track, today, the bill dots and the two end labels |
-| UtangBeam | the white tile with the two-part bar, its labels, and the net sentence |
+| DebtBeam | the white tile with the two-part bar, its labels, and the net sentence |
 | HeroAmount | Bricolage amount with the accent peso sign, one sentence under it, no card |
 | SectionLabel | the uppercase DM Sans label, optional trailing "See all" |
 | Row | monogram (optional), label, caption, amount or pill; 56 tall; hairline below; the only list row |
 | AmountPill | a tinted pill around an amount in one of four states |
 | AmountText | every peso figure: sign, tabular, centavos, rolling |
-| ThinBar | a 4 dp bar that fills, for budgets, credit limits and utang progress |
+| ThinBar | a 4 dp bar that fills, for budgets, credit limits and debt progress |
 | Chip | selectable pill, used in the Log sheet and filters |
 | Segmented | two to four options in one pill-shaped control |
 | PrimaryButton, SecondaryButton, TextButton | the three button kinds; primary is coral with the chunky edge |

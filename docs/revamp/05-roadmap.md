@@ -22,7 +22,7 @@ about every screen obeying it, not about choosing it. Three deliverables:
    tokens page.
 2. The five core screens (Home, Log, Ledger, Plan > Budget, Accounts) as
    high-fidelity mockups in light, then dark. Home, Log, Accounts, Plan and
-   Utang exist as of 2026-09-12 (mockups/sinag-*.png); Ledger is next.
+   Debt exist as of 2026-09-12 (mockups/sinag-*.png); Ledger is next.
 3. One prototype flow the founder can tap through: open app, tap Log, type
    "jollibee 250", save, see Home update.
 
@@ -67,7 +67,7 @@ conversation and a journey test that taps through it:
 4. Home.
 5. Plan > Budget.
 6. Plan > Upcoming.
-7. Utang and debt detail.
+7. Debt and debt detail.
 8. Plan > Goals.
 9. Insights.
 10. Settings, backup and restore, app lock, onboarding.

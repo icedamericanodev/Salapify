@@ -1,7 +1,8 @@
 # Salapify working rules
 
-Salapify is an offline first budget, debt, and utang tracker for Filipino
-Gen Z, millennials, and working corporate adults. React Native with Expo
+Salapify is an offline first budget and debt tracker for Filipino
+Gen Z, millennials, and working corporate adults, where debt means both
+directions: what you owe and what is owed to you. React Native with Expo
 SDK 54 lives in mobile/. There is no backend; all data stays on the device
 in AsyncStorage under the key salapify_data_v2.
 
@@ -429,11 +430,21 @@ words appear only as product identity flavor (utang, sweldo).
 
 App UI copy is English first (founder decision, 2026-07-23, for the global
 launch): every user-facing sentence must read in plain English on its own.
-Filipino identity nouns (utang, sweldo, paluwagan, hatian, ipon) may stay as
+Filipino identity nouns (sweldo, paluwagan, hatian, ipon) may stay as
 titles and kickers only where an English gloss sits right beside them; inside
 sentences use the English word (payday, salary, contribution, savings). Pan
 keeps UNDERSTANDING Tagalog input (matchers and normalization stay), but its
-replies and example chips are English. Never
+replies and example chips are English.
+
+UTANG IS NO LONGER ONE OF THOSE NOUNS. Founder direction, 2026-09-13:
+"amend the Utang to Debt to make english consistent in the entire app". So
+Salapify 3 says Debt in every user-facing place, with no gloss and no
+exception, and the feature folder is debt/ not utang/. The word utang
+survives in exactly two places: marketing, where the rule above still allows
+Filipino words as product identity flavour, and the frozen apps in flutter/
+and mobile/, which are not touched. Recorded as D13 in
+docs/revamp/07-decisions.md, which also explains why sweldo was deliberately
+left alone. Never
 promise "free forever" in marketing; the truthful lines are core features
 free forever, free during early access, and early users keep Pro free.
 
