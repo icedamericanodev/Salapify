@@ -246,11 +246,11 @@ void main() {
     // Placeholder set. Replaced with the expert geometry before this is shown
     // to anyone: the harness is being proven to render first, so that when the
     // real marks arrive the only thing left to get right is the marks.
-    final candidates = provisionalCandidates();
+    final candidates = buildCandidates();
 
     tester.view.physicalSize = Size(
       920 * 2,
-      (200 + candidates.length * 148) * 2.0,
+      (150 + candidates.length * 133) * 2.0,
     );
     await tester.pumpWidget(_Sheet(candidates: candidates));
     await tester.pumpAndSettle();
@@ -265,7 +265,7 @@ void main() {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
 
-    final candidates = provisionalCandidates();
+    final candidates = buildCandidates();
 
     // "Does it stand out" is unanswerable for an icon on its own and obvious
     // in a grid. Both wallpapers, because a light home screen and a dark one
@@ -452,55 +452,260 @@ class _Row extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------- provisional
+// ---------------------------------------------------------------- the marks
 //
-// Deliberately simple, and deliberately temporary. These exist only to prove
-// the harness renders; the real geometry comes from the design pass.
-List<IconCandidate> provisionalCandidates() {
-  Widget flat(Color c) => ColoredBox(color: c);
-  Widget glyph(String s, Color c, double size, FontWeight w) => Text(
-    s,
-    style: TextStyle(
-      fontFamily: 'Jakarta',
-      fontSize: size,
-      fontWeight: w,
-      color: c,
-      height: 1.0,
+// Every path below is the design pass's own geometry, on the same 108 unit
+// grid Android uses for adaptive icons, so these coordinates drop into a
+// vector drawable with viewportWidth="108" and no conversion.
+//
+// Drawn rather than typeset, and that is the point of the whole exercise. Plus
+// Jakarta Sans HAS a peso glyph, but it is tuned for a 15 point line of text:
+// thin bars, small counter, delicate joints, all of which turn to mush at icon
+// size. The relationship to the family is kept honest by ratio instead: stem 8
+// over cap height 44 is 0.18, which is where Jakarta ExtraBold sits, so the
+// mark and the wordmark read as the same weight in a lockup.
+
+/// PISO. A drawn Philippine peso sign: money and Philippines in one shape,
+/// with no mascot, flag or coin.
+///
+/// Bowl and stem unioned with two crossbars, then the counter punched out. The
+/// counter's left edge lands exactly on the stem's right edge, which is what a
+/// real P does.
+Path pisoPath() {
+  final bowl = Path()
+    ..moveTo(46, 32)
+    ..lineTo(60, 32)
+    ..arcToPoint(const Offset(60, 60), radius: const Radius.circular(14))
+    ..lineTo(46, 60)
+    ..close();
+  final stem = Path()..addRect(const Rect.fromLTRB(46, 32, 54, 76));
+  final upperBar = Path()..addRect(const Rect.fromLTRB(36, 35, 54, 42));
+  final lowerBar = Path()..addRect(const Rect.fromLTRB(36, 50, 54, 57));
+  final counter = Path()
+    ..addOval(Rect.fromCircle(center: const Offset(60, 46), radius: 6));
+
+  var solid = Path.combine(PathOperation.union, bowl, stem);
+  solid = Path.combine(PathOperation.union, solid, upperBar);
+  solid = Path.combine(PathOperation.union, solid, lowerBar);
+  return Path.combine(PathOperation.difference, solid, counter);
+}
+
+/// SALAPI S. Two ellipses with flat cuts at both ends. An S is already two
+/// directions in one stroke, the top reaching right and the bottom reaching
+/// left, which is what debt in both directions means.
+///
+/// The butt caps are the signature: the path is within about 13 degrees of
+/// vertical at each terminal, so a flat cap reads as a near horizontal slice.
+/// Firmer and more ledger-like than the round terminals most S monograms use.
+/// The source path is `M65.3 42 A12 9 0 1 0 54 54 A12 9 0 1 1 42.7 66`.
+///
+/// SVG's sweep flag and Flutter's `clockwise` are the same idea with opposite
+/// spellings: sweep 0 is `clockwise: false`, sweep 1 is `clockwise: true`. The
+/// first version of this got BOTH backwards and rendered a squiggle rather
+/// than an S. It was obvious the moment the sheet was looked at and completely
+/// invisible to analyze, which is the entire argument for rendering candidates
+/// instead of trusting the paths.
+Path salapiSPath() {
+  return Path()
+    ..moveTo(65.3, 42)
+    ..arcToPoint(
+      const Offset(54, 54),
+      radius: const Radius.elliptical(12, 9),
+      largeArc: true,
+      clockwise: false, // sweep 0
+    )
+    ..arcToPoint(
+      const Offset(42.7, 66),
+      radius: const Radius.elliptical(12, 9),
+      largeArc: true,
+      clockwise: true, // sweep 1
+    );
+}
+
+/// BEAM. Two fat opposing arrows, the app's own debt beam as a mark. Says the
+/// one thing no competitor icon says: money moves both ways here.
+///
+/// Honest about its weakness: two opposing arrows is the international sign for
+/// transfer, sync and swap. The most MEANINGFUL of the three and the least
+/// OWNABLE.
+Path beamPath() {
+  final upper = Path()
+    ..moveTo(40, 33)
+    ..lineTo(62, 33)
+    ..lineTo(73, 40)
+    ..lineTo(62, 47)
+    ..lineTo(40, 47)
+    ..arcToPoint(const Offset(40, 33), radius: const Radius.circular(7))
+    ..close();
+  final lower = Path()
+    ..moveTo(68, 75)
+    ..lineTo(46, 75)
+    ..lineTo(35, 68)
+    ..lineTo(46, 61)
+    ..lineTo(68, 61)
+    ..arcToPoint(const Offset(68, 75), radius: const Radius.circular(7))
+    ..close();
+  return Path.combine(PathOperation.union, upper, lower);
+}
+
+/// Paints a filled path on the 108 grid.
+class MarkPainter extends CustomPainter {
+  const MarkPainter(this.path, this.colour, {this.strokeWidth});
+  final Path path;
+  final Color colour;
+
+  /// When set the path is STROKED rather than filled, with butt caps. Used by
+  /// the S, which is a centreline rather than an outline.
+  final double? strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / kCanvas);
+    final p = Paint()
+      ..color = colour
+      ..isAntiAlias = true;
+    if (strokeWidth != null) {
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth!
+        ..strokeCap = StrokeCap.butt;
+    }
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant MarkPainter old) =>
+      old.path != path || old.colour != colour;
+}
+
+Widget mark(Path path, Color colour, {double? strokeWidth}) => SizedBox(
+  width: kCanvas,
+  height: kCanvas,
+  child: CustomPaint(
+    painter: MarkPainter(path, colour, strokeWidth: strokeWidth),
+  ),
+);
+
+// ---------------------------------------------------------------- the grounds
+
+/// The app's own signature hero panel, at its exact token stops.
+///
+/// The AXIS matters and is not decoration. Run corner to corner of the full
+/// 108 canvas and the launcher crops the outer ring away, so only the middle
+/// third of the ramp is ever seen and the tile looks flat. Running it from
+/// (18,18) to (90,90) puts the whole peach to orange ramp inside the part a
+/// human actually sees.
+Widget heroGround(List<Color> stops) => DecoratedBox(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      // (18,18) and (90,90) on a 108 grid, in Alignment space.
+      begin: const Alignment(-0.667, -0.667),
+      end: const Alignment(0.667, 0.667),
+      colors: stops,
     ),
-  );
+  ),
+);
+
+Widget flatGround(Color c) => ColoredBox(color: c);
+
+/// Ink for the loud tile. Near black, and it MUST be: the obvious instinct of
+/// putting the accent orange on the orange gradient measures 2.85 to 1 against
+/// the darkest stop, which fails the 3.0 non-text bar. Orange on orange is
+/// tempting in a mockup and measurably illegible.
+const Color loudInk = Color(0xFF2A1207); // the onHero token
+
+/// The hero ramp as the design pass specified it.
+const heroStops = [Color(0xFFFFD9B0), Color(0xFFFEC078), Color(0xFFFB9C52)];
+
+/// The same ramp shifted one step deeper.
+///
+/// This exists because the two expert passes disagreed about exactly one
+/// thing and the disagreement was worth measuring rather than splitting. The
+/// store pass argued a light tile loses its edge against Play's white listing
+/// page, which is true: the hero ramp's lightest stop is 1.33 to 1 against
+/// white. Its own proposed fix, cream ink on a deep orange ramp, turned out to
+/// measure 1.86 to 1 at the light end, far under the bar, so that fix was
+/// worse than the problem. Shifting the ramp deeper while KEEPING near black
+/// ink improves the tile edge to 1.61 and still holds the ink at 5.72 worst
+/// case, which is the only option tested that satisfies both arguments.
+const heroStopsDeep = [Color(0xFFFEC078), Color(0xFFFB9C52), Color(0xFFE2751F)];
+
+List<IconCandidate> buildCandidates() {
+  final piso = pisoPath();
+  final s = salapiSPath();
+  final beam = beamPath();
 
   return [
+    // The recommendation from both passes.
     IconCandidate(
-      key: 'peso-loud',
-      name: 'Peso',
-      idea: 'placeholder',
+      key: 'piso-loud',
+      name: 'Piso',
+      idea:
+          'A drawn peso sign on the app\'s own hero panel. Says money and says '
+          'Philippines with no mascot, flag or coin. Ink 8.40:1 worst case.',
       loud: true,
-      ground: flat(hapon.accent),
-      mark: glyph('₱', const Color(0xFFFFF3E8), 56, FontWeight.w800),
+      ground: heroGround(heroStops),
+      mark: mark(piso, loudInk),
     ),
     IconCandidate(
-      key: 'peso-quiet',
-      name: 'Peso',
-      idea: 'placeholder',
-      loud: false,
-      ground: flat(gabi.bg),
-      mark: glyph('₱', gabi.accent, 56, FontWeight.w800),
-    ),
-    IconCandidate(
-      key: 'letter-loud',
-      name: 'Letter S',
-      idea: 'placeholder',
+      key: 'piso-loud-deep',
+      name: 'Piso deep',
+      idea:
+          'The same mark on a ramp shifted one step deeper, so the tile keeps '
+          'an edge on the Play listing\'s white page. Ink 5.72:1 worst case.',
       loud: true,
-      ground: flat(hapon.accent),
-      mark: glyph('S', const Color(0xFFFFF3E8), 62, FontWeight.w800),
+      ground: heroGround(heroStopsDeep),
+      mark: mark(piso, loudInk),
     ),
     IconCandidate(
-      key: 'letter-quiet',
-      name: 'Letter S',
-      idea: 'placeholder',
+      key: 'piso-quiet',
+      name: 'Piso',
+      idea:
+          'Warm brown black, never blue black, with the Gabi accent. 9.01:1. '
+          'Measures 1.01:1 against Play\'s dark surface, so it vanishes there.',
       loud: false,
-      ground: flat(hapon.bg),
-      mark: glyph('S', hapon.accent, 62, FontWeight.w800),
+      ground: flatGround(gabi.bg),
+      mark: mark(piso, gabi.accent),
+    ),
+
+    IconCandidate(
+      key: 's-loud',
+      name: 'Salapi S',
+      idea:
+          'Two ellipses with flat cut ends. The most robust of the three at '
+          'small size, and the only one that cannot sit beside the wordmark: '
+          'an S next to Salapify reads as SSalapify.',
+      loud: true,
+      ground: heroGround(heroStops),
+      mark: mark(s, loudInk, strokeWidth: 8),
+    ),
+    IconCandidate(
+      key: 's-quiet',
+      name: 'Salapi S',
+      idea: 'The same S on warm brown black.',
+      loud: false,
+      ground: flatGround(gabi.bg),
+      mark: mark(s, gabi.accent, strokeWidth: 8),
+    ),
+
+    IconCandidate(
+      key: 'beam-loud',
+      name: 'Beam',
+      idea:
+          'Two opposing arrows, the debt beam as a mark. Says what no rival '
+          'icon says, and is the least ownable: opposing arrows is the '
+          'international sign for transfer, sync and swap.',
+      loud: true,
+      ground: heroGround(heroStops),
+      mark: mark(beam, loudInk),
+    ),
+    IconCandidate(
+      key: 'beam-quiet',
+      name: 'Beam',
+      idea: 'The same beam on warm brown black.',
+      loud: false,
+      ground: flatGround(gabi.bg),
+      mark: mark(beam, gabi.accent),
     ),
   ];
 }

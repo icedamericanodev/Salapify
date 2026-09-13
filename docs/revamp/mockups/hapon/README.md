@@ -151,3 +151,10 @@ vocabulary in both skins, the four tabs, and the Log sheet, all captured from
 **[Phase C1 renders](c1/)**: the Log sheet mid-type with the fast-log parser
 reading the line, and the Ledger showing what it saved. The first batch where
 the app does something rather than showing something.
+
+## The app icon
+
+**[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship
+the stock Flutter logo), so this is the first one. Two expert passes converged
+on a drawn peso mark on a loud tile; the measurements behind that, and the one
+place they disagreed, are on that page.
