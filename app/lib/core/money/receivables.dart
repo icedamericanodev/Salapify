@@ -1,0 +1,618 @@
+// The receivables (utang) write engine, ported 1:1 from the money logic in
+// mobile/app/receivables.js (postIncome lines 289-300, logPartial 355-381,
+// markPaid 322-336, removePayment 387-395, save 122-256, del 262-275) wired
+// to the same reducer semantics as mobile/context/AppData.js. Pure: every
+// function takes the whole data map and returns a new one; ids and the date
+// are injected so tests replay the RN goldens byte for byte.
+//
+// The two honest collection cases, straight from the RN comments:
+// - Tracked utang (cashLeg): the cash left a real account when you lent, so
+//   collecting is a TRANSFER back into that account, not income. Net worth
+//   is unchanged by the round trip.
+// - Legacy utang: no cash leg recorded, so the money returning is a real
+//   inflow, posted as income tagged source receivable (savings rate leaves
+//   it out of earnings).
+
+import 'ledger.dart' as ledger;
+import 'transfers.dart' show jsNumber;
+
+bool _falsy(dynamic v) =>
+    v == null || v == false || v == '' || (v is num && (v == 0 || v.isNaN));
+
+/// JS `Number(x)` for a relational comparison, NaN preserved. Folding NaN to
+/// zero here would make an unparseable date sort as the oldest possible one
+/// instead of comparing false against everything.
+double _jsRelational(dynamic x) {
+  if (x == null) return 0;
+  if (x == true) return 1;
+  if (x == false) return 0;
+  if (x is num) return x.toDouble();
+  if (x is String) return jsNumber(x);
+  return double.nan;
+}
+
+/// RN's `Number(x) || 0` for a stored payment amount.
+double _jsAmount(dynamic x) {
+  if (x == null) return 0;
+  if (x == true) return 1;
+  if (x == false) return 0;
+  if (x is num) return x.isFinite ? x.toDouble() : 0;
+  if (x is String) {
+    final v = jsNumber(x);
+    return v.isFinite ? v : 0;
+  }
+  return 0;
+}
+
+typedef GenId = String Function(String prefix);
+
+List<Map<String, dynamic>> _list(Map<String, dynamic> data, String key) =>
+    (data[key] as List? ?? []).cast<Map<String, dynamic>>();
+
+double paidSumOf(Map<String, dynamic> r) => (r['payments'] as List? ?? []).fold(
+  0.0,
+  (t, p) => t + (p is Map ? ledger.amountOf(p['amount']) : 0.0),
+);
+
+double remainingOf(Map<String, dynamic> r) {
+  final rem = ledger.amountOf(r['amount']) - paidSumOf(r);
+  return rem > 0 ? rem : 0;
+}
+
+/// The display name for a receivable, resolved by EXACTLY the rule
+/// utangAging uses.
+///
+/// Not "similar to". The two rules decide different halves of the same
+/// screen: utangAging decides which person row you see and how much it says
+/// they owe, and this decides which utangs land in that person's sheet, which
+/// is what the statement and the reminder are built from. Any disagreement is
+/// a row saying ₱500 that opens onto nothing, or a document quietly leaving
+/// out money somebody really owes.
+///
+/// A comment here used to CLAIM the rules matched. Three ways they did not,
+/// and the first one was reproducible:
+/// - `isNotEmpty` on the raw legacy string, where utangAging trims first, so
+///   a person field of "   " grouped under "Someone" in the total and matched
+///   nobody in the sheet;
+/// - the person record's name returned untrimmed, where utangAging groups on
+///   the trimmed one, so " Ana " and "Ana" were one row and two sheets;
+/// - the FIRST person record with a matching id won here, where utangAging
+///   builds a Map so the LAST one does, which a backup carrying a duplicate
+///   id turns into an empty sheet under a renamed person.
+///
+/// This deliberately differs from RN, which takes `(p && p.name) || r.person`
+/// and therefore lets a whitespace-only name win. That divergence is the
+/// whole point: RN has no aging sheet to disagree with.
+String nameOf(Map<String, dynamic> data, Map<String, dynamic> r) {
+  var byId = '';
+  final wanted = r['personId'];
+  if (wanted is String && wanted.isNotEmpty) {
+    // Every match, not the first, because utangAging assigns into a Map and
+    // a later duplicate overwrites an earlier one.
+    for (final p in _list(data, 'people')) {
+      final id = p['id'];
+      if (id is String && id.isNotEmpty && id == wanted) {
+        final n = p['name'];
+        byId = n is String ? n.trim() : '';
+      }
+    }
+  }
+  if (byId.isNotEmpty) return byId;
+  final person = r['person'];
+  final byRow = person is String ? person.trim() : '';
+  if (byRow.isNotEmpty) return byRow;
+  return 'Someone';
+}
+
+/// One line of a person's payment history: the payment, which utang it was
+/// against, and how much they had paid back IN TOTAL as of that payment.
+class PaymentRow {
+  final String id, rid, from;
+  final double amount, running;
+
+  /// The stored date, whatever type it is. RN keeps a truthy non-string date
+  /// rather than blanking it, and that decides where the row SORTS: a blanked
+  /// date sorts as dateless and drags the running total with it. Kept raw so
+  /// the sort can follow the same rule, and read through [date] for display.
+  final dynamic rawDate;
+  const PaymentRow({
+    required this.id,
+    required this.rid,
+    required this.rawDate,
+    required this.from,
+    required this.amount,
+    required this.running,
+  });
+
+  /// The date as something a screen can print. A non-string date has no
+  /// readable form, so it shows as no date, which is what fmtDate does with
+  /// it in the statement too.
+  String get date => rawDate is String ? rawDate as String : '';
+}
+
+/// Every payment one person has made, across all of their utang, newest
+/// first, each carrying the running total received up to and including it.
+///
+/// Ported from the block inside mobile/app/person.js and golden locked against
+/// output generated by executing those exact characters. The running total is
+/// built oldest first and only then reversed, which is why the running column
+/// counts DOWN as the list is read: each row answers "how much had they paid
+/// back by this point", not "how much is left".
+///
+/// [rid] is carried because a restored backup can give two payments on two
+/// different utang the same payment id, so the id alone is not a key.
+List<PaymentRow> personPaymentHistory(dynamic receivables) {
+  final flat = <PaymentRow>[];
+  if (receivables is List) {
+    for (final r in receivables.whereType<Map>()) {
+      for (final p in (r['payments'] as List? ?? []).whereType<Map>()) {
+        // jsNumber, not amountOf. RN coerces with Number(), which accepts
+        // things double.tryParse rejects, and QA found the consequence: a
+        // stored payment of "0x10" showed ₱0 in the history and ₱16 in the
+        // statement, on the same sheet, about the same payment. The two now
+        // read a stored amount the same way.
+        final amount = _jsAmount(p['amount']);
+        final date = p['date'];
+        final note = r['note'];
+        flat.add(
+          PaymentRow(
+            id: '${p['id'] ?? ''}',
+            rid: '${r['id'] ?? ''}',
+            amount: amount,
+            rawDate: _falsy(date) ? '' : date,
+            from: note is String && note.isNotEmpty ? note : 'Utang',
+            running: 0,
+          ),
+        );
+      }
+    }
+  }
+  // Decorated with the original index because JS sort is stable and Dart's is
+  // not. Two payments logged on the same day would otherwise swap places
+  // between the two apps, and their running totals would swap with them.
+  final indexed = [for (var i = 0; i < flat.length; i++) (i, flat[i])];
+  indexed.sort((a, b) {
+    final x = a.$2.rawDate, y = b.$2.rawDate;
+    // JS relational comparison, which the RN comparator relies on without
+    // saying so. Two strings compare as strings. Otherwise BOTH sides are
+    // coerced to numbers, so a stored date of 5 sorts AFTER '' (which is 0)
+    // and ties with '2026-01-01' (which is NaN, so neither less nor greater).
+    // Modelling non-strings as simply "equal to everything" put the row in
+    // the wrong place and moved its running total with it.
+    if (x is String && y is String) {
+      final c = x.compareTo(y);
+      if (c != 0) return c < 0 ? -1 : 1;
+    } else {
+      final nx = _jsRelational(x), ny = _jsRelational(y);
+      if (!nx.isNaN && !ny.isNaN && nx != ny) return nx < ny ? -1 : 1;
+    }
+    return a.$1.compareTo(b.$1);
+  });
+  var run = 0.0;
+  final out = <PaymentRow>[];
+  for (final (_, p) in indexed) {
+    run += p.amount;
+    out.add(
+      PaymentRow(
+        id: p.id,
+        rid: p.rid,
+        rawDate: p.rawDate,
+        from: p.from,
+        amount: p.amount,
+        running: run,
+      ),
+    );
+  }
+  return out.reversed.toList();
+}
+
+Map<String, dynamic> _updateItem(
+  Map<String, dynamic> data,
+  String collection,
+  String id,
+  Map<String, dynamic> patch,
+) {
+  return {
+    ...data,
+    collection: [
+      for (final it in _list(data, collection))
+        it['id'] == id ? {...it, ...patch} : it,
+    ],
+  };
+}
+
+Map<String, dynamic> _removeItem(
+  Map<String, dynamic> data,
+  String collection,
+  String id,
+) {
+  return {
+    ...data,
+    collection: [
+      for (final it in _list(data, collection))
+        if (it['id'] != id) it,
+    ],
+  };
+}
+
+/// receivables.js postIncome. Returns (newData, txnId).
+(Map<String, dynamic>, String) _postIncome(
+  Map<String, dynamic> data,
+  Map<String, dynamic> r,
+  double amount,
+  String today,
+  GenId genId,
+) {
+  if (amount <= 0) return (data, '');
+  final accounts = _list(data, 'accounts');
+  if (r['cashLeg'] == true) {
+    final rAcct = r['accountId'];
+    final acctId =
+        (rAcct is String &&
+            rAcct.isNotEmpty &&
+            accounts.any((a) => a['id'] == rAcct))
+        ? rAcct
+        : '';
+    final entry = <String, dynamic>{
+      'type': 'transfer',
+      'flow': 'in',
+      'label': '${nameOf(data, r)} paid you back',
+      'amount': amount,
+      'date': today,
+      'source': 'receivable',
+      if (acctId.isNotEmpty) 'accountId': acctId,
+      'id': genId('transactions'),
+    };
+    return (ledger.addTransaction(data, entry), entry['id'] as String);
+  }
+  final def = (data['settings'] as Map?)?['defaultAccountId'];
+  final accountId =
+      (def is String && def.isNotEmpty && accounts.any((a) => a['id'] == def))
+      ? def
+      : '';
+  final entry = <String, dynamic>{
+    'type': 'income',
+    'label': '${nameOf(data, r)} paid you back',
+    'amount': amount,
+    'date': today,
+    'source': 'receivable',
+    if (accountId.isNotEmpty) 'accountId': accountId,
+    'id': genId('transactions'),
+  };
+  return (ledger.addTransaction(data, entry), entry['id'] as String);
+}
+
+Map<String, dynamic>? _find(Map<String, dynamic> data, String id) {
+  for (final r in _list(data, 'receivables')) {
+    if (r['id'] == id) return r;
+  }
+  return null;
+}
+
+/// receivables.js logPartial: clamp to what is still owed, post the income
+/// (or transfer back), remember the txn on the payment, settle when the last
+/// peso arrives. Junk, zero, and nothing-owed all record nothing.
+Map<String, dynamic> logPartial(
+  Map<String, dynamic> data,
+  String receivableId,
+  String payAmt, {
+  required String today,
+  required GenId genId,
+}) {
+  final r = _find(data, receivableId);
+  if (r == null) return data;
+  final cleaned = payAmt.replaceAll(RegExp(r'[, ]'), '');
+  final amount = cleaned.isEmpty
+      ? 0.0
+      : (double.tryParse(cleaned) ?? double.nan);
+  final remaining = remainingOf(r);
+  if (!amount.isFinite || amount <= 0) return data;
+  final applied = amount < remaining ? amount : remaining;
+  if (applied <= 0) return data;
+  final (next, txnId) = _postIncome(data, r, applied, today, genId);
+  final payment = {
+    'id': genId('rpay'),
+    'amount': applied,
+    'date': today,
+    'txnId': txnId,
+  };
+  final settles = applied >= remaining;
+  return _updateItem(next, 'receivables', receivableId, {
+    'payments': [...(r['payments'] as List? ?? []), payment],
+    'paid': settles,
+  });
+}
+
+/// receivables.js markPaid: settle whatever is STILL owed after partials in
+/// one settled-tagged payment, so reopening knows exactly what to reverse.
+Map<String, dynamic> markPaid(
+  Map<String, dynamic> data,
+  String receivableId, {
+  required String today,
+  required GenId genId,
+}) {
+  final r = _find(data, receivableId);
+  if (r == null) return data;
+  final remaining = remainingOf(r);
+  var next = data;
+  var payments = (r['payments'] as List? ?? []).toList();
+  if (remaining > 0) {
+    final (afterIncome, txnId) = _postIncome(data, r, remaining, today, genId);
+    next = afterIncome;
+    payments = [
+      ...payments,
+      {
+        'id': genId('rpay'),
+        'amount': remaining,
+        'date': today,
+        'txnId': txnId,
+        'settled': true,
+      },
+    ];
+  }
+  return _updateItem(next, 'receivables', receivableId, {
+    'paid': true,
+    'payments': payments,
+  });
+}
+
+/// receivables.js removePayment: reverse the linked income entry, drop the
+/// payment row, reopen the utang unless it is still fully covered.
+Map<String, dynamic> removePayment(
+  Map<String, dynamic> data,
+  String receivableId,
+  String paymentId,
+) {
+  final r = _find(data, receivableId);
+  if (r == null) return data;
+  final payments = (r['payments'] as List? ?? []).cast<Map<String, dynamic>>();
+  Map<String, dynamic>? payment;
+  for (final p in payments) {
+    if (p['id'] == paymentId) {
+      payment = p;
+      break;
+    }
+  }
+  if (payment == null) return data;
+  var next = data;
+  final txnId = payment['txnId'];
+  if (txnId is String && txnId.isNotEmpty) {
+    next = ledger.removeTransaction(next, txnId);
+  }
+  final kept = [
+    for (final p in payments)
+      if (p['id'] != paymentId) p,
+  ];
+  final newPaidSum = kept.fold(0.0, (t, p) => t + ledger.amountOf(p['amount']));
+  final stillPaid =
+      r['paid'] == true && newPaidSum >= ledger.amountOf(r['amount']);
+  return _updateItem(next, 'receivables', receivableId, {
+    'payments': kept,
+    'paid': stillPaid,
+  });
+}
+
+/// The outcome of saveReceivable: either an error code the UI explains
+/// ('name', 'amount', 'below-paid', 'date') or the new state and the saved
+/// receivable's id.
+class SaveResult {
+  final Map<String, dynamic> data;
+  final String? error;
+  final String? id;
+  const SaveResult(this.data, {this.error, this.id});
+}
+
+/// receivables.js save(): create or edit an utang. Finds or creates the
+/// person (case and spacing insensitive), records the optional lending cash
+/// leg for a NEW utang, and reconciles the paid toggle through the same
+/// money path as markPaid, so a paid utang always has its income recorded
+/// and reopening reverses ONLY settled-tagged entries.
+SaveResult saveReceivable(
+  Map<String, dynamic> data, {
+  String id = '',
+  required String person,
+  required String amountText,
+  String dueDate = '',
+  String phone = '',
+  String note = '',
+  String fromAccount = '',
+  bool paid = false,
+  required String today,
+  required GenId genId,
+}) {
+  final name = person.trim();
+  if (name.isEmpty) return SaveResult(data, error: 'name');
+  final trimmedAmt = amountText.trim();
+  final amount = trimmedAmt.isEmpty
+      ? double.nan
+      : (double.tryParse(trimmedAmt) ?? double.nan);
+  if (amountText.isEmpty || !amount.isFinite || amount < 0) {
+    return SaveResult(data, error: 'amount');
+  }
+  final list = _list(data, 'receivables');
+  Map<String, dynamic>? existing;
+  if (id.isNotEmpty) {
+    for (final x in list) {
+      if (x['id'] == id) {
+        existing = x;
+        break;
+      }
+    }
+    final already = existing != null ? paidSumOf(existing) : 0.0;
+    if (amount < already) return SaveResult(data, error: 'below-paid');
+  }
+  final dd = dueDate.trim();
+  if (dd.isNotEmpty) {
+    final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(dd);
+    var real = false;
+    if (m != null) {
+      final y = int.parse(m.group(1)!);
+      final mo = int.parse(m.group(2)!);
+      final day = int.parse(m.group(3)!);
+      final dt = DateTime(y, mo, day);
+      real = dt.month == mo && dt.day == day;
+    }
+    if (!real) return SaveResult(data, error: 'date');
+  }
+
+  var next = data;
+  final key = name.toLowerCase();
+  String personId = '';
+  for (final p in _list(next, 'people')) {
+    final pn = p['name'];
+    if (pn is String && pn.trim().toLowerCase() == key) {
+      personId = (p['id'] ?? '').toString();
+      break;
+    }
+  }
+  if (personId.isEmpty) {
+    personId = genId('people');
+    next = {
+      ...next,
+      'people': [
+        ..._list(next, 'people'),
+        {'name': name, 'phone': phone.trim(), 'note': '', 'id': personId},
+      ],
+    };
+  } else if (phone.trim().isNotEmpty) {
+    next = _updateItem(next, 'people', personId, {'phone': phone.trim()});
+  }
+
+  final wasPaid = existing != null && existing['paid'] == true;
+  final lendAcctId =
+      (id.isEmpty &&
+          fromAccount.isNotEmpty &&
+          _list(next, 'accounts').any((a) => a['id'] == fromAccount))
+      ? fromAccount
+      : '';
+  final payload = {
+    'person': name,
+    'personId': personId,
+    'amount': amount,
+    'dueDate': dd,
+    'phone': phone.trim(),
+    'note': note.trim(),
+  };
+  var savedId = id;
+  if (id.isNotEmpty) {
+    next = _updateItem(next, 'receivables', id, payload);
+  } else {
+    savedId = genId('receivables');
+    next = {
+      ...next,
+      'receivables': [
+        ..._list(next, 'receivables'),
+        {...payload, 'payments': [], 'paid': false, 'id': savedId},
+      ],
+    };
+  }
+
+  if (lendAcctId.isNotEmpty) {
+    final lendTxnId = genId('transactions');
+    next = ledger.addTransaction(next, {
+      'type': 'transfer',
+      'flow': 'out',
+      'label': 'Lent to $name',
+      'amount': amount,
+      'date': today,
+      'accountId': lendAcctId,
+      'source': 'receivable',
+      'id': lendTxnId,
+    });
+    next = _updateItem(next, 'receivables', savedId, {
+      'cashLeg': true,
+      'accountId': lendAcctId,
+      'lendTxnId': lendTxnId,
+    });
+  }
+
+  // KNOWN PARITY BUG, kept on purpose: for an EDIT of a cashLeg utang,
+  // lendAcctId is always empty, so flipping paid here would post income to
+  // the default account instead of a transfer back into the lending
+  // account. The RN app has the identical bug (receivables.js:217), the
+  // goldens replay it, and no Flutter UI passes id with paid yet. Fix it in
+  // BOTH apps together (route through the stored cashLeg and accountId)
+  // before any edit-utang UI ships.
+  final collectRef = {
+    'person': name,
+    'personId': personId,
+    'cashLeg': lendAcctId.isNotEmpty,
+    'accountId': lendAcctId,
+  };
+  final priorPayments = (existing?['payments'] as List? ?? [])
+      .cast<Map<String, dynamic>>();
+  if (paid) {
+    final priorPaid = priorPayments.fold(
+      0.0,
+      (t, p) => t + ledger.amountOf(p['amount']),
+    );
+    final remaining = (amount - priorPaid) > 0 ? (amount - priorPaid) : 0.0;
+    var payments = priorPayments.toList();
+    if (remaining > 0) {
+      final (afterIncome, txnId) = _postIncome(
+        next,
+        collectRef,
+        remaining,
+        today,
+        genId,
+      );
+      next = afterIncome;
+      payments = [
+        ...priorPayments,
+        {
+          'id': genId('rpay'),
+          'amount': remaining,
+          'date': today,
+          'txnId': txnId,
+          'settled': true,
+        },
+      ];
+    }
+    next = _updateItem(next, 'receivables', savedId, {
+      'paid': true,
+      'payments': payments,
+    });
+  } else if (wasPaid) {
+    final settledTagged = priorPayments
+        .where((p) => p['settled'] == true)
+        .toList();
+    var payments = priorPayments.toList();
+    if (settledTagged.isNotEmpty) {
+      for (final p in settledTagged) {
+        final txnId = p['txnId'];
+        if (txnId is String && txnId.isNotEmpty) {
+          next = ledger.removeTransaction(next, txnId);
+        }
+      }
+      payments = priorPayments.where((p) => p['settled'] != true).toList();
+    }
+    next = _updateItem(next, 'receivables', savedId, {
+      'paid': false,
+      'payments': payments,
+    });
+  }
+  return SaveResult(next, id: savedId);
+}
+
+/// receivables.js del(): reverse every linked income entry and the lending
+/// outflow, then remove the utang, so deleting never leaves phantom income
+/// or a lend that never returns.
+Map<String, dynamic> deleteReceivable(
+  Map<String, dynamic> data,
+  String receivableId,
+) {
+  final r = _find(data, receivableId);
+  if (r == null) return _removeItem(data, 'receivables', receivableId);
+  var next = data;
+  for (final p in (r['payments'] as List? ?? []).cast<Map<String, dynamic>>()) {
+    final txnId = p['txnId'];
+    if (txnId is String && txnId.isNotEmpty) {
+      next = ledger.removeTransaction(next, txnId);
+    }
+  }
+  final lendTxnId = r['lendTxnId'];
+  if (lendTxnId is String && lendTxnId.isNotEmpty) {
+    next = ledger.removeTransaction(next, lendTxnId);
+  }
+  return _removeItem(next, 'receivables', receivableId);
+}
