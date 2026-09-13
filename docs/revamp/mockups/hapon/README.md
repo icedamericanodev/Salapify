@@ -13,29 +13,71 @@ the same hues one step over: a warm brown black page and the same light panel,
 slightly deeper so it is not a lamp at night. There is no third option and no
 theme picker. See D10 and D13 in ../../07-decisions.md.
 
-## The pictures
+## The screens
 
-Every one exists twice, once per skin. `hapon-` is light, `gabi-` is dark.
+Every screen exists twice, once per skin. Gabi (dark) is on the left because
+that is what the founder uses; Hapon (light) is the reference the design is
+judged in. Both come out of identical layout code, so the only thing that
+differs across a row is colour. Anything else that differs is a bug.
 
-| File | What it shows |
+GitHub renders this page, so scrolling it IS the review. No checkout, no
+download, no tooling.
+
+### Home
+
+Approved and locked by the founder on 2026-09-13.
+
+| Gabi, dark | Hapon, light |
 |---|---|
-| `<skin>.png` | Home, first viewport. Approved and locked 2026-09-13 |
-| `<skin>-scrolled.png` | Home after one scroll |
-| `<skin>-dense.png` | The Latest list at fourteen transactions, the real daily state |
-| `<skin>-dense-bottom.png` | The bottom of that list, behind the tab bar |
-| `<skin>-log.png` | The Log sheet, over Home, scrim and all |
-| `<skin>-ledger.png`, `-ledger-scrolled.png` | Ledger, grouped by day |
-| `<skin>-plan.png`, `-plan-scrolled.png` | Plan, Budget segment |
-| `<skin>-accounts.png`, `-accounts-scrolled.png` | Accounts, net worth on top |
-| `<skin>-debt.png` | Debt, both directions |
+| ![Home, Gabi](gabi.png) | ![Home, Hapon](hapon.png) |
+| ![Home scrolled, Gabi](gabi-scrolled.png) | ![Home scrolled, Hapon](hapon-scrolled.png) |
 
-The dense pair matters most. A design that only works at three transactions is
-not a design, so the fixture logs fourteen and the renders show what the page
-looks like once the founder has actually been using it.
+The real daily state, with fourteen transactions logged rather than three. A
+design that only works at three transactions is not a design, and the
+hairlines, the single icon tint and the uncoloured amounts were all added only
+after this fixture existed.
 
-The Log sheet is rendered OVER Home rather than alone, because that is how it
-is actually seen. Logging is the heartbeat, so the thing to judge is whether
-the sheet reads well against a screen that is still there behind it.
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Home dense, Gabi](gabi-dense.png) | ![Home dense, Hapon](hapon-dense.png) |
+| ![Home list bottom, Gabi](gabi-dense-bottom.png) | ![Home list bottom, Hapon](hapon-dense-bottom.png) |
+
+### Log
+
+The heartbeat. Rendered OVER Home, scrim and all, because that is how it is
+actually seen: the thing to judge is whether the sheet reads well against a
+screen that is still there behind it.
+
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Log sheet, Gabi](gabi-log.png) | ![Log sheet, Hapon](hapon-log.png) |
+
+### Ledger
+
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Ledger, Gabi](gabi-ledger.png) | ![Ledger, Hapon](hapon-ledger.png) |
+| ![Ledger scrolled, Gabi](gabi-ledger-scrolled.png) | ![Ledger scrolled, Hapon](hapon-ledger-scrolled.png) |
+
+### Plan
+
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Plan, Gabi](gabi-plan.png) | ![Plan, Hapon](hapon-plan.png) |
+| ![Plan scrolled, Gabi](gabi-plan-scrolled.png) | ![Plan scrolled, Hapon](hapon-plan-scrolled.png) |
+
+### Accounts
+
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Accounts, Gabi](gabi-accounts.png) | ![Accounts, Hapon](hapon-accounts.png) |
+| ![Accounts scrolled, Gabi](gabi-accounts-scrolled.png) | ![Accounts scrolled, Hapon](hapon-accounts-scrolled.png) |
+
+### Debt
+
+| Gabi, dark | Hapon, light |
+|---|---|
+| ![Debt, Gabi](gabi-debt.png) | ![Debt, Hapon](hapon-debt.png) |
 
 ## Three defects these renders caught
 

@@ -167,6 +167,14 @@ necessary adjustments". Three things that sentence settles:
    the link. Two routes, because one of them failing silently is what caused
    the founder to ask twice.
 
+   The committed route only counts if it RENDERS. A folder of PNGs in git is
+   storage, not a review surface: the founder asked "how can I view these
+   screens on GitHub" while twenty four of them were already committed, which
+   is the whole point. So the folder's README embeds every render inline, dark
+   and light side by side in a table, and GitHub then renders the page. Every
+   future batch of screens gets the same treatment in the same file, because a
+   picture nobody can open proves nothing.
+
 A feature reported as finished with no picture the founder can open is not
 finished, however green the tests are.
 
