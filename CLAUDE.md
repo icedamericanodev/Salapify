@@ -1,27 +1,37 @@
 # Salapify working rules
 
-Salapify is an offline first budget, debt, and utang tracker for Filipino
-Gen Z, millennials, and working corporate adults. React Native with Expo
+Salapify is an offline first budget and debt tracker for Filipino
+Gen Z, millennials, and working corporate adults, where debt means both
+directions: what you owe and what is owed to you. React Native with Expo
 SDK 54 lives in mobile/. There is no backend; all data stays on the device
 in AsyncStorage under the key salapify_data_v2.
 
-## Canonical masterfile (founder direction, 2026-08-12)
+## Canonical masterfile (founder direction, 2026-09-11)
 
-The governing product and engineering masterfile is
-docs/Salapify_Master_Constitution.md (Master Constitution v2), adopted by
-founder direction on 2026-08-12. It supersedes previous Salapify master
-plans, implementation frameworks, package plans, UI and UX plans, connector
-plans, and architectural guidance, and it is the top authority below direct
-founder direction. These working rules stay fully in force as the concrete
-enforcement of that constitution (stamp discipline, golden locks,
-delivery-log truth, the guard hooks, the merge rules, no em or en dashes,
-and the rest); where a genuine conflict exists, the constitution wins. The
-constitution runs an autonomous-by-default Tier 1 and Tier 2 model: routine
-engineering proceeds without asking, and the founder-gated categories
-(money methodology, data or migration, security or privacy, material
-product or UX forks, cloud, external cost, irreversible changes, merge or
-release) still stop for the founder. That model layers on top of, and does
-not loosen, the specific STOP conditions already written below.
+The governing document set is docs/revamp/ (start at docs/revamp/README.md),
+adopted by founder direction on 2026-09-11: rebuild Salapify from the ground
+up, documentation first, then architecture, then UI and UX design, then
+features, for the founder's own daily use before anyone else's. It replaces
+docs/Salapify_Master_Constitution.md (Master Constitution v2, 2026-08-12) as
+the top authority below direct founder direction. The constitution file stays
+in the repository unedited, as history and because
+flutter/test/constitution_citation_test.dart reads its path; nothing in it
+binds work any more, and where the two disagree docs/revamp wins.
+
+These working rules stay fully in force as the concrete enforcement layer
+(stamp discipline, golden locks, delivery-log truth, the guard hooks, the
+merge rules, no em or en dashes, and the rest). docs/revamp/09-working-rules.md
+carries the short autonomy model: routine engineering inside an approved
+phase proceeds without asking, and the founder-gated categories (money
+meaning, stored data, security or privacy, a real product fork, deleting
+files that exist on main, merge or release) still stop for the founder. That
+layers on top of, and does not loosen, the STOP conditions written below.
+
+Until the new app in app/ replaces it on the founder's phone (Phase 4 in
+docs/revamp/05-roadmap.md), flutter/ is FROZEN: no feature work, only a fix
+the founder needs on the phone they use daily. Every rule below about
+flutter/ delivery still applies to such a fix. mobile/ is frozen the same
+way. Neither is deleted until the founder says so (decision D5).
 
 The constitution file is a verbatim reproduction of the founder's document,
 so its own punctuation is preserved exactly as delivered. Do NOT normalize
@@ -420,11 +430,21 @@ words appear only as product identity flavor (utang, sweldo).
 
 App UI copy is English first (founder decision, 2026-07-23, for the global
 launch): every user-facing sentence must read in plain English on its own.
-Filipino identity nouns (utang, sweldo, paluwagan, hatian, ipon) may stay as
+Filipino identity nouns (sweldo, paluwagan, hatian, ipon) may stay as
 titles and kickers only where an English gloss sits right beside them; inside
 sentences use the English word (payday, salary, contribution, savings). Pan
 keeps UNDERSTANDING Tagalog input (matchers and normalization stay), but its
-replies and example chips are English. Never
+replies and example chips are English.
+
+UTANG IS NO LONGER ONE OF THOSE NOUNS. Founder direction, 2026-09-13:
+"amend the Utang to Debt to make english consistent in the entire app". So
+Salapify 3 says Debt in every user-facing place, with no gloss and no
+exception, and the feature folder is debt/ not utang/. The word utang
+survives in exactly two places: marketing, where the rule above still allows
+Filipino words as product identity flavour, and the frozen apps in flutter/
+and mobile/, which are not touched. Recorded as D13 in
+docs/revamp/07-decisions.md, which also explains why sweldo was deliberately
+left alone. Never
 promise "free forever" in marketing; the truthful lines are core features
 free forever, free during early access, and early users keep Pro free.
 
@@ -576,10 +596,14 @@ any of these, however clean the change looks:
    destructive reset, dropping commits whose contents you are unsure of,
    deleting another actor's work, or rewriting shared history. Never force-push
    unless a rule in this file names that exact situation.
-9. Merge or release. Never merge a PR, trigger a manual production release, or
-   publish a Shorebird patch outside the repository's own automatic flow. The
-   founder approves the final merge (this revises the 2026-07-03 rule below);
-   everything else in the merge rules still binds.
+9. Release, but no longer the merge. Never trigger a manual production release
+   or publish a Shorebird patch outside the repository's own automatic flow.
+   MERGING IS NO LONGER A STOP: founder direction on 2026-09-13 handed it to
+   Claude ("Happy for you to merge we have agents for that"). See the merge
+   rules below, whose conditions every merge must still satisfy in full. The
+   founder removed the approval step, not the checks, and conditions 1 to 8
+   above are untouched: they stop the WORK, before it is done, not the merge at
+   the end.
 
 One writer per feature branch. One phase or feature branch is owned by one
 active writing Claude session; subagents inside that session are fine. Separate
@@ -629,13 +653,40 @@ GitHub's mergeability metadata is ambiguous, an "unstable" or "pending" legacy
 status while the authoritative required check is green, report the nuance and do
 not treat the legacy field as the truth. Still do not merge; the founder does.
 
-## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10)
+## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10 and again 2026-09-13)
 
-The FINAL merge is the founder's decision, not Claude's (see Autonomous phase
-execution above). Claude reviews, prepares, verifies and PRESENTS every PR under
-all the conditions below; the founder approves the merge itself. Everything else
-in this section stands unchanged, and the conditions below are now the bar for
-presenting a PR for that approval, when ALL of these hold:
+Claude merges. Founder direction, 2026-09-13, verbatim: "Happy for you to merge
+we have agents for that, fix any issues and flag to any major that needed my
+review". This replaces the 2026-08-10 rule that reserved the final merge for
+the founder, and it replaces STOP condition 9's first clause in the autonomy
+section above. Do not stop and ask for a merge; merge, and report what
+happened.
+
+Everything else in this section is UNCHANGED and still binds. The conditions
+below were the bar for presenting a PR; they are now the bar for merging one,
+and every one of them still has to hold. The founder removed the approval step,
+not the checks. In particular, a red or unfinished check is still a stop, "the
+founder said merge" is not a waiver, and the delivery rules after this section
+apply exactly as before: merged is still not delivered.
+
+Two things this direction does NOT delegate, because they are not merges:
+1. The founder-gated categories in STOP conditions 1 to 8 above (money meaning,
+   stored data, security or privacy, a real product fork, scope expansion, a
+   behavioural conflict, an intent change, a destructive git operation). Those
+   still stop, BEFORE the work, not at the merge.
+2. Anything that could permanently lose user data, which that section already
+   says goes to the founder before merging and still does.
+
+"Flag any major that needed my review" is the other half of the direction and
+carries equal weight. Merging without asking is not merging without telling.
+Say clearly, right after the merge, what shipped and why it is significant,
+using the existing definition of significant in this section: stored data shape
+or migration logic, money math, backup and restore, security or app lock,
+notifications scheduling, monetization or pricing, deleting or replacing user
+data, or anything requiring an APK rebuild. A merge that is none of those gets
+a short factual line, not a silence and not an essay.
+
+The conditions, ALL of which must hold before the merge:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked. Record it as a row in
   docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when
