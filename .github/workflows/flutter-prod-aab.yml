@@ -61,7 +61,7 @@ jobs:
           if [ -n "$missing" ]; then
             echo "Missing production signing secret(s):$missing"
             echo "Production signing needs the upload keystore added as repo secrets."
-            echo "See docs/launch-checklist.md, 'Production upload key', for how to"
+            echo "See docs/archive/launch-checklist.md, 'Production upload key', for how to"
             echo "create the keystore and add SALAPIFY_UPLOAD_KEYSTORE_BASE64,"
             echo "SALAPIFY_UPLOAD_STORE_PASSWORD, SALAPIFY_UPLOAD_KEY_ALIAS, and"
             echo "SALAPIFY_UPLOAD_KEY_PASSWORD."

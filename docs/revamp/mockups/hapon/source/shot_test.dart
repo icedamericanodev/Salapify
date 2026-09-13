@@ -1,7 +1,9 @@
-// Renders the chosen skin to real PNGs.
+// Renders every screen in both skins to real PNGs.
 // Run: flutter test test/shot_test.dart --update-goldens
+//
 // Fonts MUST be loaded inside tester.runAsync, because testWidgets uses a fake
-// clock and real file reads never complete inside it.
+// clock and real file reads never complete inside it. That gotcha cost two
+// rounds of founder screenshots.
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,14 +37,19 @@ Future<void> loadRealFonts() async {
   await icons.load();
 }
 
-Future<void> _shoot(WidgetTester tester, String name, {double drag = 0}) async {
+Future<void> _shoot(
+  WidgetTester tester,
+  Pane pane,
+  String name, {
+  double drag = 0,
+}) async {
   // A UNIQUE KEY, deliberately. pumpWidget with the same const instance is a
   // no op, so the first version of this helper produced four identical PNGs
   // and every later drag and the dense fixture silently did nothing.
-  await tester.pumpWidget(PreviewApp(key: UniqueKey()));
+  await tester.pumpWidget(PreviewApp(key: UniqueKey(), screen: pane));
   await tester.pumpAndSettle();
   if (drag != 0) {
-    await tester.drag(find.byType(ListView), Offset(0, -drag));
+    await tester.drag(find.byType(ListView).first, Offset(0, -drag));
     await tester.pumpAndSettle();
   }
   await expectLater(
@@ -55,7 +62,7 @@ void main() {
   // Light and dark render from identical layout code, so the pictures differ
   // only in colour. Anything else that differs is a bug.
   for (final s in allSkins) {
-    testWidgets('home ${s.key}', (tester) async {
+    testWidgets('screens ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       skin = s;
       addTearDown(() {
@@ -67,14 +74,32 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
 
-      await _shoot(tester, s.key);
-      await _shoot(tester, '${s.key}-scrolled', drag: 560);
+      await _shoot(tester, Pane.home, s.key);
+      await _shoot(tester, Pane.home, '${s.key}-scrolled', drag: 560);
 
       // The real daily state. A list of three is a brochure; this is what the
       // screen looks like once the founder has actually been logging.
       dense = true;
-      await _shoot(tester, '${s.key}-dense', drag: 900);
-      await _shoot(tester, '${s.key}-dense-bottom', drag: 2400);
+      await _shoot(tester, Pane.home, '${s.key}-dense', drag: 900);
+      await _shoot(tester, Pane.home, '${s.key}-dense-bottom', drag: 2400);
+      dense = false;
+
+      // Logging is the heartbeat, so the sheet is rendered over Home the way
+      // it is actually seen, scrim and all.
+      await _shoot(tester, Pane.log, '${s.key}-log');
+
+      await _shoot(tester, Pane.ledger, '${s.key}-ledger');
+      await _shoot(tester, Pane.ledger, '${s.key}-ledger-scrolled', drag: 620);
+      await _shoot(tester, Pane.plan, '${s.key}-plan');
+      await _shoot(tester, Pane.plan, '${s.key}-plan-scrolled', drag: 620);
+      await _shoot(tester, Pane.accounts, '${s.key}-accounts');
+      await _shoot(
+        tester,
+        Pane.accounts,
+        '${s.key}-accounts-scrolled',
+        drag: 620,
+      );
+      await _shoot(tester, Pane.debt, '${s.key}-debt');
     });
   }
 }

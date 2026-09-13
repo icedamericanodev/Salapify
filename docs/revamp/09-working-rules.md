@@ -57,6 +57,27 @@ first, then light, before the PR is presented. The founder reviews the
 picture, not the diff. This rule already exists in CLAUDE.md; it is
 repeated here because it is the one that catches what tests cannot.
 
+Founder direction, 2026-09-13: "make sure to show my the screen for the
+features added and built so I can review and we can make the necessary
+adjustments". So it covers every feature built, not only a change to a
+screen that already existed, and the point is adjustment while adjustment
+is still cheap. Show it at the preview stage, when a redraw costs minutes,
+and again when it is built.
+
+Past a couple of images, publish a review page the founder can open in one
+tap AND commit the PNGs, then hand over the link. Both, because a set of
+screenshots was sent on that same day and did not reach them, which is why
+the instruction had to be given twice.
+
+It is worth knowing what looking has actually bought. On 2026-09-13 one
+render pass caught three defects that flutter analyze and every test in the
+project were blind to: a whole sheet of labels carrying Flutter's
+no-Material underline, a credit card drawing an empty progress bar for a
+plan that does not exist, and a liability rendered in the same ink as an
+asset on a net worth screen. None of those is a subtle taste call. All
+three are wrong, and all three were obvious the moment somebody opened the
+picture.
+
 ## Small and finished
 
 One screen or one feature per PR. A PR that touches three screens is three

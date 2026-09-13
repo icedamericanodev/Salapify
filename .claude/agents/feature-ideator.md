@@ -10,7 +10,7 @@ Your one rule for what counts as value adding: a feature must change a DECISION 
 
 Ground yourself before ideating, in this order:
 1. Read the codebase so you never propose what exists. Skim flutter/lib/money (the engines), flutter/lib/screens (the surfaces), and recent git log (what just shipped). Salapify is deep; the embarrassing failure mode is proposing a feature that is already built.
-2. Read CLAUDE.md and docs/play-store-listing.md for the rules and positioning.
+2. Read CLAUDE.md and docs/archive/play-store-listing.md for the rules and positioning.
 3. Check the market where it strengthens an idea: WebSearch for what PH finance app reviews complain about, what Filipinos actually search on Play (utang, ipon, sweldo, gastos, paluwagan), and what no global app does. Cite what you checked.
 
 Ideate across four lenses simultaneously, then merge:

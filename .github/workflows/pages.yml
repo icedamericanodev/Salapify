@@ -23,12 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # The landing site (marketing page + privacy policy) at the Pages root.
+      # The landing site (start page + privacy policy) at the Pages root.
+      # The Peso Smart PWA that used to live here (index.html as a 300 KB
+      # single-file app, plus manifest.json, sw.js and its two icons) was
+      # deleted on 2026-09-13: it was two product generations old and it was
+      # what the public URL served.
       - name: Collect landing site files
         run: |
           mkdir -p _site
-          cp index.html 404.html manifest.json sw.js robots.txt privacy.html _site/ 2>/dev/null || true
-          cp icon-192.png icon-512.png _site/ 2>/dev/null || true
+          # No "|| true" here, deliberately. privacy.html is load bearing:
+          # Google Play requires that URL to keep resolving, and the previous
+          # version of this step swallowed a missing file silently, which is
+          # exactly how it would go missing without anyone noticing.
+          cp privacy.html index.html 404.html robots.txt _site/
           ls -la _site
 
       # The actual app, built for the browser and served under /app so it
