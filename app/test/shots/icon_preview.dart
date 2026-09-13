@@ -454,103 +454,8 @@ class _Row extends StatelessWidget {
   }
 }
 
-// ================================================================ round two
-//
-// The founder rejected round one entirely: "i dont like anything, you can get
-// inspiration from dribbble or other resources do not limit yourself and
-// explore."
-//
-// The exploration that followed looked at eleven real references and came back
-// with a device for each, because the fault in round one was compositional and
-// not chromatic. Every one of those six was a flat symbol centred on a plain
-// tile. It also caught a fourth fault nobody had named: the marks were SMALL,
-// around 45 percent of tile width with dead gradient all round them. Good
-// icons either fill the tile or deliberately crop it.
-//
-// THREE MEASURED FINDINGS THAT CHANGED THE BRIEF.
-//
-// 1. A one-value tile cannot hold an edge on both Play surfaces, and a SPLIT
-//    tile can. #FB9C52 is 2.10 against Play's white listing page and 8.90
-//    against its dark surface; #2A1207 is 17.68 and 1.06. Neither wins twice.
-//    A tile carrying both keeps an edge either way, because whichever surface
-//    eats one half, the other half still cuts. Round one never tested this and
-//    treated loud versus quiet as a matter of taste.
-//
-// 2. Two hero-ramp tones cannot be told apart. #FFD9B0 against #FB9C52
-//    measures 1.58, under the 3.0 non-text bar. (The exploration said 1.87;
-//    re-measuring here gives 1.58, which makes its own point harder, not
-//    softer.) So a layering direction needs a deliberately chosen dark tone at
-//    the overlap, never a blend mode.
-//
-// 3. THE 48px FLOOR, once, as a number. 108 units render to 48px at 0.667px
-//    per unit, so nothing thinner than 6 units and no gap narrower than 6
-//    units. Round one's peso had 7-unit bars with an 8-unit gap, which is
-//    exactly why its own write-up admitted they softened.
-//
-// Two colours below are NOT tokens and must never enter tokens.dart:
-// #FFF3E6 (Capiz only, the hero ramp continued one step so the light has a
-// peak) and #8A2F07 (Dalawa only, the only tone that clears 3.0 against both
-// planes at once, at 6.35 and 4.01).
-
 /// The app's own signature hero panel, at its exact token stops.
 const heroStops = [Color(0xFFFFD9B0), Color(0xFFFEC078), Color(0xFFFB9C52)];
-
-Widget flatGround(Color c) => ColoredBox(color: c);
-
-/// A ground with the mark punched OUT of it, so the mark is the hole and
-/// whatever sits behind shows through.
-///
-/// Round one could not express this, and it is part of why all six looked like
-/// siblings: every mark was a flat shape sitting ON a tile, because that was
-/// the only thing this file could draw.
-///
-/// It needs its own painter rather than a sibling in the Stack, because a
-/// widget can only erase pixels sharing its layer, so ground and hole have to
-/// be painted together inside one saveLayer.
-class CutoutGround extends StatelessWidget {
-  const CutoutGround({
-    super.key,
-    required this.path,
-    this.colour,
-    this.gradient,
-  }) : assert(
-         colour != null || gradient != null,
-         'A cutout ground needs something to cut out of.',
-       );
-
-  final Path path;
-  final Color? colour;
-  final Gradient? gradient;
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _CutoutPainter(path, colour, gradient));
-}
-
-class _CutoutPainter extends CustomPainter {
-  const _CutoutPainter(this.path, this.colour, this.gradient);
-  final Path path;
-  final Color? colour;
-  final Gradient? gradient;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.saveLayer(rect, Paint());
-    final ground = Paint();
-    if (gradient != null) {
-      ground.shader = gradient!.createShader(rect);
-    } else {
-      ground.color = colour!;
-    }
-    canvas.drawRect(rect, ground);
-    canvas.drawPath(path, Paint()..blendMode = BlendMode.clear);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _CutoutPainter old) => false;
-}
 
 /// The hero ramp as a shader across an arbitrary rect on the 108 grid.
 Shader _heroShader(Rect r, {Alignment begin = Alignment.topLeft}) =>
@@ -895,6 +800,380 @@ class ResiboTotal extends CustomPainter {
 
 Widget _painted(CustomPainter p) => CustomPaint(painter: p);
 
+// ============================================================== round three
+//
+// Rounds one and two were both rejected, and the founder's note on the second
+// was the one both deserved: "make it related to Salapify or Pan atleast."
+//
+// It is correct. Every candidate so far was formally competent and had nothing
+// to do with THIS app. A counterchanged disc, a cropped stroke, a bitten
+// corner: all of them would suit any warm-toned product.
+//
+// WHAT PAN ACTUALLY IS, which nobody had written into the revamp docs. From
+// flutter/lib/widgets/pan_mascot.dart: a chibi panda "who cradles his cup of
+// kapeng Barako, with a peso sign rising in the steam and a coffee-cherry
+// sprout on his head".
+//
+// That sentence explains the palette. The theme system is named BARAKO, after
+// Philippine coffee. The warm orange was never arbitrary and the first two
+// rounds were drawing an abstract orange that merely happened to match it.
+//
+// FOUNDER DECISION: icon only, Pan stays cut. The icon inherits Pan's
+// OBJECT, not his face, and D2 is untouched. That also sidesteps a real trap:
+// this rebuild exists because of "it looks like we copy the Tarsi", and an
+// animal mascot on the icon beside a competitor named after an animal invites
+// exactly that comparison. The cup is Pan without being a panda.
+//
+// Pan and Pan Cut are included anyway, because the founder named Pan and
+// should SEE a geometric Pan rather than be told one would not work.
+
+/// The cup Pan cradles, as a silhouette on the 108 grid.
+///
+/// Tapered, because a straight-sided rectangle reads as a mug or a box and the
+/// taper is what makes it a cup at 48px. The handle is a separate stroked arc
+/// so it can be dropped for the smallest sizes without redrawing the body.
+Path barakoCup({double top = 46, double bottom = 88}) {
+  final h = bottom - top;
+  final path = Path()
+    ..moveTo(28, top)
+    ..lineTo(80, top)
+    ..lineTo(74, bottom - h * 0.18)
+    ..quadraticBezierTo(72, bottom, 64, bottom)
+    ..lineTo(44, bottom)
+    ..quadraticBezierTo(36, bottom, 34, bottom - h * 0.18)
+    ..close();
+  return path;
+}
+
+/// The handle, as a stroked arc. Stroke 7, above the 6 unit floor.
+Path barakoHandle() =>
+    Path()..addArc(const Rect.fromLTWH(72, 52, 24, 24), -1.15, 2.3);
+
+/// The peso, scaled and placed anywhere on the grid.
+///
+/// The canonical drawing sits in a 38 x 44 box centred at (55, 54) and is the
+/// one from round one, kept because its proportions were never the problem:
+/// stem 8 over cap height 44 is 0.18, which is where Jakarta ExtraBold sits,
+/// so it reads as the same weight as the wordmark.
+Path pesoAt({required double cx, required double cy, required double height}) {
+  final bowl = Path()
+    ..moveTo(46, 32)
+    ..lineTo(60, 32)
+    ..arcToPoint(const Offset(60, 60), radius: const Radius.circular(14))
+    ..lineTo(46, 60)
+    ..close();
+  var solid = Path.combine(
+    PathOperation.union,
+    bowl,
+    Path()..addRect(const Rect.fromLTRB(46, 32, 54, 76)),
+  );
+  for (final r in [
+    const Rect.fromLTRB(36, 35, 54, 42),
+    const Rect.fromLTRB(36, 50, 54, 57),
+  ]) {
+    solid = Path.combine(PathOperation.union, solid, Path()..addRect(r));
+  }
+  solid = Path.combine(
+    PathOperation.difference,
+    solid,
+    Path()..addOval(Rect.fromCircle(center: const Offset(60, 46), radius: 6)),
+  );
+
+  final s = height / 44.0;
+  final m = Matrix4.identity()
+    ..translateByDouble(cx, cy, 0, 1)
+    ..scaleByDouble(s, s, 1, 1)
+    ..translateByDouble(-55, -54, 0, 1);
+  return solid.transform(m.storage);
+}
+
+/// 1. BARAKO. Pan's cup, bold, with two steam curls.
+///
+/// The purest form of the object. Coffee is not decoration here: the theme
+/// system is named after it.
+class BarakoCup extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final ink = Paint()..color = kInk;
+    canvas.drawPath(barakoCup(), ink);
+    canvas.drawPath(
+      barakoHandle(),
+      Paint()
+        ..color = kInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Steam. Stroke 7, above the 6 unit floor, so it holds at 48px.
+    final steam = Paint()
+      ..color = kInk
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    for (final cx in [44.0, 63.0]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx, 38)
+          ..quadraticBezierTo(cx - 8, 29, cx, 22)
+          ..quadraticBezierTo(cx + 8, 15, cx, 9),
+        steam,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 2. BARAKO PISO. The cup cropped off the bottom edge, a big peso as steam.
+///
+/// Composition: bleeds off the bottom, so the tile is a window rather than a
+/// frame. The peso carries the meaning and the cup grounds it.
+class BarakoPiso extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final ink = Paint()..color = kInk;
+    // The rim, then the body running off the bottom edge.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTRB(22, 76, 86, 88),
+        const Radius.circular(5),
+      ),
+      ink,
+    );
+    canvas.drawRect(const Rect.fromLTRB(30, 88, 78, 110), ink);
+
+    canvas.drawPath(pesoAt(cx: 54, cy: 40, height: 58), ink);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 3. BUTO. A coffee bean whose centre crease IS an S.
+///
+/// One shape doing two jobs: Barako, and the initial of Salapify. The crease
+/// is cut through to the gradient rather than drawn, so it is a groove.
+class ButoBean extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.saveLayer(r, Paint());
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    // The bean, rotated so it sits on a diagonal and crops at two corners.
+    final bean = Path()
+      ..addOval(
+        Rect.fromCenter(center: const Offset(54, 54), width: 84, height: 66),
+      );
+    final m = Matrix4.identity()
+      ..translateByDouble(54, 54, 0, 1)
+      ..rotateZ(-32 * math.pi / 180)
+      ..translateByDouble(-54, -54, 0, 1);
+    canvas.drawPath(bean.transform(m.storage), Paint()..color = kInk);
+
+    // The crease, cleared straight through the bean to the gradient below. An
+    // S rather than the usual straight groove: the letter and the bean are the
+    // same line.
+    final crease = Path()
+      ..moveTo(28, 66)
+      ..cubicTo(48, 78, 60, 30, 80, 42);
+    canvas.drawPath(
+      crease.transform(m.storage),
+      Paint()
+        ..blendMode = BlendMode.clear
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 9
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 4. BUNGA. The coffee cherry and two leaves from Pan's own head.
+///
+/// Composition: off centre and small, with a lot of empty tile. Extreme scale
+/// contrast, borrowed from Flighty. The most delicate of the seven and the one
+/// most likely to fail at 48px, which the render will settle.
+class BungaCherry extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final ink = Paint()..color = kInk;
+
+    // Stem, thick enough to survive: 7 units.
+    canvas.drawPath(
+      Path()
+        ..moveTo(56, 74)
+        ..quadraticBezierTo(54, 56, 58, 42),
+      Paint()
+        ..color = kInk
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Two leaves, as mirrored teardrops off the stem.
+    for (final dir in [-1.0, 1.0]) {
+      final leaf = Path()
+        ..moveTo(58, 44)
+        ..quadraticBezierTo(58 + dir * 26, 30, 58 + dir * 8, 20)
+        ..quadraticBezierTo(58 + dir * 2, 32, 58, 44)
+        ..close();
+      canvas.drawPath(leaf, ink);
+    }
+
+    // The cherry itself, low and left of the stem.
+    canvas.drawCircle(const Offset(46, 80), 16, ink);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// The panda head as pure geometry, used by 5 and 6.
+///
+/// Circles only, because Pan's shipped art is soft 3D and soft 3D becomes a
+/// smudge at 48px. What makes a panda recognisable is not shading, it is two
+/// dark ears on a round head and two dark eye patches.
+Path pandaEars() {
+  var p = Path()
+    ..addOval(Rect.fromCircle(center: const Offset(31, 33), radius: 14));
+  p = Path.combine(
+    PathOperation.union,
+    p,
+    Path()..addOval(Rect.fromCircle(center: const Offset(77, 33), radius: 14)),
+  );
+  return p;
+}
+
+Path pandaEyes() {
+  var p = Path()
+    ..addOval(
+      Rect.fromCenter(center: const Offset(43, 58), width: 17, height: 21),
+    );
+  p = Path.combine(
+    PathOperation.union,
+    p,
+    Path()..addOval(
+      Rect.fromCenter(center: const Offset(65, 58), width: 17, height: 21),
+    ),
+  );
+  return p;
+}
+
+/// 5. PAN. The panda head, drawn as geometry rather than as rendered art.
+class PandaHead extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.drawRect(r, Paint()..shader = _heroShader(r));
+
+    final ink = Paint()..color = kInk;
+    canvas.drawPath(pandaEars(), ink);
+    canvas.drawCircle(const Offset(54, 60), 31, Paint()..color = kCream);
+    canvas.drawPath(pandaEyes(), ink);
+    canvas.drawCircle(const Offset(54, 72), 4.5, ink);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 6. PAN CUT. The same head as negative space punched from a slab of ink.
+class PandaCut extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = Rect.fromLTRB(0, 0, 108, 108);
+    canvas.saveLayer(r, Paint());
+    canvas.drawRect(r, Paint()..color = kInk);
+
+    final clear = Paint()..blendMode = BlendMode.clear;
+    canvas.drawCircle(const Offset(54, 60), 31, clear);
+    canvas.drawPath(pandaEars(), clear);
+    canvas.restore();
+
+    // The eyes go back ON in ink, so the head reads as a face rather than as a
+    // blank hole.
+    canvas.drawPath(pandaEyes(), Paint()..color = kInk);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// 7. BASO. The cup astride a horizon, inverting where it crosses.
+///
+/// Carries forward the one MEASURED win from round two: a split tile is the
+/// only kind that holds an edge on both Play surfaces, because orange is 2.10
+/// against the white listing page and near black is 1.06 against the dark one,
+/// and no single value wins twice.
+class BasoHorizon extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const seam = 60.0;
+    const upper = Rect.fromLTRB(0, 0, 108, seam);
+    canvas.drawRect(upper, Paint()..shader = _heroShader(upper));
+    canvas.drawRect(
+      const Rect.fromLTRB(0, seam, 108, 108),
+      Paint()..color = kInk,
+    );
+
+    final cup = Path.combine(
+      PathOperation.union,
+      barakoCup(top: 40, bottom: 92),
+      Path()
+        ..addPath(barakoHandle(), Offset.zero)
+        ..close(),
+    );
+
+    canvas.save();
+    canvas.clipPath(barakoCup(top: 40, bottom: 92));
+    canvas.drawRect(
+      const Rect.fromLTRB(0, 0, 108, seam),
+      Paint()..color = kInk,
+    );
+    canvas.drawRect(
+      const Rect.fromLTRB(0, seam, 108, 108),
+      Paint()..color = kCream,
+    );
+    canvas.restore();
+
+    // Steam above, always in ink because it lives entirely in the light half.
+    final steam = Paint()
+      ..color = kInk
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    for (final cx in [45.0, 63.0]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx, 32)
+          ..quadraticBezierTo(cx - 7, 24, cx, 18)
+          ..quadraticBezierTo(cx + 7, 12, cx, 7),
+        steam,
+      );
+    }
+    // cup is unused beyond the clip; kept for clarity of intent.
+    assert(cup.getBounds().width > 0);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
 List<IconCandidate> buildCandidates() {
   IconCandidate c(String key, String name, String idea, Widget ground) =>
       IconCandidate(
@@ -908,83 +1187,56 @@ List<IconCandidate> buildCandidates() {
 
   return [
     c(
-      'hapon',
-      'Hapon',
-      'A disc astride a horizon, inverting where it crosses. Says two '
-          'directions without an arrow. The only one whose TILE holds an edge '
-          'on both Play surfaces. Ink 8.40:1, cream 13.30:1.',
-      _painted(HaponHorizon()),
+      'barako',
+      'Barako',
+      'Pan\'s cup of kapeng Barako. The theme system is NAMED after this '
+          'coffee, so the warm palette finally has its reason drawn on the '
+          'tile. Pan without being a panda.',
+      _painted(BarakoCup()),
     ),
     c(
-      'overshoot',
-      'Overshoot',
-      'One stroke drawn bigger than the tile, entering one edge and leaving '
-          'another. Unbreakable at any size and says nothing about money.',
-      _painted(const Overshoot()),
+      'barako-piso',
+      'Barako Piso',
+      'The cup cropped off the bottom edge with a big peso rising as the '
+          'steam, which is literally what Pan\'s artwork shows. Money and '
+          'coffee in one object.',
+      _painted(BarakoPiso()),
     ),
     c(
-      'capiz',
-      'Capiz',
-      'A cropped capiz shell window with late afternoon light through it. '
-          'Filipino by substance, not costume. Risk: a 3x3 grid can read as '
-          '"apps" at thumbnail size.',
-      _painted(CapizWindow()),
+      'buto',
+      'Buto',
+      'A coffee bean whose centre crease IS an S. One shape doing two jobs: '
+          'Barako, and the initial of Salapify.',
+      _painted(ButoBean()),
     ),
     c(
-      'dalawa',
-      'Dalawa',
-      'Two overlapping planes, legible only where they cross. The two planes '
-          'are 1.58 apart and are told apart ONLY by the dark seam.',
-      _painted(DalawaPlanes()),
+      'bunga',
+      'Bunga',
+      'The coffee cherry and leaves from Pan\'s own head. Off centre and '
+          'small, the most delicate of the seven and the likeliest to fail at '
+          '48px.',
+      _painted(BungaCherry()),
     ),
     c(
-      'piso-buo',
-      'Piso Buo',
-      'The rejected subject with no timidity: bowl filling the safe circle, '
-          'stem and bars running clean off the edges. Isolates whether the '
-          'subject was the problem or the smallness was.',
-      _painted(PisoBuo()),
+      'pan',
+      'Pan',
+      'The panda as pure geometry, not soft 3D. Included because the founder '
+          'named Pan and should see one rather than be told it cannot work.',
+      _painted(PandaHead()),
     ),
     c(
-      'sobre',
-      'Sobre',
-      'The tile IS the mark: a deep diagonal bite and one disc. Monzo\'s '
-          'device, which is its biggest problem.',
-      _painted(SobreCorner()),
+      'pan-cut',
+      'Pan cut out',
+      'The same head as negative space punched from a slab of ink.',
+      _painted(PandaCut()),
     ),
     c(
-      'resibo',
-      'Resibo',
-      'A receipt: three thin rules and one thick total slab, edge to edge. '
-          'The safest and the least ownable.',
-      _painted(ResiboTotal()),
-    ),
-    c(
-      'counterweight',
-      'Counterweight',
-      'The peso as the HOLE, cut from a slab of ink. Weakest at 48px by its '
-          'own designer\'s admission, and 1.06 against Play\'s dark surface.',
-      Stack(
-        children: [
-          // The gradient sits BEHIND and the ink slab is punched through, so
-          // the peso is the light coming through rather than a shape drawn on
-          // top.
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: heroStops,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: CutoutGround(path: counterweightPeso(), colour: kInk),
-          ),
-        ],
-      ),
+      'baso',
+      'Baso',
+      'The cup astride a horizon, inverting where it crosses. Carries the one '
+          'measured win from round two: a split tile is the only kind that '
+          'holds an edge on BOTH Play surfaces.',
+      _painted(BasoHorizon()),
     ),
   ];
 }

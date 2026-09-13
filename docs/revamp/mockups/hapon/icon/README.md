@@ -1,55 +1,47 @@
 # The Salapify app icon
 
-## Start here: there isn't one
+## There isn't one
 
 Verified 2026-09-13. Both the shipped app and the rebuild carry the **stock
-Flutter logo**, byte for byte identical across all five mipmap densities.
-Neither has an adaptive icon, so Android shrinks that logo inside a white blob.
+Flutter logo**, byte for byte identical across all five mipmap densities, and
+neither has an adaptive icon.
 
-## Round one was rejected, and the reason was compositional
+## Three rounds, and what each one got wrong
 
-Six candidates went out (a drawn peso, an S monogram, two opposing arrows, each
-loud and quiet) and the founder rejected all of them.
+**Round one** was six candidates and the founder rejected all of them. The
+honest fault: all six were the SAME IDEA, a flat symbol centred on a plain
+tile. Three subjects explored once each in one composition. Part of that was
+imagination and part was the harness, which could only draw a mark ON a ground,
+so negative space and layering were not rejected, they were unavailable.
 
-The honest diagnosis is not that the palette or the constraints were wrong.
-**All six were the same idea**: one flat symbol, centred, on a plain square
-tile. Three subjects explored once each in one composition, presented as three
-directions.
+**Round two** fixed the composition problem. Eleven real references studied for
+their compositional DEVICE (Slack, Boardy, Flighty, Threads, Nike Run Club,
+Todoist, Monzo, Halide, Mastercard, a capiz shell window), eight genuinely
+different directions. The founder's answer was the note both rounds deserved:
+**"make it related to Salapify or Pan atleast."**
 
-Part of that was imagination and part was the harness: a mark could only be
-drawn ON a ground, so negative space, layering and overlap were not rejected,
-they were unavailable. A tool that can express one composition produces one
-composition every time, and it looks like taste.
+Correct. Every candidate so far was formally competent and had nothing to do
+with this particular app. A counterchanged disc, a cropped stroke, a bitten
+corner: all of them would suit any warm-toned product.
 
-An exploration pass then looked at eleven real references and named the
-compositional **device** in each, because the device is the transferable part,
-not the subject.
+## What Pan actually is, and why it changes the palette's meaning
 
-## Three measurements that changed the brief
+From `flutter/lib/widgets/pan_mascot.dart`, Pan is a chibi panda "who cradles
+his cup of **kapeng Barako**, with a **peso sign rising in the steam** and a
+coffee-cherry sprout on his head."
 
-**1. A one-value tile cannot hold an edge on both Play surfaces. A split tile
-can.**
+That sentence explains something the revamp docs never wrote down: **the warm
+orange palette is coffee.** The theme system is named Barako, after Philippine
+coffee. The colour was never arbitrary, and the first two rounds were drawing an
+abstract orange that merely happened to match it.
 
-| Tile value | vs Play's white listing | vs Play's dark surface |
-|---|---|---|
-| `#FB9C52` loud | 2.10 | 8.90 |
-| `#2A1207` quiet | 17.68 | 1.06 |
-| A tile carrying **both** | 2.10 from one half | 8.90 from the other |
+**Founder decision: icon only, Pan stays cut.** The icon inherits Pan's OBJECT,
+not his face, and D2 is untouched. That also sidesteps a real trap: this rebuild
+exists because of "it looks like we copy the Tarsi", and an animal mascot on the
+icon beside a competitor named after an animal invites exactly that comparison.
+The cup is Pan without being a panda.
 
-Round one treated loud versus quiet as taste. It is arithmetic, and no
-single-value tile wins twice.
-
-**2. Two hero-ramp tones cannot be told apart.** `#FFD9B0` against `#FB9C52`
-measures **1.58**, under the 3.0 bar. So any layering direction needs a
-deliberately chosen dark tone at the overlap, never a blend mode: a true
-multiply of those two lands 1.18 from one of them.
-
-**3. The 48px floor, once, as a number.** 108 units render at 0.667px each, so
-**nothing thinner than 6 units and no gap under 6 units**. Round one's peso had
-7-unit bars with an 8-unit gap, which is exactly why its write-up admitted they
-softened.
-
-## The eight directions
+## Round three
 
 ![The candidates](icon-sheet.png)
 
@@ -57,67 +49,51 @@ softened.
 |---|---|
 | ![Light](icon-home-light.png) | ![Dark](icon-home-dark.png) |
 
-## What the renders say, honestly
+## What the renders say, honestly. Three work and four do not.
 
-**Hapon** is the standout. A disc astride a horizon, inverting where it
-crosses. It says "two directions" without drawing an arrow, which is what the
-Beam failed to do, and it is the only direction whose TILE is measurably strong
-on both Play surfaces. Simplest silhouette in the set, so it cannot break at
-48px. Its stated risk is real: it could be read as a moon or a brightness
-toggle.
+### The three that work
 
-**Capiz** is better than anyone predicted on paper. A cropped shell window with
-late afternoon light through it, Filipino by substance rather than by flag or
-jeepney. The grid-ambiguity risk is also real at 48px.
+**Barako.** Pan's cup with two steam curls. Reads instantly, survives 48px
+without losing anything, and it is warm and friendly next to a grid of blue and
+green. The coffee is not decoration: it is the thing the theme system is named
+after.
 
-**Dalawa did not survive execution, and that is a finding rather than a
-failure.** On paper it was two overlapping planes with the overlap as a third
-colour. Rendered, the eight degree rotations do not read, the two planes are
-1.58 apart and blend into one shape, and the dark overlap dominates so the tile
-reads as a blob with a stripe. It is in the sheet because the founder should
-see what was tried, not because it works.
+**Buto.** A coffee bean whose centre crease is an S, so one shape does two jobs,
+Barako and the initial of Salapify. The most distinctive silhouette of the seven
+and it holds perfectly at 48px.
 
-**Overshoot** is unbreakable at any size and says nothing about money; it reads
-as a landscape. **Piso Buo** is bold but busy. **Sobre** is clean and is openly
-Monzo's device. **Resibo** is the safest and the least memorable, exactly as
-predicted. **Counterweight** reads well but is 1.06 against Play's dark
-surface.
+**Pan.** The panda as pure geometry rather than soft 3D, and it reads clearly
+even at 48px, which the rendered artwork never would. It is here because the
+founder named Pan and deserved to see one. The mascot caution still stands.
 
-## The references, and the device taken from each
+### The four that do not
 
-Nothing was copied. Each was studied for its compositional move only.
+**Barako Piso** failed. The peso ended up sitting on what reads as a pedestal or
+an anvil, so the tile says trophy or rubber stamp rather than coffee. The cup
+crop did not survive being cropped.
 
-| Reference | The device |
-|---|---|
-| [Pentagram, Slack](https://www.pentagram.com/work/slack/story) | Built around a hole, so the emptiness is the recognisable part |
-| [Basic Apple Guy, Boardy](https://basicappleguy.com/basicappleblog/boardy) | A horizontal seam so the tile reads as two halves |
-| [Flighty](https://apps.apple.com/us/app/flighty-live-flight-tracker/id1358823008) | One object at extreme scale, tilted, nothing else in frame |
-| [Threads](https://apps.apple.com/us/app/threads/id6446901002) | A typographic counter blown so far past reading size it becomes a shape |
-| [Nike Run Club](https://apps.apple.com/us/app/nike-run-club/id387771637) | Mark drawn bigger than the tile, running off two edges |
-| [Todoist](https://apps.apple.com/us/app/todoist-to-do-list-planner/id572688855) | Bars of unequal length exiting an edge; length does the work |
-| [Monzo](https://apps.apple.com/us/app/monzo-mobile-banking/id1052238659) | The tile itself is the mark, a single diagonal split, no glyph |
-| [Halide Mark II](https://apps.apple.com/us/app/halide-mark-ii-pro-camera/id885697368) | Depth from flat facets meeting at hard edges, not a gradient |
-| [Pentagram, Mastercard](https://www.pentagram.com/work/mastercard/story) | Two shapes overlapping, the overlap a third colour |
-| [Capiz shell window](https://en.wikipedia.org/wiki/Capiz_shell_window) | A physical object: a grid of translucent panes diffusing tropical sun |
+**Bunga** failed. The cherry and leaves read as a lollipop or a balloon on a
+string, not as a coffee cherry. It was flagged in advance as the most delicate
+of the seven and the render settled it.
 
-## Two colours that are NOT tokens
+**Pan cut out** is too dark. The head barely separates from the slab, and the
+tile measures 1.06 against Play's dark surface, so it would vanish there.
 
-`#FFF3E6` (Capiz only, the hero ramp continued one step so the light has a
-peak) and `#8A2F07` (Dalawa only, the one tone clearing 3.0 against both planes
-at once, at 6.35 and 4.01). Both are icon-only and must never enter
-`tokens.dart`.
+**Baso** did not come off. The counterchange device is still good, but a tapered
+cup crossing a horizon reads as a plant pot or a bucket. The device needs a
+shape that is unmistakable in silhouette, which is why the plain disc worked in
+round two and this does not.
 
-## The verified Play spec
+## The measurements that still bind
 
-From Google's own current documentation, because two commonly quoted numbers
-are out of date: 512 square, 32-bit PNG, sRGB, under 1024KB, submitted as a
-**full square** because "radius will be equivalent to **30%** of icon size" and
-"Google Play will dynamically add a drop shadow around the final icon once
-uploaded". So no rounded corners and no baked shadow.
-
-The launcher icon is a **separate asset**: adaptive, 108dp, mark inside the
-66dp safe circle, plus a **monochrome layer** or Android's themed icons derive
-a featureless blob from a full-bleed tile.
+- A one-value tile cannot hold an edge on both Play surfaces. Orange is 2.10
+  against the white listing page, near black is 1.06 against the dark one.
+- Two hero-ramp tones cannot be told apart: `#FFD9B0` on `#FB9C52` is **1.58**,
+  under the 3.0 bar. Ink stays near black.
+- The 48px floor: 108 units at 0.667px each, so **nothing thinner than 6 units
+  and no gap under 6**.
+- Play: 512 square, submitted flat, because Play masks at **30%** and adds its
+  own shadow.
 
 ## How these are made
 
