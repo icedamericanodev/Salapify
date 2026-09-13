@@ -66,6 +66,25 @@ jobs:
       - name: Test
         run: flutter test
 
+      # The screenshot harness is deliberately excluded from `flutter test`
+      # (it is not named *_test.dart), so nothing else ever runs it. That is
+      # the same silence that let the older app's harness be abandoned once
+      # already: it appeared to hang, the reason was never written down, and
+      # the founder was the only pair of eyes on the app for two rounds.
+      #
+      # analyze covers the compile-time half. This covers the RUNTIME half:
+      # that the real fonts still load, the router still builds, and a screen
+      # still renders to actual pixels.
+      #
+      # --update-goldens is load-bearing, not a shortcut. The harness ends in
+      # matchesGoldenFile and test/shots/out is gitignored, so without the flag
+      # a fresh checkout compares against files that do not exist and fails for
+      # a reason that says nothing about the app. With it, the step only
+      # writes, and the only way it can fail is if the harness genuinely
+      # stopped working.
+      - name: The screenshot harness still renders
+        run: flutter test test/shots/screens_shot.dart --update-goldens
+
       # The money engine is the reason this app is a port rather than a
       # rewrite, and its whole guarantee is that not one number moved. A vector
       # edited to make a test pass turns that guarantee into a story, and it
@@ -75,55 +94,14 @@ jobs:
       # uses. This step dies with flutter/ at cutover, and by then the vectors
       # will have been green against two independent implementations for
       # months, which is the only reason it is safe to lose.
+      # The body of this moved into a script so `.githooks/pre-push` can run
+      # the IDENTICAL check locally, one push earlier. It had to: `dart format`
+      # reflowed four engine files in Phase B2 and the same four again in
+      # Phase B3, both times with every test green, and each catch cost a full
+      # CI round trip to discover something a local check answers in a second.
+      #
+      # CI remains the real, unconditional backstop. The hook only runs in a
+      # checkout that has done `git config core.hooksPath .githooks`.
       - name: The port is still a port, byte for byte
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          if [ ! -d flutter/test/goldens ]; then
-            echo "flutter/ is gone, so there is nothing left to compare against."
-            echo "Delete this step with it."
-            exit 0
-          fi
-          fail=0
-
-          # The vectors. A suite goes green whether a vector was honoured or
-          # edited, so only this comparison can tell those apart.
-          for f in app/test/goldens/*.json; do
-            b=$(basename "$f")
-            old="flutter/test/goldens/$b"
-            if [ ! -f "$old" ]; then
-              echo "::error::$b exists in app/ but not in flutter/. A new vector is not a port."
-              fail=1
-            elif ! cmp -s "$f" "$old"; then
-              echo "::error::$b differs from the vector the shipped app uses."
-              fail=1
-            fi
-          done
-
-          # The ENGINE ITSELF, added after `dart format` silently reflowed four
-          # of these files and the vector check above sailed past it. Logic was
-          # untouched and every test stayed green, which is exactly the problem:
-          # the whole claim this app rests on is that the money code is the same
-          # code, and a diff nobody can see is a claim nobody can check.
-          #
-          # taglish.dart is the one intended rename (pan/normalize.dart), so it
-          # is compared against its real source rather than skipped.
-          for f in app/lib/core/money/*.dart; do
-            b=$(basename "$f")
-            if [ "$b" = "taglish.dart" ]; then
-              old="flutter/lib/money/pan/normalize.dart"
-            else
-              old="flutter/lib/money/$b"
-            fi
-            if [ ! -f "$old" ]; then
-              echo "::error::$b is in app/lib/core/money with no counterpart in flutter/. New money code is not a port."
-              fail=1
-            elif ! cmp -s "$f" "$old"; then
-              echo "::error::$b differs from the shipped engine. If this is a reformat, revert it; if it is a fix, it belongs in both."
-              fail=1
-            fi
-          done
-
-          if [ $fail -eq 0 ]; then
-            echo "$(ls app/test/goldens/*.json | wc -l) fixtures and $(ls app/lib/core/money/*.dart | wc -l) engine files are byte-identical to the shipped app's."
-          fi
-          exit $fail
+        run: bash .github/scripts/check-engine-identical.sh
+        working-directory: ${{ github.workspace }}

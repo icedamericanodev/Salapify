@@ -135,3 +135,13 @@ it.
 
 This look replaces Sinag, which the founder rejected. The Sinag renders stay
 one folder up as history.
+
+## Phase B3: the same design, running as the real app
+
+Everything above is a PREVIEW: a throwaway Flutter project built to decide what
+Salapify 3 should look like. In Phase B3 the same kit was ported into `app/`,
+the rebuild itself, and rendered again from the real router.
+
+**[Phase B3 renders, and the component sheet](b3/)** shows the component
+vocabulary in both skins, the four tabs, and the Log sheet, all captured from
+`app/` rather than from the preview.
