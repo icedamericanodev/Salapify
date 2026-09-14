@@ -68,16 +68,17 @@ not ask them to.
   promise that something will fill it, and nothing can: there is no limit for
   the spend to be a fraction of.
 
-## Not gated behind Pro, and that is a decision to revisit
+## Free, and a core feature. Settled, not deferred
 
-The shipped app treats a per category cap as a paid feature: `whereItWent`
-reads `monthlyCap` only when `settings.pro` is set. That rule is untouched in
-the engine, and this screen does not consult it.
+The shipped app treats a per category cap as paid: `whereItWent` reads
+`monthlyCap` only when `settings.pro` is set. That rule is untouched in the
+engine, and this screen does not consult it.
 
-Salapify 3 is being built for the founder's own daily use before anyone else's,
-so there is nobody to gate it from yet. If v3 is ever offered to others, whether
-this stays free is a pricing call for the founder, not one to be settled here by
-a default.
+Decision **D19**, the founder's call on 2026-09-14, in the same conversation
+that made Salapify 3 a public app rather than the founder's own. A budget app
+whose budgets sit behind a wall fails the "core features free forever" promise
+at the first screen a stranger opens. Pro earns its money on history,
+forecasting, multi currency and export instead.
 
 ## What is deferred, in writing
 

@@ -11,12 +11,24 @@ in AsyncStorage under the key salapify_data_v2.
 The governing document set is docs/revamp/ (start at docs/revamp/README.md),
 adopted by founder direction on 2026-09-11: rebuild Salapify from the ground
 up, documentation first, then architecture, then UI and UX design, then
-features, for the founder's own daily use before anyone else's. It replaces
+features. It replaces
 docs/Salapify_Master_Constitution.md (Master Constitution v2, 2026-08-12) as
 the top authority below direct founder direction. The constitution file stays
 in the repository unedited, as history and because
 flutter/test/constitution_citation_test.dart reads its path; nothing in it
 binds work any more, and where the two disagree docs/revamp wins.
+
+Salapify 3 is being built FOR THE PUBLIC. Founder direction, 2026-09-14,
+recorded as D19 in docs/revamp/07-decisions.md: "do not think that this is for
+my personal use only. Lets build it in the way it will usw by the public". This
+replaces the earlier framing, which made the founder's own daily use the
+near-term audience, and it changes the bar rather than the tone: every screen
+has to work for somebody who installed the app ten seconds ago, with no
+accounts, no payday set, and no reason to trust it yet. D19 also settles that
+per category budget limits are FREE and core, and it does NOT reorder the
+roadmap: the screens still come first, and public readiness (onboarding,
+privacy policy, Play data safety, app lock, backup and restore, the legal and
+store reviews) lands after them as its own phase.
 
 These working rules stay fully in force as the concrete enforcement layer
 (stamp discipline, golden locks, delivery-log truth, the guard hooks, the

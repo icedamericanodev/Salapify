@@ -497,3 +497,41 @@ docs/revamp/mockups/hapon/icon/README.md and the vector harness still carries
 the candidates, because two findings from them still bind: never clear a shape
 with BlendMode.clear in single layer icon artwork, and a contrast ratio is about
 two flat colours meeting while a Play tile is not two flat colours meeting.
+
+## D19. Salapify 3 is built for the public, not for the founder alone. ANSWERED 2026-09-14
+
+Founder direction, verbatim: "We can add feature do not think that this is for
+my personal use only. Lets build it in the way it will usw by the public".
+
+This overrides the sentence in CLAUDE.md that made the founder's own daily use
+the sole near-term audience, and it is a real change of constraint rather than
+a change of tone. Under the old framing a screen only had to work for one
+person whose data and habits were known. Under this one, every screen has to
+work for somebody who installed it ten seconds ago, has no accounts, no payday
+set, and no reason to trust it yet.
+
+What it settles immediately:
+
+**Per category budget limits are FREE, and they are a core feature.** This was
+flagged open when the Budget screen shipped, because the live RN app gates
+`monthlyCap` behind `settings.pro`. Salapify's standing promise is that core
+features are free forever, and a budget app whose budgets sit behind a wall
+fails that promise at the first screen a stranger opens. Pro has to earn its
+money somewhere else: history and trends, forecasting, multi currency, export.
+The engine's own Pro rule in `whereItWent` is untouched, because that file is
+byte identical to the shipped app's; the v3 screen simply does not consult it.
+
+Two things this decision does NOT do, so nobody reads more into it later:
+
+1. It does not paywall anything that is currently free, now or later. Moving a
+   feature behind a wall after people have it is the one thing the monetization
+   promises rule out.
+2. It does not change the ORDER of the roadmap. The screens still come first
+   (Upcoming, Debt, Goals, Insights), and public readiness lands after them as
+   its own phase, when there is a whole app to make ready rather than half of
+   one. Founder's call, same conversation.
+
+What it adds to the plan, deferred but now written down rather than assumed
+away: first run and onboarding for an empty ledger, the privacy policy and the
+Play data safety answers, app lock, backup and restore, and the legal, policy
+and store readiness reviews. None of those were needed for an audience of one.
