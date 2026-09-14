@@ -66,12 +66,29 @@ Map<String, dynamic> livedIn() => {
   // a guessed id against the live list before using it, so an empty list means
   // no category is ever suggested. The journey test caught that, and the rule
   // was working exactly as written; the fixture was the thing that was wrong.
-  'categories': defaultCategories.map((c) => {...c}).toList(),
+  //
+  // GROWN for Plan with three caps, chosen so the Budget screen renders every
+  // state it can be in rather than a column of identical healthy rows. Against
+  // this fixture's September spending: Groceries 2,450.50 of 2,500 is down to
+  // its last 49.50 and needs a look, Food 250 of 200 is over, Transport 45 of
+  // 1,500 is comfortable, and Bills and Load carry no cap at all, which is its
+  // own row shape. A fixture that can only show one state is a fixture that
+  // cannot show a defect in the other three.
+  'categories': defaultCategories.map((c) {
+    const caps = {'cat_groceries': 2500.00, 'cat_food': 200.00, 'cat_transport': 1500.00};
+    return {...c, 'monthlyCap': ?caps[c['id']]};
+  }).toList(),
   // GROWN for Home. Without a schedule `normalizeSchedule` falls back to the
   // 15th and the 31st, which works, but a fixture that never states its own
   // payday cannot show a wrong one either. The 15th and the 30th is what the
   // onboarding offers first.
+  // GROWN for Plan, never shrunk. `monthlyLimit` is what budgetSummary reads
+  // for the "left to spend this month" hero, and without one the Budget
+  // segment renders its empty state and proves nothing. 20,000 against the
+  // fixture's ~6,045 of tagged September spending leaves the hero positive and
+  // the rail part full, which is the ordinary case the screen is read in.
   'settings': {
+    'monthlyLimit': 20000.00,
     'paydaySchedule': {
       'mode': 'semimonthly',
       'days': [15, 30],

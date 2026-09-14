@@ -5,6 +5,7 @@
 // that passes only on the days somebody happened to run it is not a test.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/commitments.dart' show safeToSpend;
+import 'package:salapify/design/kit.dart' show centsOf, wholePesos;
 import 'package:salapify/features/home/home_screen.dart';
 import 'package:salapify/features/ledger/entry_presentation.dart';
 

@@ -605,22 +605,7 @@ String dueWhen(dynamic iso, DateTime now) {
   return shortDate(d);
 }
 
-/// "6,240" from 6240.50. The panel draws pesos and centavos at different
-/// sizes, so it needs them apart.
-///
-/// Both halves come from `formatMoney`, the golden locked formatter, rather
-/// than from arithmetic here. Splitting its OUTPUT keeps the grouping, the
-/// rounding and the sign exactly as every other screen writes them; computing
-/// the pesos separately would be a second money rule living on one screen.
-String wholePesos(num value) {
-  final s = formatMoney(value).replaceAll('₱', '');
-  final dot = s.indexOf('.');
-  return dot < 0 ? s : s.substring(0, dot);
-}
+// wholePesos and centsOf moved to design/kit.dart, beside the HeroPanel they
+// exist to feed. Plan's hero needs the same split, and one rule in two files
+// is the drift that Home and the Ledger had already grown once.
 
-/// ".50", or an empty string when the figure is whole.
-String centsOf(num value) {
-  final s = formatMoney(value);
-  final dot = s.indexOf('.');
-  return dot < 0 ? '' : s.substring(dot);
-}

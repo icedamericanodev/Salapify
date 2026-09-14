@@ -165,6 +165,13 @@ with its payday rail, debt in both directions, what is coming before payday, and
 what just happened. The Ledger is on that page too, because the caption fix
 Home's render forced belongs to both screens.
 
+## Phase C4: where does it go
+
+**[Phase C4 renders](c4/)**: Plan, with the Budget segment built. What is left
+of the monthly limit, and a row per category ordered by which one is closest to
+its limit. That page also explains the one new derivation this screen needed and
+why it cannot disagree with the engine.
+
 ## The app icon
 
 **[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship

@@ -14,6 +14,7 @@
 // padding, radius and inset below is the one in the approved pictures.
 import 'package:flutter/material.dart';
 
+import '../core/money/format.dart';
 import 'tokens.dart';
 import 'type.dart';
 
@@ -243,6 +244,29 @@ class Head extends StatelessWidget {
 /// because the panel draws them at different sizes. Splitting a formatted
 /// string here would mean this file owning a rule about how money is written,
 /// and that rule lives in the golden locked `formatMoney`.
+/// "6,240" from 6240.50. The panel draws pesos and centavos at different
+/// sizes, so it needs them apart.
+///
+/// Both halves come from `formatMoney`, the golden locked formatter, rather
+/// than from arithmetic here. Splitting its OUTPUT keeps the grouping, the
+/// rounding and the sign exactly as every other screen writes them; computing
+/// the pesos separately would be a second money rule.
+///
+/// The minus stays ON this string, and [HeroPanel] moves it to the far side of
+/// the currency sign. Stripping it here would lose the sign entirely.
+String wholePesos(num value) {
+  final s = formatMoney(value).replaceAll('₱', '');
+  final dot = s.indexOf('.');
+  return dot < 0 ? s : s.substring(0, dot);
+}
+
+/// ".50", or an empty string when the figure is whole.
+String centsOf(num value) {
+  final s = formatMoney(value);
+  final dot = s.indexOf('.');
+  return dot < 0 ? '' : s.substring(dot);
+}
+
 class HeroPanel extends StatelessWidget {
   const HeroPanel({
     super.key,
