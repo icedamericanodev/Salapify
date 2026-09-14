@@ -198,6 +198,14 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-log-typed');
 
+      // And a word no vocabulary will ever hold, which is the case the sheet
+      // has to handle WELL rather than rarely. No word list covers how
+      // everybody writes, so "the app does not know this one" is a permanent
+      // state of the feature and not an edge of it.
+      await tester.enterText(find.byType(TextField), 'zorbtronic 450');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-log-unknown');
+
       // And one screen that is NOT a tab: account detail, reached by tapping a
       // row rather than by pushing the route. Tapping is the point. A pushed
       // route renders the same picture whether or not the row is actually
