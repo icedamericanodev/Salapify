@@ -221,15 +221,29 @@ class ItemRow extends StatelessWidget {
   const ItemRow({
     super.key,
     this.icon,
+    this.monogram,
     required this.title,
     this.sub,
     required this.amount,
     this.amountSub,
     this.tone = Tone.plain,
     this.strike = false,
-  });
+  }) : assert(
+         icon == null || monogram == null,
+         'A row is decorated once: an icon or a monogram, never both.',
+       );
 
   final IconData? icon;
+
+  /// One or two letters in the SAME disc the icon uses, for rows that name an
+  /// institution. Accounts rows carry this instead of an icon, because a
+  /// screen of fourteen identical bank glyphs identifies nothing, while "BP"
+  /// and "GC" are the thing the founder actually recognises.
+  ///
+  /// Letters only, no logos. That is a trademark boundary this project keeps
+  /// on purpose, and [initialsFor] in core/money/institutions.dart is the one
+  /// rule that produces them.
+  final String? monogram;
   final String title;
   final String? sub;
   final String? amountSub;
@@ -249,17 +263,22 @@ class ItemRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         children: [
-          if (icon != null) ...[
+          if (icon != null || monogram != null) ...[
             // One disc, one tint, one size, so a long row of icons reads as
-            // one texture instead of fourteen separate stickers.
+            // one texture instead of fourteen separate stickers. The monogram
+            // shares it rather than getting its own treatment, for the same
+            // reason.
             Container(
               width: 38,
               height: 38,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: skin.discOnCard,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 19, color: skin.text2),
+              child: icon != null
+                  ? Icon(icon, size: 19, color: skin.text2)
+                  : Text(monogram!, style: TypeScale.control(skin.text2)),
             ),
             const SizedBox(width: 14),
           ],

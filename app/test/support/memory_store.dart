@@ -67,10 +67,72 @@ Map<String, dynamic> livedIn() => {
   // no category is ever suggested. The journey test caught that, and the rule
   // was working exactly as written; the fixture was the thing that was wrong.
   'categories': defaultCategories.map((c) => {...c}).toList(),
+  // GROWN for the Accounts screen, never shrunk. The three original accounts
+  // keep their exact balances so the journeys that name per-account movement
+  // still mean what they meant.
+  //
+  // What was added and why each one earns its place: an institutionId on the
+  // two that have one, because the row's only decoration is the institution
+  // MONOGRAM and a fixture with no institution renders a screen of question
+  // marks; a CREDIT CARD, because credit is the only row kind that carries a
+  // utilisation bar and a limit caption, and nothing else in the fixture could
+  // make one appear; and one debt each way, because the whole product claim is
+  // that debt runs in both directions and a screen that has only ever been
+  // rendered against zero of them has never been looked at.
   'accounts': [
-    {'id': 'a_gcash', 'name': 'GCash', 'kind': 'ewallet', 'balance': 8410.50},
-    {'id': 'a_bpi', 'name': 'BPI', 'kind': 'bank', 'balance': 42300.00},
+    {
+      'id': 'a_gcash',
+      'name': 'GCash',
+      'kind': 'ewallet',
+      'balance': 8410.50,
+      'institutionId': 'gcash',
+    },
+    {
+      'id': 'a_bpi',
+      'name': 'BPI',
+      // 'bank' is NOT a kind the taxonomy knows: _kindToSubtype maps cash,
+      // savings, checking and ewallet, and anything else derives to cash on
+      // hand. The first render duly labelled BPI "Cash on hand".
+      'kind': 'savings',
+      'balance': 42300.00,
+      'institutionId': 'bpi',
+    },
     {'id': 'a_cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1250.00},
+  ],
+  // CREDIT LIVES HERE, not in `accounts`, and this is the correction the first
+  // render forced. account_taxonomy.dart puts the credit, loans and
+  // installments categories in AccountStore.debts, so a credit card filed
+  // under `accounts` is classified as cash on hand: it landed in the "Cash and
+  // e-wallets" section, took no utilisation bar, and was ADDED to assets
+  // instead of subtracted as a liability. The screen said the founder was
+  // ₱8,240 better off than they were.
+  //
+  // Debts total on `remaining`, which is what netWorthParts reads.
+  'debts': [
+    {
+      'id': 'd_ubp_cc',
+      'name': 'UnionBank Rewards',
+      'subtype': 'credit_card',
+      'remaining': 4120.00,
+      'creditLimit': 40000.00,
+      'statementDueDay': 3,
+      'institutionId': 'unionbank',
+    },
+    {
+      'id': 'd_lola',
+      'name': 'Lola',
+      'subtype': 'personal_loan',
+      'remaining': 6000.00,
+    },
+  ],
+  // Receivables are keyed on `amount` minus payments, NOT on `remaining`, and
+  // they only count toward net worth when `cashLeg` is true, meaning real
+  // money left the founder's pocket. A note that somebody owes a share of
+  // something does not move net worth. Both rules live in trackedRemaining,
+  // and the first fixture got both wrong, so the row silently contributed
+  // nothing and the render showed assets ₱1,800 short.
+  'receivables': [
+    {'id': 'r_marco', 'name': 'Marco', 'amount': 1800.00, 'cashLeg': true},
   ],
   'transactions': [
     {
