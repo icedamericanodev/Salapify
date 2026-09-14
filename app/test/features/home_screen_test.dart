@@ -11,7 +11,6 @@
 // a test that passes only on the days somebody happened to run it is not a
 // test.
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/app/clock.dart';
 import 'package:salapify/app/ledger_scope.dart';
@@ -205,9 +204,13 @@ void main() {
           matching: find.text(label),
         ).first,
       );
+      // isSemantics rather than reading a flag off the node: it checks only
+      // what is named here, and the flag accessors plus containsSemantics are
+      // both deprecated on the pinned SDK, where analyze is zero tolerance and
+      // an info counts as a failure.
       expect(
-        node.hasFlag(SemanticsFlag.isButton),
-        isFalse,
+        node,
+        isSemantics(isButton: false),
         reason: '$label has no destination yet, so it must not claim to be a '
             'button. Wire it before advertising it.',
       );
