@@ -192,7 +192,12 @@ class _SafeToSpend extends StatelessWidget {
         kicker: 'SAFE TO SPEND',
         whole: wholePesos(available),
         cents: centsOf(available),
-        sentence: 'Set your payday in Plan to see how long this has to last.',
+        // Does NOT name a screen. It said "Set your payday in Plan" for two
+        // commits, and Plan cannot set a payday: nothing in the app can yet.
+        // Pointing somebody at a control that does not exist is the same
+        // defect as the dead quick actions this screen had already been fixed
+        // for once. Name the destination here only when the editor exists.
+        sentence: 'Set your payday to see how long this has to last.',
       );
     }
 
