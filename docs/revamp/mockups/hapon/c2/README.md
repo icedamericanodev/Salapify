@@ -56,3 +56,48 @@ the edges. The double-count guard was proven by breaking it: forcing loans back
 into their own section reddens two tests, one of them naming the reason.
 
     Expected: not contains 'loans'
+
+## Account detail
+
+Tap a row and you get that account's history. Pushed over the shell, not a
+fifth tab, per `04-screens.md`.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Gabi](gabi-account-detail.png) | ![Hapon](hapon-account-detail.png) |
+
+The list says what a balance IS. This says how it got there, which is why the
+entries are the body of the screen rather than a footnote under a big number.
+
+`groupByDay` and `signedAmount` are the Ledger's own, reused rather than
+re-derived, so an account's history and the full ledger can never disagree
+about a row's sign.
+
+### One defect the render caught, again
+
+The first version returned a bare `Screen` with no `Scaffold`. The shell gives
+every TAB screen its Scaffold, so no tab screen carries one, and a route pushed
+OVER the shell has no such parent. Every line of text came out with a yellow
+double underline, which is what Flutter draws for text with no Material
+ancestor, and the page had no background of its own.
+
+It passed every test while looking like that. Two screens in a row now, and the
+same lesson both times: a green suite says the rules you thought to write are
+holding, and nothing at all about what is on the glass.
+
+### Two rules the screen keeps on purpose
+
+**The hero says the WORD, not just a colour.** "Owed" and "Balance" are the
+same shape on screen and opposite in meaning, and somebody reading a number in
+orange has to already know the rule to read it right.
+
+**A transfer appears on the account it LEFT, and nowhere else.** That is the
+stored shape: one row, on the source account. The screen does not invent the
+mirror row, because a row the ledger does not have is money on a screen that
+cannot be reconciled against it.
+
+### The shot taps rather than pushes
+
+The harness walks to Accounts and taps the BPI row. Pushing the route directly
+would render the same picture whether or not the row is wired to it, so the
+shot would look right with the tap broken.

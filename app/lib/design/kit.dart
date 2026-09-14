@@ -14,6 +14,7 @@
 // padding, radius and inset below is the one in the approved pictures.
 import 'package:flutter/material.dart';
 
+import '../core/money/format.dart';
 import 'tokens.dart';
 import 'type.dart';
 
@@ -57,6 +58,55 @@ class TopBar extends StatelessWidget {
       children: [
         Expanded(child: Text(date, style: TypeScale.quiet(skin.text2))),
         Icon(Icons.notifications_none_rounded, size: 23, color: skin.text2),
+      ],
+    );
+  }
+}
+
+/// The way back from a screen pushed over the shell.
+///
+/// 04-screens.md: "Everything else (Insights, Settings, details, editors) is
+/// pushed over the shell." Those screens have no tab bar to return through, so
+/// they carry this instead.
+///
+/// A 44 square target rather than a bare icon. The chevron is 22, which is the
+/// smallest thing on any screen in this app, and a 22 point hit area is under
+/// every accessibility floor there is.
+class BackBar extends StatelessWidget {
+  const BackBar({super.key, this.action, this.onAction});
+
+  /// A tappable word on the right. Accent, like [Head.action].
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Row(
+      children: [
+        Semantics(
+          button: true,
+          label: 'Back',
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(Icons.arrow_back_rounded, size: 22, color: skin.text),
+            ),
+          ),
+        ),
+        const Spacer(),
+        if (action != null)
+          GestureDetector(
+            onTap: onAction,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+              child: Text(action!, style: TypeScale.action(skin.accent)),
+            ),
+          ),
       ],
     );
   }
@@ -113,17 +163,27 @@ class Head extends StatelessWidget {
     super.key,
     required this.title,
     this.action,
+    this.onAction,
     this.amount,
     this.tone = Tone.plain,
   }) : assert(
          action == null || amount == null,
          'A heading has a tappable action or a money figure, not both.',
+       ),
+       assert(
+         action == null || onAction != null,
+         'An action word must DO something. Accent coloured text that is not a '
+         'control reads as a link and is not one, and on Home it was the only '
+         'route to the rows the section had capped off.',
        );
 
   final String title;
 
   /// A tappable word. Accent.
   final String? action;
+
+  /// Where it goes. Required alongside [action], by the assert above.
+  final VoidCallback? onAction;
 
   /// A money figure. Direction colour, per [tone].
   final String? amount;
@@ -138,7 +198,20 @@ class Head extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(title, style: TypeScale.sectionHead(skin.text)),
-        if (action != null) Text(action!, style: TypeScale.action(skin.accent)),
+        if (action != null)
+          Semantics(
+            button: true,
+            child: GestureDetector(
+              onTap: onAction,
+              behavior: HitTestBehavior.opaque,
+              // Padded to a real target. The word alone is about 14 points
+              // tall, well under the 44 the rest of the kit holds to.
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                child: Text(action!, style: TypeScale.action(skin.accent)),
+              ),
+            ),
+          ),
         if (amount != null)
           Text(
             amount!,
@@ -151,6 +224,176 @@ class Head extends StatelessWidget {
       ],
     );
   }
+}
+
+// ---------------------------------------------------------------- hero
+
+/// Signature device one. A LIGHT panel carrying DARK ink.
+///
+/// Every fintech hero on the reference board is the other way round, a dark
+/// panel with white ink, so this is the thing that makes a cropped screenshot
+/// ours.
+///
+/// Ported from `Hero_` in docs/revamp/mockups/hapon/source/home.dart, the
+/// source that produced the 24 approved renders. Same two changes the rest of
+/// this file made and no others: the preview's mutable `skin` global became
+/// `context.skin`, and every inline `ts(...)` became its named role on the
+/// ladder. NO NUMBER MOVED.
+///
+/// The amount arrives PRE SPLIT into whole and cents rather than as a double,
+/// because the panel draws them at different sizes. Splitting a formatted
+/// string here would mean this file owning a rule about how money is written,
+/// and that rule lives in the golden locked `formatMoney`.
+/// "6,240" from 6240.50. The panel draws pesos and centavos at different
+/// sizes, so it needs them apart.
+///
+/// Both halves come from `formatMoney`, the golden locked formatter, rather
+/// than from arithmetic here. Splitting its OUTPUT keeps the grouping, the
+/// rounding and the sign exactly as every other screen writes them; computing
+/// the pesos separately would be a second money rule.
+///
+/// The minus stays ON this string, and [HeroPanel] moves it to the far side of
+/// the currency sign. Stripping it here would lose the sign entirely.
+String wholePesos(num value) {
+  final s = formatMoney(value).replaceAll('₱', '');
+  final dot = s.indexOf('.');
+  return dot < 0 ? s : s.substring(0, dot);
+}
+
+/// ".50", or an empty string when the figure is whole.
+String centsOf(num value) {
+  final s = formatMoney(value);
+  final dot = s.indexOf('.');
+  return dot < 0 ? '' : s.substring(dot);
+}
+
+class HeroPanel extends StatelessWidget {
+  const HeroPanel({
+    super.key,
+    required this.kicker,
+    required this.whole,
+    required this.cents,
+    required this.sentence,
+    this.rail,
+  });
+
+  final String kicker;
+  final String whole;
+  final String cents;
+  final String sentence;
+
+  /// The sweldo rail. Null leaves it out: Plan and Ledger take the same panel
+  /// without one.
+  final HeroRail? rail;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final ink = skin.onHero;
+    // A real second colour, not the ink dimmed with opacity. Dimming is what
+    // breaks readability on a coloured field, so the quiet tone is measured
+    // separately in the skin, against the panel's darkest stop.
+    final quiet = skin.onHeroQuiet;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: skin.heroGradient,
+        ),
+        borderRadius: BorderRadius.circular(skin.radius + 6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(kicker, style: TypeScale.kicker(quiet)),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The minus goes BEFORE the peso sign, never between it and the
+              // digits. The panel draws the sign separately from the figure so
+              // the two can take different sizes, and a caller splitting
+              // formatMoney's output hands over a whole part that still carries
+              // its minus. Drawn naively that reads "₱-2,394", which is not how
+              // money is written anywhere, on the one figure the screen exists
+              // to show. Being overcommitted before payday is a normal month
+              // for this app's users, not an edge case.
+              Padding(
+                padding: const EdgeInsets.only(top: 5, right: 2),
+                child: Text(
+                  whole.startsWith('-') ? '-₱' : '₱',
+                  style: TypeScale.heroSign(quiet),
+                ),
+              ),
+              // Measured, not guessed. Plus Jakarta Sans draws a lining figure
+              // at 0.750 of its font size, so 47 pt gives a 35.3 pt cap, which
+              // is 8.6 percent of a 412 pt screen. The money apps on the
+              // reference board sit at 7.6 to 8.8 percent. The old 54 pt came
+              // out at 9.83 percent and read as a poster.
+              Flexible(
+                child: Text(
+                  whole.startsWith('-') ? whole.substring(1) : whole,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TypeScale.heroPanelAmount(ink),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(cents, style: TypeScale.heroCents(quiet)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(sentence, style: TypeScale.heroSentence(quiet)),
+          if (rail != null) ...[
+            const SizedBox(height: 20),
+            // Signature device two, the sweldo rail. The filled part is the
+            // quiet ink, not solid onHero: 5.42 to 1 at the panel's darkest,
+            // past the 3.0 a meaningful non text element needs, and 3.74
+            // against its own track.
+            ThinBar(
+              fraction: rail!.fraction,
+              fill: quiet,
+              track: skin.onHero.withValues(alpha: 0.20),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(rail!.left, style: TypeScale.fieldLabel(quiet)),
+                Text(rail!.right, style: TypeScale.fieldLabel(quiet)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The rail under the amount, and its two end labels.
+///
+/// Not a separate tile. 04-screens.md: "The rail is not a separate tile. It
+/// lives INSIDE the hero panel, under the amount, and that is the change the
+/// built design made: the rail and the number it constrains are one object
+/// rather than two stacked ones."
+class HeroRail {
+  const HeroRail({
+    required this.fraction,
+    required this.left,
+    required this.right,
+  });
+
+  /// How far through the cycle today is, 0 to 1.
+  final double fraction;
+
+  /// "4 days to payday" on the left, "Sep 1 to 15" on the right.
+  final String left;
+  final String right;
 }
 
 // ---------------------------------------------------------------- surfaces
@@ -228,6 +471,7 @@ class ItemRow extends StatelessWidget {
     this.amountSub,
     this.tone = Tone.plain,
     this.strike = false,
+    this.onTap,
   }) : assert(
          icon == null || monogram == null,
          'A row is decorated once: an icon or a monogram, never both.',
@@ -251,6 +495,12 @@ class ItemRow extends StatelessWidget {
   final Tone tone;
   final bool strike;
 
+  /// Makes the whole row tappable, and nothing else. No chevron, no ripple,
+  /// no colour change: a list where some rows lead somewhere and some do not
+  /// would need a marker, and in this app they all do. The row's own 13 point
+  /// vertical padding already puts the target well past 44.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
@@ -259,7 +509,7 @@ class ItemRow extends StatelessWidget {
       Tone.good => skin.good,
       Tone.owe => skin.accent,
     };
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         children: [
@@ -314,6 +564,19 @@ class ItemRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return row;
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        // Opaque so the gaps BETWEEN the title and the amount are tappable
+        // too. Without it a row is only tappable where there happens to be a
+        // glyph, which is most of the way to not being tappable.
+        behavior: HitTestBehavior.opaque,
+        child: row,
       ),
     );
   }

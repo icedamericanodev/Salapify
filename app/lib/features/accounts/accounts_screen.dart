@@ -12,6 +12,7 @@
 // `initialsFor` makes the monogram. This file groups and paints, and that is
 // deliberately all it does.
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/ledger_scope.dart';
 import '../../core/money/account_taxonomy.dart';
@@ -80,7 +81,9 @@ class AccountsScreen extends StatelessWidget {
         ],
 
         if (debt.any) ...[
-          const Head(title: 'Debt', action: 'Open'),
+          // No action word. There is no Debt screen to open yet, and accent
+          // coloured text that does nothing reads as a link and is not one.
+          const Head(title: 'Debt'),
           const SizedBox(height: 8),
           Group(
             children: [
@@ -164,6 +167,14 @@ class _AccountRow extends StatelessWidget {
       title: name,
       sub: accountKindLabel(account, store),
       amount: formatMoney(amount),
+      // ENCODED. The id is stored data, and a restored or hand edited backup
+      // can carry a slash, a hash or a question mark in it. Interpolated raw,
+      // a slash splits the URI into segments no route matches and a tap on an
+      // ordinary account row lands on an error page; a hash or a question mark
+      // truncates the id and opens the WRONG account.
+      onTap: () => context.push(
+        '/account/${Uri.encodeComponent((account['id'] ?? '').toString())}',
+      ),
       // A liability is money OWED, so it takes the owe colour. Cash does NOT
       // take the good colour: a bank balance is not a win, it is just a fact,
       // and colouring every amount would leave colour meaning nothing.
@@ -174,7 +185,7 @@ class _AccountRow extends StatelessWidget {
 
     // Utilisation, drawn only where there is a limit to be a fraction of.
     final used = (amount / limit).clamp(0.0, 1.0);
-    final dueDay = account['statementDueDay'];
+    final dueDay = account['dueDay'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -307,6 +318,15 @@ class DebtTotals {
   bool get any => owedCount > 0 || dueCount > 0;
 }
 
+/// The engine's truthiness rule, which is not Dart's.
+///
+/// `statements.dart` counts 1, "yes" and true alike, because the stored JSON
+/// has carried all three across twelve schema versions. Reimplementing it as
+/// `r['paid'] == true` would silently miss a row stored as 1 and bring the
+/// wrong count back.
+bool _tracked(dynamic v) =>
+    v == true || (v is num && v != 0) || (v is String && v.isNotEmpty);
+
 /// Both directions, from the stored rows.
 ///
 /// Totals on `remaining`, never on `principal`. That distinction is not
@@ -341,8 +361,19 @@ DebtTotals debtTotals(Map<String, dynamic> state) {
     debtCount++;
   }
 
-  int countOf(String collection) =>
-      (state[collection] as List? ?? const []).whereType<Map>().length;
+  // Counted with the SAME filter the total uses, which is the whole point of
+  // the count. `trackedRemaining` skips a row that is settled, or that was
+  // never a cash leg (a note that somebody owes a share of something does not
+  // move money). Counting every row regardless made the two disagree, so
+  // clearing your last utang was rewarded with a Debt card reading "Owed to you
+  // ₱0, You owe ₱0". DebtTotals.any exists precisely to prevent that claim, and
+  // it was being fed by a count that could not see it.
+  int countOf(String collection) => (state[collection] is List
+          ? state[collection] as List
+          : const [])
+      .whereType<Map>()
+      .where((r) => _tracked(r['cashLeg']) && !_tracked(r['paid']))
+      .length;
 
   return DebtTotals(
     debts + payables,

@@ -38,6 +38,37 @@ abstract final class TypeScale {
   /// default tracking reads as a logo rather than a total.
   static TextStyle hero(Color c) => ts(47, FontWeight.w700, c, ls: -1.6);
 
+  // ------------------------------------------------ the hero PANEL's five
+  //
+  // Five roles rather than reusing the four nearest ones, and the reason is
+  // the rule this whole file exists for. These values come from the approved
+  // preview's `Hero_` in docs/revamp/mockups/hapon/source/home.dart, which
+  // produced the 24 renders the founder signed off. Bending `hero`, `quiet`,
+  // `subtitle` or `caption` to fit would have moved a number on a screen that
+  // was already approved, which is the one thing the port promised not to do.
+  //
+  // The panel composes its amount from THREE pieces (sign, whole, cents) on a
+  // coloured field, so it needs a line height the standalone `hero` does not.
+
+  /// "SAFE TO SPEND". Small, heavy, and widely tracked, which is what makes a
+  /// label read as a label rather than as the start of a sentence.
+  static TextStyle kicker(Color c) => ts(11.5, FontWeight.w700, c, ls: 1.4);
+
+  /// The peso sign beside the panel's amount. Deliberately lighter and smaller
+  /// than the figure: the currency is context, the number is the message.
+  static TextStyle heroSign(Color c) => ts(23, FontWeight.w500, c);
+
+  /// The panel's figure. `h: 1.0` because it sits in a Row with the sign and
+  /// the cents, where the default line box would push it off their baseline.
+  static TextStyle heroPanelAmount(Color c) =>
+      ts(47, FontWeight.w700, c, h: 1.0, ls: -1.7);
+
+  /// The centavos. Quiet on purpose, so the eye lands on the pesos.
+  static TextStyle heroCents(Color c) => ts(20, FontWeight.w500, c);
+
+  /// The one sentence under the amount.
+  static TextStyle heroSentence(Color c) => ts(14.5, FontWeight.w400, c);
+
   /// The name of a screen.
   static TextStyle screenTitle(Color c) => ts(27, FontWeight.w700, c, ls: -0.8);
 

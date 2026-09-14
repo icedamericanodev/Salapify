@@ -152,6 +152,26 @@ vocabulary in both skins, the four tabs, and the Log sheet, all captured from
 reading the line, and the Ledger showing what it saved. The first batch where
 the app does something rather than showing something.
 
+## Phase C2: what do I own and owe
+
+**[Phase C2 renders](c2/)**: Accounts, led by net worth and grouped by kind,
+and the account detail screen behind a tapped row. That page also lists the four
+defects the first render caught while 370 tests stayed green.
+
+## Phase C3: am I okay right now
+
+**[Phase C3 renders](c3/)**: Home, the screen the app opens to. Safe to spend
+with its payday rail, debt in both directions, what is coming before payday, and
+what just happened. The Ledger is on that page too, because the caption fix
+Home's render forced belongs to both screens.
+
+## Phase C4: where does it go
+
+**[Phase C4 renders](c4/)**: Plan, with the Budget segment built. What is left
+of the monthly limit, and a row per category ordered by which one is closest to
+its limit. That page also explains the one new derivation this screen needed and
+why it cannot disagree with the engine.
+
 ## The app icon
 
 **[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship

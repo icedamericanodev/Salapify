@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/accounts/account_detail_screen.dart';
 import '../features/accounts/accounts_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/ledger/ledger_screen.dart';
@@ -22,6 +23,12 @@ const tabPaths = <String>['/home', '/ledger', '/plan', '/accounts'];
 GoRouter buildRouter() {
   return GoRouter(
     initialLocation: tabPaths.first,
+    // A route that does not match must never be go_router's raw error page.
+    // It is reachable without any bug here: a deep link from a notification or
+    // the home screen widget can name a row that has since been deleted, and a
+    // restored backup can carry an id with a slash or a hash in it, which
+    // breaks the URI into segments no route claims.
+    errorBuilder: (context, state) => const AccountDetailScreen(id: ''),
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -60,6 +67,20 @@ GoRouter buildRouter() {
             ],
           ),
         ],
+      ),
+
+      // Outside the shell too, and for the reason 04-screens.md gives:
+      // "Everything else (Insights, Settings, details, editors) is pushed over
+      // the shell." A detail screen is not a fifth tab.
+      //
+      // The id travels in the PATH rather than in an object handed to the
+      // constructor, so the home screen widget and a notification can open
+      // this exact screen from outside the app through the same route table a
+      // tap uses. That is the whole reason go_router is here (02-architecture).
+      GoRoute(
+        path: '/account/:id',
+        builder: (context, state) =>
+            AccountDetailScreen(id: state.pathParameters['id']!),
       ),
 
       // Outside the shell, deliberately. The Log sheet covers the tab bar and
