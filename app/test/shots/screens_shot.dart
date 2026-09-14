@@ -240,6 +240,43 @@ void main() {
       await _shoot(tester, '${s.key}-entry-detail');
     });
 
+    // The two sheets that WRITE the things the app could previously only read.
+    // Neither existed until now: an account could arrive only through a
+    // restored backup, and a monthly limit could not be set at all. Both are
+    // rendered by opening them the way a person does, because a sheet pushed
+    // straight onto the navigator looks identical whether or not the button
+    // that is supposed to open it works.
+    testWidgets('editors ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.text('Accounts'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an account'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-editor');
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-budget-editor');
+    });
+
     testWidgets('first run ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);

@@ -52,7 +52,16 @@ Future<void> _openEntry(WidgetTester tester, String label) async {
     find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text(label).first);
+  // Scroll to the row before tapping it. The nav bar is drawn OVER the list
+  // (app/shell.dart), and the list reserves 130 at the bottom so nothing is
+  // ever stranded underneath it on a phone, but a row can still start the
+  // frame behind the bar and a bare tap then lands on the bar instead. A
+  // person scrolls. Adding one sentence to the Ledger's subtitle moved this
+  // row far enough down to prove the point.
+  final row = find.text(label).first;
+  await tester.ensureVisible(row);
+  await tester.pumpAndSettle();
+  await tester.tap(row);
   await tester.pumpAndSettle();
 }
 

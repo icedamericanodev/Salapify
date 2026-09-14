@@ -132,6 +132,11 @@ class EntryDetailScreen extends StatelessWidget {
     final patch = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
+      // This screen is already pushed over the shell, so the nearest Navigator
+      // IS the root one and this changes nothing today. It is here so that
+      // moving the screen inside a tab later cannot quietly park the save
+      // button behind the nav bar (see account_editor.dart).
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => LedgerScope(store: store, child: _EditSheet(entry: entry)),
     );

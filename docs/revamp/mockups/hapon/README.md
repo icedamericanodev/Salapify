@@ -172,6 +172,14 @@ of the monthly limit, and a row per category ordered by which one is closest to
 its limit. That page also explains the one new derivation this screen needed and
 why it cannot disagree with the engine.
 
+## Phase C6: fixing what you logged, creating what you could only read
+
+**[Phase C6 renders](c6/)**: the entry detail screen behind a tapped Ledger row,
+the account editor, the budget editor, and the affordance work that came out of
+the founder asking how anyone would know a transaction could be edited at all.
+That page also names the two defects the renders caught while 455 tests stayed
+green.
+
 ## The app icon
 
 **[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship

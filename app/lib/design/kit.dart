@@ -495,10 +495,24 @@ class ItemRow extends StatelessWidget {
   final Tone tone;
   final bool strike;
 
-  /// Makes the whole row tappable, and nothing else. No chevron, no ripple,
-  /// no colour change: a list where some rows lead somewhere and some do not
-  /// would need a marker, and in this app they all do. The row's own 13 point
-  /// vertical padding already puts the target well past 44.
+  /// Makes the whole row tappable, and SAYS SO.
+  ///
+  /// It used to make the row tappable and nothing else, on the reasoning that
+  /// a marker is only needed in a list where some rows lead somewhere and some
+  /// do not. That reasoning belongs to somebody who already knows. The founder
+  /// opened the Ledger, saw a transaction they wanted to correct and asked the
+  /// only question that matters: "how will the user know if they can edit or
+  /// do something on this transaction, if there is no edit button?" Nothing on
+  /// the screen answered them, because nothing on the screen was trying to.
+  ///
+  /// So a tappable row now carries a chevron and dims while it is held. The
+  /// chevron is the discovery half, visible before anyone touches anything;
+  /// the dim is the confirmation half, so a tap that is going to open
+  /// something feels different from a tap on dead pixels. Rows without [onTap]
+  /// get neither, which turns the old argument on its head: the marker is
+  /// exactly what tells the two kinds of row apart.
+  ///
+  /// The row's own 13 point vertical padding already puts the target past 44.
   final VoidCallback? onTap;
 
   @override
@@ -563,6 +577,14 @@ class ItemRow extends StatelessWidget {
               ],
             ],
           ),
+          // The "there is more here" mark. Quiet on purpose: text3 at 18 point
+          // sits below the amount in the reading order, so a screen of them
+          // reads as a texture at the edge rather than a column of arrows
+          // competing with the money.
+          if (onTap != null) ...[
+            const SizedBox(width: 2),
+            Icon(Icons.chevron_right_rounded, size: 18, color: skin.text3),
+          ],
         ],
       ),
     );
@@ -570,13 +592,45 @@ class ItemRow extends StatelessWidget {
     if (onTap == null) return row;
     return Semantics(
       button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        // Opaque so the gaps BETWEEN the title and the amount are tappable
-        // too. Without it a row is only tappable where there happens to be a
-        // glyph, which is most of the way to not being tappable.
-        behavior: HitTestBehavior.opaque,
-        child: row,
+      child: _Pressable(onTap: onTap!, child: row),
+    );
+  }
+}
+
+/// Dims its child while a finger is down on it.
+///
+/// Material's own ink ripple cannot be used here. A splash is painted by the
+/// nearest [Material] ancestor, which is the Scaffold, and every row in this
+/// app sits inside a [Group] whose card is painted ON TOP of that. The ripple
+/// would be drawn underneath the card and never seen. A dim needs no Material,
+/// works inside any container, and reads the same in both palettes.
+class _Pressable extends StatefulWidget {
+  const _Pressable({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapUp: (_) => setState(() => _down = false),
+      onTapCancel: () => setState(() => _down = false),
+      // Opaque so the gaps BETWEEN the title and the amount are tappable
+      // too. Without it a row is only tappable where there happens to be a
+      // glyph, which is most of the way to not being tappable.
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedOpacity(
+        opacity: _down ? 0.55 : 1.0,
+        duration: const Duration(milliseconds: 90),
+        child: widget.child,
       ),
     );
   }

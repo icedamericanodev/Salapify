@@ -23,6 +23,7 @@ import '../../core/money/statements.dart' show netWorthParts, trackedRemaining;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import 'account_editor.dart';
 
 class AccountsScreen extends StatelessWidget {
   const AccountsScreen({super.key});
@@ -35,20 +36,30 @@ class AccountsScreen extends StatelessWidget {
     final debt = debtTotals(data);
 
     if (groups.isEmpty && !debt.any) {
-      return const Screen(
+      return Screen(
         children: [
-          SizedBox(height: 14),
-          ScreenTitle(
+          const SizedBox(height: 14),
+          const ScreenTitle(
             title: 'Accounts',
             sub: 'Cash, bank, e-wallet, credit, and both directions of debt.',
           ),
-          SizedBox(height: 20),
-          EmptyState(
+          const SizedBox(height: 20),
+          const EmptyState(
             icon: Icons.account_balance_wallet_outlined,
             title: 'No accounts yet',
             body:
                 'Add where your money actually sits and this screen leads with '
                 'your net worth.',
+          ),
+          const SizedBox(height: 14),
+          // The button that instruction has been asking for since the screen
+          // was built. An empty state whose instruction cannot be followed is
+          // the same defect as a sentence pointing at a screen that cannot do
+          // the thing.
+          PillButton(
+            label: 'Add your first account',
+            icon: Icons.add_rounded,
+            onTap: () => showAccountEditor(context),
           ),
         ],
       );
@@ -60,6 +71,12 @@ class AccountsScreen extends StatelessWidget {
         const ScreenTitle(
           title: 'Accounts',
           sub: 'Cash, bank, e-wallet, credit, and both directions of debt.',
+        ),
+        const SizedBox(height: 14),
+        PillButton(
+          label: 'Add an account',
+          icon: Icons.add_rounded,
+          onTap: () => showAccountEditor(context),
         ),
         const SizedBox(height: 18),
 

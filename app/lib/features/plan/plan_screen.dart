@@ -20,6 +20,7 @@ import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../home/home_screen.dart' show shortDate;
+import 'budget_editor.dart';
 import 'budget_rows.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -103,12 +104,22 @@ class _Budget extends StatelessWidget {
     // over an empty list is telling somebody they have ₱0 to spend, which is
     // a different statement from "you have not set this up".
     if (limit <= 0 && rows.isEmpty) {
-      return const EmptyState(
-        icon: Icons.donut_small_outlined,
-        title: 'No budget set',
-        body:
-            'Set a monthly amount per category and this screen shows what is '
-            'left, not just what is spent.',
+      return Column(
+        children: [
+          const EmptyState(
+            icon: Icons.donut_small_outlined,
+            title: 'No budget set',
+            body:
+                'Set a monthly amount and a cap per category, and this screen '
+                'shows what is LEFT rather than only what is spent.',
+          ),
+          const SizedBox(height: 14),
+          PillButton(
+            label: 'Set your budget',
+            icon: Icons.add_rounded,
+            onTap: () => showBudgetEditor(context),
+          ),
+        ],
       );
     }
 
@@ -120,7 +131,11 @@ class _Budget extends StatelessWidget {
           const SizedBox(height: 22),
         ],
         if (rows.isNotEmpty) ...[
-          const Head(title: 'By category'),
+          Head(
+            title: 'By category',
+            action: limit > 0 ? 'Edit' : 'Set limits',
+            onAction: () => showBudgetEditor(context),
+          ),
           const SizedBox(height: 8),
           Group(
             children: [for (final r in rows) _CategoryRow(row: r)],

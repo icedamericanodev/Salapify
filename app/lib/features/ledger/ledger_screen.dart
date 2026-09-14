@@ -5,8 +5,8 @@
 // cannot be checked by the founder or by a test, and "it saved, trust me" is
 // not a feature.
 //
-// Search, filter chips, swipe to delete and tap to edit are the roadmap's
-// later steps and are deliberately not here yet.
+// Tap to edit is HERE now. Search, filter chips and swipe to delete are the
+// roadmap's later steps and are deliberately not here yet.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -46,9 +46,16 @@ class LedgerScreen extends StatelessWidget {
     return Screen(
       children: [
         const SizedBox(height: 14),
+        // The sentence says what the chevron shows. A marker teaches somebody
+        // who is already looking for one; a sentence reaches the person who
+        // has not thought to look. The founder asked how a user would ever
+        // know a transaction could be corrected, and the honest answer was
+        // that nothing on this screen told them.
         const ScreenTitle(
           title: 'Ledger',
-          sub: 'Everything you have logged, newest first.',
+          sub:
+              'Everything you have logged, newest first. Tap any entry to '
+              'edit or delete it.',
         ),
         const SizedBox(height: 18),
         for (final day in days) ...[
