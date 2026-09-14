@@ -14,12 +14,12 @@ import 'package:flutter/material.dart';
 
 import '../../app/clock.dart';
 import '../../app/ledger_scope.dart';
-import '../../core/money/budget.dart' show budgetSummary, dailyRoom;
 import '../../core/money/format.dart';
-import '../../core/money/ledger.dart' show amountOf;
+import '../../core/state/financial_state.dart';
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../home/home_screen.dart' show shortDate;
 import 'budget_rows.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -94,9 +94,10 @@ class _Budget extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = context.ledger.data;
     final now = context.now;
-    final summary = budgetSummary(data, now);
+    // The SAME composed truth Home reads. Not a second reading of the engine.
+    final state = FinancialState.of(data, now);
     final rows = categoryBudgets(data, now);
-    final limit = amountOf(summary['limit']);
+    final limit = state.budgetLimit;
 
     // Nothing set AND nothing tagged. A screen that draws a zero budget hero
     // over an empty list is telling somebody they have ₱0 to spend, which is
@@ -115,7 +116,7 @@ class _Budget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (limit > 0) ...[
-          _LeftToSpend(summary: summary, now: now, needing: needALook(rows)),
+          _LeftToSpend(state: state, needing: needALook(rows)),
           const SizedBox(height: 22),
         ],
         if (rows.isNotEmpty) ...[
@@ -130,42 +131,46 @@ class _Budget extends StatelessWidget {
   }
 }
 
-/// The hero: what is left of the monthly limit, and how it is pacing.
+/// The hero: what is left of the monthly limit.
+///
+/// It does NOT pace. That is the whole point of this class now.
+///
+/// It used to say "₱697.73 a day for the 20 days left this month" while Home,
+/// on the same ledger at the same moment, said "₱1,566.63 a day until payday".
+/// Both were right on their own terms: one divided by days to month end, the
+/// other by days to the next payday. Two periods, two denominators, two numbers
+/// that can never agree, and no test caught it because neither was wrong.
+///
+/// The app now has exactly ONE pacing figure and it belongs to the payday
+/// cycle, on Home, because that is the span a semimonthly earner actually
+/// lives in. A monthly budget is still a real and useful thing to keep: people
+/// think in monthly rent and monthly salary, and `budgetSummary` is golden
+/// locked to a calendar month. It answers "am I within my limit", which is a
+/// different question from "what can I spend today", and this panel now only
+/// answers the one it can.
 class _LeftToSpend extends StatelessWidget {
-  const _LeftToSpend({
-    required this.summary,
-    required this.now,
-    required this.needing,
-  });
-  final Map<String, dynamic> summary;
-  final DateTime now;
+  const _LeftToSpend({required this.state, required this.needing});
+  final FinancialState state;
   final int needing;
 
   @override
   Widget build(BuildContext context) {
-    final remaining = amountOf(summary['remaining']);
-    final limit = amountOf(summary['limit']);
-    final spent = amountOf(summary['spent']);
-    final over = summary['over'] == true;
-
-    // `dailyRoom` returns null on purpose when the sentence cannot be said
-    // honestly, which is no limit set or nothing left to spread. Its own doc
-    // says so, so a null is a signal rather than a missing value to paper over.
-    final perDay = dailyRoom(summary, now);
-    final lastDay = DateTime(now.year, now.month + 1, 0).day;
-    final daysLeft = lastDay - now.day + 1;
+    final remaining = state.budgetRemaining;
+    final limit = state.budgetLimit;
+    final spent = state.budgetSpent;
+    final over = state.budgetOver;
 
     final String sentence;
     if (over) {
-      sentence = 'You are ${formatMoney(spent - limit)} over your monthly '
-          'limit with ${_days(daysLeft)} to go.';
-    } else if (perDay != null) {
       sentence =
-          '${formatMoney(perDay)} a day for the ${_days(daysLeft)} left '
-          'this month.';
+          'You are ${formatMoney(spent - limit)} over your monthly limit.';
     } else {
-      sentence = 'Nothing left to spread over the ${_days(daysLeft)} left '
-          'this month.';
+      // Names the CYCLE, the same one Home names, so the two screens describe
+      // one period even though they answer different questions about it.
+      sentence = state.cycle.explicit
+          ? 'Your limit for the month, with payday on '
+                '${shortDate(state.cycle.end)}.'
+          : 'Your limit for the month.';
     }
 
     return HeroPanel(
@@ -186,8 +191,6 @@ class _LeftToSpend extends StatelessWidget {
     );
   }
 }
-
-String _days(int n) => n == 1 ? '1 day' : '$n days';
 
 /// One category: the emoji, the name, what is left, and a bar.
 class _CategoryRow extends StatelessWidget {
