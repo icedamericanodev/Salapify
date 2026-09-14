@@ -43,6 +43,11 @@ jobs:
   build:
     name: Analyze, test, build APK
     runs-on: ubuntu-latest
+    # Deliberately the most generous cap in the repository. This is the
+    # PUBLISHER: it analyzes, tests, builds and ships a Shorebird patch, and
+    # cutting it short mid-publish is worse than letting it run long. Six hours
+    # of hanging, though, is not a trade off anybody chose.
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: flutter

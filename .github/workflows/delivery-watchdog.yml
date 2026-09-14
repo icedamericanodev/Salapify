@@ -46,6 +46,9 @@ jobs:
   check:
     name: Did the last merge actually ship
     runs-on: ubuntu-latest
+    # The watchdog itself must never be the thing that hangs. An alarm that is
+    # stuck is an alarm nobody hears.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

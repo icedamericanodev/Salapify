@@ -23,6 +23,9 @@ jobs:
   build:
     name: Build and verify the production AAB
     runs-on: ubuntu-latest
+    # A full release build. Slower than the branch check and still nowhere near
+    # six hours.
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: flutter
