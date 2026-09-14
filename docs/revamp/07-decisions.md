@@ -536,7 +536,7 @@ away: first run and onboarding for an empty ledger, the privacy policy and the
 Play data safety answers, app lock, backup and restore, and the legal, policy
 and store readiness reviews. None of those were needed for an audience of one.
 
-## D20. The differentiator is RECONCILE, the CPA control no tracker has. ANSWERED 2026-09-14
+## D20. The differentiator is RECONCILE, and what is defensible is its SHAPE. ANSWERED 2026-09-14, corrected the same day
 
 Founder direction: "Lets build the best money/finace tracker mobile app with
 CPA and Tech Risk touch". The founder is a CISA holder and a senior IT auditor,
@@ -555,6 +555,79 @@ question: why does your app say a different number from my bank? The usual
 answer is a shrug and a slow loss of trust as drift accumulates, because nothing
 in the app ever asks. Reconcile makes the drift visible on purpose, names it,
 and closes it with a recorded entry rather than a silent edit.
+
+### CORRECTION, same day. This heading used to say "the CPA control no tracker has"
+
+That was false, written by Claude and caught by a competitor review within the
+hour. A reviewer or a rival would have found the counterexample in five minutes,
+and a claim like that in marketing would have been indefensible:
+
+- **YNAB has full reconciliation.** You enter the cleared balance the bank
+  shows, it computes the difference and writes a transaction named
+  "Reconciliation Balance Adjustment", then locks the reconciled rows. This is
+  close prior art for exactly what D20 described.
+- **Money Lover ships "Adjust Balance"** in an overflow menu: type the real
+  amount, it adds or subtracts the difference. It exists, it works, and it
+  records no reason and keeps no history.
+- **Copilot lets you tap a manual account's balance and overwrite it.** Silent,
+  no adjustment record. That is the behaviour this decision calls harmful, and
+  it ships in the most premium app in the category.
+- **Monarch has no reconciliation at all**, by their own documentation.
+
+**So the FEATURE is not defensible.** It is about a week of work and any of the
+five PH local trackers could add an "adjust balance" button next quarter.
+
+**The SHAPE is defensible, and it is where the auditor's instinct is actually
+load bearing rather than decorative:**
+
+1. A **reason code**, not a free text note: forgot to log, cash spent offline,
+   bank fee, interest posted, duplicate, unknown. Nobody does this, and it turns
+   adjustments into data. An "unknown" bucket that grows is itself a finding.
+2. A **reconciled as of date** on the account row and on the net worth figure. A
+   net worth that says when it was last checked against reality is a claim no
+   competitor makes, and it costs them nothing to be unable to make.
+3. **Drift over time**: "your GCash has drifted ₱1,240 across four checks,
+   mostly cash spent offline." A conclusion with a number, which is principle 6,
+   and only possible because the reason was recorded.
+4. A **cadence tied to payday**, one prompt per cycle on the rail Home already
+   draws, never a nag.
+5. The commitment that **no balance is ever silently overwritten anywhere in the
+   app.** This is the part a competitor structurally cannot copy, because they
+   already ship an editable balance field and cannot take it away from existing
+   users. Salapify simply never adds one.
+
+The pitch is therefore NOT "we do reconciliation", which invites "so does YNAB".
+It is **"the only tracker that tells you how wrong it is, and keeps the
+receipt"**. That is a claim only an auditor would think to make, it is true, it
+is checkable, and it sits at the opposite end of the trust spectrum from a
+predatory lending app.
+
+### And the word "reconcile" never appears in the UI
+
+Second correction, from the financial coach review. As written, D20 describes a
+mechanism and never states a benefit. A normal person does not have a drift
+problem, they have a forgot to log problem, and their honest reaction to a ₱340
+variance is "whatever".
+
+The user facing question is **"did I miss anything?"** The gap is not an error to
+classify, it is a recovered memory: "GCash says ₱2,340, Salapify says ₱2,890,
+₱550 went somewhere since Tuesday." Then do the useful thing and GUESS, from the
+user's own history and from recurring bills whose date has passed. Getting one
+right is a small magic trick; filing an unexplained adjustment is a chore.
+
+It is a moment, not a screen. Nobody opens a reconcile tab. Trigger it where the
+real balance is already in front of them, and once per sweldo cycle.
+
+**And the sharpest version for this market is CASH, not the bank account.**
+Nobody can link a wallet of hundred peso bills, cash is where drift is worst,
+and "count your cash, tell me the number" needs no explaining to any Filipino
+user.
+
+### Sequencing, which this review changed
+
+Reconcile writes `adjustment` rows into a ledger that currently has no way to
+open, inspect or fix an entry. Shipping it first would give the founder an audit
+trail nobody can read. The transaction detail and edit path comes FIRST.
 
 **The data model is already there.** `adjustment` is an existing transaction
 type in the golden locked engine, excluded from day totals for exactly the right
