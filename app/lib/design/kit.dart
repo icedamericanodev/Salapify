@@ -62,6 +62,55 @@ class TopBar extends StatelessWidget {
   }
 }
 
+/// The way back from a screen pushed over the shell.
+///
+/// 04-screens.md: "Everything else (Insights, Settings, details, editors) is
+/// pushed over the shell." Those screens have no tab bar to return through, so
+/// they carry this instead.
+///
+/// A 44 square target rather than a bare icon. The chevron is 22, which is the
+/// smallest thing on any screen in this app, and a 22 point hit area is under
+/// every accessibility floor there is.
+class BackBar extends StatelessWidget {
+  const BackBar({super.key, this.action, this.onAction});
+
+  /// A tappable word on the right. Accent, like [Head.action].
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Row(
+      children: [
+        Semantics(
+          button: true,
+          label: 'Back',
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).maybePop(),
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(Icons.arrow_back_rounded, size: 22, color: skin.text),
+            ),
+          ),
+        ),
+        const Spacer(),
+        if (action != null)
+          GestureDetector(
+            onTap: onAction,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+              child: Text(action!, style: TypeScale.action(skin.accent)),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// A screen title with an optional trailing action. Not the same thing as
 /// [Head], which titles a section INSIDE a screen.
 class ScreenTitle extends StatelessWidget {
@@ -228,6 +277,7 @@ class ItemRow extends StatelessWidget {
     this.amountSub,
     this.tone = Tone.plain,
     this.strike = false,
+    this.onTap,
   }) : assert(
          icon == null || monogram == null,
          'A row is decorated once: an icon or a monogram, never both.',
@@ -251,6 +301,12 @@ class ItemRow extends StatelessWidget {
   final Tone tone;
   final bool strike;
 
+  /// Makes the whole row tappable, and nothing else. No chevron, no ripple,
+  /// no colour change: a list where some rows lead somewhere and some do not
+  /// would need a marker, and in this app they all do. The row's own 13 point
+  /// vertical padding already puts the target well past 44.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
@@ -259,7 +315,7 @@ class ItemRow extends StatelessWidget {
       Tone.good => skin.good,
       Tone.owe => skin.accent,
     };
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         children: [
@@ -314,6 +370,19 @@ class ItemRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return row;
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        // Opaque so the gaps BETWEEN the title and the amount are tappable
+        // too. Without it a row is only tappable where there happens to be a
+        // glyph, which is most of the way to not being tappable.
+        behavior: HitTestBehavior.opaque,
+        child: row,
       ),
     );
   }

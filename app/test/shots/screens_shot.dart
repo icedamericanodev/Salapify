@@ -173,6 +173,18 @@ void main() {
       await tester.enterText(find.byType(TextField), 'jollibee 250');
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-log-typed');
+
+      // And one screen that is NOT a tab: account detail, reached by tapping a
+      // row rather than by pushing the route. Tapping is the point. A pushed
+      // route renders the same picture whether or not the row is actually
+      // wired to it, so the shot would look right with the tap broken.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Accounts'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BPI'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-detail');
     });
 
     testWidgets('component sheet ${s.key}', (tester) async {

@@ -12,6 +12,7 @@
 // `initialsFor` makes the monogram. This file groups and paints, and that is
 // deliberately all it does.
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/ledger_scope.dart';
 import '../../core/money/account_taxonomy.dart';
@@ -164,6 +165,7 @@ class _AccountRow extends StatelessWidget {
       title: name,
       sub: accountKindLabel(account, store),
       amount: formatMoney(amount),
+      onTap: () => context.push('/account/${account['id']}'),
       // A liability is money OWED, so it takes the owe colour. Cash does NOT
       // take the good colour: a bank balance is not a win, it is just a fact,
       // and colouring every amount would leave colour meaning nothing.
