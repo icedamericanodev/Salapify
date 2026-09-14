@@ -497,3 +497,282 @@ docs/revamp/mockups/hapon/icon/README.md and the vector harness still carries
 the candidates, because two findings from them still bind: never clear a shape
 with BlendMode.clear in single layer icon artwork, and a contrast ratio is about
 two flat colours meeting while a Play tile is not two flat colours meeting.
+
+## D19. Salapify 3 is built for the public, not for the founder alone. ANSWERED 2026-09-14
+
+Founder direction, verbatim: "We can add feature do not think that this is for
+my personal use only. Lets build it in the way it will usw by the public".
+
+This overrides the sentence in CLAUDE.md that made the founder's own daily use
+the sole near-term audience, and it is a real change of constraint rather than
+a change of tone. Under the old framing a screen only had to work for one
+person whose data and habits were known. Under this one, every screen has to
+work for somebody who installed it ten seconds ago, has no accounts, no payday
+set, and no reason to trust it yet.
+
+What it settles immediately:
+
+**Per category budget limits are FREE, and they are a core feature.** This was
+flagged open when the Budget screen shipped, because the live RN app gates
+`monthlyCap` behind `settings.pro`. Salapify's standing promise is that core
+features are free forever, and a budget app whose budgets sit behind a wall
+fails that promise at the first screen a stranger opens. Pro has to earn its
+money somewhere else: history and trends, forecasting, multi currency, export.
+The engine's own Pro rule in `whereItWent` is untouched, because that file is
+byte identical to the shipped app's; the v3 screen simply does not consult it.
+
+Two things this decision does NOT do, so nobody reads more into it later:
+
+1. It does not paywall anything that is currently free, now or later. Moving a
+   feature behind a wall after people have it is the one thing the monetization
+   promises rule out.
+2. It does not change the ORDER of the roadmap. The screens still come first
+   (Upcoming, Debt, Goals, Insights), and public readiness lands after them as
+   its own phase, when there is a whole app to make ready rather than half of
+   one. Founder's call, same conversation.
+
+What it adds to the plan, deferred but now written down rather than assumed
+away: first run and onboarding for an empty ledger, the privacy policy and the
+Play data safety answers, app lock, backup and restore, and the legal, policy
+and store readiness reviews. None of those were needed for an audience of one.
+
+## D20. The differentiator is RECONCILE, and what is defensible is its SHAPE. ANSWERED 2026-09-14, corrected the same day
+
+Founder direction: "Lets build the best money/finace tracker mobile app with
+CPA and Tech Risk touch". The founder is a CISA holder and a senior IT auditor,
+so that is domain expertise to build ON rather than a slogan to put in the
+marketing.
+
+Four candidates were put to them. Reconcile won, and it is the right one.
+
+**What it is.** Pick an account, type the balance your bank or GCash app
+actually shows, and Salapify tells you the gap and offers to record it as an
+adjustment with a reason. That is a bank reconciliation, the most ordinary
+control in accounting and the one every consumer tracker skips.
+
+**Why it is the strongest of the four.** Every tracker eventually fails the same
+question: why does your app say a different number from my bank? The usual
+answer is a shrug and a slow loss of trust as drift accumulates, because nothing
+in the app ever asks. Reconcile makes the drift visible on purpose, names it,
+and closes it with a recorded entry rather than a silent edit.
+
+### CORRECTION, same day. This heading used to say "the CPA control no tracker has"
+
+That was false, written by Claude and caught by a competitor review within the
+hour. A reviewer or a rival would have found the counterexample in five minutes,
+and a claim like that in marketing would have been indefensible:
+
+- **YNAB has full reconciliation.** You enter the cleared balance the bank
+  shows, it computes the difference and writes a transaction named
+  "Reconciliation Balance Adjustment", then locks the reconciled rows. This is
+  close prior art for exactly what D20 described.
+- **Money Lover ships "Adjust Balance"** in an overflow menu: type the real
+  amount, it adds or subtracts the difference. It exists, it works, and it
+  records no reason and keeps no history.
+- **Copilot lets you tap a manual account's balance and overwrite it.** Silent,
+  no adjustment record. That is the behaviour this decision calls harmful, and
+  it ships in the most premium app in the category.
+- **Monarch has no reconciliation at all**, by their own documentation.
+
+**So the FEATURE is not defensible.** It is about a week of work and any of the
+five PH local trackers could add an "adjust balance" button next quarter.
+
+**The SHAPE is defensible, and it is where the auditor's instinct is actually
+load bearing rather than decorative:**
+
+1. A **reason code**, not a free text note: forgot to log, cash spent offline,
+   bank fee, interest posted, duplicate, unknown. Nobody does this, and it turns
+   adjustments into data. An "unknown" bucket that grows is itself a finding.
+2. A **reconciled as of date** on the account row and on the net worth figure. A
+   net worth that says when it was last checked against reality is a claim no
+   competitor makes, and it costs them nothing to be unable to make.
+3. **Drift over time**: "your GCash has drifted ₱1,240 across four checks,
+   mostly cash spent offline." A conclusion with a number, which is principle 6,
+   and only possible because the reason was recorded.
+4. A **cadence tied to payday**, one prompt per cycle on the rail Home already
+   draws, never a nag.
+5. The commitment that **no balance is ever silently overwritten anywhere in the
+   app.** This is the part a competitor structurally cannot copy, because they
+   already ship an editable balance field and cannot take it away from existing
+   users. Salapify simply never adds one.
+
+The pitch is therefore NOT "we do reconciliation", which invites "so does YNAB".
+It is **"the only tracker that tells you how wrong it is, and keeps the
+receipt"**. That is a claim only an auditor would think to make, it is true, it
+is checkable, and it sits at the opposite end of the trust spectrum from a
+predatory lending app.
+
+### And the word "reconcile" never appears in the UI
+
+Second correction, from the financial coach review. As written, D20 describes a
+mechanism and never states a benefit. A normal person does not have a drift
+problem, they have a forgot to log problem, and their honest reaction to a ₱340
+variance is "whatever".
+
+The user facing question is **"did I miss anything?"** The gap is not an error to
+classify, it is a recovered memory: "GCash says ₱2,340, Salapify says ₱2,890,
+₱550 went somewhere since Tuesday." Then do the useful thing and GUESS, from the
+user's own history and from recurring bills whose date has passed. Getting one
+right is a small magic trick; filing an unexplained adjustment is a chore.
+
+It is a moment, not a screen. Nobody opens a reconcile tab. Trigger it where the
+real balance is already in front of them, and once per sweldo cycle.
+
+**And the sharpest version for this market is CASH, not the bank account.**
+Nobody can link a wallet of hundred peso bills, cash is where drift is worst,
+and "count your cash, tell me the number" needs no explaining to any Filipino
+user.
+
+### Sequencing, which this review changed
+
+Reconcile writes `adjustment` rows into a ledger that currently has no way to
+open, inspect or fix an entry. Shipping it first would give the founder an audit
+trail nobody can read. The transaction detail and edit path comes FIRST.
+
+**The data model is already there.** `adjustment` is an existing transaction
+type in the golden locked engine, excluded from day totals for exactly the right
+reason: it reconciles a balance to reality rather than recording money going
+anywhere. Nothing new has to be invented in the money layer.
+
+**It is also the Tech Risk half.** An adjustment is evidence. It says what the
+app thought, what reality was, when the difference was found and why, and it
+stays in the ledger. The alternative, letting somebody quietly retype a balance,
+destroys the audit trail of the one number the app exists to be right about.
+
+The other three stay on the table and are not rejected, only later: an audit
+trail of edits and deletes, proper net worth and cash flow statements, and a
+data transparency screen (which doubles as the evidence for the Play Data Safety
+questionnaire before launch).
+
+Order: Upcoming (roadmap step 6) first, because it is already the next step and
+nearly built, then Reconcile.
+
+---
+
+## D21: a budget editor explains, it never refuses
+
+**Founder question, 2026-09-14, from the emulator:** "there is a limit 20,000
+for the whole month but when i input 50,000 to load it proceed. Shall we input
+to the categories within the whole month limit only?"
+
+They were right that something was wrong, and it was worse than they thought.
+
+### The bug underneath the question
+
+`budget_editor.dart` already had a warning for this. It could never be seen. The
+save path set the message with `setState` and then saved and closed the sheet in
+the same frame, so the control existed in the source and nowhere a human could
+read it. The app did not merely allow a 50,000 cap inside a 20,000 month, it
+allowed it in silence, which is worse than either allowing it loudly or refusing
+it.
+
+### The decision
+
+**Nothing in the budget editor refuses a plan.** Feedback moves to as-you-type
+and the save is unconditional.
+
+The financial coach was asked to rule and did, and the reasoning matters more
+than the verdict:
+
+**A refusal is right when the app cannot read the input, and wrong when the app
+disagrees with the plan.** The two existing `_read` refusals stay, because there
+the app is reporting its own inability ("that amount cannot be read"), not
+judging anyone. Refusing a plan traps somebody mid edit behind an order of entry
+rule they cannot see: raise a cap first and the limit second, and a blocking
+editor stops you between the two. The first stranger who hits that concludes the
+app thinks it knows their money better than they do, ten seconds after install,
+and there is no recovering from that.
+
+### Two different facts, two different messages
+
+**The SUM of caps may exceed the monthly limit, and that is not even a warning.**
+The earlier code comment gave the wrong reason for this, saying people
+deliberately leave headroom on categories they will not all max out. That is a
+behavioural excuse, and if caps were slices of one pot it would be a defect
+rather than a feature. The real reason is structural and it is in the engine:
+`budgetSummary` counts EVERY peso, including spending with no category at all,
+which no cap can ever cover. The caps were never a partition of the limit, so
+the two figures were never meant to reconcile. A running total now sits above
+the Save button in plain grey and says so.
+
+**ONE cap larger than the whole month is a different fact and gets a note.** It
+is not headroom, it is arithmetic that cannot happen. `needsALook` fires at
+`remaining <= cap * 0.25`, so a 50,000 cap inside a 20,000 month first warns at
+37,500 of spending, which is 17,500 past the point the entire month is gone. The
+control cannot fire inside the range it monitors: a disabled control that
+presents as an armed one, strictly worse than the honest "No limit set" because
+it consumes assurance without providing any.
+
+It also makes two screens contradict each other. At 19,000 spent, the hero says
+1,000 left of 20,000 while the row below says 31,000 left of 50,000 in calm grey
+with a green bar 38 percent full. Two numbers, one ledger, one moment, that can
+never agree. `plan_screen.dart` already carries a long note about exactly that
+defect class, from the pacing bug that had to be fixed once before, so letting
+it back in through the cap field would regress a lesson the file has written
+down.
+
+### Things deliberately NOT done
+
+- **No hard block, no "are you sure" confirmation.** A modal on top of a modal
+  sheet turns a fact into a scold, and it is the shape that makes people stop
+  setting caps at all.
+- **No one tap "raise your monthly limit to match".** This looks like the
+  friendliest option and is the worst: its effect is to delete the only whole
+  month control in the app, and a new user taps whatever makes the orange text
+  go away. Never offer a fix whose effect is to remove the control.
+- **No auto clamp.** Silently rewriting a number somebody typed is the fastest
+  way to lose a finance app's credibility and is indistinguishable from a bug.
+- **No requirement that caps total the limit.** Envelope budgeting is a real
+  method and this is not it. Forcing the sum to equal the limit would guarantee
+  the screen lies about the first uncategorised jeepney fare.
+- **Neither message uses `skin.bad`.** Red means you did something wrong, and
+  neither case is wrong.
+
+### The guard
+
+`editors_test.dart` asserts that a cap above the monthly limit **still
+persists**, so a later session cannot read the new note as permission to start
+blocking. The test records the decision as a decision. It also proves both
+halves of the alarm: that the note fires, and that it stays silent while the
+monthly field is being typed into, because "20000" passes through 2, 20, 200 and
+2000 and at 2 every cap on the screen is above the limit.
+
+No engine change, no stored change. `budget_rows.dart` and `core/money/` are
+untouched.
+
+---
+
+## OPEN, for the founder: an account can be created but never changed
+
+Found by the QA pass on the c6 batch, deferred rather than fixed because half
+of it is a money-meaning question and those are founder-gated.
+
+**The gap.** `showAccountEditor` is called from two places and neither passes
+`existing`, and the account detail screen has no edit and no delete. The whole
+edit branch inside the sheet is unreachable code. Concretely: type `1500000`
+when you meant `15000`, tap "Add account", and your net worth is permanently
+wrong with no screen in the app that can correct it. Add an account twice by
+accident and it is there forever.
+
+This is the same "instruction nobody can follow" shape the account editor was
+built to fix, one step later in the flow.
+
+**Why it is not just wired up.** The dead branch writes `balance` DIRECTLY. An
+edited balance would move with no ledger entry explaining it, which contradicts
+the rule at the top of `entry_detail_screen.dart` and destroys the audit trail
+of the one number the app exists to be right about. That is exactly the argument
+D20 makes for Reconcile: a correction should be an `adjustment` row, which is an
+existing transaction type in the golden locked engine, excluded from day totals
+for precisely this reason.
+
+**The question for the founder,** and it is a real fork rather than a detail:
+
+1. Editing an account's NAME and KIND is safe and could ship immediately.
+2. Editing its BALANCE should probably not be a text field at all. It should be
+   the Reconcile flow from D20: "count your cash, tell me the number", and the
+   difference is written as an `adjustment` the ledger can show.
+3. Deleting an account raises its own question, because transactions point at
+   it. Refuse while it has history, hide it, or delete and orphan them.
+
+Nothing is built for any of this yet. Named here so it is a decision rather than
+an oversight.

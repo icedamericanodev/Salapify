@@ -199,7 +199,21 @@ class _Sheet extends StatelessWidget {
           // Categories are an expense-side idea, so the whole block goes away
           // rather than sitting there greyed out and unexplained.
           if (vm.type == 'expense' && vm.categories.isNotEmpty) ...[
-            Text('Category', style: TypeScale.fieldLabel(skin.text3)),
+            // When the parser did NOT recognise the word, the label says so and
+            // asks. The chips were always here and always tappable, but eight
+            // identical unselected chips under a silent "Category" heading read
+            // as decoration rather than as a question, so an untagged entry got
+            // saved untagged. The founder hit exactly that typing "kain 120".
+            //
+            // This is the better answer than chasing the vocabulary forever. No
+            // word list can cover how everybody writes; a list that admits what
+            // it does not know, in the one second before saving, can.
+            Text(
+              vm.categoryId == null ? 'Category, tap one' : 'Category',
+              style: TypeScale.fieldLabel(
+                vm.categoryId == null ? skin.text2 : skin.text3,
+              ),
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,

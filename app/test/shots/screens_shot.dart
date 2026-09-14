@@ -198,6 +198,14 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-log-typed');
 
+      // And a word no vocabulary will ever hold, which is the case the sheet
+      // has to handle WELL rather than rarely. No word list covers how
+      // everybody writes, so "the app does not know this one" is a permanent
+      // state of the feature and not an edge of it.
+      await tester.enterText(find.byType(TextField), 'zorbtronic 450');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-log-unknown');
+
       // And one screen that is NOT a tab: account detail, reached by tapping a
       // row rather than by pushing the route. Tapping is the point. A pushed
       // route renders the same picture whether or not the row is actually
@@ -209,6 +217,90 @@ void main() {
       await tester.tap(find.text('BPI'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-account-detail');
+    });
+
+    testWidgets('entry detail ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      // Reached by TAPPING a Ledger row, not by pushing the route. A pushed
+      // route renders the same picture whether or not the row is wired to it,
+      // so the shot would look right with the tap broken, and an unwired row
+      // is exactly the defect this screen exists to fix.
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jollibee').first);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-entry-detail');
+    });
+
+    // The two sheets that WRITE the things the app could previously only read.
+    // Neither existed until now: an account could arrive only through a
+    // restored backup, and a monthly limit could not be set at all. Both are
+    // rendered by opening them the way a person does, because a sheet pushed
+    // straight onto the navigator looks identical whether or not the button
+    // that is supposed to open it works.
+    testWidgets('editors ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.text('Accounts'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add an account'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-editor');
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-budget-editor');
+
+      // And the state the founder actually hit: one cap larger than the whole
+      // month. The app used to take it in silence. Rendering it is the only
+      // way to judge whether the note reads as an explanation or as a scold,
+      // which is a thing no test can check.
+      await tester.enterText(find.byType(TextField).first, '20000');
+      await tester.enterText(find.byType(TextField).at(1), '50000');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-budget-over');
+    });
+
+    testWidgets('first run ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      // An EMPTY store, which is the one thing the lived-in fixture above can
+      // never show, and the first thing every new user sees. It went unrendered
+      // until the founder ran the app on an emulator and hit it, at which point
+      // it was telling people to set their payday on a screen that could not
+      // set a payday. Every test passed and every screenshot looked right,
+      // because all of them ran against data that already had one.
+      await tester.pumpWidget(_app(s, await memoryStore()));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-first-run');
     });
 
     testWidgets('component sheet ${s.key}', (tester) async {

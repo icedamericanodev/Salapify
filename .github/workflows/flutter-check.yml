@@ -51,6 +51,18 @@ jobs:
   check:
     name: Analyze and test
     runs-on: ubuntu-latest
+    # A HANG HAS TO FAIL, and fail quickly. GitHub's default job timeout is six
+    # HOURS, which is not a timeout in any useful sense: on 2026-09-14 the test
+    # step below hung, and because nothing was going to stop it, it sat there
+    # blocking every merge while looking exactly like a slow build. A re-run
+    # then passed in the usual nine minutes, so it was a flake, and a flake with
+    # no time limit costs the same as a real failure.
+    #
+    # 25 minutes against a job that takes about nine. Wide enough that a busy
+    # runner or a cold cache never trips it, narrow enough that a hang reports
+    # in minutes instead of hours. Raise it only for work that genuinely takes
+    # longer, never to get past a hang.
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: flutter
@@ -206,6 +218,13 @@ jobs:
         run: flutter analyze
 
       - name: Test
+        # A second, tighter fence around the step that actually hung. The job
+        # timeout above is the backstop; this one names the culprit, so the
+        # failure says "Test timed out" rather than "the job ran out of time"
+        # and nobody has to work out which of eighteen steps was stuck.
+        #
+        # This suite takes about six minutes.
+        timeout-minutes: 15
         run: flutter test
 
       # The screenshot harness is deliberately excluded from `flutter test`

@@ -20,14 +20,14 @@ import '../../app/clock.dart';
 import '../../app/ledger_scope.dart';
 import '../../app/shell.dart';
 import '../../core/money/commitments.dart'
-    show safeToSpend, upcomingCommitments, upcomingDues;
+    show upcomingCommitments, upcomingDues;
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart' show amountOf;
-import '../../core/money/schedule.dart'
-    show hasExplicitPaydaySchedule, nextPayday, prevPayday;
+import '../../core/state/financial_state.dart';
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../../dev/sample_data_action.dart';
 import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
@@ -65,11 +65,15 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.add_rounded,
             onTap: () => context.push(logRoutePath),
           ),
+          // Debug builds only, and only while the ledger is empty. It renders
+          // nothing in a release build because kDebugMode is a compile time
+          // constant, so there is no step to remember before the store listing.
+          const SampleDataAction(),
         ],
       );
     }
 
-    final sts = safeToSpend(data, now);
+    final state = FinancialState.of(data, now);
     final debt = debtTotals(data);
     final coming = upcomingBills(data, now);
 
@@ -78,12 +82,7 @@ class HomeScreen extends StatelessWidget {
         TopBar(date: longDay(now)),
         const SizedBox(height: 16),
 
-        _SafeToSpend(
-          sts: sts,
-          now: now,
-          schedule: scheduleOf(data),
-          explicit: hasExplicitPaydaySchedule(data),
-        ),
+        _SafeToSpend(state: state),
         const SizedBox(height: 20),
 
         const _QuickActions(),
@@ -146,6 +145,9 @@ class HomeScreen extends StatelessWidget {
                   // coming in is green. 04-screens.md, and it is what keeps a
                   // fourteen row list calm.
                   tone: signedAmount(t) > 0 ? Tone.good : Tone.plain,
+                  onTap: () => context.push(
+                    '/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}',
+                  ),
                 ),
             ],
           ),
@@ -154,7 +156,7 @@ class HomeScreen extends StatelessWidget {
 
         // One sentence with a number, no card. The screen ends on something
         // that means something rather than on a list running out.
-        _Insight(sts: sts),
+        _Insight(state: state),
       ],
     );
   }
@@ -162,25 +164,19 @@ class HomeScreen extends StatelessWidget {
 
 /// The hero panel: what is safe to spend, and how long it has to last.
 class _SafeToSpend extends StatelessWidget {
-  const _SafeToSpend({
-    required this.sts,
-    required this.now,
-    required this.schedule,
-    required this.explicit,
-  });
-  final Map<String, dynamic> sts;
-  final DateTime now;
-  final dynamic schedule;
+  const _SafeToSpend({required this.state});
 
-  /// Whether the user actually SET a payday, as opposed to the engine falling
-  /// back to 15/31 so a forecast has something to work with.
-  final bool explicit;
+  /// The one composed truth. This panel takes no loose engine output and no
+  /// schedule of its own, which is the point: there is nothing here left to
+  /// derive differently from the way another screen derives it.
+  final FinancialState state;
 
   @override
   Widget build(BuildContext context) {
-    final available = amountOf(sts['available']);
-    final perDay = amountOf(sts['perDay']);
-    final daysLeft = sts['daysLeft'] as int;
+    final available = state.available;
+    final perDay = state.perDay;
+    final daysLeft = state.cycle.daysLeft;
+    final explicit = state.cycle.explicit;
 
     // NOTHING here may assert a payday the user never set. `schedule.dart` says
     // so in as many words: guessing 15/31 for a forecast is harmless, guessing
@@ -192,21 +188,21 @@ class _SafeToSpend extends StatelessWidget {
         kicker: 'SAFE TO SPEND',
         whole: wholePesos(available),
         cents: centsOf(available),
-        sentence: 'Set your payday in Plan to see how long this has to last.',
+        // Does NOT name a screen. It said "Set your payday in Plan" for two
+        // commits, and Plan cannot set a payday: nothing in the app can yet.
+        // Pointing somebody at a control that does not exist is the same
+        // defect as the dead quick actions this screen had already been fixed
+        // for once. Name the destination here only when the editor exists.
+        sentence: 'Set your payday to see how long this has to last.',
       );
     }
 
-    // The engine's OWN answer, not a second one derived here. On payday itself
-    // `nextPayday` returns today while the engine's daysLeft has already
-    // skipped to the next one, so re-deriving it put "payday on Tuesday" above
-    // "15 days to payday" on the same panel, over a rail that claimed a cycle
-    // running from Sep 15 to Sep 15.
-    final end =
-        DateTime.tryParse((sts['payday'] ?? '').toString()) ??
-        nextPayday(now, schedule);
-    final start = prevPayday(now, schedule);
-    final span = end.difference(start).inDays;
-    final gone = now.difference(start).inDays;
+    // The cycle comes from FinancialState, which is the ONLY place it is
+    // defined. This screen used to derive its own start and end, and Plan
+    // derived a different period entirely, which is how two screens came to
+    // state two daily rates that could never agree.
+    final start = state.cycle.start;
+    final end = state.cycle.end;
 
     return HeroPanel(
       kicker: 'SAFE TO SPEND',
@@ -222,12 +218,13 @@ class _SafeToSpend extends StatelessWidget {
       // is that there is nothing left to pace.
       sentence: available <= 0
           ? 'Your bills before payday come to more than this.'
-          : '${formatMoney(perDay)} a day until payday ${paydayWhen(end, now)}.',
+          : '${formatMoney(perDay)} a day until payday '
+                '${paydayWhen(end, state.now)}.',
       rail: HeroRail(
-        // Zero, not one. A span of zero is payday itself, which is the moment a
-        // cycle BEGINS, so none of it is spent. Filling the bar was telling
-        // somebody they had used up a cycle that had not started.
-        fraction: span <= 0 ? 0.0 : (gone / span).clamp(0.0, 1.0),
+        // Zero on payday itself, never one: that is the moment a cycle BEGINS,
+        // so none of it is spent. Filling the bar was telling somebody they had
+        // used up a cycle that had not started. The rule lives on Cycle now.
+        fraction: state.cycle.elapsedFraction(state.now),
         left: daysLeft == 1 ? 'Payday tomorrow' : '$daysLeft days to payday',
         right: '${shortDate(start)} to ${shortDate(end)}',
       ),
@@ -411,14 +408,14 @@ class _DebtBeam extends StatelessWidget {
 
 /// One sentence with a number in it, and no card around it.
 class _Insight extends StatelessWidget {
-  const _Insight({required this.sts});
-  final Map<String, dynamic> sts;
+  const _Insight({required this.state});
+  final FinancialState state;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    final committed = amountOf(sts['committed']);
-    final billCount = sts['billCount'] as int;
+    final committed = state.committed;
+    final billCount = state.billCount;
 
     // NOT "of that". The hero figure is liquid MINUS committed, so this money
     // has already been taken out of it. Saying "of that" invited the reader to

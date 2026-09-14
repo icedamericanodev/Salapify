@@ -119,6 +119,20 @@ const Map<String, String> categoryKeywords = {
   'dinner': 'cat_food',
   'breakfast': 'cat_food',
   'merienda': 'cat_food',
+  // The Filipino half of those three meals, and the verb itself. "kain" is the
+  // word a Filipino reaches for first and it was missing: the founder typed
+  // "kain 120" on a real phone and got an untagged entry, while "kainan" three
+  // lines up was already here. Matching is whole token, so none of these can
+  // over-reach into a longer word.
+  'kain': 'cat_food',
+  'pagkain': 'cat_food',
+  'almusal': 'cat_food',
+  'tanghalian': 'cat_food',
+  'hapunan': 'cat_food',
+  // Both spellings. 03-design-system.md and CLAUDE.md both write it "meryenda"
+  // in Salapify's own copy, so the app would not have understood a word it puts
+  // on its own screens.
+  'meryenda': 'cat_food',
   'coffee': 'cat_food',
   'kape': 'cat_food',
   'ulam': 'cat_food',

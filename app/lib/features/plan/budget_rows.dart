@@ -18,12 +18,20 @@
 // no counterpart there to be identical to. `debtTotals` on the Accounts screen
 // sits in the feature layer for the same reason.
 //
-// NOT gated on Pro. The shipped app treats a per category cap as a paid
-// feature (`whereItWent` reads `monthlyCap` only when `settings.pro` is set),
-// and that rule is untouched in the engine. Salapify 3 is being built for the
-// founder's own daily use before anyone else's, so there is nobody to gate it
-// from yet. If v3 is ever offered to others, whether this stays free is a
-// pricing decision for the founder, not one to be made here by a default.
+// FREE, and a core feature. Decision D19, founder's call on 2026-09-14, made
+// once v3 became a public app rather than the founder's own.
+//
+// The shipped app treats a per category cap as paid: `whereItWent` reads
+// `monthlyCap` only when `settings.pro` is set. That rule is untouched in the
+// engine, because that file is byte identical to the shipped app's; this screen
+// simply does not consult it. The reasoning is that Salapify's standing promise
+// is core features free forever, and a budget app whose budgets sit behind a
+// wall fails that promise at the first screen a stranger opens. Pro earns its
+// money on history, forecasting, multi currency and export instead.
+//
+// Do not "restore parity" with the engine's Pro check here later. Moving a
+// feature behind a wall after people have it is the one thing the monetization
+// promises rule out.
 import '../../core/money/ledger.dart' show amountOf;
 import '../../core/money/statements.dart' show isThisMonth;
 

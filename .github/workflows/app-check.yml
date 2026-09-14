@@ -31,6 +31,10 @@ jobs:
   check:
     name: Analyze and test
     runs-on: ubuntu-latest
+    # See flutter-check.yml for why: GitHub's default is six HOURS, so without
+    # this a hang blocks every merge while looking like a slow build. This job
+    # takes about two minutes.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: app

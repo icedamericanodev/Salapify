@@ -135,7 +135,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final said = _spoken(tester);
-    expect(said, contains('Set your payday in Plan'));
+    expect(said, contains('Set your payday to see'));
+
+    // And it must not send them to a screen that cannot do it. Nothing in the
+    // app sets a payday yet, so naming one is a promise the app cannot keep.
+    expect(said, isNot(contains('in Plan')));
     expect(said, isNot(contains('days to payday')));
     expect(said, isNot(contains('until payday')));
   });
