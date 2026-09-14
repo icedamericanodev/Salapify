@@ -28,6 +28,7 @@ import '../../core/money/schedule.dart'
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../../dev/sample_data_action.dart';
 import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
@@ -65,6 +66,10 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.add_rounded,
             onTap: () => context.push(logRoutePath),
           ),
+          // Debug builds only, and only while the ledger is empty. It renders
+          // nothing in a release build because kDebugMode is a compile time
+          // constant, so there is no step to remember before the store listing.
+          const SampleDataAction(),
         ],
       );
     }

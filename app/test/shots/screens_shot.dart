@@ -211,6 +211,23 @@ void main() {
       await _shoot(tester, '${s.key}-account-detail');
     });
 
+    testWidgets('first run ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      // An EMPTY store, which is the one thing the lived-in fixture above can
+      // never show, and the first thing every new user sees. It went unrendered
+      // until the founder ran the app on an emulator and hit it, at which point
+      // it was telling people to set their payday on a screen that could not
+      // set a payday. Every test passed and every screenshot looked right,
+      // because all of them ran against data that already had one.
+      await tester.pumpWidget(_app(s, await memoryStore()));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-first-run');
+    });
+
     testWidgets('component sheet ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
 

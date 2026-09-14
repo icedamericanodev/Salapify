@@ -80,6 +80,22 @@ If it says no devices are found, check the emulator is actually running, then:
 
 That lists what Flutter can see.
 
+## The short version, once Flutter and the emulator exist
+
+With the emulator running, from the repository root:
+
+    bash tools/dev-sync.sh
+
+That starts the app AND watches GitHub. Every fifteen seconds it checks for new
+commits, pulls them, and restarts the app on the emulator by itself. You do not
+type anything after that. Stop it with Ctrl-C.
+
+It prints the commit messages of whatever it pulled, so you can see what
+changed before you look at the screen.
+
+Everything below explains the manual version of that same loop, which is worth
+knowing when the script is not what you want.
+
 ## The part you asked about: live updates
 
 Leave `flutter run` running. It stays attached to the app and watches for
@@ -115,7 +131,36 @@ data. Nothing you do here can touch your real ledger.
 **The emulator starts completely empty.** No accounts, no entries, no payday.
 That is not a bug, and it is the single most useful thing about testing this
 way: it is exactly what a stranger sees ten seconds after installing, which as
-of decision D19 is who this app is being built for.
+of decision D19 is who this app is being built for. It has already earned its
+keep once, catching a first run that said "Set your payday in Plan" when
+nothing in the app could set a payday. Every test passed and every screenshot
+looked right, because both ran against data that already had one.
+
+## Sample data, so you can actually review a screen
+
+An empty app is the right thing to SEE once and the wrong thing to review
+against. So on the empty Home screen there is a quiet **Load sample data**
+link under the big button. One tap fills the app with the same ledger the
+tests and the review screenshots use: three accounts, a credit card, debts in
+both directions, a month of entries, budget limits set on three categories.
+
+Three things about it, because "sample data in a real app" deserves suspicion:
+
+1. **It cannot reach the app store.** The link is behind `kDebugMode`, which is
+   a value fixed when the app is built. In a release build it is false, the
+   code is dead, and the compiler removes both the link and the data. There is
+   no step to remember before launch, which is the point: a step somebody has
+   to remember is a step that eventually gets missed.
+2. **It cannot overwrite anything.** It only appears when the ledger is empty,
+   so there is never anything there to lose. That removes the risk rather than
+   guarding it with a confirmation box you would learn to tap through.
+3. **It is dated around today**, not around the day it was written, so the
+   screens look current instead of stuck last September.
+
+To get back to an empty app: long press the Salapify 3 icon on the emulator,
+then **App info**, **Storage**, **Clear storage**. Deliberately a manual step,
+because a "wipe everything" button inside the app is the one thing here that
+really could destroy a ledger.
 
 ## Running on your actual phone instead
 
