@@ -457,3 +457,43 @@ rather than a badge, and the icon's S is then literally the wordmark's S.
 Nothing is built until they choose. Building means five mipmap densities, a real
 adaptive icon with background, foreground and monochrome layers, the 512 store
 icon, and a guard test that every density exists.
+
+## D18. The app icon is the founder's own artwork, recoloured. ANSWERED 2026-09-14
+
+Five rounds of proposals were rejected or superseded. The founder then sent a
+reference image and said: "use the same icon just change the color. make it the
+same do not change anything but the colot to fit the theme". Then, shown a dark
+and a light recolour: "Light".
+
+So the icon is that artwork, geometry untouched pixel for pixel, in Hapon's
+palette: the hero ramp as the ground, the ribbons and the peso in ink, the echo
+in cream. Every colour is an existing token; none was invented.
+
+Not a hue rotation, and the reason generalises. The reference separates its
+elements by HUE (blue ground, mint echo, white ribbon). Salapify's palette is
+monochromatic warm and separates by VALUE (ink 0.01, accent 0.45, cream 0.74
+relative luminance, all at roughly one hue). Spinning blue to orange sends the
+mint to pink. Any future recolour into this palette has the same problem and
+needs the same answer: map by role, not by hue.
+
+Built, not just chosen: five mipmap densities, a real adaptive icon with
+background, foreground and monochrome layers, and the 512 store asset.
+`app/tool/build_icons.py` builds them and
+`app/test/design/icon_assets_test.dart` guards them.
+
+Two things flagged rather than hidden:
+
+1. **The peso glyph.** It is the most documented visual cue of the Philippine
+   quick cash lending category, and Salapify must never be filed under that. It
+   is in the artwork because the direction was explicit. Worth one more look
+   before the store listing goes live; it is one element and easy to drop.
+2. **At 48px the tile is busy.** The S and the coin read; the bar chart becomes
+   a small cluster. That is the reference's own composition rather than anything
+   the recolour did, and the same is true of the original.
+
+Superseded: D17, which recorded Buto (a coffee bean whose crease is an S) as the
+direction. Buto's four rounds are summarised in
+docs/revamp/mockups/hapon/icon/README.md and the vector harness still carries
+the candidates, because two findings from them still bind: never clear a shape
+with BlendMode.clear in single layer icon artwork, and a contrast ratio is about
+two flat colours meeting while a Play tile is not two flat colours meeting.

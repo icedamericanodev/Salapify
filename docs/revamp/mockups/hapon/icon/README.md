@@ -64,17 +64,91 @@ reference has one, and it is kept here because the direction was explicit. It is
 flagged, not argued: worth a second look before the store listing goes live, and
 easy to drop later since it is one element.
 
-## Production notes for when this becomes a real asset
+## DECIDED: light. And it is built.
 
-- These are rasters. The real launcher asset should be rebuilt as vector so it
-  can carry an adaptive icon's separate background and foreground layers.
-- **Android 16 QPR2 forces themed icons and apps cannot opt out.** Where an app
-  ships no monochrome layer the system generates one from the artwork, so a
-  monochrome layer has to be authored by hand or it will be a surprise on the
-  founder's phone.
+Founder chose the light version, so the real assets exist in the app now.
+
+![What the phone will show](icon-shipped-layers.png)
+
+That picture is composed from **the files the APK actually carries**, not from
+the source artwork. A preview made from the source would prove nothing about
+what shipped, which is the point of rendering it this way.
+
+### What is in the app
+
+    android/app/src/main/res/
+      drawable/ic_launcher_background.xml        the hero ramp, as a VECTOR gradient
+      mipmap-anydpi-v26/ic_launcher.xml          background, foreground, monochrome
+      mipmap-anydpi-v26/ic_launcher_round.xml    the same, for round launchers
+      mipmap-{m,h,xh,xxh,xxxh}dpi/
+        ic_launcher.png                          legacy, 48 to 192
+        ic_launcher_foreground.png               adaptive foreground, 108 to 432
+        ic_launcher_monochrome.png               themed icon layer, 108 to 432
+
+    docs/revamp/mockups/hapon/icon/play-store-icon.png    512, for the listing
+
+`app/tool/build_icons.py` builds every one of them from the committed reference,
+and `app/tool/preview_icons.py` renders the sheet above from the built files.
+
+### Three decisions inside that build worth knowing
+
+**The background is a vector, not a bitmap.** The launcher scales and
+parallax-shifts the background independently of the foreground, so a bitmap gets
+resampled at sizes it was never exported for. A gradient the system draws is
+sharp at every density and weighs nothing. Its three stops are byte identical to
+`heroGradient` in `app/lib/design/tokens.dart`, and a test fails if they drift.
+
+**The foreground is scaled to 0.61, which is the exact limit rather than a
+comfortable guess.** The mark is taller than it is wide, so its extreme points
+are top and bottom centre. At xxxhdpi that is 432 x 0.61 / 2 = 132 from centre,
+and the guaranteed circle's radius is 33/108 x 432 = 132. The first build used
+0.58 and the preview showed why not to: the mark sat in a lake of empty ramp.
+
+**The monochrome layer is authored, not left to the system.** Android 16 QPR2
+forces themed icons and apps cannot opt out; where no monochrome layer is
+supplied the system invents one from the artwork and nobody chose what it looks
+like. Both tints are in the sheet above.
+
+### The one thing that took real work
+
+Separating the mark from the ground has to happen on the **original** reference,
+not the recoloured one. In the light recolour the mark is ink and the ground is
+the ramp, but the cream echo and the light ground are too close in value for any
+threshold to split them. In the original they are different hues.
+
+Except for one pixel-exact collision: the reference's own backdrop glow bleeds
+inside the tile at the top right and measures `#8BE7D9`, which is the same
+colour as the mint echo. No hue or saturation threshold can keep one and drop
+the other, and the first build put a dark ink cloud in that corner. The echo is
+separated by **position** instead, since it only ever runs alongside a ribbon
+and the glow never does: the ribbon mask is dilated by six pixels and used as a
+gate.
+
+### The guard
+
+`app/test/design/icon_assets_test.dart` checks every density carries every
+layer at the right pixel size, that both adaptive XMLs declare all three layers
+including monochrome, that the background still holds the hero ramp's exact
+stops, and that the manifest points at both the square and the round icon.
+
+A missing density is invisible without it: Android silently upscales the nearest
+one, so the only symptom is a slightly soft icon on one class of phone, which
+nobody reports. Both halves were proven by breaking them on purpose:
+
+    Missing android/.../mipmap-hdpi/ic_launcher_monochrome.png. Android would
+    silently upscale a neighbouring density and only that class of phone would
+    look wrong. Run: python3 tool/build_icons.py
+
+    ic_launcher has no monochrome layer, so Android will generate a themed icon
+    from the artwork and the result is not ours to predict
+
+### Still to do before the store
+
 - Play masks the listing icon at **30 percent** and adds its own drop shadow, so
-  the asset is submitted as a full square with no rounded corners of its own.
-  That is why the corners here are filled rather than left transparent.
+  `play-store-icon.png` is a full square with no rounded corners and no shadow
+  of its own. That is correct as built; it just needs uploading.
+- This is a **native change**. It needs a real build to reach a phone, which
+  Phase B does not do yet, so nothing about it is live anywhere.
 
 ## The four rounds before this
 
