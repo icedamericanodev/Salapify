@@ -35,6 +35,43 @@ void main() {
     });
   });
 
+  group('the words a Filipino actually types', () {
+    test('the everyday meal words, including the verb', () {
+      // Found on a real phone, not in a test. The founder typed "kain 120" on
+      // an emulator and got an untagged entry, while "kainan" was already in
+      // the table. A vocabulary gap is invisible to every rule test in this
+      // file, because the rules were all working perfectly.
+      for (final line in [
+        'kain 120',
+        'pagkain 250',
+        'almusal 80',
+        'tanghalian 150',
+        'hapunan 200',
+        // Both spellings. Salapify's own copy writes it "meryenda", so the app
+        // would not have understood a word it puts on its own screens.
+        'meryenda 60',
+        'merienda 60',
+      ]) {
+        expect(
+          parseLogLine(line, categories: _defaults).categoryId,
+          'cat_food',
+          reason: '"$line" is food and the parser did not know it',
+        );
+      }
+    });
+
+    test('a longer word is not swallowed by a shorter one', () {
+      // Matching is whole token, so "kain" cannot reach into a word that
+      // merely contains it. Worth pinning: switching to a substring match
+      // would look like an improvement and would start tagging by accident.
+      expect(
+        parseLogLine('kaingin 300', categories: _defaults).categoryId,
+        isNull,
+        reason: 'a substring match leaked: kaingin is not a meal',
+      );
+    });
+  });
+
   group('rule 2: a guess must point at a category that still exists', () {
     test('a deleted category is never guessed', () {
       // The person deleted Food. The keyword table still knows the word, and
