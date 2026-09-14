@@ -13,6 +13,40 @@
 // settings.pro is set, that rule is untouched in the engine, and this screen
 // does not consult it. A budget app whose budgets sit behind a wall fails the
 // core features free forever promise at the first screen a stranger opens.
+//
+// NOTHING HERE REFUSES A PLAN, and that is a decision rather than an oversight.
+// The two refusals in _read are the app reporting its own inability ("that
+// amount cannot be read"), which is honest. Refusing a plan is the app saying
+// it knows the user's money better than they do, and it traps somebody who is
+// mid edit behind an order of entry rule they cannot see: raise a cap first and
+// the limit second and a blocking editor stops you between the two. Do not turn
+// either note below into a block, an "are you sure" or a one tap "raise your
+// limit to match". That last one looks like the friendliest option and is the
+// worst, because its effect is to delete the only whole month control in the
+// app, and a new user will tap whatever makes the orange text go away.
+//
+// A CAP IS A CEILING ON ONE CATEGORY, NOT A SHARE OF THE MONTH. That sentence
+// is the whole reason the caps are allowed to add up to more than the limit,
+// and the earlier version of this file gave the wrong reason: it said people
+// deliberately leave headroom on categories they will not all max out. That is
+// a behavioural excuse, and if caps really were slices of one pot it would be a
+// defect rather than a feature. The real reason is structural and it is in the
+// engine: budgetSummary counts EVERY peso, including spending with no category
+// at all, which no cap can ever cover. So the caps were never a partition of
+// the limit and the two figures were never meant to reconcile.
+//
+// One cap ALONE being larger than the whole month is a different fact, and it
+// is not headroom, it is arithmetic that cannot happen. needsALook in
+// budget_rows.dart fires at remaining <= cap * 0.25, so a 50,000 cap inside a
+// 20,000 month first warns at 37,500 of spending: 17,500 past the point the
+// entire month is gone. The control cannot fire inside the range it monitors,
+// which makes it a disabled control that looks armed, strictly worse than the
+// honest "No limit set". It also contradicts the screen above it: at 19,000
+// spent the hero says 1,000 left of 20,000 while the row says 31,000 left of
+// 50,000 in calm grey with a green bar. Two numbers, one ledger, one moment,
+// that can never agree. plan_screen.dart already carries a long note about
+// exactly that defect class, from the pacing bug that had to be fixed once
+// before. So the row says so, in words, as you type.
 import 'package:flutter/material.dart';
 
 import '../../app/ledger_scope.dart';
@@ -48,6 +82,15 @@ class _BudgetSheet extends StatefulWidget {
 
 class _BudgetSheetState extends State<_BudgetSheet> {
   final _monthly = TextEditingController();
+
+  /// Focus on the MONTHLY field, watched so the row notes can be silenced
+  /// while it is being typed into. Typing "20000" passes through 2, 20, 200
+  /// and 2000, and at those moments nearly every cap is above the limit. With
+  /// no suppression the sheet lights up with warnings on every row while
+  /// somebody enters their headline number, which is an alarm that cries wolf
+  /// and then gets ignored during the real fire. Cap fields need no equivalent,
+  /// because typing a number upward only passes through smaller prefixes.
+  final _monthlyFocus = FocusNode();
   final _caps = <String, TextEditingController>{};
   String? _error;
   var _loaded = false;
@@ -65,12 +108,23 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     final limit = amountOf(settings['monthlyLimit']);
     if (limit > 0) _monthly.text = limit.toStringAsFixed(0);
 
+    // Every field rebuilds the sheet as it changes, which is what makes the
+    // running total and the row notes LIVE. Without these the controllers
+    // change text and nothing redraws, so the only place left to say anything
+    // is on save, and on save is too late: the sheet closes in the same frame.
+    _monthly.addListener(_redraw);
+    _monthlyFocus.addListener(_redraw);
+
     for (final c in _categories) {
       final cap = amountOf(c['monthlyCap']);
       _caps[c['id'] as String] = TextEditingController(
         text: cap > 0 ? cap.toStringAsFixed(0) : '',
-      );
+      )..addListener(_redraw);
     }
+  }
+
+  void _redraw() {
+    if (mounted) setState(() {});
   }
 
   List<Map<String, dynamic>> get _categories => [
@@ -78,11 +132,33 @@ class _BudgetSheetState extends State<_BudgetSheet> {
       if (c is Map && c['id'] is String) c.cast<String, dynamic>(),
   ];
 
+  /// What the monthly field currently says, or null when it cannot be read.
+  ///
+  /// Zero means "no monthly limit", which is a real state and not an error:
+  /// somebody can set per category caps without ever setting a whole month
+  /// figure, and the footer says so rather than comparing against nothing.
+  double? get _typedMonthly => _read(_monthly.text);
+
+  /// The caps that can be read, summed. Unreadable ones are skipped rather
+  /// than counted as zero, so the running total never quietly reports a figure
+  /// lower than the truth while somebody is mid keystroke.
+  double get _typedCapTotal {
+    var total = 0.0;
+    for (final c in _caps.values) {
+      total += _read(c.text) ?? 0;
+    }
+    return total;
+  }
+
   @override
   void dispose() {
+    _monthly.removeListener(_redraw);
     _monthly.dispose();
+    _monthlyFocus.dispose();
     for (final c in _caps.values) {
-      c.dispose();
+      c
+        ..removeListener(_redraw)
+        ..dispose();
     }
     super.dispose();
   }
@@ -141,6 +217,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _monthly,
+                    focusNode: _monthlyFocus,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -172,6 +249,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
 
                   for (final c in _categories) ...[
                     Row(
+                      key: ValueKey('cap-row-${c['id']}'),
                       children: [
                         if ((c['icon'] ?? '').toString().isNotEmpty) ...[
                           Text(
@@ -201,6 +279,20 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                         ),
                       ],
                     ),
+                    // Accent, not `bad`. Red means you did something wrong,
+                    // and setting a big cap is not wrong, it is just a cap
+                    // that cannot do its job. The note says what will happen
+                    // and names the two ways out, then stops.
+                    if (_capOverstepsMonth(c['id'] as String)) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'More than your ${formatMoney(_typedMonthly ?? 0)} '
+                        'monthly limit, so this cap can never warn you. Leave '
+                        'it blank for the same result, or raise the monthly '
+                        'limit.',
+                        style: TypeScale.caption(skin.accent),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                   ],
                 ],
@@ -213,11 +305,59 @@ class _BudgetSheetState extends State<_BudgetSheet> {
             Text(_error!, style: TypeScale.caption(skin.bad)),
           ],
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          // The running total, always on, never an error. It replaced a
+          // save-time warning that no human could ever see: the old code set
+          // the message and then saved and closed the sheet in the same frame,
+          // so the control existed in the source and nowhere else.
+          Text(_runningTotal(), style: TypeScale.caption(skin.text3)),
+
+          const SizedBox(height: 12),
           PillButton(label: 'Save budget', onTap: _save),
         ],
       ),
     );
+  }
+
+  /// Whether ONE category's cap is bigger than the whole month.
+  ///
+  /// Silent while the monthly field is being typed into, and silent when
+  /// either number cannot be read yet: a note that appears halfway through a
+  /// keystroke is noise, and noise is what gets alarms switched off.
+  bool _capOverstepsMonth(String id) {
+    if (_monthlyFocus.hasFocus) return false;
+    final monthly = _typedMonthly;
+    if (monthly == null || monthly <= 0) return false;
+    final cap = _read(_caps[id]?.text ?? '');
+    if (cap == null || cap <= 0) return false;
+    return cap > monthly;
+  }
+
+  /// The sentence under the fields. Three cases, and all three are statements
+  /// of fact rather than verdicts.
+  String _runningTotal() {
+    final total = _typedCapTotal;
+    final monthly = _typedMonthly;
+
+    if (monthly == null || monthly <= 0) {
+      return 'Your categories add up to ${formatMoney(total)}. No monthly '
+          'limit set for the whole month.';
+    }
+    if (total > monthly) {
+      return 'Your categories add up to ${formatMoney(total)}, which is '
+          '${formatMoney(total - monthly)} more than the monthly limit. That '
+          'is allowed. A cap is a ceiling on one category, not a share of the '
+          'month.';
+    }
+    // The line that changes behaviour rather than displaying data. A
+    // semimonthly earner builds the monthly limit out of two sweldos, and the
+    // unassigned remainder is exactly where a savings cap or a debt payment
+    // belongs. Naming it is enough; the screen does not then tell them what to
+    // do with it.
+    return 'Your categories add up to ${formatMoney(total)} of your '
+        '${formatMoney(monthly)} monthly limit. The other '
+        '${formatMoney(monthly - total)} is not in any category and still '
+        'counts against the month.';
   }
 
   InputDecoration _box(Skin skin, String hint) => InputDecoration(
@@ -262,18 +402,11 @@ class _BudgetSheetState extends State<_BudgetSheet> {
       caps[entry.key] = v;
     }
 
-    final total = caps.values.fold<double>(0, (a, b) => a + b);
-    if (monthly > 0 && total > monthly) {
-      // A warning and not a refusal. People genuinely budget this way, leaving
-      // headroom on categories they will not all max out, and the app has no
-      // business telling somebody their own plan is invalid. It just has to
-      // make sure they know.
-      setState(
-        () => _error =
-            'Your categories add up to ${formatMoney(total)}, more than the '
-            '${formatMoney(monthly)} monthly limit. Saving anyway.',
-      );
-    }
+    // Nothing is compared here on purpose. Everything the user needs to know
+    // about how the caps sit against the month has already been on screen,
+    // live, while they typed. A save-time verdict on top of that would be a
+    // scold, and the last one was worse than useless: it set a message and
+    // then closed the sheet in the same frame, so it warned nobody.
 
     final store = context.ledger;
     await store.mutate((draft) {

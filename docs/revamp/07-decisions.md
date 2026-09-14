@@ -646,3 +646,96 @@ questionnaire before launch).
 
 Order: Upcoming (roadmap step 6) first, because it is already the next step and
 nearly built, then Reconcile.
+
+---
+
+## D21: a budget editor explains, it never refuses
+
+**Founder question, 2026-09-14, from the emulator:** "there is a limit 20,000
+for the whole month but when i input 50,000 to load it proceed. Shall we input
+to the categories within the whole month limit only?"
+
+They were right that something was wrong, and it was worse than they thought.
+
+### The bug underneath the question
+
+`budget_editor.dart` already had a warning for this. It could never be seen. The
+save path set the message with `setState` and then saved and closed the sheet in
+the same frame, so the control existed in the source and nowhere a human could
+read it. The app did not merely allow a 50,000 cap inside a 20,000 month, it
+allowed it in silence, which is worse than either allowing it loudly or refusing
+it.
+
+### The decision
+
+**Nothing in the budget editor refuses a plan.** Feedback moves to as-you-type
+and the save is unconditional.
+
+The financial coach was asked to rule and did, and the reasoning matters more
+than the verdict:
+
+**A refusal is right when the app cannot read the input, and wrong when the app
+disagrees with the plan.** The two existing `_read` refusals stay, because there
+the app is reporting its own inability ("that amount cannot be read"), not
+judging anyone. Refusing a plan traps somebody mid edit behind an order of entry
+rule they cannot see: raise a cap first and the limit second, and a blocking
+editor stops you between the two. The first stranger who hits that concludes the
+app thinks it knows their money better than they do, ten seconds after install,
+and there is no recovering from that.
+
+### Two different facts, two different messages
+
+**The SUM of caps may exceed the monthly limit, and that is not even a warning.**
+The earlier code comment gave the wrong reason for this, saying people
+deliberately leave headroom on categories they will not all max out. That is a
+behavioural excuse, and if caps were slices of one pot it would be a defect
+rather than a feature. The real reason is structural and it is in the engine:
+`budgetSummary` counts EVERY peso, including spending with no category at all,
+which no cap can ever cover. The caps were never a partition of the limit, so
+the two figures were never meant to reconcile. A running total now sits above
+the Save button in plain grey and says so.
+
+**ONE cap larger than the whole month is a different fact and gets a note.** It
+is not headroom, it is arithmetic that cannot happen. `needsALook` fires at
+`remaining <= cap * 0.25`, so a 50,000 cap inside a 20,000 month first warns at
+37,500 of spending, which is 17,500 past the point the entire month is gone. The
+control cannot fire inside the range it monitors: a disabled control that
+presents as an armed one, strictly worse than the honest "No limit set" because
+it consumes assurance without providing any.
+
+It also makes two screens contradict each other. At 19,000 spent, the hero says
+1,000 left of 20,000 while the row below says 31,000 left of 50,000 in calm grey
+with a green bar 38 percent full. Two numbers, one ledger, one moment, that can
+never agree. `plan_screen.dart` already carries a long note about exactly that
+defect class, from the pacing bug that had to be fixed once before, so letting
+it back in through the cap field would regress a lesson the file has written
+down.
+
+### Things deliberately NOT done
+
+- **No hard block, no "are you sure" confirmation.** A modal on top of a modal
+  sheet turns a fact into a scold, and it is the shape that makes people stop
+  setting caps at all.
+- **No one tap "raise your monthly limit to match".** This looks like the
+  friendliest option and is the worst: its effect is to delete the only whole
+  month control in the app, and a new user taps whatever makes the orange text
+  go away. Never offer a fix whose effect is to remove the control.
+- **No auto clamp.** Silently rewriting a number somebody typed is the fastest
+  way to lose a finance app's credibility and is indistinguishable from a bug.
+- **No requirement that caps total the limit.** Envelope budgeting is a real
+  method and this is not it. Forcing the sum to equal the limit would guarantee
+  the screen lies about the first uncategorised jeepney fare.
+- **Neither message uses `skin.bad`.** Red means you did something wrong, and
+  neither case is wrong.
+
+### The guard
+
+`editors_test.dart` asserts that a cap above the monthly limit **still
+persists**, so a later session cannot read the new note as permission to start
+blocking. The test records the decision as a decision. It also proves both
+halves of the alarm: that the note fires, and that it stays silent while the
+monthly field is being typed into, because "20000" passes through 2, 20, 200 and
+2000 and at 2 every cap on the screen is above the limit.
+
+No engine change, no stored change. `budget_rows.dart` and `core/money/` are
+untouched.

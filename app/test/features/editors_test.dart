@@ -211,6 +211,99 @@ void main() {
       expect(amountOf((food as Map)['monthlyCap']), 200.0);
     });
 
+    testWidgets('a cap bigger than the whole month still SAVES', (
+      tester,
+    ) async {
+      // This test records a DECISION, not just a behaviour. The founder set a
+      // 20,000 month, typed 50,000 against Load, and the app took it. The
+      // right answer is not to block them: a refusal is the app claiming it
+      // knows their money better than they do, and it traps somebody who
+      // raises a cap before raising the limit. So the editor explains and
+      // saves, and this test is what stops a later session reading the new
+      // warning as permission to start blocking.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _tab(tester, 'Plan');
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '20000');
+      await tester.enterText(find.byType(TextField).at(1), '50000');
+      await _press(tester, 'Save budget');
+
+      final food = (store.data['categories'] as List).firstWhere(
+        (c) => (c as Map)['id'] == 'cat_food',
+      );
+      expect(
+        amountOf((food as Map)['monthlyCap']),
+        50000.0,
+        reason:
+            'the editor silently refused or clamped a figure the user typed, '
+            'which is indistinguishable from a bug',
+      );
+      expect(amountOf((store.data['settings'] as Map)['monthlyLimit']), 20000.0);
+    });
+
+    testWidgets('it says so, as you type, before you ever press save', (
+      tester,
+    ) async {
+      // The old warning was set with setState and then the sheet saved and
+      // popped in the same frame, so it existed in the source and nowhere a
+      // human could read it. The founder hit exactly that: the app took
+      // 50,000 against a 20,000 month and said nothing at all.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _tab(tester, 'Plan');
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '20000');
+      await tester.enterText(find.byType(TextField).at(1), '50000');
+      // Focus leaves the monthly field the moment the cap is typed into, which
+      // is the condition the note waits for.
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('this cap can never warn you'),
+        findsOneWidget,
+        reason:
+            'a cap that can never fire inside the month it guards was accepted '
+            'with no word to the user, which is the defect being fixed',
+      );
+      // And the running total, which is on whether or not anything is wrong.
+      expect(find.textContaining('add up to'), findsOneWidget);
+    });
+
+    testWidgets('it stays QUIET while the monthly figure is being typed', (
+      tester,
+    ) async {
+      // The other half of the alarm, and the half that gets alarms ignored.
+      // Typing "20000" passes through 2, 20, 200 and 2000, and at 2 every cap
+      // on the screen is above the limit. A sheet that lights up on every row
+      // while somebody enters their headline number is an alarm crying wolf.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _tab(tester, 'Plan');
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(TextField).first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '2');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('this cap can never warn you'),
+        findsNothing,
+        reason:
+            'every row shouted while the user was halfway through typing the '
+            'monthly limit, which is how a warning gets tuned out',
+      );
+    });
+
     testWidgets('an unreadable figure refuses and saves nothing', (
       tester,
     ) async {

@@ -98,11 +98,45 @@ is set. That rule is untouched in the engine and this screen does not consult
 it. A budget app whose budgets sit behind a wall fails the core-features-free
 promise at the first screen a stranger opens. (Decision D19.)
 
-Blank means "no limit" and saves zero. Unreadable is refused. Categories adding
-up to more than the monthly limit produce a **warning, not a refusal**: people
-genuinely budget that way, leaving headroom on categories they will not all max
-out, and the app has no business telling somebody their own plan is invalid. It
-just has to make sure they know.
+Blank means "no limit" and saves zero. Unreadable is refused.
+
+### A cap bigger than the whole month
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Gabi](gabi-budget-over.png) | ![Hapon](hapon-budget-over.png) |
+
+The founder set ₱20,000 for the month, typed ₱50,000 against one category, and
+the app took it without a word. It had a warning for this. The warning could
+never be seen: the save path set the message and then saved and closed the sheet
+in the same frame, so the control existed in the source and nowhere a human
+could read it.
+
+Full reasoning is D21 in [../../../07-decisions.md](../../../07-decisions.md).
+The short version:
+
+**Nothing here refuses a plan.** A refusal is right when the app cannot read the
+input, and wrong when the app disagrees with the plan. Blocking traps somebody
+who raises a cap before raising the limit, behind a rule they cannot see.
+
+**The sum of caps may exceed the limit, and that is not even a warning.** Not
+because people leave headroom, which was the wrong reason the old comment gave,
+but because `budgetSummary` counts every peso including spending with no
+category at all. The caps were never a partition of the limit, so the two
+figures were never meant to reconcile. The grey running total says so.
+
+**One cap larger than the whole month IS worth a note**, in accent, not red.
+`needsALook` fires at `remaining <= cap * 0.25`, so a ₱50,000 cap inside a
+₱20,000 month first warns at ₱37,500 of spending: ₱17,500 past the point the
+entire month is gone. It cannot fire inside the range it monitors, which makes
+it a disabled control that looks armed. It also makes the hero and the row
+contradict each other on the same ledger at the same moment, which is the exact
+defect class `plan_screen.dart` already carries a long note about.
+
+Deliberately not done: no block, no "are you sure", no auto clamp, and **no one
+tap "raise your limit to match"**, because its effect is to delete the only
+whole month control in the app and a new user taps whatever makes the orange
+text go away.
 
 ## Two defects the renders caught, that tests did not
 

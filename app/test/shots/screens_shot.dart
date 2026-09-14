@@ -275,6 +275,15 @@ void main() {
       await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-budget-editor');
+
+      // And the state the founder actually hit: one cap larger than the whole
+      // month. The app used to take it in silence. Rendering it is the only
+      // way to judge whether the note reads as an explanation or as a scold,
+      // which is a thing no test can check.
+      await tester.enterText(find.byType(TextField).first, '20000');
+      await tester.enterText(find.byType(TextField).at(1), '50000');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-budget-over');
     });
 
     testWidgets('first run ${s.key}', (tester) async {
