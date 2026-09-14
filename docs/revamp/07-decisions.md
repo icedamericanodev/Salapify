@@ -535,3 +535,41 @@ What it adds to the plan, deferred but now written down rather than assumed
 away: first run and onboarding for an empty ledger, the privacy policy and the
 Play data safety answers, app lock, backup and restore, and the legal, policy
 and store readiness reviews. None of those were needed for an audience of one.
+
+## D20. The differentiator is RECONCILE, the CPA control no tracker has. ANSWERED 2026-09-14
+
+Founder direction: "Lets build the best money/finace tracker mobile app with
+CPA and Tech Risk touch". The founder is a CISA holder and a senior IT auditor,
+so that is domain expertise to build ON rather than a slogan to put in the
+marketing.
+
+Four candidates were put to them. Reconcile won, and it is the right one.
+
+**What it is.** Pick an account, type the balance your bank or GCash app
+actually shows, and Salapify tells you the gap and offers to record it as an
+adjustment with a reason. That is a bank reconciliation, the most ordinary
+control in accounting and the one every consumer tracker skips.
+
+**Why it is the strongest of the four.** Every tracker eventually fails the same
+question: why does your app say a different number from my bank? The usual
+answer is a shrug and a slow loss of trust as drift accumulates, because nothing
+in the app ever asks. Reconcile makes the drift visible on purpose, names it,
+and closes it with a recorded entry rather than a silent edit.
+
+**The data model is already there.** `adjustment` is an existing transaction
+type in the golden locked engine, excluded from day totals for exactly the right
+reason: it reconciles a balance to reality rather than recording money going
+anywhere. Nothing new has to be invented in the money layer.
+
+**It is also the Tech Risk half.** An adjustment is evidence. It says what the
+app thought, what reality was, when the difference was found and why, and it
+stays in the ledger. The alternative, letting somebody quietly retype a balance,
+destroys the audit trail of the one number the app exists to be right about.
+
+The other three stay on the table and are not rejected, only later: an audit
+trail of edits and deletes, proper net worth and cash flow statements, and a
+data transparency screen (which doubles as the evidence for the Play Data Safety
+questionnaire before launch).
+
+Order: Upcoming (roadmap step 6) first, because it is already the next step and
+nearly built, then Reconcile.
