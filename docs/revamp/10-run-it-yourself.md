@@ -114,8 +114,28 @@ I push code to GitHub. To bring it to your Mac, in a second Terminal window:
 
     git pull
 
-Then press **`r`** in the window where `flutter run` is still going. That is
-the whole loop, and it is a few seconds end to end.
+Then press **`R`**, capital, in the window where `flutter run` is still going.
+
+**Capital R after a pull, always, never lowercase r.** That is not belt and
+braces, it is a real trap that has already cost a round. Lowercase `r` is a hot
+RELOAD, and hot reload does not reliably rebuild `const` widgets: Flutter reuses
+the instance it already holds instead of constructing a new one. So a pull
+followed by `r` can update half a screen and silently leave the const half
+stale, which looks exactly like "the new thing is missing" while it is in fact
+already on your machine.
+
+That happened on 2026-09-14. A screen subtitle and an entire button were both
+const, both stayed on the old code through a reload, and the founder correctly
+reported a missing feature that was sitting in their own folder. A cold
+`flutter run` showed it immediately.
+
+Capital `R` is a hot RESTART, rebuilds everything, and cannot leave anything
+behind. It costs about two seconds more. `tools/dev-sync.sh` has always sent
+`R` for exactly this reason.
+
+If a restart still shows the old thing, it is not a reload problem. Quit with
+`q`, run `flutter run` again, and check `git branch --show-current` to be sure
+the code you expect is really in the folder.
 
 If I changed something in `pubspec.yaml`, which is the list of libraries the
 app uses, run `flutter pub get` before the reload. I will say so when that
