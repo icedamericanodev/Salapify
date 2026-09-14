@@ -20,6 +20,8 @@ import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/app/router.dart';
 import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/ledger.dart';
+import 'package:salapify/design/kit.dart';
+import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/design/tokens.dart';
 
 import 'support/memory_store.dart';
@@ -48,14 +50,32 @@ double _netWorth(LedgerStore s) {
   return total;
 }
 
+/// The Log TAB, not any other way in.
+///
+/// Home now carries a "Log" quick action of its own, so a bare find.text('Log')
+/// matches two widgets and the tap fails as ambiguous. That ambiguity is the
+/// screen working as intended: there are genuinely two doors to the same room.
+/// A journey has to say which door it walked through, so this one names the
+/// nav bar, the route that exists from every tab.
+final _logTab = find.descendant(
+  of: find.byType(NavBar),
+  matching: find.text('Log'),
+);
+
 /// Type into the fast log field and save.
 Future<void> _log(WidgetTester tester, String line, {String? account}) async {
-  await tester.tap(find.text('Log'));
+  await tester.tap(_logTab);
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField), line);
   await tester.pumpAndSettle();
   if (account != null) {
-    await tester.tap(find.text(account));
+    // The chip INSIDE the sheet. The Log route is deliberately not opaque, so
+    // the screen behind it stays in the tree, and Home's latest entries name
+    // the account they moved. Two widgets then say "BPI" and only one of them
+    // is a control. Scoping to the sheet is the journey saying which.
+    await tester.tap(
+      find.descendant(of: find.byType(LogSheet), matching: find.text(account)),
+    );
     await tester.pumpAndSettle();
   }
   await tester.tap(find.text('Save entry'));
@@ -166,7 +186,7 @@ void main() {
     await tester.pumpWidget(_app(store));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Log'));
+    await tester.tap(_logTab);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'jollibee 250');
     await tester.pumpAndSettle();
@@ -204,7 +224,7 @@ void main() {
     final before = (store.data['transactions'] as List).length;
     final netBefore = _netWorth(store);
 
-    await tester.tap(find.text('Log'));
+    await tester.tap(_logTab);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save entry'));
     await tester.pumpAndSettle();

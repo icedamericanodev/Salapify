@@ -202,6 +202,142 @@ class Head extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------- hero
+
+/// Signature device one. A LIGHT panel carrying DARK ink.
+///
+/// Every fintech hero on the reference board is the other way round, a dark
+/// panel with white ink, so this is the thing that makes a cropped screenshot
+/// ours.
+///
+/// Ported from `Hero_` in docs/revamp/mockups/hapon/source/home.dart, the
+/// source that produced the 24 approved renders. Same two changes the rest of
+/// this file made and no others: the preview's mutable `skin` global became
+/// `context.skin`, and every inline `ts(...)` became its named role on the
+/// ladder. NO NUMBER MOVED.
+///
+/// The amount arrives PRE SPLIT into whole and cents rather than as a double,
+/// because the panel draws them at different sizes. Splitting a formatted
+/// string here would mean this file owning a rule about how money is written,
+/// and that rule lives in the golden locked `formatMoney`.
+class HeroPanel extends StatelessWidget {
+  const HeroPanel({
+    super.key,
+    required this.kicker,
+    required this.whole,
+    required this.cents,
+    required this.sentence,
+    this.rail,
+  });
+
+  final String kicker;
+  final String whole;
+  final String cents;
+  final String sentence;
+
+  /// The sweldo rail. Null leaves it out: Plan and Ledger take the same panel
+  /// without one.
+  final HeroRail? rail;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final ink = skin.onHero;
+    // A real second colour, not the ink dimmed with opacity. Dimming is what
+    // breaks readability on a coloured field, so the quiet tone is measured
+    // separately in the skin, against the panel's darkest stop.
+    final quiet = skin.onHeroQuiet;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: skin.heroGradient,
+        ),
+        borderRadius: BorderRadius.circular(skin.radius + 6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(kicker, style: TypeScale.kicker(quiet)),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 5, right: 2),
+                child: Text('₱', style: TypeScale.heroSign(quiet)),
+              ),
+              // Measured, not guessed. Plus Jakarta Sans draws a lining figure
+              // at 0.750 of its font size, so 47 pt gives a 35.3 pt cap, which
+              // is 8.6 percent of a 412 pt screen. The money apps on the
+              // reference board sit at 7.6 to 8.8 percent. The old 54 pt came
+              // out at 9.83 percent and read as a poster.
+              Flexible(
+                child: Text(
+                  whole,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TypeScale.heroPanelAmount(ink),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(cents, style: TypeScale.heroCents(quiet)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(sentence, style: TypeScale.heroSentence(quiet)),
+          if (rail != null) ...[
+            const SizedBox(height: 20),
+            // Signature device two, the sweldo rail. The filled part is the
+            // quiet ink, not solid onHero: 5.42 to 1 at the panel's darkest,
+            // past the 3.0 a meaningful non text element needs, and 3.74
+            // against its own track.
+            ThinBar(
+              fraction: rail!.fraction,
+              fill: quiet,
+              track: skin.onHero.withValues(alpha: 0.20),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(rail!.left, style: TypeScale.fieldLabel(quiet)),
+                Text(rail!.right, style: TypeScale.fieldLabel(quiet)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The rail under the amount, and its two end labels.
+///
+/// Not a separate tile. 04-screens.md: "The rail is not a separate tile. It
+/// lives INSIDE the hero panel, under the amount, and that is the change the
+/// built design made: the rail and the number it constrains are one object
+/// rather than two stacked ones."
+class HeroRail {
+  const HeroRail({
+    required this.fraction,
+    required this.left,
+    required this.right,
+  });
+
+  /// How far through the cycle today is, 0 to 1.
+  final double fraction;
+
+  /// "4 days to payday" on the left, "Sep 1 to 15" on the right.
+  final String left;
+  final String right;
+}
+
 // ---------------------------------------------------------------- surfaces
 
 /// A card holding rows, with a hairline between rows and none after the last.

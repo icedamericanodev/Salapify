@@ -30,6 +30,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/app/clock.dart';
 import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/app/router.dart';
 import 'package:salapify/core/data/ledger_store.dart';
@@ -109,15 +110,32 @@ String? _walkUpToFlutterRoot(String exe) {
 /// one skin. Rendering the actual router rather than a stand-in is the whole
 /// point: a picture of a hand-built copy of the shell proves nothing about the
 /// shell.
-Widget _app(Skin s, LedgerStore store) => LedgerScope(
-  store: store,
-  child: MaterialApp.router(
-    key: UniqueKey(),
-    debugShowCheckedModeBanner: false,
-    theme: salapifyTheme(hapon),
-    darkTheme: salapifyTheme(gabi),
-    themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
-    routerConfig: buildRouter(),
+/// The render's "now", pinned.
+///
+/// Friday 11 September 2026, chosen rather than picked at random: the fixture's
+/// payday schedule is the 15th and the 30th, so from here the next payday is
+/// four days out and both recurring bills fall inside the cycle. Home then
+/// renders with a rail part filled and a "Coming up" section that has
+/// something in it, which is the state worth reviewing.
+///
+/// Pinned at all because Home is the first screen whose content depends on the
+/// date. Read the system clock and the committed renders churn every midnight,
+/// so a review picture is never the same twice and a real change hides in the
+/// noise.
+final _renderNow = DateTime(2026, 9, 11, 9, 30);
+
+Widget _app(Skin s, LedgerStore store) => AppClock(
+  now: _renderNow,
+  child: LedgerScope(
+    store: store,
+    child: MaterialApp.router(
+      key: UniqueKey(),
+      debugShowCheckedModeBanner: false,
+      theme: salapifyTheme(hapon),
+      darkTheme: salapifyTheme(gabi),
+      themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
+      routerConfig: buildRouter(),
+    ),
   ),
 );
 
@@ -163,7 +181,13 @@ void main() {
       // design rather than a detail of the screenshot.
       await tester.tap(find.text('Home'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Log'));
+      // Scoped to the NAV BAR, because Home now has a "Log" quick action too
+      // and a bare find.text would match both. 04-screens.md asks for both on
+      // purpose: the bar's button is always there, the quick action is one of
+      // the four on the screen.
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Log')),
+      );
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-log');
 

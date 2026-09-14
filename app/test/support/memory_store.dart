@@ -67,6 +67,37 @@ Map<String, dynamic> livedIn() => {
   // no category is ever suggested. The journey test caught that, and the rule
   // was working exactly as written; the fixture was the thing that was wrong.
   'categories': defaultCategories.map((c) => {...c}).toList(),
+  // GROWN for Home. Without a schedule `normalizeSchedule` falls back to the
+  // 15th and the 31st, which works, but a fixture that never states its own
+  // payday cannot show a wrong one either. The 15th and the 30th is what the
+  // onboarding offers first.
+  'settings': {
+    'paydaySchedule': {
+      'mode': 'semimonthly',
+      'days': [15, 30],
+    },
+  },
+  // The bills "Coming up" is made of. Both land inside the current cycle at
+  // the fixture's render date, which is the only way the section has anything
+  // to say: upcomingCommitments only counts what falls on or before the next
+  // payday, so a recurring row dated outside that window renders nothing and
+  // proves nothing.
+  'recurring': [
+    {
+      'id': 'rc_meralco',
+      'type': 'expense',
+      'label': 'Meralco',
+      'amount': 3200.00,
+      'dayOfMonth': 11,
+    },
+    {
+      'id': 'rc_spotify',
+      'type': 'expense',
+      'label': 'Spotify',
+      'amount': 194.00,
+      'dayOfMonth': 13,
+    },
+  ],
   // GROWN for the Accounts screen, never shrunk. The three original accounts
   // keep their exact balances so the journeys that name per-account movement
   // still mean what they meant.
@@ -115,7 +146,13 @@ Map<String, dynamic> livedIn() => {
       'subtype': 'credit_card',
       'remaining': 4120.00,
       'creditLimit': 40000.00,
-      'statementDueDay': 3,
+      // `dueDay`, which is the field the ENGINE reads. The first version wrote
+      // `statementDueDay`, a name nothing in core/money looks at, so the card
+      // produced no due date, never reached upcomingDues, and silently could
+      // not appear in any bill list. The screen looked fine and was missing a
+      // payment.
+      'dueDay': 3,
+      'minPayment': 500.00,
       'institutionId': 'unionbank',
     },
     {
@@ -123,6 +160,8 @@ Map<String, dynamic> livedIn() => {
       'name': 'Lola',
       'subtype': 'personal_loan',
       'remaining': 6000.00,
+      'dueDay': 18,
+      'minPayment': 1500.00,
     },
   ],
   // Receivables are keyed on `amount` minus payments, NOT on `remaining`, and

@@ -11,6 +11,7 @@
 // machinery that keeps it honest.
 import 'package:flutter/material.dart';
 
+import 'app/clock.dart';
 import 'app/ledger_scope.dart';
 import 'app/router.dart';
 import 'core/data/ledger_store.dart';
@@ -40,20 +41,22 @@ class SalapifyApp extends StatelessWidget {
     // The scope wraps the whole app rather than sitting inside the router,
     // because the Log sheet is pushed OUTSIDE the tab shell and would not see
     // a scope placed within it.
-    return LedgerScope(
-      store: store,
-      child: MaterialApp.router(
-        title: 'Salapify 3',
-        debugShowCheckedModeBanner: false,
+    return AppClock.live(
+      child: LedgerScope(
+        store: store,
+        child: MaterialApp.router(
+          title: 'Salapify 3',
+          debugShowCheckedModeBanner: false,
 
-        // Hapon light, Gabi dark, and the phone's own setting decides. Both are
-        // built from the same tokens, so the only difference between them is
-        // colour. See D10.
-        theme: salapifyTheme(hapon),
-        darkTheme: salapifyTheme(gabi),
-        themeMode: ThemeMode.system,
+          // Hapon light, Gabi dark, and the phone's own setting decides. Both are
+          // built from the same tokens, so the only difference between them is
+          // colour. See D10.
+          theme: salapifyTheme(hapon),
+          darkTheme: salapifyTheme(gabi),
+          themeMode: ThemeMode.system,
 
-        routerConfig: buildRouter(),
+          routerConfig: buildRouter(),
+        ),
       ),
     );
   }

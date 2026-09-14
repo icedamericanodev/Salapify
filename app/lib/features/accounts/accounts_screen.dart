@@ -176,7 +176,7 @@ class _AccountRow extends StatelessWidget {
 
     // Utilisation, drawn only where there is a limit to be a fraction of.
     final used = (amount / limit).clamp(0.0, 1.0);
-    final dueDay = account['statementDueDay'];
+    final dueDay = account['dueDay'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

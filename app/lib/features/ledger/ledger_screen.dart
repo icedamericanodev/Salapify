@@ -13,6 +13,7 @@ import '../../app/ledger_scope.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
 import '../../design/kit.dart';
+import 'entry_presentation.dart';
 
 class LedgerScreen extends StatelessWidget {
   const LedgerScreen({super.key});
@@ -62,9 +63,9 @@ class LedgerScreen extends StatelessWidget {
             children: [
               for (final t in day.rows)
                 ItemRow(
-                  icon: _iconFor(t),
+                  icon: entryIcon(t),
                   title: (t['label'] ?? '').toString(),
-                  sub: _subFor(context, t),
+                  sub: entrySubtitle(context.ledger.data, t),
                   amount: formatMoney(signedAmount(t)),
                   tone: _toneFor(t),
                 ),
@@ -170,28 +171,5 @@ double signedAmount(Map<String, dynamic> t) =>
 Tone _toneFor(Map<String, dynamic> t) =>
     signedAmount(t) > 0 ? Tone.good : Tone.plain;
 
-IconData _iconFor(Map<String, dynamic> t) => switch (t['type']) {
-  'income' => Icons.payments_outlined,
-  'transfer' => Icons.swap_horiz_rounded,
-  'debt' => Icons.handshake_outlined,
-  'adjustment' => Icons.tune_rounded,
-  _ => Icons.receipt_long_outlined,
-};
-
-/// The category and account under the label, when there are any.
-String? _subFor(BuildContext context, Map<String, dynamic> t) {
-  final data = context.ledger.data;
-  String? nameIn(String collection, dynamic id) {
-    if (id is! String || id.isEmpty) return null;
-    for (final row in (data[collection] as List? ?? const [])) {
-      if (row is Map && row['id'] == id) return (row['name'] ?? '').toString();
-    }
-    return null;
-  }
-
-  final parts = [
-    ?nameIn('categories', t['categoryId']),
-    ?nameIn('accounts', t['accountId']),
-  ];
-  return parts.isEmpty ? null : parts.join(', ');
-}
+// The icon and the caption now live in entry_presentation.dart, shared with
+// Home's "Latest", which draws the same row from the same stored entry.
