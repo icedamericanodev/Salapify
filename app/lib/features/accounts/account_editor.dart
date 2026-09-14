@@ -19,14 +19,26 @@
 // leaves SAVINGS out, because the whole point of safe to spend is to protect
 // savings. Marking an account savings is therefore the difference between it
 // being counted as today's pocket money or not.
+//
+// NO institutionId IS WRITTEN, and that is on purpose. The first version put
+// `initialsFor(name).toLowerCase()` in it, which is a monogram, not an
+// institution: `institutionId` is a CATALOG KEY that institutionById,
+// institutionBrandColor and institutionLogoAsset all look up. An account named
+// GCash got 'gc' and one named with an emoji got '?'. It was inert only by
+// luck, because every real catalog id is three characters or more and
+// initialsFor returns at most two, so nothing ever collided. It still wrote
+// junk into the user's backup file for no gain, since monogramFor already falls
+// back to initialsFor(name) when there is no institution. Matching a typed name
+// to a real institution is a feature that can be built later; guessing at the
+// key is not the start of it.
 import 'package:flutter/material.dart';
 
 import '../../app/ledger_scope.dart';
-import '../../core/money/institutions.dart' show initialsFor;
 import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../shared/editor_safety.dart';
 
 /// The kinds the engine actually understands, with what each one MEANS for the
 /// money rather than what it is called at a bank.
@@ -82,10 +94,15 @@ class _AccountSheetState extends State<_AccountSheet> {
   late final _balance = TextEditingController(
     text: widget.existing == null
         ? ''
-        : amountOf(widget.existing!['balance']).toStringAsFixed(2),
+        : moneyField(amountOf(widget.existing!['balance'])),
   );
   late String _kind = (widget.existing?['kind'] ?? 'ewallet').toString();
   String? _error;
+
+  /// One save at a time. See [closeAfterSaving]: a second save means a second
+  /// pop, and on the root navigator the second pop closes the app, not the
+  /// sheet.
+  var _saving = false;
 
   bool get _isNew => widget.existing == null;
 
@@ -209,6 +226,8 @@ class _AccountSheetState extends State<_AccountSheet> {
   );
 
   Future<void> _save() async {
+    if (_saving) return;
+
     final name = _name.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Give it a name so you can tell it apart.');
@@ -218,48 +237,64 @@ class _AccountSheetState extends State<_AccountSheet> {
     // A blank balance means zero, which is honest for a new account. An
     // UNREADABLE one is a different thing and must not be silently taken as
     // zero: on an edit that would wipe a real balance.
+    //
+    // NEGATIVE is allowed here, unlike in the budget editor, and deliberately:
+    // an overdrawn checking account is a real thing and refusing to record it
+    // would make the app unable to describe somebody's actual position.
     final typed = _balance.text.trim().replaceAll(',', '');
     final parsed = typed.isEmpty ? 0.0 : double.tryParse(typed);
-    if (parsed == null) {
+    // `isFinite` is the half that plain tryParse misses. It returns real
+    // values for "NaN", "Infinity" and "1e400"; sanitizeData then coerces a
+    // non-finite number to 0 on the way to disk, so the sheet would report a
+    // successful save while quietly zeroing a real balance.
+    if (parsed == null || !parsed.isFinite) {
       setState(() => _error = 'That amount cannot be read. Try 1500 or 1500.50');
       return;
     }
 
+    setState(() => _saving = true);
     final store = context.ledger;
-    await store.mutate((draft) {
-      final accounts = [
-        for (final a in (draft['accounts'] is List
-            ? draft['accounts'] as List
-            : const []))
-          if (a is Map) a.cast<String, dynamic>(),
-      ];
+    try {
+      await store.mutate((draft) {
+        final accounts = [
+          for (final a in (draft['accounts'] is List
+              ? draft['accounts'] as List
+              : const []))
+            if (a is Map) a.cast<String, dynamic>(),
+        ];
 
-      if (_isNew) {
-        accounts.add({
-          'id': 'a_${DateTime.now().microsecondsSinceEpoch}',
-          'name': name,
-          'kind': _kind,
-          'balance': parsed,
-          // The monogram the Accounts row draws. `initialsFor` is the engine's
-          // one rule for producing them, letters only, never a logo.
-          'institutionId': initialsFor(name).toLowerCase(),
-        });
-      } else {
-        final id = widget.existing!['id'];
-        for (var i = 0; i < accounts.length; i++) {
-          if (accounts[i]['id'] == id) {
-            accounts[i] = {
-              ...accounts[i],
-              'name': name,
-              'kind': _kind,
-              'balance': parsed,
-            };
+        if (_isNew) {
+          accounts.add({
+            'id': 'a_${DateTime.now().microsecondsSinceEpoch}',
+            'name': name,
+            'kind': _kind,
+            'balance': parsed,
+          });
+        } else {
+          final id = widget.existing!['id'];
+          for (var i = 0; i < accounts.length; i++) {
+            if (accounts[i]['id'] == id) {
+              accounts[i] = {
+                ...accounts[i],
+                'name': name,
+                'kind': _kind,
+                'balance': parsed,
+              };
+            }
           }
         }
+        draft['accounts'] = accounts;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Could not save. Nothing was changed.';
+        });
       }
-      draft['accounts'] = accounts;
-    });
+      return;
+    }
 
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) closeAfterSaving(context, true);
   }
 }

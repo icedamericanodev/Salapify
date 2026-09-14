@@ -130,16 +130,35 @@ class _Budget extends StatelessWidget {
           _LeftToSpend(state: state, needing: needALook(rows)),
           const SizedBox(height: 22),
         ],
-        if (rows.isNotEmpty) ...[
+        // The heading shows whenever EITHER half of the budget exists, not
+        // only when there are rows, and that is a bug fix rather than a
+        // preference. The two doors into the editor used to be the empty state
+        // (limit <= 0 AND no rows) and this heading (rows not empty). Set a
+        // monthly limit and leave every cap blank, which the sheet explicitly
+        // invites you to do, and BOTH doors close: the limit kills the empty
+        // state, the missing rows kill the heading, and the hero renders alone
+        // with no control anywhere in the app that can change it. Four taps
+        // from a fresh install to a number the user can never edit again,
+        // which is the exact defect class this whole change set exists to fix.
+        if (limit > 0 || rows.isNotEmpty) ...[
           Head(
             title: 'By category',
             action: limit > 0 ? 'Edit' : 'Set limits',
             onAction: () => showBudgetEditor(context),
           ),
           const SizedBox(height: 8),
-          Group(
-            children: [for (final r in rows) _CategoryRow(row: r)],
-          ),
+          if (rows.isEmpty)
+            const EmptyState(
+              icon: Icons.donut_small_outlined,
+              title: 'No category limits yet',
+              body:
+                  'Your monthly limit is set. Add a cap to a category and this '
+                  'screen shows what is left in it, not only what is spent.',
+            )
+          else
+            Group(
+              children: [for (final r in rows) _CategoryRow(row: r)],
+            ),
         ],
       ],
     );

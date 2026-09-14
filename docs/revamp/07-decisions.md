@@ -739,3 +739,40 @@ monthly field is being typed into, because "20000" passes through 2, 20, 200 and
 
 No engine change, no stored change. `budget_rows.dart` and `core/money/` are
 untouched.
+
+---
+
+## OPEN, for the founder: an account can be created but never changed
+
+Found by the QA pass on the c6 batch, deferred rather than fixed because half
+of it is a money-meaning question and those are founder-gated.
+
+**The gap.** `showAccountEditor` is called from two places and neither passes
+`existing`, and the account detail screen has no edit and no delete. The whole
+edit branch inside the sheet is unreachable code. Concretely: type `1500000`
+when you meant `15000`, tap "Add account", and your net worth is permanently
+wrong with no screen in the app that can correct it. Add an account twice by
+accident and it is there forever.
+
+This is the same "instruction nobody can follow" shape the account editor was
+built to fix, one step later in the flow.
+
+**Why it is not just wired up.** The dead branch writes `balance` DIRECTLY. An
+edited balance would move with no ledger entry explaining it, which contradicts
+the rule at the top of `entry_detail_screen.dart` and destroys the audit trail
+of the one number the app exists to be right about. That is exactly the argument
+D20 makes for Reconcile: a correction should be an `adjustment` row, which is an
+existing transaction type in the golden locked engine, excluded from day totals
+for precisely this reason.
+
+**The question for the founder,** and it is a real fork rather than a detail:
+
+1. Editing an account's NAME and KIND is safe and could ship immediately.
+2. Editing its BALANCE should probably not be a text field at all. It should be
+   the Reconcile flow from D20: "count your cash, tell me the number", and the
+   difference is written as an `adjustment` the ledger can show.
+3. Deleting an account raises its own question, because transactions point at
+   it. Refuse while it has history, hide it, or delete and orphan them.
+
+Nothing is built for any of this yet. Named here so it is a decision rather than
+an oversight.

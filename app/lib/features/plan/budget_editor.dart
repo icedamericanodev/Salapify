@@ -55,6 +55,7 @@ import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../shared/editor_safety.dart';
 
 /// Open the editor. Returns true when something was saved.
 ///
@@ -95,6 +96,12 @@ class _BudgetSheetState extends State<_BudgetSheet> {
   String? _error;
   var _loaded = false;
 
+  /// One save at a time. The button has no disabled look and the write is a
+  /// platform channel round trip taking a tenth of a second or so, which is
+  /// long enough for a second tap. Two saves meant two pops, and the second
+  /// pop does not close a sheet: see [_closeAfterSaving].
+  var _saving = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -106,7 +113,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
         ? data['settings'] as Map
         : const {};
     final limit = amountOf(settings['monthlyLimit']);
-    if (limit > 0) _monthly.text = limit.toStringAsFixed(0);
+    if (limit > 0) _monthly.text = moneyField(limit);
 
     // Every field rebuilds the sheet as it changes, which is what makes the
     // running total and the row notes LIVE. Without these the controllers
@@ -118,7 +125,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     for (final c in _categories) {
       final cap = amountOf(c['monthlyCap']);
       _caps[c['id'] as String] = TextEditingController(
-        text: cap > 0 ? cap.toStringAsFixed(0) : '',
+        text: cap > 0 ? moneyField(cap) : '',
       )..addListener(_redraw);
     }
   }
@@ -139,16 +146,23 @@ class _BudgetSheetState extends State<_BudgetSheet> {
   /// figure, and the footer says so rather than comparing against nothing.
   double? get _typedMonthly => _read(_monthly.text);
 
-  /// The caps that can be read, summed. Unreadable ones are skipped rather
-  /// than counted as zero, so the running total never quietly reports a figure
-  /// lower than the truth while somebody is mid keystroke.
+  /// The caps that can be read, summed.
+  ///
+  /// An unreadable one counts as nothing, which would make the footer quietly
+  /// UNDERSTATE the total, so [_unreadableCaps] says how many were skipped and
+  /// the footer names them. An earlier version of this claimed in a comment
+  /// that it skipped them "so the total is never lower than the truth", which
+  /// was the opposite of what the code did.
   double get _typedCapTotal {
     var total = 0.0;
     for (final c in _caps.values) {
-      total += _read(c.text) ?? 0;
+      total += readMoney(c.text).value ?? 0;
     }
     return total;
   }
+
+  int get _unreadableCaps =>
+      _caps.values.where((c) => readMoney(c.text).value == null).length;
 
   @override
   void dispose() {
@@ -338,16 +352,22 @@ class _BudgetSheetState extends State<_BudgetSheet> {
   String _runningTotal() {
     final total = _typedCapTotal;
     final monthly = _typedMonthly;
+    final skipped = _unreadableCaps;
+    final caveat = skipped == 0
+        ? ''
+        : skipped == 1
+        ? ' One amount could not be read and is not counted.'
+        : ' $skipped amounts could not be read and are not counted.';
 
     if (monthly == null || monthly <= 0) {
       return 'Your categories add up to ${formatMoney(total)}. No monthly '
-          'limit set for the whole month.';
+          'limit set for the whole month.$caveat';
     }
     if (total > monthly) {
       return 'Your categories add up to ${formatMoney(total)}, which is '
           '${formatMoney(total - monthly)} more than the monthly limit. That '
           'is allowed. A cap is a ceiling on one category, not a share of the '
-          'month.';
+          'month.$caveat';
     }
     // The line that changes behaviour rather than displaying data. A
     // semimonthly earner builds the monthly limit out of two sweldos, and the
@@ -357,7 +377,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     return 'Your categories add up to ${formatMoney(total)} of your '
         '${formatMoney(monthly)} monthly limit. The other '
         '${formatMoney(monthly - total)} is not in any category and still '
-        'counts against the month.';
+        'counts against the month.$caveat';
   }
 
   InputDecoration _box(Skin skin, String hint) => InputDecoration(
@@ -375,31 +395,49 @@ class _BudgetSheetState extends State<_BudgetSheet> {
 
   /// Blank means "no limit" and returns zero. Unreadable returns null, which is
   /// a refusal rather than a value: silently taking "2o,000" as zero would wipe
-  /// a limit somebody had set.
-  double? _read(String raw) {
-    final t = raw.trim().replaceAll(',', '');
-    if (t.isEmpty) return 0;
-    final n = double.tryParse(t);
-    if (n == null || n < 0) return null;
-    return n;
+  /// a limit somebody had set. See [readMoney] for why plain `double.tryParse`
+  /// is not enough, and what "Infinity" used to do to a saved limit.
+  double? _read(String raw) => readMoney(raw).value;
+
+  /// The name to put in an error message, without throwing if the category has
+  /// gone. A bare `firstWhere` here would replace the message with a StateError
+  /// inside a tap handler, which turns a small problem into a crash.
+  String _nameOf(String id) {
+    for (final c in _categories) {
+      if (c['id'] == id) return (c['name'] ?? '').toString();
+    }
+    return 'that category';
   }
 
   Future<void> _save() async {
-    final monthly = _read(_monthly.text);
-    if (monthly == null) {
-      setState(() => _error = 'The monthly amount cannot be read.');
+    if (_saving) return;
+
+    final monthly = readMoney(_monthly.text);
+    if (monthly.value == null) {
+      setState(
+        () => _error = monthly.negative
+            ? 'The monthly amount cannot be negative.'
+            : 'The monthly amount cannot be read.',
+      );
       return;
     }
 
     final caps = <String, double>{};
     for (final entry in _caps.entries) {
-      final v = _read(entry.value.text);
-      if (v == null) {
-        final name = _categories.firstWhere((c) => c['id'] == entry.key)['name'];
-        setState(() => _error = 'The amount for $name cannot be read.');
+      final v = readMoney(entry.value.text);
+      if (v.value == null) {
+        final name = _nameOf(entry.key);
+        setState(
+          () => _error = v.negative
+              // Says what is actually wrong. Folding "negative" into "cannot
+              // be read" tells somebody their perfectly legible -500 is
+              // gibberish, which reads as a broken app rather than a rule.
+              ? 'The amount for $name cannot be negative.'
+              : 'The amount for $name cannot be read.',
+        );
         return;
       }
-      caps[entry.key] = v;
+      caps[entry.key] = v.value!;
     }
 
     // Nothing is compared here on purpose. Everything the user needs to know
@@ -408,23 +446,45 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     // scold, and the last one was worse than useless: it set a message and
     // then closed the sheet in the same frame, so it warned nobody.
 
+    setState(() => _saving = true);
     final store = context.ledger;
-    await store.mutate((draft) {
-      final settings = draft['settings'] is Map
-          ? Map<String, dynamic>.from(draft['settings'] as Map)
-          : <String, dynamic>{};
-      settings['monthlyLimit'] = monthly;
-      draft['settings'] = settings;
+    try {
+      await store.mutate((draft) {
+        final settings = draft['settings'] is Map
+            ? Map<String, dynamic>.from(draft['settings'] as Map)
+            : <String, dynamic>{};
+        settings['monthlyLimit'] = monthly.value;
+        draft['settings'] = settings;
 
-      draft['categories'] = [
-        for (final c in (draft['categories'] is List
-            ? draft['categories'] as List
-            : const []))
-          if (c is Map)
-            {...c.cast<String, dynamic>(), 'monthlyCap': caps[c['id']] ?? 0.0},
-      ];
-    });
+        draft['categories'] = [
+          for (final c in (draft['categories'] is List
+              ? draft['categories'] as List
+              : const []))
+            if (c is Map)
+              {
+                ...c.cast<String, dynamic>(),
+                // Falls back to the category's OWN stored cap, not to zero. A
+                // category that appeared after this sheet opened has no
+                // controller, and defaulting it to zero would wipe a cap the
+                // user never saw and never touched.
+                'monthlyCap': caps[c['id']] ?? amountOf(c['monthlyCap']),
+              },
+        ];
+      });
+    } catch (e) {
+      // A failed write used to be indistinguishable from a dead button: the
+      // exception became an unhandled async error, no message appeared, and
+      // the sheet stayed open. The user then taps again, which is how the
+      // double-save above gets triggered in the first place.
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'Could not save. Your budget is unchanged.';
+        });
+      }
+      return;
+    }
 
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) closeAfterSaving(context, true);
   }
 }

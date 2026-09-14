@@ -15,16 +15,44 @@ import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/dev/sample_ledger.dart';
 
 class MemoryRepo implements LedgerRepository {
-  MemoryRepo([this._ledger]);
+  MemoryRepo([this._ledger, this.writeDelay = Duration.zero]);
 
   String? _ledger;
   String? _undo;
+
+  /// How long a write takes. Zero for almost every test, because waiting is
+  /// waste.
+  ///
+  /// It is settable because zero is a LIE about the phone, and a comfortable
+  /// one. The real repository is a flutter_secure_storage platform channel
+  /// round trip taking on the order of a tenth of a second, and every race a
+  /// user can lose lives inside that window: a second tap on a Save button
+  /// with no disabled state, a Back press while the write is in flight. With
+  /// an instant fake those races close before a test can open them, so a
+  /// deliberately broken guard passes and the test reads as proof. That
+  /// happened here on the first attempt at the double-save guard.
+  final Duration writeDelay;
+
+  /// How many times the ledger has been written.
+  ///
+  /// Counting matters because a second save is not always visible in the
+  /// RESULT. `LedgerStore.mutate` deep-copies the ledger before awaiting the
+  /// write, so two overlapping saves both branch from the same blob and the
+  /// later one wins: two writes, one account, and an assertion on the stored
+  /// data cannot tell that from one write. Today the two copies happen to hold
+  /// the same thing; the moment a second write path can overlap, the first
+  /// save's change is silently discarded.
+  var writes = 0;
 
   @override
   Future<String?> readLedger() async => _ledger;
 
   @override
-  Future<void> writeLedger(String json) async => _ledger = json;
+  Future<void> writeLedger(String json) async {
+    writes++;
+    if (writeDelay > Duration.zero) await Future<void>.delayed(writeDelay);
+    _ledger = json;
+  }
 
   @override
   Future<String?> readUndoSnapshot() async => _undo;
@@ -44,8 +72,17 @@ class MemoryRepo implements LedgerRepository {
 }
 
 /// A loaded store over [seed], or over an empty ledger when seed is null.
-Future<LedgerStore> memoryStore([Map<String, dynamic>? seed]) async {
-  final store = LedgerStore(MemoryRepo(seed == null ? null : jsonEncode(seed)));
+///
+/// [writeDelay] makes saving take time, the way it does on a phone. See the
+/// note on [MemoryRepo.writeDelay]: a test about what happens DURING a save
+/// cannot be written against a save that has already finished.
+Future<LedgerStore> memoryStore([
+  Map<String, dynamic>? seed,
+  Duration writeDelay = Duration.zero,
+]) async {
+  final store = LedgerStore(
+    MemoryRepo(seed == null ? null : jsonEncode(seed), writeDelay),
+  );
   await store.load();
   return store;
 }
