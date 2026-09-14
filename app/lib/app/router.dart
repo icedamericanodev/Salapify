@@ -23,6 +23,12 @@ const tabPaths = <String>['/home', '/ledger', '/plan', '/accounts'];
 GoRouter buildRouter() {
   return GoRouter(
     initialLocation: tabPaths.first,
+    // A route that does not match must never be go_router's raw error page.
+    // It is reachable without any bug here: a deep link from a notification or
+    // the home screen widget can name a row that has since been deleted, and a
+    // restored backup can carry an id with a slash or a hash in it, which
+    // breaks the URI into segments no route claims.
+    errorBuilder: (context, state) => const AccountDetailScreen(id: ''),
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

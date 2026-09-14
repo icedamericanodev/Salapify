@@ -162,17 +162,27 @@ class Head extends StatelessWidget {
     super.key,
     required this.title,
     this.action,
+    this.onAction,
     this.amount,
     this.tone = Tone.plain,
   }) : assert(
          action == null || amount == null,
          'A heading has a tappable action or a money figure, not both.',
+       ),
+       assert(
+         action == null || onAction != null,
+         'An action word must DO something. Accent coloured text that is not a '
+         'control reads as a link and is not one, and on Home it was the only '
+         'route to the rows the section had capped off.',
        );
 
   final String title;
 
   /// A tappable word. Accent.
   final String? action;
+
+  /// Where it goes. Required alongside [action], by the assert above.
+  final VoidCallback? onAction;
 
   /// A money figure. Direction colour, per [tone].
   final String? amount;
@@ -187,7 +197,20 @@ class Head extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(title, style: TypeScale.sectionHead(skin.text)),
-        if (action != null) Text(action!, style: TypeScale.action(skin.accent)),
+        if (action != null)
+          Semantics(
+            button: true,
+            child: GestureDetector(
+              onTap: onAction,
+              behavior: HitTestBehavior.opaque,
+              // Padded to a real target. The word alone is about 14 points
+              // tall, well under the 44 the rest of the kit holds to.
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                child: Text(action!, style: TypeScale.action(skin.accent)),
+              ),
+            ),
+          ),
         if (amount != null)
           Text(
             amount!,
@@ -266,9 +289,20 @@ class HeroPanel extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The minus goes BEFORE the peso sign, never between it and the
+              // digits. The panel draws the sign separately from the figure so
+              // the two can take different sizes, and a caller splitting
+              // formatMoney's output hands over a whole part that still carries
+              // its minus. Drawn naively that reads "₱-2,394", which is not how
+              // money is written anywhere, on the one figure the screen exists
+              // to show. Being overcommitted before payday is a normal month
+              // for this app's users, not an edge case.
               Padding(
                 padding: const EdgeInsets.only(top: 5, right: 2),
-                child: Text('₱', style: TypeScale.heroSign(quiet)),
+                child: Text(
+                  whole.startsWith('-') ? '-₱' : '₱',
+                  style: TypeScale.heroSign(quiet),
+                ),
               ),
               // Measured, not guessed. Plus Jakarta Sans draws a lining figure
               // at 0.750 of its font size, so 47 pt gives a 35.3 pt cap, which
@@ -277,7 +311,7 @@ class HeroPanel extends StatelessWidget {
               // out at 9.83 percent and read as a poster.
               Flexible(
                 child: Text(
-                  whole,
+                  whole.startsWith('-') ? whole.substring(1) : whole,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TypeScale.heroPanelAmount(ink),

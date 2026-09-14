@@ -42,6 +42,15 @@ void main() {
       expect(wholePesos(6000), '6,000');
       expect(centsOf(6000), '');
     });
+
+    test('a negative figure keeps its minus, for the panel to place', () {
+      // The panel draws the peso sign separately from the digits, so the whole
+      // part arrives carrying the minus and the panel has to put it BEFORE the
+      // sign. Drawn naively this read "₱-2,394", which is not how money is
+      // written anywhere, on the one figure the screen exists to show.
+      expect(wholePesos(-2394), '-2,394');
+      expect(centsOf(-2394.50), '.50');
+    });
   });
 
   group('what is coming', () {
@@ -89,6 +98,23 @@ void main() {
       expect(dueWhen('2026-09', _now), '');
     });
 
+    test('a payday past this week is a DATE, never a weekday name', () {
+      // A weekday name is only unambiguous inside a week. The hero sentence
+      // used one for any payday at all, so a monthly schedule produced "payday
+      // on Friday" for a payday twenty nine days out, four lines above a rail
+      // truthfully saying "29 days to payday".
+      expect(paydayWhen(DateTime(2026, 10, 30), DateTime(2026, 10, 1)), 'on Oct 30');
+
+      // Inside the week the name is the friendlier form, and it is exactly the
+      // rule dueWhen already used one function away.
+      expect(paydayWhen(DateTime(2026, 9, 15), DateTime(2026, 9, 11)), 'on Tuesday');
+      expect(paydayWhen(DateTime(2026, 9, 12), DateTime(2026, 9, 11)), 'tomorrow');
+      expect(paydayWhen(DateTime(2026, 9, 11), DateTime(2026, 9, 11)), 'today');
+
+      // Seven days out is the same weekday as today, so it has to be a date.
+      expect(paydayWhen(DateTime(2026, 9, 18), DateTime(2026, 9, 11)), 'on Sep 18');
+    });
+
     test('the top line names the day', () {
       expect(longDay(_now), 'Friday, Sep 11');
       expect(shortDay(DateTime(2026, 9, 15)), 'Tuesday');
@@ -109,6 +135,32 @@ void main() {
 
     test('an empty ledger is empty, not an error', () {
       expect(latestEntries(const {}), isEmpty);
+    });
+
+    test('entries logged on the SAME day come back newest first', () {
+      // The defect this guards shipped past eleven tests. A stored date has no
+      // time in it, so everything logged today ties, List.sort is not stable,
+      // and sorting on the date alone returned the five OLDEST entries of the
+      // day under a heading that says "Latest". The entry somebody had just
+      // saved was the one guaranteed to be missing.
+      //
+      // Twelve rows, deliberately past the eight where Dart's sort stops being
+      // an insertion sort and the tie order goes arbitrary.
+      final data = {
+        'transactions': [
+          for (var i = 1; i <= 12; i++)
+            {'id': 't$i', 'label': 'Entry $i', 'amount': i, 'date': '2026-09-11'},
+        ],
+      };
+
+      final rows = latestEntries(data);
+      expect(rows.map((t) => t['label']), [
+        'Entry 12',
+        'Entry 11',
+        'Entry 10',
+        'Entry 9',
+        'Entry 8',
+      ]);
     });
 
     test('the caption never just repeats the title', () {

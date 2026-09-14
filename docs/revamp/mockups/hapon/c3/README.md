@@ -85,6 +85,55 @@ The caption rule, with the de-duplication removed:
     Expected: 'GCash'
       Actual: 'Load, GCash'
 
+## What the QA pass found, after all of the above was green
+
+A `qa-tester` pass ran before the merge, against the real screens pumped over a
+store loaded the way the app loads one. It found **five must-fix defects** and
+several more worth fixing, with 397 tests green. Every one is fixed.
+
+The reason it saw them and the tests did not is one sentence: **no test built a
+widget.** The helper tests were well aimed and all of these defects live in how
+the helpers are ARRANGED, which is a place a helper test cannot reach.
+
+**"Latest" showed the five oldest entries of the day, oldest first.** A stored
+date has no time in it, so everything logged today ties, and `List.sort` is not
+stable. The entry somebody had just saved was the one guaranteed to be missing,
+and past eight rows the sort becomes quicksort and the order goes arbitrary. The
+test passed because it asserted the dates came out descending, which is true of
+every wrong answer. Ties now break on stored position.
+
+**The closing sentence double-counted money against the hero.** `available =
+liquid - committed`, so "₱3,394 of that is already spoken for" named money the
+figure above it had already had removed. A reader doing the subtraction the
+sentence invited would put their runway at ₱2,872.50 instead of ₱6,266.50.
+
+**A negative figure read "₱-2,394".** The panel draws the sign separately from
+the digits so the two can take different sizes, and the whole part still carried
+its minus. Being overcommitted before payday is a normal month here, not an edge
+case. The minus now goes before the sign, which fixes every caller of the panel.
+
+**Account detail offered more credit than the limit.** `limit - amount` with no
+floor, so an overpaid card said "₱41,500 of ₱40,000 left" and an over-limit card
+said "-₱5,000 left". The bar directly above it clamped correctly, so the picture
+and the words disagreed.
+
+**The hero named a weekday for a payday a month away.** On a monthly schedule it
+read "payday on Friday" for a payday twenty nine days out, four lines above a
+rail truthfully saying "29 days to payday". `dueWhen`, two functions down, had
+this rule right the whole time; the most read line on the screen did not.
+
+Also fixed: the rail re-derived its own payday instead of reading the engine's,
+so on payday itself it drew a full bar over a zero length cycle; Home asserted a
+payday for users who never set one, which `hasExplicitPaydaySchedule` exists to
+prevent and Home never called; the debt card counted settled rows, so clearing
+your last debt was rewarded with a card reading zero both ways; the clock was
+read once at startup, so an app reopened days later was silently stale; three
+"See all" links were accent coloured text with no tap target; and the account
+route interpolated a stored id into a URI unencoded.
+
+`app/test/features/home_screen_test.dart` closes the gap the pass named. It
+pumps the screen and reads what it actually says.
+
 ## The clock is injected, not read
 
 Home is the first screen whose content depends on the DATE as well as the

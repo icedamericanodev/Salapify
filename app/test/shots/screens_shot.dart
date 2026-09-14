@@ -261,7 +261,7 @@ class _ComponentSheet extends StatelessWidget {
             ),
             const SizedBox(height: 22),
 
-            const Head(title: 'Rows', action: 'See all'),
+            Head(title: 'Rows', action: 'See all', onAction: () {}),
             const SizedBox(height: 10),
             // The three tones, an icon row, a two-line row, and a struck
             // through row: everything a list can be.

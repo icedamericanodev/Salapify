@@ -23,7 +23,8 @@ import '../../core/money/commitments.dart'
     show safeToSpend, upcomingCommitments, upcomingDues;
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart' show amountOf;
-import '../../core/money/schedule.dart' show nextPayday, prevPayday;
+import '../../core/money/schedule.dart'
+    show hasExplicitPaydaySchedule, nextPayday, prevPayday;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -77,14 +78,26 @@ class HomeScreen extends StatelessWidget {
         TopBar(date: longDay(now)),
         const SizedBox(height: 16),
 
-        _SafeToSpend(sts: sts, now: now, schedule: scheduleOf(data)),
+        _SafeToSpend(
+          sts: sts,
+          now: now,
+          schedule: scheduleOf(data),
+          explicit: hasExplicitPaydaySchedule(data),
+        ),
         const SizedBox(height: 20),
 
         const _QuickActions(),
         const SizedBox(height: 24),
 
         if (debt.any) ...[
-          const Head(title: 'Debt, both ways', action: 'See all'),
+          Head(
+            title: 'Debt, both ways',
+            action: 'See all',
+            // Accounts, because that is where debt lives until its own screen
+            // exists. Pointing at a destination that is not built yet is the
+            // same dead end in a different colour.
+            onAction: () => context.go('/accounts'),
+          ),
           const SizedBox(height: 8),
           Group(
             inset: 0,
@@ -94,7 +107,11 @@ class HomeScreen extends StatelessWidget {
         ],
 
         if (coming.isNotEmpty) ...[
-          const Head(title: 'Coming up', action: 'See all'),
+          Head(
+            title: 'Coming up',
+            action: 'See all',
+            onAction: () => context.go('/plan'),
+          ),
           const SizedBox(height: 8),
           Group(
             children: [
@@ -111,7 +128,11 @@ class HomeScreen extends StatelessWidget {
         ],
 
         if (latest.isNotEmpty) ...[
-          const Head(title: 'Latest', action: 'See all'),
+          Head(
+            title: 'Latest',
+            action: 'See all',
+            onAction: () => context.go('/ledger'),
+          ),
           const SizedBox(height: 8),
           Group(
             children: [
@@ -145,10 +166,15 @@ class _SafeToSpend extends StatelessWidget {
     required this.sts,
     required this.now,
     required this.schedule,
+    required this.explicit,
   });
   final Map<String, dynamic> sts;
   final DateTime now;
   final dynamic schedule;
+
+  /// Whether the user actually SET a payday, as opposed to the engine falling
+  /// back to 15/31 so a forecast has something to work with.
+  final bool explicit;
 
   @override
   Widget build(BuildContext context) {
@@ -156,8 +182,29 @@ class _SafeToSpend extends StatelessWidget {
     final perDay = amountOf(sts['perDay']);
     final daysLeft = sts['daysLeft'] as int;
 
+    // NOTHING here may assert a payday the user never set. `schedule.dart` says
+    // so in as many words: guessing 15/31 for a forecast is harmless, guessing
+    // it for a CLAIM is not, because "payday is Tuesday" is either true or a
+    // lie. A fresh install with no schedule was being told its payday, its
+    // weekday, its day count and its cycle dates, all four invented.
+    if (!explicit) {
+      return HeroPanel(
+        kicker: 'SAFE TO SPEND',
+        whole: wholePesos(available),
+        cents: centsOf(available),
+        sentence: 'Set your payday in Plan to see how long this has to last.',
+      );
+    }
+
+    // The engine's OWN answer, not a second one derived here. On payday itself
+    // `nextPayday` returns today while the engine's daysLeft has already
+    // skipped to the next one, so re-deriving it put "payday on Tuesday" above
+    // "15 days to payday" on the same panel, over a rail that claimed a cycle
+    // running from Sep 15 to Sep 15.
+    final end =
+        DateTime.tryParse((sts['payday'] ?? '').toString()) ??
+        nextPayday(now, schedule);
     final start = prevPayday(now, schedule);
-    final end = nextPayday(now, schedule);
     final span = end.difference(start).inDays;
     final gone = now.difference(start).inDays;
 
@@ -168,13 +215,19 @@ class _SafeToSpend extends StatelessWidget {
       // ONE phrasing, not three. 04-screens.md is explicit about that, and the
       // reason is that a sentence which changes shape every day stops being
       // read at all.
-      sentence:
-          '${formatMoney(perDay)} a day until payday on ${shortDay(end)}.',
+      //
+      // The exception is a figure at or below zero, where the engine's own
+      // forecast goes deliberately silent because that is the crunch case.
+      // Saying "₱0 a day until payday" states a pace as a fact when the truth
+      // is that there is nothing left to pace.
+      sentence: available <= 0
+          ? 'Your bills before payday come to more than this.'
+          : '${formatMoney(perDay)} a day until payday ${paydayWhen(end, now)}.',
       rail: HeroRail(
-        // Guarded, because a span of zero is not hypothetical: it is what a
-        // weekly schedule gives on payday itself, and dividing by it would put
-        // NaN on the one screen that must never look broken.
-        fraction: span <= 0 ? 1.0 : (gone / span).clamp(0.0, 1.0),
+        // Zero, not one. A span of zero is payday itself, which is the moment a
+        // cycle BEGINS, so none of it is spent. Filling the bar was telling
+        // somebody they had used up a cycle that had not started.
+        fraction: span <= 0 ? 0.0 : (gone / span).clamp(0.0, 1.0),
         left: daysLeft == 1 ? 'Payday tomorrow' : '$daysLeft days to payday',
         right: '${shortDate(start)} to ${shortDate(end)}',
       ),
@@ -204,8 +257,15 @@ class _QuickActions extends StatelessWidget {
       children: [
         for (final (label, icon, onTap) in actions)
           Expanded(
+            // An action with nowhere to go is announced as DISABLED, not as a
+            // button. TalkBack was reading out four buttons, three of which did
+            // nothing at all on tap, which is worse than a greyed control: a
+            // sighted user sees nothing happen and assumes the app is broken,
+            // and a screen reader user is told a lie outright. Debt, Bills and
+            // Move get their destinations in later steps.
             child: Semantics(
-              button: true,
+              button: onTap != null,
+              enabled: onTap != null,
               child: GestureDetector(
                 onTap: onTap,
                 behavior: HitTestBehavior.opaque,
@@ -218,10 +278,19 @@ class _QuickActions extends StatelessWidget {
                         color: skin.card,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, size: 21, color: skin.text2),
+                      child: Icon(
+                        icon,
+                        size: 21,
+                        color: onTap == null ? skin.text3 : skin.text2,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text(label, style: TypeScale.caption(skin.text2)),
+                    Text(
+                      label,
+                      style: TypeScale.caption(
+                        onTap == null ? skin.text3 : skin.text2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -351,9 +420,13 @@ class _Insight extends StatelessWidget {
     final committed = amountOf(sts['committed']);
     final billCount = sts['billCount'] as int;
 
+    // NOT "of that". The hero figure is liquid MINUS committed, so this money
+    // has already been taken out of it. Saying "of that" invited the reader to
+    // subtract it a second time and conclude they had half the runway they
+    // really had, and under a negative hero it read as nonsense.
     final text = committed <= 0
         ? 'Nothing is set aside for bills this cycle.'
-        : '${formatMoney(committed)} of that is already spoken for by '
+        : '${formatMoney(committed)} is already set aside for '
               '$billCount ${billCount == 1 ? 'bill' : 'bills'} before payday.';
 
     return Text(text, style: TypeScale.subtitle(skin.text2));
@@ -376,16 +449,32 @@ const int latestCount = 5;
 /// the list is the later one in time, so the list is reversed before slicing.
 List<Map<String, dynamic>> latestEntries(Map<String, dynamic> state) {
   final rows = [
-    for (final t in (state['transactions'] as List? ?? const []))
+    for (final t in (state['transactions'] is List
+        ? state['transactions'] as List
+        : const []))
       if (t is Map) t.cast<String, dynamic>(),
   ];
-  rows.sort((a, b) {
-    final d = (b['date'] ?? '').toString().compareTo(
-      (a['date'] ?? '').toString(),
+
+  // Ties break by STORED POSITION, latest first, and that is the whole reason
+  // this is not a one line sort. A stored date has no time in it, so every
+  // entry logged today ties with every other, and `List.sort` is not stable:
+  // below eight elements it happens to preserve order, above that it is
+  // quicksort and the order is arbitrary. Sorting on the date alone therefore
+  // took the five OLDEST entries of today, oldest first, and put them under a
+  // heading that says "Latest". The entry somebody had just saved was the one
+  // entry guaranteed to be missing, and on a full ledger the five shown were
+  // effectively random.
+  //
+  // It passed its test, because the test asserted the dates came out
+  // descending, which is true of every wrong answer here.
+  final indexed = [for (var i = 0; i < rows.length; i++) (i, rows[i])];
+  indexed.sort((a, b) {
+    final byDate = (b.$2['date'] ?? '').toString().compareTo(
+      (a.$2['date'] ?? '').toString(),
     );
-    return d;
+    return byDate != 0 ? byDate : b.$1.compareTo(a.$1);
   });
-  return rows.take(latestCount).toList();
+  return [for (final row in indexed.take(latestCount)) row.$2];
 }
 
 /// The bills between now and payday, soonest first.
@@ -475,6 +564,26 @@ String shortDay(DateTime d) => _days[d.weekday - 1];
 
 /// "Aug 30", for the rail's two ends.
 String shortDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+
+/// "on Tuesday", "tomorrow", "today" or "on Sep 30", for the hero sentence.
+///
+/// A weekday name is only unambiguous INSIDE a week, and the hero sentence was
+/// using one for any payday at all. On a monthly schedule that produced "payday
+/// on Friday" for a payday twenty nine days out, four lines above a rail
+/// truthfully saying "29 days to payday", and a daily pace the reader would
+/// then believe was wrong by a factor of twenty nine.
+///
+/// `dueWhen` two functions down already knew this rule and applied it
+/// correctly. The most read line on the screen was the one place that did not.
+String paydayWhen(DateTime payday, DateTime now) {
+  final days = DateTime(payday.year, payday.month, payday.day)
+      .difference(DateTime(now.year, now.month, now.day))
+      .inDays;
+  if (days <= 0) return 'today';
+  if (days == 1) return 'tomorrow';
+  if (days < 7) return 'on ${shortDay(payday)}';
+  return 'on ${shortDate(payday)}';
+}
 
 /// "today", "tomorrow", or "Sep 13", for a bill's caption.
 ///

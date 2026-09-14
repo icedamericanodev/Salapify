@@ -20,6 +20,7 @@ import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show groupByDay, signedAmount;
 import 'accounts_screen.dart';
 
@@ -78,7 +79,7 @@ class AccountDetailScreen extends StatelessWidget {
               children: [
                 for (final t in day.rows)
                   ItemRow(
-                    icon: _iconFor(t),
+                    icon: entryIcon(t),
                     title: (t['label'] ?? '').toString(),
                     amount: formatMoney(signedAmount(t)),
                     tone: signedAmount(t) > 0 ? Tone.good : Tone.plain,
@@ -155,7 +156,7 @@ class _Header extends StatelessWidget {
             ThinBar(fraction: (amount / limit).clamp(0.0, 1.0)),
             const SizedBox(height: 7),
             Text(
-              '${formatMoney(limit - amount)} of ${formatMoney(limit)} left',
+              creditCaption(amount, limit),
               style: TypeScale.caption(skin.text3),
             ),
           ],
@@ -165,13 +166,22 @@ class _Header extends StatelessWidget {
   }
 }
 
-IconData _iconFor(Map<String, dynamic> t) => switch (t['type']) {
-  'income' => Icons.payments_outlined,
-  'transfer' => Icons.swap_horiz_rounded,
-  'debt' => Icons.handshake_outlined,
-  'adjustment' => Icons.tune_rounded,
-  _ => Icons.receipt_long_outlined,
-};
+/// "₱35,880 of ₱40,000 left", or the truth when the card is past its limit.
+///
+/// Two figures here can go wrong and both did. An OVERPAID card stores a
+/// negative remaining, and `limit - amount` then offered more credit than the
+/// limit: "₱41,500 of ₱40,000 left". A card pushed past its limit by fees gave
+/// "-₱5,000 left", which is not a sentence about money anybody can act on.
+///
+/// Every place in the engine that ratios a card floors the balance at zero
+/// first (`credit_utilization.dart`, `debtmath.dart`). The bar directly above
+/// this caption clamps correctly, so before this the bar and the words under it
+/// disagreed.
+String creditCaption(double amount, double limit) {
+  final owed = amount < 0 ? 0.0 : amount;
+  if (owed > limit) return '${formatMoney(owed - limit)} over your limit';
+  return '${formatMoney(limit - owed)} of ${formatMoney(limit)} left';
+}
 
 /// Find one row by id, across all three collections, with the collection it
 /// came from.
