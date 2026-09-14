@@ -8,6 +8,7 @@
 // Search, filter chips, swipe to delete and tap to edit are the roadmap's
 // later steps and are deliberately not here yet.
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/ledger_scope.dart';
 import '../../core/money/format.dart';
@@ -68,6 +69,10 @@ class LedgerScreen extends StatelessWidget {
                   sub: entrySubtitle(context.ledger.data, t),
                   amount: formatMoney(signedAmount(t)),
                   tone: _toneFor(t),
+                  // Tappable at last. Until this, a mistyped entry could only
+                  // be fixed by restoring a backup, and the parser guesses, so
+                  // wrong entries are a normal event rather than a rare one.
+                  onTap: () => context.push('/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}'),
                 ),
             ],
           ),

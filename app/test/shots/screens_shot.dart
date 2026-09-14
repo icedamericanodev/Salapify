@@ -219,6 +219,27 @@ void main() {
       await _shoot(tester, '${s.key}-account-detail');
     });
 
+    testWidgets('entry detail ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      // Reached by TAPPING a Ledger row, not by pushing the route. A pushed
+      // route renders the same picture whether or not the row is wired to it,
+      // so the shot would look right with the tap broken, and an unwired row
+      // is exactly the defect this screen exists to fix.
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jollibee').first);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-entry-detail');
+    });
+
     testWidgets('first run ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);

@@ -145,6 +145,9 @@ class HomeScreen extends StatelessWidget {
                   // coming in is green. 04-screens.md, and it is what keeps a
                   // fourteen row list calm.
                   tone: signedAmount(t) > 0 ? Tone.good : Tone.plain,
+                  onTap: () => context.push(
+                    '/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}',
+                  ),
                 ),
             ],
           ),

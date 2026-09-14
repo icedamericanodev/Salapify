@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../features/accounts/account_detail_screen.dart';
 import '../features/accounts/accounts_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/ledger/entry_detail_screen.dart';
 import '../features/ledger/ledger_screen.dart';
 import '../features/log/log_sheet.dart';
 import '../features/plan/plan_screen.dart';
@@ -86,6 +87,14 @@ GoRouter buildRouter() {
       // Outside the shell, deliberately. The Log sheet covers the tab bar and
       // the screen behind it stays visible through the scrim, which is what
       // `opaque: false` buys and what a shell branch could not do.
+      // One entry, over the shell. Same shape as the account detail route and
+      // for the same reason: details, editors and settings live above the tabs.
+      GoRoute(
+        path: '/entry/:id',
+        builder: (context, state) =>
+            EntryDetailScreen(id: state.pathParameters['id']!),
+      ),
+
       GoRoute(
         path: logRoutePath,
         pageBuilder: (context, state) => const _SheetPage(child: LogSheet()),
