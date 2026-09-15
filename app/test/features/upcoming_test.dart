@@ -191,6 +191,67 @@ void main() {
       );
     });
 
+    test('the hero NAMES a day the list actually contains, at its figure', () {
+      // The engine seeds lowest = opening balance and lowestDate = today
+      // BEFORE applying today's events, replacing them only on a strictly
+      // lower day-end balance. So on any day whose net movement is positive,
+      // the hero reported the opening balance against today's date: a figure
+      // on no row. Measured on payday, the hero said 9,660.50 while the row
+      // for the same named day said 24,960.50.
+      //
+      // Anchored ON a payday so today's movement is positive, which is the
+      // condition that reaches it.
+      final up = upcomingFrom(livedIn(), DateTime(2026, 9, 15));
+
+      final named = up.days.where((d) => d.date == up.lowestDate);
+      expect(
+        named,
+        isNotEmpty,
+        reason:
+            'the hero named ${up.lowestDate} and the list has no such day, so '
+            'somebody reading the sentence cannot find what it refers to',
+      );
+      expect(
+        named.first.balanceAfter,
+        closeTo(up.lowest, 0.005),
+        reason:
+            'the hero says ${up.lowest} and the row it names says '
+            '${named.first.balanceAfter}. One ledger, one day, two numbers',
+      );
+
+      // And it really is the minimum, not just any day that agrees.
+      for (final d in up.days) {
+        expect(d.balanceAfter, greaterThanOrEqualTo(up.lowest - 0.005));
+      }
+    });
+
+    test('a payday with no income does not deny a salary the user HAS', () {
+      // The copy asked a per-day question and answered with an account-wide
+      // claim. A recurring row carries one dayOfMonth and a semimonthly
+      // schedule has two paydays, so every semimonthly earner read "no salary
+      // set up yet" on half their payday rows with their sweldo two rows up.
+      final up = upcomingFrom(livedIn(), sampleAnchor);
+
+      expect(
+        up.anyIncome,
+        isTrue,
+        reason:
+            'the lived-in fixture lost its recurring income, so this test can '
+            'no longer tell the two payday sentences apart',
+      );
+
+      final bare = up.days.where(
+        (d) => d.isPayday && !d.events.any((e) => e.isIncome),
+      );
+      expect(
+        bare,
+        isNotEmpty,
+        reason:
+            'the window holds no bare payday, so the case that produced the '
+            'false sentence is not being exercised at all',
+      );
+    });
+
     test('no schedule falls back to a window, never to nothing', () {
       // An empty ledger has no payday set. Returning zero days would render
       // "nothing is coming", which is a different statement from "we do not

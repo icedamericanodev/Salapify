@@ -49,14 +49,23 @@ class LedgerStore extends ChangeNotifier {
   /// it does not understand.
   ///
   /// A missing or empty store is a first run, not an error.
-  Future<void> load() async {
+  ///
+  /// QUEUED like every write, and that is not belt-and-braces. It REPLACES
+  /// `_data` wholesale, so a load that lands while a save is queued leaves the
+  /// queued operation to deep-copy whatever the load just installed. Today the
+  /// only caller runs before `runApp`, so nothing can race it, but restore and
+  /// unlock are both loads that happen with the app alive and a sheet possibly
+  /// mid-save. The class's whole promise is one writer at a time, and a
+  /// wholesale replacement that skipped the queue would be the one exception
+  /// nobody remembered.
+  Future<void> load() => _enqueue(() async {
     final raw = await _repo.readLedger();
     _data = (raw == null || raw.isEmpty)
         ? sanitizeData(const <String, dynamic>{})
         : sanitizeData(jsonDecode(raw));
     _loaded = true;
     notifyListeners();
-  }
+  });
 
   /// Change the ledger and persist the result.
   ///
@@ -139,11 +148,26 @@ class LedgerStore extends ChangeNotifier {
   /// The snapshot is taken INSIDE the queued callback on purpose. Taking it
   /// outside would queue the writes and leave the stale-copy problem exactly as
   /// it was, which is the shape of fix that looks right and changes nothing.
+  /// Set this to hear about a write that failed with nobody awaiting it.
+  ///
+  /// Chaining `catchError` onto the returned future to keep the queue alive has
+  /// a side effect that is easy to miss: it marks the error HANDLED, so a
+  /// fire-and-forget caller that used to produce a loud unhandled async error
+  /// now gets total silence. An awaiting caller is unaffected and still throws.
+  ///
+  /// Today the only fire-and-forget writer is the debug sample-data button, so
+  /// the blast radius is small. The two writers coming next, recurring
+  /// auto-posting and the net worth snapshot, both fire at launch with nobody
+  /// awaiting them, and both would have failed invisibly.
+  void Function(Object error)? onUnawaitedWriteError;
+
   Future<void> _enqueue(Future<void> Function() op) {
     final next = _queue.then((_) => op());
     // A failed write must not poison the queue for every write after it, and
     // the caller still gets the real error through `next`.
-    _queue = next.catchError((_) {});
+    _queue = next.catchError((Object e) {
+      onUnawaitedWriteError?.call(e);
+    });
     return next;
   }
 

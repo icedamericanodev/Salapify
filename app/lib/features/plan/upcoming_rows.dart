@@ -90,6 +90,7 @@ class Upcoming {
     required this.firstNegativeDate,
     required this.horizonEnd,
     required this.todayIso,
+    required this.anyIncome,
   });
 
   final List<UpcomingDay> days;
@@ -126,6 +127,15 @@ class Upcoming {
   /// its own. `timeline.dart` sets [firstNegativeDate] to today when the
   /// starting balance is already negative.
   final String todayIso;
+
+  /// Whether ANY money comes in across the whole window.
+  ///
+  /// The payday copy needs this because the per-day answer cannot carry the
+  /// claim it was making. A recurring row has one `dayOfMonth` and a
+  /// semimonthly schedule has two paydays, so "no salary set up yet" appeared
+  /// on half of every semimonthly earner's payday rows with their salary
+  /// printed two rows above it.
+  final bool anyIncome;
 
   bool get isEmpty => days.isEmpty;
 
@@ -188,10 +198,48 @@ Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
   final horizon = upcomingHorizonDays(data, ref);
   final t = sweldoTimeline(data, ref, horizonDays: horizon);
 
+  final engineDays = [
+    for (final raw in (t['days'] is List ? t['days'] as List : const []))
+      if (raw is Map) raw.cast<String, dynamic>(),
+  ];
+
+  // THE LOW POINT IS DERIVED FROM THE DAY-END BALANCES, not read from the
+  // engine's `lowest`, and that is a fix rather than a preference.
+  //
+  // `sweldoTimeline` seeds `lowest = start` and `lowestDate = today` BEFORE
+  // the loop applies today's events, and only replaces them on a strictly
+  // lower day-end balance. So on any day whose net movement is positive, the
+  // hero reported the OPENING balance against today's date: a figure that
+  // appears on no row in the list underneath it. Measured on payday with the
+  // salary landing, the hero said 9,660.50 and the row for the same named day
+  // said 24,960.50. One ledger, one named day, two numbers, which is exactly
+  // the contradiction FinancialState exists to prevent.
+  //
+  // Every row shows its day-END balance, so taking the minimum of those is the
+  // only definition that can never disagree with the list.
+  var lowestBalance = 0.0;
+  var lowestOn = '';
+  for (var i = 0; i < engineDays.length; i++) {
+    final b = amountOf(engineDays[i]['balance']);
+    if (i == 0 || b < lowestBalance) {
+      lowestBalance = b;
+      lowestOn = (engineDays[i]['date'] ?? '').toString();
+    }
+  }
+
+  // Does ANY income land in this window. Used by the payday copy, which used
+  // to make an account-wide claim ("no salary set up yet") from a per-DAY
+  // check. A recurring row carries one dayOfMonth and a semimonthly schedule
+  // has two paydays, so every semimonthly earner saw that sentence on half
+  // their payday rows with their salary printed two rows above it.
+  final anyIncome = engineDays.any(
+    (d) => (d['events'] is List ? d['events'] as List : const []).any(
+      (e) => e is Map && (e['kind'] == 'income' || e['kind'] == 'scenarioIn'),
+    ),
+  );
+
   final days = <UpcomingDay>[];
-  for (final raw in (t['days'] is List ? t['days'] as List : const [])) {
-    if (raw is! Map) continue;
-    final d = raw.cast<String, dynamic>();
+  for (final d in engineDays) {
     final events = [
       for (final e in (d['events'] is List ? d['events'] as List : const []))
         if (e is Map)
@@ -207,7 +255,12 @@ Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
     // bills is a calendar, and a calendar is what the user already has on
     // their phone. A payday with no recurring income attached still earns a
     // row, because the DATE is the information.
-    if (events.isEmpty && !isPayday) continue;
+    //
+    // The LOW POINT earns one too, even on a quiet day. The hero names that
+    // date, and a hero naming a day the list does not contain is the same
+    // contradiction in a different shape.
+    final isLowest = (d['date'] ?? '').toString() == lowestOn;
+    if (events.isEmpty && !isPayday && !isLowest) continue;
 
     days.add(
       UpcomingDay(
@@ -219,10 +272,6 @@ Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
     );
   }
 
-  final lowest = t['lowest'] is Map
-      ? (t['lowest'] as Map).cast<String, dynamic>()
-      : const <String, dynamic>{};
-
   final today = DateTime(ref.year, ref.month, ref.day);
   final end = DateTime(today.year, today.month, today.day + horizon);
 
@@ -230,8 +279,9 @@ Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
     days: days,
     horizonDays: horizon,
     horizonEnd: _iso(end),
-    lowest: amountOf(lowest['balance']),
-    lowestDate: (lowest['date'] ?? '').toString(),
+    lowest: lowestBalance,
+    lowestDate: lowestOn,
+    anyIncome: anyIncome,
     goesNegative: t['anyNegative'] == true,
     firstNegativeDate: (t['firstNegativeDate'] ?? '').toString(),
     todayIso: _iso(today),

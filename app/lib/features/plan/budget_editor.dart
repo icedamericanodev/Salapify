@@ -441,44 +441,74 @@ class _BudgetSheetState extends State<_BudgetSheet> {
 
   /// What a budget actually is, on request rather than on every visit.
   void _showHelp(BuildContext context) {
-    final skin = context.skin;
     showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
+      // SCROLL CONTROLLED, AND THE CONTENT SCROLLS. Without both, this sheet
+      // clipped the very words it exists to show: the default cap is nine
+      // sixteenths of the screen and a bare Column cannot scroll, so at 320dp
+      // the fourth entry was gone entirely and at 1.5x text on a normal phone
+      // the last two were. A help sheet that hides its own help is worse than
+      // the paragraphs it replaced, because at least those were visible.
+      //
+      // The render harness could not catch it: it pins 412 by 915 at 1.0x,
+      // which is the one size where this happened to fit.
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        decoration: BoxDecoration(
-          color: skin.bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'How this budget works',
-                  style: TypeScale.sheetTitle(skin.text),
+      // The skin is read INSIDE the builder, not captured from the caller, so
+      // flipping the system theme with the sheet open repaints it.
+      builder: (sheetContext) {
+        final skin = sheetContext.skin;
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          decoration: BoxDecoration(
+            color: skin.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'How this budget works',
+                      style: TypeScale.sheetTitle(skin.text),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: () => Navigator.of(sheetContext).pop(),
+                    child: Text('Done', style: TypeScale.action(skin.text2)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final (title, body) in _help) ...[
+                        Text(title, style: TypeScale.fieldLabel(skin.text2)),
+                        const SizedBox(height: 5),
+                        Text(body, style: TypeScale.caption(skin.text3)),
+                        const SizedBox(height: 16),
+                      ],
+                    ],
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Text('Done', style: TypeScale.action(skin.text2)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            for (final (title, body) in _help) ...[
-              Text(title, style: TypeScale.fieldLabel(skin.text2)),
-              const SizedBox(height: 5),
-              Text(body, style: TypeScale.caption(skin.text3)),
-              const SizedBox(height: 16),
+              ),
             ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

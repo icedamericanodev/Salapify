@@ -131,7 +131,11 @@ class _Upcoming extends StatelessWidget {
           inset: 0,
           children: [
             for (final d in up.days)
-              _UpcomingDayRow(day: d, lowestDate: up.lowestDate),
+              _UpcomingDayRow(
+                day: d,
+                lowestDate: up.lowestDate,
+                anyIncome: up.anyIncome,
+              ),
           ],
         ),
       ],
@@ -189,13 +193,21 @@ class _LowPoint extends StatelessWidget {
 
 /// One day: what happens, and what is left afterwards.
 class _UpcomingDayRow extends StatelessWidget {
-  const _UpcomingDayRow({required this.day, required this.lowestDate});
+  const _UpcomingDayRow({
+    required this.day,
+    required this.lowestDate,
+    required this.anyIncome,
+  });
   final UpcomingDay day;
 
   /// So the row the hero named can mark itself. Passed in rather than read
   /// again, because two derivations of "the tightest day" is one more than
   /// this screen is allowed to have.
   final String lowestDate;
+
+  /// Whether any money arrives anywhere in the window, so the payday copy
+  /// can stop making an account-wide claim from a per-day fact.
+  final bool anyIncome;
 
   @override
   Widget build(BuildContext context) {
@@ -262,14 +274,22 @@ class _UpcomingDayRow extends StatelessWidget {
           if (day.isPayday) ...[
             const SizedBox(height: 4),
             Text(
+              // THREE CASES, because two could not tell the truth. The first
+              // version asked a per-DAY question ("does income land today")
+              // and answered with an account-wide claim ("no salary set up
+              // yet"). A recurring row carries one dayOfMonth and a
+              // semimonthly schedule has two paydays, so every semimonthly
+              // earner read "no salary set up yet" on half their payday rows
+              // with their sweldo printed two rows above it.
+              //
+              // No "set it up in Settings" on the last one, because there is
+              // no payday or income editor in this build, and pointing at a
+              // control that does not exist is the defect this batch started
+              // from.
               hasIncome
                   ? 'Payday'
-                  // Explains the thing that otherwise looks broken: with no
-                  // salary, the balance is unchanged across the payday and the
-                  // projection appears frozen. No "set it up in Settings",
-                  // because there is no payday or income editor in this build
-                  // and pointing at a control that does not exist is the defect
-                  // this whole batch started from.
+                  : anyIncome
+                  ? 'Payday. Nothing lands on this one.'
                   : 'Payday. No salary set up yet, so nothing is added here.',
               style: TypeScale.caption(skin.text3),
             ),

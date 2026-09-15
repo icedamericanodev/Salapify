@@ -197,7 +197,21 @@ class Head extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        Text(title, style: TypeScale.sectionHead(skin.text)),
+        // FLEXIBLE, because a bare Text in a Row cannot shrink and every other
+        // head in this app was just short enough to hide that. "Between now and
+        // Sep 30" is the longest one, and it overflowed by 10 points at 320dp
+        // and 1.5x text, and by 107 at 2.0x: clipped with debug stripes, and
+        // silently cut off in a release build. The action keeps its full width
+        // because it is a tap target, so the title is the half that gives.
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TypeScale.sectionHead(skin.text),
+          ),
+        ),
+        if (action != null) const SizedBox(width: 12),
         if (action != null)
           Semantics(
             button: true,
