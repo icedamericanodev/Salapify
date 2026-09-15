@@ -45,17 +45,23 @@ echo "Watching origin/$BRANCH, checking every ${INTERVAL}s."
 echo "Press Ctrl-C to stop."
 echo
 
+# Set by cleanup so the relaunch loop below can tell a DELIBERATE stop from the
+# emulator falling over. Without it, Ctrl-C would be answered by helpfully
+# starting the app again, which is the opposite of what Ctrl-C means.
+STOPPING=0
+
 cleanup() {
+  STOPPING=1
   echo
   echo "Stopping."
   if [ -f "$PIDFILE" ]; then
     kill "$(cat "$PIDFILE")" 2>/dev/null
     rm -f "$PIDFILE"
   fi
-  [ -n "${APP_PID:-}" ] && kill "$APP_PID" 2>/dev/null
   [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'cleanup; exit 0' INT TERM
 
 # The watcher runs in the background and the APP stays in the foreground, so
 # its output is what you see and its keyboard still works.
@@ -111,5 +117,28 @@ trap cleanup EXIT INT TERM
 WATCH_PID=$!
 
 cd "$APP_DIR" || exit 1
-flutter run --pid-file "$PIDFILE"
-APP_PID=$!
+
+# RELAUNCH WHEN THE EMULATOR DROPS, rather than quitting with it.
+#
+# `flutter run` holds the foreground, so the moment the device goes away it
+# prints "Lost connection to device." and returns, the EXIT trap fires, and the
+# whole watcher stops. Nothing is broken at that point and no code is at fault:
+# the emulator was closed, went to sleep, or the app was force stopped. But the
+# founder is then looking at a dead prompt with no idea that the fix they are
+# waiting for is sitting one pull away, and the only way back is a command they
+# have to be told. That happened, and being told a command is exactly the
+# inefficiency this script exists to remove.
+#
+# So a lost device is treated as what it is, a pause. Ctrl-C still stops
+# everything, because cleanup sets STOPPING first and the loop reads it.
+while true; do
+  flutter run --pid-file "$PIDFILE"
+  [ "$STOPPING" = "1" ] && break
+
+  rm -f "$PIDFILE"
+  echo
+  echo "Lost the emulator. Waiting for it to come back, checking every 5s."
+  echo "Start your emulator and this picks up on its own. Ctrl-C to stop."
+  sleep 5
+  [ "$STOPPING" = "1" ] && break
+done
