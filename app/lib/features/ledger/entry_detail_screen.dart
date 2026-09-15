@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/ledger_scope.dart';
+import '../categories/category_rows.dart' show pickableCategories;
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart'
     show amountOf, removeTransaction, updateTransaction;
@@ -268,6 +269,21 @@ class _EditSheetState extends State<_EditSheet> {
       if (c is Map) c.cast<String, dynamic>(),
   ];
 
+  /// The category chips: what you can still pick, PLUS this entry's own.
+  ///
+  /// The second half is the whole point. Filtering to pickable alone would
+  /// make an entry tagged with a since-retired category show no chip selected,
+  /// so opening the sheet to fix a typo in the amount and saving would quietly
+  /// strip a tag the person never touched. Retiring a label is not permission
+  /// to rewrite the history filed under it.
+  List<Map<String, dynamic>> _pickableCategoriesKeepingMine() {
+    final pickable = pickableCategories(context.ledger.data);
+    final mine = _categoryId;
+    if (mine == null || pickable.any((c) => c['id'] == mine)) return pickable;
+    final own = _rows('categories').where((c) => c['id'] == mine);
+    return [...pickable, ...own];
+  }
+
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
@@ -326,7 +342,7 @@ class _EditSheetState extends State<_EditSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final c in _rows('categories'))
+                  for (final c in _pickableCategoriesKeepingMine())
                     PickChip(
                       label: (c['name'] ?? '').toString(),
                       on: c['id'] == _categoryId,

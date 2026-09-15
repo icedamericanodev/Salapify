@@ -647,6 +647,32 @@ void main() {
       await tester.tap(find.text('Backup and settings'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-settings');
+
+      // Categories, reached from the row Settings now carries, so this render
+      // proves the door as well as the room. The list, then the editor, then
+      // the hide confirmation, because the confirmation is the only screen in
+      // this feature that describes a consequence and it is therefore the one
+      // whose wording has to be looked at rather than trusted.
+      await tester.scrollUntilVisible(
+        find.text('Categories'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Categories'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-categories');
+
+      // A category with money through it AND a cap set, which is the state the
+      // confirmation has the most to say about. Groceries carries a 2,500 cap
+      // in the fixture and real spending this month.
+      await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-editor');
+
+      await tester.tap(find.text('Hide it'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-hide');
     });
 
     testWidgets('first run ${s.key}', (tester) async {

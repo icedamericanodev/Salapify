@@ -12,6 +12,7 @@ import '../features/accounts/accounts_screen.dart';
 import '../features/debt/debt_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
+import '../features/categories/categories_screen.dart';
 import '../features/ledger/entry_detail_screen.dart';
 import '../features/ledger/ledger_screen.dart';
 import '../features/log/log_sheet.dart';
@@ -101,6 +102,13 @@ GoRouter buildRouter() {
       GoRoute(
         path: settingsRoutePath,
         builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // Categories. Over the shell, because it is an editor and 04-screens.md
+      // puts every editor there.
+      GoRoute(
+        path: categoriesRoutePath,
+        builder: (context, state) => const CategoriesScreen(),
       ),
 
       // Insights, also over the shell. 04-screens.md lists it with Settings

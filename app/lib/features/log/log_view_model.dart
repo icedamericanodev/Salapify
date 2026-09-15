@@ -9,6 +9,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/data/ledger_store.dart';
+import '../categories/category_rows.dart' show pickableCategories;
 import '../../core/money/fastlog.dart';
 import '../../core/money/ledger.dart';
 import '../../core/money/quickadd.dart';
@@ -49,11 +50,13 @@ class LogViewModel extends ChangeNotifier {
   String get date => _date;
   String? get accountId => _accountId;
 
-  List<Map<String, dynamic>> get categories =>
-      (_store.data['categories'] as List? ?? const [])
-          .whereType<Map>()
-          .map((c) => c.cast<String, dynamic>())
-          .toList();
+  /// What the chips offer, which is every category NOT retired.
+  ///
+  /// Archive reaches money by narrowing what you can pick, never by touching
+  /// what already happened: `budgetRows` and the Insights breakdown read the
+  /// full list on purpose, so a hidden category that had money through it this
+  /// month keeps its row and its slice.
+  List<Map<String, dynamic>> get categories => pickableCategories(_store.data);
 
   List<Map<String, dynamic>> get accounts =>
       (_store.data['accounts'] as List? ?? const [])
