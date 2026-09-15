@@ -34,6 +34,8 @@ import '../debt/debt_screen.dart' show debtRoutePath;
 import '../insights/insights_screen.dart' show insightsRoutePath;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
+import '../plan/pending_bills.dart' show pendingBills;
+import 'due_bills_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -78,7 +80,31 @@ class HomeScreen extends StatelessWidget {
 
     final state = FinancialState.of(data, now);
     final debt = debtTotals(data);
-    final coming = upcomingBills(data, now);
+
+    // COMING UP MUST NOT REPEAT WHAT IS ALREADY WAITING FOR AN ANSWER.
+    //
+    // A bill whose day has arrived is in BOTH derivations by construction:
+    // `upcomingCommitments` lists every unposted recurring row due on or before
+    // payday, and a pending bill is one whose day has already passed. So Home
+    // drew Meralco twice, once asking to be confirmed and once as a quiet row
+    // under "Coming up", with the same figure. Seeing one bill twice on one
+    // screen is how somebody concludes they are paying it twice.
+    //
+    // Matched on name and amount because the engine's bill rows carry no id
+    // (`commitments.dart` is golden locked, so one cannot be added). The cost
+    // of that key is narrow and worth naming: two bills sharing a label AND an
+    // amount would hide each other from Coming up while both still appear,
+    // correctly, in the card above. Nothing is lost, one row is quieter.
+    final pending = pendingBills(data, now);
+    final coming = [
+      for (final b in upcomingBills(data, now))
+        if (!pending.any(
+          (p) =>
+              p.row['label'] == b['name'] &&
+              (amountOf(p.row['amount']) - amountOf(b['amount'])).abs() < 0.005,
+        ))
+          b,
+    ];
 
     return Screen(
       children: [
@@ -106,6 +132,16 @@ class HomeScreen extends StatelessWidget {
 
         const _QuickActions(),
         const SizedBox(height: 24),
+
+        // ABOVE DEBT, COMING UP AND LATEST, because this is the only block on
+        // Home that asks the person to DO something. Everything below it
+        // reports. A card that waits for an answer, placed under three cards
+        // that do not, is a card nobody answers, and an unanswered pending bill
+        // keeps the projection showing a bill the person has already paid.
+        //
+        // It draws nothing at all when nothing is due, so on most days Home is
+        // exactly what it was.
+        const DueBillsCard(),
 
         if (debt.any) ...[
           Head(

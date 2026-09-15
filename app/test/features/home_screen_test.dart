@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/app/clock.dart';
 import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/core/data/ledger_store.dart';
+import 'package:salapify/design/kit.dart' show HeroPanel;
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/home/home_screen.dart';
 
@@ -38,6 +39,22 @@ Widget _app(LedgerStore store, DateTime now) => LedgerScope(
 /// without knowing which widget happens to hold the words.
 String _spoken(WidgetTester tester) => tester
     .widgetList<Text>(find.byType(Text))
+    .map((t) => t.data ?? '')
+    .join(' | ');
+
+/// Only what the HERO says.
+///
+/// The payday guard below is about one panel's CLAIM, and it used to read the
+/// whole screen as a proxy for that. The proxy held exactly as long as no other
+/// part of Home mentioned Plan, and the due-bills card broke it by pointing at
+/// Plan for something Plan really can do: link an account to a recurring bill.
+/// Scoped here the guard still catches the bug it was written for, because that
+/// bug was a sentence in this panel, and it stops failing on sentences it was
+/// never about.
+String _heroSpoken(WidgetTester tester) => tester
+    .widgetList<Text>(
+      find.descendant(of: find.byType(HeroPanel), matching: find.byType(Text)),
+    )
     .map((t) => t.data ?? '')
     .join(' | ');
 
@@ -139,7 +156,10 @@ void main() {
 
     // And it must not send them to a screen that cannot do it. Nothing in the
     // app sets a payday yet, so naming one is a promise the app cannot keep.
-    expect(said, isNot(contains('in Plan')));
+    // Read from the HERO, which is the panel making the claim, rather than from
+    // the whole screen: Home now legitimately says "in Plan" elsewhere, about
+    // linking an account to a bill, which Plan can actually do.
+    expect(_heroSpoken(tester), isNot(contains('in Plan')));
     expect(said, isNot(contains('days to payday')));
     expect(said, isNot(contains('until payday')));
   });

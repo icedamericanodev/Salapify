@@ -165,10 +165,7 @@ class ScreenTitle extends StatelessWidget {
                       vertical: 13,
                       horizontal: 4,
                     ),
-                    child: Text(
-                      action!,
-                      style: TypeScale.control(skin.accent),
-                    ),
+                    child: Text(action!, style: TypeScale.control(skin.accent)),
                   ),
                 ),
               ),
@@ -258,7 +255,10 @@ class Head extends StatelessWidget {
               // Padded to a real target. The word alone is about 14 points
               // tall, well under the 44 the rest of the kit holds to.
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 child: Text(action!, style: TypeScale.action(skin.accent)),
               ),
             ),
@@ -815,12 +815,28 @@ class PillButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.secondary = false,
+    this.compact = false,
     this.onTap,
   });
 
   final String label;
   final IconData? icon;
   final bool secondary;
+
+  /// Shrink to fit the label instead of filling the width.
+  ///
+  /// The default is full width and stays that way, because that is what every
+  /// existing caller relies on: the Container carries an alignment and no
+  /// width, so a loose constraint makes it expand. That is right for a page's
+  /// one action and wrong for a confirmation sitting on a list ROW, where a
+  /// full width pill per row reads as several page actions stacked and drowns
+  /// the figures around it.
+  ///
+  /// Compact adds the horizontal padding the filling version never needed.
+  /// Without it, shrink-wrapping from outside (an IntrinsicWidth) pulls the
+  /// pill down to the width of its text and the 99 radius turns it into a
+  /// circle with the label spilling out of both sides.
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
@@ -850,7 +866,14 @@ class PillButton extends StatelessWidget {
           opacity: enabled ? 1 : 0.45,
           child: Container(
             height: 50,
-            alignment: Alignment.center,
+            // Null keeps the filling behaviour EXACTLY as it was for every
+            // caller that does not ask for compact: a Container with an
+            // alignment and no width expands, and a Container with padding and
+            // no alignment wraps its child.
+            alignment: compact ? null : Alignment.center,
+            padding: compact
+                ? const EdgeInsets.symmetric(horizontal: 22)
+                : null,
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(99),
