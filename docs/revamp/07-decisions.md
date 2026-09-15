@@ -776,3 +776,73 @@ for precisely this reason.
 
 Nothing is built for any of this yet. Named here so it is a decision rather than
 an oversight.
+
+---
+
+## D22, hidden accounts are three states across two numbers, 2026-09-15
+
+Founder direction, verbatim: "Lets have a hidden account where users can opted
+to use. Use experts to make the rules about it. For me i think 2 rules when the
+account is hidden first it hidden account does not include in the total account,
+or the hiddent account amount can still be included in the total amount. Adjust
+whatever i the appropriate thing."
+
+**The decision.** Those are not two settings for one switch. They are two
+different NUMBERS, and each of the founder's two rules is correct about one of
+them:
+
+- **Net worth is what you OWN.** A fact about ownership. Hiding a row from a
+  list does not change who owns the money, so hidden money stays counted.
+- **Safe to spend is what you can TOUCH this fortnight.** A decision about
+  availability. Money deliberately put out of sight leaves it.
+
+The asymmetry is what settles it rather than taste: a safe-to-spend figure that
+is too high makes people overspend, and one that is too low only makes them
+slightly cautious.
+
+**Three states, two flags, no schema change.** Both stored flags already exist
+in the v12 shape and already mean this, which is why no field was added:
+
+| Stored | Meaning | Net worth | Safe to spend | Everyday list |
+|---|---|---|---|---|
+| `isArchived: true` | Hide from my lists | counted | excluded | Hidden section |
+| `includeInNetWorth: false` | Not mine | excluded | excluded | shown, marked |
+| both | Closed | excluded | excluded | Hidden section |
+
+`isArchived` is not a reinterpretation of the founder's real data. The shipped
+RN app's own button says "Hide account" and writes exactly this flag, and its
+net worth has always kept counting the row. This is finally doing what that
+button implied.
+
+**Why not `countsInNetWorth`.** That helper is in the golden locked engine
+(`account_taxonomy.dart`) and returns false for EITHER flag. Its name says net
+worth and its only real use is deciding which rows belong in the default LIST,
+which is a different question. It is left alone, nothing calls it, and the two
+questions genuinely have different answers.
+
+**How the rule reaches a money figure.** By REMOVING ROWS and asking the golden
+locked engine the same question, never by subtracting from its answer.
+`core/state/visibility.dart` exposes `ownedOnly` and `spendableOnly`, which
+return a shallow filtered view of the ledger for reading. `netWorthParts` and
+`safeToSpend` then do every sum, sign, rounding and currency check exactly where
+they already live. No screen and no state file does arithmetic on money.
+
+`spendableOnly` filters `accounts` and deliberately NOT `debts`: a bill you hid
+from a list is still due on the same day, and forgiving it would push safe to
+spend up, which is the one failure mode this whole design was built around.
+
+**Two invariants, enforced by tests.**
+
+1. Hiding an account cannot change net worth. If it ever does, the app is
+   telling somebody they got poorer by tidying their screen.
+2. Nothing is both invisible and unreachable. A hidden account appears under a
+   Hidden heading at the bottom of Accounts, because an account nobody can find
+   again is an account nobody can un-hide.
+
+**Hiding is not security, and the sheet says so.** People will reach for "hide"
+to keep a balance off the screen when somebody else can see their phone. The
+account is still in the Hidden list, its entries are still in the Ledger, and
+the backup file contains all of it in plain text. Saying that plainly is the
+difference between a view preference and a false sense of safety.
+
+Screens: `docs/revamp/mockups/hapon/c10/README.md`.

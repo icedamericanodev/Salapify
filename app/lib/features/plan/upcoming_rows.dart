@@ -24,6 +24,7 @@ import '../../core/money/ledger.dart' show amountOf;
 import '../../core/money/schedule.dart'
     show hasExplicitPaydaySchedule, nextPayday;
 import '../../core/money/timeline.dart' show sweldoTimeline;
+import '../../core/state/visibility.dart' show spendableOnly;
 
 /// One thing happening on one day.
 class UpcomingEvent {
@@ -148,8 +149,7 @@ class Upcoming {
   /// because debts carry no per-cycle paid marker. That overstatement is
   /// correct and safe for a projection and would be simply wrong as a claim
   /// about what left the account.
-  double get totalOut =>
-      days.fold(0.0, (sum, d) => sum + d.moneyOut);
+  double get totalOut => days.fold(0.0, (sum, d) => sum + d.moneyOut);
 }
 
 /// How many days out to look: to the payday AFTER the next one.
@@ -196,7 +196,24 @@ int upcomingHorizonDays(Map<String, dynamic> data, DateTime ref) {
 /// The list the Upcoming segment draws.
 Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
   final horizon = upcomingHorizonDays(data, ref);
-  final t = sweldoTimeline(data, ref, horizonDays: horizon);
+
+  // FILTERED, for the same reason Home's safe to spend is filtered, and this
+  // line is the fix for a Home versus Plan contradiction that the hidden
+  // accounts feature reintroduced within a day of being written.
+  //
+  // `sweldoTimeline` seeds its running balance from `_liquidNow(data['accounts'])`.
+  // On the raw ledger that sum includes money the user hid, and money they
+  // said belongs to somebody else, while Home's figure does not. Measured on
+  // the lived-in ledger with one e-wallet marked not mine: Home said the
+  // available figure was MINUS 2,144 and "your bills before payday come to
+  // more than this", and Plan said the lowest point in the next 19 days was
+  // 6,266.50 and "this is as low as it gets". One ledger, one moment, opposite
+  // answers to "do I make it", with a paluwagan pot doing the talking.
+  //
+  // `spendableOnly` touches `accounts` and nothing else, so the timeline's
+  // events, its bills and its dues are all unchanged: a bill you hid is still
+  // drawn on the day it falls.
+  final t = sweldoTimeline(spendableOnly(data), ref, horizonDays: horizon);
 
   final engineDays = [
     for (final raw in (t['days'] is List ? t['days'] as List : const []))
