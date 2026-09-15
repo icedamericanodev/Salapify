@@ -1019,10 +1019,50 @@ class NavBar extends StatelessWidget {
                           color: i == active ? skin.text : skin.text3,
                         ),
                         const SizedBox(height: 5),
-                        Text(
-                          tabs[i].$1,
-                          style: TypeScale.tab(
-                            i == active ? skin.text : skin.text3,
+                        // ONE LINE, ALWAYS, shrinking rather than wrapping.
+                        //
+                        // Without this the bar ships broken on a 320dp phone:
+                        // "Accounts" does not fit a 45.1dp column in Plus
+                        // Jakarta, so it wrapped mid-word to "Account" over a
+                        // lone "s", which also pushed that tab's icon out of
+                        // line with the other three. At 1.3x system text
+                        // "Ledger" broke too. It was invisible in review
+                        // because the render harness and the founder's
+                        // emulator are both 412dp, where nothing wraps.
+                        //
+                        // scaleDown rather than ellipsis: "Accoun..." in a tab
+                        // bar is worse than the same word one point smaller,
+                        // and these are proper nouns the whole app navigates
+                        // by. It only shrinks when it has to, so at 360dp and
+                        // above nothing changes at all.
+                        // ONE LINE, ALWAYS, shrinking rather than wrapping.
+                        //
+                        // Without this the bar ships broken on a 320dp phone:
+                        // "Accounts" does not fit a 45.1dp column in Plus
+                        // Jakarta and wrapped MID-WORD, rendering "Account"
+                        // over a lone "s" and pushing that tab's icon out of
+                        // line with the other three. At 1.3x system text
+                        // "Ledger" broke too. Measured, then looked at.
+                        //
+                        // Invisible in review for one reason: the render
+                        // harness and the founder's emulator are both 412dp,
+                        // where nothing wraps. A screen reviewed only at the
+                        // width it was designed for is not reviewed.
+                        //
+                        // scaleDown rather than ellipsis, because "Accoun..."
+                        // in a tab bar is worse than the same word a point
+                        // smaller, and these are the proper nouns the whole
+                        // app navigates by. It only shrinks when it must, so
+                        // at 360dp and above nothing changes at all.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            tabs[i].$1,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TypeScale.tab(
+                              i == active ? skin.text : skin.text3,
+                            ),
                           ),
                         ),
                       ],
