@@ -440,9 +440,15 @@ class _CategorySheetState extends State<_CategorySheet> {
               label,
               const SizedBox(height: 6),
               Text(
-                // Ties the field to the one screen that already shows the
-                // effect, so picking one is not a leap of faith into nothing.
-                'Optional. Groups the spending together on Plan.',
+                // SAYS WHAT TO TAP, not what the field is for. The founder
+                // opened this exact sheet looking for a way to make a
+                // sub-category, with the picker that makes one right in front
+                // of them, and reported there was no option to do it. The old
+                // line ("Optional. Groups the spending together on Plan.")
+                // described an effect and left the reader to work out that
+                // tapping a chip is the act of creating a sub-category.
+                'Tap one to put this under it. Their spending then groups '
+                'together on Plan.',
                 style: TypeScale.caption(skin.text3),
               ),
               const SizedBox(height: 8),
