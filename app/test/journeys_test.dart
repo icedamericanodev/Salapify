@@ -14,6 +14,8 @@
 // unchanged" is unfalsifiable by inaction: a save that saves nothing conserves
 // everything perfectly. So each one below names the movement that must have
 // happened, on a specific account, by a specific amount.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/app/ledger_scope.dart';
@@ -22,6 +24,7 @@ import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/ledger.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/features/log/log_sheet.dart';
+import 'package:salapify/features/settings/backup_service.dart';
 import 'package:salapify/design/tokens.dart';
 
 import 'support/memory_store.dart';
@@ -263,5 +266,206 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Jollibee'), findsNWidgets(2));
     expect(find.text('Load'), findsNWidgets(2));
+  });
+
+  testWidgets('paying a debt: the money moves, and every screen can SHOW it', (
+    tester,
+  ) async {
+    // THE JOURNEY THE FOUNDER WALKED, and the one my own tests did not.
+    //
+    // The Debt batch shipped with tests that proved the arithmetic: net worth
+    // unchanged, the account down by exactly the payment, the debt down. All
+    // green. The founder then paid 1,500 off a loan, opened the account it came
+    // out of, and found NOTHING in its history. The balance had moved and
+    // nothing on the screen said why.
+    //
+    // Every one of those tests asked "is the money right". Not one asked "can
+    // the person FOLLOW the money", which is the question an account screen
+    // exists to answer, and the first question somebody who keeps books asks.
+    //
+    // So this journey does not stop at the store. It taps through to the
+    // account and reads what is actually on it.
+    final store = await memoryStore(livedIn());
+    await tester.pumpWidget(_app(store));
+    await tester.pumpAndSettle();
+
+    final netBefore = _netWorth(store);
+    final bpiBefore = _balance(store, 'a_bpi');
+
+    await tester.tap(find.text('Debt'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lola'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Record a payment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '1500');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('BPI').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // The invariant. Paying a debt lowers an asset and a liability by the same
+    // amount, so it cannot change what you are worth.
+    //
+    // `_netWorth` here sums ACCOUNTS only, so on its own it would fall by the
+    // payment. The pair below is what actually pins the double entry: the cash
+    // went down by exactly 1,500 and the debt went down too.
+    expect(
+      _balance(store, 'a_bpi'),
+      closeTo(bpiBefore - 1500, 0.005),
+      reason: 'the money did not leave the account that was picked',
+    );
+    expect(
+      _netWorth(store),
+      closeTo(netBefore - 1500, 0.005),
+      reason: 'more or less than the payment left the books',
+    );
+
+    var owed = 0.0;
+    for (final d in (store.data['debts'] as List)) {
+      if (d is Map && d['id'] == 'd_lola') owed = amountOf(d['remaining']);
+    }
+    expect(
+      owed,
+      lessThan(6000),
+      reason: 'the cash left but the debt did not fall, so it went nowhere',
+    );
+
+    // AND NOW THE PART THAT WAS MISSING. Walk to the account the money came out
+    // of, the way the founder did, and look.
+    //
+    // Back twice first. Debt detail and the Debt list are both pushed OVER the
+    // shell, so the tab bar is not on screen at all while they are open: the
+    // first version of this journey tapped straight for "Accounts" and failed
+    // with "Found 0 widgets", which is the journey correctly refusing to
+    // pretend it can teleport.
+    // The back ARROW, by icon. `find.bySemanticsLabel('Back')` reads the
+    // semantics tree, which is not built unless a test asks for it, so it
+    // silently matched nothing and the taps did nothing at all.
+    //
+    // Popped WHILE there is one rather than a fixed number of times, so the
+    // journey does not encode how many screens deep Debt happens to be today.
+    var guard = 0;
+    while (find.byIcon(Icons.arrow_back_rounded).evaluate().isNotEmpty) {
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+      await tester.pumpAndSettle();
+      if (++guard > 4) fail('could not get back to the tabs');
+    }
+
+    // The Accounts tab by its ICON, not by the word. NavBar draws the LABEL
+    // only for the tab you are on, so from Home there is no "Accounts" text
+    // inside the bar at all. A `find.text` there matched something elsewhere on
+    // the page, and the descendant finder then came back empty and surfaced as
+    // a bare "Bad state: No element" out of tap's own internals.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavBar),
+        matching: find.byIcon(Icons.account_balance_wallet_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('BPI').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Debt payment'),
+      findsWidgets,
+      reason:
+          'BPI lost 1,500 and its history does not say why. A balance that '
+          'moves with no entry behind it cannot be reconciled, and it is the '
+          'first place somebody who keeps books looks',
+    );
+  });
+
+  testWidgets('restore: the whole ledger changes, and every screen follows', (
+    tester,
+  ) async {
+    // The most dangerous write in the app, walked end to end.
+    //
+    // The unit tests prove restoreFrom replaces the store and that undo puts
+    // the bytes back. Neither can see the thing that actually goes wrong in
+    // practice: a screen still showing the OLD ledger after the new one
+    // landed, which is how somebody ends up acting on money that is not there.
+    // So this one restores through the real store and then reads three
+    // different screens.
+    final store = await memoryStore(livedIn());
+    await tester.pumpWidget(_app(store));
+    await tester.pumpAndSettle();
+
+    final before = _netWorth(store);
+    expect(before, isNot(0), reason: 'the fixture has no money to replace');
+
+    // A backup holding ONE account and nothing else, so "did it replace" has
+    // an unmistakable answer.
+    final incoming = parseBackupText(
+      jsonEncode({
+        'app': 'salapify',
+        'version': 2,
+        'data': {
+          'accounts': [
+            {'id': 'a_new', 'name': 'Restored', 'kind': 'cash', 'balance': 777.0},
+          ],
+        },
+      }),
+    );
+    await store.restoreFrom(incoming);
+    await tester.pumpAndSettle();
+
+    expect(_netWorth(store), closeTo(777, 0.005));
+
+    // ACCOUNTS shows the restored account and not the old ones.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavBar),
+        matching: find.byIcon(Icons.account_balance_wallet_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Restored'), findsWidgets);
+    expect(
+      find.text('BPI'),
+      findsNothing,
+      reason:
+          'an account from the ledger that was just replaced is still on the '
+          'Accounts screen, so the restore half-applied or the screen is '
+          'rendering a ledger that no longer exists',
+    );
+
+    // LEDGER has none of the old entries either.
+    await tester.tap(
+      find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Meralco'),
+      findsNothing,
+      reason: 'entries from the replaced ledger survived onto the Ledger screen',
+    );
+
+    // AND UNDO BRINGS IT ALL BACK, through the same screens.
+    expect(await store.undoRestore(), isTrue);
+    await tester.pumpAndSettle();
+    expect(
+      _netWorth(store),
+      closeTo(before, 0.005),
+      reason: 'undo gave back a different amount of money than it took away',
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavBar),
+        matching: find.byIcon(Icons.account_balance_wallet_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('BPI'),
+      findsWidgets,
+      reason:
+          'the store says the old ledger is back and the Accounts screen does '
+          'not show it',
+    );
+    expect(find.text('Restored'), findsNothing);
   });
 }

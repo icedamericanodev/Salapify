@@ -115,9 +115,27 @@ class BackBar extends StatelessWidget {
 /// A screen title with an optional trailing action. Not the same thing as
 /// [Head], which titles a section INSIDE a screen.
 class ScreenTitle extends StatelessWidget {
-  const ScreenTitle({super.key, required this.title, this.action, this.sub});
+  const ScreenTitle({
+    super.key,
+    required this.title,
+    this.action,
+    this.onAction,
+    this.sub,
+  }) : assert(
+         action == null || onAction != null,
+         'An action word must DO something. Accent coloured text that is not '
+         'tappable reads as a link and is not one, which is the defect Home '
+         'had to be fixed for.',
+       );
+
   final String title;
   final String? action;
+
+  /// What tapping [action] does. Required whenever [action] is set: the
+  /// assertion above is there because this class shipped with an action word
+  /// and no callback at all, which is a control that looks live and is dead.
+  final VoidCallback? onAction;
+
   final String? sub;
 
   @override
@@ -134,7 +152,26 @@ class ScreenTitle extends StatelessWidget {
               child: Text(title, style: TypeScale.screenTitle(skin.text)),
             ),
             if (action != null)
-              Text(action!, style: TypeScale.control(skin.accent)),
+              Semantics(
+                button: true,
+                child: GestureDetector(
+                  onTap: onAction,
+                  behavior: HitTestBehavior.opaque,
+                  // A real tap target, not just tappable text. 44 high is the
+                  // platform minimum and the padding is what gets it there;
+                  // the bare Text was 16 points tall and missable.
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 13,
+                      horizontal: 4,
+                    ),
+                    child: Text(
+                      action!,
+                      style: TypeScale.control(skin.accent),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
         if (sub != null) ...[
@@ -782,25 +819,46 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+
+    // A BUTTON WITH NOWHERE TO GO MUST LOOK LIKE IT. There was no disabled
+    // state at all: a null `onTap` drew the same full accent pill as a live
+    // one, so during a save or a file picker round trip every button on
+    // Settings stayed bright and did nothing on tap. That is the dead control
+    // problem the rest of this file keeps fixing, sitting in the button itself.
+    //
+    // Driven by `onTap == null` rather than a new `enabled` flag, so every
+    // button already written this way gets it without being revisited, and so
+    // the look can never disagree with the behaviour.
+    final enabled = onTap != null;
     final fg = secondary ? skin.accent : skin.onAccent;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: secondary ? skin.card : skin.accent,
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: fg, size: 20),
-              const SizedBox(width: 7),
-            ],
-            Text(label, style: TypeScale.button(fg)),
-          ],
+    final bg = secondary ? skin.card : skin.accent;
+
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          // Enough to read as unavailable, not so faint it reads as a bug.
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: fg, size: 20),
+                  const SizedBox(width: 7),
+                ],
+                Text(label, style: TypeScale.button(fg)),
+              ],
+            ),
+          ),
         ),
       ),
     );

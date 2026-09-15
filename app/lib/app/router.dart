@@ -15,6 +15,7 @@ import '../features/ledger/entry_detail_screen.dart';
 import '../features/ledger/ledger_screen.dart';
 import '../features/log/log_sheet.dart';
 import '../features/plan/plan_screen.dart';
+import '../features/settings/settings_screen.dart';
 import 'shell.dart';
 
 /// The four tab paths, in the same order as [NavBar.tabs]. A test asserts the
@@ -93,6 +94,12 @@ GoRouter buildRouter() {
       GoRoute(
         path: debtRoutePath,
         builder: (context, state) => const DebtScreen(),
+      ),
+
+      // Settings, over the shell like the rest. 04-screens puts it there.
+      GoRoute(
+        path: settingsRoutePath,
+        builder: (context, state) => const SettingsScreen(),
       ),
 
       // Outside the shell, deliberately. The Log sheet covers the tab bar and

@@ -23,6 +23,8 @@ import '../../core/money/statements.dart' show netWorthParts, trackedRemaining;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../debt/debt_screen.dart' show debtRoutePath;
+import '../settings/settings_screen.dart' show settingsRoutePath;
 import 'account_editor.dart';
 
 class AccountsScreen extends StatelessWidget {
@@ -68,9 +70,17 @@ class AccountsScreen extends StatelessWidget {
     return Screen(
       children: [
         const SizedBox(height: 14),
-        const ScreenTitle(
+        // Settings is reachable from the TOP, not only from a row at the
+        // bottom. It was put at the bottom first, under the Debt section, and
+        // the founder looked for it and reported "there is no backup and
+        // settings in the accounts tab". They were looking at the screen: this
+        // page is long enough that the bottom of it is two scrolls away, and a
+        // backup control nobody can find is a backup nobody takes.
+        ScreenTitle(
           title: 'Accounts',
           sub: 'Cash, bank, e-wallet, credit, and both directions of debt.',
+          action: 'Settings',
+          onAction: () => context.push(settingsRoutePath),
         ),
         const SizedBox(height: 14),
         PillButton(
@@ -98,9 +108,15 @@ class AccountsScreen extends StatelessWidget {
         ],
 
         if (debt.any) ...[
-          // No action word. There is no Debt screen to open yet, and accent
-          // coloured text that does nothing reads as a link and is not one.
-          const Head(title: 'Debt'),
+          // The Debt screen exists now (roadmap step 7), so this section leads
+          // somewhere and says so. It carried "no action word, there is no
+          // Debt screen to open yet" until that screen was built, which was
+          // right at the time and would have quietly stayed wrong afterwards.
+          Head(
+            title: 'Debt',
+            action: 'See all',
+            onAction: () => context.push(debtRoutePath),
+          ),
           const SizedBox(height: 8),
           Group(
             children: [
@@ -112,6 +128,7 @@ class AccountsScreen extends StatelessWidget {
                     : '${debt.owedCount} open debts',
                 amount: formatMoney(debt.owed),
                 tone: Tone.owe,
+                onTap: () => context.push(debtRoutePath),
               ),
               ItemRow(
                 icon: Icons.call_received_rounded,
@@ -121,11 +138,31 @@ class AccountsScreen extends StatelessWidget {
                     : '${debt.dueCount} people owe you',
                 amount: formatMoney(debt.due),
                 tone: Tone.good,
+                onTap: () => context.push(debtRoutePath),
               ),
             ],
           ),
           const SizedBox(height: 18),
         ],
+
+        // Backup lives at the bottom of Accounts because this is the screen
+        // about what you HAVE, and a copy of it is the only thing standing
+        // between the founder and losing all of it. It is the last thing on
+        // the page rather than the first because it is not a daily action.
+        const Head(title: 'Your data'),
+        const SizedBox(height: 8),
+        Group(
+          children: [
+            ItemRow(
+              icon: Icons.shield_outlined,
+              title: 'Backup and settings',
+              sub: 'Save a copy, or restore one',
+              amount: '',
+              onTap: () => context.push(settingsRoutePath),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
       ],
     );
   }

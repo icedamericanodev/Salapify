@@ -42,6 +42,20 @@ dependencies:
   # still the home of the few keys that must NEVER live inside the ledger blob.
   shared_preferences: ^2.5.5
   go_router: ^18.0.1
+  # Backup out, and backup in. The same pair the shipped app uses, so the file
+  # a founder exports from one and imports into the other travels a proven
+  # path. Both are NATIVE plugins: adding them forces a full rebuild rather
+  # than a hot restart, and later a new base APK.
+  #
+  # An export leaves the app's private storage as readable JSON, which is a
+  # deliberate decision rather than an oversight. Founder direction,
+  # 2026-09-15, taken after being shown exactly what the file contains: every
+  # transaction, account names and balances, card last four digits, account
+  # holder names, and any hidden accounts. Encrypting it was offered and
+  # declined for now, because a lost password on an offline app with no server
+  # is its own total data loss. See D22 in docs/revamp/07-decisions.md.
+  share_plus: ^10.1.4
+  file_picker: ^8.1.2
 
 dev_dependencies:
   flutter_test:

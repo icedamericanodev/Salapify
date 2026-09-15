@@ -322,6 +322,39 @@ The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
 the discipline around it. Use it when the founder cannot test by hand, which is
 most of the time.
 
+## A write path is not tested until somebody can SEE what it did
+
+Founder direction, 2026-09-15: "please test the features and make sure it
+passed so any issues is already filtered when I test it on Android simulation".
+
+Every money test on the Debt batch asked ONE question, is the money right. Net
+worth unchanged, the account down by exactly the payment, the debt down. All
+green, all correct. The founder then paid 1,500 off a loan, opened the account
+it came out of, and found NOTHING in its history. The balance had moved and no
+entry explained why, which for somebody who keeps books is the defect, not a
+polish item. They found it in under a minute because they looked where an
+auditor looks and the tests never had.
+
+So every write path needs BOTH halves, and the second one is the one that gets
+forgotten:
+
+1. Did the money move correctly. An invariant plus a directional companion,
+   per the rules above.
+2. Can a person FOLLOW it afterwards. Walk to every screen that should now
+   mention it, by tapping, and assert the entry is actually on screen.
+
+Half 2 is a journey, never a unit test, because the whole failure mode is that
+the write is right where it was written and invisible where it is read. A
+helper test cannot see that by construction: `applyDebtPayment` was flawless
+and `entriesFor` was flawless, and the defect lived in the gap between them.
+
+The concrete rule: after building any write path, list the screens a user would
+check to confirm it happened, and make the journey visit each one. If a screen
+cannot show it, that is a finding, not a fact of life. In this case the engine
+deliberately writes the payment with no accountId (tagging it would double
+debit the account), so the account link lives in the top level `payments`
+collection and the screen reads it from there. Display only, no stored change.
+
 ## Three Bash commands are refused by a hook, and why
 
 `.claude/settings.json` runs `.claude/hooks/guard-destructive-edits.sh` before

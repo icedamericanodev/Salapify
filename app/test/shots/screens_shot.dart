@@ -352,6 +352,66 @@ void main() {
       await tester.tap(find.text('Record a payment'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-debt-payment');
+
+      // AND THE ACCOUNT AFTERWARDS. The founder paid a loan, opened the
+      // account it came out of, and found nothing: the balance had moved and
+      // its history did not say why. Nothing had ever rendered that screen
+      // after a payment, so nobody had looked at the one place the defect
+      // lived. This walks the whole path and photographs the end of it.
+      await tester.enterText(find.byType(TextField), '1500');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BPI').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      var guard = 0;
+      while (find.byIcon(Icons.arrow_back_rounded).evaluate().isNotEmpty) {
+        await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+        await tester.pumpAndSettle();
+        if (++guard > 4) break;
+      }
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BPI').first);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-after-debt-payment');
+    });
+
+    testWidgets('settings ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      // Reached the way a person reaches it, from the bottom of Accounts, so
+      // this render also proves the way IN exists. The founder could not find
+      // Save or Restore, and a screenshot of the screen alone would not have
+      // told me whether the screen was wrong or the door was.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Backup and settings'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup and settings'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-settings');
     });
 
     testWidgets('first run ${s.key}', (tester) async {
@@ -414,9 +474,15 @@ class _ComponentSheet extends StatelessWidget {
           children: [
             const TopBar(date: 'Saturday, Sep 13'),
             const SizedBox(height: 16),
-            const ScreenTitle(
+            // `onAction` is now required alongside `action`, and this sheet is
+            // where that rule was first broken: it demoed an accent "Edit"
+            // wired to nothing, which is exactly the dead control the assertion
+            // exists to stop. A component SHEET showing a dead control teaches
+            // every screen that copies from it to ship one.
+            ScreenTitle(
               title: 'Component sheet',
               action: 'Edit',
+              onAction: () {},
               sub: 'Every piece the app is built from, in both skins.',
             ),
             const SizedBox(height: 22),
