@@ -94,69 +94,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 22),
           ],
 
+          // ONE HERO, THEN ROWS. The founder said this screen was too wordy
+          // and asked whether the budget sheet's "i" icon belonged here.
+          //
+          // It does not, and the reason is worth keeping. That "i" hides copy
+          // teaching what a category cap IS, and skipping it costs only
+          // understanding. Every paragraph on THIS screen describes a
+          // consequence: what gets replaced, what cannot be restored, what
+          // anybody who opens the file can read. An "i" on a destructive screen
+          // is a consent box nobody ticks.
+          //
+          // The rule applied here: A SENTENCE STAYS VISIBLE IF NOT READING IT
+          // CAN COST MONEY OR DATA. It may hide if not reading it only costs
+          // understanding.
+          //
+          // So nothing was hidden. What changed is that the consequences moved
+          // to the DECISION instead of stacking above it, and the screen gained
+          // a hierarchy it never had: three identical cards at identical weight
+          // never answered "what do I do here", which is what actually made it
+          // read as a wall. Backing up is the answer, so it is the only card
+          // left.
           const Head(title: 'Backup'),
           const SizedBox(height: 10),
           _Card(
             title: 'Save a copy',
             body:
-                'Everything on this phone in one file that can be restored '
-                'later. ${summary.entries} entries, ${summary.accounts} '
-                'accounts, ${formatMoney(summary.netWorth)}.',
+                '${summary.entries} entries, ${summary.accounts} accounts, '
+                '${formatMoney(summary.netWorth)}.\n\n'
+                // The sentence somebody who has never backed anything up
+                // actually needs. "Restore" means nothing until you know what
+                // it buys you.
+                'If this phone is lost or wiped, this file is how you get your '
+                'money back.',
             // TWO ways out, because saving and sharing are different acts and
             // the founder asked for exactly this: "what if i do not like to
             // share it but just want to save in my device?". Offering only the
             // share sheet asks somebody to send their whole ledger through
             // Gmail in order to keep a copy of it.
-            //
-            // Save is the PRIMARY. Keeping a copy is the common case; sending
-            // one somewhere is the occasional one.
             action: 'Save to this phone',
             onAction: _busy ? null : _saveBackup,
-            secondAction: 'Share instead',
+            secondAction: 'Send it somewhere',
             onSecondAction: _busy ? null : _shareBackup,
           ),
-          const SizedBox(height: 12),
-          _Card(
-            title: 'Restore from a file',
-            body:
-                'Brings back a backup you saved before. This REPLACES '
-                'everything currently on this phone. You will see what is in '
-                'the file before anything changes.',
-            action: 'Choose a file',
-            onAction: _busy ? null : _restore,
-          ),
 
-          const SizedBox(height: 26),
-          // A SEPARATE SECTION, deliberately, and the word "backup" never
-          // appears in it. A spreadsheet cannot be restored: it is a flat grid,
-          // and a ledger is accounts, debts, people and the links between them.
-          // The dangerous version of this feature is a "CSV backup" button, and
-          // somebody discovering at the worst possible moment that it was never
-          // one.
-          const Head(title: 'For a spreadsheet'),
-          const SizedBox(height: 10),
-          _Card(
-            title: 'Your entries as a spreadsheet',
-            body:
-                'A CSV of every entry with its date, amount and account, for '
-                'Excel, Google Sheets, or your accountant. This is for '
-                'READING. It cannot be restored, so keep the backup above as '
-                'well.',
-            action: 'Save to this phone',
-            onAction: _busy ? null : _saveCsv,
-            secondAction: 'Share instead',
-            onSecondAction: _busy ? null : _shareCsv,
+          const SizedBox(height: 24),
+          const Head(title: 'More'),
+          const SizedBox(height: 8),
+          Group(
+            children: [
+              // ROWS, not cards. `ItemRow` brings the tap target, the chevron
+              // and the press feedback the paragraphs never had, and the one
+              // clause under each title is the consequence in the fewest words
+              // that still carry it. The full sentence is not lost: it is in
+              // the confirmation, where it is read at the moment it matters
+              // rather than two scrolls above it.
+              ItemRow(
+                icon: Icons.restore_rounded,
+                title: 'Restore from a file',
+                sub: 'Replaces everything on this phone',
+                amount: '',
+                onTap: _busy ? null : _restore,
+              ),
+              ItemRow(
+                icon: Icons.table_chart_outlined,
+                title: 'Entries as a spreadsheet',
+                // "Cannot be restored" is the hardest working clause on this
+                // screen, so nothing follows it. A wrong restore is
+                // recoverable, thanks to the Undo card above. Trusting a CSV
+                // as a backup is not.
+                sub: 'For reading only, cannot be restored',
+                amount: '',
+                onTap: _busy ? null : _csvSheet,
+              ),
+            ],
           ),
 
           const SizedBox(height: 22),
           // Said plainly, on the screen that makes the file, not buried in a
-          // policy nobody opens. The founder was told this before approving it
-          // and users deserve the same sentence.
+          // policy nobody opens. The founder was told this before approving
+          // plaintext and users deserve the same sentence.
+          //
+          // text2, not text3. It was the faintest ink on the screen, which is
+          // the wrong weight for the only sentence here about who else can
+          // read your finances.
           _Note(
-            'The file is plain readable text. It contains your accounts, '
-            'balances and every entry, including any accounts you have hidden. '
-            'Anyone who opens it can read all of it, so keep it somewhere you '
-            'trust.',
+            'This file is plain text. Anyone who opens it can read your '
+            'accounts, balances and every entry, including hidden accounts. '
+            'Keep it somewhere private.',
           ),
         ],
       ),
@@ -202,13 +226,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _saveCsv() => _csv(share: false);
-  Future<void> _shareCsv() => _csv(share: true);
+  /// The spreadsheet's own sheet, so its one warning is read at the moment of
+  /// the decision rather than in a paragraph two scrolls above it.
+  Future<void> _csvSheet() async {
+    final choice = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      // The shell draws the nav bar over the tab, so a sheet without this lands
+      // underneath it with its buttons unreachable.
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _CsvSheet(),
+    );
+    if (choice == null || !mounted) return;
+    await _csv(share: choice);
+  }
+
+  Future<void> _csv({required bool share}) => _csvRun(share: share);
 
   /// The spreadsheet path. No verification step, and that is not an oversight:
   /// there is nothing to verify against, because a CSV is not restorable and
   /// never claims to be.
-  Future<void> _csv({required bool share}) async {
+  Future<void> _csvRun({required bool share}) async {
     final store = context.ledger;
     final now = context.now;
     setState(() => _busy = true);
@@ -451,6 +490,67 @@ class _Note extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: Text(text, style: TypeScale.caption(context.skin.text3)),
+    // text2, not text3. This was the faintest ink on the screen and it is the
+    // only sentence here about who else can read your finances.
+    child: Text(text, style: TypeScale.caption(context.skin.text2)),
   );
+}
+
+/// What a spreadsheet is and is not, at the moment somebody asks for one.
+///
+/// The warning lives here rather than in a paragraph on the screen because
+/// this is where the decision happens. Somebody who taps this row is about to
+/// make a file, and the one thing they must not walk away believing is that it
+/// is a backup.
+class _CsvSheet extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Container(
+      decoration: BoxDecoration(
+        color: skin.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(gutter, 18, gutter, 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Entries as a spreadsheet',
+            style: TypeScale.sheetTitle(skin.text),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Every entry as a CSV for Excel or Google Sheets.',
+            style: TypeScale.caption(skin.text2),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'This cannot be restored. Keep a backup as well.',
+            // Accent, not red. It is not an error, it is the one fact that
+            // decides whether this file is enough on its own.
+            style: TypeScale.hintStrong(skin.accent),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: PillButton(
+              label: 'Save to this phone',
+              onTap: () => Navigator.of(context).pop(false),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: PillButton(
+              label: 'Send it somewhere',
+              secondary: true,
+              onTap: () => Navigator.of(context).pop(true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -819,25 +819,46 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+
+    // A BUTTON WITH NOWHERE TO GO MUST LOOK LIKE IT. There was no disabled
+    // state at all: a null `onTap` drew the same full accent pill as a live
+    // one, so during a save or a file picker round trip every button on
+    // Settings stayed bright and did nothing on tap. That is the dead control
+    // problem the rest of this file keeps fixing, sitting in the button itself.
+    //
+    // Driven by `onTap == null` rather than a new `enabled` flag, so every
+    // button already written this way gets it without being revisited, and so
+    // the look can never disagree with the behaviour.
+    final enabled = onTap != null;
     final fg = secondary ? skin.accent : skin.onAccent;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: secondary ? skin.card : skin.accent,
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: fg, size: 20),
-              const SizedBox(width: 7),
-            ],
-            Text(label, style: TypeScale.button(fg)),
-          ],
+    final bg = secondary ? skin.card : skin.accent;
+
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          // Enough to read as unavailable, not so faint it reads as a bug.
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: fg, size: 20),
+                  const SizedBox(width: 7),
+                ],
+                Text(label, style: TypeScale.button(fg)),
+              ],
+            ),
+          ),
         ),
       ),
     );

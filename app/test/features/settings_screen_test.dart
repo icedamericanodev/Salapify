@@ -88,13 +88,6 @@ void main() {
     // screen throws while building and neither of these is found.
     await _openSettings(tester);
 
-    // Checked section by section, NOT by counting both at once. The two cards
-    // cannot be on screen together in a lazy list, so scrolling to the second
-    // unbuilds the first: an earlier version of this test asked for two "Save
-    // to this phone" buttons and found one, which was the test being
-    // impossible rather than a button being missing.
-
-    // Backup, at the top.
     expect(
       find.widgetWithText(PillButton, 'Save to this phone'),
       findsOneWidget,
@@ -104,24 +97,45 @@ void main() {
           'want to save in my device?"',
     );
     expect(
-      find.widgetWithText(PillButton, 'Share instead'),
+      find.widgetWithText(PillButton, 'Send it somewhere'),
       findsOneWidget,
       reason: 'sharing is gone, which was the only way out before',
     );
     expect(
-      find.widgetWithText(PillButton, 'Choose a file'),
+      find.text('Restore from a file'),
       findsOneWidget,
-      reason: 'there is no Restore button on the Settings screen',
+      reason: 'there is no way to restore from the Settings screen',
     );
+  });
 
-    // Spreadsheet, below the fold, with the same pair of its own.
-    await _scrollTo(tester, find.text('For a spreadsheet'));
+  testWidgets('a consequence is readable WITHOUT tapping anything', (
+    tester,
+  ) async {
+    // THE RULE THE REDESIGN APPLIES, as a test. A sentence stays visible if
+    // not reading it can cost money or data; it may hide only if not reading
+    // it costs understanding.
+    //
+    // The founder asked whether these paragraphs should go behind an "i" like
+    // the budget sheet's. They must not, and this is the guard on that: that
+    // copy teaches what a category cap IS, and skipping it costs only
+    // comprehension. This copy says what is about to be destroyed. An "i" on a
+    // destructive screen is a consent box nobody ticks.
+    await _openSettings(tester);
+
     expect(
-      find.widgetWithText(PillButton, 'Save to this phone'),
+      find.textContaining('Replaces everything'),
       findsOneWidget,
-      reason: 'the spreadsheet cannot be saved without sharing it',
+      reason:
+          'the most destructive action on the screen no longer says what it '
+          'does until you tap it',
     );
-    expect(find.widgetWithText(PillButton, 'Share instead'), findsOneWidget);
+    expect(
+      find.textContaining('cannot be restored'),
+      findsOneWidget,
+      reason:
+          'nothing on the resting screen says a spreadsheet is not a backup, '
+          'so it reads as a second kind of one',
+    );
   });
 
   testWidgets('the spreadsheet is never called a backup', (tester) async {
@@ -130,15 +144,25 @@ void main() {
     // moment that it never was one. So the word is kept off that path, in the
     // section heading, the card, and the file name.
     await _openSettings(tester);
-    await _scrollTo(tester, find.text('For a spreadsheet'));
 
-    expect(find.text('For a spreadsheet'), findsOneWidget);
+    // The warning is on the row at rest AND again in the sheet, which is where
+    // the decision is actually made. Both, because the row has room for one
+    // clause and the sheet is the last moment it can still change the answer.
+    await _scrollTo(tester, find.text('Entries as a spreadsheet'));
+    await tester.tap(find.text('Entries as a spreadsheet'));
+    await tester.pumpAndSettle();
+
     expect(
       find.textContaining('cannot be restored'),
-      findsOneWidget,
+      findsWidgets,
       reason:
-          'the spreadsheet card does not say it cannot be restored, so it '
-          'reads as a second kind of backup',
+          'the sheet that makes the file does not say it cannot be restored, '
+          'so somebody can walk away from it believing they have a backup',
+    );
+    expect(
+      find.textContaining('Keep a backup as well'),
+      findsOneWidget,
+      reason: 'the sheet does not tell them what to do instead',
     );
     expect(csvFileName(DateTime(2026, 9, 15)), isNot(contains('backup')));
   });
@@ -166,7 +190,14 @@ void main() {
     // Founder-approved on the condition that users are told. A warning that
     // lives only in a policy nobody opens is not telling anybody.
     await _openSettings(tester);
-    await _scrollTo(tester, find.textContaining('plain readable text'));
-    expect(find.textContaining('plain readable text'), findsOneWidget);
+    await _scrollTo(tester, find.textContaining('plain text'));
+    expect(find.textContaining('plain text'), findsOneWidget);
+    expect(
+      find.textContaining('including hidden accounts'),
+      findsOneWidget,
+      reason:
+          'the warning no longer says hidden accounts are in the file, which '
+          'is the part somebody who hid one would most want to know',
+    );
   });
 }
