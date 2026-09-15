@@ -198,6 +198,42 @@ Map<String, dynamic> sampleLedger({DateTime? today}) {
     // nothing and the render showed assets ₱1,800 short.
     'receivables': [
       {'id': 'r_marco', 'name': 'Marco', 'amount': 1800.00, 'cashLeg': true},
+      // PARTLY REPAID, so the Debt screen has something to draw a progress bar
+      // against. `remainingOf` is amount minus payments, so this is 1,200 left
+      // of 3,000 and the bar is 60 per cent.
+      {
+        'id': 'r_joy',
+        'name': 'Joy',
+        'amount': 3000.00,
+        'cashLeg': true,
+        'accountId': 'a_bpi',
+        'dueDate': '2026-09-25',
+        'payments': [
+          {'id': 'rp_joy1', 'amount': 1000.00, 'date': '2026-08-20'},
+          {'id': 'rp_joy2', 'amount': 800.00, 'date': '2026-09-05'},
+        ],
+      },
+      // SETTLED, so the Settled section is rendered rather than assumed. It
+      // went unrendered for exactly as long as no fixture row was ever paid.
+      {
+        'id': 'r_bea',
+        'name': 'Bea',
+        'amount': 500.00,
+        'cashLeg': true,
+        'paid': true,
+        'payments': [
+          {'id': 'rp_bea1', 'amount': 500.00, 'date': '2026-09-01'},
+        ],
+      },
+    ],
+    // PAYABLES: informal money the founder owes a person, the mirror of
+    // receivables and a real schema collection since v7. There is no write
+    // engine for it in this app or in either frozen one, so it can only arrive
+    // from a restored backup, and the Debt screen shows it read only and says
+    // so. The fixture carries one precisely because that path would otherwise
+    // never be rendered or tested by anybody.
+    'payables': [
+      {'id': 'p_kuya', 'name': 'Kuya Ben', 'amount': 2500.00, 'cashLeg': true},
     ],
     'transactions': [
       {

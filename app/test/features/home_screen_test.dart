@@ -179,8 +179,18 @@ void main() {
     // your last utang was being rewarded with exactly that card.
     final data = livedIn();
     data['debts'] = [];
+    // Payables too, or the card stays up for a reason unrelated to what this
+    // test is about. The fixture gained an informal payable when the Debt
+    // screen was built, and "square with the world" has to mean BOTH ways.
+    data['payables'] = [];
     data['receivables'] = [
-      {'id': 'r_marco', 'name': 'Marco', 'amount': 1800.00, 'cashLeg': true, 'paid': true},
+      {
+        'id': 'r_marco',
+        'name': 'Marco',
+        'amount': 1800.00,
+        'cashLeg': true,
+        'paid': true,
+      },
     ];
     final store = await memoryStore(data);
     await tester.pumpWidget(_app(store, _now));
@@ -201,7 +211,11 @@ void main() {
 
     final handle = tester.ensureSemantics();
 
-    for (final label in ['Debt', 'Bills', 'Move']) {
+    // Bills and Move still go nowhere. Debt used to be in this list and came
+    // out of it when the Debt screen was built (roadmap step 7): the rule is
+    // "do not advertise what is not wired", not "these three are forever
+    // dead", so wiring one is exactly the event that should move it.
+    for (final label in ['Bills', 'Move']) {
       final node = tester.getSemantics(
         find.descendant(
           of: find.byType(HomeScreen),
@@ -219,6 +233,22 @@ void main() {
             'button. Wire it before advertising it.',
       );
     }
+
+    // And the other direction, which is the half that stops this test being
+    // satisfied by wiring nothing at all: a live action MUST announce itself.
+    // Without this, deleting the Debt route would leave the loop above green.
+    expect(
+      tester.getSemantics(
+        find.descendant(
+          of: find.byType(HomeScreen),
+          matching: find.text('Debt'),
+        ).first,
+      ),
+      isSemantics(isButton: true),
+      reason:
+          'Debt has a screen now and must announce itself as a button, or a '
+          'TalkBack user is never told the only route to it exists',
+    );
 
     handle.dispose();
   });

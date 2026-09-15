@@ -29,6 +29,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../dev/sample_data_action.dart';
 import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
+import '../debt/debt_screen.dart' show debtRoutePath;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
 
@@ -92,10 +93,11 @@ class HomeScreen extends StatelessWidget {
           Head(
             title: 'Debt, both ways',
             action: 'See all',
-            // Accounts, because that is where debt lives until its own screen
-            // exists. Pointing at a destination that is not built yet is the
-            // same dead end in a different colour.
-            onAction: () => context.go('/accounts'),
+            // The Debt screen now exists, so this points at it rather than at
+            // Accounts. The two figures in the beam below come from the same
+            // `debtTotals` that screen puts in its own header, so tapping
+            // through never changes the number in front of the founder.
+            onAction: () => context.push(debtRoutePath),
           ),
           const SizedBox(height: 8),
           Group(
@@ -245,7 +247,7 @@ class _QuickActions extends StatelessWidget {
     final skin = context.skin;
     final actions = <(String, IconData, VoidCallback?)>[
       ('Log', Icons.add_rounded, () => context.push(logRoutePath)),
-      ('Debt', Icons.handshake_outlined, null),
+      ('Debt', Icons.handshake_outlined, () => context.push(debtRoutePath)),
       ('Bills', Icons.event_outlined, null),
       ('Move', Icons.swap_horiz_rounded, null),
     ];

@@ -68,11 +68,17 @@ void main() {
     test('both directions, and the credit card in neither', () {
       final d = debtTotals(livedIn());
 
-      // Lola's personal loan only. The card is a row two sections up.
-      expect(d.owed, 6000.00);
-      expect(d.owedCount, 1);
-      expect(d.due, 1800.00);
-      expect(d.dueCount, 1);
+      // Lola's personal loan (6,000) plus Kuya Ben, an informal payable
+      // (2,500). The CREDIT CARD is in neither figure: it is a row two
+      // sections up under Credit, and counting it here as well would show the
+      // founder the same card twice.
+      expect(d.owed, 8500.00);
+      expect(d.owedCount, 2);
+
+      // Marco 1,800 plus Joy, who has repaid 1,800 of 3,000 and so has 1,200
+      // left. Bea is settled and counts in neither the figure nor the count.
+      expect(d.due, 3000.00);
+      expect(d.dueCount, 2);
       expect(d.any, isTrue);
     });
 

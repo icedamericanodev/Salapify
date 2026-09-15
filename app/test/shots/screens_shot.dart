@@ -304,6 +304,56 @@ void main() {
       await _shoot(tester, '${s.key}-upcoming');
     });
 
+    testWidgets('debt ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      // Reached the way the founder reaches it: the Debt action on Home, which
+      // pointed at nothing until step 7. Tapping rather than pushing the route
+      // means this render also proves the button is wired.
+      await tester.tap(find.text('Debt'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-debt');
+
+      // The other direction. A segment that is never rendered is a segment
+      // nobody has looked at, and the two sides use different tones.
+      await tester.tap(find.text('Owed to me'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-debt-owed');
+
+      // One debt in full, with its payment history and the two buttons.
+      await tester.tap(find.text('Marco'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-debt-detail');
+    });
+
+    testWidgets('debt payment sheet ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Debt'));
+      await tester.pumpAndSettle();
+
+      // A LOAN, because that is the sheet with the account picker in it, and
+      // the picker is the control that stops a payment being recorded with no
+      // money leaving anywhere. Rendering the receivable sheet instead would
+      // photograph the one case that does not have it.
+      await tester.tap(find.text('Lola'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Record a payment'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-debt-payment');
+    });
+
     testWidgets('first run ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);
