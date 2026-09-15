@@ -171,6 +171,15 @@ class _TransferSheetState extends State<_TransferSheet> {
     final today = _isoDay(widget.now);
     String genId() => 'tx_${DateTime.now().microsecondsSinceEpoch}';
 
+    // ONE STRING, READ ONCE, used by the probe and the write alike. Both used
+    // to read `_amount.text` live, and the write runs LATER: the store queue
+    // serialises it behind any save already draining. Typing another digit in
+    // that gap meant the engine validated one figure and committed a
+    // different one, under a receipt quoting the first. The field is disabled
+    // during the save as well, so this is belt and braces rather than either
+    // alone.
+    final amountText = _amount.text;
+
     // Ask the engine FIRST, on the live ledger, so a refusal never becomes a
     // write. Then apply the same pure function inside the store's queue, where
     // it runs against a deep copy and lands only after sanitizeData accepts it.
@@ -178,7 +187,7 @@ class _TransferSheetState extends State<_TransferSheet> {
       store.data,
       fromId: _fromId,
       toId: _toId,
-      amountText: _amount.text,
+      amountText: amountText,
       today: today,
       genId: genId,
     );
@@ -202,7 +211,7 @@ class _TransferSheetState extends State<_TransferSheet> {
           s,
           fromId: _fromId,
           toId: _toId,
-          amountText: _amount.text,
+          amountText: amountText,
           today: today,
           genId: genId,
         );
@@ -369,6 +378,9 @@ class _TransferSheetState extends State<_TransferSheet> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _amount,
+                    // Shut while the write drains, so the figure the engine
+                    // agreed to cannot be edited out from under it.
+                    enabled: !_saving,
                     // NOT autofocus. The sheet is capped at 85 percent of the
                     // screen height, and the keyboard is subtracted from that.
                     // On a small phone the chips the sheet had just CHOSEN for

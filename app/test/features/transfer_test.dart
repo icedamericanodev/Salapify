@@ -360,4 +360,144 @@ void main() {
       );
     });
   });
+
+  // The pre-merge QA pass on this batch found all of these, and every one of
+  // them was reachable in four taps from Home. They exist because THIS batch
+  // made a `type: 'transfer'` row creatable for the first time, and the entry
+  // detail screen predates transfers entirely: it offers the fields of an
+  // ordinary entry, and the engine reads a transfer by rules an ordinary
+  // entry does not follow.
+  group('and editing one can never move money that already moved', () {
+    /// Move 5,000, dismiss the receipt, then open the row from the Ledger.
+    Future<void> openTheTransfer(WidgetTester tester) async {
+      await _move(tester, from: 'BPI', to: 'GCash', amount: '5000');
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
+      );
+      await tester.pumpAndSettle();
+      await _scrollTo(tester, find.textContaining('Transfer: BPI to GCash'));
+      await tester.tap(find.textContaining('Transfer: BPI to GCash').first);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the edit sheet does not offer the amount or the accounts', (
+      tester,
+    ) async {
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await openTheTransfer(tester);
+
+      final worthBefore = _worth(store.data);
+      final bpiBefore = _balance(store.data, 'a_bpi');
+      final gcashBefore = _balance(store.data, 'a_gcash');
+      expect(bpiBefore, isNot(isNaN));
+
+      await tester.tap(find.widgetWithText(PillButton, 'Edit this entry'));
+      await tester.pumpAndSettle();
+
+      // THE TWO CONTROLS THAT DESTROYED MONEY. Tapping an account chip gave
+      // the row an accountId it is defined not to have: `updateTransaction`
+      // then reversed nothing (the old row had no account to reverse through)
+      // and applied the new one at balanceSign -1, taking another 5,000 out
+      // of an account with nothing receiving it. Editing the amount moved no
+      // balance at all and left the row disagreeing with the money forever.
+      //
+      // SCOPED TO THE SHEET, because the detail screen BEHIND it carries a
+      // Details row also titled "Account" (it reads None for a transfer, the
+      // honest answer). An unscoped finder matches that row and fails on a
+      // screen that is behind glass and perfectly correct.
+      Finder inSheet(String label) => find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(label),
+      );
+      expect(
+        inSheet('Account'),
+        findsNothing,
+        reason:
+            'the account picker is on a transfer again, and one tap on it '
+            'debits an account a second time with nothing receiving it',
+      );
+      expect(
+        inSheet('How much'),
+        findsNothing,
+        reason:
+            'the amount is editable on a transfer again, so the row can be '
+            'made to disagree with the balances that actually moved',
+      );
+
+      // The label IS still editable, and saving it moves nothing.
+      await tester.enterText(find.byType(TextField).first, 'Sweldo to GCash');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PillButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(
+        _worth(store.data),
+        closeTo(worthBefore, 0.005),
+        reason: 'editing a transfer changed how much the person has',
+      );
+      expect(_balance(store.data, 'a_bpi'), closeTo(bpiBefore, 0.005));
+      expect(_balance(store.data, 'a_gcash'), closeTo(gcashBefore, 0.005));
+      // DID ANYTHING HAPPEN. Without this the three assertions above pass
+      // perfectly on a save that silently did nothing at all.
+      expect(
+        find.textContaining('Sweldo to GCash'),
+        findsWidgets,
+        reason: 'the rename never landed, so this proved nothing about money',
+      );
+    });
+
+    testWidgets('and the delete warning does not promise a reversal', (
+      tester,
+    ) async {
+      // `removeTransaction` undoes a row through its accountId and a transfer
+      // has none, so deleting one leaves both balances exactly where they are
+      // and takes away the only row explaining why they moved. The dialog
+      // promised the opposite in so many words.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await openTheTransfer(tester);
+
+      await tester.tap(find.text('Delete this entry'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('does NOT move it back'),
+        findsOneWidget,
+        reason:
+            'the confirmation still tells somebody keeping books that their '
+            'balances go back to what they were, and they do not',
+      );
+      expect(
+        find.textContaining('goes back to what it was'),
+        findsNothing,
+        reason: 'the old promise is still on screen for a transfer',
+      );
+    });
+
+    testWidgets('and the detail screen agrees with Home about the figure', (
+      tester,
+    ) async {
+      // Home and the Ledger both draw from `entryAmountText`; this screen was
+      // left on `signedAmount` and read -5,000 for the same row they showed as
+      // 5,000. A move is not a loss.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await openTheTransfer(tester);
+
+      expect(
+        find.text('-₱5,000'),
+        findsNothing,
+        reason:
+            'the entry screen signs a transfer as a loss while the two '
+            'screens you reach it from both call it ₱5,000',
+      );
+      expect(find.text('₱5,000'), findsWidgets);
+    });
+  });
 }
