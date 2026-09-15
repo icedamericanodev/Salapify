@@ -8,6 +8,8 @@
 // making a copy is what you do BEFORE replacing anything, and a person reading
 // top to bottom meets them in that order. The Undo card, when there is one, sits
 // above both, because after a restore it is the most urgent thing on the page.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../app/clock.dart';
@@ -18,6 +20,8 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import 'backup_files.dart';
 import 'backup_service.dart';
+import 'save_to_device.dart';
+import 'spreadsheet_export.dart';
 
 /// The route this screen lives at.
 const String settingsRoutePath = '/settings';
@@ -95,12 +99,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Card(
             title: 'Save a copy',
             body:
-                'Writes everything on this phone to one file you can keep '
-                'somewhere else. ${summary.entries} entries, '
-                '${summary.accounts} accounts, '
-                '${formatMoney(summary.netWorth)}.',
-            action: 'Save a copy',
-            onAction: _busy ? null : _export,
+                'Everything on this phone in one file that can be restored '
+                'later. ${summary.entries} entries, ${summary.accounts} '
+                'accounts, ${formatMoney(summary.netWorth)}.',
+            // TWO ways out, because saving and sharing are different acts and
+            // the founder asked for exactly this: "what if i do not like to
+            // share it but just want to save in my device?". Offering only the
+            // share sheet asks somebody to send their whole ledger through
+            // Gmail in order to keep a copy of it.
+            //
+            // Save is the PRIMARY. Keeping a copy is the common case; sending
+            // one somewhere is the occasional one.
+            action: 'Save to this phone',
+            onAction: _busy ? null : _saveBackup,
+            secondAction: 'Share instead',
+            onSecondAction: _busy ? null : _shareBackup,
           ),
           const SizedBox(height: 12),
           _Card(
@@ -111,6 +124,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'the file before anything changes.',
             action: 'Choose a file',
             onAction: _busy ? null : _restore,
+          ),
+
+          const SizedBox(height: 26),
+          // A SEPARATE SECTION, deliberately, and the word "backup" never
+          // appears in it. A spreadsheet cannot be restored: it is a flat grid,
+          // and a ledger is accounts, debts, people and the links between them.
+          // The dangerous version of this feature is a "CSV backup" button, and
+          // somebody discovering at the worst possible moment that it was never
+          // one.
+          const Head(title: 'For a spreadsheet'),
+          const SizedBox(height: 10),
+          _Card(
+            title: 'Your entries as a spreadsheet',
+            body:
+                'A CSV of every entry with its date, amount and account, for '
+                'Excel, Google Sheets, or your accountant. This is for '
+                'READING. It cannot be restored, so keep the backup above as '
+                'well.',
+            action: 'Save to this phone',
+            onAction: _busy ? null : _saveCsv,
+            secondAction: 'Share instead',
+            onSecondAction: _busy ? null : _shareCsv,
           ),
 
           const SizedBox(height: 22),
@@ -128,32 +163,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _export() async {
+  Future<void> _saveBackup() => _backup(share: false);
+  Future<void> _shareBackup() => _backup(share: true);
+
+  /// Both backup paths, because only the last step differs and two copies of
+  /// the verification would be two things to keep true.
+  Future<void> _backup({required bool share}) async {
     final store = context.ledger;
     final now = context.now;
     setState(() => _busy = true);
     try {
-      // Verified BEFORE the share sheet opens. An export the app cannot read
-      // back is not a backup, and finding that out after somebody has filed it
-      // away is finding out too late.
+      // Verified BEFORE anything leaves. An export the app cannot read back is
+      // not a backup, and finding that out after somebody has filed it away is
+      // finding out too late.
       final built = buildVerifiedBackup(store.data, now: now);
-      final shared = await shareBackupText(built.text, backupFileName(now));
+      final name = backupFileName(now);
+      final done = share
+          ? await shareBackupText(built.text, name)
+          : await saveBytesToDevice(utf8.encode(built.text), name);
       if (!mounted) return;
       _say(
-        shared
-            ? 'Saved. ${built.summary.entries} entries, '
+        done
+            ? 'Saved $name. ${built.summary.entries} entries, '
                   '${built.summary.accounts} accounts, '
                   '${formatMoney(built.summary.netWorth)}. Keep a copy '
                   'somewhere that is not this phone.'
-            // Never report success from a sheet closing: they may have backed
-            // out on purpose, and telling them it saved would leave them
-            // believing in a backup that does not exist.
+            // Never report success from a dialog merely closing: they may have
+            // backed out on purpose, and telling them it saved would leave
+            // them believing in a backup that does not exist.
             : 'Nothing was saved.',
       );
     } on BackupFileProblem catch (e) {
       if (mounted) _say(e.message);
     } catch (e) {
       if (mounted) _say('Could not save a copy. $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _saveCsv() => _csv(share: false);
+  Future<void> _shareCsv() => _csv(share: true);
+
+  /// The spreadsheet path. No verification step, and that is not an oversight:
+  /// there is nothing to verify against, because a CSV is not restorable and
+  /// never claims to be.
+  Future<void> _csv({required bool share}) async {
+    final store = context.ledger;
+    final now = context.now;
+    setState(() => _busy = true);
+    try {
+      final text = transactionsCsv(store.data);
+      final name = csvFileName(now);
+      final done = share
+          ? await shareBackupText(text, name)
+          : await saveBytesToDevice(utf8.encode(text), name);
+      if (!mounted) return;
+      _say(
+        done
+            ? 'Saved $name. Remember this one cannot be restored, so keep a '
+                  'backup too.'
+            : 'Nothing was saved.',
+      );
+    } catch (e) {
+      if (mounted) _say('Could not save that. $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -291,12 +364,18 @@ class _Card extends StatelessWidget {
     required this.body,
     required this.action,
     required this.onAction,
+    this.secondAction,
+    this.onSecondAction,
   });
 
   final String title;
   final String body;
   final String action;
   final VoidCallback? onAction;
+
+  /// The quieter alternative, drawn secondary so the primary stays obvious.
+  final String? secondAction;
+  final VoidCallback? onSecondAction;
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +388,29 @@ class _Card extends StatelessWidget {
           const SizedBox(height: 6),
           Text(body, style: TypeScale.caption(skin.text2)),
           const SizedBox(height: 14),
-          PillButton(label: action, onTap: onAction),
+          if (secondAction == null)
+            PillButton(label: action, onTap: onAction)
+          else
+            // Stacked, not side by side. "Save to this phone" and "Share
+            // instead" both need their words, and two pill buttons sharing a
+            // 320dp row would truncate one of them.
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: PillButton(label: action, onTap: onAction),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: PillButton(
+                    label: secondAction!,
+                    secondary: true,
+                    onTap: onSecondAction,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
