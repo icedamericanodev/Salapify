@@ -59,7 +59,15 @@ class LedgerStore extends ChangeNotifier {
   /// wholesale replacement that skipped the queue would be the one exception
   /// nobody remembered.
   Future<void> load() => _enqueue(() async {
-    final raw = await _repo.readLedger();
+    _install(await _repo.readLedger());
+  });
+
+  /// Decode stored bytes into the live ledger, or record why they would not.
+  ///
+  /// Shared by [load] and [undoRestore] so the two can never drift into
+  /// different ideas of what a damaged ledger means. NOT queued itself: both
+  /// callers are already inside the queue, and re-entering it would deadlock.
+  void _install(String? raw) {
     if (raw == null || raw.isEmpty) {
       _data = sanitizeData(const <String, dynamic>{});
       _unreadable = null;
@@ -97,6 +105,74 @@ class LedgerStore extends ChangeNotifier {
     }
     _loaded = true;
     notifyListeners();
+  }
+
+  /// Replace the WHOLE ledger with a parsed backup, keeping one undo.
+  ///
+  /// Takes an already-PARSED map, never file text, and that signature is the
+  /// safety rather than a convenience. Decoding happens in the caller, in
+  /// memory, before anything is written: a file that is not JSON, is truncated,
+  /// or is not ours fails there, with the stored ledger untouched. Handing this
+  /// raw text instead would make a half-applied restore possible, and a
+  /// half-applied restore on an app with no server is unrecoverable.
+  ///
+  /// THE SNAPSHOT IS THE RAW STORED BYTES, not `_data`, and that matters in the
+  /// one case where restore is most needed: a damaged ledger. There `_data` is
+  /// the EMPTY map `_install` fell back to, so snapshotting it would throw away
+  /// the damaged bytes, which are the only remaining copy of the founder's
+  /// history and may still be partly recoverable. What is being replaced is
+  /// what is on disk, so what is on disk is what gets saved.
+  ///
+  /// Taken INSIDE the queued callback, like every other snapshot here. Taken
+  /// outside, it would capture a ledger that a pending write is about to
+  /// change, which is the shape of fix that looks right and changes nothing.
+  ///
+  /// Deliberately does NOT call [_refuseIfUnreadable]. Restoring over a damaged
+  /// ledger is the entire point of restore, and it is the one write that must
+  /// still work when everything else is refused.
+  Future<void> restoreFrom(Map<String, dynamic> parsed) => _enqueue(() async {
+    final current = await _repo.readLedger();
+    if (current != null && current.isNotEmpty) {
+      await _repo.writeUndoSnapshot(current);
+    } else {
+      // Nothing was there, so there is nothing to undo TO. Clearing rather
+      // than leaving an older snapshot in place stops "Undo" offering to put
+      // back a ledger from two restores ago, which the user never asked for
+      // and would read as data appearing from nowhere.
+      await _repo.clearUndoSnapshot();
+    }
+    await _commit(sanitizeData(parsed));
+    _unreadable = null;
+  });
+
+  /// Whether a restore can still be undone.
+  Future<bool> get hasUndoSnapshot async {
+    final s = await _repo.readUndoSnapshot();
+    return s != null && s.isNotEmpty;
+  }
+
+  /// Put back exactly what was on disk before the last restore.
+  ///
+  /// Returns false when there is nothing to undo, so a caller can tell "put
+  /// back" from "there was nothing to put back" rather than reporting success
+  /// either way.
+  ///
+  /// The snapshot is written back as BYTES and then decoded through the same
+  /// [_install] a launch uses. So if what was there before was itself damaged,
+  /// the user lands back in exactly the state they were in, flagged and with
+  /// writes refused, rather than in a silently empty app. That is the honest
+  /// outcome: undo returns you to where you were, including when where you
+  /// were was bad.
+  ///
+  /// The snapshot is cleared afterwards. One undo, and the UI says so before
+  /// the restore rather than discovering it after.
+  Future<bool> undoRestore() => _enqueueValue(() async {
+    final snapshot = await _repo.readUndoSnapshot();
+    if (snapshot == null || snapshot.isEmpty) return false;
+    await _repo.writeLedger(snapshot);
+    _install(snapshot);
+    await _repo.clearUndoSnapshot();
+    return true;
   });
 
   String? _unreadable;
@@ -225,13 +301,24 @@ class LedgerStore extends ChangeNotifier {
   /// awaiting them, and both would have failed invisibly.
   void Function(Object error)? onUnawaitedWriteError;
 
-  Future<void> _enqueue(Future<void> Function() op) {
+  Future<void> _enqueue(Future<void> Function() op) =>
+      _enqueueValue<void>(op);
+
+  /// [_enqueue] for an operation that answers something.
+  ///
+  /// Same queue, same one-writer-at-a-time promise. It exists because
+  /// [undoRestore] has to report whether there was anything to undo, and a
+  /// void queue would have forced that answer out through a field set as a side
+  /// effect, which is a second source of truth about one operation.
+  Future<T> _enqueueValue<T>(Future<T> Function() op) {
     final next = _queue.then((_) => op());
     // A failed write must not poison the queue for every write after it, and
     // the caller still gets the real error through `next`.
-    _queue = next.catchError((Object e) {
-      onUnawaitedWriteError?.call(e);
-    });
+    _queue = next
+        .then<void>((_) {})
+        .catchError((Object e) {
+          onUnawaitedWriteError?.call(e);
+        });
     return next;
   }
 

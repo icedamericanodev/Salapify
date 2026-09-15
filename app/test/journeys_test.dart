@@ -14,6 +14,8 @@
 // unchanged" is unfalsifiable by inaction: a save that saves nothing conserves
 // everything perfectly. So each one below names the movement that must have
 // happened, on a specific account, by a specific amount.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/app/ledger_scope.dart';
@@ -22,6 +24,7 @@ import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/ledger.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/features/log/log_sheet.dart';
+import 'package:salapify/features/settings/backup_service.dart';
 import 'package:salapify/design/tokens.dart';
 
 import 'support/memory_store.dart';
@@ -373,5 +376,96 @@ void main() {
           'moves with no entry behind it cannot be reconciled, and it is the '
           'first place somebody who keeps books looks',
     );
+  });
+
+  testWidgets('restore: the whole ledger changes, and every screen follows', (
+    tester,
+  ) async {
+    // The most dangerous write in the app, walked end to end.
+    //
+    // The unit tests prove restoreFrom replaces the store and that undo puts
+    // the bytes back. Neither can see the thing that actually goes wrong in
+    // practice: a screen still showing the OLD ledger after the new one
+    // landed, which is how somebody ends up acting on money that is not there.
+    // So this one restores through the real store and then reads three
+    // different screens.
+    final store = await memoryStore(livedIn());
+    await tester.pumpWidget(_app(store));
+    await tester.pumpAndSettle();
+
+    final before = _netWorth(store);
+    expect(before, isNot(0), reason: 'the fixture has no money to replace');
+
+    // A backup holding ONE account and nothing else, so "did it replace" has
+    // an unmistakable answer.
+    final incoming = parseBackupText(
+      jsonEncode({
+        'app': 'salapify',
+        'version': 2,
+        'data': {
+          'accounts': [
+            {'id': 'a_new', 'name': 'Restored', 'kind': 'cash', 'balance': 777.0},
+          ],
+        },
+      }),
+    );
+    await store.restoreFrom(incoming);
+    await tester.pumpAndSettle();
+
+    expect(_netWorth(store), closeTo(777, 0.005));
+
+    // ACCOUNTS shows the restored account and not the old ones.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavBar),
+        matching: find.byIcon(Icons.account_balance_wallet_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Restored'), findsWidgets);
+    expect(
+      find.text('BPI'),
+      findsNothing,
+      reason:
+          'an account from the ledger that was just replaced is still on the '
+          'Accounts screen, so the restore half-applied or the screen is '
+          'rendering a ledger that no longer exists',
+    );
+
+    // LEDGER has none of the old entries either.
+    await tester.tap(
+      find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Meralco'),
+      findsNothing,
+      reason: 'entries from the replaced ledger survived onto the Ledger screen',
+    );
+
+    // AND UNDO BRINGS IT ALL BACK, through the same screens.
+    expect(await store.undoRestore(), isTrue);
+    await tester.pumpAndSettle();
+    expect(
+      _netWorth(store),
+      closeTo(before, 0.005),
+      reason: 'undo gave back a different amount of money than it took away',
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavBar),
+        matching: find.byIcon(Icons.account_balance_wallet_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('BPI'),
+      findsWidgets,
+      reason:
+          'the store says the old ledger is back and the Accounts screen does '
+          'not show it',
+    );
+    expect(find.text('Restored'), findsNothing);
   });
 }
