@@ -37,6 +37,35 @@ Widget _app(LedgerStore store) => LedgerScope(
 Map<String, dynamic> _cat(Map<String, dynamic> data, String id) =>
     allCategories(data).firstWhere((c) => c['id'] == id);
 
+/// Accounts, then Settings, then Categories, by TAPPING. Reaching the screen
+/// the way a person does also proves the door exists, which a pushed route in
+/// a test never can.
+Future<void> _openCategories(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(NavBar),
+      matching: find.byIcon(Icons.account_balance_wallet_outlined),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.text('Backup and settings'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Backup and settings'));
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.text('Categories'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Categories'));
+  await tester.pumpAndSettle();
+}
+
 Map<String, dynamic> _hide(Map<String, dynamic> data, String id) {
   final out = Map<String, dynamic>.of(data);
   out['categories'] = [
@@ -133,6 +162,49 @@ void main() {
         expect(c.containsKey('isArchived'), isFalse);
         expect(isArchivedCategory(c), isFalse);
       }
+    });
+  });
+
+  group('the caption never contradicts the row it sits on', () {
+    // The LIST is drawn from live categories only, so hiding a parent moves
+    // its children out to top level, un-indented. The caption used to read the
+    // FULL list, so the same row then said "part of Bills" while sitting
+    // nowhere near Bills, which was in the Hidden group at the bottom.
+    test('a child whose parent is hidden stops claiming to be part of it', () {
+      final data = livedIn();
+      expect(
+        categoryCaption(data, _cat(data, 'cat_electricity')),
+        contains('part of Bills'),
+        reason:
+            'the fixture has no live parent and child pair, so hiding one '
+            'below could not prove anything',
+      );
+
+      final after = _hide(data, 'cat_bills');
+      expect(
+        categoryCaption(after, _cat(after, 'cat_electricity')),
+        isNot(contains('part of')),
+        reason:
+            'Electricity is drawn at top level once Bills is hidden, and its '
+            'own caption still named the parent it is no longer under',
+      );
+    });
+
+    test('and a parent stops counting a child that is hidden', () {
+      final data = livedIn();
+      expect(
+        categoryCaption(data, _cat(data, 'cat_bills')),
+        contains('2 sub-categories'),
+      );
+
+      final after = _hide(data, 'cat_electricity');
+      expect(
+        categoryCaption(after, _cat(after, 'cat_bills')),
+        contains('1 sub-category'),
+        reason:
+            'Bills counted a hidden child the list no longer draws under it, '
+            'so the words and the indents disagreed about the same pair',
+      );
     });
   });
 
@@ -253,6 +325,66 @@ void main() {
         ).firstWhere((r) => r.id == 'cat_groceries').spent,
         closeTo(spentBefore, 0.005),
         reason: 'hiding the label took the spending with it',
+      );
+    });
+
+    testWidgets('add a sub-category from the parent it belongs under', (
+      tester,
+    ) async {
+      // The founder's second question, after the picker shipped: "what if i
+      // want to make a parent/main category then its subcategory?" It was
+      // possible and it was not REACHABLE: you had to leave the parent, tap
+      // Add a category, and find the parent again among the chips. This is
+      // the one tap route, and this test walks it the way a person does.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _openCategories(tester);
+
+      await tester.tap(find.text('Bills'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Add a sub-category'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add a sub-category'));
+      await tester.pumpAndSettle();
+
+      // The new sheet SAYS what it is, or the tap's one fact is lost.
+      expect(find.text('New sub-category'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Internet');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(PillButton, 'Save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PillButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      // It is STORED under Bills, not merely created beside it.
+      final made = allCategories(
+        store.data,
+      ).where((c) => c['name'] == 'Internet');
+      expect(made, hasLength(1), reason: 'the write never landed');
+      expect(
+        made.first['parentId'],
+        'cat_bills',
+        reason:
+            'the parent the person tapped from was not carried into the new '
+            'category, so the shortcut created a plain top level one',
+      );
+
+      // AND A PERSON CAN SEE IT. The half that gets forgotten: a write that
+      // is correct where it was written and invisible where it is read.
+      await tester.scrollUntilVisible(
+        find.text('Internet'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Internet'), findsOneWidget);
+      expect(
+        categoryCaption(store.data, made.first),
+        contains('part of Bills'),
+        reason:
+            'the new sub-category is on the list saying nothing about what it '
+            'belongs to, which is the state the founder reported',
       );
     });
 

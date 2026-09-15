@@ -138,7 +138,13 @@ String removeConsequence(Map<String, dynamic> cat) =>
 String categoryCaption(Map<String, dynamic> data, Map<String, dynamic> cat) {
   final tagged = taggedCount(data['transactions'], cat['id']);
   final cap = amountOf(cat['monthlyCap']);
-  final all = allCategories(data);
+  // LIVE ONLY, because the LIST is drawn from live categories too. Reading
+  // the full list here let a row contradict its own position: hide Bills and
+  // Electricity correctly moves out to top level, un-indented, while its
+  // caption still read "part of Bills", a category now sitting in the Hidden
+  // group at the bottom of the same screen. Position and words have to answer
+  // the same question the same way.
+  final all = pickableCategories(data);
   final childCount = all.where((c) => c['parentId'] == cat['id']).length;
   final parentName = () {
     final p = cat['parentId'];
@@ -175,21 +181,34 @@ List<Map<String, dynamic>> parentCandidates(
   Map<String, dynamic> data,
   Map<String, dynamic>? existing,
 ) {
-  final all = allCategories(data);
-  bool hasRealParent(Map<String, dynamic> c) {
-    final p = c['parentId'];
-    return p is String &&
-        p.isNotEmpty &&
-        p != c['id'] &&
-        all.any((o) => o['id'] == p);
-  }
-
   final selfId = existing?['id'];
   return [
-    for (final c in all)
-      if (c['id'] != selfId && !isArchivedCategory(c) && !hasRealParent(c)) c,
+    for (final c in allCategories(data))
+      if (c['id'] != selfId && canBeParent(data, c)) c,
   ];
 }
+
+/// Whether [cat]'s own `parentId` points at a real, distinct category.
+///
+/// False for a plain top level category, for one whose parent was deleted, and
+/// for one naming ITSELF as its parent, which is the self-parent case a QA
+/// pass caught disagreeing between two copies of this check.
+bool hasRealParent(Map<String, dynamic> data, Map<String, dynamic> cat) {
+  final p = cat['parentId'];
+  if (p is! String || p.isEmpty || p == cat['id']) return false;
+  return allCategories(data).any((o) => o['id'] == p);
+}
+
+/// Whether [cat] is fit to have sub-categories under it: live, and not
+/// already somebody else's child.
+///
+/// ONE rule, read from both directions, which is the point of it being a
+/// function rather than two copies. [parentCandidates] asks it of every
+/// category to decide who may be PICKED as a parent; the editor asks it of
+/// the category on screen to decide whether to offer "Add a sub-category" on
+/// it. Two copies of this test are exactly how the self-parent bug happened.
+bool canBeParent(Map<String, dynamic> data, Map<String, dynamic> cat) =>
+    !isArchivedCategory(cat) && !hasRealParent(data, cat);
 
 /// Whether [cat] already groups other categories under it. Such a category
 /// cannot also become someone else's child without turning its own children

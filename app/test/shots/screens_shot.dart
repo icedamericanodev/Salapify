@@ -697,6 +697,16 @@ void main() {
       await tester.tap(find.text('Bills'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-category-editor-parent');
+
+      // And the one tap route OFF that sheet: a new category that arrives
+      // already under Bills, which is the shortcut the founder asked for
+      // after the picker shipped ("what if i want to make a parent/main
+      // category then its subcategory?").
+      await tester.ensureVisible(find.text('Add a sub-category'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add a sub-category'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-new-sub');
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 

@@ -522,6 +522,7 @@ class ItemRow extends StatelessWidget {
     this.amountSub,
     this.tone = Tone.plain,
     this.strike = false,
+    this.quiet = false,
     this.onTap,
   }) : assert(
          icon == null || monogram == null,
@@ -545,6 +546,14 @@ class ItemRow extends StatelessWidget {
   final String amount;
   final Tone tone;
   final bool strike;
+
+  /// A row that sits UNDER another one, drawn a shade quieter.
+  ///
+  /// Plan learned this first and wrote down why: "a child is quieter than its
+  /// parent, so the eye can see which figure contains which without counting
+  /// indents" (plan_screen.dart). An indent alone survives one glance and not
+  /// two. Defaults to false, so every existing row in the app is untouched.
+  final bool quiet;
 
   /// Makes the whole row tappable, and SAYS SO.
   ///
@@ -605,10 +614,11 @@ class ItemRow extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TypeScale.rowTitle(skin.text).copyWith(
-                    decoration: strike ? TextDecoration.lineThrough : null,
-                    decorationColor: skin.text3,
-                  ),
+                  style: TypeScale.rowTitle(quiet ? skin.text2 : skin.text)
+                      .copyWith(
+                        decoration: strike ? TextDecoration.lineThrough : null,
+                        decorationColor: skin.text3,
+                      ),
                 ),
                 if (sub != null) ...[
                   const SizedBox(height: 3),

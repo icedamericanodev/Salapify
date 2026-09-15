@@ -148,6 +148,7 @@ class _CategoryRow extends StatelessWidget {
       title: (cat['name'] ?? '').toString(),
       sub: categoryCaption(data, cat),
       amount: hidden ? 'Hidden' : '',
+      quiet: depth > 0,
       onTap: () => showCategoryEditor(context, existing: cat),
     );
     if (depth == 0) return row;
@@ -156,9 +157,14 @@ class _CategoryRow extends StatelessWidget {
 }
 
 /// Add or change one category.
+///
+/// [initialParentId] starts a NEW category already grouped under that one,
+/// which is how "Add a sub-category" works: the parent is chosen by where the
+/// person tapped rather than hunted for again in a row of chips.
 Future<void> showCategoryEditor(
   BuildContext context, {
   Map<String, dynamic>? existing,
+  String? initialParentId,
 }) async {
   final store = context.ledger;
   await showModalBottomSheet<void>(
@@ -172,7 +178,10 @@ Future<void> showCategoryEditor(
     useRootNavigator: true,
     builder: (sheetContext) => LedgerScope(
       store: store,
-      child: _CategorySheet(existing: existing),
+      child: _CategorySheet(
+        existing: existing,
+        initialParentId: initialParentId,
+      ),
     ),
   );
 }
@@ -202,8 +211,12 @@ const _icons = [
 ];
 
 class _CategorySheet extends StatefulWidget {
-  const _CategorySheet({this.existing});
+  const _CategorySheet({this.existing, this.initialParentId});
   final Map<String, dynamic>? existing;
+
+  /// Set when this sheet was opened by "Add a sub-category" on a parent, so
+  /// the new category arrives with that parent already picked.
+  final String? initialParentId;
 
   @override
   State<_CategorySheet> createState() => _CategorySheetState();
@@ -215,7 +228,7 @@ class _CategorySheetState extends State<_CategorySheet> {
   );
   late String _icon = (widget.existing?['icon'] ?? _icons.first).toString();
   late String? _parentId = () {
-    final p = widget.existing?['parentId'];
+    final p = widget.existing?['parentId'] ?? widget.initialParentId;
     return p is String && p.isNotEmpty ? p : null;
   }();
   bool _busy = false;
@@ -259,7 +272,14 @@ class _CategorySheetState extends State<_CategorySheet> {
               children: [
                 Flexible(
                   child: Text(
-                    _isEdit ? 'Edit category' : 'New category',
+                    // SAYS WHICH ONE IT IS. Arriving here from "Add a
+                    // sub-category" on Bills and reading a plain "New
+                    // category" loses the one fact that tap carried.
+                    _isEdit
+                        ? 'Edit category'
+                        : (widget.initialParentId != null
+                              ? 'New sub-category'
+                              : 'New category'),
                     style: TypeScale.sheetTitle(skin.text),
                   ),
                 ),
@@ -371,22 +391,31 @@ class _CategorySheetState extends State<_CategorySheet> {
     );
   }
 
-  /// The "Sub-category of" field. Three shapes, depending on what is true
-  /// for THIS category, never a picker that quietly does nothing.
+  /// The grouping field. Two directions, and BOTH have to be reachable.
+  ///
+  /// "Sub-category of" points UP: this category picks its own parent. It has
+  /// three shapes depending on what is true here, never a picker that quietly
+  /// does nothing. "Add a sub-category" points DOWN: this category becomes
+  /// the parent of a brand new one. The founder asked for exactly the second
+  /// after the first shipped, because making a main category and then putting
+  /// something under it meant leaving the screen, tapping Add, and hunting
+  /// the parent back out of a row of chips.
   List<Widget> _parentSection(Map<String, dynamic> data) {
     final skin = context.skin;
     final label = Text(
       'Sub-category of',
       style: TypeScale.fieldLabel(skin.text2),
     );
-    final selfId = widget.existing?['id'] as String?;
+    final existing = widget.existing;
+    final selfId = existing?['id'] as String?;
 
+    final List<Widget> body;
     // A category that already groups others cannot also become a child:
     // its own children would become grandchildren, the one shape nothing
     // in this app renders (categoryTree flattens it back to top level on
     // the very next screen, silently).
     if (hasChildren(data, selfId)) {
-      return [
+      body = [
         label,
         const SizedBox(height: 6),
         Text(
@@ -395,49 +424,85 @@ class _CategorySheetState extends State<_CategorySheet> {
           style: TypeScale.caption(skin.text3),
         ),
       ];
+    } else {
+      final candidates = parentCandidates(data, existing);
+      body = candidates.isEmpty
+          ? [
+              label,
+              const SizedBox(height: 6),
+              Text(
+                'Add another category first, then you can group this one '
+                'under it.',
+                style: TypeScale.caption(skin.text3),
+              ),
+            ]
+          : [
+              label,
+              const SizedBox(height: 6),
+              Text(
+                // Ties the field to the one screen that already shows the
+                // effect, so picking one is not a leap of faith into nothing.
+                'Optional. Groups the spending together on Plan.',
+                style: TypeScale.caption(skin.text3),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  PickChip(
+                    label: 'No parent',
+                    on: _parentId == null,
+                    onTap: () => setState(() => _parentId = null),
+                  ),
+                  for (final c in candidates)
+                    PickChip(
+                      label: '${c['icon'] ?? ''} ${c['name'] ?? ''}'.trim(),
+                      on: _parentId == c['id'],
+                      onTap: () => setState(() => _parentId = '${c['id']}'),
+                    ),
+                ],
+              ),
+            ];
     }
 
-    final candidates = parentCandidates(data, widget.existing);
-    if (candidates.isEmpty) {
-      return [
-        label,
-        const SizedBox(height: 6),
-        Text(
-          'Add another category first, then you can group this one under '
-          'it.',
-          style: TypeScale.caption(skin.text3),
-        ),
-      ];
-    }
-
-    return [
-      label,
-      const SizedBox(height: 6),
-      Text(
-        // Ties the field to the one screen that already shows the effect,
-        // so picking one here is not a leap of faith into nothing.
-        'Optional. Groups the spending together on Plan.',
-        style: TypeScale.caption(skin.text3),
-      ),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          PickChip(
-            label: 'No parent',
-            on: _parentId == null,
-            onTap: () => setState(() => _parentId = null),
+    // THE OTHER DIRECTION. Offered on any saved, live category that is not
+    // already somebody's child, whether or not it has children yet: a parent
+    // with two sub-categories can take a third, and a plain category can
+    // become a parent for the first time. `canBeParent` is the same rule
+    // `parentCandidates` applies to decide who may be PICKED, asked here of
+    // the category on screen instead.
+    if (existing != null && canBeParent(data, existing)) {
+      body.addAll([
+        const SizedBox(height: 12),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _busy ? null : () => _addSubCategory(existing),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, size: 18, color: skin.accent),
+              const SizedBox(width: 6),
+              Text('Add a sub-category', style: TypeScale.action(skin.accent)),
+            ],
           ),
-          for (final c in candidates)
-            PickChip(
-              label: '${c['icon'] ?? ''} ${c['name'] ?? ''}'.trim(),
-              on: _parentId == c['id'],
-              onTap: () => setState(() => _parentId = '${c['id']}'),
-            ),
-        ],
-      ),
-    ];
+        ),
+      ]);
+    }
+
+    return body;
+  }
+
+  /// Close this sheet and open a NEW category already under [parent].
+  ///
+  /// The navigator is captured BEFORE the pop, the pattern the transfer sheet
+  /// established: popping deactivates this widget's own context, and using it
+  /// afterwards to open anything is how a sheet ends up with no ancestor to
+  /// attach to.
+  void _addSubCategory(Map<String, dynamic> parent) {
+    final nav = Navigator.of(context);
+    nav.pop();
+    showCategoryEditor(nav.context, initialParentId: '${parent['id']}');
   }
 
   Future<void> _save() async {

@@ -38,6 +38,37 @@ because it was already reading `parentId`, it just never had one to read.
 |---|---|
 | ![Gabi](gabi-category-editor-parent.png) | ![Hapon](hapon-category-editor-parent.png) |
 
+Note the second control on that sheet, "Add a sub-category", which is the
+other direction and the founder's next question once the picker shipped:
+*"what if i want to make a parent/main category then its subcategory? no
+option to do that currently."*
+
+It was possible and it was not REACHABLE. Making a main category and then
+putting something under it meant leaving that category, tapping "Add a
+category" on the list, and hunting the parent back out of a row of chips. So
+the grouping field points BOTH ways now: "Sub-category of" picks this
+category's parent, and "Add a sub-category" makes this category the parent of
+a brand new one.
+
+## The new category arrives already grouped
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Gabi](gabi-category-new-sub.png) | ![Hapon](hapon-category-new-sub.png) |
+
+The sheet is titled "New sub-category" rather than "New category", and Bills
+is already picked in the chips, because the tap that opened it carried that
+fact and a generic form would have thrown it away. Type a name, tap Save, and
+the list underneath redraws with the new row indented under Bills.
+
+It is offered on any saved, live category that is not already somebody's
+child, whether or not it has children yet: a parent with two sub-categories
+can take a third, and a plain category can become a parent for the first
+time. That test is `canBeParent`, which is the SAME rule `parentCandidates`
+uses to decide who may be picked, asked from the other side. One function,
+because two copies of this exact test are how the self-parent bug happened in
+the first place.
+
 Bills already groups Electricity and Water. Letting it also become someone
 else's child would make its own children grandchildren, the one shape nothing
 in this app renders: `categoryTree` walks two levels and silently promotes
