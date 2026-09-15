@@ -512,6 +512,42 @@ void main() {
       await _shoot(tester, '${s.key}-goal-funding');
     });
 
+    // Insights, roadmap step 9. Reached by TAPPING Home's closing sentence,
+    // which 04-screens.md makes the way in ("One insight sentence with a
+    // number, no card. Tap for Insights."). Tapping rather than pushing the
+    // route, for the reason the debt pass gives: a pushed route renders the
+    // same picture whether or not the thing that opens it works, and this
+    // sentence was a bare Text for as long as there was no screen to reach.
+    testWidgets('insights ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('See your insights'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('See your insights'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-insights');
+
+      // AND THE BOTTOM OF IT, because the net worth chart is the one with a
+      // custom painter in it and the one most likely to draw nothing at all.
+      // A shot of the first viewport would photograph two charts and miss the
+      // only one that can fail silently.
+      for (var i = 0; i < 8; i++) {
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-insights-bottom');
+    });
+
     testWidgets('settings ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);

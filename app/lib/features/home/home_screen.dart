@@ -31,6 +31,7 @@ import '../../design/type.dart';
 import '../../dev/sample_data_action.dart';
 import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
 import '../debt/debt_screen.dart' show debtRoutePath;
+import '../insights/insights_screen.dart' show insightsRoutePath;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
 
@@ -462,7 +463,36 @@ class _Insight extends StatelessWidget {
         : '${formatMoney(committed)} is already set aside for '
               '$billCount ${billCount == 1 ? 'bill' : 'bills'} before payday.';
 
-    return Text(text, style: TypeScale.subtitle(skin.text2));
+    // TAPPABLE, because 04-screens.md says so in as many words: "One insight
+    // sentence with a number, no card. Tap for Insights." It was a bare Text
+    // for as long as there was no Insights screen to reach, which was right
+    // then and would have quietly stayed wrong afterwards, exactly like the
+    // Debt section's action word did.
+    //
+    // It announces itself as a button and says where it goes, because accent
+    // text that is not a control reads as a link and is not one, and a
+    // sentence in body colour that IS a control is invisible to somebody who
+    // never thinks to try it.
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: () => context.push(insightsRoutePath),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          // A real target. The sentence is two lines of 15pt text and the
+          // padding is what takes the tap area past the platform floor.
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text, style: TypeScale.subtitle(skin.text2)),
+              const SizedBox(height: 6),
+              Text('See your insights', style: TypeScale.action(skin.accent)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
