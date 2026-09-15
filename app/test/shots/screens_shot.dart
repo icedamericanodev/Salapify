@@ -329,6 +329,33 @@ void main() {
       await _shoot(tester, '${s.key}-upcoming-help');
     });
 
+    testWidgets('move money ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      // Reached from Home's Move action, the way the founder reaches it, and
+      // the way they reached the greyed out version that did nothing. The
+      // sheet, then the refusal it gives on an overdraft, because a refusal is
+      // a sentence a person reads at the worst moment and it has to be looked
+      // at rather than trusted.
+      await tester.tap(find.text('Move'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '2500');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-move');
+
+      await tester.enterText(find.byType(TextField), '999999');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PillButton, 'Move it'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-move-refused');
+    });
+
     testWidgets('debt ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);
@@ -647,6 +674,98 @@ void main() {
       await tester.tap(find.text('Backup and settings'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-settings');
+
+      // Categories, reached from the row Settings now carries, so this render
+      // proves the door as well as the room. The list, then the editor, then
+      // the hide confirmation, because the confirmation is the only screen in
+      // this feature that describes a consequence and it is therefore the one
+      // whose wording has to be looked at rather than trusted.
+      await tester.scrollUntilVisible(
+        find.text('Categories'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Categories'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-categories');
+
+      // Bills already groups Electricity and Water in the fixture, so its
+      // editor is the one shot that proves the two-level rule reads as
+      // English rather than only being silently enforced: a category that
+      // groups others cannot also become someone else's child.
+      await tester.tap(find.text('Bills'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-editor-parent');
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // And the one tap route from the LIST: the add line on the card that
+      // owns the category, which is where the founder said it belongs ("add
+      // main category then add sub category right away"). The new sheet
+      // arrives titled New sub-category with Bills already picked.
+      final addUnderBills = find
+          .descendant(
+            of: find.ancestor(
+              of: find.text('Bills'),
+              matching: find.byType(Group),
+            ),
+            matching: find.text('Add sub-category'),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        addUnderBills,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(addUnderBills);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-new-sub');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Back at the top of the list for the shots below, since reaching the
+      // add line scrolled the screen.
+      await tester.scrollUntilVisible(
+        find.text('Food'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      // A category with money through it AND a cap set, which is the state the
+      // confirmation has the most to say about. Groceries carries a 2,500 cap
+      // in the fixture and real spending this month.
+      await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-editor');
+
+      await tester.tap(find.text('Hide it'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-hide');
+
+      // AND THE OTHER HALF OF DELETE. Groceries above shows the refusal,
+      // greyed with the reason under it; Fun is tagged on nothing and groups
+      // nothing, so the same control is live and red there. Both states are
+      // rendered because the founder reported the feature missing entirely
+      // when only one of them could ever appear.
+      await tester.tap(find.text('Keep it'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Fun'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fun'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-delete');
     });
 
     testWidgets('first run ${s.key}', (tester) async {

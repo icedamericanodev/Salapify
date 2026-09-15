@@ -11,6 +11,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/clock.dart';
 import '../../app/ledger_scope.dart';
@@ -18,6 +19,8 @@ import '../../core/money/format.dart';
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../categories/categories_screen.dart'
+    show categoriesRoutePath, categoriesSummary;
 import 'backup_files.dart';
 import 'backup_service.dart';
 import 'save_to_device.dart';
@@ -148,6 +151,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // that still carry it. The full sentence is not lost: it is in
               // the confirmation, where it is read at the moment it matters
               // rather than two scrolls above it.
+              // FIRST in the group, because it is the only row here somebody
+              // opens for an ordinary reason. Everything below it is a recovery
+              // or an export, which are rare and slightly scary; a routine
+              // control filed underneath them reads as one of them.
+              ItemRow(
+                icon: Icons.sell_outlined,
+                title: 'Categories',
+                sub: categoriesSummary(context.ledger.data),
+                amount: '',
+                onTap: _busy ? null : () => context.push(categoriesRoutePath),
+              ),
               ItemRow(
                 icon: Icons.restore_rounded,
                 title: 'Restore from a file',
@@ -336,7 +350,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: skin.card,
         title: Text(
-          fresh ? 'Bring in this backup?' : 'Replace everything with this file?',
+          fresh
+              ? 'Bring in this backup?'
+              : 'Replace everything with this file?',
           style: TypeScale.sheetTitle(skin.text),
         ),
         content: Text(
@@ -468,7 +484,10 @@ class _UndoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Undo the last restore', style: TypeScale.sectionHead(skin.text)),
+          Text(
+            'Undo the last restore',
+            style: TypeScale.sectionHead(skin.text),
+          ),
           const SizedBox(height: 6),
           Text(
             'This puts back exactly what was on this phone before you '

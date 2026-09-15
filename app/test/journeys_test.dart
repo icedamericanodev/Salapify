@@ -276,9 +276,7 @@ void main() {
     //
     // `groupByDay` is what the screen itself reads, so this is still the
     // screen's own view of the data rather than a peek at raw storage.
-    final rows = [
-      for (final day in groupByDay(store.data)) ...day.rows,
-    ];
+    final rows = [for (final day in groupByDay(store.data)) ...day.rows];
     expect(
       rows.where((t) => t['label'] == 'Jollibee'),
       hasLength(2),
@@ -391,7 +389,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('BPI').first);
+    // SCROLLED, not tapped at a fixed position. Accounts gained a "Move
+    // money" action on its first group's heading, which pushes every row
+    // below it down by about one row's height, and a bare tap at BPI's old
+    // coordinate started landing under the nav bar instead. Screen is a lazy
+    // ListView and this app's own rule is to scroll to a control rather than
+    // assume where it sits.
+    final bpiRow = find.text('BPI').first;
+    await tester.scrollUntilVisible(
+      bpiRow,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(bpiRow);
     await tester.pumpAndSettle();
 
     expect(
@@ -430,7 +441,12 @@ void main() {
         'version': 2,
         'data': {
           'accounts': [
-            {'id': 'a_new', 'name': 'Restored', 'kind': 'cash', 'balance': 777.0},
+            {
+              'id': 'a_new',
+              'name': 'Restored',
+              'kind': 'cash',
+              'balance': 777.0,
+            },
           ],
         },
       }),
@@ -466,7 +482,8 @@ void main() {
     expect(
       find.text('Meralco'),
       findsNothing,
-      reason: 'entries from the replaced ledger survived onto the Ledger screen',
+      reason:
+          'entries from the replaced ledger survived onto the Ledger screen',
     );
 
     // AND UNDO BRINGS IT ALL BACK, through the same screens.

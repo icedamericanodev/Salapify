@@ -28,6 +28,24 @@ import 'recurring_editor.dart';
 import 'recurring_rows.dart';
 import 'upcoming_rows.dart';
 
+/// Which segment Plan shows, so another screen can send somebody to the right
+/// one.
+///
+/// A plain notifier rather than a route parameter, and that is not laziness.
+/// Plan is a branch of a `StatefulShellRoute`, which KEEPS each branch alive by
+/// design: navigating to `/plan?seg=upcoming` switches to a Plan that is
+/// already built, so `initState` never runs again and the query would be read
+/// once and then ignored forever. Home's Bills action would work exactly once,
+/// on the first visit, which is worse than not working at all because it would
+/// look fixed.
+///
+/// It holds no money and no stored data, only which of three tabs is showing.
+final planSegment = ValueNotifier<int>(0);
+
+const int planBudget = 0;
+const int planUpcoming = 1;
+const int planGoals = 2;
+
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
 
@@ -36,7 +54,23 @@ class PlanScreen extends StatefulWidget {
 }
 
 class _PlanScreenState extends State<PlanScreen> {
-  int _segment = 0;
+  @override
+  void initState() {
+    super.initState();
+    planSegment.addListener(_onSegment);
+  }
+
+  @override
+  void dispose() {
+    planSegment.removeListener(_onSegment);
+    super.dispose();
+  }
+
+  void _onSegment() {
+    if (mounted) setState(() {});
+  }
+
+  int get _segment => planSegment.value;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +90,11 @@ class _PlanScreenState extends State<PlanScreen> {
         Segmented(
           options: const ['Budget', 'Upcoming', 'Goals'],
           index: _segment,
-          onPick: (i) => setState(() => _segment = i),
+          // Writes the notifier, and the listener above turns that into the
+          // rebuild. Tapping a segment and arriving from Home's Bills action
+          // therefore travel the same path, so the two can never disagree about
+          // which segment is showing.
+          onPick: (i) => planSegment.value = i,
         ),
         const SizedBox(height: 20),
         switch (_segment) {
@@ -1065,7 +1103,13 @@ class _CategoryRow extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      // INDENTED WHEN IT SITS UNDER A PARENT. Without this the list drew a
+      // parent and its children identically, so with Utilities over Electricity
+      // and Water the four visible figures summed to 8,350 under a hero saying
+      // 4,700. The rollup's own doc comment predicted exactly that and the
+      // screen was never changed to match it, which a QA pass caught before the
+      // founder did.
+      padding: EdgeInsets.fromLTRB(row.parentId == null ? 0 : 22, 12, 0, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1082,7 +1126,11 @@ class _CategoryRow extends StatelessWidget {
                   row.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TypeScale.rowTitle(skin.text),
+                  style: TypeScale.rowTitle(
+                    // A child is quieter than its parent, so the eye can see
+                    // which figure contains which without counting indents.
+                    row.parentId == null ? skin.text : skin.text2,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1102,6 +1150,20 @@ class _CategoryRow extends StatelessWidget {
           ],
           const SizedBox(height: 7),
           Text(caption, style: TypeScale.caption(captionInk)),
+
+          // SAYS WHERE THE MONEY CAME FROM, in words, because an indent alone
+          // does not answer "why is this bigger than its own entries". A parent
+          // reading 4,450 above a child reading 3,200 is the same peso drawn
+          // twice, and the reader has to be told that rather than left to work
+          // it out. The founder reported a double count yesterday on a
+          // different screen, and it cost real trust.
+          if (row.rollsUp) ...[
+            const SizedBox(height: 3),
+            Text(
+              'includes ${formatMoney(row.fromChildren)} from what is under it',
+              style: TypeScale.captionSm(skin.text3),
+            ),
+          ],
         ],
       ),
     );
