@@ -22,6 +22,7 @@ import '../../design/type.dart';
 import '../home/home_screen.dart' show shortDate;
 import 'budget_editor.dart';
 import 'budget_rows.dart';
+import 'upcoming_rows.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
@@ -38,9 +39,14 @@ class _PlanScreenState extends State<PlanScreen> {
     return Screen(
       children: [
         const SizedBox(height: 14),
+        // Covers all three segments, because it sits above all three. It used
+        // to say "what is due before the next payday", which was true when
+        // Upcoming was a placeholder and became wrong the moment Upcoming
+        // started reaching to the payday AFTER next: a sentence contradicting
+        // the list directly underneath it.
         const ScreenTitle(
           title: 'Plan',
-          sub: 'Your budget, and what is due before the next payday.',
+          sub: 'Your budget, what is coming, and what you are saving for.',
         ),
         const SizedBox(height: 16),
         Segmented(
@@ -51,13 +57,7 @@ class _PlanScreenState extends State<PlanScreen> {
         const SizedBox(height: 20),
         switch (_segment) {
           0 => const _Budget(),
-          1 => const _NotYet(
-            icon: Icons.event_outlined,
-            title: 'Upcoming is next',
-            body:
-                'Every bill and payday between now and the payday after next, '
-                'as a list. Home already shows what is due before this payday.',
-          ),
+          1 => const _Upcoming(),
           _ => const _NotYet(
             icon: Icons.flag_outlined,
             title: 'Goals are coming',
@@ -86,6 +86,167 @@ class _NotYet extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       EmptyState(icon: icon, title: title, body: body);
+}
+
+/// Upcoming: every bill and payday out to the payday AFTER next.
+///
+/// Home answers "what is due before THIS payday". This answers the next
+/// question a semimonthly earner actually asks, which is whether the sweldo
+/// about to arrive covers what is coming before the one after it. Both read
+/// their bills from the same ledger and a test asserts they agree on every
+/// bill they both hold, because two screens describing one month differently
+/// is a defect this app has already had to fix once.
+class _Upcoming extends StatelessWidget {
+  const _Upcoming();
+
+  @override
+  Widget build(BuildContext context) {
+    final data = context.ledger.data;
+    final now = context.now;
+    final up = upcomingFrom(data, now);
+
+    if (up.isEmpty) {
+      return const EmptyState(
+        icon: Icons.event_outlined,
+        title: 'Nothing scheduled yet',
+        body:
+            'Add a bill that repeats, or set your payday, and everything due '
+            'between now and the payday after next lands here.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _LowPoint(up: up),
+        const SizedBox(height: 22),
+        Head(title: 'Between now and then'),
+        const SizedBox(height: 8),
+        Group(
+          inset: 0,
+          children: [for (final d in up.days) _UpcomingDayRow(day: d)],
+        ),
+      ],
+    );
+  }
+}
+
+/// The one number this screen exists for: the lowest the money gets.
+///
+/// A list of dates says what is coming. It does not say whether you make it,
+/// and that is the question. `sweldoTimeline` already walks the window day by
+/// day and reports its own low point, so nothing is recomputed here.
+class _LowPoint extends StatelessWidget {
+  const _LowPoint({required this.up});
+  final Upcoming up;
+
+  @override
+  Widget build(BuildContext context) {
+    final short = up.lowestDate.isEmpty
+        ? ''
+        : shortDate(DateTime.parse(up.lowestDate));
+
+    // Two sentences, and which one shows is the whole point. Going under is
+    // not a smaller version of staying above: it is a different event and it
+    // gets said in words, not left for somebody to read off a colour.
+    final sentence = up.goesNegative
+        ? 'Your money runs out around $short. Something has to move before '
+              'then.'
+        : 'The tightest day is $short. Everything after it is covered by what '
+              'comes in.';
+
+    return HeroPanel(
+      kicker: 'LOWEST IN THE NEXT ${up.horizonDays} DAYS',
+      whole: wholePesos(up.lowest),
+      cents: centsOf(up.lowest),
+      sentence: sentence,
+    );
+  }
+}
+
+/// One day: what happens, and what is left afterwards.
+class _UpcomingDayRow extends StatelessWidget {
+  const _UpcomingDayRow({required this.day});
+  final UpcomingDay day;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  prettyDay(day.date),
+                  style: TypeScale.rowTitle(
+                    day.isPayday ? skin.good : skin.text,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // What is LEFT after the day, not what the day cost. The cost is
+              // on the rows underneath; this column is the running answer to
+              // "am I still fine", which is the only reason to read a
+              // projection rather than a calendar.
+              Text(
+                formatMoney(day.balanceAfter),
+                style: TypeScale.rowAmount(
+                  day.balanceAfter < 0 ? skin.bad : skin.text2,
+                ),
+              ),
+            ],
+          ),
+          // A payday with nothing attached still earns its row, because the
+          // DATE is the information. It says so rather than drawing a silent
+          // green line with no figure on it, which reads as a bug.
+          if (day.isPayday && day.moneyIn <= 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Payday. Salapify does not know what you are paid yet.',
+              style: TypeScale.caption(skin.text3),
+            ),
+          ],
+          for (final e in day.events) ...[
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                Icon(
+                  e.isIncome
+                      ? Icons.south_west_rounded
+                      : Icons.north_east_rounded,
+                  size: 16,
+                  color: e.isIncome ? skin.good : skin.text3,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    e.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TypeScale.caption(skin.text2),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  formatMoney(e.amount),
+                  // Only money coming in is green, the rule Home and Ledger
+                  // already follow. An ordinary bill sits in text colour.
+                  style: TypeScale.captionSm(
+                    e.isIncome ? skin.good : skin.text2,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _Budget extends StatelessWidget {

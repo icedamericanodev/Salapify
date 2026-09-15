@@ -109,6 +109,30 @@ Map<String, dynamic> sampleLedger({DateTime? today}) {
         'amount': 194.00,
         'dayOfMonth': billDay2,
       },
+      // RECURRING INCOME, added for Upcoming, and the fixture was genuinely
+      // missing a state without it. Every recurring row here was an expense, so
+      // sweldoTimeline marked the paydays from the schedule and had nothing to
+      // attach to them: every payday row showed a date and no money. That is a
+      // real state, and it is what a new user sees before they tell the app
+      // what they earn, but it was the ONLY state the fixture could reach, and
+      // a fixture that cannot reach a state cannot show a defect in it.
+      //
+      // Day 15 and not 30, which also gives the window BOTH states: with the
+      // schedule on the 15th and the 30th, the 15th now carries a sweldo and
+      // the 30th is still a bare payday. One screen, both shapes, which is the
+      // only way to look at a render and judge the one that is harder to draw.
+      //
+      // It moves nothing already on screen. Home reads bills through
+      // upcomingCommitments, which filters to type == 'expense', and
+      // safeToSpend subtracts bills from liquid without consulting income at
+      // all. The full suite is the check on that claim, not this comment.
+      {
+        'id': 'rc_sweldo',
+        'type': 'income',
+        'label': 'Sweldo',
+        'amount': 18500.00,
+        'dayOfMonth': 15,
+      },
     ],
     // An institutionId on the two that have one, because an Accounts row's only
     // decoration is the institution MONOGRAM and a fixture with no institution

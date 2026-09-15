@@ -276,6 +276,15 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-budget-editor');
 
+      // The help behind the "i". It exists because the founder said the form
+      // was too wordy, so the thing worth looking at is whether the FORM got
+      // quieter, which means rendering both halves and not just this one.
+      await tester.tap(find.byIcon(Icons.info_outline_rounded));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-budget-help');
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
       // And the state the founder actually hit: one cap larger than the whole
       // month. The app used to take it in silence. Rendering it is the only
       // way to judge whether the note reads as an explanation or as a scold,
@@ -284,6 +293,15 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), '50000');
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-budget-over');
+
+      // Upcoming, reached by tapping its segment. The fixture puts a sweldo on
+      // the 15th and leaves the 30th a bare payday, so one render carries both
+      // shapes: a payday the app can price, and one it cannot.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upcoming'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-upcoming');
     });
 
     testWidgets('first run ${s.key}', (tester) async {
