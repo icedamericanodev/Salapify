@@ -436,6 +436,18 @@ class _Repeating extends StatelessWidget {
           )
         else ...[
           Text(recurringSummary(rows), style: TypeScale.subtitle(skin.text2)),
+          // WHY YOUR NUMBER DID NOT MOVE. Safe to spend runs to the next
+          // payday, so a bill falling after it is correctly left out, and
+          // without this line the screen gives no way to tell that from the
+          // app having ignored what you typed. Renders only when there IS
+          // something outside the cycle.
+          if (outsideCycleNote(rows, data, now).isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              outsideCycleNote(rows, data, now),
+              style: TypeScale.caption(skin.text3),
+            ),
+          ],
           const SizedBox(height: 12),
           Group(
             children: [

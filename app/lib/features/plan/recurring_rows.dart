@@ -15,6 +15,8 @@
 // This file derives and formats. `postDueRecurring`, `recurringSaveLastPosted`
 // and `stampRecurringOnRestore` in core/money/recurring.dart are golden locked
 // to the shipped app and own every rule about WHEN a thing posts.
+import '../../core/money/commitments.dart'
+    show nextOccurrence, shortDueDate, upcomingCommitments;
 import '../../core/money/format.dart' show formatMoney;
 import '../../core/money/ledger.dart' show amountOf;
 
@@ -116,10 +118,22 @@ String ordinalDay(int day) {
 
 /// The line under a repeating item's name.
 ///
-/// It says whether this month is already dealt with, because that is the only
-/// thing about the row a person cannot work out by looking at it, and it is
-/// what decides whether the amount is still standing between them and their
-/// safe to spend.
+/// IT NAMES THE NEXT DATE, and that came out of the founder adding rent on the
+/// 14th, on the 17th, and reporting that safe to spend did not move.
+///
+/// It was right not to move. Safe to spend runs to the NEXT PAYDAY, their next
+/// occurrence of the 14th was October, and their payday was the 30th, so the
+/// bill genuinely falls outside the cycle the figure describes. The engine had
+/// it exactly right and the screen said nothing at all: the row read "Every
+/// month on the 14th" whether that meant tomorrow or four weeks away.
+///
+/// A person cannot reconcile a figure against a rule they cannot see. Naming
+/// the date makes "why did nothing change" answerable by looking, which is the
+/// difference between a correct app and a trustworthy one.
+///
+/// `nextOccurrence` is the golden locked engine's own, the same function
+/// `upcomingCommitments` uses to decide what is in the cycle, so the caption
+/// and the figure can never disagree about which day this lands on.
 String recurringCaption(RecurringRow row, DateTime now) {
   final when = 'Every month on ${ordinalDay(row.dayOfMonth)}';
   if (row.postedIn(now)) {
@@ -127,7 +141,30 @@ String recurringCaption(RecurringRow row, DateTime now) {
         ? '$when · already in this month'
         : '$when · already counted this month';
   }
-  return when;
+  final next = nextOccurrence(row.dayOfMonth, now);
+  if (next == null) return when;
+  return '$when · next ${shortDueDate(next)}';
+}
+
+/// Whether this item's next occurrence falls inside the cycle safe to spend
+/// describes, which ends on the next payday.
+///
+/// The SAME two rules `upcomingCommitments` applies, read from the engine
+/// rather than restated: an item already stamped for this month is done, and
+/// one whose next date is after the payday belongs to the next cycle.
+bool insideThisCycle(
+  RecurringRow row,
+  Map<String, dynamic> state,
+  DateTime now,
+) {
+  if (row.postedIn(now)) return false;
+  final next = nextOccurrence(row.dayOfMonth, now);
+  if (next == null) return false;
+  final payday = DateTime.tryParse(
+    (upcomingCommitments(state, now)['payday'] ?? '').toString(),
+  );
+  if (payday == null) return false;
+  return !next.isAfter(payday);
 }
 
 /// What the section says above the list.
@@ -150,4 +187,42 @@ String recurringSummary(List<RecurringRow> rows) {
         'choose to spend.';
   }
   return '${formatMoney(income)} comes in every month.';
+}
+
+/// The line that answers "I added a bill and nothing changed".
+///
+/// THE FOUNDER ASKED THIS EXACT QUESTION, on 2026-09-15, after adding rent on
+/// the 14th while their phone said the 17th. Safe to spend did not move, and it
+/// was right not to: their next 14th was in October, their payday was the
+/// 30th, and the figure only ever describes the days up to the next payday.
+///
+/// The engine was correct and the screen was silent, which on a money app is
+/// its own defect. Somebody who cannot see the rule cannot tell a correct
+/// figure from a broken one, and the reasonable conclusion from silence is
+/// that the app ignored what they typed.
+///
+/// Returns an empty string when every bill IS inside the cycle, because then
+/// there is nothing to explain and a permanent caveat would just be noise.
+String outsideCycleNote(
+  List<RecurringRow> rows,
+  Map<String, dynamic> state,
+  DateTime now,
+) {
+  final later = rows
+      .where((r) => !r.income && !r.postedIn(now))
+      .where((r) => !insideThisCycle(r, state, now))
+      .toList();
+  if (later.isEmpty) return '';
+
+  final total = later.fold(0.0, (t, r) => t + r.amount);
+  final payday = DateTime.tryParse(
+    (upcomingCommitments(state, now)['payday'] ?? '').toString(),
+  );
+  final by = payday == null ? 'your next payday' : shortDueDate(payday);
+
+  return later.length == 1
+      ? '${formatMoney(total)} of this falls after $by, so it is not taken out '
+            'of what you can spend before then.'
+      : '${formatMoney(total)} of this falls after $by, so it is not taken out '
+            'of what you can spend before then.';
 }

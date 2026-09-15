@@ -22,7 +22,7 @@ import 'package:salapify/core/money/recurring.dart'
 import 'package:salapify/core/state/financial_state.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/design/tokens.dart';
-import 'package:salapify/dev/sample_ledger.dart' show sampleAnchor;
+import 'package:salapify/dev/sample_ledger.dart' show sampleAnchor, sampleLedger;
 import 'package:salapify/features/plan/recurring_rows.dart';
 
 import '../support/memory_store.dart';
@@ -158,9 +158,17 @@ void main() {
         accountId: 'a',
         lastPosted: '',
       );
+      // An unposted row names its NEXT date, because "Every month on the 1st"
+      // alone cannot tell somebody whether that means tomorrow or four weeks
+      // away, and that is exactly the question behind "I added a bill and
+      // nothing changed".
+      final caption = recurringCaption(unposted, sampleAnchor);
+      expect(caption, startsWith('Every month on the 1st'));
+      expect(caption, contains('next'));
       expect(
-        recurringCaption(unposted, sampleAnchor),
-        'Every month on the 1st',
+        caption,
+        isNot(contains('already')),
+        reason: 'an unposted bill is still due, so it must not read as handled',
       );
 
       const posted = RecurringRow(
@@ -420,6 +428,109 @@ void main() {
       expect(
         find.textContaining('still counts your bills as available'),
         findsOneWidget,
+      );
+    });
+  });
+
+  group('"I added a bill and nothing changed"', () {
+    // THE FOUNDER'S REPORT, 2026-09-15, reproduced exactly: they added rent on
+    // the 14th while their phone said the 17th, and safe to spend did not
+    // move. Probing the engine at their date rather than guessing showed it
+    // was RIGHT not to move, and that the screen was silent about why.
+    //
+    //   day 14 -> committed 4894   bills [Meralco, Lola, Spotify]
+    //   day 20 -> committed 13894  bills [Meralco, Lola, Spotify, Rent]
+    //
+    // Safe to spend runs to the NEXT PAYDAY. On the 17th the next 14th is in
+    // October and payday is the 30th, so the bill is genuinely in the next
+    // cycle. The engine had it exactly right; the app said nothing, and a
+    // person who cannot see the rule cannot tell a correct figure from a
+    // broken one.
+    final onThe17th = DateTime(2026, 9, 17);
+
+    Map<String, dynamic> withRent(int day) {
+      final d = sampleLedger(today: onThe17th);
+      (d['recurring'] as List).add({
+        'id': 'rent',
+        'type': 'expense',
+        'label': 'Rent',
+        'amount': 9000.0,
+        'dayOfMonth': day,
+        'accountId': 'a_bpi',
+        'lastPosted': '',
+      });
+      return d;
+    }
+
+    test('a bill after the next payday is correctly NOT set aside', () {
+      final plain = FinancialState.of(
+        sampleLedger(today: onThe17th),
+        onThe17th,
+      );
+      final later = FinancialState.of(withRent(14), onThe17th);
+
+      expect(
+        later.committed,
+        plain.committed,
+        reason:
+            'a bill whose next date is after payday was set aside anyway, so '
+            'safe to spend is now too low for the days it actually describes',
+      );
+    });
+
+    test('and one BEFORE it is', () {
+      // The other half of the alarm. A rule that never counts anything is as
+      // wrong as one that counts everything.
+      final plain = FinancialState.of(
+        sampleLedger(today: onThe17th),
+        onThe17th,
+      );
+      final soon = FinancialState.of(withRent(20), onThe17th);
+
+      expect(soon.committed, plain.committed + 9000);
+    });
+
+    test('THE ROW SAYS WHICH ONE IT IS, by naming the next date', () {
+      // The actual fix. The row read "Every month on the 14th" whether that
+      // meant tomorrow or four weeks away, so "why did nothing change" had no
+      // answer anywhere on the screen.
+      final later = recurringRows(withRent(14))
+          .firstWhere((r) => r.label == 'Rent');
+      final soon = recurringRows(withRent(20))
+          .firstWhere((r) => r.label == 'Rent');
+
+      expect(recurringCaption(later, onThe17th), contains('next Oct 14'));
+      expect(recurringCaption(soon, onThe17th), contains('next Sep 20'));
+
+      expect(insideThisCycle(later, withRent(14), onThe17th), isFalse);
+      expect(insideThisCycle(soon, withRent(20), onThe17th), isTrue);
+    });
+
+    test('and the section says it in words, with the amount', () {
+      final d = withRent(14);
+      final note = outsideCycleNote(recurringRows(d), d, onThe17th);
+
+      expect(note, contains('9,000'));
+      expect(
+        note,
+        contains('Sep 30'),
+        reason:
+            'the note does not name the payday it is talking about, so it '
+            'explains nothing a person can check',
+      );
+    });
+
+    test('and says NOTHING when every bill is inside the cycle', () {
+      // The other half of the alarm, again. A permanent caveat on a screen
+      // where it never applies is noise, and noise gets ignored exactly when
+      // it finally matters.
+      final d = withRent(20);
+      expect(
+        outsideCycleNote(recurringRows(d), d, onThe17th),
+        isEmpty,
+        reason:
+            'the screen warns about money falling after payday when none of '
+            'it does',
       );
     });
   });
