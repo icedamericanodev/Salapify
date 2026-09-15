@@ -694,6 +694,47 @@ GitHub's mergeability metadata is ambiguous, an "unstable" or "pending" legacy
 status while the authoritative required check is green, report the nuance and do
 not treat the legacy field as the truth. Still do not merge; the founder does.
 
+## Expert agents answer, and the founder hears twice (founder direction, 2026-09-15)
+
+Two directions given together, verbatim: "use expert agents in answering...
+Always use expert agents in answering unless it is major and needs my attention
+for review", "if there is no specific agent, we can make one that would fit with
+the ask", and "come back to me after all testing is passed and it is ready for
+testing in my end in the android simulator, and if you are in doubt and really
+need my input or review".
+
+**Put the question to the specialists, not to the founder.** A design call, a
+copy call, a which-number-goes-in-the-hero call, a data-integrity call: those
+go to the fitting agent in .claude/agents, and the answer comes back, gets
+VERIFIED against the real code, and gets built. The founder is not the first
+reviewer any more, they are the last one.
+
+**Verify what an agent tells you before acting on it.** Every expert pass in
+session 36 contained at least one claim that changed the design and at least
+one that did not survive a check: a chevron overflow that measured zero when
+re-measured, against a wrong-date bug in the most consequential sentence on a
+screen that was exactly as reported. An agent's finding is a lead, and a lead
+is confirmed by reading the code, not by how confident the report sounds.
+
+**If no agent fits, write one.** That is explicit founder direction rather than
+a liberty. An agent earns its file when the lens is real and recurring, not for
+a single question; recovery-designer was added this way, because nothing owned
+"can the user get back?" for app/ and every delete, close, overwrite and
+restore decision needs it. Follow the existing format and the writing-skills
+skill.
+
+**Speak twice per batch, not continuously.** Once when there is something the
+founder has to decide and no agent can decide for them, and once when the work
+is tested, rendered, green and ready to open on their emulator. Progress
+narration between those two points is noise: the branch is pushed, dev-sync
+restarts their app, and the screens are in the review folder either way.
+
+What still reaches the founder, unchanged by this: the STOP conditions in the
+autonomy section, anything that could permanently lose user data, and a real
+product fork where reasonable people would build two different apps. "Major"
+means a decision the founder would regret not being asked about, not a decision
+that happens to be hard.
+
 ## Merge rules (set by the founder on 2026-07-03, merge authority amended 2026-08-10 and again 2026-09-13)
 
 Claude merges. Founder direction, 2026-09-13, verbatim: "Happy for you to merge
