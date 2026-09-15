@@ -310,10 +310,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                   ),
 
                   const SizedBox(height: 20),
-                  Text(
-                    'Per category',
-                    style: TypeScale.fieldLabel(skin.text3),
-                  ),
+                  Text('Per category', style: TypeScale.fieldLabel(skin.text3)),
                   const SizedBox(height: 12),
 
                   for (final c in _categories) ...[
@@ -337,10 +334,9 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                           width: 120,
                           child: TextField(
                             controller: _caps[c['id']],
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             textAlign: TextAlign.right,
                             style: TypeScale.input(skin.text),
                             decoration: _box(skin, 'none'),
@@ -589,9 +585,10 @@ class _BudgetSheetState extends State<_BudgetSheet> {
         draft['settings'] = settings;
 
         draft['categories'] = [
-          for (final c in (draft['categories'] is List
-              ? draft['categories'] as List
-              : const []))
+          for (final c
+              in (draft['categories'] is List
+                  ? draft['categories'] as List
+                  : const []))
             if (c is Map)
               {
                 ...c.cast<String, dynamic>(),

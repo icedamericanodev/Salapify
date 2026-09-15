@@ -846,3 +846,142 @@ the backup file contains all of it in plain text. Saying that plainly is the
 difference between a view preference and a false sense of safety.
 
 Screens: `docs/revamp/mockups/hapon/c10/README.md`.
+
+---
+
+## D23. Where Insights lives. ANSWERED 2026-09-15
+
+Founder question, 2026-09-15: "do you think its worthwhile to have a separate
+insights tab or it could be included like in a menu/tools tab or whatsoever is
+appropriate".
+
+Two expert passes ran (a competitor benchmark and a Flutter UX craftsman).
+They converged on one answer and split on another.
+
+### SETTLED, and it is measured rather than argued: NOT a fifth tab
+
+The craftsman claimed a fifth tab breaks the bar. It was re-measured
+independently with the real font (`test/design/navbar_width_probe.dart`),
+because a layout claim made in the default test font is a claim about a font
+nobody sees:
+
+| width | 4 tabs, 1.0x | 5 tabs, 1.0x | 4 tabs, 1.3x | 5 tabs, 1.3x |
+|---|---|---|---|---|
+| 320dp | Accounts wraps | Accounts, Insights wrap | Ledger, Accounts wrap | 4 of 5 wrap |
+| 360dp | clean | Accounts wraps | Accounts wraps | 3 of 5 wrap |
+| 412dp | clean | clean | clean | Accounts wraps |
+
+A fifth tab also takes each column to **36.1dp**, under the 44dp touch floor.
+
+It is a defect, not a cost, so the question of whether Insights "deserves" a
+tab does not arise. Four tabs and the Log pill stay.
+
+### The shipping bug this turned up, fixed in the same change
+
+The table above says it: **"Accounts" already wrapped at 320dp with FOUR tabs,
+today, on main.** Rendered, it read "Account" over a lone "s", and the wrap
+pushed that tab's icon out of line with the other three.
+
+Invisible to every existing check for one reason: the shot harness and the
+founder's emulator are both 412dp, where nothing wraps. **A screen reviewed
+only at the width it was designed for is not reviewed.** Fixed with a
+`FittedBox(scaleDown)` and guarded at three widths and two text scales by
+`test/design/navbar_test.dart`, break-proved at
+`Expected: <17.0> / Actual: <30.0>`.
+
+### The current entry point is not discoverable, and that is agreed
+
+Insights is reached today by one tappable sentence at the very bottom of Home,
+after the hero, the excluded-money line, four quick actions, the debt beam,
+Coming up and five Latest rows. Measured on the lived-in fixture at 320x640 it
+becomes visible only after scrolling 752 of 752 pixels: it is the literal last
+line on the page. That is a hidden feature, not a weak affordance.
+
+### ANSWERED: Insights is the Ledger tab's second segment
+
+Founder direction, 2026-09-15: "go with the ledger segment". Built the same
+day, and `04-screens.md` amended. The two options are kept below because the
+reasoning is what makes the choice checkable later rather than just recorded.
+
+**What shipped.** `[ Entries ] [ Insights ]` on the Ledger tab, with the
+header and the segment control built BEFORE anything branches on the data, so
+an empty ledger still reaches the charts. That ordering is the whole shape of
+the build rather than a detail: the old screen returned its empty state early,
+and a segment added after that return would have meant a person who has logged
+nothing has no route to Insights at all. It is exactly the defect the Accounts
+screen shipped, where the empty branch swallowed the Settings action and the
+backup and restore behind it. Break-proved: restoring the early return printed
+`Found 0 widgets with text "Insights"`.
+
+The edit hint moved out of the screen subtitle into the Entries segment, since
+"tap any entry to edit or delete it" is false of a chart, and the subtitle now
+has to cover both sides of the control it sits above. Plan learned the same
+lesson when its subtitle described Upcoming alone.
+
+`/insights` stays a real pushed route with its own back arrow, so Home's
+closing sentence and any future deep link still work. Two doors, one room.
+
+**One test was found wrong by this change rather than broken by it.** A journey
+asserted `findsNWidgets(2)` for a label that appears on two different days.
+That passed only while the whole Ledger happened to fit the 600pt test
+viewport; `Screen` is a lazy ListView, so once the list grew past one screen NO
+scroll position can have both rows built at once. It now counts from
+`groupByDay`, which is what the screen itself reads, and still asserts by
+tapping that a person can SEE what they just logged.
+
+**Option A, the Revolut pattern.** A chart icon in Home's header, top right,
+beside the bell. Zero nav cost, permanently visible from cold launch. The
+competitor pass found Revolut does exactly this with a full analytics
+dashboard behind it, and that Salapify's nearest competitor by positioning,
+BunnyWise, had five tab slots and spent the fifth on Investments rather than
+analytics.
+
+**Option B, Insights as Ledger's second segment**, `[Entries] [Insights]`.
+The craftsman's argument is an IA one and it is a good one: Home is now, Plan
+is the future, Accounts is the stock, and **Ledger is the past. Insights IS
+the past, shaped.** The `Segmented` widget already ships and measures clean at
+320dp at 2.0x. The tab bar itself becomes the entry point, so discovery costs
+no new chrome at all.
+
+**The recommendation is B**, because a labelled segment at the top of a tab
+somebody already taps beats an unlabelled icon in a header, and because the
+IA reason is principled rather than convenient. Option A's icon has to teach
+the user what it means; Option B's segment says "Insights".
+
+**What B costs, named:** it contradicts `04-screens.md:37` ("Everything else,
+Insights, Settings, details, editors, is pushed over the shell"), which needs
+amending rather than ignoring. `InsightsScreen`'s own chrome is extracted as
+an `InsightsBody`, the `/insights` route becomes a redirect so deep links
+still resolve, and `ledger_screen.dart`'s empty state returns BEFORE any
+header today, so the segment must move above that early return or a fresh
+install has no reachable Insights at all. That is the same defect class as the
+Accounts empty branch that swallowed Settings and the backup with it.
+
+### OPEN: where the tool-shaped surfaces go
+
+Roughly ten golden-locked engines are tool-shaped and reachable by nothing:
+`afford`, `bnpl`, `payoff_compare`, `surplus`, `loan`, `thirteenth`,
+`windfall`, `paluwagan`, `steadypay`, `taxdeadlines`. Both passes agree a
+"More" tab is the graveyard slot and reject it.
+
+Not settled, and a third option neither pass raised:
+
+**Home has four quick actions and TWO OF THEM ARE DEAD.** `Bills` and `Move`
+are wired to null (`home_screen.dart`), announced as disabled, sitting in the
+first viewport with no scroll. The brief calls "Can I afford this?" the
+signature feature (section 10.4). There is a free, prominent slot for it
+already on the screen, and putting the signature feature behind a title-row
+action on Plan buries the thing the product is supposed to be known for.
+
+So: a pushed Tools index for the long tail, and the ONE signature tool
+promoted to a Home quick action. That is a proposal, not a decision.
+
+### Chart packages, since the founder asked
+
+`fl_chart` was checked against its current docs rather than from memory. D9's
+recommendation holds and the three shipped charts are hand-drawn: the app has
+six dependencies, the charts are simple (horizontal bars, paired bars, one
+line), and fl_chart's own theming surface is large enough that matching Hapon
+and Gabi through it is more work than the ~150 lines of `CustomPainter` and
+kit widgets it would replace. Revisit only if a chart needs real interaction
+(touch tooltips, pan and zoom), which none of the three does.

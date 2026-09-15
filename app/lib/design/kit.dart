@@ -643,7 +643,7 @@ class ItemRow extends StatelessWidget {
     if (onTap == null) return row;
     return Semantics(
       button: true,
-      child: _Pressable(onTap: onTap!, child: row),
+      child: Pressable(onTap: onTap!, child: row),
     );
   }
 }
@@ -655,16 +655,23 @@ class ItemRow extends StatelessWidget {
 /// app sits inside a [Group] whose card is painted ON TOP of that. The ripple
 /// would be drawn underneath the card and never seen. A dim needs no Material,
 /// works inside any container, and reads the same in both palettes.
-class _Pressable extends StatefulWidget {
-  const _Pressable({required this.onTap, required this.child});
+/// PUBLIC, because a second screen now needs it.
+///
+/// It was private while [ItemRow] was the only tappable thing in the app. The
+/// Goals list is the first row that is not an ItemRow (it stacks a title, a
+/// bar and a caption, which that row cannot express), and the alternative was
+/// a bare GestureDetector with no press feedback: one tappable list in the app
+/// that dims under a finger and one that does not.
+class Pressable extends StatefulWidget {
+  const Pressable({super.key, required this.onTap, required this.child});
   final VoidCallback onTap;
   final Widget child;
 
   @override
-  State<_Pressable> createState() => _PressableState();
+  State<Pressable> createState() => _PressableState();
 }
 
-class _PressableState extends State<_Pressable> {
+class _PressableState extends State<Pressable> {
   bool _down = false;
 
   @override
@@ -1012,10 +1019,50 @@ class NavBar extends StatelessWidget {
                           color: i == active ? skin.text : skin.text3,
                         ),
                         const SizedBox(height: 5),
-                        Text(
-                          tabs[i].$1,
-                          style: TypeScale.tab(
-                            i == active ? skin.text : skin.text3,
+                        // ONE LINE, ALWAYS, shrinking rather than wrapping.
+                        //
+                        // Without this the bar ships broken on a 320dp phone:
+                        // "Accounts" does not fit a 45.1dp column in Plus
+                        // Jakarta, so it wrapped mid-word to "Account" over a
+                        // lone "s", which also pushed that tab's icon out of
+                        // line with the other three. At 1.3x system text
+                        // "Ledger" broke too. It was invisible in review
+                        // because the render harness and the founder's
+                        // emulator are both 412dp, where nothing wraps.
+                        //
+                        // scaleDown rather than ellipsis: "Accoun..." in a tab
+                        // bar is worse than the same word one point smaller,
+                        // and these are proper nouns the whole app navigates
+                        // by. It only shrinks when it has to, so at 360dp and
+                        // above nothing changes at all.
+                        // ONE LINE, ALWAYS, shrinking rather than wrapping.
+                        //
+                        // Without this the bar ships broken on a 320dp phone:
+                        // "Accounts" does not fit a 45.1dp column in Plus
+                        // Jakarta and wrapped MID-WORD, rendering "Account"
+                        // over a lone "s" and pushing that tab's icon out of
+                        // line with the other three. At 1.3x system text
+                        // "Ledger" broke too. Measured, then looked at.
+                        //
+                        // Invisible in review for one reason: the render
+                        // harness and the founder's emulator are both 412dp,
+                        // where nothing wraps. A screen reviewed only at the
+                        // width it was designed for is not reviewed.
+                        //
+                        // scaleDown rather than ellipsis, because "Accoun..."
+                        // in a tab bar is worse than the same word a point
+                        // smaller, and these are the proper nouns the whole
+                        // app navigates by. It only shrinks when it must, so
+                        // at 360dp and above nothing changes at all.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            tabs[i].$1,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TypeScale.tab(
+                              i == active ? skin.text : skin.text3,
+                            ),
                           ),
                         ),
                       ],

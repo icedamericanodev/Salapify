@@ -82,9 +82,10 @@ class BudgetRow {
 /// would make the screen emptiest exactly when it is most useful.
 List<BudgetRow> categoryBudgets(Map<String, dynamic> data, DateTime ref) {
   final spent = <String, double>{};
-  for (final t in (data['transactions'] is List
-      ? data['transactions'] as List
-      : const [])) {
+  for (final t
+      in (data['transactions'] is List
+          ? data['transactions'] as List
+          : const [])) {
     if (t is! Map) continue;
     if (t['type'] != 'expense') continue;
     if (!isThisMonth(t['date'], ref)) continue;
@@ -94,9 +95,8 @@ List<BudgetRow> categoryBudgets(Map<String, dynamic> data, DateTime ref) {
   }
 
   final rows = <BudgetRow>[];
-  for (final c in (data['categories'] is List
-      ? data['categories'] as List
-      : const [])) {
+  for (final c
+      in (data['categories'] is List ? data['categories'] as List : const [])) {
     if (c is! Map) continue;
     final id = c['id'];
     if (id is! String || id.isEmpty) continue;

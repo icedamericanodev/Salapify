@@ -22,6 +22,10 @@ import '../../design/type.dart';
 import '../home/home_screen.dart' show shortDate;
 import 'budget_editor.dart';
 import 'budget_rows.dart';
+import 'goal_editor.dart';
+import 'goal_rows.dart';
+import 'recurring_editor.dart';
+import 'recurring_rows.dart';
 import 'upcoming_rows.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -58,34 +62,272 @@ class _PlanScreenState extends State<PlanScreen> {
         switch (_segment) {
           0 => const _Budget(),
           1 => const _Upcoming(),
-          _ => const _NotYet(
-            icon: Icons.flag_outlined,
-            title: 'Goals are coming',
-            body:
-                'One row per goal, what you have saved against the target, and '
-                'what it takes each month to make it by the date you picked.',
-          ),
+          _ => const _Goals(),
         },
       ],
     );
   }
 }
 
-/// A segment that is honestly empty.
+// `_NotYet` lived here, the placeholder every unbuilt segment used. It is gone
+// because all three segments are built: Goals was the last one holding a
+// promise instead of a screen. Nothing else in the app referenced it, so it
+// went with the promise rather than sitting here waiting for a fourth segment
+// that is not on the roadmap.
+
+/// Goals: what you are saving for, and whether you will make it.
 ///
-/// Not a dead control: it responds to the tap and says what will be there. The
-/// alternative, leaving the segment out until it is built, moves the other two
-/// every time one lands, and the alternative to THAT is a tap that appears to
-/// do nothing, which is the defect that had to be fixed on Home.
-class _NotYet extends StatelessWidget {
-  const _NotYet({required this.icon, required this.title, required this.body});
-  final IconData icon;
-  final String title;
-  final String body;
+/// 04-screens.md gives this segment one paragraph, and every figure in it
+/// comes from `goal_rows.dart`, which composes the golden locked `goalPace`.
+/// Nothing here computes money.
+///
+/// NOTHING ON THIS SEGMENT IS AN ASSET. A goal's money is a number the user
+/// tracks, not a balance, so it appears in no total anywhere else in the app
+/// and is never subtracted from safe to spend. See goal_rows.dart's header for
+/// why, and the funding sheet says it out loud where somebody is about to
+/// assume otherwise.
+class _Goals extends StatelessWidget {
+  const _Goals();
 
   @override
-  Widget build(BuildContext context) =>
-      EmptyState(icon: icon, title: title, body: body);
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final data = context.ledger.data;
+    final rows = goalRows(data, context.now);
+
+    if (rows.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EmptyState(
+            icon: Icons.flag_outlined,
+            title: 'Nothing saved for yet',
+            body:
+                'Name one thing you are putting money aside for, give it an '
+                'amount, and this shows what it takes each month to get there.',
+          ),
+          const SizedBox(height: 14),
+          // The button the instruction asks for. An empty state whose
+          // instruction cannot be followed is the defect this app has already
+          // shipped twice, once on Accounts and once on Budget.
+          PillButton(
+            label: 'Add your first goal',
+            icon: Icons.add_rounded,
+            onTap: () => showGoalEditor(context),
+          ),
+        ],
+      );
+    }
+
+    final summary = goalsSummary(rows);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (summary.isNotEmpty) ...[
+          Text(summary, style: TypeScale.subtitle(skin.text2)),
+          const SizedBox(height: 14),
+        ],
+        Group(inset: 0, children: [for (final r in rows) _GoalRowTile(row: r)]),
+        const SizedBox(height: 14),
+        PillButton(
+          label: 'Add a goal',
+          icon: Icons.add_rounded,
+          onTap: () => showGoalEditor(context),
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+/// One goal row: name, saved of target, the bar, and the caption.
+class _GoalRowTile extends StatelessWidget {
+  const _GoalRowTile({required this.row});
+  final GoalRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+
+    return Pressable(
+      onTap: () => _open(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    row.name,
+                    style: TypeScale.rowTitle(
+                      // A reached goal clears like a settled debt, which on a
+                      // debt row means struck through and green. Struck
+                      // through is wrong here: a paid debt is finished with,
+                      // and a reached goal is an achievement. Same green, no
+                      // strike.
+                      row.reached ? skin.good : skin.text,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  // Saved OF TARGET, both figures, because one on its own
+                  // cannot be read as progress. 04-screens.md asks for exactly
+                  // this pair.
+                  '${formatMoney(row.saved)} of ${formatMoney(row.target)}',
+                  style: TypeScale.rowAmount(
+                    row.reached ? skin.good : skin.text,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            // GREEN WHEN IT IS DONE, and this came out of looking at the
+            // render rather than out of a test. The name and the amount both
+            // turned green on a reached goal and the bar underneath them
+            // stayed accent, so the one row that is finished was drawn in two
+            // colours arguing with each other: green saying "done" and the
+            // app's "in progress" orange right below it.
+            ThinBar(
+              fraction: row.fraction,
+              fill: row.reached ? skin.good : null,
+            ),
+            const SizedBox(height: 7),
+            Text(goalRowCaption(row), style: TypeScale.caption(skin.text3)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final data = context.ledger.data;
+    final goal = [
+      for (final g in (data['goals'] as List? ?? const []))
+        if (g is Map && g['id'] == row.id) g.cast<String, dynamic>(),
+    ].firstOrNull;
+    if (goal == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => _GoalActions(goal: goal, row: row, parent: context),
+    );
+  }
+}
+
+/// What you can do to a goal, once you have tapped it.
+///
+/// A sheet rather than three controls on the row, for the reason the account
+/// Options sheet gives: the row's job is showing progress, and a list where
+/// every row carries three buttons stops being a list.
+class _GoalActions extends StatelessWidget {
+  const _GoalActions({
+    required this.goal,
+    required this.row,
+    required this.parent,
+  });
+
+  final Map<String, dynamic> goal;
+  final GoalRow row;
+
+  /// The screen's context, not the sheet's. Opening the next sheet from the
+  /// sheet's own context after popping it uses a dead element.
+  final BuildContext parent;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Container(
+      decoration: BoxDecoration(
+        color: skin.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(gutter, 18, gutter, 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(row.name, style: TypeScale.sheetTitle(skin.text)),
+          const SizedBox(height: 4),
+          Text(goalRowCaption(row), style: TypeScale.caption(skin.text3)),
+          const SizedBox(height: 18),
+
+          // Adding money stays offered on a reached goal. People overshoot on
+          // purpose, and an app that refuses the last deposit because its own
+          // arithmetic says you are finished is arguing with the user about
+          // their own savings.
+          PillButton(
+            label: 'Add money',
+            icon: Icons.add_rounded,
+            onTap: () {
+              Navigator.of(context).pop();
+              showGoalFunding(parent, goal: goal);
+            },
+          ),
+          const SizedBox(height: 10),
+          _TextAction(
+            label: 'Edit this goal',
+            onTap: () {
+              Navigator.of(context).pop();
+              showGoalEditor(parent, existing: goal);
+            },
+          ),
+          _TextAction(
+            label: row.paused ? 'Resume this goal' : 'Pause this goal',
+            onTap: () {
+              final paused = row.paused;
+              final id = row.id;
+              Navigator.of(context).pop();
+              parent.ledger.mutate((draft) {
+                for (final g
+                    in (draft['goals'] is List
+                        ? draft['goals'] as List
+                        : const [])) {
+                  if (g is Map && g['id'] == id) g['paused'] = !paused;
+                }
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          // PAUSING IS NOT DELETING, and the difference is worth a sentence.
+          // Nothing in this app deletes a goal yet, deliberately: a goal
+          // carries its whole contribution history and there is no undo for
+          // losing it. Pausing stops the pacing and keeps the record.
+          Text(
+            'Pausing keeps everything you have saved and stops asking for a '
+            'monthly amount.',
+            style: TypeScale.caption(skin.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextAction extends StatelessWidget {
+  const _TextAction({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TypeScale.action(context.skin.accent),
+      ),
+    ),
+  );
 }
 
 /// Upcoming: every bill and payday out to the payday AFTER next.
@@ -106,14 +348,45 @@ class _Upcoming extends StatelessWidget {
     final up = upcomingFrom(data, now);
 
     if (up.isEmpty) {
-      return const EmptyState(
-        icon: Icons.event_outlined,
-        title: 'Nothing scheduled yet',
-        body:
-            'Add a bill that repeats, or set your payday, and everything due '
-            'between now and the payday after next lands here.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EmptyState(
+            icon: Icons.event_outlined,
+            title: 'Nothing scheduled yet',
+            body:
+                'Tell Salapify what repeats every month, the rent, Meralco, '
+                'your sweldo, and everything due between now and the payday '
+                'after next lands here.',
+          ),
+          const SizedBox(height: 14),
+          // THE BUTTON THE INSTRUCTION ASKS FOR. This empty state said "Add a
+          // bill that repeats" on a screen where that could not be done, for
+          // as long as the screen existed. An instruction nobody can follow is
+          // the same defect Accounts and Budget both shipped.
+          PillButton(
+            label: 'Add the first one',
+            icon: Icons.add_rounded,
+            onTap: () => showRecurringEditor(context),
+          ),
+        ],
       );
     }
+
+    // THE ONE DAY THE HERO NAMES, derived here so the hero and the list
+    // cannot name two different days.
+    //
+    // They did. The hero's negative branch names `firstNegativeDate`, which is
+    // correct and is NOT `lowestDate` (see the comment inside `_LowPoint`), and
+    // the list marked `lowestDate` unconditionally. So an overcommitted month
+    // said "You go below zero on Oct 3" while the Oct 3 row carried no mark at
+    // all and a row on Oct 14 was labelled "The tightest day", a phrase the
+    // hero never used in that branch. The screen named one day and highlighted
+    // another, which is the hero-versus-list contradiction this file has now
+    // had to fix three times.
+    final heroDate = up.goesNegative && up.firstNegativeDate != up.todayIso
+        ? up.firstNegativeDate
+        : up.lowestDate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,7 +398,22 @@ class _Upcoming extends StatelessWidget {
         // left the screen's entire defining idea, the payday after next,
         // undefined: the hero says 19 days and nothing said whether that
         // reaches past the rent.
-        Head(title: 'Between now and ${prettyDay(up.horizonEnd)}'),
+        //
+        // IT ALSO CARRIES THE TOTAL NOW, which used to sit in the hero's
+        // sentence. Two reasons it moved. A whole-window sum inside a sentence
+        // whose subject is one day reads as that day's cost, which is wrong in
+        // a money-shaped way. And a panel built around one figure at 47 points
+        // cannot hold a second, larger figure without making the reader decide
+        // which one is the headline.
+        //
+        // "Going out before" rather than a bare amount, for the same reason
+        // every day row says "left": an unlabelled peso figure above a column
+        // of running balances is read as another running balance. Tone stays
+        // plain, because the accent means owed or tappable and this is neither.
+        Head(
+          title: 'Going out before ${prettyDay(up.horizonEnd)}',
+          amount: formatMoney(up.totalOut),
+        ),
         const SizedBox(height: 8),
         Group(
           inset: 0,
@@ -133,13 +421,226 @@ class _Upcoming extends StatelessWidget {
             for (final d in up.days)
               _UpcomingDayRow(
                 day: d,
-                lowestDate: up.lowestDate,
+                heroDate: heroDate,
+                goesNegative: up.goesNegative,
                 anyIncome: up.anyIncome,
               ),
           ],
         ),
+        const SizedBox(height: 22),
+
+        // WHAT GENERATES THE LIST ABOVE, which until now a person could
+        // neither see nor change. The days are occurrences; these are the
+        // things that produce them, and editing one is the only way to correct
+        // a bill whose amount went up.
+        const _Repeating(),
+
+        // THE DISCLOSURE, and it is deliberately NOT on the hero.
+        //
+        // The founder asked whether an "i" belonged on the low point card. It
+        // does not. The hero carries the one figure the screen exists for, and
+        // an "i" on the biggest text on a screen is an admission that the
+        // biggest text does not say what it means. The answer to a sentence
+        // nobody can parse is a shorter sentence, not a footnote behind a tap.
+        //
+        // What IS genuinely unsayable in a hero sentence is the machinery: why
+        // the window ends where it does, what the low point is a minimum OF,
+        // and why a debt already paid can still be counted. Those govern the
+        // whole segment rather than the card, so the door sits at the bottom of
+        // the segment, in the shape this file already uses for a text action.
+        const SizedBox(height: 6),
+        _TextAction(
+          label: 'How this projection works',
+          onTap: () => _showUpcomingHelp(context),
+        ),
       ],
     );
+  }
+}
+
+/// What the projection is doing, for somebody who wants to check it.
+///
+/// Four entries and not one more, the same cap the budget sheet keeps. Every
+/// one of them is a rule a person cannot work out by looking at the screen,
+/// and every one is true of the code as written rather than of the code we
+/// wish were there.
+const _upcomingHelp = <(String, String)>[
+  (
+    'Where the window ends',
+    'It runs to the payday after the next one, because that is the stretch '
+        'your sweldo actually has to cover. With no payday set yet, we use 30 '
+        'days instead.',
+  ),
+  (
+    'What the low point means',
+    'We walk the days one at a time, take out every bill and put in every '
+        'salary, and keep the smallest figure we see. It is the worst moment '
+        'in the window, not the figure you end on.',
+  ),
+  (
+    'Why a debt can show even if you paid it',
+    'A debt has no record of which months you have already paid, so every '
+        'cycle inside the window is counted as still due. That makes this '
+        'careful rather than optimistic.',
+  ),
+  (
+    'None of this has happened yet',
+    'These are scheduled amounts, not entries. Nothing on this list has '
+        'touched your balances, and logging it is what makes it real.',
+  ),
+];
+
+void _showUpcomingHelp(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    // Without this the sheet lands UNDER the nav bar, which is the one bug
+    // every sheet in this app has shipped at least once.
+    //
+    // AND IT IS WHY THE CONTEXT BELOW MATTERS. This pushes the sheet onto the
+    // ROOT navigator, while the Plan screen's own context resolves to the tab
+    // shell's inner one. The first version of this closed on
+    // `Navigator.of(context).pop()` with the outer context, so Done did not
+    // close the sheet at all: it popped the PLAN PAGE off the shell stack and
+    // left the shell with nothing to draw. The founder tapped Done and got a
+    // black screen. Every context below is the SHEET's.
+    useRootNavigator: true,
+    // The skin is read INSIDE the builder, not captured from the caller, so
+    // flipping the system theme with the sheet open repaints it.
+    builder: (sheetContext) {
+      final skin = sheetContext.skin;
+      return Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 20, 22, 28),
+        decoration: BoxDecoration(
+          color: skin.bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    'How this projection works',
+                    style: TypeScale.sheetTitle(skin.text),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => Navigator.of(sheetContext).pop(),
+                  child: Text('Done', style: TypeScale.action(skin.text2)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (title, body) in _upcomingHelp) ...[
+                      Text(title, style: TypeScale.fieldLabel(skin.text2)),
+                      const SizedBox(height: 5),
+                      Text(body, style: TypeScale.caption(skin.text3)),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// The repeating items themselves: rent, Meralco, the sweldo.
+class _Repeating extends StatelessWidget {
+  const _Repeating();
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final data = context.ledger.data;
+    final now = context.now;
+    final rows = recurringRows(data);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Head(title: 'What repeats'),
+        const SizedBox(height: 8),
+        if (rows.isEmpty)
+          Text(
+            // Named as the gap it is. Safe to spend is liquid MINUS what is
+            // committed, so with nothing here the figure counts the rent as
+            // spendable. Saying so is the difference between a quiet empty
+            // list and a reason to fill it.
+            'Nothing recorded yet, so what you can spend still counts your '
+            'bills as available.',
+            style: TypeScale.subtitle(skin.text2),
+          )
+        else ...[
+          Text(recurringSummary(rows), style: TypeScale.subtitle(skin.text2)),
+          // WHY YOUR NUMBER DID NOT MOVE. Safe to spend runs to the next
+          // payday, so a bill falling after it is correctly left out, and
+          // without this line the screen gives no way to tell that from the
+          // app having ignored what you typed. Renders only when there IS
+          // something outside the cycle.
+          if (outsideCycleNote(rows, data, now).isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              outsideCycleNote(rows, data, now),
+              style: TypeScale.caption(skin.text3),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Group(
+            children: [
+              for (final r in rows)
+                ItemRow(
+                  icon: r.income
+                      ? Icons.savings_outlined
+                      : Icons.event_repeat_outlined,
+                  title: r.label,
+                  sub: recurringCaption(r, now),
+                  amount: formatMoney(r.amount),
+                  // Income is the only thing coloured, the same rule the
+                  // Ledger uses: colour means direction, and colouring every
+                  // amount would leave colour meaning nothing.
+                  tone: r.income ? Tone.good : Tone.plain,
+                  onTap: () => _edit(context, r.id),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 14),
+        PillButton(
+          label: rows.isEmpty ? 'Add the first one' : 'Add another',
+          icon: Icons.add_rounded,
+          onTap: () => showRecurringEditor(context),
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+
+  void _edit(BuildContext context, String id) {
+    final existing = [
+      for (final r in (context.ledger.data['recurring'] as List? ?? const []))
+        if (r is Map && r['id'] == id) r.cast<String, dynamic>(),
+    ].firstOrNull;
+    if (existing == null) return;
+    showRecurringEditor(context, existing: existing);
   }
 }
 
@@ -168,22 +669,44 @@ class _LowPoint extends StatelessWidget {
               ? 'You are already below zero. Something has to move.'
               : 'You go below zero on ${prettyDay(up.firstNegativeDate)}. '
                     'Something has to move before then.')
-          // "Is due to go out", never "goes out". The engine counts a debt
-          // cycle while the balance is above zero even if it was already paid
-          // early, because debts carry no per-cycle paid marker. Safe and
-          // correct for a schedule, wrong as a claim about what has left.
-          //
-          // And no clause attributing the recovery to income. The data
-          // supports "nothing takes you lower inside this window" and does not
-          // support "everything after it is covered by what comes in", which
-          // the first version said and which reads as open ended on a window
-          // that ends at the payday after next.
-        : 'The tightest day is ${prettyDay(up.lowestDate)}. '
-              '${formatMoney(up.totalOut)} is due to go out before '
-              '${prettyDay(up.horizonEnd)}, and this is as low as it gets.';
+        // "Is due to go out", never "goes out". The engine counts a debt
+        // cycle while the balance is above zero even if it was already paid
+        // early, because debts carry no per-cycle paid marker. Safe and
+        // correct for a schedule, wrong as a claim about what has left.
+        //
+        // And no clause attributing the recovery to income. The data
+        // supports "nothing takes you lower inside this window" and does not
+        // support "everything after it is covered by what comes in", which
+        // the first version said and which reads as open ended on a window
+        // that ends at the payday after next.
+        // ONE CLAUSE OF FACT, ONE OF VERDICT, and everything else cut. The
+        // founder read this card and asked what it meant, which is the only
+        // review that counts on the one figure a screen exists for.
+        //
+        // Three clauses went. "The tightest day is" restated the kicker's own
+        // adjective, so only the DATE was new. The total moved to the section
+        // head, where the rows that add up to it live. And "this is as low as
+        // it gets" said LOWEST a second time.
+        //
+        // The window end date went too: it was printed here and again twenty
+        // two points below, on the head. Two dates one day apart, meaning the
+        // tightest day and the edge of the window, sitting in one sentence,
+        // reads as a typo rather than as two ideas.
+        //
+        // "You stay above zero" is safe to assert here and is not a guess.
+        // `goesNegative` is set on any day-END balance below zero, and the
+        // figure above is the minimum of those same day-end balances, so a
+        // false `goesNegative` and a negative hero figure cannot coexist.
+        : 'Your tightest day is ${prettyDay(up.lowestDate)}, and you stay '
+              'above zero.';
 
     return HeroPanel(
-      kicker: 'LOWEST IN THE NEXT ${up.horizonDays} DAYS',
+      // NAMES ITS SUBJECT. "LOWEST IN THE NEXT 30 DAYS" is an adjective with
+      // the noun missing, over a peso figure, on a screen whose list underneath
+      // is full of bills: the available readings included the smallest bill and
+      // the least spent. Home says SAFE TO SPEND and the Budget hero says LEFT
+      // TO SPEND THIS MONTH, both complete phrases. This one was the outlier.
+      kicker: 'LOWEST BALANCE, NEXT ${up.horizonDays} DAYS',
       whole: wholePesos(up.lowest),
       cents: centsOf(up.lowest),
       sentence: sentence,
@@ -195,15 +718,24 @@ class _LowPoint extends StatelessWidget {
 class _UpcomingDayRow extends StatelessWidget {
   const _UpcomingDayRow({
     required this.day,
-    required this.lowestDate,
+    required this.heroDate,
+    required this.goesNegative,
     required this.anyIncome,
   });
   final UpcomingDay day;
 
   /// So the row the hero named can mark itself. Passed in rather than read
-  /// again, because two derivations of "the tightest day" is one more than
-  /// this screen is allowed to have.
-  final String lowestDate;
+  /// again, because two derivations of "the day this screen is about" is one
+  /// more than this screen is allowed to have.
+  ///
+  /// It used to be `lowestDate`, which was the WRONG day in the branch that
+  /// matters most: on an overcommitted month the hero names the day you go
+  /// below zero and the list highlighted the day you bottom out, which can be
+  /// weeks apart. `_Upcoming` now derives one date for both.
+  final String heroDate;
+
+  /// Which sentence the hero used, so this row's caption says the same thing.
+  final bool goesNegative;
 
   /// Whether any money arrives anywhere in the window, so the payday copy
   /// can stop making an account-wide claim from a per-day fact.
@@ -239,13 +771,21 @@ class _UpcomingDayRow extends StatelessWidget {
                     // cost is on the rows underneath; this column is the
                     // running answer to "am I still fine", which is the only
                     // reason to read a projection rather than a calendar.
+                    // The hero's day gets FULL ink, and it is the only row in
+                    // the column that does. The hero's figure and this row's
+                    // balance are literally the same double printed twice,
+                    // and until now nothing on screen said so: the eye came
+                    // down off a 47 point number and landed on a column where
+                    // every row looked identical.
                     Text(
                       formatMoney(day.balanceAfter),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.end,
                       style: TypeScale.rowAmount(
-                        day.balanceAfter < 0 ? skin.bad : skin.text2,
+                        day.balanceAfter < 0
+                            ? skin.bad
+                            : (day.date == heroDate ? skin.text : skin.text2),
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -294,10 +834,22 @@ class _UpcomingDayRow extends StatelessWidget {
               style: TypeScale.caption(skin.text3),
             ),
           ],
-          // The day the hero named, findable once the hero has scrolled away.
-          if (day.date == lowestDate) ...[
+          // The day the hero named, findable once the hero has scrolled away,
+          // and saying the SAME WORDS the hero used.
+          //
+          // It is one weight and one size above the captions around it, which
+          // is the point: the most important row in the list was marked in the
+          // quietest ink in the palette, the same token as the payday line four
+          // lines up and the event labels below. Not accent, because accent is
+          // the tappable colour and this is not a control.
+          if (day.date == heroDate) ...[
             const SizedBox(height: 4),
-            Text('The tightest day', style: TypeScale.caption(skin.text3)),
+            Text(
+              goesNegative ? 'You go below zero here' : 'The tightest day',
+              style: TypeScale.hintStrong(
+                day.balanceAfter < 0 ? skin.bad : skin.text2,
+              ),
+            ),
           ],
           for (final e in day.events) ...[
             const SizedBox(height: 7),
@@ -408,9 +960,7 @@ class _Budget extends StatelessWidget {
                   'screen shows what is left in it, not only what is spent.',
             )
           else
-            Group(
-              children: [for (final r in rows) _CategoryRow(row: r)],
-            ),
+            Group(children: [for (final r in rows) _CategoryRow(row: r)]),
         ],
       ],
     );
@@ -497,7 +1047,11 @@ class _CategoryRow extends StatelessWidget {
         skin.bad,
         skin.bad,
       ),
-      final r when r.remaining == 0 => ('all of it spent', skin.text3, skin.accent),
+      final r when r.remaining == 0 => (
+        'all of it spent',
+        skin.text3,
+        skin.accent,
+      ),
       final r when r.needsALook => (
         '${formatMoney(r.remaining)} left of ${formatMoney(r.cap)}',
         skin.accent,

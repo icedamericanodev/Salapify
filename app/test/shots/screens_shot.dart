@@ -314,6 +314,19 @@ void main() {
       await tester.tap(find.text('Upcoming'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-upcoming');
+
+      // The projection's own help, which is where the founder's "i" question
+      // landed after both expert passes said not to put one on the hero. It
+      // carries the three rules a hero sentence cannot: where the window ends,
+      // what the low point is a minimum of, and why a debt already paid can
+      // still be counted. Rendered because a sheet of teaching copy is exactly
+      // the surface that goes wordy again when nobody looks at it.
+      final help = find.text('How this projection works');
+      await tester.scrollUntilVisible(help, 200);
+      await tester.pumpAndSettle();
+      await tester.tap(help);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-upcoming-help');
     });
 
     testWidgets('debt ${s.key}', (tester) async {
@@ -476,6 +489,133 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-home-not-mine');
+    });
+
+    // Goals, roadmap step 8, and the two sheets that write them.
+    testWidgets('goals ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Goals'));
+      await tester.pumpAndSettle();
+
+      // Three goals in three different STATES: one mid-flight, one nearly
+      // there, one reached. A shot of three healthy goals photographs one row
+      // three times and says nothing about the state the screen has to get
+      // right, which is the finished one.
+      await _shoot(tester, '${s.key}-goals');
+
+      await tester.tap(find.text('Emergency fund'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-goal-actions');
+
+      // The funding sheet, where the sentence about NOT moving money lives.
+      // That sentence is the most important copy on the feature: everybody
+      // who has used an envelope app expects this to debit an account.
+      await tester.tap(find.widgetWithText(PillButton, 'Add money'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-goal-funding');
+    });
+
+    // What repeats, and the sheet that records it. Until this existed there
+    // was no way to tell Salapify about the rent, so safe to spend counted it
+    // as money the user could spend.
+    testWidgets('recurring ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upcoming'));
+      await tester.pumpAndSettle();
+
+      // The section lives at the BOTTOM of Upcoming, under the day rows, so
+      // the shot has to scroll to it. A picture of the first viewport would
+      // photograph the part that already worked.
+      await tester.scrollUntilVisible(
+        find.text('What repeats'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-recurring');
+
+      await tester.tap(find.widgetWithText(PillButton, 'Add another'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-recurring-editor');
+    });
+
+    // Insights, roadmap step 9. Reached by TAPPING Home's closing sentence,
+    // which 04-screens.md makes the way in ("One insight sentence with a
+    // number, no card. Tap for Insights."). Tapping rather than pushing the
+    // route, for the reason the debt pass gives: a pushed route renders the
+    // same picture whether or not the thing that opens it works, and this
+    // sentence was a bare Text for as long as there was no screen to reach.
+    testWidgets('insights ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('See your insights'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('See your insights'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-insights');
+
+      // AND THE SEGMENT, which is D23 and the discoverable route. The pushed
+      // screen above is for deep links; this is the one a person finds by
+      // tapping a tab. Reached by tapping the segment, because a screenshot of
+      // a state set in code proves nothing about the control that sets it.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(BackBar),
+          matching: find.byIcon(Icons.arrow_back_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.article_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-ledger-entries');
+      await tester.tap(find.text('Insights'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-ledger-insights');
+
+      // AND THE BOTTOM OF IT, because the net worth chart is the one with a
+      // custom painter in it and the one most likely to draw nothing at all.
+      // A shot of the first viewport would photograph two charts and miss the
+      // only one that can fail silently.
+      for (var i = 0; i < 8; i++) {
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-insights-bottom');
     });
 
     testWidgets('settings ${s.key}', (tester) async {

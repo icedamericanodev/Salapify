@@ -34,8 +34,26 @@ Accounts. Whether it deserves a tab of its own is decision D11; the
 recommendation is section-plus-screen for the first two weeks, then decide
 from use.
 
-Everything else (Insights, Settings, details, editors) is pushed over the
-shell.
+Everything else (Settings, details, editors) is pushed over the shell.
+
+**Insights left that list on 2026-09-15.** It is the SECOND SEGMENT of the
+Ledger tab, `[ Entries ] [ Insights ]`, and D23 records why: Home is now, Plan
+is the future, Accounts is the stock, and Ledger is the past. Insights is the
+past, shaped, so it belongs beside the raw version of itself rather than behind
+a sentence on another screen.
+
+What it replaced was not discoverable. Measured on the lived-in fixture at
+320x640, the only door to Insights became visible after scrolling 752 of 752
+pixels: the literal last line on Home. That is a hidden feature.
+
+A fifth tab was considered and refused on measurement rather than taste. It
+takes every column to 36.1dp, under the 44dp touch floor, and breaks four of
+five labels at 320dp at 1.3x system text. See D23 for the table.
+
+`/insights` stays a real pushed route, with its own back arrow. That is two
+doors into one room rather than a duplicate: a deep link from a notification or
+the home screen widget needs somewhere to land that can be backed OUT of, and a
+tab switch is not that.
 
 ## The hero panel and the sweldo rail
 

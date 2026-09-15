@@ -11,6 +11,7 @@ import '../features/accounts/account_detail_screen.dart';
 import '../features/accounts/accounts_screen.dart';
 import '../features/debt/debt_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/insights/insights_screen.dart';
 import '../features/ledger/entry_detail_screen.dart';
 import '../features/ledger/ledger_screen.dart';
 import '../features/log/log_sheet.dart';
@@ -100,6 +101,15 @@ GoRouter buildRouter() {
       GoRoute(
         path: settingsRoutePath,
         builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // Insights, also over the shell. 04-screens.md lists it with Settings
+      // and the detail screens: "Everything else is pushed over the shell."
+      // Reached from Home's closing sentence, which the spec makes tappable
+      // ("One insight sentence with a number, no card. Tap for Insights.").
+      GoRoute(
+        path: insightsRoutePath,
+        builder: (context, state) => const InsightsScreen(),
       ),
 
       // Outside the shell, deliberately. The Log sheet covers the tab bar and
