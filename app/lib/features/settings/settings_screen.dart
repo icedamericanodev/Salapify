@@ -33,9 +33,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _busy = false;
   bool _canUndo = false;
 
+  bool _askedForUndo = false;
+
+  // NOT initState. `context.ledger` reads an inherited widget, and Flutter
+  // forbids that before initState has completed: it throws
+  // "dependOnInheritedWidgetOfExactType<LedgerScope>() was called before
+  // _SettingsScreenState.initState() completed", which on a phone means the
+  // screen throws while building and draws nothing at all.
+  //
+  // That is precisely what happened. This screen shipped without being
+  // rendered once, and the founder opened Settings and reported "I do not see
+  // a Save button" and "no Restore button either". Both were true and neither
+  // was a sync problem: the whole screen was failing to build. 524 tests were
+  // green, because not one of them had built THIS widget.
+  //
+  // didChangeDependencies is the documented home for setup that reads
+  // inherited widgets. It can run more than once, so the flag keeps the undo
+  // check to the first pass.
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_askedForUndo) return;
+    _askedForUndo = true;
     _refreshUndo();
   }
 

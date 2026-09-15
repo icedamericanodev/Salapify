@@ -383,6 +383,37 @@ void main() {
       await _shoot(tester, '${s.key}-account-after-debt-payment');
     });
 
+    testWidgets('settings ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      // Reached the way a person reaches it, from the bottom of Accounts, so
+      // this render also proves the way IN exists. The founder could not find
+      // Save or Restore, and a screenshot of the screen alone would not have
+      // told me whether the screen was wrong or the door was.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Backup and settings'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup and settings'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-settings');
+    });
+
     testWidgets('first run ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);
