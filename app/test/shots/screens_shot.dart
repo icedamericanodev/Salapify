@@ -329,6 +329,33 @@ void main() {
       await _shoot(tester, '${s.key}-upcoming-help');
     });
 
+    testWidgets('move money ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+
+      // Reached from Home's Move action, the way the founder reaches it, and
+      // the way they reached the greyed out version that did nothing. The
+      // sheet, then the refusal it gives on an overdraft, because a refusal is
+      // a sentence a person reads at the worst moment and it has to be looked
+      // at rather than trusted.
+      await tester.tap(find.text('Move'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '2500');
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-move');
+
+      await tester.enterText(find.byType(TextField), '999999');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PillButton, 'Move it'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-move-refused');
+    });
+
     testWidgets('debt ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);

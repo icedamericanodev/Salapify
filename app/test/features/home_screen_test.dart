@@ -240,21 +240,15 @@ void main() {
     // concludes the app is broken. The rule was always "do not advertise what
     // is not wired", not "these three are forever dead".
     //
-    // Move comes back when the transfer sheet exists. Until then it must not be
-    // on this screen at all, which is the stronger version of what the loop
-    // here used to assert.
-    expect(
-      find.descendant(of: find.byType(HomeScreen), matching: find.text('Move')),
-      findsNothing,
-      reason:
-          'Move is back on Home with no transfer sheet behind it. A greyed out '
-          'control still gets tapped, and this one was',
-    );
+    // MOVE IS BACK, exactly the event this comment said should move it: the
+    // transfer sheet now exists (transfer_sheet.dart), ported from the
+    // shipped app's onto the golden locked engine, so the row of four is
+    // whole again and every one of them announces itself below.
 
-    // EVERY action still on the screen announces itself, which is the half that
+    // EVERY action on the screen announces itself, which is the half that
     // stops this test being satisfied by wiring nothing at all: without it,
-    // deleting the Debt route would leave the assertion above green.
-    for (final label in ['Log', 'Debt', 'Bills']) {
+    // deleting the Debt route would leave the loop below green.
+    for (final label in ['Log', 'Debt', 'Bills', 'Move']) {
       // isSemantics rather than reading a flag off the node: it checks only
       // what is named here, and the flag accessors plus containsSemantics are
       // both deprecated on the pinned SDK, where analyze is zero tolerance and

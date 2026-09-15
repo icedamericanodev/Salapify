@@ -29,7 +29,6 @@ import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import 'entry_presentation.dart';
-import 'ledger_screen.dart' show signedAmount;
 
 class EntryDetailScreen extends StatelessWidget {
   const EntryDetailScreen({super.key, required this.id});

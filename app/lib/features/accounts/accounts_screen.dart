@@ -27,6 +27,7 @@ import '../../design/type.dart';
 import '../debt/debt_screen.dart' show debtRoutePath;
 import '../settings/settings_screen.dart' show settingsRoutePath;
 import 'account_editor.dart';
+import 'transfer_sheet.dart' show showTransferSheet;
 
 class AccountsScreen extends StatelessWidget {
   const AccountsScreen({super.key});
@@ -116,7 +117,18 @@ class AccountsScreen extends StatelessWidget {
         const SizedBox(height: 22),
 
         for (final g in groups) ...[
-          Head(title: g.label),
+          Head(
+            title: g.label,
+            // ON THE FIRST GROUP ONLY, so Accounts is where the founder
+            // checked balances gets a second door to the same sheet Home
+            // carries. Not a second full-width button under "Add an
+            // account": two page actions stacked is worse than one, and Head
+            // already has the room for a tappable word beside a title.
+            action: g == groups.first && _canMove(data) ? 'Move money' : null,
+            onAction: g == groups.first && _canMove(data)
+                ? () => showTransferSheet(context)
+                : null,
+          ),
           const SizedBox(height: 8),
           Group(
             children: [
@@ -240,6 +252,15 @@ class AccountsScreen extends StatelessWidget {
 ///
 /// Three cases, because there are three states and one sentence cannot cover
 /// them. "Still counted in your net worth" is true of a hidden row, false of a
+/// Whether there are two or more accounts to move money between.
+///
+/// The SAME question `showTransferSheet` asks of `data['accounts']` before it
+/// opens, so this button and that sheet's own no-destination dialog can never
+/// disagree about whether the door should be here at all.
+bool _canMove(Map<String, dynamic> data) =>
+    (data['accounts'] is List ? data['accounts'] as List : const []).length >=
+    2;
+
 /// closed one (hidden AND not mine), and the screen showed both claims at once
 /// when a single account carried both flags.
 String hiddenCaption(List<AccountGroup> groups) {

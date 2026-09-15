@@ -33,9 +33,10 @@ import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
 import '../debt/debt_screen.dart' show debtRoutePath;
 import '../insights/insights_screen.dart' show insightsRoutePath;
 import '../ledger/entry_presentation.dart';
-import '../ledger/ledger_screen.dart' show signedAmount;
+import '../accounts/transfer_sheet.dart' show showTransferSheet;
 import '../plan/pending_bills.dart' show pendingBills;
 import '../plan/plan_screen.dart' show planSegment, planUpcoming;
+import '../plan/recurring_editor.dart' show showRecurringEditor;
 import 'due_bills_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -166,7 +167,14 @@ class HomeScreen extends StatelessWidget {
           Head(
             title: 'Coming up',
             action: 'See all',
-            onAction: () => context.go('/plan'),
+            // ON THE UPCOMING SEGMENT, not wherever Plan happened to be. "See
+            // all" under a list of upcoming bills that lands on the Budget
+            // segment is the same wrong turn the founder called out on the
+            // Bills action: a link whose destination does not match its word.
+            onAction: () {
+              planSegment.value = planUpcoming;
+              context.go('/plan');
+            },
           ),
           const SizedBox(height: 8),
           Group(
@@ -197,10 +205,18 @@ class HomeScreen extends StatelessWidget {
                   icon: entryIcon(t),
                   title: (t['label'] ?? '').toString(),
                   sub: entrySubtitle(data, t),
-                  amount: formatMoney(signedAmount(t)),
+                  // entryAmountText, not a bare formatMoney(signedAmount(t)):
+                  // a transfer carries no flow by design, so signedAmount
+                  // read it as an expense, minus sign and all, directly under
+                  // a sheet that had just said "not spending". See
+                  // entry_presentation.dart.
+                  amount: entryAmountText(t),
                   // Ordinary amounts sit bare in text colour; only money
                   // coming in is green. 04-screens.md, and it is what keeps a
-                  // fourteen row list calm.
+                  // fourteen row list calm. A transfer is neither, and
+                  // signedAmount still reads negative for it (that rule is
+                  // untouched, only the printed FIGURE changed), so it falls
+                  // through to plain on its own.
                   tone: signedAmount(t) > 0 ? Tone.good : Tone.plain,
                   onTap: () => context.push(
                     '/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}',
@@ -336,14 +352,18 @@ class _QuickActions extends StatelessWidget {
     final actions = <(String, IconData, VoidCallback?)>[
       ('Log', Icons.add_rounded, () => context.push(logRoutePath)),
       ('Debt', Icons.handshake_outlined, () => context.push(debtRoutePath)),
-      (
-        'Bills',
-        Icons.event_outlined,
-        () {
-          planSegment.value = planUpcoming;
-          context.go('/plan');
-        },
-      ),
+      // A WRITE, like the two beside it. The first wiring sent this to the
+      // Plan tab, and the founder said it made no sense: a quick action that
+      // only switches tabs is a second nav bar. Log writes an entry, Debt opens
+      // a thing you pay, so Bills adds a bill, straight into the editor, which
+      // is the fastest route to the one input safe to spend depends on most.
+      ('Bills', Icons.event_outlined, () => showRecurringEditor(context)),
+      // BACK, with a sheet behind it this time. It was taken off this row
+      // because the only transfer the app had destroyed money and nothing had
+      // replaced it. The sheet is a port of the shipped app's, on the same
+      // golden locked engine, so a transfer between your own accounts cannot
+      // change your net worth and cannot leave money with no destination.
+      ('Move', Icons.swap_horiz_rounded, () => showTransferSheet(context)),
     ];
 
     return Row(
