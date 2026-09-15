@@ -50,7 +50,6 @@
 import 'package:flutter/material.dart';
 
 import '../../app/ledger_scope.dart';
-import '../categories/category_rows.dart' show pickableCategories;
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
@@ -189,15 +188,9 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     if (mounted) setState(() {});
   }
 
-  /// The categories this form can set a cap on: the ones you can still pick.
-  ///
-  /// A retired category is kept out because setting a limit on something you
-  /// can no longer log against is a control with nothing behind it. Archiving
-  /// clears the cap in the same write for the matching reason: a capped row
-  /// this form cannot list is a number nobody can ever change again.
   List<Map<String, dynamic>> get _categories => [
-    for (final c in pickableCategories(context.ledger.data))
-      if (c['id'] is String) c,
+    for (final c in (context.ledger.data['categories'] as List? ?? const []))
+      if (c is Map && c['id'] is String) c.cast<String, dynamic>(),
   ];
 
   /// What the monthly field currently says, or null when it cannot be read.

@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/ledger_scope.dart';
-import '../categories/category_rows.dart' show pickableCategories;
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart'
     show amountOf, removeTransaction, updateTransaction;
@@ -29,6 +28,7 @@ import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import 'entry_presentation.dart';
+import 'ledger_screen.dart' show signedAmount;
 
 class EntryDetailScreen extends StatelessWidget {
   const EntryDetailScreen({super.key, required this.id});
@@ -56,12 +56,6 @@ class EntryDetailScreen extends StatelessWidget {
     }
 
     final skin = context.skin;
-    // TONE still comes from the sign; the TEXT does not. `entryAmountText` is
-    // the one place Home and the Ledger draw an entry's figure from, and this
-    // screen was left behind when it was introduced: a transfer read -5,000
-    // here and 5,000 on the two screens you reach it from. A move is not a
-    // loss, and three screens describing one row three ways is the drift that
-    // shared function exists to prevent.
     final signed = signedAmount(entry);
 
     return _Page(
@@ -83,7 +77,7 @@ class EntryDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                entryAmountText(entry),
+                formatMoney(signed),
                 style: TypeScale.hero(signed > 0 ? skin.good : skin.text),
               ),
             ],
@@ -130,7 +124,10 @@ class EntryDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _edit(BuildContext context, Map<String, dynamic> entry) async {
+  Future<void> _edit(
+    BuildContext context,
+    Map<String, dynamic> entry,
+  ) async {
     final store = context.ledger;
     final patch = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -141,17 +138,12 @@ class EntryDetailScreen extends StatelessWidget {
       // button behind the nav bar (see account_editor.dart).
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => LedgerScope(
-        store: store,
-        child: _EditSheet(entry: entry),
-      ),
+      builder: (_) => LedgerScope(store: store, child: _EditSheet(entry: entry)),
     );
     if (patch == null) return;
     // The golden locked edit: it reverses the old entry's effect on the
     // balance and applies the new one's. No balance is touched here.
-    await store.apply(
-      (s) => updateTransaction(s, entry['id'] as String, patch),
-    );
+    await store.apply((s) => updateTransaction(s, entry['id'] as String, patch));
   }
 }
 
@@ -216,25 +208,9 @@ class _DeleteAction extends StatelessWidget {
         // Names the amount AND what it will do to the balance, because
         // "are you sure" on its own asks somebody to confirm something they
         // cannot see.
-        //
-        // AND IT TELLS THE TRUTH FOR A MOVE, which the single sentence here
-        // did not. `removeTransaction` undoes a row through its accountId,
-        // and a transfer deliberately has none (the engine moved both
-        // balances itself), so deleting one leaves every peso where it is
-        // and takes away the only row explaining the movement. The old
-        // wording promised the exact opposite: "the account balance it moved
-        // goes back to what it was". Somebody keeping books would have read
-        // that, tapped it, and been left with two balances they could no
-        // longer account for.
         content: Text(
-          entry['type'] == 'transfer'
-              ? '$amount already moved between the two accounts, and '
-                    'deleting this does NOT move it back. The balances stay '
-                    'exactly as they are and you lose the only record of why '
-                    'they changed. Move it back yourself if that is what you '
-                    'want. This cannot be undone.'
-              : '$amount will be removed, and the account balance it moved '
-                    'goes back to what it was. This cannot be undone.',
+          '$amount will be removed, and the account balance it moved goes '
+          'back to what it was. This cannot be undone.',
           style: TypeScale.subtitle(skin.text2),
         ),
         actions: [
@@ -292,46 +268,10 @@ class _EditSheetState extends State<_EditSheet> {
       if (c is Map) c.cast<String, dynamic>(),
   ];
 
-  /// The category chips: what you can still pick, PLUS this entry's own.
-  ///
-  /// The second half is the whole point. Filtering to pickable alone would
-  /// make an entry tagged with a since-retired category show no chip selected,
-  /// so opening the sheet to fix a typo in the amount and saving would quietly
-  /// strip a tag the person never touched. Retiring a label is not permission
-  /// to rewrite the history filed under it.
-  List<Map<String, dynamic>> _pickableCategoriesKeepingMine() {
-    final pickable = pickableCategories(context.ledger.data);
-    final mine = _categoryId;
-    if (mine == null || pickable.any((c) => c['id'] == mine)) return pickable;
-    final own = _rows('categories').where((c) => c['id'] == mine);
-    return [...pickable, ...own];
-  }
-
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
     final isExpense = widget.entry['type'] == 'expense';
-    // A TRANSFER IS NOT AN ORDINARY ENTRY and this sheet was written before
-    // one could exist. It carries no accountId and no flow ON PURPOSE: the
-    // engine moved BOTH balances itself when it was created, and the row is
-    // the receipt rather than the instruction (core/money/transfers.dart).
-    //
-    // Two fields on this form therefore corrupt it, and both were reachable
-    // in four taps from Home:
-    //
-    //   ACCOUNT. `updateTransaction` reverses the old row through its
-    //   accountId, finds none, and reverses NOTHING. It then applies the new
-    //   row, which now HAS an accountId, at balanceSign = -1 (no flow, not
-    //   income). Tapping the account the money came from took another 5,000
-    //   out of it with nothing receiving it and no entry saying why.
-    //
-    //   AMOUNT. Neither side has an accountId, so no balance moves at all,
-    //   and the stored row silently stops matching the money that actually
-    //   moved. A row reading 3,000 against balances that shifted 5,000 can
-    //   never be reconciled by anyone.
-    //
-    // The label stays editable, because a name is not money.
-    final isTransfer = widget.entry['type'] == 'transfer';
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -367,32 +307,17 @@ class _EditSheetState extends State<_EditSheet> {
               style: TypeScale.input(skin.text),
               decoration: _box(skin),
             ),
-            if (!isTransfer) ...[
-              const SizedBox(height: 16),
-              Text('How much', style: TypeScale.fieldLabel(skin.text3)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _amount,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: TypeScale.input(skin.text),
-                decoration: _box(skin),
+            const SizedBox(height: 16),
+            Text('How much', style: TypeScale.fieldLabel(skin.text3)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _amount,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-            ] else ...[
-              const SizedBox(height: 16),
-              Text(
-                // SAYS WHY THE FIELDS ARE GONE. A form that silently drops
-                // two of its fields for one kind of entry reads as broken,
-                // and somebody who wanted to correct a figure needs to know
-                // what to do instead, not just that they cannot do it here.
-                'The amount and accounts of a move cannot be edited. Both '
-                'balances already moved when it was made, and changing the '
-                'row here would not move them back. Delete it and make the '
-                'move again instead.',
-                style: TypeScale.caption(skin.text3),
-              ),
-            ],
+              style: TypeScale.input(skin.text),
+              decoration: _box(skin),
+            ),
             if (isExpense) ...[
               const SizedBox(height: 18),
               Text('Category', style: TypeScale.fieldLabel(skin.text3)),
@@ -401,7 +326,7 @@ class _EditSheetState extends State<_EditSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final c in _pickableCategoriesKeepingMine())
+                  for (final c in _rows('categories'))
                     PickChip(
                       label: (c['name'] ?? '').toString(),
                       on: c['id'] == _categoryId,
@@ -414,7 +339,7 @@ class _EditSheetState extends State<_EditSheet> {
                 ],
               ),
             ],
-            if (!isTransfer && _rows('accounts').isNotEmpty) ...[
+            if (_rows('accounts').isNotEmpty) ...[
               const SizedBox(height: 18),
               Text('Account', style: TypeScale.fieldLabel(skin.text3)),
               const SizedBox(height: 10),
@@ -455,19 +380,14 @@ class _EditSheetState extends State<_EditSheet> {
 
   void _save() {
     final typed = double.tryParse(_amount.text.trim().replaceAll(',', ''));
-    // A TRANSFER PATCHES ITS LABEL AND NOTHING ELSE, enforced here and not
-    // only by hiding the fields above. The form is one way into this patch
-    // and the guard belongs with the write, or the next screen that opens
-    // this sheet reintroduces the defect by not knowing it existed.
-    final isTransfer = widget.entry['type'] == 'transfer';
     // A blank or unparseable amount leaves the amount ALONE rather than
     // writing a zero. A zero is a real figure and "I could not read this" is
     // not the same statement.
     Navigator.of(context).pop(<String, dynamic>{
       'label': _label.text.trim(),
-      if (!isTransfer && typed != null && typed > 0) 'amount': typed,
-      if (!isTransfer) 'categoryId': _categoryId,
-      if (!isTransfer) 'accountId': _accountId,
+      if (typed != null && typed > 0) 'amount': typed,
+      'categoryId': _categoryId,
+      'accountId': _accountId,
     });
   }
 }
@@ -490,10 +410,9 @@ String? _nameIn(Map<String, dynamic> data, String collection, dynamic id) {
 
 /// One entry by id, or null when it is gone.
 Map<String, dynamic>? findEntry(Map<String, dynamic> state, String id) {
-  for (final t
-      in (state['transactions'] is List
-          ? state['transactions'] as List
-          : const [])) {
+  for (final t in (state['transactions'] is List
+      ? state['transactions'] as List
+      : const [])) {
     if (t is Map && t['id'] == id) return t.cast<String, dynamic>();
   }
   return null;

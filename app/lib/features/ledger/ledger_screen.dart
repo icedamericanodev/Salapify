@@ -19,12 +19,6 @@ import '../../design/type.dart';
 import '../insights/insights_screen.dart' show InsightsBody;
 import 'entry_presentation.dart';
 
-// signedAmount now LIVES in entry_presentation.dart (it moved there to break
-// an import cycle with entryAmountText, which needs it). Re-exported here so
-// every existing `import 'ledger_screen.dart' show signedAmount` elsewhere
-// keeps working unchanged.
-export 'entry_presentation.dart' show signedAmount;
-
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
 
@@ -118,10 +112,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
                 icon: entryIcon(t),
                 title: (t['label'] ?? '').toString(),
                 sub: entrySubtitle(context.ledger.data, t),
-                // entryAmountText, the same reason Home uses it: a transfer
-                // carries no flow by design and signedAmount alone drew it as
-                // an expense. See entry_presentation.dart.
-                amount: entryAmountText(t),
+                amount: formatMoney(signedAmount(t)),
                 tone: _toneFor(t),
                 // Tappable at last. Until this, a mistyped entry could only
                 // be fixed by restoring a backup, and the parser guesses, so
@@ -225,6 +216,9 @@ bool _hasCountableRows(List<Map<String, dynamic>> rows) =>
 /// [balanceSign] is the golden-locked rule for which way a type moves a
 /// balance, so the Ledger cannot disagree with the account screen about
 /// whether something was a credit or a debit.
+double signedAmount(Map<String, dynamic> t) =>
+    balanceSign(t) * amountOf(t['amount']);
+
 Tone _toneFor(Map<String, dynamic> t) =>
     signedAmount(t) > 0 ? Tone.good : Tone.plain;
 

@@ -481,25 +481,6 @@ List<Map<String, dynamic>> accountHistory(
 
   return [
     ...entriesFor(state, id),
-    // BOTH LEGS OF A TRANSFER, display only, the same way debt payments are
-    // shown below. A transfer row carries transferFromId and transferToId and
-    // deliberately NO accountId, because `applyTransfer` moves both balances
-    // itself and an accountId would make `addTransaction` move one of them
-    // again. So `entriesFor` cannot see it, and without this the founder would
-    // open the account the money left, find the balance down, and find nothing
-    // in its history saying why: the exact defect debt payments shipped with.
-    //
-    // The leg is given a `flow` so the golden locked `balanceSign` puts the
-    // right sign on it, rather than a second opinion here about which way the
-    // money went. Nothing is written; the stored row stays flowless.
-    for (final t in (state['transactions'] as List? ?? const []))
-      if (t is Map &&
-          t['type'] == 'transfer' &&
-          (t['transferFromId'] == id || t['transferToId'] == id))
-        {
-          ...t.cast<String, dynamic>(),
-          'flow': t['transferFromId'] == id ? 'out' : 'in',
-        },
     for (final p in (state['payments'] as List? ?? const []))
       if (p is Map && p['account'] == id && amountOf(p['amount']) > 0)
         // Shaped as a `debt` entry so it takes the same sign and the same icon

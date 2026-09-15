@@ -187,14 +187,6 @@ Sweldo Timeline, with the low point as the hero rather than a total. That page
 also covers the budget sheet losing its three stacked paragraphs to an info
 icon, and why the figures deliberately stayed on the form.
 
-## C14: sub-categories you can actually reach
-
-**[C14 renders](c14/)**: the Categories list drawn as a tree (Bills with
-Electricity and Water indented under it) and the "Sub-category of" picker the
-editor was missing entirely. `parentId` was already read by `categoryTree`
-and Plan's rollup; nothing ever wrote one, which is exactly what the founder
-ran into and reported as "nothing happened".
-
 ## The app icon
 
 **[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship

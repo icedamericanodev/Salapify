@@ -15,7 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/app/clock.dart';
 import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/core/data/ledger_store.dart';
-import 'package:salapify/design/kit.dart' show HeroPanel;
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/home/home_screen.dart';
 
@@ -39,22 +38,6 @@ Widget _app(LedgerStore store, DateTime now) => LedgerScope(
 /// without knowing which widget happens to hold the words.
 String _spoken(WidgetTester tester) => tester
     .widgetList<Text>(find.byType(Text))
-    .map((t) => t.data ?? '')
-    .join(' | ');
-
-/// Only what the HERO says.
-///
-/// The payday guard below is about one panel's CLAIM, and it used to read the
-/// whole screen as a proxy for that. The proxy held exactly as long as no other
-/// part of Home mentioned Plan, and the due-bills card broke it by pointing at
-/// Plan for something Plan really can do: link an account to a recurring bill.
-/// Scoped here the guard still catches the bug it was written for, because that
-/// bug was a sentence in this panel, and it stops failing on sentences it was
-/// never about.
-String _heroSpoken(WidgetTester tester) => tester
-    .widgetList<Text>(
-      find.descendant(of: find.byType(HeroPanel), matching: find.byType(Text)),
-    )
     .map((t) => t.data ?? '')
     .join(' | ');
 
@@ -94,19 +77,18 @@ void main() {
     expect(ending, isNot(contains('of that')));
   });
 
-  testWidgets(
-    'a payday inside the week is named, and the rail agrees with it',
-    (tester) async {
-      final store = await memoryStore(livedIn());
-      await tester.pumpWidget(_app(store, _now));
-      await tester.pumpAndSettle();
+  testWidgets('a payday inside the week is named, and the rail agrees with it', (
+    tester,
+  ) async {
+    final store = await memoryStore(livedIn());
+    await tester.pumpWidget(_app(store, _now));
+    await tester.pumpAndSettle();
 
-      final said = _spoken(tester);
-      expect(said, contains('a day until payday on Tuesday.'));
-      expect(said, contains('4 days to payday'));
-      expect(said, contains('Aug 30 to Sep 15'));
-    },
-  );
+    final said = _spoken(tester);
+    expect(said, contains('a day until payday on Tuesday.'));
+    expect(said, contains('4 days to payday'));
+    expect(said, contains('Aug 30 to Sep 15'));
+  });
 
   testWidgets('a payday a month out is a date, not a weekday', (tester) async {
     // Monthly on the 30th, read on 1 October. Oct 2 is a Friday, so naming a
@@ -157,10 +139,7 @@ void main() {
 
     // And it must not send them to a screen that cannot do it. Nothing in the
     // app sets a payday yet, so naming one is a promise the app cannot keep.
-    // Read from the HERO, which is the panel making the claim, rather than from
-    // the whole screen: Home now legitimately says "in Plan" elsewhere, about
-    // linking an account to a bill, which Plan can actually do.
-    expect(_heroSpoken(tester), isNot(contains('in Plan')));
+    expect(said, isNot(contains('in Plan')));
     expect(said, isNot(contains('days to payday')));
     expect(said, isNot(contains('until payday')));
   });
@@ -232,42 +211,44 @@ void main() {
 
     final handle = tester.ensureSemantics();
 
-    // NOTHING DEAD IS LEFT, and that is the whole list now. Debt left this
-    // test when its screen was built, Bills left it when it was wired to Plan,
-    // and Move was taken OFF Home entirely, because the founder tapped both and
-    // reported nothing happened: text3 instead of text2 is far too quiet to
-    // read as unavailable, and a person who taps a control that does nothing
-    // concludes the app is broken. The rule was always "do not advertise what
-    // is not wired", not "these three are forever dead".
-    //
-    // MOVE IS BACK, exactly the event this comment said should move it: the
-    // transfer sheet now exists (transfer_sheet.dart), ported from the
-    // shipped app's onto the golden locked engine, so the row of four is
-    // whole again and every one of them announces itself below.
-
-    // EVERY action on the screen announces itself, which is the half that
-    // stops this test being satisfied by wiring nothing at all: without it,
-    // deleting the Debt route would leave the loop below green.
-    for (final label in ['Log', 'Debt', 'Bills', 'Move']) {
+    // Bills and Move still go nowhere. Debt used to be in this list and came
+    // out of it when the Debt screen was built (roadmap step 7): the rule is
+    // "do not advertise what is not wired", not "these three are forever
+    // dead", so wiring one is exactly the event that should move it.
+    for (final label in ['Bills', 'Move']) {
+      final node = tester.getSemantics(
+        find.descendant(
+          of: find.byType(HomeScreen),
+          matching: find.text(label),
+        ).first,
+      );
       // isSemantics rather than reading a flag off the node: it checks only
       // what is named here, and the flag accessors plus containsSemantics are
       // both deprecated on the pinned SDK, where analyze is zero tolerance and
       // an info counts as a failure.
       expect(
-        tester.getSemantics(
-          find
-              .descendant(
-                of: find.byType(HomeScreen),
-                matching: find.text(label),
-              )
-              .first,
-        ),
-        isSemantics(isButton: true),
-        reason:
-            '$label is on Home and does not announce itself as a button, so a '
-            'TalkBack user is never told the route exists',
+        node,
+        isSemantics(isButton: false),
+        reason: '$label has no destination yet, so it must not claim to be a '
+            'button. Wire it before advertising it.',
       );
     }
+
+    // And the other direction, which is the half that stops this test being
+    // satisfied by wiring nothing at all: a live action MUST announce itself.
+    // Without this, deleting the Debt route would leave the loop above green.
+    expect(
+      tester.getSemantics(
+        find.descendant(
+          of: find.byType(HomeScreen),
+          matching: find.text('Debt'),
+        ).first,
+      ),
+      isSemantics(isButton: true),
+      reason:
+          'Debt has a screen now and must announce itself as a button, or a '
+          'TalkBack user is never told the only route to it exists',
+    );
 
     handle.dispose();
   });

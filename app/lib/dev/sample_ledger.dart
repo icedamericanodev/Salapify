@@ -69,39 +69,14 @@ Map<String, dynamic> sampleLedger({DateTime? today}) {
     // over, Transport 45 of 1,500 is comfortable, and Bills and Load carry no
     // cap at all, which is its own row shape. A fixture that can only show one
     // state cannot show a defect in the other three.
-    'categories': [
-      ...defaultCategories.map((c) {
-        const caps = {
-          'cat_groceries': 2500.00,
-          'cat_food': 200.00,
-          'cat_transport': 1500.00,
-          // Bills gains a limit so the tree below has something to roll UP
-          // into. A parent with no cap is a grouping; a parent with a cap is
-          // the decision sub-categories exist to make.
-          'cat_bills': 4500.00,
-        };
-        return {...c, 'monthlyCap': ?caps[c['id']]};
-      }),
-      // A REAL PARENT AND CHILD, because the roll-up shipped without one and
-      // was therefore never rendered. Every shot in the harness drew a flat
-      // list, so "a parent reading 4,450 beside a child reading 3,200" existed
-      // only in a doc comment predicting it. The fixture has to be able to
-      // reach a state or no picture can show a defect in it.
-      {
-        'id': 'cat_electricity',
-        'name': 'Electricity',
-        'icon': '⚡',
-        'monthlyCap': 0,
-        'parentId': 'cat_bills',
-      },
-      {
-        'id': 'cat_water',
-        'name': 'Water',
-        'icon': '🚰',
-        'monthlyCap': 0,
-        'parentId': 'cat_bills',
-      },
-    ],
+    'categories': defaultCategories.map((c) {
+      const caps = {
+        'cat_groceries': 2500.00,
+        'cat_food': 200.00,
+        'cat_transport': 1500.00,
+      };
+      return {...c, 'monthlyCap': ?caps[c['id']]};
+    }).toList(),
     // Without a schedule `normalizeSchedule` falls back to the 15th and the
     // 31st, which works, but a fixture that never states its own payday cannot
     // show a wrong one either. The 15th and the 30th is what onboarding offers
@@ -276,10 +251,7 @@ Map<String, dynamic> sampleLedger({DateTime? today}) {
         'label': 'Meralco',
         'date': day0,
         'accountId': 'a_bpi',
-        // Tagged to the CHILD, so Bills has to roll it up. Tagged to Bills
-        // itself the tree would be there and do nothing, which is the same as
-        // not having one.
-        'categoryId': 'cat_electricity',
+        'categoryId': 'cat_bills',
       },
       {
         'id': 't3',

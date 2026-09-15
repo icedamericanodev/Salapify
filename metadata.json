@@ -1,0 +1,8 @@
+{
+  "name": "Salapify",
+  "description": "Offline-first budget, sweldo rail, and debt tracker for Filipino Gen Z and young professionals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

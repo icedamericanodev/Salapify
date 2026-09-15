@@ -13,57 +13,32 @@ final _now = DateTime(2026, 9, 11, 9, 30);
 
 void main() {
   group('the rows', () {
-    test(
-      'a category earns a row for a cap OR for spending, never for neither',
-      () {
-        final rows = categoryBudgets(livedIn(), _now);
-        final names = rows.map((r) => r.name).toList();
+    test('a category earns a row for a cap OR for spending, never for neither', () {
+      final rows = categoryBudgets(livedIn(), _now);
+      final names = rows.map((r) => r.name).toList();
 
-        // The three capped ones and the two that had money go through them.
-        expect(
-          names,
-          containsAll(['Food', 'Groceries', 'Transport', 'Bills', 'Load']),
-        );
+      // The three capped ones and the two that had money go through them.
+      expect(names, containsAll(['Food', 'Groceries', 'Transport', 'Bills', 'Load']));
 
-        // The other default categories are neither capped nor used this month,
-        // and a screen listing every category a user has ever had is a filing
-        // cabinet rather than an answer.
-        expect(names, isNot(contains('Shopping')));
-      },
-    );
+      // The other default categories are neither capped nor used this month,
+      // and a screen listing every category a user has ever had is a filing
+      // cabinet rather than an answer.
+      expect(names, isNot(contains('Shopping')));
+    });
 
     test('the ones closest to their limit come first', () {
       // A budget screen is read when somebody is about to spend, so the
       // category nearest its limit belongs at the top. Alphabetical order
       // would bury the only row that changes a decision.
-      // URGENCY ORDERS WITHIN A LEVEL, and a child follows its parent. Sorting
-      // everything by urgency alone scatters a child away from the parent whose
-      // figure already contains it, and the screen then indents a row with
-      // nothing above it to be indented under.
       final rows = categoryBudgets(livedIn(), _now);
-      final top = [
-        for (final r in rows)
-          if (r.parentId == null) r.name,
-      ];
-      expect(top.first, 'Food');
-      expect(top[1], 'Groceries');
-      expect(top[2], 'Bills');
-      expect(top[3], 'Transport');
+      expect(rows.first.name, 'Food');
+      expect(rows[1].name, 'Groceries');
+      expect(rows[2].name, 'Transport');
 
       // Uncapped rows follow the capped ones, largest spend first. They are
       // information, not a decision.
-      expect(top.last, 'Load');
-
-      // And Electricity sits immediately under Bills rather than wherever its
-      // own spend would have put it.
-      final names = [for (final r in rows) r.name];
-      expect(
-        names[names.indexOf('Bills') + 1],
-        'Electricity',
-        reason:
-            'a child is not directly under its parent, so the indent on screen '
-            'points at nothing',
-      );
+      expect(rows[3].name, 'Bills');
+      expect(rows[4].name, 'Load');
     });
 
     test('spent, remaining and over are what the stored rows say', () {
@@ -98,24 +73,13 @@ void main() {
         for (final r in categoryBudgets(livedIn(), _now)) r.name: r,
       };
 
-      // Load, not Bills. Bills gained a limit when the fixture grew a real
-      // parent and child under it, because a parent with no cap is a grouping
-      // and a parent with a cap is the decision sub-categories exist to make.
-      expect(rows['Load']!.capped, isFalse);
-      expect(rows['Load']!.fraction, 0.0);
-      expect(rows['Load']!.over, isFalse);
+      expect(rows['Bills']!.capped, isFalse);
+      expect(rows['Bills']!.fraction, 0.0);
+      expect(rows['Bills']!.over, isFalse);
 
       // And it never counts toward the hero's "needs a look" tally, because
       // there is no limit for it to be close to.
-      expect(rows['Load']!.needsALook, isFalse);
-
-      // A CHILD with no limit of its own is the same shape, and it is the case
-      // that arrived with the tree: it carries real spending, it rolls into a
-      // capped parent, and it still draws no bar itself.
-      expect(rows['Electricity']!.capped, isFalse);
-      expect(rows['Electricity']!.spent, greaterThan(0));
-      expect(rows['Electricity']!.fraction, 0.0);
-      expect(rows['Electricity']!.needsALook, isFalse);
+      expect(rows['Bills']!.needsALook, isFalse);
     });
 
     test('needs a look means over, or down to the last quarter', () {
@@ -162,32 +126,11 @@ void main() {
       // The hero counts EVERY expense this month; the rows count only the
       // tagged ones. So the rows can be less, and must never be more. If they
       // ever were, one of the two would be double counting.
-      //
-      // TOP LEVEL ONLY, and that filter is the whole point rather than a
-      // convenience. A parent's spend CONTAINS its children's, so folding every
-      // row adds the children twice: with the fixture's Bills over Electricity
-      // this assertion read 9,245.50 against a hero of 6,045.50. That is not a
-      // defect in the figures, it is what the shape means, and it is exactly
-      // why anything adding rows together has to filter first. This test is the
-      // place that says so.
       final data = livedIn();
-      final rows = categoryBudgets(data, _now);
-      final tagged = rows
-          .where((r) => r.parentId == null)
+      final tagged = categoryBudgets(data, _now)
           .fold<double>(0, (sum, r) => sum + r.spent);
 
       expect(tagged, lessThanOrEqualTo(budgetSummary(data, _now)['spent']));
-
-      // Did anything happen: the fixture really does have a parent carrying a
-      // child's money, or the filter above is protecting against nothing and
-      // this test would pass on a flat list forever.
-      expect(
-        rows.any((r) => r.rollsUp),
-        isTrue,
-        reason:
-            'no row rolls anything up, so the top-level filter is untested and '
-            'the double count it prevents cannot be reached',
-      );
     });
   });
 }

@@ -33,11 +33,7 @@ import '../accounts/accounts_screen.dart' show DebtTotals, debtTotals;
 import '../debt/debt_screen.dart' show debtRoutePath;
 import '../insights/insights_screen.dart' show insightsRoutePath;
 import '../ledger/entry_presentation.dart';
-import '../accounts/transfer_sheet.dart' show showTransferSheet;
-import '../plan/pending_bills.dart' show pendingBills;
-import '../plan/plan_screen.dart' show planSegment, planUpcoming;
-import '../plan/recurring_editor.dart' show showRecurringEditor;
-import 'due_bills_card.dart';
+import '../ledger/ledger_screen.dart' show signedAmount;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -82,31 +78,7 @@ class HomeScreen extends StatelessWidget {
 
     final state = FinancialState.of(data, now);
     final debt = debtTotals(data);
-
-    // COMING UP MUST NOT REPEAT WHAT IS ALREADY WAITING FOR AN ANSWER.
-    //
-    // A bill whose day has arrived is in BOTH derivations by construction:
-    // `upcomingCommitments` lists every unposted recurring row due on or before
-    // payday, and a pending bill is one whose day has already passed. So Home
-    // drew Meralco twice, once asking to be confirmed and once as a quiet row
-    // under "Coming up", with the same figure. Seeing one bill twice on one
-    // screen is how somebody concludes they are paying it twice.
-    //
-    // Matched on name and amount because the engine's bill rows carry no id
-    // (`commitments.dart` is golden locked, so one cannot be added). The cost
-    // of that key is narrow and worth naming: two bills sharing a label AND an
-    // amount would hide each other from Coming up while both still appear,
-    // correctly, in the card above. Nothing is lost, one row is quieter.
-    final pending = pendingBills(data, now);
-    final coming = [
-      for (final b in upcomingBills(data, now))
-        if (!pending.any(
-          (p) =>
-              p.row['label'] == b['name'] &&
-              (amountOf(p.row['amount']) - amountOf(b['amount'])).abs() < 0.005,
-        ))
-          b,
-    ];
+    final coming = upcomingBills(data, now);
 
     return Screen(
       children: [
@@ -135,16 +107,6 @@ class HomeScreen extends StatelessWidget {
         const _QuickActions(),
         const SizedBox(height: 24),
 
-        // ABOVE DEBT, COMING UP AND LATEST, because this is the only block on
-        // Home that asks the person to DO something. Everything below it
-        // reports. A card that waits for an answer, placed under three cards
-        // that do not, is a card nobody answers, and an unanswered pending bill
-        // keeps the projection showing a bill the person has already paid.
-        //
-        // It draws nothing at all when nothing is due, so on most days Home is
-        // exactly what it was.
-        const DueBillsCard(),
-
         if (debt.any) ...[
           Head(
             title: 'Debt, both ways',
@@ -167,14 +129,7 @@ class HomeScreen extends StatelessWidget {
           Head(
             title: 'Coming up',
             action: 'See all',
-            // ON THE UPCOMING SEGMENT, not wherever Plan happened to be. "See
-            // all" under a list of upcoming bills that lands on the Budget
-            // segment is the same wrong turn the founder called out on the
-            // Bills action: a link whose destination does not match its word.
-            onAction: () {
-              planSegment.value = planUpcoming;
-              context.go('/plan');
-            },
+            onAction: () => context.go('/plan'),
           ),
           const SizedBox(height: 8),
           Group(
@@ -205,18 +160,10 @@ class HomeScreen extends StatelessWidget {
                   icon: entryIcon(t),
                   title: (t['label'] ?? '').toString(),
                   sub: entrySubtitle(data, t),
-                  // entryAmountText, not a bare formatMoney(signedAmount(t)):
-                  // a transfer carries no flow by design, so signedAmount
-                  // read it as an expense, minus sign and all, directly under
-                  // a sheet that had just said "not spending". See
-                  // entry_presentation.dart.
-                  amount: entryAmountText(t),
+                  amount: formatMoney(signedAmount(t)),
                   // Ordinary amounts sit bare in text colour; only money
                   // coming in is green. 04-screens.md, and it is what keeps a
-                  // fourteen row list calm. A transfer is neither, and
-                  // signedAmount still reads negative for it (that rule is
-                  // untouched, only the printed FIGURE changed), so it falls
-                  // through to plain on its own.
+                  // fourteen row list calm.
                   tone: signedAmount(t) > 0 ? Tone.good : Tone.plain,
                   onTap: () => context.push(
                     '/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}',
@@ -333,37 +280,11 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    // THREE LIVE ACTIONS, NOT FOUR WITH TWO THAT LIE. The founder tapped Bills
-    // and Move and reported that nothing happened, which is exactly what this
-    // row's old comment claimed was safe: an action with nowhere to go was
-    // "announced as DISABLED, not as a button", drawn in text3 instead of
-    // text2. That difference is far too quiet to read as unavailable. A person
-    // taps, nothing happens, and the reasonable conclusion is that the app is
-    // broken, which on the screen they open every morning is the worst place
-    // to spend that impression.
-    //
-    // Bills had a real destination the whole time and simply was not wired to
-    // it. Move does not: transfer was REMOVED from the Log sheet because it
-    // destroyed money (one account picker, no destination, see
-    // test/features/transfer_loss_test.dart), and the sheet with a from and a
-    // to that replaces it is not built yet. So Move is off this row until it
-    // exists, rather than sitting here greyed out being tapped. Founder
-    // decision, 2026-09-15.
     final actions = <(String, IconData, VoidCallback?)>[
       ('Log', Icons.add_rounded, () => context.push(logRoutePath)),
       ('Debt', Icons.handshake_outlined, () => context.push(debtRoutePath)),
-      // A WRITE, like the two beside it. The first wiring sent this to the
-      // Plan tab, and the founder said it made no sense: a quick action that
-      // only switches tabs is a second nav bar. Log writes an entry, Debt opens
-      // a thing you pay, so Bills adds a bill, straight into the editor, which
-      // is the fastest route to the one input safe to spend depends on most.
-      ('Bills', Icons.event_outlined, () => showRecurringEditor(context)),
-      // BACK, with a sheet behind it this time. It was taken off this row
-      // because the only transfer the app had destroyed money and nothing had
-      // replaced it. The sheet is a port of the shipped app's, on the same
-      // golden locked engine, so a transfer between your own accounts cannot
-      // change your net worth and cannot leave money with no destination.
-      ('Move', Icons.swap_horiz_rounded, () => showTransferSheet(context)),
+      ('Bills', Icons.event_outlined, null),
+      ('Move', Icons.swap_horiz_rounded, null),
     ];
 
     return Row(

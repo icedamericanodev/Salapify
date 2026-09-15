@@ -49,8 +49,3 @@ app.*.map.json
 # surface GitHub actually renders; a folder of images in git is storage, not a
 # review surface.
 test/shots/out/
-
-# The golden matcher's own scratch output on a mismatch (master/test/diff
-# triptychs), written whenever a render changes before --update-goldens
-# catches up. Diagnostic only, never worth a commit.
-test/shots/failures/
