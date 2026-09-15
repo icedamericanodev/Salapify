@@ -24,6 +24,8 @@ import 'budget_editor.dart';
 import 'budget_rows.dart';
 import 'goal_editor.dart';
 import 'goal_rows.dart';
+import 'recurring_editor.dart';
+import 'recurring_rows.dart';
 import 'upcoming_rows.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -126,10 +128,7 @@ class _Goals extends StatelessWidget {
           Text(summary, style: TypeScale.subtitle(skin.text2)),
           const SizedBox(height: 14),
         ],
-        Group(
-          inset: 0,
-          children: [for (final r in rows) _GoalRowTile(row: r)],
-        ),
+        Group(inset: 0, children: [for (final r in rows) _GoalRowTile(row: r)]),
         const SizedBox(height: 14),
         PillButton(
           label: 'Add a goal',
@@ -286,9 +285,10 @@ class _GoalActions extends StatelessWidget {
               final id = row.id;
               Navigator.of(context).pop();
               parent.ledger.mutate((draft) {
-                for (final g in (draft['goals'] is List
-                    ? draft['goals'] as List
-                    : const [])) {
+                for (final g
+                    in (draft['goals'] is List
+                        ? draft['goals'] as List
+                        : const [])) {
                   if (g is Map && g['id'] == id) g['paused'] = !paused;
                 }
               });
@@ -348,12 +348,28 @@ class _Upcoming extends StatelessWidget {
     final up = upcomingFrom(data, now);
 
     if (up.isEmpty) {
-      return const EmptyState(
-        icon: Icons.event_outlined,
-        title: 'Nothing scheduled yet',
-        body:
-            'Add a bill that repeats, or set your payday, and everything due '
-            'between now and the payday after next lands here.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EmptyState(
+            icon: Icons.event_outlined,
+            title: 'Nothing scheduled yet',
+            body:
+                'Tell Salapify what repeats every month, the rent, Meralco, '
+                'your sweldo, and everything due between now and the payday '
+                'after next lands here.',
+          ),
+          const SizedBox(height: 14),
+          // THE BUTTON THE INSTRUCTION ASKS FOR. This empty state said "Add a
+          // bill that repeats" on a screen where that could not be done, for
+          // as long as the screen existed. An instruction nobody can follow is
+          // the same defect Accounts and Budget both shipped.
+          PillButton(
+            label: 'Add the first one',
+            icon: Icons.add_rounded,
+            onTap: () => showRecurringEditor(context),
+          ),
+        ],
       );
     }
 
@@ -380,8 +396,84 @@ class _Upcoming extends StatelessWidget {
               ),
           ],
         ),
+        const SizedBox(height: 22),
+
+        // WHAT GENERATES THE LIST ABOVE, which until now a person could
+        // neither see nor change. The days are occurrences; these are the
+        // things that produce them, and editing one is the only way to correct
+        // a bill whose amount went up.
+        const _Repeating(),
       ],
     );
+  }
+}
+
+/// The repeating items themselves: rent, Meralco, the sweldo.
+class _Repeating extends StatelessWidget {
+  const _Repeating();
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final data = context.ledger.data;
+    final now = context.now;
+    final rows = recurringRows(data);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Head(title: 'What repeats'),
+        const SizedBox(height: 8),
+        if (rows.isEmpty)
+          Text(
+            // Named as the gap it is. Safe to spend is liquid MINUS what is
+            // committed, so with nothing here the figure counts the rent as
+            // spendable. Saying so is the difference between a quiet empty
+            // list and a reason to fill it.
+            'Nothing recorded yet, so what you can spend still counts your '
+            'bills as available.',
+            style: TypeScale.subtitle(skin.text2),
+          )
+        else ...[
+          Text(recurringSummary(rows), style: TypeScale.subtitle(skin.text2)),
+          const SizedBox(height: 12),
+          Group(
+            children: [
+              for (final r in rows)
+                ItemRow(
+                  icon: r.income
+                      ? Icons.savings_outlined
+                      : Icons.event_repeat_outlined,
+                  title: r.label,
+                  sub: recurringCaption(r, now),
+                  amount: formatMoney(r.amount),
+                  // Income is the only thing coloured, the same rule the
+                  // Ledger uses: colour means direction, and colouring every
+                  // amount would leave colour meaning nothing.
+                  tone: r.income ? Tone.good : Tone.plain,
+                  onTap: () => _edit(context, r.id),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 14),
+        PillButton(
+          label: rows.isEmpty ? 'Add the first one' : 'Add another',
+          icon: Icons.add_rounded,
+          onTap: () => showRecurringEditor(context),
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+
+  void _edit(BuildContext context, String id) {
+    final existing = [
+      for (final r in (context.ledger.data['recurring'] as List? ?? const []))
+        if (r is Map && r['id'] == id) r.cast<String, dynamic>(),
+    ].firstOrNull;
+    if (existing == null) return;
+    showRecurringEditor(context, existing: existing);
   }
 }
 
@@ -410,16 +502,16 @@ class _LowPoint extends StatelessWidget {
               ? 'You are already below zero. Something has to move.'
               : 'You go below zero on ${prettyDay(up.firstNegativeDate)}. '
                     'Something has to move before then.')
-          // "Is due to go out", never "goes out". The engine counts a debt
-          // cycle while the balance is above zero even if it was already paid
-          // early, because debts carry no per-cycle paid marker. Safe and
-          // correct for a schedule, wrong as a claim about what has left.
-          //
-          // And no clause attributing the recovery to income. The data
-          // supports "nothing takes you lower inside this window" and does not
-          // support "everything after it is covered by what comes in", which
-          // the first version said and which reads as open ended on a window
-          // that ends at the payday after next.
+        // "Is due to go out", never "goes out". The engine counts a debt
+        // cycle while the balance is above zero even if it was already paid
+        // early, because debts carry no per-cycle paid marker. Safe and
+        // correct for a schedule, wrong as a claim about what has left.
+        //
+        // And no clause attributing the recovery to income. The data
+        // supports "nothing takes you lower inside this window" and does not
+        // support "everything after it is covered by what comes in", which
+        // the first version said and which reads as open ended on a window
+        // that ends at the payday after next.
         : 'The tightest day is ${prettyDay(up.lowestDate)}. '
               '${formatMoney(up.totalOut)} is due to go out before '
               '${prettyDay(up.horizonEnd)}, and this is as low as it gets.';
@@ -650,9 +742,7 @@ class _Budget extends StatelessWidget {
                   'screen shows what is left in it, not only what is spent.',
             )
           else
-            Group(
-              children: [for (final r in rows) _CategoryRow(row: r)],
-            ),
+            Group(children: [for (final r in rows) _CategoryRow(row: r)]),
         ],
       ],
     );
@@ -739,7 +829,11 @@ class _CategoryRow extends StatelessWidget {
         skin.bad,
         skin.bad,
       ),
-      final r when r.remaining == 0 => ('all of it spent', skin.text3, skin.accent),
+      final r when r.remaining == 0 => (
+        'all of it spent',
+        skin.text3,
+        skin.accent,
+      ),
       final r when r.needsALook => (
         '${formatMoney(r.remaining)} left of ${formatMoney(r.cap)}',
         skin.accent,

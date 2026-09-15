@@ -118,8 +118,18 @@ List<GoalRow> goalRows(Map<String, dynamic> state, DateTime now) {
 }
 
 const List<String> _monthsShort = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// A stored target date as a person writes it: "Jun 2027", "Dec 31 2026".

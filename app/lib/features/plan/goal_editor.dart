@@ -51,7 +51,10 @@ Future<bool> showGoalEditor(
     backgroundColor: Colors.transparent,
     builder: (_) => LedgerScope(
       store: store,
-      child: AppClock(now: now, child: _GoalSheet(existing: existing)),
+      child: AppClock(
+        now: now,
+        child: _GoalSheet(existing: existing),
+      ),
     ),
   );
   return saved ?? false;
@@ -71,7 +74,10 @@ Future<bool> showGoalFunding(
     backgroundColor: Colors.transparent,
     builder: (_) => LedgerScope(
       store: store,
-      child: AppClock(now: now, child: _FundingSheet(goal: goal)),
+      child: AppClock(
+        now: now,
+        child: _FundingSheet(goal: goal),
+      ),
     ),
   );
   return saved ?? false;

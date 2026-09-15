@@ -512,6 +512,40 @@ void main() {
       await _shoot(tester, '${s.key}-goal-funding');
     });
 
+    // What repeats, and the sheet that records it. Until this existed there
+    // was no way to tell Salapify about the rent, so safe to spend counted it
+    // as money the user could spend.
+    testWidgets('recurring ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upcoming'));
+      await tester.pumpAndSettle();
+
+      // The section lives at the BOTTOM of Upcoming, under the day rows, so
+      // the shot has to scroll to it. A picture of the first viewport would
+      // photograph the part that already worked.
+      await tester.scrollUntilVisible(
+        find.text('What repeats'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-recurring');
+
+      await tester.tap(find.widgetWithText(PillButton, 'Add another'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-recurring-editor');
+    });
+
     // Insights, roadmap step 9. Reached by TAPPING Home's closing sentence,
     // which 04-screens.md makes the way in ("One insight sentence with a
     // number, no card. Tap for Insights."). Tapping rather than pushing the
