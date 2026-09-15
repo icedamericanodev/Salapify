@@ -32,6 +32,7 @@ import '../money/commitments.dart' show safeToSpend;
 import '../money/ledger.dart' show amountOf;
 import '../money/schedule.dart'
     show hasExplicitPaydaySchedule, nextPayday, prevPayday;
+import 'visibility.dart' show spendableOnly;
 
 /// The pay period the user is actually living in.
 ///
@@ -112,7 +113,17 @@ class FinancialState {
     final schedule = data['settings'] is Map
         ? (data['settings'] as Map)['paydaySchedule']
         : null;
-    final sts = safeToSpend(data, now);
+    // FILTERED, NOT ADJUSTED. Money the user hid, or declared is not theirs,
+    // leaves safe to spend. That happens by removing those accounts and asking
+    // the golden locked engine the same question, never by subtracting from
+    // its answer: `perDay` is `available / daysLeft` with a silence rule in the
+    // crunch case, and re-applying that here would make this file a second
+    // place where money is decided, which the note at the top of it forbids.
+    //
+    // The BUDGET is deliberately not filtered. It is computed from
+    // transactions, not from balances, and money already spent was spent
+    // whatever the account is called today.
+    final sts = safeToSpend(spendableOnly(data), now);
     final budget = budgetSummary(data, now);
 
     // The engine's OWN payday, not a second derivation of it.

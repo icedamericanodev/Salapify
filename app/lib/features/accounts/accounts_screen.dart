@@ -20,6 +20,7 @@ import '../../core/money/format.dart';
 import '../../core/money/institutions.dart';
 import '../../core/money/ledger.dart' show amountOf;
 import '../../core/money/statements.dart' show netWorthParts, trackedRemaining;
+import '../../core/state/visibility.dart';
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -34,8 +35,14 @@ class AccountsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = context.ledger.data;
     final groups = groupAccounts(data);
-    final parts = netWorthParts(data);
+    final hiddenGroups = groupAccounts(data, hidden: true);
+    // THE ENGINE STILL DOES THE SUM. `ownedOnly` removes the rows the user
+    // said are not theirs and hands the rest to the same golden locked
+    // function; nothing on this screen subtracts anything from a total. See
+    // core/state/visibility.dart for why it is done this way round.
+    final parts = netWorthParts(ownedOnly(data));
     final debt = debtTotals(data);
+    final excluded = Excluded.of(data);
 
     if (groups.isEmpty && !debt.any) {
       return Screen(
@@ -92,7 +99,7 @@ class AccountsScreen extends StatelessWidget {
 
         // The hero. One number, and one sentence that says what it is made of,
         // because a net worth with no parts shown is a number you cannot check.
-        _NetWorth(parts: parts),
+        _NetWorth(parts: parts, excluded: excluded),
         const SizedBox(height: 22),
 
         for (final g in groups) ...[
@@ -145,6 +152,45 @@ class AccountsScreen extends StatelessWidget {
           const SizedBox(height: 18),
         ],
 
+        // NOTHING IS BOTH INVISIBLE AND UNREACHABLE. A hidden account is off
+        // the lists above and still HERE, at the bottom, because the only way
+        // back is through the account's own screen: an account nobody can find
+        // again is an account nobody can un-hide, and a one way door on
+        // somebody's own money is not a view preference.
+        //
+        // It sits below Debt and above the data section so the everyday
+        // screen is unchanged for the people who never touch this, which is
+        // almost everybody. There is no count-of-zero state: the heading only
+        // exists once something is in it.
+        if (hiddenGroups.isNotEmpty) ...[
+          const Head(title: 'Hidden'),
+          const SizedBox(height: 6),
+          // The sentence that explains the gap between this screen's rows and
+          // the number at the top of it. Without it, somebody hides an account
+          // and the totals stop reconciling with the list for no stated
+          // reason, which reads as the app losing money.
+          _Quiet(
+            hiddenGroups.length == 1 && hiddenGroups.first.accounts.length == 1
+                ? 'Kept off the lists above. Still counted in your net worth, '
+                      'and left out of what is safe to spend. Tap it to bring '
+                      'it back.'
+                : 'Kept off the lists above. Still counted in your net worth, '
+                      'and left out of what is safe to spend. Tap one to bring '
+                      'it back.',
+          ),
+          const SizedBox(height: 10),
+          for (final g in hiddenGroups) ...[
+            Group(
+              children: [
+                for (final a in g.accounts)
+                  _AccountRow(account: a, category: g.id),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 8),
+        ],
+
         // Backup lives at the bottom of Accounts because this is the screen
         // about what you HAVE, and a copy of it is the only thing standing
         // between the founder and losing all of it. It is the last thing on
@@ -168,32 +214,65 @@ class AccountsScreen extends StatelessWidget {
   }
 }
 
+/// A caption paragraph sitting directly on the page, not inside a card.
+class _Quiet extends StatelessWidget {
+  const _Quiet(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: TypeScale.caption(context.skin.text2));
+}
+
 /// The hero panel: net worth, and the sentence that makes it checkable.
 class _NetWorth extends StatelessWidget {
-  const _NetWorth({required this.parts});
+  const _NetWorth({required this.parts, required this.excluded});
   final Map<String, dynamic> parts;
+
+  /// What the user has said is not theirs, so the hero can SAY so.
+  final Excluded excluded;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+    // [parts] already arrived computed from the OWNED ledger, so these three
+    // reads are reads and nothing else. No figure on this panel is adjusted
+    // here, which is why the panel and the rows below it can never drift
+    // apart by a rounding rule this file invented.
+    final netWorth = amountOf(parts['netWorth']);
     final assets = amountOf(parts['assets']);
     final liabilities = amountOf(parts['liabilities']);
+
     return Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Net worth', style: TypeScale.quiet(skin.text3)),
           const SizedBox(height: 6),
-          Text(
-            formatMoney(amountOf(parts['netWorth'])),
-            style: TypeScale.hero(skin.text),
-          ),
+          Text(formatMoney(netWorth), style: TypeScale.hero(skin.text)),
           const SizedBox(height: 8),
           Text(
             'Assets ${formatMoney(assets)} · '
             'Debts ${formatMoney(liabilities)}',
             style: TypeScale.subtitle(skin.text2),
           ),
+          // SURFACED, NEVER SILENT. Money that vanishes from a total without a
+          // word is indistinguishable from money the app lost, and on an
+          // offline app with no support channel there is nobody to ask. The
+          // figure above is smaller than the rows below it add up to, and this
+          // is the only sentence that explains the gap.
+          if (excluded.anyNotMine) ...[
+            const SizedBox(height: 10),
+            Text(
+              excluded.notMineCount == 1
+                  ? '${formatMoney(excluded.fromNetWorth.abs())} in 1 account '
+                        'is not counted, because you said it is not yours.'
+                  : '${formatMoney(excluded.fromNetWorth.abs())} across '
+                        '${excluded.notMineCount} accounts is not counted, '
+                        'because you said it is not yours.',
+              style: TypeScale.caption(skin.text2),
+            ),
+          ],
         ],
       ),
     );
@@ -216,10 +295,26 @@ class _AccountRow extends StatelessWidget {
     final limit = amountOf(account['creditLimit']);
     final owed = cat?.cls == AccountClass.liability;
 
+    // MARKED ON THE ROW ITSELF, not only in the hero's sentence.
+    //
+    // The first render of this feature showed why. The hero read ₱33,930 and
+    // said underneath that ₱8,410.50 in one account was not counted, which is
+    // correct and complete. Two rows below it, GCash sat in Cash and e-wallets
+    // showing ₱8,410.50 and looking exactly like every other account on the
+    // screen. Somebody scanning the list, which is what a list is for, adds
+    // those balances up, gets a different answer from the big number, and has
+    // no way to tell WHICH row is the one the sentence meant.
+    //
+    // A hidden account needs no such mark: it is under a heading that says it.
+    final sub = accountKindLabel(account, store);
+    final label = isNotMine(account)
+        ? '${sub ?? ''}${sub == null ? '' : ' · '}Not counted'
+        : sub;
+
     final row = ItemRow(
       monogram: monogramFor(account),
       title: name,
-      sub: accountKindLabel(account, store),
+      sub: label,
       amount: formatMoney(amount),
       // ENCODED. The id is stored data, and a restored or hand edited backup
       // can carry a slash, a hash or a question mark in it. Interpolated raw,
@@ -296,13 +391,24 @@ class AccountGroup {
 /// ORDER comes from `accountCategories` rather than from a list written here,
 /// so a new category added to the taxonomy appears on this screen instead of
 /// silently vanishing into no section at all.
-List<AccountGroup> groupAccounts(Map<String, dynamic> state) {
+/// [hidden] false gives the everyday list; true gives ONLY what was hidden.
+///
+/// Two calls rather than one flag inside the screen, because the hidden rows
+/// need their own section. NOTHING IS BOTH INVISIBLE AND UNREACHABLE: a row
+/// taken out of the main list appears in that section, always. An account that
+/// could not be found again would be an account that could not be UNhidden,
+/// and a one way door on somebody's own money is not a view preference.
+List<AccountGroup> groupAccounts(
+  Map<String, dynamic> state, {
+  bool hidden = false,
+}) {
   final byCategory = <String, List<Map<String, dynamic>>>{};
 
   void take(String collection, AccountStore store) {
     for (final r in (state[collection] as List? ?? const [])) {
       if (r is! Map) continue;
       final row = r.cast<String, dynamic>();
+      if (isHiddenFromLists(row) != hidden) continue;
       final id = resolveKind(row, store).category.id;
       byCategory.putIfAbsent(id, () => []).add(row);
     }
@@ -422,12 +528,11 @@ DebtTotals debtTotals(Map<String, dynamic> state) {
   // clearing your last utang was rewarded with a Debt card reading "Owed to you
   // ₱0, You owe ₱0". DebtTotals.any exists precisely to prevent that claim, and
   // it was being fed by a count that could not see it.
-  int countOf(String collection) => (state[collection] is List
-          ? state[collection] as List
-          : const [])
-      .whereType<Map>()
-      .where((r) => _tracked(r['cashLeg']) && !_tracked(r['paid']))
-      .length;
+  int countOf(String collection) =>
+      (state[collection] is List ? state[collection] as List : const [])
+          .whereType<Map>()
+          .where((r) => _tracked(r['cashLeg']) && !_tracked(r['paid']))
+          .length;
 
   return DebtTotals(
     debts + payables,

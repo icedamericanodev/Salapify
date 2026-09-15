@@ -139,6 +139,18 @@ Widget _app(Skin s, LedgerStore store) => AppClock(
   ),
 );
 
+/// The lived-in ledger with one account declared not the user's.
+///
+/// Staged rather than tapped, and deliberately so: the tapped route is
+/// rendered two shots earlier for the OTHER flag, and what this picture is for
+/// is the hero sentence, not the switch that produced it.
+Map<String, dynamic> _withNotMine(Map<String, dynamic> data, String id) {
+  for (final a in (data['accounts'] as List)) {
+    if (a is Map && a['id'] == id) a['includeInNetWorth'] = false;
+  }
+  return data;
+}
+
 Future<void> _shoot(WidgetTester tester, String name) async {
   await expectLater(
     find.byType(MaterialApp),
@@ -381,6 +393,79 @@ void main() {
       await tester.tap(find.text('BPI').first);
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-account-after-debt-payment');
+    });
+
+    // Hiding an account, walked rather than staged.
+    //
+    // Every screen here is reached by tapping, for the reason the debt pass
+    // above gives: a staged ledger with the flag pre-set renders the same
+    // picture whether or not the switch that is supposed to write it works,
+    // and the whole feature is the switch.
+    testWidgets('hidden accounts ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GCash'));
+      await tester.pumpAndSettle();
+
+      // The sheet, with both switches off. This is the picture that has to
+      // answer whether two toggles and a warning read as a considered choice
+      // or as a settings screen leaking onto an account.
+      await tester.tap(find.text('Options'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-options');
+
+      // Hidden, ON, so the sheet can be judged in the state it will actually
+      // be read in: somebody opening it to undo what they did last week.
+      await tester.tap(find.byKey(const ValueKey('Hide from my lists')));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-options-hidden');
+
+      Navigator.of(
+        tester.element(find.text('Hide from my lists')),
+        rootNavigator: true,
+      ).pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+      await tester.pumpAndSettle();
+
+      // The bottom of Accounts, where the hidden row now lives. The thing to
+      // look at is whether the section reads as a place an account went, or as
+      // a second list somebody has to maintain.
+      for (var i = 0; i < 12; i++) {
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-accounts-hidden-section');
+
+      // And the HERO, on a ledger where money has been declared not the
+      // user's. This is the only screen in the app where the big number is
+      // smaller than the rows under it add up to, so the sentence that
+      // explains the gap is the whole point of the picture.
+      await tester.pumpWidget(
+        _app(s, await memoryStore(_withNotMine(livedIn(), 'a_gcash'))),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-accounts-not-mine');
     });
 
     testWidgets('settings ${s.key}', (tester) async {

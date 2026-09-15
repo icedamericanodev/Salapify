@@ -17,6 +17,7 @@ import '../../app/ledger_scope.dart';
 import '../../core/money/account_taxonomy.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart' show amountOf;
+import '../../core/state/visibility.dart';
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -63,7 +64,16 @@ class AccountDetailScreen extends StatelessWidget {
 
     return _Page(
       children: [
-        const BackBar(),
+        // The visibility controls live behind this word rather than on the
+        // screen, and that is the rule from the Settings redesign applied
+        // again: a sentence stays visible if not reading it can cost money or
+        // data. Hiding an account costs neither. It changes what a list shows,
+        // it is reversible from the same place, and the screen's actual job is
+        // showing this account's history.
+        BackBar(
+          action: 'Options',
+          onAction: () => _showOptions(context, row, store),
+        ),
         const SizedBox(height: 6),
         _Header(row: row, store: store),
         const SizedBox(height: 22),
@@ -90,6 +100,192 @@ class AccountDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 18),
           ],
+      ],
+    );
+  }
+}
+
+/// The two visibility switches, and the sentence that stops one of them being
+/// mistaken for security.
+///
+/// Founder direction, 2026-09-15, after a financial-coach and a
+/// security-privacy pass. They proposed one toggle with two possible meanings;
+/// the specialists found those were two different numbers and therefore two
+/// different switches. See core/state/visibility.dart for the full reasoning.
+Future<void> _showOptions(
+  BuildContext context,
+  Map<String, dynamic> row,
+  AccountStore store,
+) async {
+  final ledger = context.ledger;
+  final id = (row['id'] ?? '').toString();
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    // The shell draws the nav bar over the tab, so a sheet without this lands
+    // underneath it with its controls unreachable.
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => _OptionsSheet(
+      row: row,
+      onSet: (key, value) => ledger.mutate((draft) {
+        for (final collection in const ['accounts', 'assets', 'debts']) {
+          for (final a
+              in (draft[collection] is List
+                  ? draft[collection] as List
+                  : const [])) {
+            if (a is Map && a['id'] == id) a[key] = value;
+          }
+        }
+      }),
+    ),
+  );
+}
+
+class _OptionsSheet extends StatefulWidget {
+  const _OptionsSheet({required this.row, required this.onSet});
+  final Map<String, dynamic> row;
+  final Future<void> Function(String key, bool value) onSet;
+
+  @override
+  State<_OptionsSheet> createState() => _OptionsSheetState();
+}
+
+class _OptionsSheetState extends State<_OptionsSheet> {
+  late bool _hidden = isHiddenFromLists(widget.row);
+  late bool _notMine = isNotMine(widget.row);
+  bool _busy = false;
+
+  Future<void> _set(String key, bool value) async {
+    setState(() => _busy = true);
+    try {
+      await widget.onSet(key, value);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Container(
+      decoration: BoxDecoration(
+        color: skin.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(gutter, 18, gutter, 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            (widget.row['name'] ?? 'Account').toString(),
+            style: TypeScale.sheetTitle(skin.text),
+          ),
+          const SizedBox(height: 16),
+
+          _Toggle(
+            title: 'Hide from my lists',
+            // The consequence, in the fewest words that carry it. Net worth is
+            // what you OWN, and hiding a row from a list does not change who
+            // owns the money.
+            sub: 'Keeps it off your screens. Still counted in net worth.',
+            value: _hidden,
+            enabled: !_busy,
+            onChanged: (v) async {
+              setState(() => _hidden = v);
+              await _set('isArchived', v);
+            },
+          ),
+          const SizedBox(height: 14),
+          _Toggle(
+            title: 'Do not count this as mine',
+            // The case this exists for, named concretely rather than in the
+            // abstract. A paluwagan pot in your GCash leaves on a fixed date,
+            // and counting it as your wealth is a lie with a deadline.
+            sub:
+                'For money you are holding for someone else. Takes it out of '
+                'net worth.',
+            value: _notMine,
+            enabled: !_busy,
+            onChanged: (v) async {
+              setState(() => _notMine = v);
+              await _set('includeInNetWorth', !v);
+            },
+          ),
+
+          const SizedBox(height: 18),
+          // THE SENTENCE THE SECURITY PASS INSISTED ON, verbatim in substance.
+          // People will reach for "hide" as a way to keep a balance off the
+          // screen when somebody else can see their phone. It is not that, and
+          // saying so is the difference between a view preference and a false
+          // sense of safety: the account is still in the list under Hidden,
+          // its entries are still in the Ledger, and a backup file contains
+          // all of it in plain text.
+          Text(
+            'Hiding only keeps an account out of your totals and lists. It is '
+            'not a password. Anyone who can open this app, or open your backup '
+            'file, can still see it.',
+            style: TypeScale.caption(skin.text2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.title,
+    required this.sub,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String sub;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TypeScale.rowTitle(skin.text)),
+              const SizedBox(height: 2),
+              Text(sub, style: TypeScale.caption(skin.text3)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        // LABELLED. A bare Switch is announced by a screen reader as "switch,
+        // on" with no name at all: the title beside it is a separate widget
+        // and nothing connects the two. Two unnamed switches in one sheet,
+        // one of which changes net worth, is not a thing anybody should have
+        // to guess at.
+        Semantics(
+          label: title,
+          child: Switch(
+            // The title, as the key, so a test can flip one switch by name
+            // rather than by its position in the sheet. Position is the sort
+            // of thing that silently starts testing the wrong control the day
+            // a third toggle is added above it.
+            key: ValueKey(title),
+            value: value,
+            onChanged: enabled ? onChanged : null,
+            activeThumbColor: skin.onAccent,
+            activeTrackColor: skin.accent,
+          ),
+        ),
       ],
     );
   }
