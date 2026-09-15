@@ -352,6 +352,35 @@ void main() {
       await tester.tap(find.text('Record a payment'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-debt-payment');
+
+      // AND THE ACCOUNT AFTERWARDS. The founder paid a loan, opened the
+      // account it came out of, and found nothing: the balance had moved and
+      // its history did not say why. Nothing had ever rendered that screen
+      // after a payment, so nobody had looked at the one place the defect
+      // lived. This walks the whole path and photographs the end of it.
+      await tester.enterText(find.byType(TextField), '1500');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BPI').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      var guard = 0;
+      while (find.byIcon(Icons.arrow_back_rounded).evaluate().isNotEmpty) {
+        await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+        await tester.pumpAndSettle();
+        if (++guard > 4) break;
+      }
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.account_balance_wallet_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('BPI').first);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-account-after-debt-payment');
     });
 
     testWidgets('first run ${s.key}', (tester) async {

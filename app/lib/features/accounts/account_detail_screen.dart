@@ -57,7 +57,9 @@ class AccountDetailScreen extends StatelessWidget {
     }
 
     final (row, store) = found;
-    final entries = entriesFor(data, id);
+    // `accountHistory`, not `entriesFor`: a debt payment moves this balance and
+    // is not stored as one of this account's transactions. See that function.
+    final entries = accountHistory(data, id);
 
     return _Page(
       children: [
@@ -219,3 +221,54 @@ List<Map<String, dynamic>> entriesFor(Map<String, dynamic> state, String id) =>
       for (final t in (state['transactions'] as List? ?? const []))
         if (t is Map && t['accountId'] == id) t.cast<String, dynamic>(),
     ];
+
+/// Everything that moved this account's balance, which is NOT the same list.
+///
+/// The founder paid 1,500 off a loan from BPI, opened BPI, and found nothing.
+/// The balance had gone down by 1,500. A balance that moves with no entry
+/// behind it is unauditable, and it was the first place they looked.
+///
+/// Why it happens, and why the fix is here rather than in the engine.
+/// `applyDebtPayment` lowers the debt, debits the paying account DIRECTLY, and
+/// writes its ledger entries tagged with `debtId` and deliberately NOT with an
+/// `accountId`. That omission is correct and must not be undone: `addTransaction`
+/// moves the linked account's balance by the signed amount, so an entry carrying
+/// both the account tag AND the manual debit would take the money out twice.
+/// Tagging the row afterwards would be worse, because `removeTransaction` would
+/// then credit the account back on delete for money it never debited.
+///
+/// So the account link lives where the engine did put it: the top level
+/// `payments` collection records `account`. This reads it and presents those
+/// payments as history. DISPLAY ONLY. Nothing is written, no stored row gains a
+/// field, and the balance is untouched, because the balance was already right.
+/// The only thing that was missing was the founder being able to see why.
+List<Map<String, dynamic>> accountHistory(
+  Map<String, dynamic> state,
+  String id,
+) {
+  String debtName(dynamic debtId) {
+    for (final d in (state['debts'] as List? ?? const [])) {
+      if (d is Map && d['id'] == debtId) {
+        return (d['name'] ?? 'a debt').toString();
+      }
+    }
+    return 'a debt';
+  }
+
+  return [
+    ...entriesFor(state, id),
+    for (final p in (state['payments'] as List? ?? const []))
+      if (p is Map && p['account'] == id && amountOf(p['amount']) > 0)
+        // Shaped as a `debt` entry so it takes the same sign and the same icon
+        // as every other debt row, through the golden-locked `balanceSign`
+        // rather than a second opinion about which way the money went.
+        {
+          'id': (p['id'] ?? '').toString(),
+          'type': 'debt',
+          'label': 'Debt payment: ${debtName(p['debtId'])}',
+          'amount': amountOf(p['amount']),
+          'date': (p['date'] ?? '').toString(),
+          'debtId': p['debtId'],
+        },
+  ];
+}

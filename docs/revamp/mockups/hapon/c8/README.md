@@ -83,3 +83,28 @@ again, until the account row's own shipped caption was measured: **"BPI, Savings
 account" is also two lines at 320dp.** Captions wrap there throughout the app.
 Holding this one screen to a stricter bar would have meant inventing a rule no
 other list obeys, on the strength of a number nobody had checked.
+
+## The bug the founder found in under a minute
+
+They paid ₱1,500 off Lola from BPI, opened BPI, and its history said nothing.
+The balance had gone down by ₱1,500 with no entry behind it. For somebody who
+keeps books that is the defect, not a polish item.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Gabi](gabi-account-after-debt-payment.png) | ![Hapon](hapon-account-after-debt-payment.png) |
+
+Why it happened: `applyDebtPayment` lowers the debt, debits the paying account
+directly, and writes its ledger entry tagged with the DEBT and deliberately not
+with the account. That omission is correct and must stay, because
+`addTransaction` moves a linked account by the signed amount, so an entry
+carrying both the tag and the manual debit would take the money out twice.
+
+The account link was never missing, it just lived somewhere the account screen
+never read: the top level `payments` collection. The screen reads it now.
+Display only. No stored row changed, no balance changed, because the balance
+was already right.
+
+Every money test on this batch was green while this was broken. All of them
+asked whether the money was RIGHT. None asked whether a person could FOLLOW
+it, which is the only question an account history exists to answer.
