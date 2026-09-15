@@ -690,6 +690,16 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-categories');
 
+      // Bills already groups Electricity and Water in the fixture, so its
+      // editor is the one shot that proves the two-level rule reads as
+      // English rather than only being silently enforced: a category that
+      // groups others cannot also become someone else's child.
+      await tester.tap(find.text('Bills'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-editor-parent');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
       // A category with money through it AND a cap set, which is the state the
       // confirmation has the most to say about. Groceries carries a 2,500 cap
       // in the fixture and real spending this month.

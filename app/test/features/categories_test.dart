@@ -207,7 +207,23 @@ void main() {
       await tester.tap(find.text('Categories'));
       await tester.pumpAndSettle();
 
+      // Bills now draws its two sub-categories (Electricity, Water) right
+      // under it, which pushes Groceries below the fold. A fixed tap landed
+      // on nothing the moment that grouping became visible; scrolling to the
+      // target is the fix, not shrinking the list back to flat.
+      await tester.scrollUntilVisible(
+        find.text('Groceries'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.widgetWithText(PillButton, 'Hide it'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(PillButton, 'Hide it'));
       await tester.pumpAndSettle();

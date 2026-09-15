@@ -18,6 +18,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/ledger_scope.dart';
+import '../../core/money/categories.dart' show categoryTree;
 import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
@@ -34,10 +35,17 @@ class CategoriesScreen extends StatelessWidget {
     final skin = context.skin;
     final data = context.ledger.data;
     final all = allCategories(data);
-    final live = [
+    final liveCats = [
       for (final c in all)
         if (!isArchivedCategory(c)) c,
     ];
+    // TREE ORDER, not stored order: every top level category immediately
+    // followed by its own children, so the grouping the founder built is
+    // something the list itself shows rather than something buried three
+    // taps away on Plan. Built from LIVE categories only, so a child whose
+    // parent got hidden falls back to top level here rather than vanishing
+    // (categoryTree's own orphan rule, the same one Plan relies on).
+    final live = categoryTree(liveCats);
     final hidden = [
       for (final c in all)
         if (isArchivedCategory(c)) c,
@@ -78,7 +86,8 @@ class CategoriesScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Group(
               children: [
-                for (final c in live) _CategoryRow(cat: c, hidden: false),
+                for (final row in live)
+                  _CategoryRow(cat: row.cat, hidden: false, depth: row.depth),
               ],
             ),
             const SizedBox(height: 16),
@@ -118,14 +127,19 @@ class CategoriesScreen extends StatelessWidget {
 }
 
 class _CategoryRow extends StatelessWidget {
-  const _CategoryRow({required this.cat, required this.hidden});
+  const _CategoryRow({required this.cat, required this.hidden, this.depth = 0});
   final Map<String, dynamic> cat;
   final bool hidden;
+
+  /// 0 for a top level category, 1 for a sub-category. Matches the indent
+  /// Plan already uses for the same grouping (plan_screen.dart), so the two
+  /// screens read as one idea rather than two different visual languages.
+  final int depth;
 
   @override
   Widget build(BuildContext context) {
     final data = context.ledger.data;
-    return ItemRow(
+    final row = ItemRow(
       // The EMOJI the user picked, drawn as a monogram. Salapify's own icons
       // are Material glyphs in the accent and this is deliberately not one of
       // those: a category icon is user data, it lives in the backup file, and
@@ -136,6 +150,8 @@ class _CategoryRow extends StatelessWidget {
       amount: hidden ? 'Hidden' : '',
       onTap: () => showCategoryEditor(context, existing: cat),
     );
+    if (depth == 0) return row;
+    return Padding(padding: const EdgeInsets.only(left: 22), child: row);
   }
 }
 
@@ -198,6 +214,10 @@ class _CategorySheetState extends State<_CategorySheet> {
     text: (widget.existing?['name'] ?? '').toString(),
   );
   late String _icon = (widget.existing?['icon'] ?? _icons.first).toString();
+  late String? _parentId = () {
+    final p = widget.existing?['parentId'];
+    return p is String && p.isNotEmpty ? p : null;
+  }();
   bool _busy = false;
 
   @override
@@ -306,6 +326,12 @@ class _CategorySheetState extends State<_CategorySheet> {
               ],
             ),
 
+            // GROUPING, the piece that had no control anywhere in the app.
+            // `parentId` was already read by categoryTree and by Plan's
+            // rollup, both of which sat idle because nothing ever wrote one.
+            const SizedBox(height: 18),
+            ..._parentSection(data),
+
             const SizedBox(height: 22),
             PillButton(
               label: _busy ? 'Saving' : 'Save',
@@ -345,11 +371,90 @@ class _CategorySheetState extends State<_CategorySheet> {
     );
   }
 
+  /// The "Sub-category of" field. Three shapes, depending on what is true
+  /// for THIS category, never a picker that quietly does nothing.
+  List<Widget> _parentSection(Map<String, dynamic> data) {
+    final skin = context.skin;
+    final label = Text(
+      'Sub-category of',
+      style: TypeScale.fieldLabel(skin.text2),
+    );
+    final selfId = widget.existing?['id'] as String?;
+
+    // A category that already groups others cannot also become a child:
+    // its own children would become grandchildren, the one shape nothing
+    // in this app renders (categoryTree flattens it back to top level on
+    // the very next screen, silently).
+    if (hasChildren(data, selfId)) {
+      return [
+        label,
+        const SizedBox(height: 6),
+        Text(
+          'This already groups its own sub-categories, so it cannot be one '
+          'too.',
+          style: TypeScale.caption(skin.text3),
+        ),
+      ];
+    }
+
+    final candidates = parentCandidates(data, widget.existing);
+    if (candidates.isEmpty) {
+      return [
+        label,
+        const SizedBox(height: 6),
+        Text(
+          'Add another category first, then you can group this one under '
+          'it.',
+          style: TypeScale.caption(skin.text3),
+        ),
+      ];
+    }
+
+    return [
+      label,
+      const SizedBox(height: 6),
+      Text(
+        // Ties the field to the one screen that already shows the effect,
+        // so picking one here is not a leap of faith into nothing.
+        'Optional. Groups the spending together on Plan.',
+        style: TypeScale.caption(skin.text3),
+      ),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          PickChip(
+            label: 'No parent',
+            on: _parentId == null,
+            onTap: () => setState(() => _parentId = null),
+          ),
+          for (final c in candidates)
+            PickChip(
+              label: '${c['icon'] ?? ''} ${c['name'] ?? ''}'.trim(),
+              on: _parentId == c['id'],
+              onTap: () => setState(() => _parentId = '${c['id']}'),
+            ),
+        ],
+      ),
+    ];
+  }
+
   Future<void> _save() async {
     setState(() => _busy = true);
     final name = _name.text.trim();
     final icon = _icon;
+    final parentId = _parentId;
     final existing = widget.existing;
+    // Read BEFORE the mutate callback, against the same data the picker was
+    // built from, matching every other read in this sheet. A category that
+    // already groups others never got a picker at all, so its stored
+    // parentId (there should not be one, but never guess) is left exactly
+    // as it was rather than overwritten by a field the person never saw.
+    final canSetParent = !hasChildren(
+      context.ledger.data,
+      existing?['id'] as String?,
+    );
     try {
       await context.ledger.mutate((draft) {
         final list = [
@@ -365,6 +470,7 @@ class _CategorySheetState extends State<_CategorySheet> {
             'name': name,
             'icon': icon,
             'monthlyCap': 0,
+            'parentId': ?parentId,
           });
         } else {
           for (var i = 0; i < list.length; i++) {
@@ -373,7 +479,18 @@ class _CategorySheetState extends State<_CategorySheet> {
             // `monthlyCap`, which this form does not edit, and rebuilding it
             // from two text fields would silently drop a sub-category
             // relationship and somebody's budget limit on a rename.
-            list[i] = {...list[i], 'name': name, 'icon': icon};
+            final next = {...list[i], 'name': name, 'icon': icon};
+            if (canSetParent) {
+              // Absence IS the default, the same rule archiving already
+              // follows below, so choosing "No parent" on a category that
+              // never had one writes nothing new into the backup file.
+              if (parentId != null) {
+                next['parentId'] = parentId;
+              } else {
+                next.remove('parentId');
+              }
+            }
+            list[i] = next;
           }
         }
         draft['categories'] = list;

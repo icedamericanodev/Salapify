@@ -130,9 +130,24 @@ String removeConsequence(Map<String, dynamic> cat) =>
     'same name would not be the same category to the app.';
 
 /// The subtitle under a category in the list.
+///
+/// Says the SUB-CATEGORY relationship in plain words, not just an indent. A
+/// beginner founder tapped through the whole editor once looking for exactly
+/// this and found nothing on screen said "Bills has two children" anywhere
+/// except the Plan tab, three taps away.
 String categoryCaption(Map<String, dynamic> data, Map<String, dynamic> cat) {
   final tagged = taggedCount(data['transactions'], cat['id']);
   final cap = amountOf(cat['monthlyCap']);
+  final all = allCategories(data);
+  final childCount = all.where((c) => c['parentId'] == cat['id']).length;
+  final parentName = () {
+    final p = cat['parentId'];
+    if (p is! String || p.isEmpty || p == cat['id']) return null;
+    for (final c in all) {
+      if (c['id'] == p) return (c['name'] ?? '').toString();
+    }
+    return null;
+  }();
   final bits = <String>[
     if (tagged == 0)
       'Not used yet'
@@ -141,6 +156,48 @@ String categoryCaption(Map<String, dynamic> data, Map<String, dynamic> cat) {
     else
       '$tagged entries',
     if (cap > 0) 'limit set',
+    if (parentName != null) 'part of $parentName',
+    if (childCount > 0)
+      (childCount == 1 ? '1 sub-category' : '$childCount sub-categories'),
   ];
   return bits.join(', ');
+}
+
+/// Categories a person can group [existing] under, or every top level
+/// category when adding a new one ([existing] is null).
+///
+/// Two rules keep the tree exactly two levels deep, the shape every reader
+/// already assumes (`categoryTree`, `budgetRows`, `normalizeCategoryTree`):
+/// a candidate must not already be someone else's child (else picking it
+/// would make a grandchild, which those readers silently flatten rather than
+/// render), and [existing] is left out of its own candidate list.
+List<Map<String, dynamic>> parentCandidates(
+  Map<String, dynamic> data,
+  Map<String, dynamic>? existing,
+) {
+  final all = allCategories(data);
+  bool hasRealParent(Map<String, dynamic> c) {
+    final p = c['parentId'];
+    return p is String &&
+        p.isNotEmpty &&
+        p != c['id'] &&
+        all.any((o) => o['id'] == p);
+  }
+
+  final selfId = existing?['id'];
+  return [
+    for (final c in all)
+      if (c['id'] != selfId && !isArchivedCategory(c) && !hasRealParent(c)) c,
+  ];
+}
+
+/// Whether [cat] already groups other categories under it. Such a category
+/// cannot also become someone else's child without turning its own children
+/// into grandchildren, the one shape this app never renders as a tree.
+bool hasChildren(Map<String, dynamic> data, String? catId) {
+  if (catId == null) return false;
+  for (final c in allCategories(data)) {
+    if (c['parentId'] == catId) return true;
+  }
+  return false;
 }
