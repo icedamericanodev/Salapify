@@ -332,20 +332,48 @@ void main() {
       tester,
     ) async {
       // The founder's second question, after the picker shipped: "what if i
-      // want to make a parent/main category then its subcategory?" It was
-      // possible and it was not REACHABLE: you had to leave the parent, tap
-      // Add a category, and find the parent again among the chips. This is
-      // the one tap route, and this test walks it the way a person does.
+      // want to make a parent/main category then its subcategory?" then, on
+      // the first answer: "the users might be confused. I think its better
+      // like add main category then add sub category right away". So the add
+      // control sits on the CARD, one tap from the list, and this test walks
+      // it from the list the way a person does rather than from an edit sheet
+      // nobody hunting for the feature would think to open.
       final store = await memoryStore(livedIn());
       await tester.pumpWidget(_app(store));
       await tester.pumpAndSettle();
       await _openCategories(tester);
 
-      await tester.tap(find.text('Bills'));
+      // Bills is the card that already holds Electricity and Water, so this
+      // also proves the line appears on a card that HAS children rather than
+      // only on an empty one.
+      await tester.scrollUntilVisible(
+        find.text('Bills'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Add a sub-category'));
+      final onBillsCard = find.descendant(
+        of: find.ancestor(of: find.text('Bills'), matching: find.byType(Group)),
+        matching: find.text('Add sub-category'),
+      );
+      // Named BEFORE it is used, or the finder's own "Bad state: No element"
+      // is the whole failure report and says nothing about what is missing.
+      expect(
+        onBillsCard,
+        findsOneWidget,
+        reason:
+            'the card holding Bills has no way to add a sub-category on it, '
+            'so the only route back to one is the edit sheet nobody hunting '
+            'for the feature would open',
+      );
+      final addUnderBills = onBillsCard.first;
+      await tester.scrollUntilVisible(
+        addUnderBills,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Add a sub-category'));
+      await tester.tap(addUnderBills);
       await tester.pumpAndSettle();
 
       // The new sheet SAYS what it is, or the tap's one fact is lost.

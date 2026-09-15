@@ -698,16 +698,41 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-category-editor-parent');
 
-      // And the one tap route OFF that sheet: a new category that arrives
-      // already under Bills, which is the shortcut the founder asked for
-      // after the picker shipped ("what if i want to make a parent/main
-      // category then its subcategory?").
-      await tester.ensureVisible(find.text('Add a sub-category'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Add a sub-category'));
+
+      // And the one tap route from the LIST: the add line on the card that
+      // owns the category, which is where the founder said it belongs ("add
+      // main category then add sub category right away"). The new sheet
+      // arrives titled New sub-category with Bills already picked.
+      final addUnderBills = find
+          .descendant(
+            of: find.ancestor(
+              of: find.text('Bills'),
+              matching: find.byType(Group),
+            ),
+            matching: find.text('Add sub-category'),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        addUnderBills,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(addUnderBills);
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-category-new-sub');
       await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Back at the top of the list for the shots below, since reaching the
+      // add line scrolled the screen.
+      await tester.scrollUntilVisible(
+        find.text('Food'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
 
       // A category with money through it AND a cap set, which is the state the

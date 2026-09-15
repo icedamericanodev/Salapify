@@ -18,7 +18,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/ledger_scope.dart';
-import '../../core/money/categories.dart' show categoryTree;
+import '../../core/money/categories.dart' show CategoryRow, categoryTree;
 import '../../core/money/ledger.dart' show amountOf;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
@@ -84,13 +84,30 @@ class CategoriesScreen extends StatelessWidget {
           ] else ...[
             const Head(title: 'Yours'),
             const SizedBox(height: 8),
-            Group(
-              children: [
-                for (final row in live)
-                  _CategoryRow(cat: row.cat, hidden: false, depth: row.depth),
-              ],
-            ),
-            const SizedBox(height: 16),
+            // ONE CARD PER MAIN CATEGORY, holding its own sub-categories and
+            // its own way to add another. Founder direction, after watching
+            // the first version: "the users might be confused. I think its
+            // better like add main category then add sub category right
+            // away". One long list with the add control buried inside an
+            // EDIT sheet asked somebody to already know the structure exists
+            // before they could build one. A card that visibly owns its
+            // children, with the add line sitting on it, is the structure.
+            for (final cluster in _clusters(live)) ...[
+              Group(
+                children: [
+                  for (final row in cluster)
+                    _CategoryRow(cat: row.cat, hidden: false, depth: row.depth),
+                  // Not offered on a category that is itself somebody's child,
+                  // which is the two-level rule read from this side: its
+                  // children would be grandchildren, the shape categoryTree
+                  // flattens back out on the next screen.
+                  if (canBeParent(data, cluster.first.cat))
+                    _AddSubRow(parent: cluster.first.cat),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 6),
           ],
 
           PillButton(
@@ -121,6 +138,63 @@ class CategoriesScreen extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// The tree, cut into one list per main category: the parent first, then the
+/// children [categoryTree] already placed under it.
+///
+/// A leading child with no parent above it starts its own cluster rather than
+/// being dropped. That cannot happen through this screen, and dropping a row
+/// a person cannot see is exactly how a category becomes impossible to find,
+/// rename or delete, which is the defensive rule `categoryTree` itself keeps.
+List<List<CategoryRow>> _clusters(List<CategoryRow> rows) {
+  final out = <List<CategoryRow>>[];
+  for (final r in rows) {
+    if (r.depth == 0 || out.isEmpty) {
+      out.add([r]);
+    } else {
+      out.last.add(r);
+    }
+  }
+  return out;
+}
+
+/// The add control that lives ON the category it adds to.
+class _AddSubRow extends StatelessWidget {
+  const _AddSubRow({required this.parent});
+  final Map<String, dynamic> parent;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Semantics(
+      button: true,
+      child: Pressable(
+        onTap: () =>
+            showCategoryEditor(context, initialParentId: '${parent['id']}'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Row(
+            children: [
+              // The width of a row's icon disc, so the label lines up with
+              // every title above it instead of floating loose under them.
+              SizedBox(
+                width: 38,
+                child: Icon(Icons.add_rounded, size: 20, color: skin.accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Add sub-category',
+                  style: TypeScale.action(skin.accent),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -472,43 +546,12 @@ class _CategorySheetState extends State<_CategorySheet> {
             ];
     }
 
-    // THE OTHER DIRECTION. Offered on any saved, live category that is not
-    // already somebody's child, whether or not it has children yet: a parent
-    // with two sub-categories can take a third, and a plain category can
-    // become a parent for the first time. `canBeParent` is the same rule
-    // `parentCandidates` applies to decide who may be PICKED, asked here of
-    // the category on screen instead.
-    if (existing != null && canBeParent(data, existing)) {
-      body.addAll([
-        const SizedBox(height: 12),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _busy ? null : () => _addSubCategory(existing),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_rounded, size: 18, color: skin.accent),
-              const SizedBox(width: 6),
-              Text('Add a sub-category', style: TypeScale.action(skin.accent)),
-            ],
-          ),
-        ),
-      ]);
-    }
-
+    // THE OTHER DIRECTION LIVES ON THE LIST NOW, not here. This sheet carried
+    // an "Add a sub-category" link for one round and the founder's read of it
+    // was that a person hunting for the feature would never open an EDIT sheet
+    // to find it. One door, on the card that owns the category, rather than
+    // the same action in two places a beginner has to choose between.
     return body;
-  }
-
-  /// Close this sheet and open a NEW category already under [parent].
-  ///
-  /// The navigator is captured BEFORE the pop, the pattern the transfer sheet
-  /// established: popping deactivates this widget's own context, and using it
-  /// afterwards to open anything is how a sheet ends up with no ancestor to
-  /// attach to.
-  void _addSubCategory(Map<String, dynamic> parent) {
-    final nav = Navigator.of(context);
-    nav.pop();
-    showCategoryEditor(nav.context, initialParentId: '${parent['id']}');
   }
 
   Future<void> _save() async {

@@ -2,11 +2,30 @@
 
 Gabi (dark) is on the left, because that is what the founder uses.
 
-## The list, as a tree
+## One card per main category, each with its own way to add under it
 
 | Gabi (dark) | Hapon (light) |
 |---|---|
 | ![Gabi](gabi-categories.png) | ![Hapon](hapon-categories.png) |
+
+This is the SECOND shape of this screen, and the first one is worth recording
+because the difference is the whole lesson. The first version drew every
+category in one card, in tree order, and put the add control inside the EDIT
+sheet of a category. It was correct and it was not findable. The founder, on
+the create sheet with the parent picker visible in front of them: *"no add
+sub category here"*, and then, on being shown where it was: *"the users might
+be confused. I think its better like add main category then add sub category
+right away."*
+
+They were right, and the reason is structural rather than cosmetic. Adding a
+sub-category through an EDIT sheet asks somebody to already know the tree
+exists before they can build one, and to look for a create action inside a
+screen about changing something that already exists. A card that visibly owns
+its children, with the add line sitting on it, IS the structure. Nobody has
+to be taught it.
+
+The line is left off a card whose category is itself somebody's child, which
+is the two-level rule read from this side.
 
 The founder's report was plain: *"for categores and sub categories - nothing
 happened."* It was accurate. `parentId` was already read by `categoryTree` and
@@ -38,17 +57,10 @@ because it was already reading `parentId`, it just never had one to read.
 |---|---|
 | ![Gabi](gabi-category-editor-parent.png) | ![Hapon](hapon-category-editor-parent.png) |
 
-Note the second control on that sheet, "Add a sub-category", which is the
-other direction and the founder's next question once the picker shipped:
-*"what if i want to make a parent/main category then its subcategory? no
-option to do that currently."*
-
-It was possible and it was not REACHABLE. Making a main category and then
-putting something under it meant leaving that category, tapping "Add a
-category" on the list, and hunting the parent back out of a row of chips. So
-the grouping field points BOTH ways now: "Sub-category of" picks this
-category's parent, and "Add a sub-category" makes this category the parent of
-a brand new one.
+This sheet carried an "Add a sub-category" link of its own for one round, and
+it is gone: the list card does that job now, where somebody hunting for the
+feature will actually meet it. One door, not the same action offered twice in
+two places a beginner has to choose between.
 
 ## The new category arrives already grouped
 
@@ -56,18 +68,25 @@ a brand new one.
 |---|---|
 | ![Gabi](gabi-category-new-sub.png) | ![Hapon](hapon-category-new-sub.png) |
 
-The sheet is titled "New sub-category" rather than "New category", and Bills
-is already picked in the chips, because the tap that opened it carried that
-fact and a generic form would have thrown it away. Type a name, tap Save, and
-the list underneath redraws with the new row indented under Bills.
+Tapping "Add sub-category" on the Bills card opens this. The sheet is titled
+"New sub-category" rather than "New category", and Bills is already picked in
+the chips, because the tap that opened it carried that fact and a generic
+form would have thrown it away. Type a name, tap Save, and the Bills card
+redraws with the new row inside it.
 
-It is offered on any saved, live category that is not already somebody's
+The add line appears on any live category that is not already somebody's
 child, whether or not it has children yet: a parent with two sub-categories
 can take a third, and a plain category can become a parent for the first
 time. That test is `canBeParent`, which is the SAME rule `parentCandidates`
 uses to decide who may be picked, asked from the other side. One function,
 because two copies of this exact test are how the self-parent bug happened in
 the first place.
+
+The other route still exists and is unchanged: while creating any category,
+the "Sub-category of" chips put it under an existing one. Its caption now
+says what to TAP ("Tap one to put this under it") rather than describing the
+effect, because the founder read the old line, on the sheet with the picker
+on it, and reported there was no option to make a sub-category.
 
 Bills already groups Electricity and Water. Letting it also become someone
 else's child would make its own children grandchildren, the one shape nothing
