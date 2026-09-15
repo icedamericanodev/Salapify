@@ -273,7 +273,24 @@ void main() {
             'with no word to the user, which is the defect being fixed',
       );
       // And the running total, which is on whether or not anything is wrong.
-      expect(find.textContaining('add up to'), findsOneWidget);
+      //
+      // It asserts the FIGURES, not the prose, because the prose moved behind
+      // the info icon when the founder said the sheet was too wordy and the
+      // figures deliberately did not. A test matching the sentence would have
+      // gone green on a sheet that had quietly stopped showing the numbers.
+      expect(find.textContaining('in categories'), findsOneWidget);
+      // 54,000 and not 50,000, and the literal earns its place: the fixture
+      // already carries 1,500 on Transport and 2,500 on Groceries, so this
+      // figure is only reachable by actually ADDING the caps up. A test that
+      // looked for the 50,000 just typed would pass on a total that showed one
+      // field and ignored the rest.
+      expect(
+        find.textContaining('₱54,000'),
+        findsOneWidget,
+        reason:
+            'the running total stopped naming the money, which is the half of '
+            'this line that is not teaching and did not move behind the icon',
+      );
     });
 
     testWidgets('it stays QUIET while the monthly figure is being typed', (

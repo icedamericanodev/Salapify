@@ -6,3 +6,17 @@ node_modules/
 tests/_*.js
 flutter/test/shots/
 flutter/test/golden/failures/
+
+# Scratch probes written by review agents while they measure something in app/.
+#
+# These are throwaway by nature and must never be committed. One of them was
+# named zz_probe_recovery_test.dart, and that suffix is the hazard: `flutter
+# test` collects every file matching *_test.dart, so a stray probe joins the
+# suite and runs in CI forever, failing on something nobody maintains. Another
+# put `flutter analyze` at four issues, which would have reddened the branch
+# check on the next push.
+#
+# Ignoring them by pattern is a guard; remembering to delete them is a rule, and
+# a rule that has already been missed twice in one session.
+app/test/zz_*
+app/tool/_tmp_*

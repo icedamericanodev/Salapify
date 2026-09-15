@@ -20,13 +20,30 @@ import 'package:salapify/design/tokens.dart';
 import '../shots/screens_shot.dart' show loadRealFonts;
 
 /// The narrowest screen Salapify supports, minus what the page and the card
-/// already take: `Screen`'s 20 point gutter each side and `Group`'s 16.
-const _narrowest = 320.0 - 40 - 32;
+/// already take: `Screen`'s gutter each side and `Group`'s 16.
+///
+/// 22, not 20. `tokens.dart` defines `gutter = 22` and the first version of
+/// this file assumed 20, which made the guard four points MORE generous than
+/// the phone it is guarding. A width test that measures a wider screen than
+/// exists passes for a reason unrelated to what the founder sees.
+const _narrowest = 320.0 - (gutter * 2) - 32;
 
-/// Renders one row at a fixed width and returns how far it overflowed, or zero.
+/// Renders one row at the standard card width. See [_overflowOf].
 Future<double> _overflow(
   WidgetTester tester,
   ItemRow row, {
+  double textScale = 1.0,
+}) => _overflowOf(tester, row, width: _narrowest, textScale: textScale);
+
+/// Renders any widget at a fixed width and returns how far it overflowed.
+///
+/// The width is a parameter because not everything sits inside a card. A row
+/// lives in a `Group` and loses its 16s; a `Head` sits on the page and only
+/// loses the gutters.
+Future<double> _overflowOf(
+  WidgetTester tester,
+  Widget child, {
+  required double width,
   double textScale = 1.0,
 }) async {
   final errors = <FlutterErrorDetails>[];
@@ -40,7 +57,7 @@ Future<double> _overflow(
         data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
         child: Scaffold(
           body: Center(
-            child: SizedBox(width: _narrowest, child: row),
+            child: SizedBox(width: width, child: child),
           ),
         ),
       ),
@@ -118,6 +135,42 @@ void main() {
       ),
       0,
       reason: 'a seven figure balance is clipped on a narrow phone',
+    );
+  });
+
+  testWidgets('a long section head fits, and at 1.5x too', (tester) async {
+    // `Head` put its title in a bare Text inside a Row, which cannot shrink.
+    // Every head in the app was short enough to hide that until Upcoming grew
+    // "Between now and Sep 30", which overflowed by 10 points at 320dp and
+    // 1.5x and by 107 at 2.0x. Clipped with stripes in debug, silently cut off
+    // in release.
+    //
+    // A head sits on the PAGE, not inside a card, so it only loses the gutters.
+    for (final scale in [1.0, 1.3, 1.5]) {
+      final over = await _overflowOf(
+        tester,
+        const Head(title: 'Between now and Sep 30'),
+        width: 320.0 - (gutter * 2),
+        textScale: scale,
+      );
+      expect(
+        over,
+        0,
+        reason: 'the section head was clipped at ${scale}x on a 320dp phone',
+      );
+    }
+  });
+
+  testWidgets('and one with an action beside it', (tester) async {
+    expect(
+      await _overflowOf(
+        tester,
+        Head(title: 'Between now and Sep 30', action: 'Edit', onAction: () {}),
+        width: 320.0 - (gutter * 2),
+        textScale: 1.3,
+      ),
+      0,
+      reason: 'the title and its action could not share the width',
     );
   });
 

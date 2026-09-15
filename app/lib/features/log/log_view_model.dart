@@ -72,8 +72,28 @@ class LogViewModel extends ChangeNotifier {
     type == 'income' ? 'income' : 'expense',
   );
 
+  /// A TRANSFER CANNOT BE WRITTEN FROM THIS SHEET, and removing the Transfer
+  /// segment was not enough to stop it.
+  ///
+  /// [type] falls back to `parsed.type`, and `fastlog` still infers 'transfer'
+  /// from a word like "transfer" or "transferred". That file is golden locked
+  /// and byte identical to the shipped app, so the guard has to live here.
+  ///
+  /// Why it matters: this sheet has ONE account picker and a transfer needs
+  /// two, so the row went out with a single accountId and no `flow`.
+  /// `balanceSign` reads that as -1, the money left the picked account and
+  /// arrived nowhere, and `sanitizeData` then stripped the accountId so even
+  /// deleting the entry could not give it back. Measured at 5,000 in and 0
+  /// out in test/features/transfer_loss_test.dart.
+  ///
+  /// It is REFUSED rather than quietly saved as an expense. An expense would
+  /// land in budgets and spending totals, and a transfer is deliberately
+  /// neither. Refusing costs the user nothing, because the alternative on
+  /// offer was destroying the money.
+  bool get isTransfer => type == 'transfer';
+
   /// Can this be saved? An entry with no amount is not an entry.
-  bool get canSave => (parsed.amount ?? 0) > 0;
+  bool get canSave => (parsed.amount ?? 0) > 0 && !isTransfer;
 
   void setLine(String value) {
     _line = value;

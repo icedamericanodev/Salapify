@@ -74,6 +74,60 @@ Future<bool> showBudgetEditor(BuildContext context) async {
   return saved ?? false;
 }
 
+/// Everything the form used to say out loud, said once, on request.
+///
+/// Four entries and not one more. A help sheet that grows every time somebody
+/// has a thought becomes the wall of text it was built to replace, just one tap
+/// further away.
+const _help = <(String, String)>[
+  (
+    'The monthly amount',
+    'Everything you spend counts against it, whether or not it has a category.',
+  ),
+  (
+    'A blank cap means no limit',
+    'That category is still tracked, it is just never flagged. Zero is not the '
+        'same thing: zero means you meant to spend nothing on it.',
+  ),
+  (
+    'Caps can add up to more than the limit',
+    'A cap is a ceiling on one category, not a share of the month. Spending '
+        'with no category at all still counts against the monthly amount, so '
+        'the two figures were never meant to match.',
+  ),
+  (
+    'Unassigned money still counts',
+    'Whatever is not inside a category is still spendable and still comes off '
+        'your monthly limit. It is usually the best place to find a savings '
+        'cap or a debt payment.',
+  ),
+];
+
+/// The quiet "i". A 36 square target, because an icon drawn at 17 points is
+/// not a 17 point button.
+class _InfoDot extends StatelessWidget {
+  const _InfoDot({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Semantics(
+      button: true,
+      label: 'How this budget works',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(Icons.info_outline_rounded, size: 19, color: skin.text3),
+        ),
+      ),
+    );
+  }
+}
+
 class _BudgetSheet extends StatefulWidget {
   const _BudgetSheet();
 
@@ -207,9 +261,25 @@ class _BudgetSheetState extends State<_BudgetSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Set your budget', style: TypeScale.sheetTitle(skin.text)),
+              const SizedBox(width: 8),
+              // The teaching copy lives behind this, not on the form.
+              //
+              // The founder looked at the built sheet and said it plainly:
+              // "it is too wordy, we can give the user the option to view
+              // this". Three explanatory paragraphs were stacked between the
+              // fields, and a person who already knows what a budget is has to
+              // read past all of them every time they change one number. Help
+              // that is always on stops being help and becomes noise.
+              //
+              // What did NOT move: the running total. That is live data, not
+              // teaching, and D21 exists because the thing this sheet had to
+              // say was hidden where nobody could see it. Hiding it again
+              // behind an icon would undo that fix. Its explanatory half moved
+              // in here; its figures stayed on the form.
+              _InfoDot(onTap: () => _showHelp(context)),
+              const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(false),
                 child: Text('Cancel', style: TypeScale.action(skin.text2)),
@@ -238,26 +308,11 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                     style: TypeScale.input(skin.text),
                     decoration: _box(skin, '20000'),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Everything you spend counts against this, whether or not '
-                    'it has a category.',
-                    style: TypeScale.caption(skin.text3),
-                  ),
 
                   const SizedBox(height: 20),
                   Text(
                     'Per category',
                     style: TypeScale.fieldLabel(skin.text3),
-                  ),
-                  const SizedBox(height: 6),
-                  // Says what blank MEANS, because a blank field that quietly
-                  // means "no limit" and a blank field that means "zero" look
-                  // identical and are opposite instructions.
-                  Text(
-                    'Leave one blank and it has no limit, so it is tracked '
-                    'but never flagged.',
-                    style: TypeScale.caption(skin.text3),
                   ),
                   const SizedBox(height: 12),
 
@@ -347,8 +402,17 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     return cap > monthly;
   }
 
-  /// The sentence under the fields. Three cases, and all three are statements
-  /// of fact rather than verdicts.
+  /// The line under the fields. Figures only, never a lecture.
+  ///
+  /// It used to run to three sentences, two of which explained what a cap IS.
+  /// The founder read the built sheet and said it was too wordy, and they were
+  /// right: this sits under every field and is read on every visit, so the
+  /// teaching half belongs in [_showHelp], where somebody can ask for it once.
+  ///
+  /// Every FIGURE stays, and that part is not negotiable. D21 exists because
+  /// the thing this sheet needed to say was set with setState and thrown away
+  /// in the same frame, so nobody ever saw it. Moving the numbers behind an
+  /// icon would be the same defect wearing a nicer hat.
   String _runningTotal() {
     final total = _typedCapTotal;
     final monthly = _typedMonthly;
@@ -356,28 +420,96 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     final caveat = skipped == 0
         ? ''
         : skipped == 1
-        ? ' One amount could not be read and is not counted.'
-        : ' $skipped amounts could not be read and are not counted.';
+        ? ', 1 unreadable'
+        : ', $skipped unreadable';
 
     if (monthly == null || monthly <= 0) {
-      return 'Your categories add up to ${formatMoney(total)}. No monthly '
-          'limit set for the whole month.$caveat';
+      return '${formatMoney(total)} in categories. No monthly limit$caveat';
     }
     if (total > monthly) {
-      return 'Your categories add up to ${formatMoney(total)}, which is '
-          '${formatMoney(total - monthly)} more than the monthly limit. That '
-          'is allowed. A cap is a ceiling on one category, not a share of the '
-          'month.$caveat';
+      return '${formatMoney(total)} in categories, '
+          '${formatMoney(total - monthly)} over the monthly limit$caveat';
     }
-    // The line that changes behaviour rather than displaying data. A
-    // semimonthly earner builds the monthly limit out of two sweldos, and the
-    // unassigned remainder is exactly where a savings cap or a debt payment
-    // belongs. Naming it is enough; the screen does not then tell them what to
-    // do with it.
-    return 'Your categories add up to ${formatMoney(total)} of your '
-        '${formatMoney(monthly)} monthly limit. The other '
-        '${formatMoney(monthly - total)} is not in any category and still '
-        'counts against the month.$caveat';
+    // The UNASSIGNED figure is the one that changes behaviour rather than just
+    // reporting. A semimonthly earner builds the monthly limit out of two
+    // sweldos, and the remainder nothing is assigned to is exactly where a
+    // savings cap or a debt payment belongs. So the number stays on the form
+    // and only the paragraph explaining it moved into the help.
+    return '${formatMoney(total)} of ${formatMoney(monthly)} in categories, '
+        '${formatMoney(monthly - total)} unassigned$caveat';
+  }
+
+  /// What a budget actually is, on request rather than on every visit.
+  void _showHelp(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      // SCROLL CONTROLLED, AND THE CONTENT SCROLLS. Without both, this sheet
+      // clipped the very words it exists to show: the default cap is nine
+      // sixteenths of the screen and a bare Column cannot scroll, so at 320dp
+      // the fourth entry was gone entirely and at 1.5x text on a normal phone
+      // the last two were. A help sheet that hides its own help is worse than
+      // the paragraphs it replaced, because at least those were visible.
+      //
+      // The render harness could not catch it: it pins 412 by 915 at 1.0x,
+      // which is the one size where this happened to fit.
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      // The skin is read INSIDE the builder, not captured from the caller, so
+      // flipping the system theme with the sheet open repaints it.
+      builder: (sheetContext) {
+        final skin = sheetContext.skin;
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          decoration: BoxDecoration(
+            color: skin.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'How this budget works',
+                      style: TypeScale.sheetTitle(skin.text),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: () => Navigator.of(sheetContext).pop(),
+                    child: Text('Done', style: TypeScale.action(skin.text2)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final (title, body) in _help) ...[
+                        Text(title, style: TypeScale.fieldLabel(skin.text2)),
+                        const SizedBox(height: 5),
+                        Text(body, style: TypeScale.caption(skin.text3)),
+                        const SizedBox(height: 16),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   InputDecoration _box(Skin skin, String hint) => InputDecoration(

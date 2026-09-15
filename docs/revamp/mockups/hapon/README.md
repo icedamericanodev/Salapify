@@ -180,6 +180,13 @@ the founder asking how anyone would know a transaction could be edited at all.
 That page also names the two defects the renders caught while 455 tests stayed
 green.
 
+## Phase C7: Upcoming, and a form that stopped lecturing
+
+**[Phase C7 renders](c7/)**: Plan's Upcoming segment, built on the golden locked
+Sweldo Timeline, with the low point as the hero rather than a total. That page
+also covers the budget sheet losing its three stacked paragraphs to an info
+icon, and why the figures deliberately stayed on the form.
+
 ## The app icon
 
 **[Icon candidates](icon/)**: there was never a Salapify icon (both apps ship

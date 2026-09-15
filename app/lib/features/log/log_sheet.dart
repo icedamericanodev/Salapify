@@ -184,15 +184,30 @@ class _Sheet extends StatelessWidget {
           _GotIt(vm: vm),
           const SizedBox(height: 20),
 
+          // TWO OPTIONS, NOT THREE, AND TRANSFER IS NOT COMING BACK HERE.
+          //
+          // This sheet offered Transfer and it DESTROYED MONEY. A transfer
+          // needs two accounts and this sheet has one picker, so tapping it
+          // wrote `type: 'transfer'` with a single accountId and no `flow`.
+          // `balanceSign` reads anything that is not income and has no flow as
+          // -1, so the money left the account the user picked and arrived
+          // nowhere. Then `sanitizeData` stripped the accountId, because a
+          // flowless transfer is not a one-sided row, and after that
+          // `removeTransaction` had nothing to reverse against: deleting the
+          // entry could not give the balance back either.
+          //
+          // One tap, no error, no way back. Measured at 5,000 in and 0 out in
+          // test/features/transfer_loss_test.dart, which fails if this ever
+          // returns.
+          //
+          // A real transfer belongs on its own sheet with a FROM and a TO,
+          // calling the golden locked `applyTransfer`, which moves both sides
+          // and refuses an overdraft. Until that exists, the honest thing is
+          // not to offer the word.
           Segmented(
-            options: const ['Expense', 'Income', 'Transfer'],
-            index: switch (vm.type) {
-              'income' => 1,
-              'transfer' => 2,
-              _ => 0,
-            },
-            onPick: (i) =>
-                vm.pickType(const ['expense', 'income', 'transfer'][i]),
+            options: const ['Expense', 'Income'],
+            index: vm.type == 'income' ? 1 : 0,
+            onPick: (i) => vm.pickType(const ['expense', 'income'][i]),
           ),
           const SizedBox(height: 22),
 
@@ -292,6 +307,19 @@ class _GotIt extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = context.skin;
     final p = vm.parsed;
+
+    // Says why Save is dead, rather than leaving a button that does nothing.
+    // The parser still recognises "transfer" and it is golden locked, so the
+    // word can reach this sheet even with the segment gone. See the note on
+    // LogViewModel.isTransfer for what writing one used to do to the money.
+    if (vm.isTransfer) {
+      return Text(
+        'Moving money between your own accounts is not built yet. Log it as '
+        'an expense on one side if you need it recorded today.',
+        style: TypeScale.hint(skin.accent),
+      );
+    }
+
     if (!p.understood) {
       return Text(
         'Type what you spent, like "jollibee 250".',
