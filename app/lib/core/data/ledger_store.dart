@@ -68,11 +68,12 @@ class LedgerStore extends ChangeNotifier {
   /// The order matters and is the opposite of what is convenient: persist
   /// first, then swap, then notify. A UI that updates before the write lands
   /// tells the founder their money is saved when it may not be.
-  Future<void> mutate(void Function(Map<String, dynamic> draft) change) async {
-    final draft = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
-    change(draft);
-    await _commit(sanitizeData(draft));
-  }
+  Future<void> mutate(void Function(Map<String, dynamic> draft) change) =>
+      _enqueue(() async {
+        final draft = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
+        change(draft);
+        await _commit(sanitizeData(draft));
+      });
 
   /// Change the ledger with a PURE function, and persist the result.
   ///
@@ -94,10 +95,10 @@ class LedgerStore extends ChangeNotifier {
   /// returned. Same order as [mutate], for the same reason.
   Future<void> apply(
     Map<String, dynamic> Function(Map<String, dynamic> state) change,
-  ) async {
+  ) => _enqueue(() async {
     final copy = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
     await _commit(sanitizeData(change(copy)));
-  }
+  });
 
   /// Persist, then swap, then notify. Shared by [mutate] and [apply] so the
   /// two can never drift into different guarantees.
@@ -110,4 +111,41 @@ class LedgerStore extends ChangeNotifier {
     _data = next;
     notifyListeners();
   }
+
+  /// ONE WRITER AT A TIME, and this is a correctness fix rather than a tidy-up.
+  ///
+  /// Both [mutate] and [apply] take a deep COPY of the ledger and then await a
+  /// write that takes a real tenth of a second on a phone, because the
+  /// repository is a platform channel round trip. Two writers that overlap
+  /// inside that window both branch from the SAME copy, and the second write to
+  /// land silently discards the first one's work. Nothing throws. Nothing is
+  /// logged. The user is told both saves succeeded and one of them did not
+  /// happen.
+  ///
+  /// This is not theoretical here. A guard test written for the editor sheets
+  /// asserted "one account exists" after a double tap and PASSED with its guard
+  /// deleted, because two overlapping saves produced two writes and one
+  /// account: the second simply overwrote the first with an identical result.
+  /// It only looks harmless while the two writers happen to be writing the same
+  /// thing.
+  ///
+  /// The per-sheet `_saving` flags stay, and they are not made redundant by
+  /// this: they stop one sheet popping the root navigator twice, which is a
+  /// different bug. They are per-widget state, so they can say nothing at all
+  /// about two DIFFERENT writers, and two of those are coming (recurring
+  /// auto-posting and the net worth snapshot), both firing at launch with no
+  /// sheet and no guard anywhere.
+  ///
+  /// The snapshot is taken INSIDE the queued callback on purpose. Taking it
+  /// outside would queue the writes and leave the stale-copy problem exactly as
+  /// it was, which is the shape of fix that looks right and changes nothing.
+  Future<void> _enqueue(Future<void> Function() op) {
+    final next = _queue.then((_) => op());
+    // A failed write must not poison the queue for every write after it, and
+    // the caller still gets the real error through `next`.
+    _queue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<void> _queue = Future<void>.value();
 }

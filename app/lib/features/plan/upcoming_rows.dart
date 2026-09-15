@@ -21,7 +21,8 @@
 // month. Home already answers the nearer question, what is due before THIS
 // payday, so a horizon that stopped there would just be Home again.
 import '../../core/money/ledger.dart' show amountOf;
-import '../../core/money/schedule.dart' show nextPayday;
+import '../../core/money/schedule.dart'
+    show hasExplicitPaydaySchedule, nextPayday;
 import '../../core/money/timeline.dart' show sweldoTimeline;
 
 /// One thing happening on one day.
@@ -86,10 +87,20 @@ class Upcoming {
     required this.lowest,
     required this.lowestDate,
     required this.goesNegative,
+    required this.firstNegativeDate,
+    required this.horizonEnd,
+    required this.todayIso,
   });
 
   final List<UpcomingDay> days;
   final int horizonDays;
+
+  /// The last day of the window, as an ISO date.
+  ///
+  /// Carried rather than derived in the widget from `days.last.date`, which is
+  /// right today only because the last day happens to carry a row. The moment
+  /// the window ends on a quiet day it would silently name the wrong date.
+  final String horizonEnd;
 
   /// The lowest the projected balance gets inside the window, and when.
   ///
@@ -100,7 +111,35 @@ class Upcoming {
   final String lowestDate;
   final bool goesNegative;
 
+  /// The day the balance FIRST goes below zero, which is not the same day as
+  /// [lowestDate] and is the one a person has to act before.
+  ///
+  /// Dip under on the 13th, keep sinking to the minimum on the 25th, and a
+  /// screen that says "your money runs out around the 25th" is twelve days
+  /// late. "Around" does not cover twelve days. The first version of this
+  /// screen made exactly that mistake, with the right value sitting unread in
+  /// the engine's own return map.
+  final String firstNegativeDate;
+
+  /// Today, in the engine's format, so the hero can tell "you go below zero on
+  /// Sep 11" from "you are already below zero" without reaching for a clock of
+  /// its own. `timeline.dart` sets [firstNegativeDate] to today when the
+  /// starting balance is already negative.
+  final String todayIso;
+
   bool get isEmpty => days.isEmpty;
+
+  /// Everything due to go OUT across the window.
+  ///
+  /// Summed from the days already built, so the list underneath the hero
+  /// always adds up to the figure above it. Note the wording it earns on
+  /// screen: "due to go out", never "goes out". `timeline.dart` counts a debt
+  /// cycle while the balance is above zero even if the user already paid early,
+  /// because debts carry no per-cycle paid marker. That overstatement is
+  /// correct and safe for a projection and would be simply wrong as a claim
+  /// about what left the account.
+  double get totalOut =>
+      days.fold(0.0, (sum, d) => sum + d.moneyOut);
 }
 
 /// How many days out to look: to the payday AFTER the next one.
@@ -111,9 +150,18 @@ class Upcoming {
 /// those are opposite statements.
 int upcomingHorizonDays(Map<String, dynamic> data, DateTime ref) {
   final today = DateTime(ref.year, ref.month, ref.day);
-  final schedule = data['settings'] is Map
-      ? (data['settings'] as Map)['paydaySchedule']
-      : null;
+
+  // NO SCHEDULE, NO GUESSED HORIZON. `normalizeSchedule` invents
+  // {semimonthly, [15, 31]} when handed null, so calling nextPayday without
+  // this check produces a window measured from a payday the user never
+  // described. The kicker then reads "LOWEST IN THE NEXT 19 DAYS" where the 19
+  // came from an invention, and `_paydaysInWindow` correctly refuses to draw
+  // any payday row that would explain it. Home goes out of its way never to let
+  // a guessed payday reach the user (`FinancialState.cycle.explicit`) and this
+  // screen has to hold the same line.
+  if (!hasExplicitPaydaySchedule(data)) return 30;
+
+  final schedule = (data['settings'] as Map)['paydaySchedule'];
 
   var first = nextPayday(today, schedule);
   // Payday today is the START of a cycle, not the end of one. Home's
@@ -175,11 +223,24 @@ Upcoming upcomingFrom(Map<String, dynamic> data, DateTime ref) {
       ? (t['lowest'] as Map).cast<String, dynamic>()
       : const <String, dynamic>{};
 
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final end = DateTime(today.year, today.month, today.day + horizon);
+
   return Upcoming(
     days: days,
     horizonDays: horizon,
+    horizonEnd: _iso(end),
     lowest: amountOf(lowest['balance']),
     lowestDate: (lowest['date'] ?? '').toString(),
     goesNegative: t['anyNegative'] == true,
+    firstNegativeDate: (t['firstNegativeDate'] ?? '').toString(),
+    todayIso: _iso(today),
   );
 }
+
+/// The engine's own date format, so a date never crosses this file as anything
+/// else.
+String _iso(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';

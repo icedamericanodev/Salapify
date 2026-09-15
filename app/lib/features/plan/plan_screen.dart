@@ -120,11 +120,19 @@ class _Upcoming extends StatelessWidget {
       children: [
         _LowPoint(up: up),
         const SizedBox(height: 22),
-        Head(title: 'Between now and then'),
+        // Names the end date rather than saying "then". A head with no action
+        // has to earn its line by saying something, and "Between now and then"
+        // left the screen's entire defining idea, the payday after next,
+        // undefined: the hero says 19 days and nothing said whether that
+        // reaches past the rent.
+        Head(title: 'Between now and ${prettyDay(up.horizonEnd)}'),
         const SizedBox(height: 8),
         Group(
           inset: 0,
-          children: [for (final d in up.days) _UpcomingDayRow(day: d)],
+          children: [
+            for (final d in up.days)
+              _UpcomingDayRow(day: d, lowestDate: up.lowestDate),
+          ],
         ),
       ],
     );
@@ -142,18 +150,33 @@ class _LowPoint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final short = up.lowestDate.isEmpty
-        ? ''
-        : shortDate(DateTime.parse(up.lowestDate));
-
     // Two sentences, and which one shows is the whole point. Going under is
     // not a smaller version of staying above: it is a different event and it
     // gets said in words, not left for somebody to read off a colour.
+    //
+    // THE DATE IN THE SHORT CASE IS firstNegativeDate, NOT lowestDate, and the
+    // first version got this wrong. They are different days and can be far
+    // apart: dip under on the 13th, keep sinking to the minimum on the 25th,
+    // and "your money runs out around the 25th" is twelve days late on the one
+    // sentence in this app somebody actually has to act on.
     final sentence = up.goesNegative
-        ? 'Your money runs out around $short. Something has to move before '
-              'then.'
-        : 'The tightest day is $short. Everything after it is covered by what '
-              'comes in.';
+        ? (up.firstNegativeDate == up.todayIso
+              ? 'You are already below zero. Something has to move.'
+              : 'You go below zero on ${prettyDay(up.firstNegativeDate)}. '
+                    'Something has to move before then.')
+          // "Is due to go out", never "goes out". The engine counts a debt
+          // cycle while the balance is above zero even if it was already paid
+          // early, because debts carry no per-cycle paid marker. Safe and
+          // correct for a schedule, wrong as a claim about what has left.
+          //
+          // And no clause attributing the recovery to income. The data
+          // supports "nothing takes you lower inside this window" and does not
+          // support "everything after it is covered by what comes in", which
+          // the first version said and which reads as open ended on a window
+          // that ends at the payday after next.
+        : 'The tightest day is ${prettyDay(up.lowestDate)}. '
+              '${formatMoney(up.totalOut)} is due to go out before '
+              '${prettyDay(up.horizonEnd)}, and this is as low as it gets.';
 
     return HeroPanel(
       kicker: 'LOWEST IN THE NEXT ${up.horizonDays} DAYS',
@@ -166,50 +189,95 @@ class _LowPoint extends StatelessWidget {
 
 /// One day: what happens, and what is left afterwards.
 class _UpcomingDayRow extends StatelessWidget {
-  const _UpcomingDayRow({required this.day});
+  const _UpcomingDayRow({required this.day, required this.lowestDate});
   final UpcomingDay day;
+
+  /// So the row the hero named can mark itself. Passed in rather than read
+  /// again, because two derivations of "the tightest day" is one more than
+  /// this screen is allowed to have.
+  final String lowestDate;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
 
+    final hasIncome = day.events.any((e) => e.isIncome);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      // 13, the same beat as ItemRow, so days and entries line up when you
+      // flick between Ledger and Plan.
+      padding: const EdgeInsets.symmetric(vertical: 13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  prettyDay(day.date),
-                  style: TypeScale.rowTitle(
-                    day.isPayday ? skin.good : skin.text,
-                  ),
-                ),
-              ),
+              // The DATE is short and fixed and the money is the variable width
+              // thing, so the money is what flexes. With Expanded on the date,
+              // a seven figure balance at 2.0x text squeezed "Sep 11" into
+              // three lines while the amount sat comfortably. Now the amount
+              // ellipsizes at the extreme, which is the sanctioned failure.
+              Text(prettyDay(day.date), style: TypeScale.rowTitle(skin.text)),
               const SizedBox(width: 10),
-              // What is LEFT after the day, not what the day cost. The cost is
-              // on the rows underneath; this column is the running answer to
-              // "am I still fine", which is the only reason to read a
-              // projection rather than a calendar.
-              Text(
-                formatMoney(day.balanceAfter),
-                style: TypeScale.rowAmount(
-                  day.balanceAfter < 0 ? skin.bad : skin.text2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // What is LEFT after the day, not what the day cost. The
+                    // cost is on the rows underneath; this column is the
+                    // running answer to "am I still fine", which is the only
+                    // reason to read a projection rather than a calendar.
+                    Text(
+                      formatMoney(day.balanceAfter),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TypeScale.rowAmount(
+                        day.balanceAfter < 0 ? skin.bad : skin.text2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    // ONE QUIET WORD, and it is doing real work. Without it the
+                    // right column is two meanings in one ink: a running
+                    // balance and, three points below, what a bill costs. The
+                    // most available reading of "Sep 11 ₱6,460.50" with
+                    // "Meralco ₱3,200" under it is "Sep 11 costs ₱6,460.50",
+                    // which is wrong in a money-shaped way, so it gets
+                    // confirmed on some rows and contradicted on others rather
+                    // than caught. "left" is already the app's word for this,
+                    // on Budget rows and on the other Plan hero. It also fixes
+                    // the screen reader, which otherwise says an
+                    // undifferentiated run of pesos.
+                    Text('left', style: TypeScale.captionSm(skin.text3)),
+                  ],
                 ),
               ),
             ],
           ),
-          // A payday with nothing attached still earns its row, because the
-          // DATE is the information. It says so rather than drawing a silent
-          // green line with no figure on it, which reads as a bug.
-          if (day.isPayday && day.moneyIn <= 0) ...[
+          // A payday earns its row even with nothing attached, because the DATE
+          // is the information. It is marked with the WORD rather than a green
+          // date: green means money coming in, and on a payday with no salary
+          // set up a green date promises money that the caption underneath
+          // then denies. A colour that means two things means neither.
+          if (day.isPayday) ...[
             const SizedBox(height: 4),
             Text(
-              'Payday. Salapify does not know what you are paid yet.',
+              hasIncome
+                  ? 'Payday'
+                  // Explains the thing that otherwise looks broken: with no
+                  // salary, the balance is unchanged across the payday and the
+                  // projection appears frozen. No "set it up in Settings",
+                  // because there is no payday or income editor in this build
+                  // and pointing at a control that does not exist is the defect
+                  // this whole batch started from.
+                  : 'Payday. No salary set up yet, so nothing is added here.',
               style: TypeScale.caption(skin.text3),
             ),
+          ],
+          // The day the hero named, findable once the hero has scrolled away.
+          if (day.date == lowestDate) ...[
+            const SizedBox(height: 4),
+            Text('The tightest day', style: TypeScale.caption(skin.text3)),
           ],
           for (final e in day.events) ...[
             const SizedBox(height: 7),
@@ -228,16 +296,19 @@ class _UpcomingDayRow extends StatelessWidget {
                     e.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TypeScale.caption(skin.text2),
+                    // text3, matching ItemRow's ink ladder: two primary things
+                    // dark, the secondary pair quiet. Three of the four were
+                    // text2, which is why the right column read flat.
+                    style: TypeScale.caption(skin.text3),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   formatMoney(e.amount),
                   // Only money coming in is green, the rule Home and Ledger
-                  // already follow. An ordinary bill sits in text colour.
+                  // already follow. An ordinary bill sits in the quiet ink.
                   style: TypeScale.captionSm(
-                    e.isIncome ? skin.good : skin.text2,
+                    e.isIncome ? skin.good : skin.text3,
                   ),
                 ),
               ],

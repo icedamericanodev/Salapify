@@ -20,8 +20,13 @@ import 'package:salapify/design/tokens.dart';
 import '../shots/screens_shot.dart' show loadRealFonts;
 
 /// The narrowest screen Salapify supports, minus what the page and the card
-/// already take: `Screen`'s 20 point gutter each side and `Group`'s 16.
-const _narrowest = 320.0 - 40 - 32;
+/// already take: `Screen`'s gutter each side and `Group`'s 16.
+///
+/// 22, not 20. `tokens.dart` defines `gutter = 22` and the first version of
+/// this file assumed 20, which made the guard four points MORE generous than
+/// the phone it is guarding. A width test that measures a wider screen than
+/// exists passes for a reason unrelated to what the founder sees.
+const _narrowest = 320.0 - (gutter * 2) - 32;
 
 /// Renders one row at a fixed width and returns how far it overflowed, or zero.
 Future<double> _overflow(

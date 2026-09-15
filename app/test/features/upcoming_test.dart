@@ -138,12 +138,87 @@ void main() {
       );
     });
 
+    test('the day you RUN OUT is not the day you are lowest', () {
+      // The sentence a person actually acts on named the wrong day. Dip under
+      // on the 13th, keep sinking to the minimum on the 25th, and the first
+      // version said "your money runs out around the 25th": twelve days late,
+      // and "around" does not cover twelve days. The right value was sitting
+      // unread in the engine's own return map the whole time.
+      //
+      // A ledger built to make the two dates differ: thin cash, a bill that
+      // takes it under, then a bigger bill that takes it lower still.
+      final data = livedIn();
+      data['accounts'] = [
+        {'id': 'a_cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000.0},
+      ];
+      data['debts'] = const [];
+      data['recurring'] = [
+        {
+          'id': 'rc_small',
+          'type': 'expense',
+          'label': 'Small bill',
+          'amount': 1500.0,
+          'dayOfMonth': 12,
+        },
+        {
+          'id': 'rc_big',
+          'type': 'expense',
+          'label': 'Big bill',
+          'amount': 9000.0,
+          'dayOfMonth': 20,
+        },
+      ];
+
+      final up = upcomingFrom(data, sampleAnchor);
+
+      expect(up.goesNegative, isTrue);
+      expect(
+        up.firstNegativeDate,
+        '2026-09-12',
+        reason: 'the day the balance first went under was not reported',
+      );
+      expect(
+        up.lowestDate,
+        isNot(up.firstNegativeDate),
+        reason:
+            'this fixture was built so the two dates differ; if they are the '
+            'same the test can no longer tell a fix from the bug',
+      );
+      expect(
+        up.lowestDate.compareTo(up.firstNegativeDate),
+        greaterThan(0),
+        reason: 'the lowest day should fall AFTER the first negative day here',
+      );
+    });
+
     test('no schedule falls back to a window, never to nothing', () {
       // An empty ledger has no payday set. Returning zero days would render
       // "nothing is coming", which is a different statement from "we do not
       // know when you get paid" and is the more dangerous of the two.
       final horizon = upcomingHorizonDays(<String, dynamic>{}, sampleAnchor);
       expect(horizon, greaterThan(0));
+    });
+
+    test('and that window is NOT measured from a guessed payday', () {
+      // `normalizeSchedule` invents {semimonthly, [15, 31]} when handed null,
+      // so calling nextPayday without checking produces a horizon derived from
+      // a payday the user never described. The kicker then says "NEXT 19 DAYS"
+      // where the 19 came from an invention, and `_paydaysInWindow` correctly
+      // refuses to draw any payday row that would explain it.
+      final noSchedule = upcomingHorizonDays(<String, dynamic>{}, sampleAnchor);
+      expect(
+        noSchedule,
+        30,
+        reason:
+            'the window length came from a payday Salapify made up, which is '
+            'the one thing Home goes out of its way never to do',
+      );
+
+      // And a real schedule still drives a real horizon, or the guard above
+      // would pass by making the feature do nothing.
+      final withSchedule = upcomingHorizonDays(livedIn(), sampleAnchor);
+      expect(withSchedule, isNot(30));
+      expect(withSchedule, greaterThan(0));
     });
   });
 

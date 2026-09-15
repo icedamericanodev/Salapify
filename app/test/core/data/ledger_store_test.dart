@@ -26,6 +26,14 @@ class _FakeRepo implements LedgerRepository {
   /// When set, writeLedger throws instead of storing. Models a full disk.
   bool failWrites = false;
 
+  /// How long a write takes. Zero everywhere except the overlap tests.
+  ///
+  /// A real write is a platform channel round trip taking a real fraction of a
+  /// second, and every race two writers can lose lives inside that window. An
+  /// instant fake closes the race before a test can open it, so a deliberately
+  /// broken guard passes and the test reads as proof.
+  Duration writeDelay = Duration.zero;
+
   @override
   Future<String?> readLedger() async {
     events.add('read');
@@ -36,6 +44,7 @@ class _FakeRepo implements LedgerRepository {
   Future<void> writeLedger(String json) async {
     events.add('write');
     if (failWrites) throw StateError('disk full');
+    if (writeDelay > Duration.zero) await Future<void>.delayed(writeDelay);
     _ledger = json;
   }
 
@@ -283,5 +292,96 @@ void main() {
         expect(repo.events, isNot(contains('write')));
       },
     );
+  });
+
+  group('two writers at once', () {
+    // The failure this guards is silent by construction. Both writers take a
+    // deep COPY of the ledger and then await a write that takes a real fraction
+    // of a second on a phone. Overlap inside that window and both branch from
+    // the SAME copy, so the second write to land discards the first one's work.
+    // Nothing throws, nothing is logged, and the user is told both saves
+    // succeeded when one of them did not happen.
+    //
+    // It is not theoretical. A guard test for the editor sheets asserted "one
+    // account exists" after a double tap and PASSED with its guard deleted,
+    // because the two overlapping saves wrote the same thing. That is the only
+    // reason it looked harmless.
+
+    test('neither change is lost when two saves overlap', () async {
+      final repo = _FakeRepo(
+        jsonEncode({
+          'schemaVersion': 12,
+          'accounts': [
+            {'id': 'a1', 'name': 'GCash', 'kind': 'ewallet', 'balance': 100.0},
+          ],
+        }),
+      );
+      final store = LedgerStore(repo);
+      await store.load();
+      repo.writeDelay = const Duration(milliseconds: 60);
+
+      // Two DIFFERENT writers touching two different things, started without
+      // awaiting the first. Recurring auto-posting and a net worth snapshot
+      // will do exactly this at launch, with no sheet and no _saving flag
+      // anywhere near them.
+      final a = store.mutate((d) {
+        d['settings'] = {
+          ...(d['settings'] as Map).cast<String, dynamic>(),
+          'monthlyLimit': 20000.0,
+        };
+      });
+      final b = store.mutate((d) {
+        d['accounts'] = [
+          for (final acc in (d['accounts'] as List))
+            {...(acc as Map).cast<String, dynamic>(), 'balance': 999.0},
+        ];
+      });
+      await Future.wait([a, b]);
+
+      final settings = (store.data['settings'] as Map).cast<String, dynamic>();
+      final balance =
+          ((store.data['accounts'] as List).first as Map)['balance'];
+
+      expect(
+        settings['monthlyLimit'],
+        20000.0,
+        reason:
+            'the second save branched from a copy taken before the first one '
+            'landed, so it wrote the limit back to what it used to be',
+      );
+      expect(
+        balance,
+        999.0,
+        reason: 'the balance change was thrown away by the other writer',
+      );
+      // And what is on disk agrees with what is in memory, which is the whole
+      // promise of persist-then-swap.
+      expect(jsonEncode(repo.stored), jsonEncode(store.data));
+    });
+
+    test('a failed write does not poison the writes after it', () async {
+      // The queue must not become permanently broken because one write threw.
+      // A full disk is temporary; a store that refuses every later save is not.
+      final repo = _FakeRepo(jsonEncode({'schemaVersion': 12}));
+      final store = LedgerStore(repo);
+      await store.load();
+
+      repo.failWrites = true;
+      await expectLater(
+        store.mutate((d) => d['settings'] = {'monthlyLimit': 1.0}),
+        throwsA(isA<StateError>()),
+      );
+
+      repo.failWrites = false;
+      await store.mutate((d) => d['settings'] = {'monthlyLimit': 2.0});
+
+      expect(
+        (store.data['settings'] as Map)['monthlyLimit'],
+        2.0,
+        reason:
+            'one failed write left the queue stuck, so every save after it '
+            'silently did nothing',
+      );
+    });
   });
 }
