@@ -182,6 +182,135 @@ void main() {
     });
   });
 
+  group('"I already logged that one"', () {
+    // THE FOUNDER'S OWN LEDGER, on 2026-09-15, minutes after this reached their
+    // emulator. And it needs NOTHING added to it, which is the finding: the
+    // sample ledger already ships a Meralco EXPENSE for 3,200 this month and a
+    // Meralco RECURRING row for 3,200, with no link between them. So the card
+    // offered a bill that was already recorded, they tapped it, and the day
+    // read 18,500 minus 3,200 minus 3,200. Their screenshot shows both rows,
+    // one tagged "Bills, BPI" and one with no subtitle at all, which is how a
+    // recurring post looks: the engine writes no category, ever.
+    Map<String, dynamic> theirLedger() {
+      final data = livedIn();
+      data['recurring'] = [
+        {
+          'id': 'rc_meralco',
+          'type': 'expense',
+          'label': 'Meralco',
+          'amount': 3200.00,
+          'dayOfMonth': 11,
+          'accountId': 'a_bpi',
+        },
+      ];
+      return data;
+    }
+
+    test('an entry already in the ledger is found', () {
+      final data = theirLedger();
+      final bill = pendingBills(data, sampleAnchor).single;
+
+      // Did anything happen: the fixture really does hold the match this test
+      // is about, rather than the function returning something for a reason
+      // nobody checked.
+      final existing = (data['transactions'] as List).where(
+        (t) =>
+            t is Map &&
+            t['label'] == 'Meralco' &&
+            (t['recurringId'] ?? '') == '',
+      );
+      expect(existing, isNotEmpty);
+
+      final dup = alreadyLogged(data, bill.row, bill.date);
+      expect(
+        dup,
+        isNotNull,
+        reason:
+            'the ledger already holds Meralco for 3,200 this month and the '
+            'card would offer it again with nothing said',
+      );
+      expect(dup!['label'], 'Meralco');
+    });
+
+    test('and the one SALAPIFY posted is not mistaken for one', () {
+      // Our own posts carry a recurringId and are already guarded by the
+      // stamp. Counting them here would make every confirmed bill warn about
+      // itself forever, and a warning that is always on is a warning nobody
+      // reads.
+      final data = theirLedger();
+      // Clear the ledger of anything that already looks like this bill, so the
+      // only candidate left is the one we are about to post ourselves.
+      (data['transactions'] as List).removeWhere(
+        (t) => t is Map && t['label'] == 'Meralco',
+      );
+      final bill = pendingBills(data, sampleAnchor).single;
+      expect(alreadyLogged(data, bill.row, bill.date), isNull);
+
+      final after = postOneBill(data, 'rc_meralco', sampleAnchor, _id);
+      expect(
+        (after['transactions'] as List).any(
+          (t) => t is Map && t['recurringId'] == 'rc_meralco',
+        ),
+        isTrue,
+        reason: 'nothing was posted, so this proves nothing about ignoring it',
+      );
+      expect(
+        alreadyLogged(after, bill.row, bill.date),
+        isNull,
+        reason: 'the bill we just posted is being reported as a duplicate',
+      );
+    });
+
+    test('a different amount or a different month is not a duplicate', () {
+      // The warning has to stay silent when it should, or it gets ignored.
+      final data = theirLedger();
+      final bill = pendingBills(data, sampleAnchor).single;
+
+      final other = theirLedger();
+      for (final t in (other['transactions'] as List)) {
+        if (t is Map && t['label'] == 'Meralco') t['amount'] = 3100.00;
+      }
+      expect(
+        alreadyLogged(other, bill.row, bill.date),
+        isNull,
+        reason: 'a different figure was reported as the same bill',
+      );
+
+      final lastMonth = theirLedger();
+      for (final t in (lastMonth['transactions'] as List)) {
+        if (t is Map && t['label'] == 'Meralco') t['date'] = '2026-08-11';
+      }
+      expect(
+        alreadyLogged(lastMonth, bill.row, bill.date),
+        isNull,
+        reason: "last month's bill was reported as this month's",
+      );
+
+      // And it DOES still fire on the real case, or the three assertions above
+      // pass on a function that can never return anything.
+      expect(alreadyLogged(data, bill.row, bill.date), isNotNull);
+    });
+
+    testWidgets('the card says so, on screen, before the tap', (tester) async {
+      final store = await memoryStore(theirLedger());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+
+      // Scroll to the ROW, which is always there, and then ask about the
+      // warning. Scrolling to the warning itself makes its absence come back as
+      // "Bad state: No element" from deep inside scrollUntilVisible, which
+      // reads like a broken test rather than a missing sentence.
+      await _scrollTo(tester, find.textContaining('Will be dated'));
+      expect(
+        find.textContaining('Adding it again counts it twice'),
+        findsOneWidget,
+        reason:
+            'the ledger already holds this bill and Home offered it with '
+            'nothing on screen saying so',
+      );
+    });
+  });
+
   group('confirming one bill', () {
     test('takes exactly the amount out of exactly that account', () {
       final before = _withLinkedBill();

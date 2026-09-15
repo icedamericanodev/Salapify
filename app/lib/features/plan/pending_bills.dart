@@ -20,6 +20,7 @@
 // answering it, by handing it a ledger whose recurring list holds ONE row and
 // reading what comes back. The same shape `visibility.dart` uses to reach a
 // figure by removing rows rather than by subtracting from an answer.
+import '../../core/money/ledger.dart' show amountOf;
 import '../../core/money/recurring.dart' show postDueRecurring;
 
 /// One bill waiting to be confirmed, and the date the entry will carry.
@@ -43,6 +44,54 @@ List<PendingBill> pendingBills(Map<String, dynamic> data, DateTime now) => [
   for (final row in _recurring(data))
     if (_probe(data, row, now) case final String date) (row: row, date: date),
 ];
+
+/// An entry that already looks like this bill, in the month it would post into.
+///
+/// THE FOUNDER HIT THIS WITHIN MINUTES, on 2026-09-15. Their ledger already
+/// held "Meralco, Bills, BPI" for 3,200 on the 15th. The card offered Meralco
+/// for 3,200 anyway, they tapped it, and the day then read 18,500 minus 3,200
+/// minus 3,200. The same bill counted twice, in the books of somebody who keeps
+/// books for a living.
+///
+/// The engine cannot see this and should not try to. `lastPosted` records what
+/// SALAPIFY posted; it knows nothing about an entry a person typed themselves,
+/// and a recurring bill genuinely has no link to a manual entry. So the check
+/// belongs here, in front of the tap, as a warning rather than a rule: two
+/// identical charges in one month is unusual and not impossible, and refusing
+/// the tap outright would make a real second payment impossible to record.
+///
+/// Deliberately ignores anything carrying a `recurringId`, because that is an
+/// entry Salapify posted, and the stamp already prevents those.
+Map<String, dynamic>? alreadyLogged(
+  Map<String, dynamic> data,
+  Map<String, dynamic> row,
+  String date,
+) {
+  final label = (row['label'] ?? '').toString().trim().toLowerCase();
+  if (label.isEmpty || date.length < 7) return null;
+  final month = date.substring(0, 7);
+  final amount = amountOf(row['amount']);
+  final type = row['type'] == 'income' ? 'income' : 'expense';
+
+  for (final t
+      in (data['transactions'] is List
+          ? data['transactions'] as List
+          : const [])) {
+    if (t is! Map) continue;
+    // Ours, and already guarded by the stamp.
+    final rid = t['recurringId'];
+    if (rid is String && rid.isNotEmpty) continue;
+    if (t['type'] != type) continue;
+    if ((t['date'] ?? '').toString().startsWith(month) != true) continue;
+    if ((amountOf(t['amount']) - amount).abs() >= 0.005) continue;
+    // Label AND amount, never amount alone. A month holds plenty of charges
+    // that happen to match a bill's figure, and warning on every one of them
+    // is how a warning stops being read.
+    if ((t['label'] ?? '').toString().trim().toLowerCase() != label) continue;
+    return t.cast<String, dynamic>();
+  }
+  return null;
+}
 
 /// Post exactly ONE pending bill, returning a new ledger.
 ///

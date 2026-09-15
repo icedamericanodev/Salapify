@@ -89,6 +89,7 @@ class _DueRowState extends State<_DueRow> {
     final skin = context.skin;
     final b = widget.bill;
     final income = b['type'] == 'income';
+    final dup = alreadyLogged(context.ledger.data, b, widget.date);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 13),
@@ -150,7 +151,25 @@ class _DueRowState extends State<_DueRow> {
           // It is not a corner case. The recurring editor lets the account be
           // left empty, and a restored backup can carry rows from a version
           // that never had the field, so a person can easily hold several.
-          if (!income && !_movesAnAccount(context, b)) ...[
+          // ALREADY IN THE LEDGER. The founder's ledger held "Meralco, Bills,
+          // BPI" for 3,200 on the 15th, this card offered Meralco for 3,200
+          // anyway, they tapped it, and the day then read 18,500 minus 3,200
+          // minus 3,200. The same bill twice, in the books of somebody who
+          // keeps books for a living.
+          //
+          // A WARNING AND NOT A RULE. Two identical charges in one month is
+          // unusual and not impossible, so refusing the tap would make a real
+          // second payment impossible to record. What was missing was not
+          // permission, it was information.
+          if (dup != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Already in your ledger on '
+              '${prettyDay((dup['date'] ?? '').toString())}. '
+              'Adding it again counts it twice.',
+              style: TypeScale.caption(skin.bad),
+            ),
+          ] else if (!income && !_movesAnAccount(context, b)) ...[
             const SizedBox(height: 5),
             Text(
               'No account linked, so no balance moves.',
@@ -172,6 +191,11 @@ class _DueRowState extends State<_DueRow> {
             alignment: Alignment.centerLeft,
             child: PillButton(
               compact: true,
+              // SECONDARY when it looks like a duplicate. The warning above
+              // says the words; this stops the button from arguing with them.
+              // A full accent pill under a line that says "counts it twice" is
+              // the app telling somebody to do the thing it just warned about.
+              secondary: dup != null,
               label: _busy ? 'Adding' : (income ? 'It arrived' : 'I paid it'),
               onTap: _busy ? null : _post,
             ),
