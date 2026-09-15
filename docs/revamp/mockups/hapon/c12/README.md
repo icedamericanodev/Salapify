@@ -64,3 +64,30 @@ the series rather than a chart inventing it.
   figure, computed off `ownedOnly` exactly as that hero is, so somebody who
   marked an account as not theirs does not see a chart finishing somewhere the
   rest of the app disagrees with.
+
+## Where it lives, after D23
+
+Insights is the **second segment of the Ledger tab**, not a fifth tab and not
+a sentence at the bottom of Home.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Gabi](gabi-ledger-insights.png) | ![Hapon](hapon-ledger-insights.png) |
+
+The reason is an information-architecture one rather than a convenience: Home
+is now, Plan is the future, Accounts is the stock, and **Ledger is the past.**
+Insights is the past, shaped, so it belongs beside the raw version of itself.
+
+| Gabi, Entries | Hapon, Entries |
+|---|---|
+| ![Gabi](gabi-ledger-entries.png) | ![Hapon](hapon-ledger-entries.png) |
+
+A fifth tab was refused on measurement, not taste: it takes every tab column to
+36.1dp, under the 44dp touch floor, and breaks four of five labels at 320dp at
+1.3x system text.
+
+The old door was one tappable sentence at the very bottom of Home. Measured at
+320x640 it only appeared after scrolling 752 of 752 pixels, which is the
+literal last line on the page. It still works, and `/insights` is still a real
+pushed route, because a deep link from a notification needs somewhere to land
+that can be backed out of.

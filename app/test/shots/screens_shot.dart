@@ -536,6 +536,29 @@ void main() {
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-insights');
 
+      // AND THE SEGMENT, which is D23 and the discoverable route. The pushed
+      // screen above is for deep links; this is the one a person finds by
+      // tapping a tab. Reached by tapping the segment, because a screenshot of
+      // a state set in code proves nothing about the control that sets it.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(BackBar),
+          matching: find.byIcon(Icons.arrow_back_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavBar),
+          matching: find.byIcon(Icons.article_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-ledger-entries');
+      await tester.tap(find.text('Insights'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-ledger-insights');
+
       // AND THE BOTTOM OF IT, because the net worth chart is the one with a
       // custom painter in it and the one most likely to draw nothing at all.
       // A shot of the first viewport would photograph two charts and miss the

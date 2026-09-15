@@ -849,7 +849,7 @@ Screens: `docs/revamp/mockups/hapon/c10/README.md`.
 
 ---
 
-## D23. Where Insights lives. OPEN, founder decides
+## D23. Where Insights lives. ANSWERED 2026-09-15
 
 Founder question, 2026-09-15: "do you think its worthwhile to have a separate
 insights tab or it could be included like in a menu/tools tab or whatsoever is
@@ -897,7 +897,37 @@ Coming up and five Latest rows. Measured on the lived-in fixture at 320x640 it
 becomes visible only after scrolling 752 of 752 pixels: it is the literal last
 line on the page. That is a hidden feature, not a weak affordance.
 
-### OPEN: where it goes instead. Two credible answers.
+### ANSWERED: Insights is the Ledger tab's second segment
+
+Founder direction, 2026-09-15: "go with the ledger segment". Built the same
+day, and `04-screens.md` amended. The two options are kept below because the
+reasoning is what makes the choice checkable later rather than just recorded.
+
+**What shipped.** `[ Entries ] [ Insights ]` on the Ledger tab, with the
+header and the segment control built BEFORE anything branches on the data, so
+an empty ledger still reaches the charts. That ordering is the whole shape of
+the build rather than a detail: the old screen returned its empty state early,
+and a segment added after that return would have meant a person who has logged
+nothing has no route to Insights at all. It is exactly the defect the Accounts
+screen shipped, where the empty branch swallowed the Settings action and the
+backup and restore behind it. Break-proved: restoring the early return printed
+`Found 0 widgets with text "Insights"`.
+
+The edit hint moved out of the screen subtitle into the Entries segment, since
+"tap any entry to edit or delete it" is false of a chart, and the subtitle now
+has to cover both sides of the control it sits above. Plan learned the same
+lesson when its subtitle described Upcoming alone.
+
+`/insights` stays a real pushed route with its own back arrow, so Home's
+closing sentence and any future deep link still work. Two doors, one room.
+
+**One test was found wrong by this change rather than broken by it.** A journey
+asserted `findsNWidgets(2)` for a label that appears on two different days.
+That passed only while the whole Ledger happened to fit the 600pt test
+viewport; `Screen` is a lazy ListView, so once the list grew past one screen NO
+scroll position can have both rows built at once. It now counts from
+`groupByDay`, which is what the screen itself reads, and still asserts by
+tapping that a person can SEE what they just logged.
 
 **Option A, the Revolut pattern.** A chart icon in Home's header, top right,
 beside the bell. Zero nav cost, permanently visible from cold launch. The

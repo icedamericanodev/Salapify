@@ -14,79 +14,118 @@ import '../../app/ledger_scope.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
 import '../../design/kit.dart';
+import '../../design/tokens.dart';
+import '../../design/type.dart';
+import '../insights/insights_screen.dart' show InsightsBody;
 import 'entry_presentation.dart';
 
-class LedgerScreen extends StatelessWidget {
+class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
 
   @override
+  State<LedgerScreen> createState() => _LedgerScreenState();
+}
+
+class _LedgerScreenState extends State<LedgerScreen> {
+  /// 0 is Entries, 1 is Insights. Local, not in the URL: the segment is a view
+  /// preference rather than a place, and it survives a tab switch because the
+  /// shell keeps each branch alive.
+  int _view = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final days = groupByDay(context.ledger.data);
-
-    if (days.isEmpty) {
-      return const Screen(
-        children: [
-          SizedBox(height: 14),
-          ScreenTitle(
-            title: 'Ledger',
-            sub: 'Everything you have logged, newest first.',
-          ),
-          SizedBox(height: 20),
-          EmptyState(
-            icon: Icons.article_outlined,
-            title: 'No entries yet',
-            body:
-                'Every expense, income and transfer you log lands here, '
-                'grouped by the day it happened.',
-          ),
-        ],
-      );
-    }
-
+    // THE HEADER AND THE SEGMENT ARE BUILT BEFORE ANYTHING BRANCHES ON THE
+    // DATA, and that is the whole shape of this method rather than a detail.
+    //
+    // The old version returned the empty state early, header and all. Adding
+    // the segment after that return would have meant a ledger with no entries
+    // had no reachable Insights segment at all, which is exactly the defect
+    // the Accounts screen shipped: its empty branch swallowed the Settings
+    // action, and the backup and restore behind it, on the one ledger where
+    // restore is the thing a person most needs.
     return Screen(
       children: [
         const SizedBox(height: 14),
-        // The sentence says what the chevron shows. A marker teaches somebody
-        // who is already looking for one; a sentence reaches the person who
-        // has not thought to look. The founder asked how a user would ever
-        // know a transaction could be corrected, and the honest answer was
-        // that nothing on this screen told them.
+        // ONE SUBTITLE FOR BOTH SEGMENTS. It sits above the segment control,
+        // so it cannot describe only the entries. The Plan screen has the same
+        // note for the same reason: its subtitle once described Upcoming alone
+        // and contradicted the list underneath it the moment that segment grew.
         const ScreenTitle(
           title: 'Ledger',
-          sub:
-              'Everything you have logged, newest first. Tap any entry to '
-              'edit or delete it.',
+          sub: 'Everything you have logged, and what it all adds up to.',
         ),
-        const SizedBox(height: 18),
-        for (final day in days) ...[
-          Head(
-            title: prettyDay(day.date),
-            // amount, not action: a day total is money, so it takes a
-            // direction colour and never the accent. See the note on Head.
-            amount: day.counts ? formatMoney(day.total) : null,
-            tone: day.total > 0 ? Tone.good : Tone.plain,
-          ),
-          const SizedBox(height: 8),
-          Group(
-            children: [
-              for (final t in day.rows)
-                ItemRow(
-                  icon: entryIcon(t),
-                  title: (t['label'] ?? '').toString(),
-                  sub: entrySubtitle(context.ledger.data, t),
-                  amount: formatMoney(signedAmount(t)),
-                  tone: _toneFor(t),
-                  // Tappable at last. Until this, a mistyped entry could only
-                  // be fixed by restoring a backup, and the parser guesses, so
-                  // wrong entries are a normal event rather than a rare one.
-                  onTap: () => context.push('/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 18),
-        ],
+        const SizedBox(height: 16),
+        Segmented(
+          options: const ['Entries', 'Insights'],
+          index: _view,
+          onPick: (i) => setState(() => _view = i),
+        ),
+        const SizedBox(height: 20),
+        if (_view == 1) ...InsightsBody.of(context) else ..._entries(context),
       ],
     );
+  }
+
+  List<Widget> _entries(BuildContext context) {
+    final days = groupByDay(context.ledger.data);
+
+    if (days.isEmpty) {
+      return const [
+        EmptyState(
+          icon: Icons.article_outlined,
+          title: 'No entries yet',
+          body:
+              'Every expense, income and transfer you log lands here, '
+              'grouped by the day it happened.',
+        ),
+      ];
+    }
+
+    return [
+      // The sentence says what the chevron shows. A marker teaches somebody
+      // who is already looking for one; a sentence reaches the person who has
+      // not thought to look. The founder asked how a user would ever know a
+      // transaction could be corrected, and the honest answer was that nothing
+      // on this screen told them.
+      //
+      // It moved OUT of the screen subtitle when Insights became the second
+      // segment, because "tap any entry to edit it" is false of the charts and
+      // the subtitle now covers both.
+      Text(
+        'Tap any entry to edit or delete it.',
+        style: TypeScale.caption(context.skin.text3),
+      ),
+      const SizedBox(height: 14),
+      for (final day in days) ...[
+        Head(
+          title: prettyDay(day.date),
+          // amount, not action: a day total is money, so it takes a
+          // direction colour and never the accent. See the note on Head.
+          amount: day.counts ? formatMoney(day.total) : null,
+          tone: day.total > 0 ? Tone.good : Tone.plain,
+        ),
+        const SizedBox(height: 8),
+        Group(
+          children: [
+            for (final t in day.rows)
+              ItemRow(
+                icon: entryIcon(t),
+                title: (t['label'] ?? '').toString(),
+                sub: entrySubtitle(context.ledger.data, t),
+                amount: formatMoney(signedAmount(t)),
+                tone: _toneFor(t),
+                // Tappable at last. Until this, a mistyped entry could only
+                // be fixed by restoring a backup, and the parser guesses, so
+                // wrong entries are a normal event rather than a rare one.
+                onTap: () => context.push(
+                  '/entry/${Uri.encodeComponent((t['id'] ?? '').toString())}',
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+      ],
+    ];
   }
 }
 

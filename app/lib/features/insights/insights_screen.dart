@@ -34,11 +34,26 @@ import 'insight_rows.dart';
 
 const String insightsRoutePath = '/insights';
 
-class InsightsScreen extends StatelessWidget {
-  const InsightsScreen({super.key});
+/// The charts, with no chrome of their own.
+///
+/// SEPARATE FROM THE SCREEN because it now has two homes, which is D23.
+/// Insights is the second segment of the Ledger tab, because Home is now, Plan
+/// is the future, Accounts is the stock, and LEDGER IS THE PAST. Insights is
+/// the past, shaped, so it belongs beside the raw version of itself rather
+/// than behind a sentence at the bottom of another screen.
+///
+/// The pushed [InsightsScreen] below stays as well, and that is two doors into
+/// one room rather than a duplicate: a deep link from a notification or the
+/// home screen widget needs somewhere to land that can be backed OUT of, and a
+/// tab switch is not that.
+///
+/// Returns a LIST, not a Column. The Ledger tab's `Screen` is a lazy ListView
+/// and wrapping these in a Column would build all three charts, including the
+/// CustomPainter, every time somebody opens the Ledger to check one entry.
+class InsightsBody {
+  const InsightsBody._();
 
-  @override
-  Widget build(BuildContext context) {
+  static List<Widget> of(BuildContext context) {
     final data = context.ledger.data;
     final now = context.now;
 
@@ -51,6 +66,47 @@ class InsightsScreen extends StatelessWidget {
         bars.every((b) => b.income == 0 && b.expenses == 0) &&
         points.length <= 1;
 
+    if (nothingAtAll) {
+      return const [
+        EmptyState(
+          icon: Icons.insights_outlined,
+          title: 'Not enough logged yet',
+          body:
+              'Log a few entries and this fills in: where the month went, '
+              'how it compares with your usual month, and which way your '
+              'net worth is moving.',
+        ),
+      ];
+    }
+
+    return [
+      _Section(
+        title: 'Where this month went',
+        sentence: categorySentence(slices),
+        child: _CategoryBars(slices: slices),
+      ),
+      _Section(
+        title: 'In and out, last six months',
+        sentence: inVersusOutSentence(bars),
+        child: _MonthBars(bars: bars),
+      ),
+      _Section(
+        title: 'Net worth',
+        sentence: netWorthSentence(points),
+        child: _NetWorthLine(points: points),
+      ),
+    ];
+  }
+}
+
+/// Insights as a pushed screen, for deep links and for Home's closing
+/// sentence. The Ledger tab's segment is the discoverable route; this is the
+/// one a notification can land on and back out of.
+class InsightsScreen extends StatelessWidget {
+  const InsightsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.skin.bg,
       body: Screen(
@@ -62,33 +118,7 @@ class InsightsScreen extends StatelessWidget {
             sub: 'Where your money went, and where it is heading.',
           ),
           const SizedBox(height: 22),
-
-          if (nothingAtAll)
-            const EmptyState(
-              icon: Icons.insights_outlined,
-              title: 'Not enough logged yet',
-              body:
-                  'Log a few entries and this fills in: where the month went, '
-                  'how it compares with your usual month, and which way your '
-                  'net worth is moving.',
-            )
-          else ...[
-            _Section(
-              title: 'Where this month went',
-              sentence: categorySentence(slices),
-              child: _CategoryBars(slices: slices),
-            ),
-            _Section(
-              title: 'In and out, last six months',
-              sentence: inVersusOutSentence(bars),
-              child: _MonthBars(bars: bars),
-            ),
-            _Section(
-              title: 'Net worth',
-              sentence: netWorthSentence(points),
-              child: _NetWorthLine(points: points),
-            ),
-          ],
+          ...InsightsBody.of(context),
         ],
       ),
     );

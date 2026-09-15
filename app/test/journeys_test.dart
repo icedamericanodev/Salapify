@@ -23,6 +23,7 @@ import 'package:salapify/app/router.dart';
 import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/ledger.dart';
 import 'package:salapify/design/kit.dart';
+import 'package:salapify/features/ledger/ledger_screen.dart' show groupByDay;
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/settings/backup_service.dart';
 import 'package:salapify/design/tokens.dart';
@@ -262,10 +263,35 @@ void main() {
     // Two of each, because the lived-in fixture already carries a Jollibee and
     // a Load from earlier days. Both new rows are there AND neither replaced
     // what was already in the list.
+    //
+    // THE COUNT IS TAKEN FROM THE GROUPING, NOT FROM THE WIDGET TREE, and that
+    // is a correction rather than a shortcut. `findsNWidgets(2)` passed only
+    // while the whole list happened to fit the 600pt test viewport: `Screen`
+    // is a lazy ListView, so the two rows are on different days, far apart,
+    // and once the list grew past one screen NO scroll position can have both
+    // built at once. It went red the day the Ledger grew a segment control,
+    // reporting "the second entry did not land" about a screen where both had
+    // landed perfectly. A count that depends on where the list happens to be
+    // scrolled was never testing what it claimed.
+    //
+    // `groupByDay` is what the screen itself reads, so this is still the
+    // screen's own view of the data rather than a peek at raw storage.
+    final rows = [
+      for (final day in groupByDay(store.data)) ...day.rows,
+    ];
+    expect(
+      rows.where((t) => t['label'] == 'Jollibee'),
+      hasLength(2),
+      reason: 'the second Jollibee replaced the first instead of joining it',
+    );
+    expect(rows.where((t) => t['label'] == 'Load'), hasLength(2));
+
+    // And a person can SEE what they just logged, which is the other half and
+    // the one a data assertion can never cover.
     await tester.tap(find.text('Ledger'));
     await tester.pumpAndSettle();
-    expect(find.text('Jollibee'), findsNWidgets(2));
-    expect(find.text('Load'), findsNWidgets(2));
+    expect(find.text('Jollibee'), findsWidgets);
+    expect(find.text('Load'), findsWidgets);
   });
 
   testWidgets('paying a debt: the money moves, and every screen can SHOW it', (
