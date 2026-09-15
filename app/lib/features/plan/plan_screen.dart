@@ -491,49 +491,75 @@ const _upcomingHelp = <(String, String)>[
 ];
 
 void _showUpcomingHelp(BuildContext context) {
-  final skin = context.skin;
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: skin.bg,
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
     // Without this the sheet lands UNDER the nav bar, which is the one bug
     // every sheet in this app has shipped at least once.
+    //
+    // AND IT IS WHY THE CONTEXT BELOW MATTERS. This pushes the sheet onto the
+    // ROOT navigator, while the Plan screen's own context resolves to the tab
+    // shell's inner one. The first version of this closed on
+    // `Navigator.of(context).pop()` with the outer context, so Done did not
+    // close the sheet at all: it popped the PLAN PAGE off the shell stack and
+    // left the shell with nothing to draw. The founder tapped Done and got a
+    // black screen. Every context below is the SHEET's.
     useRootNavigator: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-    ),
-    builder: (_) => SafeArea(
-      child: ConstrainedBox(
+    // The skin is read INSIDE the builder, not captured from the caller, so
+    // flipping the system theme with the sheet open repaints it.
+    builder: (sheetContext) {
+      final skin = sheetContext.skin;
+      return Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'How this projection works',
-                style: TypeScale.sheetTitle(skin.text),
-              ),
-              const SizedBox(height: 18),
-              for (final (title, body) in _upcomingHelp) ...[
-                Text(title, style: TypeScale.fieldLabel(skin.text2)),
-                const SizedBox(height: 5),
-                Text(body, style: TypeScale.caption(skin.text3)),
-                const SizedBox(height: 16),
+        padding: const EdgeInsets.fromLTRB(22, 20, 22, 28),
+        decoration: BoxDecoration(
+          color: skin.bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    'How this projection works',
+                    style: TypeScale.sheetTitle(skin.text),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => Navigator.of(sheetContext).pop(),
+                  child: Text('Done', style: TypeScale.action(skin.text2)),
+                ),
               ],
-              const SizedBox(height: 4),
-              PillButton(
-                label: 'Done',
-                onTap: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 18),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (title, body) in _upcomingHelp) ...[
+                      Text(title, style: TypeScale.fieldLabel(skin.text2)),
+                      const SizedBox(height: 5),
+                      Text(body, style: TypeScale.caption(skin.text3)),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 

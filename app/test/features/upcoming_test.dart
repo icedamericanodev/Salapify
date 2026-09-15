@@ -422,5 +422,66 @@ void main() {
             'either',
       );
     });
+
+    testWidgets('closing the projection help leaves the screen standing', (
+      tester,
+    ) async {
+      // THE FOUNDER TAPPED DONE AND GOT A BLACK SCREEN, on 2026-09-15, within
+      // minutes of this sheet reaching their emulator.
+      //
+      // `useRootNavigator: true` is required or the sheet lands under the nav
+      // bar, and it pushes onto the ROOT navigator. The first version of the
+      // Done button called `Navigator.of(context).pop()` closing over the PLAN
+      // SCREEN's context, which resolves to the tab shell's inner navigator
+      // instead. So Done never closed the sheet: it popped the Plan page off
+      // the shell stack and left the shell with nothing to draw.
+      //
+      // Nothing about the sheet's CONTENT was wrong, which is why no reading of
+      // it would have found this. Only opening it and closing it does.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upcoming'));
+      await tester.pumpAndSettle();
+
+      final help = find.text('How this projection works');
+      await tester.scrollUntilVisible(help, 200);
+      await tester.pumpAndSettle();
+      await tester.tap(help);
+      await tester.pumpAndSettle();
+
+      // Did anything happen. Without this, a sheet that never opened would
+      // sail through the "still standing" assertion below, which is exactly
+      // the shape the journey rules warn about.
+      expect(
+        find.text('Where the window ends'),
+        findsOneWidget,
+        reason: 'the help sheet did not open, so closing it proves nothing',
+      );
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Where the window ends'),
+        findsNothing,
+        reason: 'Done did not close the sheet',
+      );
+      // AND the screen underneath survived. This is the assertion the bug
+      // fails: the sheet closing and the page surviving are two different
+      // facts, and the broken version got the first one wrong in a way that
+      // destroyed the second.
+      expect(
+        find.textContaining('LOWEST BALANCE'),
+        findsOneWidget,
+        reason:
+            'the sheet closed and took the Plan screen with it, leaving the '
+            'tab shell with nothing to draw: a black screen',
+      );
+    });
   });
 }
