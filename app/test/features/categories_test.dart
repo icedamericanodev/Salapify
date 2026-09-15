@@ -239,6 +239,61 @@ void main() {
     });
   });
 
+  group('a blocked delete says why, in the count', () {
+    test('entries block it, and the sentence names how many', () {
+      final data = livedIn();
+      final said = blocksRemoval(data, _cat(data, 'cat_groceries'));
+      expect(said, isNotNull);
+      expect(
+        said,
+        contains('One entry'),
+        reason:
+            'the refusal does not say how much history is in the way, so the '
+            'person cannot tell whether it is one stray entry or a year',
+      );
+      expect(said, contains('Hide it instead'));
+    });
+
+    test('and children block it, named as sub-categories', () {
+      final data = livedIn();
+      final said = blocksRemoval(data, _cat(data, 'cat_bills'));
+      expect(said, contains('2 sub-categories'));
+      expect(
+        said,
+        isNot(contains('entries are tagged')),
+        reason:
+            'Bills has no entries of its own, so leading with history would '
+            'name a reason that is not the real one',
+      );
+    });
+
+    test('a limit no longer blocks it, and the confirmation names it', () {
+      // Founder direction: "add a rule if there is transaction linked to that
+      // category/sub category then the app wont allow to delete it". A limit
+      // on a category nobody ever logged against is worth nothing, and
+      // refusing the delete over it left permanent litter in every picker.
+      final data = livedIn();
+      final capped = {..._cat(data, 'cat_fun'), 'monthlyCap': 3000.0};
+      data['categories'] = [
+        for (final c in allCategories(data))
+          if (c['id'] == 'cat_fun') capped else c,
+      ];
+
+      expect(
+        blocksRemoval(data, capped),
+        isNull,
+        reason: 'a never-used category is still being held hostage by a limit',
+      );
+      expect(
+        removeConsequence(capped),
+        contains('3,000'),
+        reason:
+            'the limit vanishes with the category and the confirmation never '
+            'said so, which is the one thing the person cannot see from here',
+      );
+    });
+  });
+
   group('on the screen', () {
     testWidgets('hide Groceries, and Plan still shows its money', (
       tester,
@@ -413,6 +468,101 @@ void main() {
         reason:
             'the new sub-category is on the list saying nothing about what it '
             'belongs to, which is the state the founder reported',
+      );
+    });
+
+    testWidgets('delete stays ON the sheet when it cannot happen, and says why', (
+      tester,
+    ) async {
+      // THE FOUNDER'S EXACT REPORT: "i noticed there is no option to delete
+      // category". There was one, and it only appeared when a delete was
+      // allowed, silently becoming "Hide it" otherwise. Every category they
+      // owned had entries against it, so the word never once appeared and the
+      // feature was indistinguishable from a missing one.
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _openCategories(tester);
+
+      await tester.scrollUntilVisible(
+        find.text('Groceries'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Groceries'));
+      await tester.pumpAndSettle();
+
+      // ASSERTED BEFORE it is scrolled to, because ensureVisible on a widget
+      // that is not there throws "Bad state: No element" and that sentence is
+      // then the entire failure report, naming nothing.
+      expect(
+        find.text('Delete this category'),
+        findsOneWidget,
+        reason:
+            'the control disappeared instead of going quiet, so nothing on '
+            'the screen tells the person deleting a category is possible',
+      );
+      await tester.ensureVisible(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('One entry is tagged with this'),
+        findsOneWidget,
+        reason: 'it is refusing without saying what is in the way',
+      );
+
+      // And tapping it does NOTHING, rather than opening a confirmation for
+      // an action that cannot complete.
+      await tester.tap(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Remove Groceries?'), findsNothing);
+      expect(
+        allCategories(store.data).any((c) => c['id'] == 'cat_groceries'),
+        isTrue,
+        reason: 'a blocked delete went through anyway',
+      );
+    });
+
+    testWidgets('and deletes for real when nothing is in the way', (
+      tester,
+    ) async {
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await _openCategories(tester);
+
+      // Fun is tagged on nothing and groups nothing, the one shape a delete
+      // is allowed to take.
+      await tester.scrollUntilVisible(
+        find.text('Fun'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fun'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+
+      // IT ASKS FIRST. This is the one action on the screen with no way back.
+      expect(find.textContaining('Remove Fun?'), findsOneWidget);
+      await tester.tap(find.text('Remove it'));
+      await tester.pumpAndSettle();
+
+      expect(
+        allCategories(store.data).any((c) => c['id'] == 'cat_fun'),
+        isFalse,
+        reason: 'the confirmation was accepted and the delete never landed',
+      );
+      // AND IT IS OFF THE SCREEN, not merely out of the store.
+      expect(
+        find.text('Fun'),
+        findsNothing,
+        reason:
+            'the row survived its own deletion, so the list and the store '
+            'disagree about what exists',
       );
     });
 

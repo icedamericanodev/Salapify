@@ -745,6 +745,27 @@ void main() {
       await tester.tap(find.text('Hide it'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-category-hide');
+
+      // AND THE OTHER HALF OF DELETE. Groceries above shows the refusal,
+      // greyed with the reason under it; Fun is tagged on nothing and groups
+      // nothing, so the same control is live and red there. Both states are
+      // rendered because the founder reported the feature missing entirely
+      // when only one of them could ever appear.
+      await tester.tap(find.text('Keep it'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Fun'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fun'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Delete this category'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-category-delete');
     });
 
     testWidgets('first run ${s.key}', (tester) async {

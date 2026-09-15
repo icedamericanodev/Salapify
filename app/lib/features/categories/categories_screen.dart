@@ -433,36 +433,76 @@ class _CategorySheetState extends State<_CategorySheet> {
             ),
 
             if (_isEdit) ...[
+              // HIDE, the reversible one, which keeps the pill.
               const SizedBox(height: 10),
               PillButton(
                 secondary: true,
-                label: archived
-                    ? 'Bring it back'
-                    : (canRemove(data, cat!) ? 'Remove it' : 'Hide it'),
+                label: archived ? 'Bring it back' : 'Hide it',
                 onTap: _busy
                     ? null
-                    : () => archived
-                          ? _setArchived(false)
-                          : (canRemove(data, cat!)
-                                ? _confirmRemove()
-                                : _confirmHide()),
+                    : () => archived ? _setArchived(false) : _confirmHide(),
               ),
               const SizedBox(height: 8),
               Text(
                 archived
                     ? 'It goes back into the list you pick from when you log '
                           'something.'
-                    : canRemove(data, cat!)
-                    ? 'Nothing is tagged with this one yet, so it can go '
-                          'completely.'
                     : 'Hiding keeps every entry exactly as it is.',
                 style: TypeScale.caption(skin.text3),
               ),
+              ..._deleteSection(data, cat!),
             ],
           ],
         ),
       ),
     );
+  }
+
+  /// Delete, ALWAYS on the sheet, and saying why when it cannot happen.
+  ///
+  /// The old shape offered one pill that was "Remove it" when a delete was
+  /// allowed and "Hide it" when it was not. Every category the founder owned
+  /// had entries against it, so the word delete never appeared anywhere in
+  /// the app and they reported, correctly, that there was no option to delete
+  /// a category. A control that vanishes when it is unavailable teaches
+  /// nobody that it exists, and leaves somebody hunting for a feature that is
+  /// sitting right there behind one condition.
+  ///
+  /// So it stays put and goes quiet instead, with the reason underneath in
+  /// the same place the consequence would be. Quiet rather than hidden.
+  List<Widget> _deleteSection(
+    Map<String, dynamic> data,
+    Map<String, dynamic> cat,
+  ) {
+    final skin = context.skin;
+    final blocked = blocksRemoval(data, cat);
+    final ink = blocked == null ? skin.bad : skin.text3;
+    return [
+      const SizedBox(height: 20),
+      Semantics(
+        button: blocked == null,
+        enabled: blocked == null,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: blocked != null || _busy ? null : _confirmRemove,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 18, color: ink),
+              const SizedBox(width: 6),
+              Text('Delete this category', style: TypeScale.action(ink)),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        // The refusal and the consequence share one slot, because they answer
+        // the same question: what happens if I tap that.
+        blocked ?? removeConsequence(cat),
+        style: TypeScale.caption(skin.text3),
+      ),
+    ];
   }
 
   /// The grouping field. Two directions, and BOTH have to be reachable.

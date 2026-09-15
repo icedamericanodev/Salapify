@@ -100,6 +100,43 @@ The candidate list applies the same rule from the other direction: only top
 level categories are offered as a parent, so picking one can never itself
 create a third level.
 
+## Delete stays on the sheet when it cannot happen
+
+| Refused (Groceries) | Allowed (Fun) |
+|---|---|
+| ![Gabi](gabi-category-editor.png) | ![Gabi](gabi-category-delete.png) |
+
+Founder, after a round of using it: *"i noticed there is no option to delete
+category. I think we can add that just add a rule if there is transaction
+linked to that category/sub category then the app wont allow to delete it."*
+
+The rule they describe was already the rule. The problem was that the screen
+expressed it by making the control DISAPPEAR: one pill read "Remove it" when
+a delete was allowed and "Hide it" when it was not. Every category the
+founder owned had entries against it, so the word delete never once appeared
+anywhere in the app, and a feature that is never visible is indistinguishable
+from a feature that was never built.
+
+So delete now has its own place on the sheet and always occupies it. Live and
+red when it can happen, quiet and untappable when it cannot, with the reason
+in the slot the consequence would otherwise use, counted: "One entry is
+tagged with this, and deleting it would leave that entry with no category.
+Hide it instead."
+
+**A limit stopped blocking it, and that is a real rule change.** The old test
+refused a delete over three things: entries, a monthly limit, and
+sub-categories. The founder asked for one of those. A limit on a category
+nobody ever logged against is worth nothing, and refusing the delete over it
+left permanent litter in every picker with only "Hide it" on offer.
+Sub-categories still block, because deleting a parent strips its children's
+`parentId` on the next commit and destroys a grouping with no undo, which a
+QA pass caught once already. The confirmation now names the limit that goes
+with the category instead of hiding behind it.
+
+`blocksRemoval` returns that sentence or null, and `canRemove` is written in
+terms of it, so the button, the sentence under it and the guard behind it
+cannot disagree.
+
 ### What stayed exactly as it was
 
 No money moved. `parentId` already existed in the schema (`backup.dart`

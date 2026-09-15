@@ -94,40 +94,73 @@ String hideConsequence(Map<String, dynamic> data, Map<String, dynamic> cat) {
   return parts.join('\n\n');
 }
 
+/// WHY this category cannot be deleted, in the words the screen shows, or
+/// null when it can be.
+///
+/// One function, so the button, the sentence under it and the guard behind it
+/// can never disagree about whether a delete is allowed. The screen used to
+/// answer this with a bool and then silently swap the button to "Hide it",
+/// which is how the founder came to report that the app had no delete at all:
+/// every category they owned had entries against it, so the word never once
+/// appeared. A blocked action that says nothing is indistinguishable from an
+/// action that does not exist.
+///
+/// TWO things block it, not three. Founder direction: "add a rule if there is
+/// transaction linked to that category/sub category then the app wont allow
+/// to delete it." A monthly limit used to block it too, which was stricter
+/// than anyone asked for: a limit on a category nobody ever logged against is
+/// worth exactly nothing, and refusing the delete left permanent litter in
+/// every picker. The confirmation names the limit instead. Children still
+/// block, because deleting a parent strips their parentId on the next commit
+/// and destroys a grouping with no undo, which a QA pass caught once already.
+String? blocksRemoval(Map<String, dynamic> data, Map<String, dynamic> cat) {
+  final tagged = taggedCount(data['transactions'], cat['id']);
+  if (tagged > 0) {
+    return tagged == 1
+        ? 'One entry is tagged with this, and deleting it would leave that '
+              'entry with no category. Hide it instead.'
+        : '$tagged entries are tagged with this, and deleting it would leave '
+              'them with no category. Hide it instead.';
+  }
+  final id = cat['id'];
+  final kids = allCategories(
+    data,
+  ).where((c) => c['id'] != id && c['parentId'] == id).length;
+  if (kids > 0) {
+    return kids == 1
+        ? 'One sub-category sits under this. Move or delete that one first.'
+        : '$kids sub-categories sit under this. Move or delete those first.';
+  }
+  return null;
+}
+
 /// Whether a category can be removed outright rather than hidden.
 ///
-/// Only when NOTHING points at it, and "nothing" means three things, not one.
-/// The first version checked transactions alone and a QA pass found what that
-/// missed: a parent category with a 5,000 monthly limit and two children under
-/// it, tagged to no entry itself, read as removable. The button said "Remove
-/// it" and the caption said "Nothing is tagged with this one yet, so it can go
-/// completely". Both were false in the way that matters. One tap took the limit
-/// with it and `normalizeCategoryTree` stripped both children's parentId on the
-/// next commit, destroying a grouping the user had built, with no undo anywhere.
-///
-/// A category nobody ever used is a typo being tidied away, and refusing to
-/// remove it would leave permanent litter in every picker. Anything with
-/// history, a limit, or children beneath it is archived instead.
-bool canRemove(Map<String, dynamic> data, Map<String, dynamic> cat) {
-  if (taggedCount(data['transactions'], cat['id']) != 0) return false;
-  if (amountOf(cat['monthlyCap']) > 0) return false;
-  final id = cat['id'];
-  for (final c in allCategories(data)) {
-    if (c['id'] != id && c['parentId'] == id) return false;
-  }
-  return true;
-}
+/// Written in terms of [blocksRemoval] rather than repeating its rules,
+/// because two copies of one test is how a parent with children once read as
+/// removable on a screen whose own caption said nothing was using it.
+bool canRemove(Map<String, dynamic> data, Map<String, dynamic> cat) =>
+    blocksRemoval(data, cat) == null;
 
 /// What removing this one costs, in the words the confirmation uses.
 ///
 /// Reached only when [canRemove] is true, so by construction there is no
-/// history, no limit and nothing underneath. It still asks, because removal is
-/// the one action on this screen with no way back: archive has its un-hide
-/// control sitting permanently in the same list, and this has nothing.
-String removeConsequence(Map<String, dynamic> cat) =>
-    '${cat['name'] ?? 'This category'} is not used by anything, so nothing '
-    'else changes. There is no way to bring it back, and a new one with the '
-    'same name would not be the same category to the app.';
+/// history and nothing underneath. It still asks, because removal is the one
+/// action on this screen with no way back: archive has its un-hide control
+/// sitting permanently in the same list, and this has nothing.
+String removeConsequence(Map<String, dynamic> cat) {
+  final cap = amountOf(cat['monthlyCap']);
+  final name = (cat['name'] ?? 'This category').toString();
+  // NAMES THE LIMIT, because a limit is the only thing a never-used category
+  // can still be carrying, and it is the one thing the person loses without
+  // being able to see it from here.
+  final limit = cap > 0
+      ? ' Its ${formatMoney(cap)} monthly limit goes with it.'
+      : '';
+  return '$name is not tagged on any entry, so no money and no history '
+      'changes.$limit There is no way to bring it back, and a new one with '
+      'the same name would not be the same category to the app.';
+}
 
 /// The subtitle under a category in the list.
 ///
