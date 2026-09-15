@@ -314,6 +314,19 @@ void main() {
       await tester.tap(find.text('Upcoming'));
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-upcoming');
+
+      // The projection's own help, which is where the founder's "i" question
+      // landed after both expert passes said not to put one on the hero. It
+      // carries the three rules a hero sentence cannot: where the window ends,
+      // what the low point is a minimum of, and why a debt already paid can
+      // still be counted. Rendered because a sheet of teaching copy is exactly
+      // the surface that goes wordy again when nobody looks at it.
+      final help = find.text('How this projection works');
+      await tester.scrollUntilVisible(help, 200);
+      await tester.pumpAndSettle();
+      await tester.tap(help);
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-upcoming-help');
     });
 
     testWidgets('debt ${s.key}', (tester) async {

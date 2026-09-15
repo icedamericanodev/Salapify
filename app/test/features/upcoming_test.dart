@@ -16,6 +16,7 @@ import 'package:salapify/app/ledger_scope.dart';
 import 'package:salapify/app/router.dart';
 import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/commitments.dart' show upcomingCommitments;
+import 'package:salapify/core/money/format.dart' show prettyDay;
 import 'package:salapify/core/money/ledger.dart' show amountOf;
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/design/tokens.dart';
@@ -43,7 +44,8 @@ void main() {
       final up = upcomingFrom(data, sampleAnchor);
 
       final bills = [
-        for (final b in (home['bills'] as List)) (b as Map).cast<String, dynamic>(),
+        for (final b in (home['bills'] as List))
+          (b as Map).cast<String, dynamic>(),
       ];
 
       // Did anything happen at all. An agreement test over two empty lists
@@ -126,7 +128,8 @@ void main() {
       expect(
         paydays,
         isNotEmpty,
-        reason: 'the window did not contain a single payday, so the horizon '
+        reason:
+            'the window did not contain a single payday, so the horizon '
             'is wrong',
       );
       expect(
@@ -319,6 +322,104 @@ void main() {
         reason:
             'the derivation has rows and the screen drew none of them, so the '
             'segment is wired to nothing',
+      );
+    });
+
+    testWidgets('the list marks the day the HERO named, not a different one', (
+      tester,
+    ) async {
+      // A WIDGET test and not a model one, deliberately. The bug lived
+      // entirely in the wiring: the hero's negative branch names
+      // `firstNegativeDate` and the list marked `lowestDate`, and both values
+      // were correct on their own. Nothing about the model was wrong, so no
+      // test of the model could ever have seen it. Only rendering the screen
+      // and reading what is on it reaches this.
+      //
+      // The overcommitted fixture from the test above, which was built so the
+      // two dates genuinely differ.
+      final data = livedIn();
+      data['accounts'] = [
+        {'id': 'a_cash', 'name': 'Cash', 'kind': 'cash', 'balance': 1000.0},
+      ];
+      data['debts'] = const [];
+      data['recurring'] = [
+        {
+          'id': 'rc_small',
+          'type': 'expense',
+          'label': 'Small bill',
+          'amount': 1500.0,
+          'dayOfMonth': 12,
+        },
+        {
+          'id': 'rc_big',
+          'type': 'expense',
+          'label': 'Big bill',
+          'amount': 9000.0,
+          'dayOfMonth': 20,
+        },
+      ];
+
+      final up = upcomingFrom(data, sampleAnchor);
+      // Did anything happen. Without this the whole test passes on a fixture
+      // where the two dates coincide, which is exactly the case that cannot
+      // tell a fix from the bug.
+      expect(up.goesNegative, isTrue);
+      expect(up.lowestDate, isNot(up.firstNegativeDate));
+
+      final store = await memoryStore(data);
+      await tester.pumpWidget(_app(store));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upcoming'));
+      await tester.pumpAndSettle();
+
+      // The hero's sentence, so the test is anchored on what the card really
+      // says rather than on what we believe it says.
+      expect(
+        find.textContaining('You go below zero on'),
+        findsOneWidget,
+        reason: 'this fixture is meant to reach the negative branch',
+      );
+
+      // The mark, and the row it belongs to. `Screen` is a lazy ListView, so
+      // the marked row can be below the fold: scroll until it is built rather
+      // than concluding from a bare find that it is missing.
+      final mark = find.text('You go below zero here');
+      await tester.scrollUntilVisible(mark, 120);
+      await tester.pumpAndSettle();
+
+      // `.first`, and the difference is the whole test. Ancestors come back
+      // innermost first, so `.last` is the OUTERMOST Column: the segment
+      // itself, which contains every day row on the screen. Scoped to that,
+      // the assertion below asks "is this date anywhere on the screen", which
+      // is true with the bug fully reintroduced. The innermost Column is the
+      // one `_UpcomingDayRow` builds, which is the only scope that can tell
+      // the marked row from its neighbours.
+      final row = find.ancestor(of: mark, matching: find.byType(Column)).first;
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.text(prettyDay(up.firstNegativeDate)),
+        ),
+        findsOneWidget,
+        reason:
+            'the hero says you go below zero on '
+            '${prettyDay(up.firstNegativeDate)} and the list marked a '
+            'different day, so the screen names one date and highlights '
+            'another',
+      );
+
+      // And the day the hero did NOT name carries no mark, or the test passes
+      // on a screen that marks every row.
+      expect(
+        find.text('The tightest day'),
+        findsNothing,
+        reason:
+            'the hero never used that phrase in this branch, so no row may '
+            'either',
       );
     });
   });

@@ -373,6 +373,21 @@ class _Upcoming extends StatelessWidget {
       );
     }
 
+    // THE ONE DAY THE HERO NAMES, derived here so the hero and the list
+    // cannot name two different days.
+    //
+    // They did. The hero's negative branch names `firstNegativeDate`, which is
+    // correct and is NOT `lowestDate` (see the comment inside `_LowPoint`), and
+    // the list marked `lowestDate` unconditionally. So an overcommitted month
+    // said "You go below zero on Oct 3" while the Oct 3 row carried no mark at
+    // all and a row on Oct 14 was labelled "The tightest day", a phrase the
+    // hero never used in that branch. The screen named one day and highlighted
+    // another, which is the hero-versus-list contradiction this file has now
+    // had to fix three times.
+    final heroDate = up.goesNegative && up.firstNegativeDate != up.todayIso
+        ? up.firstNegativeDate
+        : up.lowestDate;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -383,7 +398,22 @@ class _Upcoming extends StatelessWidget {
         // left the screen's entire defining idea, the payday after next,
         // undefined: the hero says 19 days and nothing said whether that
         // reaches past the rent.
-        Head(title: 'Between now and ${prettyDay(up.horizonEnd)}'),
+        //
+        // IT ALSO CARRIES THE TOTAL NOW, which used to sit in the hero's
+        // sentence. Two reasons it moved. A whole-window sum inside a sentence
+        // whose subject is one day reads as that day's cost, which is wrong in
+        // a money-shaped way. And a panel built around one figure at 47 points
+        // cannot hold a second, larger figure without making the reader decide
+        // which one is the headline.
+        //
+        // "Going out before" rather than a bare amount, for the same reason
+        // every day row says "left": an unlabelled peso figure above a column
+        // of running balances is read as another running balance. Tone stays
+        // plain, because the accent means owed or tappable and this is neither.
+        Head(
+          title: 'Going out before ${prettyDay(up.horizonEnd)}',
+          amount: formatMoney(up.totalOut),
+        ),
         const SizedBox(height: 8),
         Group(
           inset: 0,
@@ -391,7 +421,8 @@ class _Upcoming extends StatelessWidget {
             for (final d in up.days)
               _UpcomingDayRow(
                 day: d,
-                lowestDate: up.lowestDate,
+                heroDate: heroDate,
+                goesNegative: up.goesNegative,
                 anyIncome: up.anyIncome,
               ),
           ],
@@ -403,9 +434,107 @@ class _Upcoming extends StatelessWidget {
         // things that produce them, and editing one is the only way to correct
         // a bill whose amount went up.
         const _Repeating(),
+
+        // THE DISCLOSURE, and it is deliberately NOT on the hero.
+        //
+        // The founder asked whether an "i" belonged on the low point card. It
+        // does not. The hero carries the one figure the screen exists for, and
+        // an "i" on the biggest text on a screen is an admission that the
+        // biggest text does not say what it means. The answer to a sentence
+        // nobody can parse is a shorter sentence, not a footnote behind a tap.
+        //
+        // What IS genuinely unsayable in a hero sentence is the machinery: why
+        // the window ends where it does, what the low point is a minimum OF,
+        // and why a debt already paid can still be counted. Those govern the
+        // whole segment rather than the card, so the door sits at the bottom of
+        // the segment, in the shape this file already uses for a text action.
+        const SizedBox(height: 6),
+        _TextAction(
+          label: 'How this projection works',
+          onTap: () => _showUpcomingHelp(context),
+        ),
       ],
     );
   }
+}
+
+/// What the projection is doing, for somebody who wants to check it.
+///
+/// Four entries and not one more, the same cap the budget sheet keeps. Every
+/// one of them is a rule a person cannot work out by looking at the screen,
+/// and every one is true of the code as written rather than of the code we
+/// wish were there.
+const _upcomingHelp = <(String, String)>[
+  (
+    'Where the window ends',
+    'It runs to the payday after the next one, because that is the stretch '
+        'your sweldo actually has to cover. With no payday set yet, we use 30 '
+        'days instead.',
+  ),
+  (
+    'What the low point means',
+    'We walk the days one at a time, take out every bill and put in every '
+        'salary, and keep the smallest figure we see. It is the worst moment '
+        'in the window, not the figure you end on.',
+  ),
+  (
+    'Why a debt can show even if you paid it',
+    'A debt has no record of which months you have already paid, so every '
+        'cycle inside the window is counted as still due. That makes this '
+        'careful rather than optimistic.',
+  ),
+  (
+    'None of this has happened yet',
+    'These are scheduled amounts, not entries. Nothing on this list has '
+        'touched your balances, and logging it is what makes it real.',
+  ),
+];
+
+void _showUpcomingHelp(BuildContext context) {
+  final skin = context.skin;
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: skin.bg,
+    isScrollControlled: true,
+    // Without this the sheet lands UNDER the nav bar, which is the one bug
+    // every sheet in this app has shipped at least once.
+    useRootNavigator: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+    ),
+    builder: (_) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'How this projection works',
+                style: TypeScale.sheetTitle(skin.text),
+              ),
+              const SizedBox(height: 18),
+              for (final (title, body) in _upcomingHelp) ...[
+                Text(title, style: TypeScale.fieldLabel(skin.text2)),
+                const SizedBox(height: 5),
+                Text(body, style: TypeScale.caption(skin.text3)),
+                const SizedBox(height: 16),
+              ],
+              const SizedBox(height: 4),
+              PillButton(
+                label: 'Done',
+                onTap: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The repeating items themselves: rent, Meralco, the sweldo.
@@ -524,12 +653,34 @@ class _LowPoint extends StatelessWidget {
         // support "everything after it is covered by what comes in", which
         // the first version said and which reads as open ended on a window
         // that ends at the payday after next.
-        : 'The tightest day is ${prettyDay(up.lowestDate)}. '
-              '${formatMoney(up.totalOut)} is due to go out before '
-              '${prettyDay(up.horizonEnd)}, and this is as low as it gets.';
+        // ONE CLAUSE OF FACT, ONE OF VERDICT, and everything else cut. The
+        // founder read this card and asked what it meant, which is the only
+        // review that counts on the one figure a screen exists for.
+        //
+        // Three clauses went. "The tightest day is" restated the kicker's own
+        // adjective, so only the DATE was new. The total moved to the section
+        // head, where the rows that add up to it live. And "this is as low as
+        // it gets" said LOWEST a second time.
+        //
+        // The window end date went too: it was printed here and again twenty
+        // two points below, on the head. Two dates one day apart, meaning the
+        // tightest day and the edge of the window, sitting in one sentence,
+        // reads as a typo rather than as two ideas.
+        //
+        // "You stay above zero" is safe to assert here and is not a guess.
+        // `goesNegative` is set on any day-END balance below zero, and the
+        // figure above is the minimum of those same day-end balances, so a
+        // false `goesNegative` and a negative hero figure cannot coexist.
+        : 'Your tightest day is ${prettyDay(up.lowestDate)}, and you stay '
+              'above zero.';
 
     return HeroPanel(
-      kicker: 'LOWEST IN THE NEXT ${up.horizonDays} DAYS',
+      // NAMES ITS SUBJECT. "LOWEST IN THE NEXT 30 DAYS" is an adjective with
+      // the noun missing, over a peso figure, on a screen whose list underneath
+      // is full of bills: the available readings included the smallest bill and
+      // the least spent. Home says SAFE TO SPEND and the Budget hero says LEFT
+      // TO SPEND THIS MONTH, both complete phrases. This one was the outlier.
+      kicker: 'LOWEST BALANCE, NEXT ${up.horizonDays} DAYS',
       whole: wholePesos(up.lowest),
       cents: centsOf(up.lowest),
       sentence: sentence,
@@ -541,15 +692,24 @@ class _LowPoint extends StatelessWidget {
 class _UpcomingDayRow extends StatelessWidget {
   const _UpcomingDayRow({
     required this.day,
-    required this.lowestDate,
+    required this.heroDate,
+    required this.goesNegative,
     required this.anyIncome,
   });
   final UpcomingDay day;
 
   /// So the row the hero named can mark itself. Passed in rather than read
-  /// again, because two derivations of "the tightest day" is one more than
-  /// this screen is allowed to have.
-  final String lowestDate;
+  /// again, because two derivations of "the day this screen is about" is one
+  /// more than this screen is allowed to have.
+  ///
+  /// It used to be `lowestDate`, which was the WRONG day in the branch that
+  /// matters most: on an overcommitted month the hero names the day you go
+  /// below zero and the list highlighted the day you bottom out, which can be
+  /// weeks apart. `_Upcoming` now derives one date for both.
+  final String heroDate;
+
+  /// Which sentence the hero used, so this row's caption says the same thing.
+  final bool goesNegative;
 
   /// Whether any money arrives anywhere in the window, so the payday copy
   /// can stop making an account-wide claim from a per-day fact.
@@ -585,13 +745,21 @@ class _UpcomingDayRow extends StatelessWidget {
                     // cost is on the rows underneath; this column is the
                     // running answer to "am I still fine", which is the only
                     // reason to read a projection rather than a calendar.
+                    // The hero's day gets FULL ink, and it is the only row in
+                    // the column that does. The hero's figure and this row's
+                    // balance are literally the same double printed twice,
+                    // and until now nothing on screen said so: the eye came
+                    // down off a 47 point number and landed on a column where
+                    // every row looked identical.
                     Text(
                       formatMoney(day.balanceAfter),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.end,
                       style: TypeScale.rowAmount(
-                        day.balanceAfter < 0 ? skin.bad : skin.text2,
+                        day.balanceAfter < 0
+                            ? skin.bad
+                            : (day.date == heroDate ? skin.text : skin.text2),
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -640,10 +808,22 @@ class _UpcomingDayRow extends StatelessWidget {
               style: TypeScale.caption(skin.text3),
             ),
           ],
-          // The day the hero named, findable once the hero has scrolled away.
-          if (day.date == lowestDate) ...[
+          // The day the hero named, findable once the hero has scrolled away,
+          // and saying the SAME WORDS the hero used.
+          //
+          // It is one weight and one size above the captions around it, which
+          // is the point: the most important row in the list was marked in the
+          // quietest ink in the palette, the same token as the payday line four
+          // lines up and the event labels below. Not accent, because accent is
+          // the tappable colour and this is not a control.
+          if (day.date == heroDate) ...[
             const SizedBox(height: 4),
-            Text('The tightest day', style: TypeScale.caption(skin.text3)),
+            Text(
+              goesNegative ? 'You go below zero here' : 'The tightest day',
+              style: TypeScale.hintStrong(
+                day.balanceAfter < 0 ? skin.bad : skin.text2,
+              ),
+            ),
           ],
           for (final e in day.events) ...[
             const SizedBox(height: 7),
