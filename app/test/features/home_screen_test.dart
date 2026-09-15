@@ -94,18 +94,19 @@ void main() {
     expect(ending, isNot(contains('of that')));
   });
 
-  testWidgets('a payday inside the week is named, and the rail agrees with it', (
-    tester,
-  ) async {
-    final store = await memoryStore(livedIn());
-    await tester.pumpWidget(_app(store, _now));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'a payday inside the week is named, and the rail agrees with it',
+    (tester) async {
+      final store = await memoryStore(livedIn());
+      await tester.pumpWidget(_app(store, _now));
+      await tester.pumpAndSettle();
 
-    final said = _spoken(tester);
-    expect(said, contains('a day until payday on Tuesday.'));
-    expect(said, contains('4 days to payday'));
-    expect(said, contains('Aug 30 to Sep 15'));
-  });
+      final said = _spoken(tester);
+      expect(said, contains('a day until payday on Tuesday.'));
+      expect(said, contains('4 days to payday'));
+      expect(said, contains('Aug 30 to Sep 15'));
+    },
+  );
 
   testWidgets('a payday a month out is a date, not a weekday', (tester) async {
     // Monthly on the 30th, read on 1 October. Oct 2 is a Friday, so naming a
@@ -231,44 +232,48 @@ void main() {
 
     final handle = tester.ensureSemantics();
 
-    // Bills and Move still go nowhere. Debt used to be in this list and came
-    // out of it when the Debt screen was built (roadmap step 7): the rule is
-    // "do not advertise what is not wired", not "these three are forever
-    // dead", so wiring one is exactly the event that should move it.
-    for (final label in ['Bills', 'Move']) {
-      final node = tester.getSemantics(
-        find.descendant(
-          of: find.byType(HomeScreen),
-          matching: find.text(label),
-        ).first,
-      );
+    // NOTHING DEAD IS LEFT, and that is the whole list now. Debt left this
+    // test when its screen was built, Bills left it when it was wired to Plan,
+    // and Move was taken OFF Home entirely, because the founder tapped both and
+    // reported nothing happened: text3 instead of text2 is far too quiet to
+    // read as unavailable, and a person who taps a control that does nothing
+    // concludes the app is broken. The rule was always "do not advertise what
+    // is not wired", not "these three are forever dead".
+    //
+    // Move comes back when the transfer sheet exists. Until then it must not be
+    // on this screen at all, which is the stronger version of what the loop
+    // here used to assert.
+    expect(
+      find.descendant(of: find.byType(HomeScreen), matching: find.text('Move')),
+      findsNothing,
+      reason:
+          'Move is back on Home with no transfer sheet behind it. A greyed out '
+          'control still gets tapped, and this one was',
+    );
+
+    // EVERY action still on the screen announces itself, which is the half that
+    // stops this test being satisfied by wiring nothing at all: without it,
+    // deleting the Debt route would leave the assertion above green.
+    for (final label in ['Log', 'Debt', 'Bills']) {
       // isSemantics rather than reading a flag off the node: it checks only
       // what is named here, and the flag accessors plus containsSemantics are
       // both deprecated on the pinned SDK, where analyze is zero tolerance and
       // an info counts as a failure.
       expect(
-        node,
-        isSemantics(isButton: false),
-        reason: '$label has no destination yet, so it must not claim to be a '
-            'button. Wire it before advertising it.',
+        tester.getSemantics(
+          find
+              .descendant(
+                of: find.byType(HomeScreen),
+                matching: find.text(label),
+              )
+              .first,
+        ),
+        isSemantics(isButton: true),
+        reason:
+            '$label is on Home and does not announce itself as a button, so a '
+            'TalkBack user is never told the route exists',
       );
     }
-
-    // And the other direction, which is the half that stops this test being
-    // satisfied by wiring nothing at all: a live action MUST announce itself.
-    // Without this, deleting the Debt route would leave the loop above green.
-    expect(
-      tester.getSemantics(
-        find.descendant(
-          of: find.byType(HomeScreen),
-          matching: find.text('Debt'),
-        ).first,
-      ),
-      isSemantics(isButton: true),
-      reason:
-          'Debt has a screen now and must announce itself as a button, or a '
-          'TalkBack user is never told the only route to it exists',
-    );
 
     handle.dispose();
   });

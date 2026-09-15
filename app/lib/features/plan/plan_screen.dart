@@ -28,6 +28,24 @@ import 'recurring_editor.dart';
 import 'recurring_rows.dart';
 import 'upcoming_rows.dart';
 
+/// Which segment Plan shows, so another screen can send somebody to the right
+/// one.
+///
+/// A plain notifier rather than a route parameter, and that is not laziness.
+/// Plan is a branch of a `StatefulShellRoute`, which KEEPS each branch alive by
+/// design: navigating to `/plan?seg=upcoming` switches to a Plan that is
+/// already built, so `initState` never runs again and the query would be read
+/// once and then ignored forever. Home's Bills action would work exactly once,
+/// on the first visit, which is worse than not working at all because it would
+/// look fixed.
+///
+/// It holds no money and no stored data, only which of three tabs is showing.
+final planSegment = ValueNotifier<int>(0);
+
+const int planBudget = 0;
+const int planUpcoming = 1;
+const int planGoals = 2;
+
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
 
@@ -36,7 +54,23 @@ class PlanScreen extends StatefulWidget {
 }
 
 class _PlanScreenState extends State<PlanScreen> {
-  int _segment = 0;
+  @override
+  void initState() {
+    super.initState();
+    planSegment.addListener(_onSegment);
+  }
+
+  @override
+  void dispose() {
+    planSegment.removeListener(_onSegment);
+    super.dispose();
+  }
+
+  void _onSegment() {
+    if (mounted) setState(() {});
+  }
+
+  int get _segment => planSegment.value;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +90,11 @@ class _PlanScreenState extends State<PlanScreen> {
         Segmented(
           options: const ['Budget', 'Upcoming', 'Goals'],
           index: _segment,
-          onPick: (i) => setState(() => _segment = i),
+          // Writes the notifier, and the listener above turns that into the
+          // rebuild. Tapping a segment and arriving from Home's Bills action
+          // therefore travel the same path, so the two can never disagree about
+          // which segment is showing.
+          onPick: (i) => planSegment.value = i,
         ),
         const SizedBox(height: 20),
         switch (_segment) {

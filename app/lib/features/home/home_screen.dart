@@ -35,6 +35,7 @@ import '../insights/insights_screen.dart' show insightsRoutePath;
 import '../ledger/entry_presentation.dart';
 import '../ledger/ledger_screen.dart' show signedAmount;
 import '../plan/pending_bills.dart' show pendingBills;
+import '../plan/plan_screen.dart' show planSegment, planUpcoming;
 import 'due_bills_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -316,11 +317,33 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+    // THREE LIVE ACTIONS, NOT FOUR WITH TWO THAT LIE. The founder tapped Bills
+    // and Move and reported that nothing happened, which is exactly what this
+    // row's old comment claimed was safe: an action with nowhere to go was
+    // "announced as DISABLED, not as a button", drawn in text3 instead of
+    // text2. That difference is far too quiet to read as unavailable. A person
+    // taps, nothing happens, and the reasonable conclusion is that the app is
+    // broken, which on the screen they open every morning is the worst place
+    // to spend that impression.
+    //
+    // Bills had a real destination the whole time and simply was not wired to
+    // it. Move does not: transfer was REMOVED from the Log sheet because it
+    // destroyed money (one account picker, no destination, see
+    // test/features/transfer_loss_test.dart), and the sheet with a from and a
+    // to that replaces it is not built yet. So Move is off this row until it
+    // exists, rather than sitting here greyed out being tapped. Founder
+    // decision, 2026-09-15.
     final actions = <(String, IconData, VoidCallback?)>[
       ('Log', Icons.add_rounded, () => context.push(logRoutePath)),
       ('Debt', Icons.handshake_outlined, () => context.push(debtRoutePath)),
-      ('Bills', Icons.event_outlined, null),
-      ('Move', Icons.swap_horiz_rounded, null),
+      (
+        'Bills',
+        Icons.event_outlined,
+        () {
+          planSegment.value = planUpcoming;
+          context.go('/plan');
+        },
+      ),
     ];
 
     return Row(
