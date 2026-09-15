@@ -82,16 +82,38 @@ That lists what Flutter can see.
 
 ## The short version, once Flutter and the emulator exist
 
-With the emulator running, from the repository root:
+With the emulator running, from the repository root, pick the line that matches
+**where Claude is running**:
 
-    bash tools/dev-sync.sh
+    bash tools/dev-sync.sh            # Claude is in a cloud session, pushing commits
+    bash tools/dev-sync.sh --local    # Claude Code is running on THIS Mac
 
-That starts the app AND watches GitHub. Every fifteen seconds it checks for new
-commits, pulls them, and restarts the app on the emulator by itself. You do not
-type anything after that. Stop it with Ctrl-C.
+Either way it starts the app and restarts it for you when the code changes. You
+do not type anything after that. Stop it with Ctrl-C.
 
-It prints the commit messages of whatever it pulled, so you can see what
-changed before you look at the screen.
+**Getting this choice wrong looks exactly like "my changes are not showing
+up",** which is why it is the first thing on the page.
+
+- **Default mode watches GitHub.** Every fifteen seconds it checks
+  `origin/<your branch>` for new commits, pulls them, and restarts the app. It
+  prints the commit messages it pulled, so you can see what changed before you
+  look at the screen. This is the right mode when Claude is working somewhere
+  else and pushing its work to you.
+
+- **`--local` watches your own files**, `app/lib` and `app/pubspec.yaml`, every
+  two seconds. Nothing is pulled and nothing is pushed. This is the right mode
+  when Claude Code is running on this machine and editing files directly,
+  because in that case the work never goes near GitHub and the default mode
+  would sit there forever saying there is nothing new while the files
+  underneath it changed. A restart lands about two seconds after the last edit.
+
+  It waits for the edits to go quiet before restarting. One change from a
+  person is one file; one change from an agent is often six in a row, and
+  restarting on the first of them builds a half-written tree and shows an error
+  that fixes itself a second later.
+
+If you are unsure which mode you are in, `bash tools/dev-sync.sh --help` prints
+the same explanation.
 
 Everything below explains the manual version of that same loop, which is worth
 knowing when the script is not what you want.

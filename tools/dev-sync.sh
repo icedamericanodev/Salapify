@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
 #
-# Run Salapify 3 on your emulator and reload it whenever new work is pushed.
+# Run Salapify 3 on your emulator and restart it whenever the code changes.
 #
-#   bash tools/dev-sync.sh
+#   bash tools/dev-sync.sh            # watch GITHUB  (Claude runs in the cloud)
+#   bash tools/dev-sync.sh --local    # watch YOUR FILES (Claude runs on this Mac)
 #
-# Every 15 seconds it checks GitHub for new commits, pulls them, and hot
-# restarts the running app. You do not type anything after starting it.
-# Stop with Ctrl-C, which stops the app too.
+# Both modes hot restart the running app for you. You do not type anything
+# after starting it. Stop with Ctrl-C, which stops the app too.
+#
+# WHICH MODE YOU WANT depends on where Claude is running, and picking the wrong
+# one looks exactly like "my changes are not showing up".
+#
+#   Default mode watches origin/<your branch>. It is right when Claude is
+#   working in a cloud session and PUSHING commits: the work only reaches your
+#   Mac when this pulls it.
+#
+#   --local watches app/lib and app/pubspec.yaml on disk. It is right when
+#   Claude Code is running on this machine and editing files directly, because
+#   nothing is ever pushed and the default mode would sit there forever
+#   reporting no new commits while the files under it changed.
+#
+# In --local mode a restart follows about two seconds after the last edit
+# lands, so a screen is on the emulator before you have finished reading what
+# changed.
 #
 # WHY A SIGNAL, AND NOT A PIPE. The first version of this wrote "R" into a
 # named pipe attached to `flutter run`'s stdin, on the assumption that a
@@ -30,6 +46,23 @@ set -u
 
 APP_DIR="app"
 INTERVAL=15
+LOCAL_INTERVAL=2
+MODE="remote"
+
+for arg in "$@"; do
+  case "$arg" in
+    --local) MODE="local" ;;
+    -h | --help)
+      sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      echo "Use --local to watch your own files instead of GitHub." >&2
+      exit 1
+      ;;
+  esac
+done
 
 cd "$(dirname "$0")/.." || exit 1
 
@@ -40,8 +73,16 @@ fi
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 PIDFILE="$(mktemp -u /tmp/salapify-flutter.XXXXXX.pid)"
+STAMP="$(mktemp -u /tmp/salapify-watch.XXXXXX)"
 
-echo "Watching origin/$BRANCH, checking every ${INTERVAL}s."
+if [ "$MODE" = "local" ]; then
+  echo "Watching your own files in $APP_DIR/, checking every ${LOCAL_INTERVAL}s."
+  echo "Nothing is pulled and nothing is pushed. Edit and the app restarts."
+else
+  echo "Watching origin/$BRANCH, checking every ${INTERVAL}s."
+  echo "If Claude is editing files ON THIS MAC rather than pushing, stop and"
+  echo "run: bash tools/dev-sync.sh --local"
+fi
 echo "Press Ctrl-C to stop."
 echo
 
@@ -58,6 +99,7 @@ cleanup() {
     kill "$(cat "$PIDFILE")" 2>/dev/null
     rm -f "$PIDFILE"
   fi
+  rm -f "$STAMP"
   [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
 }
 trap cleanup EXIT
@@ -70,6 +112,64 @@ trap 'cleanup; exit 0' INT TERM
   # nothing and is slow; every build after it is seconds.
   while [ ! -f "$PIDFILE" ]; do sleep 2; done
   sleep 5
+
+  # LOCAL MODE: the files under this script are the only thing that moves.
+  #
+  # `find -newer` against a stamp file, rather than fswatch or inotify, because
+  # neither ships with macOS and a setup step that needs Homebrew first is a
+  # setup step that does not happen. This is POSIX and works out of the box.
+  #
+  # The watermark advances to the moment of the SCAN, not the moment the
+  # restart finishes. A build takes seconds and an edit landing during one
+  # would otherwise be older than a stamp touched afterwards, so it would be
+  # skipped entirely and the emulator would sit on code one save behind.
+  if [ "$MODE" = "local" ]; then
+    : >"$STAMP"
+    while true; do
+      sleep "$LOCAL_INTERVAL"
+
+      NOW="$(mktemp -u /tmp/salapify-now.XXXXXX)"
+      touch "$NOW"
+      CHANGED="$(
+        find "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" -newer "$STAMP" -print 2>/dev/null | head -1
+      )"
+      if [ -z "$CHANGED" ]; then
+        rm -f "$NOW"
+        continue
+      fi
+
+      # SETTLE FIRST. One change from a person is one file; one change from an
+      # agent is often six in a row, and restarting on the first of them builds
+      # a half-written tree and shows an error that fixes itself a second
+      # later. Wait for two quiet seconds before doing anything.
+      while true; do
+        sleep "$LOCAL_INTERVAL"
+        MORE="$(
+          find "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" -newer "$NOW" -print 2>/dev/null | head -1
+        )"
+        [ -z "$MORE" ] && break
+        touch "$NOW"
+      done
+
+      mv -f "$NOW" "$STAMP"
+
+      echo
+      echo "Files changed. Restarting the app."
+
+      if find "$APP_DIR/pubspec.yaml" -newer "$STAMP" -print 2>/dev/null | grep -q . ||
+        [ "$CHANGED" = "$APP_DIR/pubspec.yaml" ]; then
+        echo "  pubspec.yaml changed, fetching packages."
+        (cd "$APP_DIR" && flutter pub get >/dev/null)
+      fi
+
+      if [ -f "$PIDFILE" ]; then
+        kill -USR2 "$(cat "$PIDFILE")" 2>/dev/null ||
+          echo "  Could not signal the app. Is it still running?"
+      else
+        echo "  App is not running, so there is nothing to restart."
+      fi
+    done
+  fi
 
   while true; do
     sleep "$INTERVAL"
