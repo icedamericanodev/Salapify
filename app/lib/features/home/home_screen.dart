@@ -24,6 +24,7 @@ import '../../core/money/commitments.dart'
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart' show amountOf;
 import '../../core/state/financial_state.dart';
+import '../../core/state/visibility.dart' show Excluded;
 import '../../design/kit.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -84,6 +85,22 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 16),
 
         _SafeToSpend(state: state),
+        // SURFACED HERE TOO, not only on Accounts. The figure above is lower
+        // than the user's real cash, and until this line existed nothing on
+        // the app's main screen said why: hide an e-wallet and safe to spend
+        // silently fell by its whole balance while the hero's own sentence
+        // blamed the bills. A figure somebody cannot account for on the screen
+        // they open every morning is the defect, not a polish item.
+        //
+        // It names a destination because there is one. The switches are on the
+        // account, and the only route to them is through Accounts.
+        if (state.excluded.anySpendable) ...[
+          const SizedBox(height: 10),
+          Text(
+            spendableExcludedSentence(state.excluded),
+            style: TypeScale.caption(context.skin.text2),
+          ),
+        ],
         const SizedBox(height: 20),
 
         const _QuickActions(),
@@ -232,6 +249,23 @@ class _SafeToSpend extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The line under Home's hero that accounts for the money it left out.
+///
+/// Top level and pure so it can be checked without pumping a screen. It names
+/// SPENDING money rather than "accounts", because `liquidKinds` is cash,
+/// e-wallets and checking: a hidden savings pot is in [Excluded.hiddenCount]
+/// and not in this figure, and a sentence that used the other count would name
+/// accounts that had nothing to do with the number it is explaining.
+String spendableExcludedSentence(Excluded e) {
+  final amount = formatMoney(e.fromSpendable);
+  return e.spendableCount == 1
+      ? '$amount in 1 account is left out of this, because you hid it or said '
+            'it is not yours. Change that in Accounts.'
+      : '$amount across ${e.spendableCount} accounts is left out of this, '
+            'because you hid them or said they are not yours. Change that in '
+            'Accounts.';
 }
 
 /// Four, in one row, and never a grid.
@@ -448,9 +482,10 @@ const int latestCount = 5;
 /// the list is the later one in time, so the list is reversed before slicing.
 List<Map<String, dynamic>> latestEntries(Map<String, dynamic> state) {
   final rows = [
-    for (final t in (state['transactions'] is List
-        ? state['transactions'] as List
-        : const []))
+    for (final t
+        in (state['transactions'] is List
+            ? state['transactions'] as List
+            : const []))
       if (t is Map) t.cast<String, dynamic>(),
   ];
 
@@ -575,9 +610,11 @@ String shortDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
 /// `dueWhen` two functions down already knew this rule and applied it
 /// correctly. The most read line on the screen was the one place that did not.
 String paydayWhen(DateTime payday, DateTime now) {
-  final days = DateTime(payday.year, payday.month, payday.day)
-      .difference(DateTime(now.year, now.month, now.day))
-      .inDays;
+  final days = DateTime(
+    payday.year,
+    payday.month,
+    payday.day,
+  ).difference(DateTime(now.year, now.month, now.day)).inDays;
   if (days <= 0) return 'today';
   if (days == 1) return 'tomorrow';
   if (days < 7) return 'on ${shortDay(payday)}';
@@ -607,4 +644,3 @@ String dueWhen(dynamic iso, DateTime now) {
 // wholePesos and centsOf moved to design/kit.dart, beside the HeroPanel they
 // exist to feed. Plan's hero needs the same split, and one rule in two files
 // is the drift that Home and the Ledger had already grown once.
-

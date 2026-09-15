@@ -466,6 +466,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _shoot(tester, '${s.key}-accounts-not-mine');
+
+      // AND HOME, which is the screen that silently lost the money. Safe to
+      // spend falls by the hidden account's whole balance, and until this line
+      // existed the only sentence on the screen blamed the bills. The picture
+      // is here so the sentence gets read, not assumed.
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Home')),
+      );
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-home-not-mine');
     });
 
     testWidgets('settings ${s.key}', (tester) async {

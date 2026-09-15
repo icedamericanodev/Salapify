@@ -32,7 +32,7 @@ import '../money/commitments.dart' show safeToSpend;
 import '../money/ledger.dart' show amountOf;
 import '../money/schedule.dart'
     show hasExplicitPaydaySchedule, nextPayday, prevPayday;
-import 'visibility.dart' show spendableOnly;
+import 'visibility.dart' show Excluded, spendableOnly;
 
 /// The pay period the user is actually living in.
 ///
@@ -101,6 +101,7 @@ class FinancialState {
     required this.budgetSpent,
     required this.budgetRemaining,
     required this.budgetOver,
+    required this.excluded,
   });
 
   /// Composed from the locked engines, for one moment in time.
@@ -148,6 +149,7 @@ class FinancialState {
       budgetSpent: amountOf(budget['spent']),
       budgetRemaining: amountOf(budget['remaining']),
       budgetOver: budget['over'] == true,
+      excluded: Excluded.of(data),
     );
   }
 
@@ -181,6 +183,18 @@ class FinancialState {
   final double budgetSpent;
   final double budgetRemaining;
   final bool budgetOver;
+
+  /// What was left OUT of [liquid] and [available], so a screen showing them
+  /// can say so.
+  ///
+  /// It travels with the figures rather than being looked up beside them, and
+  /// that is the whole reason it is here. `visibility.dart` states the rule,
+  /// "every screen that subtracts one of these figures also renders the
+  /// matching sentence", and Home broke it on the day the rule was written:
+  /// safe to spend fell by 8,410.50 and the only sentence on the screen blamed
+  /// the bills. Somebody who hid an account last month and forgot had no way
+  /// to reconcile Home against their real balances.
+  final Excluded excluded;
 
   bool get hasBudget => budgetLimit > 0;
 

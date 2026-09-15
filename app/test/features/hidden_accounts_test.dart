@@ -20,8 +20,12 @@ import 'package:salapify/app/router.dart';
 import 'package:salapify/core/data/ledger_store.dart';
 import 'package:salapify/core/money/format.dart';
 import 'package:salapify/core/money/ledger.dart' show amountOf;
+import 'package:salapify/core/state/financial_state.dart';
 import 'package:salapify/core/state/visibility.dart';
 import 'package:salapify/design/kit.dart';
+import 'package:salapify/features/home/home_screen.dart'
+    show spendableExcludedSentence;
+import 'package:salapify/features/plan/upcoming_rows.dart' show upcomingFrom;
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/dev/sample_ledger.dart' show sampleAnchor;
 import 'package:salapify/features/accounts/accounts_screen.dart';
@@ -147,14 +151,53 @@ void main() {
       );
     });
 
+    test('a hidden LOAN is in the hidden list, not in neither list', () {
+      // The second way an account could disappear entirely, found by the
+      // recovery pass and confirmed by running it.
+      //
+      // `rollsIntoDebtSummary` keeps loans out of the everyday list because
+      // the Debt summary already counts them, which is right. Applied to the
+      // hidden list as well, the two filters together left a hidden loan in
+      // NEITHER, and since the only un-hide switch is on account detail, and
+      // the only route there is a row, the flag was stuck on forever.
+      //
+      // It arrives for real: the shipped app's own "Hide account" button
+      // writes `isArchived` on debt rows, so any restored backup can carry one.
+      final data = livedIn();
+      for (final d in (data['debts'] as List)) {
+        if (d is Map && d['id'] == 'd_lola') d['isArchived'] = true;
+      }
+
+      expect(
+        groupAccounts(
+          data,
+          hidden: true,
+        ).expand((g) => g.accounts).map((a) => a['name']),
+        contains('Lola'),
+        reason:
+            'a hidden loan is in neither list, so nothing in the app can ever '
+            'un-hide it again',
+      );
+      expect(
+        groupAccounts(data).expand((g) => g.accounts).map((a) => a['name']),
+        isNot(contains('Lola')),
+        reason: 'the everyday list changed, which was not the fix',
+      );
+    });
+
     test('every row lands in exactly one of the two lists', () {
       // THE INVARIANT, as arithmetic. A filter with an off by one reading of
       // the flag could drop a row from both lists at once, and an account in
       // neither list is an account that no longer exists as far as anybody
       // tapping the screen is concerned.
+      //
+      // THE FIXTURE IS A LOAN, DELIBERATELY. With `a_gcash` this arithmetic
+      // was 4 + 0 == 4 and stayed green through the entire hidden-loan defect
+      // above, because the loan is absent from the baseline too: both sides
+      // dropped the same category and the subtraction hid it perfectly.
       final data = livedIn();
-      for (final a in (data['accounts'] as List)) {
-        if (a is Map && a['id'] == 'a_gcash') a['isArchived'] = true;
+      for (final d in (data['debts'] as List)) {
+        if (d is Map && d['id'] == 'd_lola') d['isArchived'] = true;
       }
 
       int rows(List<AccountGroup> gs) =>
@@ -162,8 +205,11 @@ void main() {
 
       expect(
         rows(groupAccounts(data)) + rows(groupAccounts(data, hidden: true)),
-        rows(groupAccounts(livedIn())),
-        reason: 'hiding an account removed it from the screen entirely',
+        rows(groupAccounts(livedIn())) + 1,
+        reason:
+            'hiding a loan removed it from the screen entirely. The +1 is the '
+            'loan itself, which the everyday list never showed and the hidden '
+            'list now must',
       );
     });
 
@@ -171,6 +217,111 @@ void main() {
       // The other half of the alarm. A heading that appears for everybody is
       // a feature nobody asked for sitting on the main screen.
       expect(groupAccounts(livedIn(), hidden: true), isEmpty);
+    });
+  });
+
+  group('what the screen SAYS about each of the three states', () {
+    // Sentences, not layout, and pure so they can be checked one at a time.
+    // Every wrong version of these read as a confident, true-looking statement
+    // about somebody's money, which is the only reason they are worth a test.
+
+    AccountGroup one(Map<String, dynamic> row) =>
+        AccountGroup('cash_equivalents', 'Cash', [row]);
+
+    test('hidden says still counted; CLOSED must not', () {
+      expect(
+        hiddenCaption([
+          one({'name': 'A', 'isArchived': true}),
+        ]),
+        contains('Still counted in your net worth'),
+      );
+
+      // The third state. With both flags the row is out of net worth, and the
+      // screen used to claim the opposite at the bottom while the hero
+      // correctly said it was excluded at the top: two contradictory sentences
+      // about one account, in one pump.
+      final closed = hiddenCaption([
+        one({'name': 'A', 'isArchived': true, 'includeInNetWorth': false}),
+      ]);
+      expect(
+        closed,
+        isNot(contains('Still counted in your net worth')),
+        reason:
+            'the screen says a closed account is still in net worth while the '
+            'hero says it is not, on the same screen',
+      );
+      expect(closed, contains('out of your net worth'));
+    });
+
+    test('a mixed hidden list claims neither thing about all of it', () {
+      final mixed = hiddenCaption([
+        AccountGroup('cash_equivalents', 'Cash', [
+          {'name': 'A', 'isArchived': true},
+          {'name': 'B', 'isArchived': true, 'includeInNetWorth': false},
+        ]),
+      ]);
+      expect(mixed, contains('The ones still counted as yours'));
+    });
+
+    test('safe to spend is only ever claimed as a MAYBE', () {
+      // `liquidKinds` is cash, e-wallet and checking, so hiding a savings pot
+      // or an investment changes safe to spend by nothing. The first version
+      // said "left out of what is safe to spend" in every case, which is a
+      // small lie about money on the one screen whose job is explaining a gap.
+      expect(
+        hiddenCaption([
+          one({'name': 'A', 'isArchived': true}),
+        ]),
+        contains('Any spending money in here'),
+      );
+    });
+
+    test('the hero never prints a figure that is not the one that moved', () {
+      // `fromNetWorth` is SIGNED. Disown one account and one credit card of
+      // the same size and it nets to exactly zero, which rendered as
+      // "₱0.00 across 2 accounts is not counted": a sentence that reads as a
+      // bug report. Disown a debt alone and it is negative, and printing the
+      // absolute value said money LEFT when net worth actually went up.
+      const assetOnly = Excluded(
+        fromNetWorth: 8410.50,
+        notMineCount: 1,
+        fromSpendable: 0,
+        spendableCount: 0,
+        hiddenCount: 0,
+      );
+      expect(notMineSentence(assetOnly), contains('is not counted'));
+      expect(notMineSentence(assetOnly), contains('8,410.50'));
+
+      const debtOnly = Excluded(
+        fromNetWorth: -6000,
+        notMineCount: 1,
+        fromSpendable: 0,
+        spendableCount: 0,
+        hiddenCount: 0,
+      );
+      expect(
+        notMineSentence(debtOnly),
+        contains('higher'),
+        reason:
+            'disowning a debt was reported as money leaving, so the sentence '
+            'says the net worth went down when it went up',
+      );
+
+      const netsToZero = Excluded(
+        fromNetWorth: 0,
+        notMineCount: 2,
+        fromSpendable: 0,
+        spendableCount: 0,
+        hiddenCount: 0,
+      );
+      expect(
+        notMineSentence(netsToZero),
+        isNot(contains('₱0')),
+        reason:
+            'the hero offers "₱0.00 across 2 accounts is not counted", which '
+            'reads as a bug rather than as a fact about money',
+      );
+      expect(notMineSentence(netsToZero), contains('2 accounts'));
     });
   });
 
@@ -322,6 +473,151 @@ void main() {
         reason:
             'the excluded account is an ordinary looking row, so the list and '
             'the hero disagree with nothing on screen joining them up',
+      );
+    });
+
+    testWidgets('hide your ONLY account and it is still on the screen', (
+      tester,
+    ) async {
+      // THE WORST CASE THE FIRST BUILD HAD, and the one a brand new user is
+      // most likely to reach. Install, add one account because the empty
+      // state's own button says to, hide it. No debts, because they installed
+      // ten seconds ago.
+      //
+      // `groups` is the NON-hidden list, so the empty-state early return fired
+      // and the screen said "No accounts yet" over a ledger with their money
+      // in it. The account was on disk, still in net worth, and no widget in
+      // the app could draw it. Worse: that branch carries no Settings action
+      // and the "Your data" row is below the return, so they also lost Backup
+      // and Restore, which is the last recovery an offline app has.
+      final store = await memoryStore({
+        'accounts': [
+          {'id': 'a_only', 'name': 'Wallet', 'kind': 'cash', 'balance': 5000.0},
+        ],
+      });
+      await _openAccounts(tester, store);
+      await _setSwitch(tester, 'Wallet', 'Hide from my lists');
+
+      expect(
+        find.text('No accounts yet'),
+        findsNothing,
+        reason:
+            'the screen claims there are no accounts while holding one, so '
+            'the obvious next move is to add it again and count it twice',
+      );
+      await _scrollToEnd(tester);
+      expect(find.text('Hidden'), findsOneWidget);
+      expect(
+        find.text('Wallet'),
+        findsOneWidget,
+        reason: 'the only account is unreachable, and so is the un-hide switch',
+      );
+      expect(
+        find.text('Backup and settings'),
+        findsOneWidget,
+        reason:
+            'hiding the last account also took away Restore, which is the '
+            'only way back from anything on a phone with no server',
+      );
+    });
+  });
+
+  group('every screen agrees, which is the whole reason FinancialState exists', () {
+    test('Home and Plan cannot give opposite answers to "do I make it"', () {
+      // The contradiction this feature reintroduced within a day of being
+      // written, and the exact shape financial_state.dart's header says the
+      // file exists to make impossible.
+      //
+      // Home reads FinancialState, which filters. Plan's timeline called
+      // `sweldoTimeline` on the RAW ledger, so its opening balance included
+      // the money Home had just taken out. Measured before the fix, with one
+      // e-wallet marked not mine: Home said MINUS 2,144 and "your bills come
+      // to more than this", Plan said the lowest point was 6,266.50 and "this
+      // is as low as it gets". One ledger, one moment, and a paluwagan pot
+      // doing the talking.
+      final data = livedIn();
+      for (final a in (data['accounts'] as List)) {
+        if (a is Map && a['id'] == 'a_gcash') a['includeInNetWorth'] = false;
+      }
+
+      final home = FinancialState.of(data, sampleAnchor);
+      final plan = upcomingFrom(data, sampleAnchor);
+
+      // Plan's projection starts from today's liquid money, so its first day
+      // can never be built on more cash than Home says exists.
+      expect(
+        plan.lowest,
+        lessThanOrEqualTo(home.liquid + 0.005),
+        reason:
+            'Plan is projecting from money Home does not count, so the two '
+            'screens disagree about whether the user makes it to payday',
+      );
+
+      // DIRECTIONAL. Without this, a filter that removed every account would
+      // also pass the line above.
+      final unfiltered = upcomingFrom(livedIn(), sampleAnchor);
+      expect(
+        unfiltered.lowest,
+        greaterThan(plan.lowest),
+        reason: 'the filter changed nothing, so this proves nothing about it',
+      );
+    });
+
+    test('a debt that is not yours leaves BOTH net worth and "You owe"', () {
+      // ownedOnly took a disowned debt out of net worth while debtTotals kept
+      // counting it, so the Accounts hero, the Home beam and the Debt screen
+      // gave two answers with nothing saying why. A co-signed loan you are not
+      // paying is exactly the row this flag is for, and it arrives out of a
+      // restored backup.
+      final data = livedIn();
+      for (final d in (data['debts'] as List)) {
+        if (d is Map && d['id'] == 'd_lola') d['includeInNetWorth'] = false;
+      }
+
+      expect(
+        debtTotals(data).owed,
+        lessThan(debtTotals(livedIn()).owed),
+        reason:
+            '"You owe" still counts a debt the user said is not theirs, while '
+            'net worth does not',
+      );
+    });
+
+    test('Home SAYS what it left out', () {
+      // visibility.dart states the rule: every screen that subtracts one of
+      // these figures also renders the matching sentence. Home broke it on the
+      // day the rule was written. The data for the sentence was already being
+      // computed and thrown away.
+      final data = livedIn();
+      for (final a in (data['accounts'] as List)) {
+        if (a is Map && a['id'] == 'a_gcash') a['isArchived'] = true;
+      }
+
+      final e = FinancialState.of(data, sampleAnchor).excluded;
+      expect(e.anySpendable, isTrue);
+      expect(spendableExcludedSentence(e), contains('1 account'));
+      expect(spendableExcludedSentence(e), contains('Accounts'));
+
+      // And it counts SPENDING accounts, not hidden ones. A hidden savings pot
+      // is hidden and was never in safe to spend, so a sentence built on
+      // hiddenCount would name an account that had nothing to do with the
+      // figure it is explaining.
+      final withPot = livedIn();
+      (withPot['accounts'] as List).add({
+        'id': 'a_pot',
+        'name': 'Time deposit',
+        'kind': 'savings',
+        'balance': 50000.0,
+        'isArchived': true,
+      });
+      final potOnly = FinancialState.of(withPot, sampleAnchor).excluded;
+      expect(potOnly.hiddenCount, 1);
+      expect(
+        potOnly.anySpendable,
+        isFalse,
+        reason:
+            'Home offers to explain a drop in safe to spend that never '
+            'happened, naming an account that was never in it',
       );
     });
   });

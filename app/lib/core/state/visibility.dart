@@ -129,6 +129,7 @@ class Excluded {
     required this.fromNetWorth,
     required this.notMineCount,
     required this.fromSpendable,
+    required this.spendableCount,
     required this.hiddenCount,
   });
 
@@ -140,11 +141,23 @@ class Excluded {
   /// Liquid money that is hidden or not theirs, so it is out of safe to spend.
   final double fromSpendable;
 
+  /// How many accounts [fromSpendable] came out of.
+  ///
+  /// Not the same as [hiddenCount]. A hidden SAVINGS account is hidden and was
+  /// never in safe to spend, so it counts in one and not the other, and a
+  /// sentence on Home that used the wrong one would name accounts that had
+  /// nothing to do with the figure it was explaining.
+  final int spendableCount;
+
   /// How many accounts are hidden from the lists, whether or not they count.
   final int hiddenCount;
 
   bool get anyNotMine => notMineCount > 0;
   bool get anyHidden => hiddenCount > 0;
+
+  /// Whether safe to spend is lower than the raw liquid total, so a screen
+  /// showing that figure knows it owes the user a sentence.
+  bool get anySpendable => spendableCount > 0;
 
   /// Read the ledger once and answer both questions.
   ///
@@ -158,6 +171,7 @@ class Excluded {
     var notMine = 0.0;
     var notMineCount = 0;
     var spendable = 0.0;
+    var spendableCount = 0;
     var hiddenCount = 0;
 
     void scan(dynamic list, String amountKey, {required bool liability}) {
@@ -188,12 +202,14 @@ class Excluded {
       if (!liquidKinds.contains(a['kind'])) continue;
       if (countsAsSpendable(a)) continue;
       spendable += amountOf(a['balance']);
+      spendableCount++;
     }
 
     return Excluded(
       fromNetWorth: notMine,
       notMineCount: notMineCount,
       fromSpendable: spendable,
+      spendableCount: spendableCount,
       hiddenCount: hiddenCount,
     );
   }

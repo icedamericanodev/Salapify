@@ -156,11 +156,32 @@ class _OptionsSheetState extends State<_OptionsSheet> {
   late bool _hidden = isHiddenFromLists(widget.row);
   late bool _notMine = isNotMine(widget.row);
   bool _busy = false;
+  String? _error;
 
-  Future<void> _set(String key, bool value) async {
-    setState(() => _busy = true);
+  /// Write one flag, and PUT THE SWITCH BACK if the write failed.
+  ///
+  /// The switch moves optimistically, before the await, because a control that
+  /// lags a tap feels broken. That is fine only if a failure undoes it.
+  /// Without the catch, `LedgerStore.mutate` throwing (a secure storage
+  /// failure, or the refusal on a ledger that would not decode) escaped as an
+  /// unhandled async error, silent in a release build, leaving the switch in
+  /// the new position with nothing saved. Somebody closes the sheet believing
+  /// an account is out of their net worth while it is still in it.
+  ///
+  /// The account editor already got this right. This is the same treatment.
+  Future<void> _set(String key, bool value, void Function(bool) revert) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
       await widget.onSet(key, value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        revert(!value);
+        _error = 'Could not save that. Nothing was changed.';
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -195,7 +216,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             enabled: !_busy,
             onChanged: (v) async {
               setState(() => _hidden = v);
-              await _set('isArchived', v);
+              await _set('isArchived', v, (back) => _hidden = back);
             },
           ),
           const SizedBox(height: 14),
@@ -211,9 +232,16 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             enabled: !_busy,
             onChanged: (v) async {
               setState(() => _notMine = v);
-              await _set('includeInNetWorth', !v);
+              // The STORED flag is the opposite of the switch, so the revert
+              // has to restore the switch's own value, not the flag's.
+              await _set('includeInNetWorth', !v, (back) => _notMine = !back);
             },
           ),
+
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            Text(_error!, style: TypeScale.caption(skin.accent)),
+          ],
 
           const SizedBox(height: 18),
           // THE SENTENCE THE SECURITY PASS INSISTED ON, verbatim in substance.
