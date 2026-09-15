@@ -131,12 +131,34 @@ cd "$APP_DIR" || exit 1
 #
 # So a lost device is treated as what it is, a pause. Ctrl-C still stops
 # everything, because cleanup sets STOPPING first and the loop reads it.
+# A BUILD FAILURE IS NOT A LOST EMULATOR, and the first version of this loop
+# could not tell them apart. It answered "Gradle task assembleDebug failed with
+# exit code 1" with "Lost the emulator. Waiting for it to come back", then
+# retried every five seconds forever, burying the actual compiler error under
+# its own message and telling the founder to fix a device that was never
+# unplugged. That is worse than the crash it replaced.
+#
+# The discriminator is TIME. A real session runs for as long as the app is open,
+# minutes at least. A build that fails comes back in seconds, which is what
+# these runs did: 992ms and 1,074ms.
 while true; do
+  START="$(date +%s)"
   flutter run --pid-file "$PIDFILE"
   [ "$STOPPING" = "1" ] && break
+  RAN=$(( $(date +%s) - START ))
 
   rm -f "$PIDFILE"
   echo
+  if [ "$RAN" -lt 30 ]; then
+    echo "The app did not start (it gave up after ${RAN}s), so this is a BUILD"
+    echo "error and not a disconnected emulator. The real reason is in the"
+    echo "output ABOVE, past the '* Try:' block."
+    echo
+    echo "Not retrying, because retrying a failed build just buries the error."
+    echo "Fix it, then run: bash tools/dev-sync.sh"
+    break
+  fi
+
   echo "Lost the emulator. Waiting for it to come back, checking every 5s."
   echo "Start your emulator and this picks up on its own. Ctrl-C to stop."
   sleep 5
