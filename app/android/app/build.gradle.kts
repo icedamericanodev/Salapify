@@ -6,7 +6,21 @@ plugins {
 
 android {
     namespace = "dev.icedamericano.salapify"
-    compileSdk = flutter.compileSdkVersion
+    // PINNED, not `flutter.compileSdkVersion`, because file_picker's
+    // flutter_plugin_android_lifecycle requires 36 and the Flutter default is
+    // lower. Adding file_picker without this turns the first build after the
+    // pull into "BUILD FAILED ... Gradle task assembleDebug failed with exit
+    // code 1", which is what the founder hit on their emulator.
+    //
+    // compileSdk only allows newer APIs at BUILD time. It does not opt the app
+    // into new runtime behaviour the way targetSdk does, so raising it is not
+    // a behaviour change and needs no review of platform changes.
+    //
+    // The shipped app in flutter/ already carries this exact pin, for this
+    // exact package, with this exact reasoning. It was hit there first and the
+    // reason was written down, which is the only thing that made it a two
+    // minute fix here instead of an afternoon.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

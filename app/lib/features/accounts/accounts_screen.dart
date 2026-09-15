@@ -70,9 +70,17 @@ class AccountsScreen extends StatelessWidget {
     return Screen(
       children: [
         const SizedBox(height: 14),
-        const ScreenTitle(
+        // Settings is reachable from the TOP, not only from a row at the
+        // bottom. It was put at the bottom first, under the Debt section, and
+        // the founder looked for it and reported "there is no backup and
+        // settings in the accounts tab". They were looking at the screen: this
+        // page is long enough that the bottom of it is two scrolls away, and a
+        // backup control nobody can find is a backup nobody takes.
+        ScreenTitle(
           title: 'Accounts',
           sub: 'Cash, bank, e-wallet, credit, and both directions of debt.',
+          action: 'Settings',
+          onAction: () => context.push(settingsRoutePath),
         ),
         const SizedBox(height: 14),
         PillButton(

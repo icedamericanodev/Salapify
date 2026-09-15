@@ -474,9 +474,15 @@ class _ComponentSheet extends StatelessWidget {
           children: [
             const TopBar(date: 'Saturday, Sep 13'),
             const SizedBox(height: 16),
-            const ScreenTitle(
+            // `onAction` is now required alongside `action`, and this sheet is
+            // where that rule was first broken: it demoed an accent "Edit"
+            // wired to nothing, which is exactly the dead control the assertion
+            // exists to stop. A component SHEET showing a dead control teaches
+            // every screen that copies from it to ship one.
+            ScreenTitle(
               title: 'Component sheet',
               action: 'Edit',
+              onAction: () {},
               sub: 'Every piece the app is built from, in both skins.',
             ),
             const SizedBox(height: 22),

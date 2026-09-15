@@ -115,9 +115,27 @@ class BackBar extends StatelessWidget {
 /// A screen title with an optional trailing action. Not the same thing as
 /// [Head], which titles a section INSIDE a screen.
 class ScreenTitle extends StatelessWidget {
-  const ScreenTitle({super.key, required this.title, this.action, this.sub});
+  const ScreenTitle({
+    super.key,
+    required this.title,
+    this.action,
+    this.onAction,
+    this.sub,
+  }) : assert(
+         action == null || onAction != null,
+         'An action word must DO something. Accent coloured text that is not '
+         'tappable reads as a link and is not one, which is the defect Home '
+         'had to be fixed for.',
+       );
+
   final String title;
   final String? action;
+
+  /// What tapping [action] does. Required whenever [action] is set: the
+  /// assertion above is there because this class shipped with an action word
+  /// and no callback at all, which is a control that looks live and is dead.
+  final VoidCallback? onAction;
+
   final String? sub;
 
   @override
@@ -134,7 +152,26 @@ class ScreenTitle extends StatelessWidget {
               child: Text(title, style: TypeScale.screenTitle(skin.text)),
             ),
             if (action != null)
-              Text(action!, style: TypeScale.control(skin.accent)),
+              Semantics(
+                button: true,
+                child: GestureDetector(
+                  onTap: onAction,
+                  behavior: HitTestBehavior.opaque,
+                  // A real tap target, not just tappable text. 44 high is the
+                  // platform minimum and the padding is what gets it there;
+                  // the bare Text was 16 points tall and missable.
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 13,
+                      horizontal: 4,
+                    ),
+                    child: Text(
+                      action!,
+                      style: TypeScale.control(skin.accent),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
         if (sub != null) ...[
