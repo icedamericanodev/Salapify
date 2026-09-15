@@ -643,7 +643,7 @@ class ItemRow extends StatelessWidget {
     if (onTap == null) return row;
     return Semantics(
       button: true,
-      child: _Pressable(onTap: onTap!, child: row),
+      child: Pressable(onTap: onTap!, child: row),
     );
   }
 }
@@ -655,16 +655,23 @@ class ItemRow extends StatelessWidget {
 /// app sits inside a [Group] whose card is painted ON TOP of that. The ripple
 /// would be drawn underneath the card and never seen. A dim needs no Material,
 /// works inside any container, and reads the same in both palettes.
-class _Pressable extends StatefulWidget {
-  const _Pressable({required this.onTap, required this.child});
+/// PUBLIC, because a second screen now needs it.
+///
+/// It was private while [ItemRow] was the only tappable thing in the app. The
+/// Goals list is the first row that is not an ItemRow (it stacks a title, a
+/// bar and a caption, which that row cannot express), and the alternative was
+/// a bare GestureDetector with no press feedback: one tappable list in the app
+/// that dims under a finger and one that does not.
+class Pressable extends StatefulWidget {
+  const Pressable({super.key, required this.onTap, required this.child});
   final VoidCallback onTap;
   final Widget child;
 
   @override
-  State<_Pressable> createState() => _PressableState();
+  State<Pressable> createState() => _PressableState();
 }
 
-class _PressableState extends State<_Pressable> {
+class _PressableState extends State<Pressable> {
   bool _down = false;
 
   @override

@@ -478,6 +478,40 @@ void main() {
       await _shoot(tester, '${s.key}-home-not-mine');
     });
 
+    // Goals, roadmap step 8, and the two sheets that write them.
+    testWidgets('goals ${s.key}', (tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Goals'));
+      await tester.pumpAndSettle();
+
+      // Three goals in three different STATES: one mid-flight, one nearly
+      // there, one reached. A shot of three healthy goals photographs one row
+      // three times and says nothing about the state the screen has to get
+      // right, which is the finished one.
+      await _shoot(tester, '${s.key}-goals');
+
+      await tester.tap(find.text('Emergency fund'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-goal-actions');
+
+      // The funding sheet, where the sentence about NOT moving money lives.
+      // That sentence is the most important copy on the feature: everybody
+      // who has used an envelope app expects this to debit an account.
+      await tester.tap(find.widgetWithText(PillButton, 'Add money'));
+      await tester.pumpAndSettle();
+      await _shoot(tester, '${s.key}-goal-funding');
+    });
+
     testWidgets('settings ${s.key}', (tester) async {
       await tester.runAsync(loadRealFonts);
       tester.view.physicalSize = const Size(412 * 2, 915 * 2);

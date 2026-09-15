@@ -22,6 +22,8 @@ import '../../design/type.dart';
 import '../home/home_screen.dart' show shortDate;
 import 'budget_editor.dart';
 import 'budget_rows.dart';
+import 'goal_editor.dart';
+import 'goal_rows.dart';
 import 'upcoming_rows.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -58,34 +60,274 @@ class _PlanScreenState extends State<PlanScreen> {
         switch (_segment) {
           0 => const _Budget(),
           1 => const _Upcoming(),
-          _ => const _NotYet(
-            icon: Icons.flag_outlined,
-            title: 'Goals are coming',
-            body:
-                'One row per goal, what you have saved against the target, and '
-                'what it takes each month to make it by the date you picked.',
-          ),
+          _ => const _Goals(),
         },
       ],
     );
   }
 }
 
-/// A segment that is honestly empty.
+// `_NotYet` lived here, the placeholder every unbuilt segment used. It is gone
+// because all three segments are built: Goals was the last one holding a
+// promise instead of a screen. Nothing else in the app referenced it, so it
+// went with the promise rather than sitting here waiting for a fourth segment
+// that is not on the roadmap.
+
+/// Goals: what you are saving for, and whether you will make it.
 ///
-/// Not a dead control: it responds to the tap and says what will be there. The
-/// alternative, leaving the segment out until it is built, moves the other two
-/// every time one lands, and the alternative to THAT is a tap that appears to
-/// do nothing, which is the defect that had to be fixed on Home.
-class _NotYet extends StatelessWidget {
-  const _NotYet({required this.icon, required this.title, required this.body});
-  final IconData icon;
-  final String title;
-  final String body;
+/// 04-screens.md gives this segment one paragraph, and every figure in it
+/// comes from `goal_rows.dart`, which composes the golden locked `goalPace`.
+/// Nothing here computes money.
+///
+/// NOTHING ON THIS SEGMENT IS AN ASSET. A goal's money is a number the user
+/// tracks, not a balance, so it appears in no total anywhere else in the app
+/// and is never subtracted from safe to spend. See goal_rows.dart's header for
+/// why, and the funding sheet says it out loud where somebody is about to
+/// assume otherwise.
+class _Goals extends StatelessWidget {
+  const _Goals();
 
   @override
-  Widget build(BuildContext context) =>
-      EmptyState(icon: icon, title: title, body: body);
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final data = context.ledger.data;
+    final rows = goalRows(data, context.now);
+
+    if (rows.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const EmptyState(
+            icon: Icons.flag_outlined,
+            title: 'Nothing saved for yet',
+            body:
+                'Name one thing you are putting money aside for, give it an '
+                'amount, and this shows what it takes each month to get there.',
+          ),
+          const SizedBox(height: 14),
+          // The button the instruction asks for. An empty state whose
+          // instruction cannot be followed is the defect this app has already
+          // shipped twice, once on Accounts and once on Budget.
+          PillButton(
+            label: 'Add your first goal',
+            icon: Icons.add_rounded,
+            onTap: () => showGoalEditor(context),
+          ),
+        ],
+      );
+    }
+
+    final summary = goalsSummary(rows);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (summary.isNotEmpty) ...[
+          Text(summary, style: TypeScale.subtitle(skin.text2)),
+          const SizedBox(height: 14),
+        ],
+        Group(
+          inset: 0,
+          children: [for (final r in rows) _GoalRowTile(row: r)],
+        ),
+        const SizedBox(height: 14),
+        PillButton(
+          label: 'Add a goal',
+          icon: Icons.add_rounded,
+          onTap: () => showGoalEditor(context),
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+/// One goal row: name, saved of target, the bar, and the caption.
+class _GoalRowTile extends StatelessWidget {
+  const _GoalRowTile({required this.row});
+  final GoalRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+
+    return Pressable(
+      onTap: () => _open(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    row.name,
+                    style: TypeScale.rowTitle(
+                      // A reached goal clears like a settled debt, which on a
+                      // debt row means struck through and green. Struck
+                      // through is wrong here: a paid debt is finished with,
+                      // and a reached goal is an achievement. Same green, no
+                      // strike.
+                      row.reached ? skin.good : skin.text,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  // Saved OF TARGET, both figures, because one on its own
+                  // cannot be read as progress. 04-screens.md asks for exactly
+                  // this pair.
+                  '${formatMoney(row.saved)} of ${formatMoney(row.target)}',
+                  style: TypeScale.rowAmount(
+                    row.reached ? skin.good : skin.text,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            // GREEN WHEN IT IS DONE, and this came out of looking at the
+            // render rather than out of a test. The name and the amount both
+            // turned green on a reached goal and the bar underneath them
+            // stayed accent, so the one row that is finished was drawn in two
+            // colours arguing with each other: green saying "done" and the
+            // app's "in progress" orange right below it.
+            ThinBar(
+              fraction: row.fraction,
+              fill: row.reached ? skin.good : null,
+            ),
+            const SizedBox(height: 7),
+            Text(goalRowCaption(row), style: TypeScale.caption(skin.text3)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final data = context.ledger.data;
+    final goal = [
+      for (final g in (data['goals'] as List? ?? const []))
+        if (g is Map && g['id'] == row.id) g.cast<String, dynamic>(),
+    ].firstOrNull;
+    if (goal == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => _GoalActions(goal: goal, row: row, parent: context),
+    );
+  }
+}
+
+/// What you can do to a goal, once you have tapped it.
+///
+/// A sheet rather than three controls on the row, for the reason the account
+/// Options sheet gives: the row's job is showing progress, and a list where
+/// every row carries three buttons stops being a list.
+class _GoalActions extends StatelessWidget {
+  const _GoalActions({
+    required this.goal,
+    required this.row,
+    required this.parent,
+  });
+
+  final Map<String, dynamic> goal;
+  final GoalRow row;
+
+  /// The screen's context, not the sheet's. Opening the next sheet from the
+  /// sheet's own context after popping it uses a dead element.
+  final BuildContext parent;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return Container(
+      decoration: BoxDecoration(
+        color: skin.bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(gutter, 18, gutter, 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(row.name, style: TypeScale.sheetTitle(skin.text)),
+          const SizedBox(height: 4),
+          Text(goalRowCaption(row), style: TypeScale.caption(skin.text3)),
+          const SizedBox(height: 18),
+
+          // Adding money stays offered on a reached goal. People overshoot on
+          // purpose, and an app that refuses the last deposit because its own
+          // arithmetic says you are finished is arguing with the user about
+          // their own savings.
+          PillButton(
+            label: 'Add money',
+            icon: Icons.add_rounded,
+            onTap: () {
+              Navigator.of(context).pop();
+              showGoalFunding(parent, goal: goal);
+            },
+          ),
+          const SizedBox(height: 10),
+          _TextAction(
+            label: 'Edit this goal',
+            onTap: () {
+              Navigator.of(context).pop();
+              showGoalEditor(parent, existing: goal);
+            },
+          ),
+          _TextAction(
+            label: row.paused ? 'Resume this goal' : 'Pause this goal',
+            onTap: () {
+              final paused = row.paused;
+              final id = row.id;
+              Navigator.of(context).pop();
+              parent.ledger.mutate((draft) {
+                for (final g in (draft['goals'] is List
+                    ? draft['goals'] as List
+                    : const [])) {
+                  if (g is Map && g['id'] == id) g['paused'] = !paused;
+                }
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          // PAUSING IS NOT DELETING, and the difference is worth a sentence.
+          // Nothing in this app deletes a goal yet, deliberately: a goal
+          // carries its whole contribution history and there is no undo for
+          // losing it. Pausing stops the pacing and keeps the record.
+          Text(
+            'Pausing keeps everything you have saved and stops asking for a '
+            'monthly amount.',
+            style: TypeScale.caption(skin.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextAction extends StatelessWidget {
+  const _TextAction({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TypeScale.action(context.skin.accent),
+      ),
+    ),
+  );
 }
 
 /// Upcoming: every bill and payday out to the payday AFTER next.

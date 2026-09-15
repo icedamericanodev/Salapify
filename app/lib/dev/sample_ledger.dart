@@ -299,5 +299,51 @@ Map<String, dynamic> sampleLedger({DateTime? today}) {
         'flow': 'out',
       },
     ],
+    // GOALS, three of them, and each is a different STATE rather than three
+    // of the same thing. A fixture of three healthy goals photographs one row
+    // three times and proves nothing about the two states a person actually
+    // needs the screen to handle.
+    //
+    // A goal's money is a NUMBER THE USER TRACKS, never an account balance.
+    // That rule is the engine's, stated at the top of goal_plan.dart, and it
+    // is why nothing here appears in net worth: the 12,000 below is money
+    // already sitting in BPI, being counted once as a bank balance and
+    // described separately as progress toward a target.
+    'goals': [
+      {
+        'id': 'g_emergency',
+        'name': 'Emergency fund',
+        'target': 60000.00,
+        'saved': 12000.00,
+        // Dated far enough out that the pace is a real monthly figure rather
+        // than a panic number, and set in the FUTURE relative to the anchor.
+        'targetDate': '2027-06-30',
+        'createdAt': '2026-06-01',
+        'startSaved': 0.0,
+      },
+      {
+        'id': 'g_laptop',
+        'name': 'New laptop',
+        'target': 45000.00,
+        'saved': 41000.00,
+        // Close to the line on purpose: it is the case where the bar is
+        // nearly full and the caption has to stay readable beside it.
+        'targetDate': '2026-12-31',
+        'createdAt': '2026-03-01',
+        'startSaved': 0.0,
+      },
+      {
+        'id': 'g_phone',
+        'name': 'Phone replacement',
+        // REACHED. 04-screens.md: "A reached goal clears like a settled debt."
+        // Without one in the fixture nothing ever renders that state, which is
+        // exactly how the settled-debt row shipped showing PHP0.
+        'target': 25000.00,
+        'saved': 25000.00,
+        'targetDate': '2026-09-30',
+        'createdAt': '2026-01-15',
+        'startSaved': 0.0,
+      },
+    ],
   };
 }
