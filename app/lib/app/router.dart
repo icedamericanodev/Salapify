@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/accounts/account_detail_screen.dart';
 import '../features/accounts/accounts_screen.dart';
+import '../features/debt/debt_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/ledger/entry_detail_screen.dart';
 import '../features/ledger/ledger_screen.dart';
@@ -82,6 +83,16 @@ GoRouter buildRouter() {
         path: '/account/:id',
         builder: (context, state) =>
             AccountDetailScreen(id: state.pathParameters['id']!),
+      ),
+
+      // Over the shell, same as account detail. Debt is not a tab: 04-screens
+      // gives the bar four tabs and this is reached from Home's Debt action
+      // and from the Accounts debt card, both of which are taps on a card that
+      // already names a figure, so it opens as a detail rather than replacing
+      // the tab the founder was on.
+      GoRoute(
+        path: debtRoutePath,
+        builder: (context, state) => const DebtScreen(),
       ),
 
       // Outside the shell, deliberately. The Log sheet covers the tab bar and

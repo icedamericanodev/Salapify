@@ -16,8 +16,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/kit.dart';
 import 'package:salapify/design/tokens.dart';
+import 'package:salapify/features/debt/debt_rows.dart';
+import 'package:salapify/features/home/home_screen.dart' show shortDate;
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+
+/// A debt row with only the fields the caption reads, so a case is one line.
+DebtRow _row({
+  String? nextDueIso,
+  double paidSoFar = 0,
+  double original = 0,
+  bool settled = false,
+  bool countsInTotal = true,
+}) => DebtRow(
+  id: 'x',
+  name: 'Joy',
+  remaining: original - paidSoFar,
+  original: original,
+  paidSoFar: paidSoFar,
+  paymentCount: 0,
+  nextDueIso: nextDueIso,
+  settled: settled,
+  source: DebtSource.receivables,
+  countsInTotal: countsInTotal,
+);
 
 /// The narrowest screen Salapify supports, minus what the page and the card
 /// already take: `Screen`'s gutter each side and `Group`'s 16.
@@ -171,6 +193,113 @@ void main() {
       ),
       0,
       reason: 'the title and its action could not share the width',
+    );
+  });
+
+  testWidgets('a debt row caption fits on ONE line on a real phone', (
+    tester,
+  ) async {
+    // Not an overflow test, which is why it measures text rather than calling
+    // `_overflow`. `ItemRow.sub` has no maxLines, so a caption that is too long
+    // WRAPS instead of overflowing: nothing throws, nothing is clipped, and the
+    // row silently grows a second line with an orphaned word on it.
+    //
+    // The Debt screen hit this. "₱1,800 of ₱3,000 paid · due Sep 25" wrapped on
+    // a 412dp phone and left "25" alone on line two. The caption now carries
+    // the due date and at most one other part, and this measures that rather
+    // than trusting the eye that caught it.
+    //
+    // TWO earlier versions of this test were wrong, and BOTH passed. Written
+    // down because the shape of each mistake is the useful part.
+    //
+    // The first did the arithmetic by hand: it rebuilt the caption's available
+    // width out of the padding constants, guessed 92 points for the amount
+    // column, and named the font 'PlusJakartaSans' when the app ships it as
+    // 'Jakarta'. It measured a fallback font against an invented width.
+    //
+    // The second rendered the real row and read `getSize` off the ItemRow,
+    // which returns the 600 point test VIEWPORT and not the row, so every
+    // caption measured 600 and the test compared 600 against 600. It passed
+    // with the known-broken caption fed straight into it, which is the result
+    // CLAUDE.md says to read as proof that the TEST is wrong.
+    //
+    // This one measures the caption Text itself, where one line is 18 points,
+    // so the number it reports IS the line count.
+    //
+    // AT A REAL PHONE WIDTH, not at 320dp, and that is a correction rather
+    // than a concession. Measured at 320dp the account row's own shipped
+    // caption "BPI, Savings account" is 36 points, so captions wrap there
+    // throughout the app already. Demanding one line at 320dp would hold this
+    // one screen to a rule no other list obeys, and the defect that prompted
+    // this guard was on a 412dp phone anyway: that is what the render harness
+    // draws and what the founder's emulator is.
+    const phone = 412.0 - (gutter * 2) - 32;
+
+    Future<double> heightOf(String sub) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(gabi),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: phone,
+                child: ItemRow(
+                  monogram: 'JO',
+                  title: 'Joy',
+                  sub: sub,
+                  amount: '₱1,200.00',
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return tester.getSize(find.text(sub)).height;
+    }
+
+    final oneLine = await heightOf('paid');
+    expect(oneLine, 18.0, reason: 'the caption line height moved');
+
+    // Captions built by the REAL function from REAL rows, not a hand-copied
+    // list. `debtRowCaption` was extracted out of the widget for exactly this:
+    // strings typed out beside the test stay green when somebody rewords the
+    // screen, which is what makes a width guard decorative.
+    final captions = [
+      for (final row in [
+        _row(nextDueIso: '2026-09-25', paidSoFar: 1800, original: 3000),
+        _row(),
+        _row(paidSoFar: 1800, original: 3000),
+        _row(settled: true),
+        // The longest a real row gets: untracked, with a date.
+        _row(nextDueIso: '2026-12-31', countsInTotal: false),
+      ])
+        debtRowCaption(row, shortDate),
+    ];
+
+    // Did anything happen. An empty list fits perfectly and proves nothing.
+    expect(captions, hasLength(5));
+    expect(captions, everyElement(isNotEmpty));
+
+    for (final caption in captions) {
+      expect(
+        await heightOf(caption),
+        oneLine,
+        reason:
+            '"$caption" wrapped onto a second line on a 412dp phone, so the '
+            'end of it sits alone under the row above',
+      );
+    }
+
+    // The wording that actually shipped wrong, kept so this guard is provably
+    // able to go red rather than passing on everything handed to it.
+    expect(
+      await heightOf('₱1,800 of ₱3,000 paid · due Sep 25'),
+      greaterThan(oneLine),
+      reason:
+          'the caption that demonstrably wrapped on a 412dp phone now fits, so '
+          'the loop above can no longer tell a caption that fits from one that '
+          'does not',
     );
   });
 
