@@ -60,12 +60,57 @@ class LedgerStore extends ChangeNotifier {
   /// nobody remembered.
   Future<void> load() => _enqueue(() async {
     final raw = await _repo.readLedger();
-    _data = (raw == null || raw.isEmpty)
-        ? sanitizeData(const <String, dynamic>{})
-        : sanitizeData(jsonDecode(raw));
+    if (raw == null || raw.isEmpty) {
+      _data = sanitizeData(const <String, dynamic>{});
+      _unreadable = null;
+      _loaded = true;
+      notifyListeners();
+      return;
+    }
+    try {
+      _data = sanitizeData(jsonDecode(raw));
+      _unreadable = null;
+    } catch (e) {
+      // A STORED LEDGER THAT WILL NOT DECODE MUST NOT TAKE THE APP DOWN, AND
+      // MUST NOT BE OVERWRITTEN.
+      //
+      // Before this, `jsonDecode` ran unguarded here and `main.dart` awaits
+      // `load()` BEFORE `runApp`. So one unreadable blob threw on launch, every
+      // launch, with no UI ever built: no screen to explain it, no button to
+      // recover from, and on an offline-first app with no server that is the
+      // whole ledger gone with no way back in. The window is small and real
+      // (a write interrupted by a kill or a dying battery, a failing disk, a
+      // bad restore) and the cost is total.
+      //
+      // Two things happen instead, and the second matters more than the first.
+      // The app boots, with an EMPTY ledger in memory so every screen renders.
+      // And nothing is written: the original bytes stay exactly where they are,
+      // so whatever is still in them can be recovered later.
+      //
+      // The empty in-memory ledger is itself a hazard, which is what
+      // [unreadable] and the write guard below exist for. A user who logs an
+      // entry into that empty ledger would persist it OVER the damaged blob and
+      // finish the job the corruption started. So while this is set, writes are
+      // refused rather than allowed to look like they worked.
+      _unreadable = e.toString();
+      _data = sanitizeData(const <String, dynamic>{});
+    }
     _loaded = true;
     notifyListeners();
   });
+
+  String? _unreadable;
+
+  /// Why the stored ledger could not be read, or null when it was fine.
+  ///
+  /// When this is set the in-memory ledger is EMPTY but the stored one is not:
+  /// it is damaged and still on disk, untouched. The app is readable but must
+  /// not be written to until somebody decides what to do, so [mutate] and
+  /// [apply] both refuse.
+  String? get unreadable => _unreadable;
+
+  /// Whether the stored ledger failed to decode on the last [load].
+  bool get isUnreadable => _unreadable != null;
 
   /// Change the ledger and persist the result.
   ///
@@ -79,6 +124,7 @@ class LedgerStore extends ChangeNotifier {
   /// tells the founder their money is saved when it may not be.
   Future<void> mutate(void Function(Map<String, dynamic> draft) change) =>
       _enqueue(() async {
+        _refuseIfUnreadable();
         final draft = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
         change(draft);
         await _commit(sanitizeData(draft));
@@ -105,9 +151,27 @@ class LedgerStore extends ChangeNotifier {
   Future<void> apply(
     Map<String, dynamic> Function(Map<String, dynamic> state) change,
   ) => _enqueue(() async {
+    _refuseIfUnreadable();
     final copy = jsonDecode(jsonEncode(_data)) as Map<String, dynamic>;
     await _commit(sanitizeData(change(copy)));
   });
+
+  /// Refuse to write while the stored ledger is damaged.
+  ///
+  /// Loudly, by throwing, and never by quietly doing nothing. A silent no-op
+  /// would tell the user their entry saved when it did not, which is the exact
+  /// failure the whole persist-then-swap-then-notify order exists to prevent.
+  ///
+  /// Thrown INSIDE the queued callback, so the failure reaches the awaiting
+  /// caller the same way a failed disk write does and every caller that already
+  /// handles one handles this too.
+  void _refuseIfUnreadable() {
+    if (_unreadable == null) return;
+    throw StateError(
+      'The saved ledger on this device could not be read, so writing now '
+      'would replace it with an empty one. Restore from a backup first.',
+    );
+  }
 
   /// Persist, then swap, then notify. Shared by [mutate] and [apply] so the
   /// two can never drift into different guarantees.
