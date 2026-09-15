@@ -65,7 +65,8 @@ Future<void> _press(WidgetTester tester, String label) async {
 }
 
 List<Map<String, dynamic>> _accounts(LedgerStore s) => [
-  for (final a in (s.data['accounts'] as List)) (a as Map).cast<String, dynamic>(),
+  for (final a in (s.data['accounts'] as List))
+    (a as Map).cast<String, dynamic>(),
 ];
 
 void main() {
@@ -176,7 +177,9 @@ void main() {
       // Four rows all saying "No limit set", and nothing anywhere that could
       // set one. Worse than the empty state, because empty explains itself.
       final data = livedIn();
-      data['settings'] = {'paydaySchedule': (data['settings'] as Map)['paydaySchedule']};
+      data['settings'] = {
+        'paydaySchedule': (data['settings'] as Map)['paydaySchedule'],
+      };
       data['categories'] = [
         for (final c in (data['categories'] as List))
           {...(c as Map), 'monthlyCap': 0.0},
@@ -202,7 +205,10 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '25000');
       await _press(tester, 'Save budget');
 
-      expect(amountOf((store.data['settings'] as Map)['monthlyLimit']), 25000.0);
+      expect(
+        amountOf((store.data['settings'] as Map)['monthlyLimit']),
+        25000.0,
+      );
       // And the caps that were already set survived, rather than being wiped
       // by an editor that only meant to change the monthly figure.
       final food = (store.data['categories'] as List).firstWhere(
@@ -242,7 +248,10 @@ void main() {
             'the editor silently refused or clamped a figure the user typed, '
             'which is indistinguishable from a bug',
       );
-      expect(amountOf((store.data['settings'] as Map)['monthlyLimit']), 20000.0);
+      expect(
+        amountOf((store.data['settings'] as Map)['monthlyLimit']),
+        20000.0,
+      );
     });
 
     testWidgets('it says so, as you type, before you ever press save', (
@@ -279,13 +288,18 @@ void main() {
       // figures deliberately did not. A test matching the sentence would have
       // gone green on a sheet that had quietly stopped showing the numbers.
       expect(find.textContaining('in categories'), findsOneWidget);
-      // 54,000 and not 50,000, and the literal earns its place: the fixture
-      // already carries 1,500 on Transport and 2,500 on Groceries, so this
-      // figure is only reachable by actually ADDING the caps up. A test that
-      // looked for the 50,000 just typed would pass on a total that showed one
-      // field and ignored the rest.
+      // 58,500 and not 50,000, and the literal earns its place: the fixture
+      // carries 1,500 on Transport, 2,500 on Groceries and 4,500 on Bills, so
+      // this figure is only reachable by actually ADDING the caps up. A test
+      // that looked for the 50,000 just typed would pass on a total that showed
+      // one field and ignored the rest.
+      //
+      // It moved from 54,000 when the fixture grew a real parent and child:
+      // Bills gained a limit so the roll-up had something to roll INTO. The
+      // figure is the sum of every cap the editor lists, and a parent's cap is
+      // one of them.
       expect(
-        find.textContaining('₱54,000'),
+        find.textContaining('₱58,500'),
         findsOneWidget,
         reason:
             'the running total stopped naming the money, which is the half of '

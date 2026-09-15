@@ -96,12 +96,38 @@ String hideConsequence(Map<String, dynamic> data, Map<String, dynamic> cat) {
 
 /// Whether a category can be removed outright rather than hidden.
 ///
-/// Only when NOTHING points at it. A category nobody ever used is a typo being
-/// tidied away, and refusing to remove it leaves permanent litter in every
-/// picker. The moment one entry references it, removal would rewrite or orphan
-/// stored history with no way back, and that is what archive is for.
-bool canRemove(Map<String, dynamic> data, Map<String, dynamic> cat) =>
-    taggedCount(data['transactions'], cat['id']) == 0;
+/// Only when NOTHING points at it, and "nothing" means three things, not one.
+/// The first version checked transactions alone and a QA pass found what that
+/// missed: a parent category with a 5,000 monthly limit and two children under
+/// it, tagged to no entry itself, read as removable. The button said "Remove
+/// it" and the caption said "Nothing is tagged with this one yet, so it can go
+/// completely". Both were false in the way that matters. One tap took the limit
+/// with it and `normalizeCategoryTree` stripped both children's parentId on the
+/// next commit, destroying a grouping the user had built, with no undo anywhere.
+///
+/// A category nobody ever used is a typo being tidied away, and refusing to
+/// remove it would leave permanent litter in every picker. Anything with
+/// history, a limit, or children beneath it is archived instead.
+bool canRemove(Map<String, dynamic> data, Map<String, dynamic> cat) {
+  if (taggedCount(data['transactions'], cat['id']) != 0) return false;
+  if (amountOf(cat['monthlyCap']) > 0) return false;
+  final id = cat['id'];
+  for (final c in allCategories(data)) {
+    if (c['id'] != id && c['parentId'] == id) return false;
+  }
+  return true;
+}
+
+/// What removing this one costs, in the words the confirmation uses.
+///
+/// Reached only when [canRemove] is true, so by construction there is no
+/// history, no limit and nothing underneath. It still asks, because removal is
+/// the one action on this screen with no way back: archive has its un-hide
+/// control sitting permanently in the same list, and this has nothing.
+String removeConsequence(Map<String, dynamic> cat) =>
+    '${cat['name'] ?? 'This category'} is not used by anything, so nothing '
+    'else changes. There is no way to bring it back, and a new one with the '
+    'same name would not be the same category to the app.';
 
 /// The subtitle under a category in the list.
 String categoryCaption(Map<String, dynamic> data, Map<String, dynamic> cat) {

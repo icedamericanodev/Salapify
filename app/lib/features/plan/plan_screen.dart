@@ -1103,7 +1103,13 @@ class _CategoryRow extends StatelessWidget {
     };
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      // INDENTED WHEN IT SITS UNDER A PARENT. Without this the list drew a
+      // parent and its children identically, so with Utilities over Electricity
+      // and Water the four visible figures summed to 8,350 under a hero saying
+      // 4,700. The rollup's own doc comment predicted exactly that and the
+      // screen was never changed to match it, which a QA pass caught before the
+      // founder did.
+      padding: EdgeInsets.fromLTRB(row.parentId == null ? 0 : 22, 12, 0, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1120,7 +1126,11 @@ class _CategoryRow extends StatelessWidget {
                   row.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TypeScale.rowTitle(skin.text),
+                  style: TypeScale.rowTitle(
+                    // A child is quieter than its parent, so the eye can see
+                    // which figure contains which without counting indents.
+                    row.parentId == null ? skin.text : skin.text2,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1140,6 +1150,20 @@ class _CategoryRow extends StatelessWidget {
           ],
           const SizedBox(height: 7),
           Text(caption, style: TypeScale.caption(captionInk)),
+
+          // SAYS WHERE THE MONEY CAME FROM, in words, because an indent alone
+          // does not answer "why is this bigger than its own entries". A parent
+          // reading 4,450 above a child reading 3,200 is the same peso drawn
+          // twice, and the reader has to be told that rather than left to work
+          // it out. The founder reported a double count yesterday on a
+          // different screen, and it cost real trust.
+          if (row.rollsUp) ...[
+            const SizedBox(height: 3),
+            Text(
+              'includes ${formatMoney(row.fromChildren)} from what is under it',
+              style: TypeScale.captionSm(skin.text3),
+            ),
+          ],
         ],
       ),
     );

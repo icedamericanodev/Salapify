@@ -190,7 +190,7 @@ List<BudgetRow> categoryBudgets(Map<String, dynamic> data, DateTime ref) {
   // limit belongs at the top. Capped rows sort by how full they are; rows
   // with no limit follow, largest spend first, because they are information
   // rather than a decision.
-  rows.sort((a, b) {
+  int byUrgency(BudgetRow a, BudgetRow b) {
     if (a.capped != b.capped) return a.capped ? -1 : 1;
     if (a.capped) {
       final byFullness = b.fraction.compareTo(a.fraction);
@@ -201,8 +201,34 @@ List<BudgetRow> categoryBudgets(Map<String, dynamic> data, DateTime ref) {
       if (byOverspend != 0) return byOverspend;
     }
     return b.spent.compareTo(a.spent);
-  });
-  return rows;
+  }
+
+  // A CHILD FOLLOWS ITS PARENT, and urgency orders within each level rather
+  // than across the whole list. Sorting everything by urgency alone scatters a
+  // child far from the parent whose figure already contains it, and the screen
+  // then indents a row with nothing above it to be indented UNDER. The reader
+  // is left with two figures that overlap and no way to see that they do.
+  final top = [
+    for (final r in rows)
+      if (r.parentId == null) r,
+  ]..sort(byUrgency);
+  final kids = <String, List<BudgetRow>>{};
+  for (final r in rows) {
+    if (r.parentId != null) (kids[r.parentId!] ??= []).add(r);
+  }
+  for (final list in kids.values) {
+    list.sort(byUrgency);
+  }
+
+  return [
+    for (final parent in top) ...[parent, ...?kids[parent.id]],
+    // A child whose parent earned no row of its own still has to appear, or
+    // its money is on no screen at all. It cannot happen today, because a
+    // parent with a spending child always clears the row test, and it is one
+    // line to make that a fact rather than a belief.
+    for (final entry in kids.entries)
+      if (!top.any((p) => p.id == entry.key)) ...entry.value,
+  ];
 }
 
 /// How many rows need a look. What the hero sentence counts.

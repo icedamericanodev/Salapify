@@ -324,7 +324,7 @@ class _CategorySheetState extends State<_CategorySheet> {
                     : () => archived
                           ? _setArchived(false)
                           : (canRemove(data, cat!)
-                                ? _remove()
+                                ? _confirmRemove()
                                 : _confirmHide()),
               ),
               const SizedBox(height: 8),
@@ -384,21 +384,45 @@ class _CategorySheetState extends State<_CategorySheet> {
     }
   }
 
+  /// The removal confirmation, which the first version did not have.
+  ///
+  /// Hide asked and Remove did not, which was exactly backwards: hiding has an
+  /// un-hide control sitting permanently in the same list, and removal has no
+  /// way back at all. A QA pass found the more destructive path was the one
+  /// with no dialog on it.
+  Future<void> _confirmRemove() async {
+    final ok = await _ask(
+      title: 'Remove ${widget.existing!['name']}?',
+      body: removeConsequence(widget.existing!),
+      confirm: 'Remove it',
+    );
+    if (ok == true) await _remove();
+  }
+
   Future<void> _confirmHide() async {
-    final skin = context.skin;
     final cat = widget.existing!;
-    final ok = await showDialog<bool>(
+    final ok = await _ask(
+      title: 'Hide ${cat['name']}?',
+      body: hideConsequence(context.ledger.data, cat),
+      confirm: 'Hide it',
+    );
+    if (ok == true) await _setArchived(true);
+  }
+
+  /// One dialog shape for both, so the two can never drift into saying the same
+  /// kind of thing two different ways.
+  Future<bool?> _ask({
+    required String title,
+    required String body,
+    required String confirm,
+  }) {
+    final skin = context.skin;
+    return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: skin.card,
-        title: Text(
-          'Hide ${cat['name']}?',
-          style: TypeScale.sheetTitle(skin.text),
-        ),
-        content: Text(
-          hideConsequence(context.ledger.data, cat),
-          style: TypeScale.caption(skin.text2),
-        ),
+        title: Text(title, style: TypeScale.sheetTitle(skin.text)),
+        content: Text(body, style: TypeScale.caption(skin.text2)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -406,12 +430,11 @@ class _CategorySheetState extends State<_CategorySheet> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text('Hide it', style: TypeScale.action(skin.accent)),
+            child: Text(confirm, style: TypeScale.action(skin.accent)),
           ),
         ],
       ),
     );
-    if (ok == true) await _setArchived(true);
   }
 
   Future<void> _setArchived(bool on) async {

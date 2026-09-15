@@ -26,6 +26,21 @@ import 'shell.dart';
 const tabPaths = <String>['/home', '/ledger', '/plan', '/accounts'];
 
 GoRouter buildRouter() {
+  // A FRESH APP STARTS ON BUDGET. `planSegment` is a process-wide notifier,
+  // which is what lets Home send somebody to Upcoming on a branch the shell
+  // keeps alive (see plan_screen.dart), and process-wide means it survives the
+  // app being rebuilt. On a phone that never happens: one launch, one router,
+  // and Home cannot have written to it before this line runs. In a test run it
+  // happens forty times in one process, and the shot that taps Upcoming left
+  // the next shot's Plan already on Upcoming, where the "Edit" it wanted does
+  // not exist.
+  //
+  // Here and not in PlanScreen's initState, deliberately. Home sets the
+  // segment and THEN navigates, so on a first visit Plan's initState would run
+  // after the write and reset it to Budget, and the Bills action would fail on
+  // exactly the visit where it matters most.
+  planSegment.value = planBudget;
+
   return GoRouter(
     initialLocation: tabPaths.first,
     // A route that does not match must never be go_router's raw error page.
