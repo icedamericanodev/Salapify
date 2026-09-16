@@ -68,7 +68,7 @@ export interface Account {
   id: string;
   name: string;
   kind: AccountKind;
-  institution: string; // GCash, Maya, BPI, BDO, UnionBank, SeaBank, GoTyme, Landbank, etc.
+  institution: string; // GCash, Maya, BPI, BDO, UnionBank, MariBank, GoTyme, Landbank, etc.
   balance: number;
   currency?: CurrencyCode;
   profile?: ProfileEntity;
@@ -79,6 +79,8 @@ export interface Account {
   accountNumber?: string;
   monogram: string;
   notes?: string;
+  cardNetwork?: 'visa' | 'mastercard' | 'amex' | 'jcb' | 'none';
+  cardTier?: 'regular' | 'gold' | 'platinum' | 'black' | 'custom';
 }
 
 export type DebtDirection = 'i_owe' | 'owed_to_me';
@@ -659,6 +661,277 @@ export interface CashDenominationCount {
   p50: number;
   p20: number;
   coins: number;
+}
+
+// ----------------------------------------------------
+// PHASE 9: INVESTMENT TRACKING TYPES (TRACKING, NOT TRADING)
+// ----------------------------------------------------
+
+export type InvestmentAssetClass =
+  | 'stocks'
+  | 'bonds'
+  | 'mutual_funds'
+  | 'etfs'
+  | 'crypto'
+  | 'mp2'
+  | 'time_deposits'
+  | 'insurance_linked'
+  | 'real_estate';
+
+export type InvestmentRiskProfile =
+  | 'conservative'
+  | 'moderate'
+  | 'aggressive'
+  | 'speculative';
+
+export type InvestmentTxType =
+  | 'buy'
+  | 'sell'
+  | 'dividend'
+  | 'interest'
+  | 'contribution'
+  | 'withdrawal'
+  | 'fee'
+  | 'revaluation';
+
+export type MarketDataProviderType =
+  | 'manual'
+  | 'coingecko'
+  | 'twelve_data'
+  | 'polygon';
+
+export interface InvestmentTransaction {
+  id: string;
+  assetId: string;
+  type: InvestmentTxType;
+  date: string; // YYYY-MM-DD
+  amount: number; // Total cash flow in PHP
+  units?: number;
+  pricePerUnit?: number;
+  fee?: number;
+  note?: string;
+  createdAt: number;
+}
+
+export interface InvestmentAsset {
+  id: string;
+  name: string;
+  symbolOrTicker?: string;
+  assetClass: InvestmentAssetClass;
+  riskProfile: InvestmentRiskProfile;
+  institutionOrPlatform: string;
+  units: number;
+  costBasis: number;
+  averageCostPerUnit: number;
+  currentPricePerUnit: number;
+  currentValuation: number;
+  unrealizedGainLoss: number;
+  unrealizedGainLossPercent: number;
+  totalDividendsEarned: number;
+  totalContributions: number;
+  totalWithdrawals: number;
+  currency: 'PHP' | 'USD';
+  dataProvider?: MarketDataProviderType;
+  lastUpdated: string;
+  notes?: string;
+  maturityDate?: string;
+  history?: {
+    date: string;
+    valuation: number;
+    pricePerUnit: number;
+  }[];
+}
+
+export interface PortfolioSummary {
+  totalValuation: number;
+  totalCostBasis: number;
+  totalUnrealizedGainLoss: number;
+  totalUnrealizedGainLossPercent: number;
+  totalDividendsEarned: number;
+  totalContributions: number;
+  totalWithdrawals: number;
+  investmentToNetWorthRatio: number;
+  assetAllocation: {
+    assetClass: InvestmentAssetClass;
+    label: string;
+    amount: number;
+    percentage: number;
+  }[];
+  riskAllocation: {
+    riskProfile: InvestmentRiskProfile;
+    label: string;
+    amount: number;
+    percentage: number;
+  }[];
+}
+
+// ----------------------------------------------------
+// SALAPIFY COMPETITIVE EDGE ARCHITECTURE
+// ----------------------------------------------------
+
+// 1. Financial Truth Layer
+export interface FinancialTruthMetadata {
+  source: 'manual_verified' | 'bank_statement_ocr' | 'csv_import' | 'direct_entry' | 'system_calculated';
+  freshness: string;
+  confidenceScore: number;
+  lastReconciledDate?: string;
+  calculationTrail: string[];
+  changeHistoryCount: number;
+  isImmutableAuditLocked?: boolean;
+}
+
+// 2. Financial Close
+export interface FinancialCloseMonth {
+  id: string; // e.g. "2026-08"
+  periodLabel: string;
+  isClosed: boolean;
+  closedAt?: number;
+  closedBy?: string;
+  checklist: {
+    missingTransactionsReviewed: boolean;
+    duplicatesResolved: boolean;
+    accountBalancesReconciled: boolean;
+    variancesAcknowledged: boolean;
+    monthlyReportConfirmed: boolean;
+  };
+  totalInflow: number;
+  totalOutflow: number;
+  netSavings: number;
+  totalVariance: number;
+  notes?: string;
+}
+
+// 3. Personal Financial Control Center
+export type ControlCenterAlertSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export type ControlCenterAlertType =
+  | 'duplicate_charge'
+  | 'balance_mismatch'
+  | 'category_drift'
+  | 'unexpected_recurring'
+  | 'new_payee'
+  | 'high_fee'
+  | 'cash_shortfall'
+  | 'debt_payment_risk'
+  | 'forecast_variance'
+  | 'missing_receipt';
+
+export interface ControlCenterAlert {
+  id: string;
+  type: ControlCenterAlertType;
+  title: string;
+  description: string;
+  severity: ControlCenterAlertSeverity;
+  amount?: number;
+  relatedAccountId?: string;
+  relatedTransactionId?: string;
+  detectedAt: number;
+  isDismissed: boolean;
+  suggestedAction: string;
+}
+
+// 4. Financial Digital Twin Scenarios
+export type DigitalTwinScenarioType =
+  | 'job_loss'
+  | 'delayed_income'
+  | 'rent_increase'
+  | 'medical_expense'
+  | 'new_child'
+  | 'thirteenth_month'
+  | 'debt_prepayment'
+  | 'business_slowdown'
+  | 'major_purchase';
+
+export interface DigitalTwinSimulationResult {
+  scenarioType: DigitalTwinScenarioType;
+  title: string;
+  description: string;
+  baselineRunwayMonths: number;
+  simulatedRunwayMonths: number;
+  baselineSafeToSpend: number;
+  simulatedSafeToSpend: number;
+  baselineNetWorth: number;
+  simulatedNetWorth: number;
+  bufferImpactPhp: number;
+  recommendations: string[];
+}
+
+// 5. Evidence Pack
+export interface EvidencePackConfig {
+  includeBalanceSheet: boolean;
+  includeIncomeStatement: boolean;
+  includeCashFlow: boolean;
+  includeReconciliation: boolean;
+  includeVariances: boolean;
+  includeDebtSchedule: boolean;
+  includeSavingsProgress: boolean;
+  includeAuditHistory: boolean;
+  targetPurpose: 'bank_loan' | 'visa_application' | 'investor_report' | 'personal_audit' | 'tax_compliance';
+  periodMonth: string;
+}
+
+// 6. Scam Assistant
+export type ScamThreatFlag =
+  | 'urgency'
+  | 'impersonation'
+  | 'guaranteed_returns'
+  | 'otp_pin_request'
+  | 'unusual_payment'
+  | 'unlicensed_investment';
+
+export interface ScamAnalysisResult {
+  riskScore: number;
+  riskLevel: 'Safe' | 'Suspicious' | 'Dangerous' | 'Critical Scam';
+  detectedFlags: {
+    flag: ScamThreatFlag;
+    title: string;
+    description: string;
+    evidenceFound?: string;
+  }[];
+  regulatoryAdvice: string;
+  recommendedAction: string;
+}
+
+// 7. Financial Decision Journal
+export interface DecisionJournalEntry {
+  id: string;
+  title: string;
+  category: string;
+  decisionDate: string;
+  optionsConsidered: {
+    name: string;
+    cost: number;
+    pros: string;
+    cons: string;
+  }[];
+  chosenOption: string;
+  estimatedCost: number;
+  expectedBenefit: string;
+  assumptions: string[];
+  reviewDate: string;
+  actualOutcome?: string;
+  learningReflection?: string;
+  status: 'planned' | 'active' | 'evaluated';
+  createdAt: number;
+}
+
+// 8. Professional Adviser Mode
+export interface AdviserSessionConfig {
+  isActive: boolean;
+  adviserName: string;
+  expiresAt: number | null;
+  maskBalances: boolean;
+  allowedSections: {
+    balanceSheet: boolean;
+    incomeExpense: boolean;
+    debtSchedule: boolean;
+    investments: boolean;
+    cashflow: boolean;
+  };
+  auditLog: {
+    timestamp: number;
+    action: string;
+  }[];
 }
 
 

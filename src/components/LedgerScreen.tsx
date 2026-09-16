@@ -212,11 +212,11 @@ export const LedgerScreen: React.FC = () => {
       {/* Screen Title & Top Controls */}
       <div className="flex items-center justify-between pt-2 px-1">
         <div>
-          <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-            Shared Ledger
+          <h1 className="text-xl font-extrabold font-display text-[#15120F] dark:text-[#F6EFE8]">
+            Transactions
           </h1>
           <span className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-            Accounting-grade double-entry journal
+            All your transactions in one place
           </span>
         </div>
         {/* Segmented: Entries · Insights */}
@@ -261,7 +261,7 @@ export const LedgerScreen: React.FC = () => {
               : 'bg-white dark:bg-[#27201A] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029]'
           }`}
         >
-          All Entities
+          All Profiles
         </button>
         {PROFILE_OPTIONS.map((p) => (
           <button

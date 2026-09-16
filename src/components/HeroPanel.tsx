@@ -122,7 +122,7 @@ export const HeroPanel: React.FC<HeroPanelProps> = ({
           >
             {/* Hero Amount with fluid responsive sizing that adapts without horizontal blowouts */}
             <div
-              className="text-3xl xs:text-4xl sm:text-5xl font-extrabold tracking-tight tabular-nums w-full max-w-full min-w-0 leading-tight break-words group-hover:opacity-90 transition-opacity"
+              className="text-3xl xs:text-4xl sm:text-5xl font-extrabold font-display tracking-tight tabular-nums w-full max-w-full min-w-0 leading-tight break-words group-hover:opacity-90 transition-opacity"
               style={{ color: '#2A1207' }}
             >
               {formatPeso(safeToSpend)}
@@ -135,7 +135,7 @@ export const HeroPanel: React.FC<HeroPanelProps> = ({
             >
               <span>{formatPeso(safeToSpendPerDay, false)} a day until payday.</span>
               <span className="opacity-80">
-                • {safeToSpendAnalysis.cashRunwayDays}d runway
+                • Lasts {safeToSpendAnalysis.cashRunwayDays} days
               </span>
             </div>
           </div>

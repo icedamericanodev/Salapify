@@ -31,7 +31,7 @@ export const DebtBeamCard: React.FC<DebtBeamCardProps> = ({ onSeeAll }) => {
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
             <h2 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
-              Debt, both ways
+              Debts (Both ways)
             </h2>
             <button
               type="button"

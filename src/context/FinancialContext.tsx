@@ -38,6 +38,13 @@ import {
   PaydayRoutineTemplate,
   HouseholdAmbagPool,
   FreelanceTaxCalculation,
+  InvestmentAsset,
+  InvestmentTxType,
+  PortfolioSummary,
+  ControlCenterAlert,
+  FinancialCloseMonth,
+  DecisionJournalEntry,
+  AdviserSessionConfig,
 } from '../types';
 import {
   INITIAL_ACCOUNTS,
@@ -83,6 +90,9 @@ import {
   INITIAL_PAYDAY_TEMPLATES,
   INITIAL_HOUSEHOLD_AMBAG,
 } from '../utils/philippineFinances';
+import { INITIAL_INVESTMENTS } from '../data/initialInvestments';
+import { calculatePortfolioSummary } from '../utils/investmentProviders';
+import { runControlCenterScan, buildFinancialTruthMetadata } from '../utils/financialTruthEngine';
 
 interface FinancialContextType {
   themeMode: ThemeMode;
@@ -223,7 +233,7 @@ interface FinancialContextType {
   deleteUpcoming: (id: string) => void;
   markUpcomingPaid: (id: string, accountId?: string) => void;
 
-  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount'>) => void;
+  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount'> & { currentAmount?: number }) => void;
   contributeToGoal: (goalId: string, amount: number, accountId?: string) => void;
   resetToSampleData: () => void;
 
@@ -256,6 +266,38 @@ interface FinancialContextType {
   updateHouseholdAmbagPool: (updates: Partial<HouseholdAmbagPool>) => void;
   recordHouseholdAmbagPayment: (memberId: string, amount: number, accountId?: string) => void;
   calculateFreelanceTaxProvision: (grossIncome: number, taxOption: '8_percent_git' | 'graduated_rates') => FreelanceTaxCalculation;
+
+  // Phase 9: Investment Tracking (Tracking, Not Trading)
+  investments: InvestmentAsset[];
+  portfolioSummary: PortfolioSummary;
+  addInvestmentAsset: (asset: Omit<InvestmentAsset, 'id' | 'lastUpdated' | 'unrealizedGainLoss' | 'unrealizedGainLossPercent'>, fundingAccountId?: string) => InvestmentAsset;
+  updateInvestmentAsset: (id: string, updates: Partial<InvestmentAsset>) => void;
+  deleteInvestmentAsset: (id: string) => void;
+  recordInvestmentActivity: (
+    assetId: string,
+    activity: {
+      type: InvestmentTxType;
+      amount: number;
+      units?: number;
+      pricePerUnit?: number;
+      fee?: number;
+      note?: string;
+      accountId?: string;
+    }
+  ) => void;
+  updateAssetValuation: (assetId: string, newPricePerUnit: number) => void;
+
+  // Salapify Competitive Edge & Truth Architecture
+  controlCenterAlerts: ControlCenterAlert[];
+  dismissControlCenterAlert: (id: string) => void;
+  financialCloseRecords: FinancialCloseMonth[];
+  performFinancialClose: (monthId: string, notes?: string) => void;
+  decisionJournal: DecisionJournalEntry[];
+  addDecisionJournalEntry: (entry: Omit<DecisionJournalEntry, 'id' | 'createdAt'>) => void;
+  updateDecisionJournalOutcome: (id: string, outcome: string, reflection?: string) => void;
+  adviserSession: AdviserSessionConfig;
+  toggleAdviserMode: (enable: boolean, adviserName?: string) => void;
+  toggleAdviserMaskBalances: () => void;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -290,6 +332,11 @@ const STORAGE_KEYS = {
   THIRTEENTH_MONTH: 'salapify_13th_month_v6',
   PAYDAY_TEMPLATES: 'salapify_payday_templates_v6',
   HOUSEHOLD_AMBAG: 'salapify_household_ambag_v6',
+  INVESTMENTS: 'salapify_investments_v9',
+  DECISION_JOURNAL: 'salapify_decision_journal_v9',
+  FINANCIAL_CLOSE: 'salapify_financial_close_v9',
+  ADVISER_SESSION: 'salapify_adviser_session_v9',
+  DISMISSED_ALERTS: 'salapify_dismissed_alerts_v9',
 };
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -531,6 +578,126 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return saved ? JSON.parse(saved) : INITIAL_HOUSEHOLD_AMBAG;
   });
 
+  // Phase 9: Investment Tracking states
+  const [investments, setInvestments] = useState<InvestmentAsset[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.INVESTMENTS);
+    return saved ? JSON.parse(saved) : INITIAL_INVESTMENTS;
+  });
+
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.DISMISSED_ALERTS);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [financialCloseRecords, setFinancialCloseRecords] = useState<FinancialCloseMonth[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.FINANCIAL_CLOSE);
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: '2026-08',
+        periodLabel: 'August 2026',
+        isClosed: true,
+        closedAt: 1725184800000,
+        closedBy: 'Primary User',
+        checklist: {
+          missingTransactionsReviewed: true,
+          duplicatesResolved: true,
+          accountBalancesReconciled: true,
+          variancesAcknowledged: true,
+          monthlyReportConfirmed: true,
+        },
+        totalInflow: 81000,
+        totalOutflow: 48550,
+        netSavings: 32450,
+        totalVariance: 0,
+        notes: 'August books officially closed with zero unresolved reconciliation adjustments.'
+      }
+    ];
+  });
+
+  const [decisionJournal, setDecisionJournal] = useState<DecisionJournalEntry[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.DECISION_JOURNAL);
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'dec_mp2_vs_td',
+        title: 'Pag-IBIG MP2 vs Maya High-Yield Time Deposit Allocation',
+        decisionDate: '2026-08-15',
+        category: 'investment',
+        optionsConsidered: [
+          { name: '100% Maya Time Deposit Plus (6.00% p.a.)', cost: 50000, pros: 'Liquid within 6 months; monthly milestones', cons: '20% withholding tax applies' },
+          { name: 'Split 70% MP2 + 30% Maya TD', cost: 50000, pros: 'Tax-free compounded dividend, government-backed', cons: '5-year maturity commitment' }
+        ],
+        chosenOption: 'Split 70% MP2 + 30% Maya TD',
+        estimatedCost: 50000,
+        expectedBenefit: 'Higher compound growth with zero tax drag on 70% of capital.',
+        assumptions: ['7% p.a. MP2 historical dividend rate', '30% liquidity is sufficient for midterm needs'],
+        reviewDate: '2026-12-31',
+        status: 'evaluated',
+        actualOutcome: '7.05% dividend credited; Maya boosted yield received on schedule.',
+        learningReflection: 'The tax exemption of MP2 significantly outpaces taxable digital bank yields for multi-year capital.',
+        createdAt: 1723708800000
+      },
+      {
+        id: 'dec_tax_8pct',
+        title: 'Freelance Tax Choice: 8% Gross Income Tax vs Graduated Income Tax',
+        decisionDate: '2026-01-10',
+        category: 'tax',
+        optionsConsidered: [
+          { name: 'Graduated Income Tax with 40% OSD', cost: 18000, pros: 'Allowed if business expenses exceed 40%', cons: 'Requires separate 3% percentage tax and complex quarterly BIR filings' },
+          { name: '8% Flat Gross Income Tax (TRAIN Law)', cost: 12000, pros: 'In lieu of both income tax and percentage tax; first 250k exempt', cons: 'Non-refundable if gross income is low' }
+        ],
+        chosenOption: '8% Flat Gross Income Tax (TRAIN Law)',
+        estimatedCost: 12000,
+        expectedBenefit: 'Saves approximately ₱24,000 annually in taxes and accounting compliance overhead.',
+        assumptions: ['Annual gross revenue between ₱800,000 and ₱1.5M', 'Operating expenses below 40% of gross'],
+        reviewDate: '2026-12-15',
+        status: 'active',
+        createdAt: 1704873600000
+      }
+    ];
+  });
+
+  const [adviserSession, setAdviserSession] = useState<AdviserSessionConfig>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ADVISER_SESSION);
+    if (saved) return JSON.parse(saved);
+    return {
+      isActive: false,
+      adviserName: 'Registered Financial Planner (RFP)',
+      expiresAt: null,
+      maskBalances: false,
+      allowedSections: {
+        balanceSheet: true,
+        incomeExpense: true,
+        debtSchedule: true,
+        investments: true,
+        cashflow: true,
+      },
+      auditLog: []
+    };
+  });
+
+  // Save Phase 9 to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.INVESTMENTS, JSON.stringify(investments));
+  }, [investments]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DISMISSED_ALERTS, JSON.stringify(dismissedAlertIds));
+  }, [dismissedAlertIds]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FINANCIAL_CLOSE, JSON.stringify(financialCloseRecords));
+  }, [financialCloseRecords]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DECISION_JOURNAL, JSON.stringify(decisionJournal));
+  }, [decisionJournal]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ADVISER_SESSION, JSON.stringify(adviserSession));
+  }, [adviserSession]);
+
   // Save changes to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.REMITTANCES, JSON.stringify(remittances));
@@ -747,7 +914,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     .reduce((sum, d) => sum + Math.max(0, d.totalAmount - d.paidAmount), 0);
 
   // Net worth = Assets minus Liabilities
-  const netWorth = totalAssets - totalLiabilities;
+  const totalInvestmentsValuation = investments.reduce((sum, inv) => sum + (inv.currentValuation || 0), 0);
+  const netWorth = totalAssets - totalLiabilities + totalInvestmentsValuation;
 
   // Payday-Aware Safe to Spend Analysis (Phase 3)
   const safeToSpendAnalysis = useMemo(() => {
@@ -1300,11 +1468,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Goals
-  const addGoal = (goalData: Omit<Goal, 'id' | 'currentAmount'>) => {
+  const addGoal = (goalData: Omit<Goal, 'id' | 'currentAmount'> & { currentAmount?: number }) => {
     const newGoal: Goal = {
       ...goalData,
       id: `goal_${Date.now()}`,
-      currentAmount: 0,
+      currentAmount: goalData.currentAmount || 0,
     };
     setGoals((prev) => [...prev, newGoal]);
   };
@@ -1540,7 +1708,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     else if (params.institution === 'BPI') monogram = 'BPI';
     else if (params.institution === 'BDO') monogram = 'BDO';
     else if (params.institution === 'UnionBank') monogram = 'UB';
-    else if (params.institution === 'SeaBank') monogram = 'SB';
+    else if (params.institution === 'MariBank') monogram = 'SB';
     else if (params.institution === 'Cash') monogram = '₱';
 
     const newAccount: Account = {
@@ -2295,7 +2463,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
         createdCount++;
       } else if (item.bucket === 'ipon_mp2') {
-        const destAccount = accounts.find((a) => a.kind === 'investment' || a.institution.includes('SeaBank') || a.institution.includes('GoTyme'));
+        const destAccount = accounts.find((a) => a.kind === 'investment' || a.institution.includes('MariBank') || a.institution.includes('GoTyme'));
         const sourceAccount = accounts.find((a) => a.kind === 'bank') || accounts[0];
         if (destAccount && sourceAccount) {
           addTransaction({
@@ -2366,6 +2534,296 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     taxOption: '8_percent_git' | 'graduated_rates'
   ): FreelanceTaxCalculation => {
     return calculateFreelanceTax(grossIncome, taxOption);
+  };
+
+  // Phase 9: Investment Tracking & Competitive Edge Calculations
+  const portfolioSummary = useMemo<any>(() => {
+    return calculatePortfolioSummary(investments, netWorth);
+  }, [investments, netWorth]);
+
+  const rawControlAlerts = useMemo(() => {
+    return runControlCenterScan(transactions, accounts, debts, budgets);
+  }, [transactions, accounts, debts, budgets]);
+
+  const controlCenterAlerts = useMemo(() => {
+    return rawControlAlerts.filter((a) => !dismissedAlertIds.includes(a.id));
+  }, [rawControlAlerts, dismissedAlertIds]);
+
+  const addInvestmentAsset = (
+    assetData: Omit<InvestmentAsset, 'id' | 'lastUpdated' | 'unrealizedGainLoss' | 'unrealizedGainLossPercent'>, fundingAccountId?: string
+  ): InvestmentAsset => {
+    const id = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const costBasis = assetData.costBasis || 0;
+    const valuation =
+      assetData.currentValuation ||
+      (assetData.units ? assetData.units * assetData.currentPricePerUnit : costBasis);
+    const unrealizedGainLoss = valuation - costBasis;
+    const unrealizedGainLossPercent = costBasis > 0 ? (unrealizedGainLoss / costBasis) * 100 : 0;
+
+    
+    const newAsset: InvestmentAsset = {
+      ...assetData,
+      id,
+      costBasis,
+      currentValuation: valuation,
+      unrealizedGainLoss,
+      unrealizedGainLossPercent,
+      totalDividendsEarned: assetData.totalDividendsEarned || 0,
+      totalContributions: assetData.totalContributions || costBasis,
+      totalWithdrawals: assetData.totalWithdrawals || 0,
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+
+    if (fundingAccountId && costBasis > 0) {
+      addTransaction({
+        date: new Date().toISOString().split('T')[0],
+        accountId: fundingAccountId,
+        type: 'transfer',
+        amount: costBasis,
+        category: 'Investment Funding',
+        merchant: newAsset.name,
+        note: `Funded investment: ${newAsset.name}`,
+        status: 'confirmed',
+        profile: 'personal'
+      });
+    }
+
+    setInvestments((prev) => [newAsset, ...prev]);
+
+    return newAsset;
+  };
+
+  const updateInvestmentAsset = (id: string, updates: Partial<InvestmentAsset>) => {
+    setInvestments((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const merged = { ...item, ...updates };
+        const costBasis = merged.costBasis || 0;
+        const valuation =
+          merged.currentValuation ||
+          (merged.units ? merged.units * merged.currentPricePerUnit : costBasis);
+        const unrealizedGainLoss = valuation - costBasis;
+        const unrealizedGainLossPercent = costBasis > 0 ? (unrealizedGainLoss / costBasis) * 100 : 0;
+        return {
+          ...merged,
+          costBasis,
+          currentValuation: valuation,
+          unrealizedGainLoss,
+          unrealizedGainLossPercent,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        };
+      })
+    );
+  };
+
+  const deleteInvestmentAsset = (id: string) => {
+    setInvestments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const recordInvestmentActivity = (
+    assetId: string,
+    activity: {
+      type: InvestmentTxType;
+      amount: number;
+      units?: number;
+      pricePerUnit?: number;
+      fee?: number;
+      note?: string;
+      accountId?: string;
+    }
+  ) => {
+    setInvestments((prev) =>
+      prev.map((asset) => {
+        if (asset.id !== assetId) return asset;
+
+        let newUnits = asset.units;
+        let newCostBasis = asset.costBasis;
+        let newDividends = asset.totalDividendsEarned || 0;
+        let newContributions = asset.totalContributions || 0;
+        let newWithdrawals = asset.totalWithdrawals || 0;
+        const price = activity.pricePerUnit || asset.currentPricePerUnit || 1;
+
+        if (activity.type === 'buy' || activity.type === 'contribution') {
+          const addedUnits = activity.units || (price > 0 ? activity.amount / price : 0);
+          newUnits += addedUnits;
+          newCostBasis += activity.amount;
+          newContributions += activity.amount;
+        } else if (activity.type === 'sell' || activity.type === 'withdrawal') {
+          const removedUnits = activity.units || (price > 0 ? activity.amount / price : 0);
+          const ratio = asset.units > 0 ? Math.min(1, removedUnits / asset.units) : 1;
+          newUnits = Math.max(0, newUnits - removedUnits);
+          newCostBasis = Math.max(0, newCostBasis - newCostBasis * ratio);
+          newWithdrawals += activity.amount;
+        } else if (activity.type === 'dividend') {
+          newDividends += activity.amount;
+        }
+
+        const newAverageCost = newUnits > 0 ? newCostBasis / newUnits : asset.averageCostPerUnit;
+        const newValuation = newUnits > 0 ? newUnits * asset.currentPricePerUnit : newCostBasis;
+        const newUnrealizedGainLoss = newValuation - newCostBasis;
+        const newUnrealizedGainLossPercent = newCostBasis > 0 ? (newUnrealizedGainLoss / newCostBasis) * 100 : 0;
+
+        return {
+          ...asset,
+          units: newUnits,
+          costBasis: newCostBasis,
+          averageCostPerUnit: newAverageCost,
+          currentValuation: newValuation,
+          totalDividendsEarned: newDividends,
+          totalContributions: newContributions,
+          totalWithdrawals: newWithdrawals,
+          unrealizedGainLoss: newUnrealizedGainLoss,
+          unrealizedGainLossPercent: newUnrealizedGainLossPercent,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        };
+      })
+    );
+
+    // If account specified, add transaction in ledger
+    if (activity.accountId) {
+      const asset = investments.find((a) => a.id === assetId);
+      const assetName = asset ? asset.name : 'Investment';
+      if (activity.type === 'buy' || activity.type === 'contribution') {
+        addTransaction({
+          type: 'expense',
+          amount: activity.amount,
+          category: 'Investments',
+          subcategory: asset?.assetClass || 'Contribution',
+          accountId: activity.accountId,
+          merchant: `${assetName} (${activity.type.toUpperCase()})`,
+          date: new Date().toISOString().split('T')[0],
+          note: activity.note || `Investment purchase of ${assetName}`,
+          tags: ['#investments', '#portfolio', `#${activity.type}`],
+          status: 'confirmed'
+        });
+      } else if (activity.type === 'sell' || activity.type === 'withdrawal' || activity.type === 'dividend') {
+        addTransaction({
+          type: 'income',
+          amount: activity.amount,
+          category: 'Investments',
+          subcategory: activity.type === 'dividend' ? 'Dividends' : 'Redemption',
+          accountId: activity.accountId,
+          merchant: `${assetName} (${activity.type.toUpperCase()})`,
+          date: new Date().toISOString().split('T')[0],
+          note: activity.note || `Investment ${activity.type} from ${assetName}`,
+          tags: ['#investments', '#yield', `#${activity.type}`],
+          status: 'confirmed'
+        });
+      }
+    }
+  };
+
+  const updateAssetValuation = (assetId: string, newPricePerUnit: number) => {
+    setInvestments((prev) =>
+      prev.map((asset) => {
+        if (asset.id !== assetId) return asset;
+        const currentValuation = asset.units * newPricePerUnit;
+        const unrealizedGainLoss = currentValuation - asset.costBasis;
+        const unrealizedGainLossPercent =
+          asset.costBasis > 0 ? (unrealizedGainLoss / asset.costBasis) * 100 : 0;
+        return {
+          ...asset,
+          currentPricePerUnit: newPricePerUnit,
+          currentValuation,
+          unrealizedGainLoss,
+          unrealizedGainLossPercent,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        };
+      })
+    );
+  };
+
+  const dismissControlCenterAlert = (id: string) => {
+    setDismissedAlertIds((prev) => [...prev, id]);
+  };
+
+  const performFinancialClose = (monthId: string, notes?: string) => {
+    const monthTransactions = transactions.filter((t) => t.date.startsWith(monthId));
+    const income = monthTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expenses = monthTransactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const [yearStr, monthStr] = monthId.split('-');
+    const dateObj = new Date(parseInt(yearStr), parseInt(monthStr) - 1, 1);
+    const periodLabel = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const newRecord: FinancialCloseMonth = {
+      id: monthId,
+      periodLabel,
+      isClosed: true,
+      closedAt: Date.now(),
+      closedBy: activeMember ? activeMember.name : 'Primary User',
+      checklist: {
+        missingTransactionsReviewed: true,
+        duplicatesResolved: true,
+        accountBalancesReconciled: true,
+        variancesAcknowledged: true,
+        monthlyReportConfirmed: true,
+      },
+      totalInflow: income,
+      totalOutflow: expenses,
+      netSavings: income - expenses,
+      totalVariance: 0,
+      notes: notes || `Financial Close finalized for ${periodLabel}. Reconciled and locked.`
+    };
+
+    setFinancialCloseRecords((prev) => [newRecord, ...prev.filter((r) => r.id !== monthId)]);
+  };
+
+  const addDecisionJournalEntry = (
+    entry: Omit<DecisionJournalEntry, 'id' | 'createdAt'>
+  ) => {
+    const id = `dec_${Date.now()}`;
+    const newEntry: DecisionJournalEntry = {
+      ...entry,
+      id,
+      createdAt: Date.now()
+    };
+    setDecisionJournal((prev) => [newEntry, ...prev]);
+  };
+
+  const updateDecisionJournalOutcome = (
+    id: string,
+    outcome: string,
+    reflection?: string
+  ) => {
+    setDecisionJournal((prev) =>
+      prev.map((dec) => {
+        if (dec.id !== id) return dec;
+        return {
+          ...dec,
+          status: 'evaluated',
+          actualOutcome: outcome,
+          learningReflection: reflection || dec.learningReflection
+        };
+      })
+    );
+  };
+
+  const toggleAdviserMode = (enable: boolean, adviserName?: string) => {
+    setAdviserSession((prev) => ({
+      ...prev,
+      isActive: enable,
+      adviserName: adviserName || prev.adviserName,
+      expiresAt: enable ? Date.now() + 2 * 3600 * 1000 : null,
+      auditLog: [
+        {
+          timestamp: Date.now(),
+          action: enable ? `Adviser session activated for ${adviserName || prev.adviserName}` : 'Adviser session ended'
+        },
+        ...prev.auditLog
+      ]
+    }));
+  };
+
+  const toggleAdviserMaskBalances = () => {
+    setAdviserSession((prev) => ({
+      ...prev,
+      maskBalances: !prev.maskBalances
+    }));
   };
 
   const resetToSampleData = () => {
@@ -2441,6 +2899,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.setItem(STORAGE_KEYS.ACTIVE_MEMBER_ID, 'member_carla');
     localStorage.setItem(STORAGE_KEYS.DECISION_SCENARIO, 'conservative');
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, 'all');
+
+    const freshInvestments = JSON.parse(JSON.stringify(INITIAL_INVESTMENTS));
+    setInvestments(freshInvestments);
+    localStorage.setItem(STORAGE_KEYS.INVESTMENTS, JSON.stringify(freshInvestments));
+
+    setDismissedAlertIds([]);
+    localStorage.setItem(STORAGE_KEYS.DISMISSED_ALERTS, JSON.stringify([]));
 
     setReminderSettingsState(DEFAULT_REMINDER_SETTINGS);
     localStorage.setItem(STORAGE_KEYS.REMINDER_SETTINGS, JSON.stringify(DEFAULT_REMINDER_SETTINGS));
@@ -2576,6 +3041,23 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateHouseholdAmbagPool,
         recordHouseholdAmbagPayment,
         calculateFreelanceTaxProvision,
+        investments,
+        portfolioSummary,
+        addInvestmentAsset,
+        updateInvestmentAsset,
+        deleteInvestmentAsset,
+        recordInvestmentActivity,
+        updateAssetValuation,
+        controlCenterAlerts,
+        dismissControlCenterAlert,
+        financialCloseRecords,
+        performFinancialClose,
+        decisionJournal,
+        addDecisionJournalEntry,
+        updateDecisionJournalOutcome,
+        adviserSession,
+        toggleAdviserMode,
+        toggleAdviserMaskBalances,
       }}
     >
       {children}

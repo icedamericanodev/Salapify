@@ -638,10 +638,10 @@ export const ReportsScreen: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 px-1">
         <div>
           <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-            Connected Reports
+            Reports
           </h1>
           <span className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-            Single unified ledger for balance sheets, income statements, cash flows, and audits
+            Your financial summaries
           </span>
         </div>
 
@@ -660,7 +660,7 @@ export const ReportsScreen: React.FC = () => {
                 : 'bg-white dark:bg-[#27201A] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029]'
             }`}
           >
-            All Books
+            All Profiles
           </button>
           {PROFILE_OPTIONS.map((p) => (
             <button
@@ -691,7 +691,7 @@ export const ReportsScreen: React.FC = () => {
           }`}
         >
           <Scale size={14} />
-          <span>Position</span>
+          <span>Overview</span>
         </button>
 
         <button
@@ -704,7 +704,7 @@ export const ReportsScreen: React.FC = () => {
           }`}
         >
           <FileSpreadsheet size={14} />
-          <span>Performance</span>
+          <span>Income / Expense</span>
         </button>
 
         <button
@@ -730,7 +730,7 @@ export const ReportsScreen: React.FC = () => {
           }`}
         >
           <ShieldCheck size={14} />
-          <span>Reconciliation</span>
+          <span>Reconcile</span>
         </button>
       </div>
 
@@ -826,7 +826,7 @@ export const ReportsScreen: React.FC = () => {
                 <span className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92]">
                   Consolidated Net Worth (Balance Sheet)
                 </span>
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] tabular-nums mt-1">
+                <div className="text-3xl sm:text-4xl font-extrabold font-display text-[#15120F] dark:text-[#F6EFE8] tabular-nums mt-1">
                   {formatPeso(netWorth)}
                 </div>
               </div>
@@ -1023,7 +1023,7 @@ export const ReportsScreen: React.FC = () => {
                   Net Surplus / (Deficit) - {period.replace('_', ' ')}
                 </span>
                 <div
-                  className={`text-3xl sm:text-4xl font-extrabold tabular-nums mt-1 ${
+                  className={`text-3xl sm:text-4xl font-extrabold font-display tabular-nums mt-1 ${
                     netSurplus >= 0
                       ? 'text-[#16643F] dark:text-[#5FCB8E]'
                       : 'text-rose-600 dark:text-rose-400'
@@ -1285,7 +1285,7 @@ export const ReportsScreen: React.FC = () => {
                       Cash Movement &amp; Flow Analysis
                     </span>
                     <div
-                      className={`text-3xl sm:text-4xl font-extrabold tabular-nums mt-1 ${
+                      className={`text-3xl sm:text-4xl font-extrabold font-display tabular-nums mt-1 ${
                         netCashChange >= 0
                           ? 'text-[#16643F] dark:text-[#5FCB8E]'
                           : 'text-[#B03C09] dark:text-[#FF9A52]'

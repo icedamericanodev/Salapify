@@ -28,7 +28,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
     { name: 'GCash', kind: 'cash' as AccountKind, monogram: 'GC', sub: 'E-Wallet' },
     { name: 'Maya', kind: 'cash' as AccountKind, monogram: 'MY', sub: 'E-Wallet / Bank' },
     { name: 'BPI', kind: 'bank' as AccountKind, monogram: 'BPI', sub: 'Bank' },
-    { name: 'SeaBank', kind: 'bank' as AccountKind, monogram: 'SB', sub: 'Digital Bank' },
+    { name: 'MariBank', kind: 'bank' as AccountKind, monogram: 'SB', sub: 'Digital Bank' },
     { name: 'Cash', kind: 'cash' as AccountKind, monogram: '₱', sub: 'Physical Cash' },
   ];
 

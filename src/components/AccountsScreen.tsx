@@ -16,11 +16,14 @@ import {
   Layers,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
+import { InvestmentsView } from './InvestmentsView';
 import { formatPeso } from '../utils/format';
 import { Account, AccountKind, ProfileEntity, CurrencyCode } from '../types';
 import { SectionInfoModal } from './SectionInfoModal';
 import { convertToPhp, formatCurrency, SUPPORTED_CURRENCIES } from '../utils/currencies';
 import { PROFILE_OPTIONS } from '../data/categories';
+import { getLogoUrl } from '../utils/logos';
+import { BankCard } from './BankCard';
 
 interface AccountsScreenProps {
   onOpenDebt: () => void;
@@ -35,13 +38,23 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
     totalDebtsIOwe,
     totalDebtsOwedToMe,
     addAccount,
+    updateAccount,
+    deleteAccount,
     activeProfile,
     setActiveProfile,
   } = useFinancial();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [accountNumber, setAccountNumber] = useState('');
+  const [cardNetwork, setCardNetwork] = useState<'visa' | 'mastercard' | 'amex' | 'jcb' | 'none'>('none');
+  const [cardTier, setCardTier] = useState<'regular' | 'gold' | 'platinum' | 'black' | 'custom'>('regular');
   const [showNetWorthInfo, setShowNetWorthInfo] = useState(false);
-  const [accountViewFilter, setAccountViewFilter] = useState<'all' | 'assets' | 'liabilities'>('all');
+  const [accountViewFilter, setAccountViewFilter] = useState<'all' | 'assets' | 'liabilities' | 'investments'>('all');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    ewallet: true, bank: true, cash: true, investment: true, receivable: true, credit: true, loan: true, mortgage: true
+  });
+  const toggleSection = (id: string) => setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
 
   // Form states
   const [accountName, setAccountName] = useState('');
@@ -53,6 +66,9 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
   const [creditLimitStr, setCreditLimitStr] = useState('');
   const [interestRateStr, setInterestRateStr] = useState('');
   const [dueDate, setDueDate] = useState('');
+
+  
+
 
   // Asset vs Liability groupings
   const assetKinds: AccountKind[] = ['cash', 'bank', 'gcash', 'maya', 'debit', 'investment', 'receivable'];
@@ -76,6 +92,21 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
   const assetAccounts = filteredAccounts.filter((a) => assetKinds.includes(a.kind));
   const liabilityAccounts = filteredAccounts.filter((a) => liabilityKinds.includes(a.kind));
 
+  const assetGroups = [
+    { id: 'ewallet', title: 'E-Wallets', accounts: assetAccounts.filter(a => ['gcash', 'maya'].includes(a.kind)) },
+    { id: 'bank', title: 'Bank Accounts', accounts: assetAccounts.filter(a => ['bank', 'debit'].includes(a.kind)) },
+    { id: 'cash', title: 'Cash', accounts: assetAccounts.filter(a => a.kind === 'cash') },
+    { id: 'investment', title: 'Investments', accounts: assetAccounts.filter(a => a.kind === 'investment') },
+    { id: 'receivable', title: 'Receivables', accounts: assetAccounts.filter(a => a.kind === 'receivable') }
+  ].filter(g => g.accounts.length > 0);
+
+  const liabilityGroups = [
+    { id: 'credit', title: 'Credit Cards', accounts: liabilityAccounts.filter(a => a.kind === 'credit') },
+    { id: 'loan', title: 'Loans', accounts: liabilityAccounts.filter(a => a.kind === 'loan') },
+    { id: 'mortgage', title: 'Mortgages', accounts: liabilityAccounts.filter(a => a.kind === 'mortgage') }
+  ].filter(g => g.accounts.length > 0);
+
+
   // Monogram helper
   const computeMonogram = (inst: string, k: AccountKind, name: string) => {
     if (k === 'gcash') return 'GC';
@@ -86,11 +117,66 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
     if (k === 'loan') return 'LOAN';
     if (inst === 'BPI') return 'BPI';
     if (inst === 'BDO') return 'BDO';
+    if (inst === 'Metrobank') return 'MBTC';
+    if (inst === 'RCBC') return 'RC';
     if (inst === 'UnionBank') return 'UB';
-    if (inst === 'SeaBank') return 'SB';
+    if (inst === 'Security Bank') return 'SB';
+    if (inst === 'PNB') return 'PNB';
+    if (inst === 'EastWest') return 'EW';
+    if (inst === 'AUB') return 'AUB';
+    if (inst === 'LandBank') return 'LB';
+    if (inst === 'PSBank') return 'PS';
+    if (inst === 'China Bank') return 'CB';
+    if (inst === 'MariBank') return 'MB';
     if (inst === 'GoTyme') return 'GT';
+    if (inst === 'Tonik') return 'TK';
+    if (inst === 'CIMB') return 'CIMB';
+    if (inst === 'Komo') return 'KM';
+    if (inst === 'DiskarTech') return 'DT';
+    if (inst === 'Netbank') return 'NB';
+    if (inst === 'UNO Digital Bank') return 'UNO';
+    if (inst === 'OwnBank') return 'OB';
+    if (inst === 'TikTok') return 'TK';
+    if (inst === 'Atome') return 'AT';
+    if (inst === 'Pag-IBIG') return 'HDMF';
+    if (inst === 'SSS') return 'SSS';
     if (inst === 'Cash') return '₱';
     return name.slice(0, 2).toUpperCase() || 'AC';
+  };
+
+  
+  const openEditModal = (acc: Account) => {
+    setEditingAccountId(acc.id);
+    setAccountName(acc.name);
+    setKind(acc.kind);
+    setInstitution(acc.institution);
+    setCurrency(acc.currency || 'PHP');
+    setProfile(acc.profile || 'personal');
+    setBalanceStr(String(acc.balance));
+    setCreditLimitStr(acc.creditLimit ? String(acc.creditLimit) : '');
+    setInterestRateStr(acc.interestRate ? String(acc.interestRate) : '');
+    setDueDate(acc.dueDate || '');
+    setAccountNumber(acc.accountNumber || '');
+    setCardNetwork(acc.cardNetwork || 'none');
+    setCardTier(acc.cardTier || 'regular');
+    setShowAddModal(true);
+  };
+
+  const openAddModal = () => {
+    setEditingAccountId(null);
+    setAccountName('');
+    setBalanceStr('');
+    setCreditLimitStr('');
+    setInterestRateStr('');
+    setDueDate('');
+    setAccountNumber('');
+    setCardNetwork('none');
+    setCardTier('regular');
+    setKind('cash');
+    setInstitution('GCash');
+    setCurrency('PHP');
+    setProfile('personal');
+    setShowAddModal(true);
   };
 
   const handleAddAccount = (e: React.FormEvent) => {
@@ -102,7 +188,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
 
     const monogram = computeMonogram(institution, kind, accountName);
 
-    addAccount({
+    const accountData = {
       name: accountName.trim(),
       kind,
       institution,
@@ -113,7 +199,16 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
       interestRate,
       dueDate: dueDate.trim() || undefined,
       monogram,
-    });
+      accountNumber: accountNumber.trim() || undefined,
+      cardNetwork: cardNetwork !== 'none' ? cardNetwork : undefined,
+      cardTier: cardTier,
+    };
+
+    if (editingAccountId) {
+      updateAccount(editingAccountId, accountData);
+    } else {
+      addAccount(accountData);
+    }
 
     setShowAddModal(false);
     setAccountName('');
@@ -152,7 +247,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
       <div className="flex items-center justify-between pt-2 px-1">
         <div className="flex items-center gap-1.5">
           <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-            Chart of Accounts
+            Accounts
           </h1>
           <button
             type="button"
@@ -162,11 +257,22 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
             aria-label="Accounts info"
           >
             <Info size={14} />
-          </button>
-        </div>
+                  </button>
         <button
           type="button"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => setAccountViewFilter('investments')}
+          className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            accountViewFilter === 'investments'
+              ? 'bg-[#B03C09] text-white shadow-xs'
+              : 'text-[#6B6156] dark:text-[#AC9E92]'
+          }`}
+        >
+          Investments
+        </button>
+      </div>
+        <button
+          type="button"
+          onClick={openAddModal}
           className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer"
         >
           <Plus size={14} /> Add Account
@@ -222,7 +328,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
             <Info size={13} strokeWidth={2.2} />
           </button>
         </div>
-        <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] my-1 tabular-nums break-words">
+        <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display text-[#15120F] dark:text-[#F6EFE8] my-1 tabular-nums break-words">
           {formatPeso(netWorth)}
         </div>
         <p className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] flex flex-wrap gap-x-2 gap-y-0.5 pt-1">
@@ -273,6 +379,14 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
         </button>
       </div>
 
+      
+      {/* INVESTMENTS SECTION */}
+      {accountViewFilter === 'investments' && (
+        <div className="pt-2">
+          <InvestmentsView />
+        </div>
+      )}
+
       {/* ASSET ACCOUNTS SECTION */}
       {(accountViewFilter === 'all' || accountViewFilter === 'assets') && (
         <div className="flex flex-col gap-2">
@@ -290,24 +404,57 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
             </span>
           </div>
 
-          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl divide-y divide-[#F3DFCD] dark:divide-[#383029] shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs overflow-hidden flex flex-col">
             {assetAccounts.length === 0 ? (
               <div className="p-4 text-xs text-center text-[#6B6156] dark:text-[#AC9E92]">
                 No asset accounts found for this entity filter.
               </div>
             ) : (
-              assetAccounts.map((acc) => {
+              assetGroups.map(group => (
+                <div key={group.id} className="flex flex-col border-b border-[#F3DFCD] dark:border-[#383029] last:border-b-0">
+                  <div 
+                    className="p-3 bg-[#F9F4F0]/50 dark:bg-[#1E1915]/50 flex items-center justify-between cursor-pointer hover:bg-[#F9F4F0] dark:hover:bg-[#1E1915] transition-colors"
+                    onClick={() => toggleSection(group.id)}
+                  >
+                    <span className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] uppercase tracking-wider">{group.title} ({group.accounts.length})</span>
+                    <ChevronRight className={`w-4 h-4 text-[#5A5148] dark:text-[#C6B8AC] transition-transform ${expandedSections[group.id] ? 'rotate-90' : ''}`} />
+                  </div>
+                  {expandedSections[group.id] && (
+                    <div className="flex flex-col divide-y divide-[#F3DFCD] dark:divide-[#383029]">
+                      {group.accounts.map(acc => {
+                        
                 const isForeign = acc.currency && acc.currency !== 'PHP';
                 const phpEquiv = convertToPhp(acc.balance, acc.currency || 'PHP');
+                const logoUrl = getLogoUrl(acc.institution);
+
+                if (acc.kind === 'debit') {
+                  return (
+                    <div key={acc.id} className="p-3" onClick={() => openEditModal(acc)}>
+                      <BankCard account={acc} />
+                    </div>
+                  );
+                }
 
                 return (
                   <div
                     key={acc.id}
-                    className="p-3.5 flex items-center justify-between hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors gap-2"
+                    className="p-3.5 flex items-center justify-between hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors gap-2 cursor-pointer" onClick={() => openEditModal(acc)}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-[#16643F] dark:text-[#5FCB8E] flex items-center justify-center font-bold text-xs shrink-0">
-                        {acc.monogram}
+                      <div className="relative w-10 h-10 rounded-xl bg-emerald-500/10 border border-[#F3DFCD] dark:border-[#383029] overflow-hidden shrink-0 flex items-center justify-center">
+                        <img 
+                          src={logoUrl} 
+                          alt={acc.institution}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                          }}
+                          className="w-full h-full object-contain p-1 bg-white rounded-md"
+                        />
+                        <div style={{ display: 'none' }} className="w-full h-full text-[#16643F] dark:text-[#5FCB8E] items-center justify-center font-bold text-xs">
+                          {acc.monogram}
+                        </div>
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -346,7 +493,12 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                     </div>
                   </div>
                 );
-              })
+              
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -369,23 +521,80 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
             </span>
           </div>
 
-          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl divide-y divide-[#F3DFCD] dark:divide-[#383029] shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs overflow-hidden flex flex-col">
             {liabilityAccounts.length === 0 ? (
               <div className="p-4 text-xs text-center text-[#6B6156] dark:text-[#AC9E92]">
                 No liability accounts recorded.
               </div>
             ) : (
-              liabilityAccounts.map((acc) => {
+              liabilityGroups.map(group => (
+                <div key={group.id} className="flex flex-col border-b border-[#F3DFCD] dark:border-[#383029] last:border-b-0">
+                  <div 
+                    className="p-3 bg-[#F9F4F0]/50 dark:bg-[#1E1915]/50 flex items-center justify-between cursor-pointer hover:bg-[#F9F4F0] dark:hover:bg-[#1E1915] transition-colors"
+                    onClick={() => toggleSection(group.id)}
+                  >
+                    <span className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] uppercase tracking-wider">{group.title} ({group.accounts.length})</span>
+                    <ChevronRight className={`w-4 h-4 text-[#5A5148] dark:text-[#C6B8AC] transition-transform ${expandedSections[group.id] ? 'rotate-90' : ''}`} />
+                  </div>
+                  {expandedSections[group.id] && (
+                    <div className="flex flex-col divide-y divide-[#F3DFCD] dark:divide-[#383029]">
+                      {group.accounts.map(acc => {
+                        
                 const limit = acc.creditLimit || 40000;
                 const util = acc.kind === 'credit' ? Math.round((acc.balance / limit) * 100) : null;
                 const isHighUtil = util !== null && util > 30;
+                const logoUrl = getLogoUrl(acc.institution);
+
+                if (acc.kind === 'credit') {
+                  return (
+                    <div key={acc.id} className="p-3" onClick={() => openEditModal(acc)}>
+                      <BankCard account={acc} />
+                      {util !== null && (
+                        <div className="flex flex-col gap-1 mt-3 px-2">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-[#6B6156] dark:text-[#AC9E92] font-semibold">
+                              Credit Utilization
+                            </span>
+                            <span
+                              className={`font-bold ${
+                                isHighUtil ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            >
+                              {util}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-[#FFEEDF] dark:bg-[#14100D] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                isHighUtil ? 'bg-rose-500' : 'bg-[#16643F] dark:bg-[#5FCB8E]'
+                              }`}
+                              style={{ width: `${Math.min(100, util)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
 
                 return (
-                  <div key={acc.id} className="p-3.5 flex flex-col gap-2">
+                  <div key={acc.id} className="p-3.5 flex flex-col gap-2 cursor-pointer hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors" onClick={() => openEditModal(acc)}>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-xs shrink-0">
-                          {acc.monogram}
+                        <div className="relative w-10 h-10 rounded-xl bg-rose-500/10 border border-[#F3DFCD] dark:border-[#383029] overflow-hidden shrink-0 flex items-center justify-center">
+                          <img 
+                            src={logoUrl} 
+                            alt={acc.institution}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling;
+                              if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                            }}
+                            className="w-full h-full object-contain p-1 bg-white rounded-md"
+                          />
+                          <div style={{ display: 'none' }} className="w-full h-full text-rose-600 dark:text-rose-400 items-center justify-center font-bold text-xs">
+                            {acc.monogram}
+                          </div>
                         </div>
                         <div className="flex flex-col min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -413,20 +622,14 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                         {formatPeso(acc.balance)}
                       </span>
                     </div>
-
-                    {acc.kind === 'credit' && util !== null && (
-                      <div className="w-full h-1.5 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isHighUtil ? 'bg-rose-500' : 'bg-[#16643F] dark:bg-[#5FCB8E]'
-                          }`}
-                          style={{ width: `${Math.min(100, util)}%` }}
-                        />
-                      </div>
-                    )}
                   </div>
                 );
-              })
+              
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -487,7 +690,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
           <div className="w-full max-w-md bg-white dark:bg-[#27201A] rounded-3xl p-5 shadow-xl border border-[#F3DFCD] dark:border-[#383029] max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] mb-4">
               <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                Add Accounting Account
+                {editingAccountId ? 'Edit Account' : 'Add Accounting Account'}
               </h2>
               <button
                 type="button"
@@ -554,13 +757,28 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                   <option value="BPI">BPI</option>
                   <option value="BDO">BDO</option>
                   <option value="Metrobank">Metrobank</option>
+                  <option value="RCBC">RCBC</option>
                   <option value="UnionBank">UnionBank</option>
+                  <option value="Security Bank">Security Bank</option>
+                  <option value="PNB">PNB</option>
+                  <option value="EastWest">EastWest</option>
+                  <option value="AUB">AUB</option>
+                  <option value="LandBank">LandBank</option>
+                  <option value="PSBank">PSBank</option>
+                  <option value="China Bank">China Bank</option>
                   <option value="GCash">GCash</option>
                   <option value="Maya">Maya</option>
-                  <option value="SeaBank">SeaBank</option>
+                  <option value="MariBank">MariBank</option>
                   <option value="GoTyme">GoTyme</option>
                   <option value="Tonik">Tonik</option>
                   <option value="CIMB">CIMB</option>
+                  <option value="Komo">Komo</option>
+                  <option value="DiskarTech">DiskarTech</option>
+                  <option value="Netbank">Netbank</option>
+                  <option value="UNO Digital Bank">UNO Digital Bank</option>
+                  <option value="OwnBank">OwnBank</option>
+                  <option value="TikTok">TikTok (PayLater)</option>
+                  <option value="Atome">Atome</option>
                   <option value="Pag-IBIG">Pag-IBIG Fund (MP2)</option>
                   <option value="SSS">SSS (WISP Plus)</option>
                   <option value="Cash">Cash (Physical)</option>
@@ -620,6 +838,58 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                 />
               </div>
 
+              
+              {/* Specific fields for debit or credit cards */}
+              {(kind === 'credit' || kind === 'debit') && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
+                      Last 4 Digits
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder="e.g. 1234"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
+                      Card Network
+                    </label>
+                    <select
+                      value={cardNetwork}
+                      onChange={(e) => setCardNetwork(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    >
+                      <option value="none">None</option>
+                      <option value="mastercard">Mastercard</option>
+                      <option value="visa">Visa</option>
+                      <option value="amex">Amex</option>
+                      <option value="jcb">JCB</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
+                      Card Tier (Skin)
+                    </label>
+                    <select
+                      value={cardTier}
+                      onChange={(e) => setCardTier(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    >
+                      <option value="regular">Regular / Classic</option>
+                      <option value="gold">Gold</option>
+                      <option value="platinum">Platinum</option>
+                      <option value="black">Black / Elite</option>
+                      <option value="custom">Standard UI</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {/* Specific fields for credit or loans */}
               {kind === 'credit' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -666,6 +936,22 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                 </div>
               )}
 
+              
+                {editingAccountId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this account?')) {
+                        deleteAccount(editingAccountId);
+                        setShowAddModal(false);
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-rose-500 text-rose-600 text-xs font-bold shadow-xs hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer mb-3"
+                  >
+                    Delete Account
+                  </button>
+                )}
+
               <div className="flex gap-2 pt-3">
                 <button
                   type="button"
@@ -686,7 +972,14 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
         </div>
       )}
 
+      
+      <div className="pt-4 pb-6 text-center">
+        <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] opacity-70">
+          Disclaimer: Brand logos shown are for visual reference only. Salapify is not affiliated, associated, authorized, endorsed by, or in any way officially connected with these financial institutions.
+        </p>
+      </div>
       {/* Section Info Modal */}
+
       <SectionInfoModal topic={showNetWorthInfo ? 'net_worth' : null} onClose={() => setShowNetWorthInfo(false)} />
     </div>
   );

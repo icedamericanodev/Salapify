@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Settings, ShieldCheck, Bell, Users, Sparkles } from 'lucide-react';
+import { Sun, Moon, Settings, ShieldCheck, Bell, Users, Sparkles, CircleDollarSign } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 
 interface HeaderProps {
@@ -30,9 +30,12 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="flex items-center justify-between py-3 px-1 gap-2">
       <div className="flex flex-col min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-bold tracking-wider uppercase text-[#B03C09] dark:text-[#FF9A52] shrink-0">
-            Salapify 3
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0" title="Salapify 3">
+            <img src="/logo.png" alt="Salapify Logo" className="w-6 h-6 rounded-full shadow-sm object-contain" />
+            <span className="text-[13px] font-black tracking-tight text-[#B03C09] dark:text-[#FF9A52]">
+              Salapify
+            </span>
+          </div>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#B03C09]/10 dark:bg-[#FF9A52]/15 text-[#B03C09] dark:text-[#FF9A52] shrink-0 whitespace-nowrap">
             <ShieldCheck size={11} /> Offline Only
           </span>

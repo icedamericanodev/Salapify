@@ -221,7 +221,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h2 className="text-sm sm:text-base font-extrabold text-[#15120F] dark:text-[#F6EFE8] truncate">
-                  Coming Up &amp; Cash Horizon
+                  Coming Up
                 </h2>
                 <button
                   type="button"
@@ -238,7 +238,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
                 </button>
               </div>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D] truncate">
-                Sweldo cycle commitments &amp; projected surplus before next payday
+                Expected bills &amp; income before next payday
               </p>
             </div>
           </div>
@@ -333,7 +333,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
             >
               <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                 <ArrowDownLeft size={12} className="shrink-0" />
-                <span className="truncate">Expected Inflow</span>
+                <span className="truncate">Income</span>
               </div>
               <div className="text-xs sm:text-sm font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums truncate mt-1">
                 {totalInflows > 0 ? `+${formatPeso(totalInflows)}` : '₱0.00'}
@@ -351,7 +351,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
             >
               <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-rose-800 dark:text-rose-300">
                 <ArrowUpRight size={12} className="shrink-0" />
-                <span className="truncate">Bills Reserved</span>
+                <span className="truncate">Reserved</span>
               </div>
               <div className="text-xs sm:text-sm font-extrabold text-rose-600 dark:text-rose-400 tabular-nums truncate mt-1">
                 {totalOutflows > 0 ? formatPeso(totalOutflows) : '₱0.00'}
@@ -373,7 +373,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
                 ) : (
                   <TrendingDown size={12} className="text-rose-600 dark:text-rose-400 shrink-0" />
                 )}
-                <span className="truncate">Net Surplus</span>
+                <span className="truncate">Remaining</span>
               </div>
               <div
                 className={`text-xs sm:text-sm font-extrabold tabular-nums truncate mt-1 ${
@@ -426,7 +426,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
         {profileUpcoming.length > 0 && (
           <div className="flex items-center justify-between px-1 text-xs">
             <span className="text-[#7A6E63] dark:text-[#A89A8D] font-medium text-[11px]">
-              Showing {displayedUpcoming.length} of {profileUpcoming.length} commitments
+              Showing {displayedUpcoming.length} of {profileUpcoming.length} items
             </span>
             <div className="flex items-center gap-1">
               {(
@@ -462,13 +462,13 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
             <div className="max-w-xs">
               <p className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
                 {movementFilter === 'inflow'
-                  ? 'Walang pending expected inflows'
+                  ? 'No expected income'
                   : movementFilter === 'outflow'
-                  ? 'Walang pending bills na naka-reserve'
-                  : 'Walang upcoming commitments sa profile na ito'}
+                  ? 'No reserved bills'
+                  : 'No upcoming items for this profile'}
               </p>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D] mt-0.5">
-                Your Safe to Spend is 100% protected for this sweldo cycle.
+                Your Safe to Spend is protected until next payday.
               </p>
             </div>
             <button
@@ -477,7 +477,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
               className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#B03C09] text-white dark:bg-[#FF9A52] dark:text-[#14100D] flex items-center gap-1.5 hover:opacity-90 cursor-pointer shadow-xs"
             >
               <Plus size={13} />
-              <span>Add Obligation</span>
+              <span>Add Item</span>
             </button>
           </div>
         ) : (

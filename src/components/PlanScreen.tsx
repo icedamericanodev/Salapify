@@ -16,6 +16,10 @@ import {
   Clock,
   Layers,
   ChevronRight,
+  PieChart,
+  Calculator,
+  BookOpen,
+  Calendar,
   Trash2,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
@@ -24,17 +28,27 @@ import { Budget, Goal, UpcomingItem, IncomeStreamType } from '../types';
 import { SectionInfoModal, InfoTopic } from './SectionInfoModal';
 import { SafeToSpendModal } from './SafeToSpendModal';
 import { HealthCheckModal } from './HealthCheckModal';
+import { HabitTrackerView } from './HabitTrackerView';
+import { SubscriptionTrackerView } from './SubscriptionTrackerView';
+import { CalculatorLibrary } from './CalculatorLibrary';
+import { AcademyView } from './AcademyView';
 
 interface PlanScreenProps {
-  initialSegment?: 'budget' | 'upcoming' | 'goals' | 'decision';
+  initialSegment?: 'overview' | 'budget' | 'upcoming' | 'goals' | 'decision' | 'trackers' | 'calculators' | 'academy';
   onOpenBills?: () => void;
   onOpenDebt?: () => void;
+  onOpenTaxCalculator?: () => void;
+  onOpenBusiness?: () => void;
+  onOpenSavingsPlanner?: () => void;
 }
 
 export const PlanScreen: React.FC<PlanScreenProps> = ({
   initialSegment = 'budget',
   onOpenBills,
   onOpenDebt,
+  onOpenTaxCalculator,
+  onOpenBusiness,
+  onOpenSavingsPlanner,
 }) => {
   const {
     budgets,
@@ -54,7 +68,7 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
     healthCheckInsights,
   } = useFinancial();
 
-  const [activeSegment, setActiveSegment] = useState<'budget' | 'upcoming' | 'goals' | 'decision'>(initialSegment);
+  const [activeSegment, setActiveSegment] = useState<'overview' | 'budget' | 'upcoming' | 'goals' | 'decision' | 'trackers' | 'calculators' | 'academy'>(initialSegment || 'overview');
   const [infoTopic, setInfoTopic] = useState<InfoTopic | null>(null);
 
   // Modal dialog states
@@ -187,41 +201,145 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
 
   return (
     <div className="flex flex-col gap-4 pb-36">
+      
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between pt-2 px-1 gap-2">
-        <div className="flex items-center gap-1.5">
-          <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-            Plan
-          </h1>
+      <div className="flex flex-col gap-3 pt-2 px-1 mb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {activeSegment !== 'overview' && (
+              <button
+                type="button"
+                onClick={() => setActiveSegment('overview')}
+                className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+              >
+                ← Back
+              </button>
+            )}
+            <h1 className="text-xl font-extrabold font-display text-[#15120F] dark:text-[#F6EFE8]">
+              {activeSegment === 'overview' ? 'Strategy & Plan' : 
+               activeSegment === 'budget' ? 'Budgets' :
+               activeSegment === 'upcoming' ? 'Bills & Payables' :
+               activeSegment === 'goals' ? 'Wealth Goals' :
+               activeSegment === 'decision' ? 'Decision Journal' :
+               activeSegment === 'trackers' ? 'Trackers' :
+               activeSegment === 'calculators' ? 'Calculators' : 'Academy'}
+            </h1>
+          </div>
           <button
             type="button"
             onClick={() => setInfoTopic('budget')}
-            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#B03C09] dark:hover:text-[#FF9A52] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#B03C09] dark:hover:text-[#FF9A52] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] transition-colors cursor-pointer shrink-0 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029]"
             title="Learn about Plan and Budget tracking"
             aria-label="Plan info"
           >
             <Info size={14} />
           </button>
         </div>
-
-        {/* 4 Segments: Budget · Upcoming · Goals · Decision */}
-        <div className="flex rounded-xl p-1 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] max-w-full overflow-x-auto">
-          {(['budget', 'upcoming', 'goals', 'decision'] as const).map((seg) => (
-            <button
-              key={seg}
-              type="button"
-              onClick={() => setActiveSegment(seg)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg capitalize transition-all cursor-pointer whitespace-nowrap ${
-                activeSegment === seg
-                  ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] shadow-xs'
-                  : 'text-[#6B6156] dark:text-[#AC9E92]'
-              }`}
-            >
-              {seg === 'decision' ? 'Decision & Health' : seg}
-            </button>
-          ))}
-        </div>
+        
+        {/* Render Segment Pills ONLY on overview if you want, or just remove them. Let's REMOVE them entirely to force Hub navigation! */}
       </div>
+
+      {/* 0. OVERVIEW HUB */}
+      {activeSegment === 'overview' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setActiveSegment('budget')}
+              className="p-4 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs text-left hover:opacity-90 flex flex-col gap-2"
+            >
+              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                <PieChart size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">Budgets</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] mt-0.5">Track categorical spending</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveSegment('upcoming')}
+              className="p-4 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs text-left hover:opacity-90 flex flex-col gap-2"
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+                <Calendar size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">Bills & Payables</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] mt-0.5">Manage upcoming cash flows</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveSegment('goals')}
+              className="p-4 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs text-left hover:opacity-90 flex flex-col gap-2"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#FFEEDF] dark:bg-[#382B22] text-[#B03C09] dark:text-[#FF9A52] flex items-center justify-center">
+                <Target size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">Wealth Goals</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] mt-0.5">Ipon challenges & targets</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveSegment('decision')}
+              className="p-4 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl shadow-xs text-left hover:opacity-90 flex flex-col gap-2"
+            >
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                <ShieldCheck size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">Decision Journal</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] mt-0.5">Safe-to-spend modeling</p>
+              </div>
+            </button>
+          </div>
+
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92] px-1 pt-2">
+            Toolbox & Education
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+             <button
+              onClick={() => setActiveSegment('trackers')}
+              className="p-3 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-xl shadow-xs text-left hover:opacity-90 flex items-center gap-3"
+            >
+              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Activity size={14} />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">Trackers</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">Habits & Subscriptions</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveSegment('calculators')}
+              className="p-3 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-xl shadow-xs text-left hover:opacity-90 flex items-center gap-3"
+            >
+              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Calculator size={14} />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">Calculators</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">Debt & Tax models</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveSegment('academy')}
+              className="p-3 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-xl shadow-xs text-left hover:opacity-90 flex items-center gap-3"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#15120F] dark:bg-[#F6EFE8] text-[#F6EFE8] dark:text-[#15120F] flex items-center justify-center shrink-0">
+                <BookOpen size={14} />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">Academy</h3>
+                <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">Financial literacy</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 1. BUDGET SEGMENT */}
       {activeSegment === 'budget' && (
@@ -423,10 +541,10 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
           <div className="flex items-center justify-between px-1">
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC]">
-                Ipon &amp; Wealth Milestones
+                Savings &amp; Wealth Goals
               </h2>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
-                Pag-IBIG MP2, Emergency Fund &amp; Savings Goals
+                Track your savings and investment targets
               </p>
             </div>
             <button
@@ -1008,6 +1126,40 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* 5. TRACKERS SEGMENT */}
+      {activeSegment === 'trackers' && (
+        <div className="space-y-4">
+          <HabitTrackerView />
+          <SubscriptionTrackerView />
+        </div>
+      )}
+
+      {/* 6. CALCULATORS SEGMENT */}
+      
+      {/* 7. ACADEMY SEGMENT */}
+      {activeSegment === 'academy' && (
+        <AcademyView />
+      )}
+      
+      {activeSegment === 'calculators' && (
+
+        <div className="space-y-4">
+          <CalculatorLibrary onOpenCalculator={(id) => {
+            if (id === 'tax_comprehensive') {
+              if (onOpenTaxCalculator) onOpenTaxCalculator();
+            } else if (id === 'business_pricing') {
+              if (onOpenBusiness) onOpenBusiness();
+            } else if (id === 'savings_investment') {
+              if (onOpenSavingsPlanner) onOpenSavingsPlanner();
+            } else if (id === 'debt_loan') {
+              if (onOpenDebt) onOpenDebt();
+            } else {
+              alert('Calculator coming soon!');
+            }
+          }} />
         </div>
       )}
 

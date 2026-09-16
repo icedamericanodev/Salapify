@@ -16,7 +16,7 @@ export const TabBar: React.FC<TabBarProps> = ({
 }) => {
   const tabs = [
     { id: 'home' as TabType, label: 'Home', icon: Home },
-    { id: 'ledger' as TabType, label: 'Ledger', icon: BookOpen },
+    { id: 'ledger' as TabType, label: 'Activity', icon: BookOpen },
     { id: 'reports' as TabType, label: 'Reports', icon: FileSpreadsheet },
     { id: 'plan' as TabType, label: 'Plan', icon: Target },
     { id: 'accounts' as TabType, label: 'Accounts', icon: Wallet },

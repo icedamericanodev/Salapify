@@ -553,7 +553,7 @@ export const DebtCalculatorsView: React.FC = () => {
             interestSaved={bankHousingResult.interestSavedWithExtra}
             extraMonthlyPayment={parseFloat(bankExtraPayment) || 0}
             schedule={bankHousingResult.schedule}
-            notes="Bank housing loans are repriced periodically after the initial fixed period (typically 3–5 years). Review your bank statement annual repricing disclosure."
+            notes="Bank housing loans are repriced periodically after the initial fixed period (typically 3-5 years). Review your bank statement annual repricing disclosure."
           />
         </div>
       )}
@@ -1256,7 +1256,7 @@ export const DebtCalculatorsView: React.FC = () => {
               Debt-Service Ratio (DSR) &amp; Borrowing Capacity
             </h3>
             <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
-              BSP prudential standard: <strong className="font-semibold">&lt; 30% Healthy</strong>, 30–40% Moderate, &gt; 40% High Risk
+              BSP prudential standard: <strong className="font-semibold">&lt; 30% Healthy</strong>, 30-40% Moderate, &gt; 40% High Risk
             </p>
           </div>
 

@@ -1,0 +1,1501 @@
+import { 
+  Target, ArrowLeftRight, Landmark, ShieldAlert, TrendingDown, 
+  CreditCard, CalendarClock, ShieldCheck, PiggyBank, Award, 
+  LineChart, Sliders, ShoppingBag, Palmtree, FileText, 
+  AlertTriangle, BrainCircuit, Sparkles, HeartPulse, Users, 
+  HandHeart, Send, Laptop, Zap, Package, Share2, 
+  Building2, Briefcase, Scale, Globe, Smartphone, LucideIcon 
+} from 'lucide-react';
+
+export interface LessonSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export interface KnowledgeCheck {
+  question: string;
+  options: string[];
+  correctAnswerIndex: number;
+  explanation: string;
+}
+
+export interface CourseModule {
+  id: string;
+  title: string;
+  category: string;
+  iconName: LucideIcon; 
+  description: string;
+  durationMinutes: number;
+  objectives: string[];
+  sections: LessonSection[];
+  knowledgeCheck?: KnowledgeCheck;
+  reflectionPrompt?: string;
+  keyTakeaways: string[];
+}
+
+export const academyCourses: CourseModule[] = [
+  // 1. Money Mindset
+  {
+    id: 'money-mindset',
+    title: 'The Psychology of Money',
+    category: 'Psychology & Mindset',
+    iconName: BrainCircuit,
+    description: 'Before changing your budget, you must understand how you think about money. Discover your financial blind spots and habits.',
+    durationMinutes: 5,
+    objectives: [
+      'Identify your hidden money scripts formed in childhood.',
+      'Shift from a scarcity mindset to an abundance and value-creation mindset.',
+      'Understand why financial anxiety happens and how to decouple self-worth from net worth.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Your Money Script',
+        content: 'Most of our financial habits are formed by age 7. If you grew up hearing "money does not grow on trees" or witnessed tense arguments during petsa de peligro, you might have developed a scarcity script--either hoarding cash out of panic or spending it immediately because money feels temporary. Acknowledging your past money environment is the first step to changing your financial future.'
+      },
+      {
+        id: 's2',
+        title: 'Scarcity vs. Abundance',
+        content: 'A scarcity mindset fixates entirely on what you lack: "I will never afford a house, so why bother saving?" An abundance mindset focuses on skills, value, and sustainable growth: "How can I increase my capabilities and manage my resources to expand my choices?" Wealth building requires realistic optimism, self-compassion, and focusing on opportunities.'
+      },
+      {
+        id: 's3',
+        title: 'Money as a Tool for Agency',
+        content: 'Money is not a measure of your moral character, intelligence, or personal worth. It is simply neutral energy--a tool to buy back your time, protect your health, and give you the freedom to say "no" to toxic situations.'
+      }
+    ],
+    reflectionPrompt: 'Think back to your childhood. What was the most common phrase your family used when talking about money? How does that belief affect your spending or saving choices today?',
+    keyTakeaways: [
+      'Your past financial mistakes do not define your personal worth.',
+      'Money is a tool to buy time and peace of mind, not social validation.',
+      'Awareness of emotional spending triggers is 90% of the battle.'
+    ]
+  },
+
+  // 2. Budgeting
+  {
+    id: 'budgeting',
+    title: 'Zero-Based Budgeting',
+    category: 'Basics & Fundamentals',
+    iconName: Target,
+    description: 'Stop wondering where your sweldo went. Tell every single peso exactly where to go before the month begins.',
+    durationMinutes: 6,
+    objectives: [
+      'Understand fixed expenses, variable expenses, and committed savings.',
+      'Learn the Zero-Based Budgeting method where Income minus Expenses equals Zero.',
+      'Calculate your true Safe to Spend number so you can spend without anxiety.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Real Purpose of a Budget',
+        content: 'Most people think a budget is a restrictive diet that forbids iced coffee and dinners out. In reality, a budget is permission to spend guilt-free. When your rent, utilities, and emergency savings are mathematically funded first, whatever is left over is yours to enjoy without an ounce of shame.'
+      },
+      {
+        id: 's2',
+        title: 'Zero-Based Allocation',
+        content: 'Zero-based budgeting means every single peso gets an assigned job before the cycle begins. If you take home ₱35,000 this month, you assign all ₱35,000 across living costs, debt, savings, and entertainment. If you have ₱2,500 left over, you do not leave it floating where it gets mindlessly spent--you give it a name, such as extra emergency buffer or an MP2 contribution.'
+      },
+      {
+        id: 's3',
+        title: 'Safe to Spend Discipline',
+        content: 'In Salapify, Safe to Spend is your north star. It takes your current liquid bank balance and subtracts all upcoming bills, scheduled installments, and committed savings for the rest of the cycle. What remains is your true guilt-free spending limit.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What is the core principle of Zero-Based Budgeting?',
+      options: [
+        'You must spend zero pesos on entertainment and hobbies.',
+        'Every peso of income is assigned a clear purpose so Income minus Outgo equals zero.',
+        'You keep exactly zero pesos in your checking account at all times.',
+        'You only buy items that have a 0% installment plan.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Zero-Based Budgeting means giving every single peso a designated job (bills, food, savings, or fun) so no unallocated money vanishes untracked.'
+    },
+    keyTakeaways: [
+      'A budget is not a restriction; it is an intentional spending plan.',
+      'Always pay yourself first by routing money to savings before discretionary spending.',
+      'If you overspend in one category, simply reallocate from another category.'
+    ]
+  },
+
+  // 3. Cash Flow
+  {
+    id: 'cash-flow',
+    title: 'Mastering Cash Flow',
+    category: 'Basics & Fundamentals',
+    iconName: ArrowLeftRight,
+    description: 'Why do people with high salaries still run out of cash before payday? Master the timing of your inflows and outflows.',
+    durationMinutes: 5,
+    objectives: [
+      'Differentiate between high gross income and healthy liquid cash flow.',
+      'Master the 15th and 30th sweldo cadence in the Philippines.',
+      'Build a cash buffer to permanently eliminate petsa de peligro.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Salary vs. Cash Flow',
+        content: 'You can earn ₱70,000 a month and still face cash starvation if your rent, credit card dues, and electric bills are all due on the 5th, but your sweldo arrives on the 15th. Cash flow is not just about how much comes in; it is about when money moves.'
+      },
+      {
+        id: 's2',
+        title: 'The Timing Trap (15th and 30th)',
+        content: 'Most Philippine companies pay semi-monthly on the 15th and 30th. Problems occur when you treat each paycheck as isolated spending money rather than synchronizing it with bill due dates. Mapping out which sweldo covers which bills prevents mid-month panic.'
+      },
+      {
+        id: 's3',
+        title: 'Creating a Sweldo Buffer',
+        content: 'The ultimate antidote to cash flow stress is keeping a half-month buffer in your checking or digital transaction account. When you enter each pay cycle with ₱10,000 to ₱20,000 already sitting there, due dates no longer dictate your daily peace of mind.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Why can someone with a ₱60,000 salary still experience cash shortages before payday?',
+      options: [
+        'Because their bills and loan payments are due before their paycheck arrives, creating a timing mismatch.',
+        'Because their salary is legally below the national minimum wage.',
+        'Because digital banks in the Philippines do not allow bill payments.',
+        'Because credit cards cannot be used for grocery purchases.'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'Cash flow is governed by timing. If heavy obligations fall on dates before income lands, cash shortages occur regardless of how high your salary is.'
+    },
+    keyTakeaways: [
+      'Cash flow timing is just as critical as your total monthly salary.',
+      'Map your monthly bills explicitly to either the 15th or 30th pay cycle.',
+      'A buffer fund in your checking account breaks the petsa de peligro cycle permanently.'
+    ]
+  },
+
+  // 4. Net Worth
+  {
+    id: 'net-worth',
+    title: 'Your True Scorecard: Net Worth',
+    category: 'Basics & Fundamentals',
+    iconName: Landmark,
+    description: 'Income is what you make; net worth is what you keep. Learn how to calculate and track your real financial progress.',
+    durationMinutes: 5,
+    objectives: [
+      'Define Assets and Liabilities in plain language.',
+      'Calculate your personal Net Worth in under 3 minutes.',
+      'Understand why consumer purchases do not equal genuine wealth.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Net Worth Equation',
+        content: 'Net Worth = Total Assets (what you own) minus Total Liabilities (what you owe). If you have ₱100,000 across savings accounts and an MP2 account, but carry ₱40,000 in credit card balances and personal loans, your net worth is ₱60,000. It is the only metric that cuts through hype.'
+      },
+      {
+        id: 's2',
+        title: 'The Illusion of Wealth',
+        content: 'A person leasing an expensive SUV, wearing designer clothes, and dining at luxury restaurants may have a negative net worth if financed by high-interest consumer debt. True wealth is quiet: it is money invested that buys freedom, options, and security.'
+      },
+      {
+        id: 's3',
+        title: 'Tracking Progress Over Time',
+        content: 'Do not panic if your net worth starts small or even negative due to student loans or early career debts. What matters is the trajectory. If your net worth grows by even ₱3,000 to ₱5,000 each month, compounding momentum is working in your favor.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'If you purchase an ₱80,000 smartphone using a 12-month credit card installment, how does it affect your net worth?',
+      options: [
+        'It immediately increases your net worth by ₱80,000.',
+        'It does not increase your net worth, and quickly reduces it because consumer electronics depreciate rapidly while the debt remains.',
+        'It doubles your net worth because modern technology counts as an appreciating asset.',
+        'It has zero connection to personal finance.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Smartphones lose 20% to 40% of resale value instantly, while the ₱80,000 debt obligation must be paid in full, leading to a net reduction in wealth.'
+    },
+    keyTakeaways: [
+      'Net Worth = Assets (what you own) minus Liabilities (what you owe).',
+      'Income measures your earning velocity; Net Worth measures your accumulated freedom.',
+      'Focus on growing assets that appreciate or generate yield, while paying down consumer debt.'
+    ]
+  },
+
+  // 5. Emergency Funds
+  {
+    id: 'emergency-funds',
+    title: 'The Financial Shock Absorber',
+    category: 'Safety & Preparation',
+    iconName: ShieldAlert,
+    description: 'Life happens: sudden hospitalizations, lost jobs, broken laptops. Learn how to build an impenetrable safety net.',
+    durationMinutes: 6,
+    objectives: [
+      'Define what qualifies as a genuine emergency vs. a regular expense.',
+      'Calculate your personal 3-to-6 month living expense target.',
+      'Choose the best high-yield, liquid account for your emergency cash.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'What Counts as an Emergency?',
+        content: 'A legitimate emergency satisfies three criteria: it is unexpected, necessary, and urgent. A dental emergency or a broken motorcycle used for daily work is an emergency. An airline seat sale to Japan, a friend\'s birthday blowout, or 11.11 shopping sales are NOT emergencies.'
+      },
+      {
+        id: 's2',
+        title: 'The 3 to 6 Month Formula',
+        content: 'Calculate your target using your bare minimum survival needs (food, rent, utilities, minimum debt payments), not your full lifestyle spending. If your needs are ₱22,000 a month, a 3-month fund is ₱66,000. Freelancers and single-income breadwinners should aim for 6 to 9 months.'
+      },
+      {
+        id: 's3',
+        title: 'Where to Store Emergency Money',
+        content: 'Never invest your emergency fund in volatile stocks, crypto, or locked 5-year bonds. Store it in high-yield digital savings accounts (like MariBank, GoTyme, or Maya) where it earns 4% to 6% per annum, stays protected by PDIC insurance up to ₱500,000, and remains accessible via InstaPay within seconds.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Which of the following is a valid reason to withdraw from your Emergency Fund?',
+      options: [
+        'An unexpected engine breakdown on your daily commute vehicle required for work.',
+        'A limited-time flash sale on shoes you have wanted for months.',
+        'A friend invited you to a surprise weekend beach getaway.',
+        'Crypto dropped 30% and you want to speculate on the dip.'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'A vehicle breakdown required for your daily livelihood is unexpected, necessary, and urgent. Vacations, sales, and market speculations are not emergencies.'
+    },
+    keyTakeaways: [
+      'Calculate your target based on 3 to 6 months of bare essentials, not luxury spending.',
+      'Keep emergency funds liquid in high-yield digital banks, never in volatile investments.',
+      'Replenish any withdrawn emergency money as your top priority in the next pay cycle.'
+    ]
+  },
+
+  // 6. Debt
+  {
+    id: 'debt-strategy',
+    title: 'Destroying Debt',
+    category: 'Credit & Debt',
+    iconName: TrendingDown,
+    description: 'Not all debt is equal. Learn how to use the Snowball or Avalanche methods to eliminate high-interest debt permanently.',
+    durationMinutes: 7,
+    objectives: [
+      'Differentiate between productive debt and toxic consumer debt.',
+      'Compare the mathematical Avalanche method with the psychological Snowball method.',
+      'Build a sustainable payoff strategy without sacrificing essential living needs.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Good Debt vs. Bad Debt',
+        content: 'Good debt helps finance an asset that generates income or increases net worth over time (such as an affordable home loan or capital for a profitable small enterprise). Bad debt finances depreciating items at high interest rates (such as credit card balances rolling at 3% monthly or 36% to 42% annually).'
+      },
+      {
+        id: 's2',
+        title: 'The Avalanche Method (Mathematical)',
+        content: 'List all debts ordered from highest interest rate to lowest. Pay minimum dues on all accounts, and direct every spare peso toward the debt with the highest interest. Once eliminated, roll that entire payment into the next highest. This saves the maximum amount of money in interest.'
+      },
+      {
+        id: 's3',
+        title: 'The Snowball Method (Behavioral)',
+        content: 'List all debts ordered from smallest balance to largest, regardless of interest. Attack the smallest balance first with intensity. Wiping out an entire account delivers an immediate psychological win and momentum. Personal finance is 80% behavior and 20% math--choose the method that keeps you committed.'
+      }
+    ],
+    reflectionPrompt: 'Look at your current debts or past borrowing habits. Would you feel more motivated by knocking out the smallest balance first for a quick psychological win (Snowball), or by saving the maximum interest (Avalanche)?',
+    keyTakeaways: [
+      'High-interest consumer debt (over 10% per year) is a financial emergency.',
+      'Always automate minimum payments across all debts to protect your credit history.',
+      'Pick one payoff strategy (Snowball or Avalanche) and focus on it ruthlessly.'
+    ]
+  },
+
+  // 7. Credit Cards
+  {
+    id: 'credit-cards',
+    title: 'Credit Cards: Weapon or Tool?',
+    category: 'Credit & Debt',
+    iconName: CreditCard,
+    description: 'Credit cards can earn rewards, discounts, and build credit history--or trap you in endless interest. Learn the bank officer rules.',
+    durationMinutes: 6,
+    objectives: [
+      'Treat a credit card strictly like a debit card with a delayed settlement date.',
+      'Master the difference between statement cutoff date and payment due date.',
+      'Keep credit utilization below 30% to build a pristine credit profile.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Golden Rule: Pay the Statement in Full',
+        content: 'If you swipe ₱8,000 for groceries, you must already have that ₱8,000 sitting in your bank account. When the bill arrives, pay the full Statement Balance, not the Minimum Amount Due. The minimum payment is designed to keep you trapped in 3% monthly compounding finance charges for years.'
+      },
+      {
+        id: 's2',
+        title: 'Cutoff Date vs. Due Date',
+        content: 'Your Statement Cutoff Date is when the bank totals up your monthly transactions. Your Payment Due Date is typically 20 to 25 days later. Swiping right after your cutoff date gives you up to 45 to 50 days of interest-free float, giving you maximum cash flow flexibility.'
+      },
+      {
+        id: 's3',
+        title: 'The 30% Utilization Rule',
+        content: 'Credit bureaus assess your creditworthiness partly through credit utilization (how much of your credit limit you actively use). If your card limit is ₱100,000, keep your reported balance under ₱30,000. Maxing out your card signals financial distress to banks, even if you pay in full later.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What happens if you only pay the "Minimum Amount Due" on your credit card statement each month?',
+      options: [
+        'You pay zero interest and banks reward you with a free card upgrade.',
+        'You incur finance charges (around 3% monthly or 36% to 42% annually) on your entire remaining balance.',
+        'The bank cancels your balance after 12 months as a courtesy.',
+        'Your credit utilization drops automatically to 0%.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Paying only the minimum leaves the remaining balance subject to heavy monthly finance charges that compound rapidly.'
+    },
+    keyTakeaways: [
+      'Never swipe for an expense unless you already have the cash in your bank.',
+      'Always pay the Total Statement Balance in full on or before the due date.',
+      'Keep your credit card utilization below 30% of your total assigned limit.'
+    ]
+  },
+
+  // 8. Installments
+  {
+    id: 'installments',
+    title: 'The Installment & BNPL Trap',
+    category: 'Credit & Debt',
+    iconName: CalendarClock,
+    description: 'Buy Now Pay Later and 0% installments make expensive luxuries look cheap. Learn how to protect your future cash flow.',
+    durationMinutes: 5,
+    objectives: [
+      'Recognize how micro-installments silently consume future paychecks.',
+      'Calculate the real opportunity cost of 0% interest marketing promotions.',
+      'Implement the 48-hour cooling-off rule before committing to any installment.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Psychology of Micro-Payments',
+        content: 'Saying "It is only ₱1,500 a month!" feels far less painful than saying "I am spending ₱36,000." Retailers and BNPL apps use installments to bypass your brain\'s natural spending hesitation. When you break a big purchase into 24 pieces, you lose awareness of the total cost.'
+      },
+      {
+        id: 's2',
+        title: 'Installment Stacking: The Silent Trap',
+        content: 'One ₱1,200 installment is easy to manage. But when you add a phone installment (₱2,500), an appliance (₱1,800), and a fashion purchase (₱1,000), you have silently locked up ₱6,500 of every month\'s sweldo before you even buy food. Your Safe to Spend collapses.'
+      },
+      {
+        id: 's3',
+        title: 'Safe Installment Guidelines',
+        content: 'Only use 0% installments for planned, necessary capital items (such as a work laptop), never for impulsive lifestyle splurges. Cap your total active monthly installment obligations at no more than 15% of your net monthly income.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Why can stacking multiple 0% installment plans become financially dangerous?',
+      options: [
+        'They are banned under Philippine consumer protection laws.',
+        'They silently commit chunks of your future income, leaving you with little cash buffer if an emergency happens.',
+        'Banks charge double points on all installment transactions.',
+        'They automatically lower your taxable income bracket.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Every installment locks away a piece of your future sweldo. Multiple installments reduce your monthly flexibility and increase vulnerability during emergencies.'
+    },
+    keyTakeaways: [
+      'A 0% interest rate is not free money; the principal amount must still be repaid.',
+      'Keep total monthly installment payments under 15% of your monthly take-home pay.',
+      'Wait 48 hours before committing to any non-essential installment purchase.'
+    ]
+  },
+
+  // 9. Insurance
+  {
+    id: 'insurance',
+    title: 'Insurance: Protecting Your Downside',
+    category: 'Safety & Preparation',
+    iconName: ShieldCheck,
+    description: 'You cannot build generational wealth if one major illness wipes out 5 years of savings. Learn how to insure your biggest risks.',
+    durationMinutes: 7,
+    objectives: [
+      'Distinguish between HMO, comprehensive medical insurance, and life insurance.',
+      'Determine if you genuinely need life insurance based on financial dependents.',
+      'Understand the trade-offs of VULs (Variable Universal Life) vs. Term Insurance.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Safety Net: HMO to Critical Illness',
+        content: 'HMOs cover daily doctor consultations and routine inpatient hospitalizations up to a specific limit (e.g., ₱150,000 to ₱250,000). For catastrophic illnesses like cancer or heart disease, you need Critical Illness coverage to provide a lump-sum payment so you do not drain your life savings.'
+      },
+      {
+        id: 's2',
+        title: 'Who Actually Needs Life Insurance?',
+        content: 'Life insurance replaces your economic income if you pass away. If you have dependents (children, elderly parents, non-working spouse) who rely on your paycheck to survive, life insurance is essential. If you are single with no financial dependents, your priority should be health and emergency funds, not a huge life policy.'
+      },
+      {
+        id: 's3',
+        title: 'Term Life vs. VUL',
+        content: 'VUL (Variable Universal Life) packages life insurance and mutual fund investing into one product, often carrying heavy management fees and agent commissions in the early years. Many savvy savers prefer "BTID" (Buy Term, Invest the Difference)--buying affordable term life insurance and investing the rest directly into low-cost funds or Pag-IBIG MP2.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Who has the most urgent need for a life insurance policy?',
+      options: [
+        'A single working adult with no dependents and no outstanding family debts.',
+        'A breadwinner whose spouse and two young children rely completely on their monthly salary to live.',
+        'A retired individual whose children are grown and financially independent.',
+        'A college student who just opened their first savings account.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Life insurance replaces economic income for people who rely on your earnings. Breadwinners with dependents require coverage to prevent family insolvency.'
+    },
+    keyTakeaways: [
+      'HMO and health insurance protect your current wealth; life insurance protects your dependents.',
+      'Buy insurance for risk protection, not as your primary investment vehicle.',
+      'Review your insurance coverage whenever major life events happen (marriage, children, business).'
+    ]
+  },
+
+  // 10. Savings Accounts
+  {
+    id: 'savings-accounts',
+    title: 'High-Yield Digital Banking',
+    category: 'Safety & Preparation',
+    iconName: PiggyBank,
+    description: 'Traditional banks pay 0.05% interest while digital banks offer 4% to 6%. Learn how digital banking in the Philippines works safely.',
+    durationMinutes: 6,
+    objectives: [
+      'Understand how BSP-licensed digital banks (MariBank, GoTyme, Maya, CIMB, Tonik) operate.',
+      'Verify PDIC insurance coverage up to ₱500,000 per depositor per bank.',
+      'Optimize daily compounding interest for emergency funds and short-term goals.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Why Traditional Banks Pay Almost Zero',
+        content: 'Traditional brick-and-mortar banks carry massive overhead expenses: physical branches, security guards, electricity, and legacy mainframe systems. Because of these costs, their basic savings accounts pay around 0.05% to 0.125% per year, which loses to inflation every single month.'
+      },
+      {
+        id: 's2',
+        title: 'The Digital Bank Advantage',
+        content: 'Digital banks operate entirely online through mobile apps with zero physical branch costs. They pass these operational savings directly to depositors through interest rates of 4% to 6% per annum, often credited daily so your interest earns interest immediately.'
+      },
+      {
+        id: 's3',
+        title: 'Safety and PDIC Regulations',
+        content: 'Legitimate digital banks are regulated by the Bangko Sentral ng Pilipinas (BSP) and covered by the Philippine Deposit Insurance Corporation (PDIC) up to ₱500,000 per depositor. To keep 100% insured coverage on larger cash reserves, distribute amounts exceeding ₱500,000 across multiple licensed institutions.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What Philippine government agency insures bank deposits up to ₱500,000 per depositor per bank?',
+      options: [
+        'BIR (Bureau of Internal Revenue)',
+        'PDIC (Philippine Deposit Insurance Corporation)',
+        'SEC (Securities and Exchange Commission)',
+        'DTI (Department of Trade and Industry)'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'The PDIC insures deposit accounts in BSP-supervised banks (including licensed digital banks) up to ₱500,000 per depositor.'
+    },
+    keyTakeaways: [
+      'Keep spending money in your regular account, and park savings in high-yield digital banks.',
+      'Confirm that any digital bank you use is officially licensed and supervised by the BSP.',
+      'Spread balances over ₱500,000 across different banks to maintain full PDIC insurance.'
+    ]
+  },
+
+  // 11. PAG-IBIG MP2
+  {
+    id: 'pagibig-mp2',
+    title: 'PAG-IBIG MP2: The Wealth Engine',
+    category: 'Investing & Wealth',
+    iconName: Award,
+    description: 'One of the safest, highest-yielding government-backed savings programs in the Philippines. Learn how to grow wealth with MP2.',
+    durationMinutes: 7,
+    objectives: [
+      'Understand what the Modified Pag-IBIG 2 (MP2) program is and how it works.',
+      'Harness tax-free compounded dividends backed by the Philippine government.',
+      'Design a 5-year rolling maturity strategy for medium-term life goals.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'What is Pag-IBIG MP2?',
+        content: 'MP2 is a voluntary government savings program for active and former Pag-IBIG members. Your funds are pooled and invested in housing loans and government securities. It offers a 5-year lock-in period with historically strong annual dividend yields (often 5.5% to 7.5%+).'
+      },
+      {
+        id: 's2',
+        title: 'The Tax-Free Advantage',
+        content: 'When you earn interest on regular bank deposits or corporate bonds, the government automatically deducts a 10% to 20% final withholding tax. MP2 dividends are 100% tax-exempt. Furthermore, the principal amount is guaranteed by the Republic of the Philippines.'
+      },
+      {
+        id: 's3',
+        title: 'Compounding vs. Annual Payout',
+        content: 'You can choose between Annual Dividend Payout (credited to your loyalty card or savings account) or Compounded Dividends (reinvested back into your MP2 balance). If you do not need immediate cash flow, choose compounded dividends to let interest compound upon interest over the 5-year term.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What is a major advantage of Pag-IBIG MP2 dividends compared to regular bank interest in the Philippines?',
+      options: [
+        'MP2 dividends are 100% exempt from the 20% final withholding tax, and the principal is government-backed.',
+        'You can withdraw funds from any ATM daily without restriction.',
+        'It guarantees an unchanging 25% profit every single month.',
+        'It requires no Pag-IBIG membership or registration.'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'Unlike bank interest which incurs a 20% withholding tax, MP2 dividends are completely tax-free and the principal is guaranteed by the Philippine government.'
+    },
+    keyTakeaways: [
+      'Pag-IBIG MP2 is ideal for 5-year goals like a home down payment or wedding fund.',
+      'Opt for compounded dividends if you want to maximize long-term exponential growth.',
+      'You can open multiple MP2 accounts simultaneously to segment different financial targets.'
+    ]
+  },
+
+  // 12. Investing Basics
+  {
+    id: 'investing-basics',
+    title: 'Investing 101: Making Money Work',
+    category: 'Investing & Wealth',
+    iconName: LineChart,
+    description: 'You cannot save your way to true wealth. Discover the difference between trading, speculating, and long-term index investing.',
+    durationMinutes: 7,
+    objectives: [
+      'Explain the fundamental difference between saving and investing.',
+      'Understand asset classes: stocks, bonds, UITFs, and index funds.',
+      'Learn how Dollar-Cost Averaging (DCA) removes emotional market timing.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Saving vs. Investing',
+        content: 'Saving is setting aside cash for short-term safety and emergencies; it protects your capital from loss. Investing is purchasing productive assets (businesses, equities, real estate) that generate income and grow in value over time to outpace inflation.'
+      },
+      {
+        id: 's2',
+        title: 'What Are You Buying?',
+        content: 'When you buy a stock, you become a partial owner of a real company (like Jollibee, BDO, or Apple). When you buy an index fund or UITF, you buy a small piece of dozens or hundreds of leading companies at once, achieving instant diversification with minimal effort.'
+      },
+      {
+        id: 's3',
+        title: 'Dollar-Cost Averaging (DCA)',
+        content: 'Trying to predict the exact peak and bottom of the stock market is a fool\'s errand even for Wall Street pros. Dollar-Cost Averaging means investing a fixed amount (e.g., ₱3,000 every sweldo) regardless of whether the market is up or down. You buy more shares when prices are cheap and fewer when prices are high.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What does Dollar-Cost Averaging (DCA) mean?',
+      options: [
+        'Attempting to guess the exact lowest price of a stock before buying.',
+        'Investing a fixed peso amount at regular intervals over time, regardless of market fluctuations.',
+        'Converting all your Philippine Pesos into US Dollars immediately.',
+        'Borrowing money from a bank to purchase volatile speculative assets.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Dollar-Cost Averaging involves investing a disciplined, fixed amount regularly, removing emotional guessing and smoothing out market swings.'
+    },
+    keyTakeaways: [
+      'Never invest money you will need in the next 3 to 5 years in the stock market.',
+      'Broadly diversified index funds and UITFs beat active stock picking for most investors.',
+      'Time in the market consistently beats timing the market.'
+    ]
+  },
+
+  // 13. Risk and Return
+  {
+    id: 'risk-return',
+    title: 'The Iron Law: Risk and Return',
+    category: 'Investing & Wealth',
+    iconName: Sliders,
+    description: 'There is no such thing as high return with zero risk. Learn how to balance safety, yield, and your personal risk profile.',
+    durationMinutes: 6,
+    objectives: [
+      'Grasp the universal relationship between potential investment returns and risk.',
+      'Determine your personal risk capacity based on your timeline and dependents.',
+      'Use asset allocation and diversification to construct a balanced portfolio.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Universal Trade-Off',
+        content: 'The most fundamental law of finance states that higher potential return requires accepting higher volatility and risk of capital loss. Low-risk assets (government treasury bills, bank deposits) offer stability but modest yield. High-risk assets (equities, crypto, startups) offer big upside but can crash 30% to 50% overnight.'
+      },
+      {
+        id: 's2',
+        title: 'Risk Tolerance vs. Risk Capacity',
+        content: 'Risk tolerance is how much volatility your stomach can handle without panicking. Risk capacity is your financial ability to withstand losses based on your age, timeline, and job stability. A 24-year-old single software engineer has high risk capacity; a 58-year-old breadwinner nearing retirement has low risk capacity.'
+      },
+      {
+        id: 's3',
+        title: 'Diversification: The Free Lunch',
+        content: 'Diversification means not putting all your eggs in one basket. By holding a mix of cash reserves, government-backed savings (MP2), bonds, and equity index funds, a temporary crash in one sector will not devastate your overall financial well-being.'
+      }
+    ],
+    reflectionPrompt: 'If your investment portfolio dropped by 25% during a major market downturn, would you panic and sell everything at a loss, or stay calm and continue your monthly contributions? What does that reveal about your risk profile?',
+    keyTakeaways: [
+      'If an opportunity promises guaranteed high returns with zero risk, it is 100% a scam.',
+      'Your risk capacity naturally decreases as you get closer to your financial target date.',
+      'Diversify across asset classes to protect yourself from systemic economic shocks.'
+    ]
+  },
+
+  // 14. Inflation
+  {
+    id: 'inflation',
+    title: 'Inflation: The Silent Wealth Killer',
+    category: 'Investing & Wealth',
+    iconName: ShoppingBag,
+    description: 'Leaving cash in a biscuit tin feels safe, but inflation quietly destroys its purchasing power every year. Learn how to beat it.',
+    durationMinutes: 5,
+    objectives: [
+      'Understand what inflation is and how the Consumer Price Index (CPI) works.',
+      'Apply the Rule of 72 to calculate how quickly purchasing power declines.',
+      'Identify productive asset classes that historically beat Philippine inflation.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Vanishing Purchasing Power',
+        content: 'Inflation is the steady rise in the prices of goods and services over time. If a bag of groceries that cost ₱1,000 last year costs ₱1,060 today, inflation was 6%. Cash sitting idle under a mattress or in a 0.05% bank account lost 6% of what it can actually purchase.'
+      },
+      {
+        id: 's2',
+        title: 'The Rule of 72',
+        content: 'To find out how many years it takes for prices to double (or your cash\'s buying power to be cut in half), divide 72 by the annual inflation rate. At a 6% inflation rate, prices double in 12 years (72 ÷ 6 = 12). If you do not invest, your savings lose half their purchasing value.'
+      },
+      {
+        id: 's3',
+        title: 'Assets That Beat Inflation',
+        content: 'To beat inflation over decades, you must own assets that grow with the economy: businesses that can raise prices (stocks), real estate that can raise rent, and government programs that pass through economic gains (Pag-IBIG MP2).'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'If average inflation in the Philippines is 6% per year, approximately how many years will it take for your cash\'s purchasing power to be cut in half if it earns 0% interest?',
+      options: [
+        'Around 12 years (using the Rule of 72: 72 ÷ 6 = 12).',
+        'Over 60 years.',
+        'Around 2 years.',
+        'Cash never loses purchasing power over time.'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'Using the Rule of 72, dividing 72 by a 6% inflation rate gives approximately 12 years before purchasing power drops by 50%.'
+    },
+    keyTakeaways: [
+      'Holding cash protects you in the short term, but guarantees real losses in the long term.',
+      'Emergency funds should earn competitive yields in digital banks to offset inflation.',
+      'Long-term wealth must be deployed into productive assets that outgrow the inflation rate.'
+    ]
+  },
+
+  // 15. Retirement
+  {
+    id: 'retirement',
+    title: 'Retirement: Buying Your Freedom',
+    category: 'Investing & Wealth',
+    iconName: Palmtree,
+    description: 'Retirement is not an age; it is a financial number. Learn how to calculate what you need to retire on your own terms.',
+    durationMinutes: 7,
+    objectives: [
+      'Calculate your personal Retirement Freedom Number using the 25x Rule.',
+      'Understand why SSS or GSIS pensions are only a baseline, not a full lifestyle plan.',
+      'Harness the mathematical leverage of starting in your 20s and 30s.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Redefining Retirement',
+        content: 'Retirement does not mean sitting on a porch doing nothing at age 65. It means reaching Financial Independence--the point where your investments generate enough passive income to cover all your living expenses, making work purely optional.'
+      },
+      {
+        id: 's2',
+        title: 'The Reality of SSS and GSIS',
+        content: 'The average SSS retirement pension in the Philippines ranges from ₱3,500 to ₱18,000 per month depending on contribution years and salary credits. While helpful as a base safety floor, it is rarely enough to fund a comfortable, dignified retirement with healthcare needs.'
+      },
+      {
+        id: 's3',
+        title: 'The 25x Rule (4% Safe Withdrawal)',
+        content: 'A standard benchmark for financial independence is having 25 times your annual living expenses invested. If your family needs ₱400,000 a year to live comfortably, your retirement target is ₱10,000,000 (₱400,000 × 25). Withdrawing 4% each year allows the principal to survive through market ups and downs.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Under the common 25x rule for retirement planning, how much do you need invested if your annual living expenses are ₱480,000?',
+      options: [
+        '₱4,800,000',
+        '₱12,000,000 (₱480,000 × 25)',
+        '₱1,200,000',
+        '₱48,000,000'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Multiplying annual living expenses (₱480,000) by 25 yields a target nest egg of ₱12,000,000, enabling a sustainable 4% annual withdrawal.'
+    },
+    keyTakeaways: [
+      'The earlier you begin investing for retirement, the less capital you have to contribute monthly.',
+      'Do not rely solely on state pension programs to finance your future comfort.',
+      'Lowering your core living expenses decreases your required retirement number dramatically.'
+    ]
+  },
+
+  // 16. Taxes
+  {
+    id: 'taxes',
+    title: 'Philippine Taxes Made Simple',
+    category: 'Tax & Security',
+    iconName: FileText,
+    description: 'Understand the TRAIN Law, withholding taxes, and the 8% gross income tax option for freelancers and professionals.',
+    durationMinutes: 7,
+    objectives: [
+      'Learn how graduated income tax brackets work for employees under TRAIN Law.',
+      'Understand the simplified 8% gross income tax option for freelancers and self-employed.',
+      'Appreciate why filing legitimate tax returns (ITR) unlocks loans and visas.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Employee Withholding & TRAIN Law',
+        content: 'Under the Philippine TRAIN Law, the first ₱250,000 of annual taxable compensation income is taxed at 0%. Employers withhold taxes each pay cycle. Additionally, the 13th-month pay and other de minimis bonuses are tax-exempt up to ₱90,000.'
+      },
+      {
+        id: 's2',
+        title: 'Freelancers: 8% Flat vs. Graduated Rates',
+        content: 'If you are a self-employed professional or online freelancer earning below the ₱3,000,000 VAT threshold, you can opt for the 8% gross income tax rate. It replaces both graduated income tax and the percentage tax, and includes a ₱250,000 deduction on pure freelance earnings. It simplifies bookkeeping dramatically.'
+      },
+      {
+        id: 's3',
+        title: 'Why Having an ITR Matters',
+        content: 'Filing your Income Tax Return (BIR Form 1701 or 1701A) is not just a civic duty; it is your official proof of financial capacity. Without a stamped ITR, getting approved for a bank housing loan, car loan, credit card, or tourist visa to Japan or Europe is nearly impossible.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Under the TRAIN Law, what is the annual taxable income threshold below which personal compensation is taxed at 0%?',
+      options: [
+        '₱100,000',
+        '₱250,000',
+        '₱500,000',
+        '₱1,000,000'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'The TRAIN Law exempts the first ₱250,000 of annual taxable compensation income from Philippine personal income tax.'
+    },
+    keyTakeaways: [
+      '13th-month pay and qualified benefits are tax-exempt up to ₱90,000 per year.',
+      'Freelancers earning under ₱3M can choose the simplified 8% flat tax option.',
+      'A stamped BIR tax return (ITR) is critical for home loans, car loans, and travel visas.'
+    ]
+  },
+
+  // 17. Financial Scams
+  {
+    id: 'financial-scams',
+    title: 'Spotting Financial Scams',
+    category: 'Tax & Security',
+    iconName: AlertTriangle,
+    description: 'If an investment promises 30% monthly returns or recruiting downlines, run. Protect your hard-earned sweldo from predators.',
+    durationMinutes: 6,
+    objectives: [
+      'Identify the classic red flags of Ponzi schemes and unauthorized solicitations.',
+      'Verify SEC registration vs. the mandatory Secondary License to solicit investments.',
+      'Defend digital wallets against phishing, fake customer support, and OTP theft.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Anatomy of a Ponzi Scheme',
+        content: 'Ponzi schemes disguise themselves as crypto trading bots, poultry farming, foreign exchange programs, or e-commerce ventures. They promise "guaranteed 10% to 30% returns per month" with zero risk. In reality, early investors are simply paid with money deposited by newer recruits until the system collapses.'
+      },
+      {
+        id: 's2',
+        title: 'SEC Registration vs. Secondary License',
+        content: 'Scammers frequently flash an SEC Certificate of Incorporation to trick victims. But an SEC certificate is just a business birth certificate. To legally accept money or sell investments to the public, an entity MUST have an explicit Secondary License to Sell Securities.'
+      },
+      {
+        id: 's3',
+        title: 'Protecting OTPs and MPINs',
+        content: 'No bank, GCash agent, or Maya representative will EVER call, text, or message you asking for your One-Time Password (OTP), MPIN, or account password. Anyone requesting these credentials is an active fraudster trying to drain your account.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'A company shows an SEC Certificate of Incorporation to prove they can accept investment money from the public. Is this legal?',
+      options: [
+        'Yes, any SEC certificate grants full authority to solicit investments from Filipinos.',
+        'No. A basic SEC certificate only registers a corporation. They MUST have an explicit Secondary License from the SEC to sell securities or solicit public funds.',
+        'Yes, provided they have an endorsement from a well-known celebrity or influencer.',
+        'Yes, if they provide a receipt stamped with their company logo.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'A Certificate of Incorporation only registers the legal name of a company. Soliciting investments from the public strictly requires an approved Secondary License from the SEC.'
+    },
+    keyTakeaways: [
+      'Guaranteed high returns with zero risk is the universal signature of an investment scam.',
+      'Never surrender your OTP, MPIN, or bank password to anyone under any circumstance.',
+      'Always verify companies against the official SEC Philippines Public Advisory list.'
+    ]
+  },
+
+  // 18. Lifestyle Inflation
+  {
+    id: 'lifestyle-inflation',
+    title: 'Taming Lifestyle Inflation',
+    category: 'Psychology & Mindset',
+    iconName: Sparkles,
+    description: 'Promotions and raises often lead to pricier dinners and upgraded gadgets, leaving savings stagnant. Learn how to upgrade intentionally.',
+    durationMinutes: 5,
+    objectives: [
+      'Understand the behavioral mechanics of the Hedonic Treadmill.',
+      'Apply the 50% Raise Rule to balance enjoying life with building wealth.',
+      'Differentiate between genuine quality-of-life upgrades and social status spending.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Hedonic Treadmill',
+        content: 'When your salary rises from ₱25,000 to ₱50,000, human psychology quickly normalizes the new comfort. Fancy cafes replace 3-in-1 coffee, grab rides replace commuting, and newer gadgets become standard. Without conscious boundaries, your expenses expand to match your exact earnings.'
+      },
+      {
+        id: 's2',
+        title: 'The 50% Raise Rule',
+        content: 'Whenever you receive a salary raise, bonus, or client rate increase, commit 50% of the net increase directly to your automated investments or debt payoff. The remaining 50% is yours to upgrade your lifestyle guilt-free. You celebrate your success while permanently accelerating your wealth.'
+      },
+      {
+        id: 's3',
+        title: 'Upgrading Intentionally',
+        content: 'Upgrade items that directly save you time, protect your physical health, or improve your sleep (such as a supportive mattress or a reliable work laptop). Avoid upgrades driven purely by the desire to impress coworkers or neighbors who aren\'t paying your bills.'
+      }
+    ],
+    reflectionPrompt: 'Think about your last salary increase or bonus. How much of it went toward higher lifestyle spending versus permanent savings? How can you apply the 50% Raise Rule to your next income bump?',
+    keyTakeaways: [
+      'Lifestyle creep happens gradually through small, unmonitored daily spending upgrades.',
+      'Bank at least 50% of every salary raise into investments before spending the rest.',
+      'True luxury is having freedom and peace of mind, not accumulating high-maintenance possessions.'
+    ]
+  },
+
+  // 19. Financial Anxiety
+  {
+    id: 'financial-anxiety',
+    title: 'Overcoming Financial Anxiety',
+    category: 'Psychology & Mindset',
+    iconName: HeartPulse,
+    description: 'Feeling dread when opening your banking app is completely normal. Learn behavioral tools to replace avoidance with calm control.',
+    durationMinutes: 5,
+    objectives: [
+      'Understand why financial avoidance happens and how it amplifies stress.',
+      'Establish a low-pressure 10-Minute Weekly Financial Date.',
+      'Shift mental focus strictly toward controllable financial actions.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Dread of Looking at the Numbers',
+        content: 'When money is tight, our brain treats banking apps like a physical threat, triggering fight-or-flight avoidance. We stop checking account balances and leave bills unopened. But avoidance only magnifies anxiety because the uncertainty in your head is always scarier than the real numbers.'
+      },
+      {
+        id: 's2',
+        title: 'The 10-Minute Financial Date',
+        content: 'Pick a quiet time once a week (e.g., Sunday morning with a cup of coffee) to look at your accounts for just 10 minutes. Do not judge past mistakes. Simply review what came in, what went out, and update your Salapify log. Regular exposure demystifies money and removes emotional dread.'
+      },
+      {
+        id: 's3',
+        title: 'Focus on the Controllables',
+        content: 'You cannot control national inflation, global markets, or fuel prices. You CAN control whether you track today\'s transactions, pack lunch twice this week, or route ₱500 to your emergency fund. Action is the ultimate antidote to financial anxiety.'
+      }
+    ],
+    reflectionPrompt: 'What is the single biggest financial worry currently keeping you awake at night? What is one tiny, 5-minute action you can take today to give yourself a greater sense of control over it?',
+    keyTakeaways: [
+      'Avoidance multiplies stress; confronting real numbers is almost always less scary than imagination.',
+      'Hold a calm, non-judgmental 10-minute check-in with your money every single week.',
+      'Focus your mental energy purely on controllable actions and celebrate small consistent wins.'
+    ]
+  },
+
+  // 20. Couples and Money
+  {
+    id: 'couples-money',
+    title: 'Couples and Money: Teaming Up',
+    category: 'Relationships & Culture',
+    iconName: Users,
+    description: 'Money arguments are a leading cause of relationship tension. Learn practical systems for transparent, conflict-free budgeting.',
+    durationMinutes: 6,
+    objectives: [
+      'Compare the 3 major relationship models: Joint, Separate, and Hybrid.',
+      'Set up the "Yours, Mine, and Ours" account structure.',
+      'Conduct constructive, blame-free monthly money conversations with your partner.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Why Money Strains Relationships',
+        content: 'Two people enter a relationship with different money scripts, family upbringings, and spending triggers. Tension rarely comes from the money itself; it comes from unspoken assumptions, unequal financial transparency, or feeling controlled.'
+      },
+      {
+        id: 's2',
+        title: 'The "Yours, Mine, and Ours" System',
+        content: 'The most sustainable setup for modern couples is the hybrid model: 1) A Joint Account where both contribute (either 50/50 or proportional to income) to cover shared bills, rent, groceries, and family savings; 2) Individual Personal Accounts for each partner to spend on personal hobbies with zero need for permission.'
+      },
+      {
+        id: 's3',
+        title: 'Preventing Financial Infidelity',
+        content: 'Financial infidelity--hiding secret credit card debts, undisclosed bank accounts, or clandestine loans to relatives--destroys relationship trust faster than overspending. Radical honesty, paired with empathy, creates shared financial resilience.'
+      }
+    ],
+    reflectionPrompt: 'If you share expenses with a partner (or plan to in the future), which system feels fairest and most respectful to both of you: 50/50 split, proportional to income, or fully combined?',
+    keyTakeaways: [
+      'Transparency builds trust: never conceal debts or major purchases from your partner.',
+      'The hybrid "Yours, Mine, and Ours" structure provides both teamwork and personal autonomy.',
+      'Discuss shared dreams and life goals before debating individual budget line items.'
+    ]
+  },
+
+  // 21. Family Obligations
+  {
+    id: 'family-obligations',
+    title: 'Family Obligations & Utang na Loob',
+    category: 'Relationships & Culture',
+    iconName: HandHeart,
+    description: 'In Filipino culture, supporting parents and relatives is deeply valued. Learn how to help lovingly without compromising your own future.',
+    durationMinutes: 6,
+    objectives: [
+      'Understand the financial pressures facing the "Sandwich Generation" in the Philippines.',
+      'Create an intentional, capped "Family Support / Tulong" budget line.',
+      'Set respectful, compassionate financial boundaries without burning family bridges.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Sandwich Generation Reality',
+        content: 'Many Filipino young professionals find themselves sandwiched between supporting aging parents who have no retirement pension, while simultaneously trying to raise their own children or build personal savings. Balancing love, cultural gratitude (utang na loob), and solvency requires clear strategy.'
+      },
+      {
+        id: 's2',
+        title: 'The Dedicated "Ambag" Line',
+        content: 'Do not wait for family requests to hit your emergency fund. Build a specific line item in your monthly budget called "Family Tulong" (e.g., ₱3,000 to ₱5,000). When relatives ask for help, you give from that pre-allocated bucket with joy. Once the bucket is empty, you can say "Hindi kaya ngayon" with clean boundaries.'
+      },
+      {
+        id: 's3',
+        title: 'The Airplane Oxygen Mask Principle',
+        content: 'Flight attendants always instruct you: put on your own oxygen mask before assisting others. If you give away all your savings, take out loans for relatives, and fail to build an emergency fund, you will eventually become financially dependent on others when you hit a crisis.'
+      }
+    ],
+    reflectionPrompt: 'Have you ever felt guilty for saving money for your own future instead of giving it away to extended family? How can establishing a clear, fixed monthly family support budget protect your peace of mind?',
+    keyTakeaways: [
+      'Securing your own emergency fund prevents you from becoming a financial burden to others.',
+      'Create a dedicated, capped monthly budget line for family support rather than reacting impulsively.',
+      'Provide direct practical assistance (groceries, medicine, bills) rather than untracked cash.'
+    ]
+  },
+
+  // 22. Remittances
+  {
+    id: 'remittances',
+    title: 'Smart Remittances & OFW Wealth',
+    category: 'Relationships & Culture',
+    iconName: Send,
+    description: 'Billions of pesos enter the Philippines via remittances. Learn how OFW families can turn padala into enduring generational wealth.',
+    durationMinutes: 6,
+    objectives: [
+      'Identify hidden foreign exchange (FX) spreads and excessive transfer fees.',
+      'Channel padala directly into productive wealth-generating assets rather than pure consumption.',
+      'Ensure the OFW abroad builds an independent retirement and reintegration fund.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Hidden Cost of Remittances',
+        content: 'Many remittance services advertise "$0 transfer fee" but hide their profit in a marked-up exchange rate (e.g., giving ₱55 per USD when the real rate is ₱57). Across a year of padala, that hidden spread can cost your family tens of thousands of pesos. Always compare effective exchange rates.'
+      },
+      {
+        id: 's2',
+        title: 'Moving from Consumption to Assets',
+        content: 'Too often, remittances are treated by recipient families as purely disposable spending money for consumer goods and feasts. Sustainable OFW families establish a clear rule: at least 20% to 30% of every padala goes straight into Pag-IBIG MP2, land, education, or business capital.'
+      },
+      {
+        id: 's3',
+        title: 'The OFW Reintegration Plan',
+        content: 'Working abroad is physically and emotionally exhausting. Every OFW needs a defined exit strategy--an independent savings and investment portfolio that allows them to return home to the Philippines on their own terms, without having to work forever.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What is frequently the biggest hidden expense when sending money from abroad to the Philippines?',
+      options: [
+        'A mandatory digital stamp tax on mobile notifications.',
+        'An inflated foreign exchange (FX) markup quietly deducted on every converted dollar.',
+        'A customs fee levied on overseas bank transfers.',
+        'Physical paper printout charges at the local bank branch.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Providers often claim low or zero upfront transfer fees, but quietly capture profit by offering exchange rates several percentage points below the true market rate.'
+    },
+    keyTakeaways: [
+      'Compare the total effective exchange rate, not just the advertised upfront transfer fee.',
+      'Automatically allocate a dedicated portion of every padala to investments before lifestyle spending.',
+      'The OFW breadwinner must prioritize their own personal retirement fund for eventual homecoming.'
+    ]
+  },
+
+  // 23. Freelancing
+  {
+    id: 'freelancing',
+    title: 'Freelancer Finance: Uneven Income',
+    category: 'Income & Freelancing',
+    iconName: Laptop,
+    description: 'Freelancing offers freedom, but income swings can be brutal. Learn how to create your own steady "salary" system.',
+    durationMinutes: 7,
+    objectives: [
+      'Build a business buffer account to pay yourself a predictable monthly salary.',
+      'Separate personal living expenses completely from business client funds.',
+      'Proactively fund voluntary government benefits (SSS, PhilHealth, Pag-IBIG) and taxes.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Feast or Famine Cycle',
+        content: 'One month you earn ₱90,000 from client deliverables; the next month you earn ₱20,000 because contracts ended. Freelancers who spend big during feast months get crushed during dry spells. Breaking this cycle requires separating client receivables from daily spending.'
+      },
+      {
+        id: 's2',
+        title: 'The Holding Account System',
+        content: 'Set up a dedicated business bank account. All client invoices are paid into this holding account. Then, on the 15th and 30th of each month, transfer a fixed "salary" (e.g., ₱30,000) to your personal checking account. The holding account absorbs the peaks and valleys, giving you a steady, predictable income.'
+      },
+      {
+        id: 's3',
+        title: 'Self-Funded Benefits',
+        content: 'As a freelancer, you have no corporate HR department. You must register as a voluntary or self-employed member of SSS, PhilHealth, and Pag-IBIG, and purchase an individual private HMO. Treat these obligations as non-negotiable monthly operating costs.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'How can a freelancer maintain a stable monthly budget despite fluctuating client earnings?',
+      options: [
+        'Spend all revenue immediately during good months before it disappears.',
+        'Deposit all client revenues into a business buffer account, and pay themselves a consistent, fixed "salary" on regular dates.',
+        'Rely on high-interest credit card cash advances during dry periods.',
+        'Stop paying for health insurance and emergency savings entirely.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'A holding buffer account absorbs the natural volatility of freelance earnings, allowing you to pay yourself a disciplined, consistent salary each month.'
+    },
+    keyTakeaways: [
+      'Never mix personal living expenses with incoming client payments: use separate accounts.',
+      'Freelancers need a larger emergency buffer (6 to 9 months) to weather client dry spells.',
+      'Budget proactively for self-employed SSS, PhilHealth, Pag-IBIG, and taxes every cycle.'
+    ]
+  },
+
+  // 24. Side Hustles
+  {
+    id: 'side-hustles',
+    title: 'Starting a Sustainable Side Hustle',
+    category: 'Income & Freelancing',
+    iconName: Zap,
+    description: 'A side hustle can accelerate debt freedom or fund investments. Learn how to launch one without burning out your day job.',
+    durationMinutes: 6,
+    objectives: [
+      'Differentiate between trading extra hours for cash vs. building scalable side projects.',
+      'Validate service or product ideas with zero upfront financial capital.',
+      'Ring-fence side hustle earnings specifically for debt elimination or investment capital.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Hustle vs. Burnout',
+        content: 'A side hustle should serve your financial freedom, not destroy your physical health. If your primary day job already drains 50 hours a week, taking on an exhausting evening gig trading hours for pennies will lead to burnout and jeopardize your main income. Pick high-leverage skills.'
+      },
+      {
+        id: 's2',
+        title: 'Validating Before Spending',
+        content: 'Do not spend money on fancy logos, registered domain names, or business cards before getting your first paying customer. Offer your service directly to 3 people in your network. If people are willing to pay for your solution, you have validated demand.'
+      },
+      {
+        id: 's3',
+        title: 'Ring-Fencing Side Income',
+        content: 'If side hustle earnings get mixed into your everyday checking account, they will disappear into restaurant meals and online shopping. Ring-fence 100% of your net side hustle profits for a specific financial mission: paying off a debt, completing an emergency fund, or funding an MP2 account.'
+      }
+    ],
+    reflectionPrompt: 'What professional skills, creative talents, or hobbies do you possess that friends or colleagues already ask you for advice on? How could you turn that into a small, paid service or product?',
+    keyTakeaways: [
+      'Do not allow side hustle income to be swallowed by daily lifestyle creep.',
+      'Validate your offer with real paying customers before spending money on infrastructure.',
+      'Protect your sleep and primary day job: a side hustle must be sustainable over months.'
+    ]
+  },
+
+  // 25. Digital Products
+  {
+    id: 'digital-products',
+    title: 'Building Scalable Digital Products',
+    category: 'Income & Freelancing',
+    iconName: Package,
+    description: 'Create once, sell infinitely. Learn how to transform your expertise into templates, guides, or digital tools for passive income.',
+    durationMinutes: 6,
+    objectives: [
+      'Understand the economics of digital products: zero marginal cost of distribution.',
+      'Identify high-demand formats: Notion templates, spreadsheets, and mini-guides.',
+      'Select payment and delivery platforms suitable for local and global buyers.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'The Magic of Zero Marginal Cost',
+        content: 'If you sell baked goods, selling 1,000 cookies requires buying flour and baking 1,000 times. With a digital product (like a financial spreadsheet, resume template, or design asset), you build it once, and delivering it to 10 or 10,000 buyers costs virtually zero extra pesos.'
+      },
+      {
+        id: 's2',
+        title: 'Solving a Specific Problem',
+        content: 'The most profitable digital products do not look like massive 300-page books. They are concise, actionable shortcuts that save people time or money: an automated freelance tax calculator, a meal prep planner, or an interview preparation checklist.'
+      },
+      {
+        id: 's3',
+        title: 'Platforms and Distribution',
+        content: 'You can sell digital products worldwide through platforms like Gumroad, Lemon Squeezy, or Shopify, or locally in the Philippines using PayMongo, Maya, and GCash integrations. Focus first on providing value to a specific audience rather than building complex websites.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Why do digital products offer superior financial leverage compared to physical goods?',
+      options: [
+        'They are exempt from all copyright and internet laws.',
+        'Once created, they cost practically zero additional pesos to replicate and distribute to thousands of buyers worldwide.',
+        'They never face any market competition.',
+        'They guarantee instant overnight wealth with no marketing required.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Digital products have zero marginal cost of duplication and fulfillment, enabling infinite scalability without inventory or shipping costs.'
+    },
+    keyTakeaways: [
+      'Solve a specific, painful problem that saves people time, money, or stress.',
+      'Start simple with proven formats: templates, spreadsheets, checklists, or mini-guides.',
+      'Focus on audience trust and genuine results rather than high-pressure sales tactics.'
+    ]
+  },
+
+  // 26. Affiliate Income
+  {
+    id: 'affiliate-income',
+    title: 'Ethical Affiliate Income',
+    category: 'Income & Freelancing',
+    iconName: Share2,
+    description: 'Earn referral commissions by recommending tools and products you genuinely use and love. Learn how to do it with integrity.',
+    durationMinutes: 5,
+    objectives: [
+      'Understand how affiliate tracking links and referral commissions function.',
+      'Protect audience trust through radical transparency and authentic recommendations.',
+      'Comply with ethical disclosure standards and consumer protection guidelines.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'How Affiliate Marketing Works',
+        content: 'When you recommend a tool, software, book, or product that you personally use, the merchant provides a unique tracking link. When someone purchases through your link, the merchant pays you a small percentage commission at no extra cost to the buyer.'
+      },
+      {
+        id: 's2',
+        title: 'Trust Is Your Only True Asset',
+        content: 'The fastest way to destroy your reputation is promoting questionable financial products, dubious trading apps, or subpar gadgets just because they offer high referral commissions. Never recommend anything you have not thoroughly tested and would not wholeheartedly recommend to your own family.'
+      },
+      {
+        id: 's3',
+        title: 'Radical Transparency & Disclosure',
+        content: 'Always be completely open: "This post contains an affiliate link, which means I may earn a small commission at no extra cost to you." Being transparent builds deeper respect with your audience and complies with ethical digital advertising standards.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What is the most critical principle for sustainable, long-term affiliate income?',
+      options: [
+        'Spamming referral links in random social media comment threads.',
+        'Only recommending high-quality products you personally use, while clearly disclosing affiliate partnerships.',
+        'Hiding the fact that you earn a commission so buyers do not think you are biased.',
+        'Promoting products with the highest commission rates regardless of their quality or reliability.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Authentic affiliate marketing is rooted in trust. Recommending only genuinely useful products with full disclosure protects your credibility.'
+    },
+    keyTakeaways: [
+      'Always clearly disclose affiliate relationships to your readers and followers.',
+      'Recommend only products that solve real problems and have proven track records.',
+      'View affiliate income as a natural byproduct of providing high-value education.'
+    ]
+  },
+
+  // 27. Philippine Business Entities
+  {
+    id: 'ph-business-entities',
+    title: 'PH Business Entities: Sole Prop, OPC, Corp & Partnership',
+    category: 'Business & Startups',
+    iconName: Building2,
+    description: 'Learn how to legally structure your enterprise in the Philippines, comparing personal liability, tax models, and SEC vs. DTI pathways.',
+    durationMinutes: 7,
+    objectives: [
+      'Compare Sole Proprietorship, Partnership, Regular Stock Corporation, and One Person Corporation (OPC).',
+      'Understand the difference between unlimited personal liability and corporate limited liability.',
+      'Choose the ideal vehicle based on your founder count, capital requirements, and outside investor plans.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Sole Proprietorship vs. Partnership',
+        content: 'A Sole Proprietorship is registered with DTI and owned by one individual. While it is the cheapest and simplest structure, the owner carries 100% unlimited personal liability--creditors can claim personal savings and family properties if the business fails. A Partnership (General or Limited) involves two or more partners registered with the SEC. In general partnerships, partners also share joint and several personal liability for business obligations.'
+      },
+      {
+        id: 's2',
+        title: 'One Person Corporation (OPC)',
+        content: 'Introduced under the Revised Corporation Code (RA 11232), an OPC allows a single natural person, trust, or estate to incorporate with limited liability. You do not need a Board of Directors or corporate by-laws, but you must appoint a Nominee and Alternate Nominee to assume management in case of death or incapacity. OPCs are subject to Corporate Income Tax (CIT).'
+      },
+      {
+        id: 's3',
+        title: 'Regular Stock Corporation',
+        content: 'Formed by 2 to 15 incorporators, a regular corporation is the preferred vehicle for scalable tech startups seeking angel or venture capital. Shareholders are only liable up to their subscribed capital. It requires structured corporate governance: an elected Board of Directors, a President (cannot be Treasurer or Secretary), an independent Corporate Secretary (must be a Filipino citizen), and a Treasurer.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Which legal entity provides limited liability protection to a solo founder without needing a Board of Directors?',
+      options: [
+        'Sole Proprietorship registered with DTI',
+        'One Person Corporation (OPC) registered with SEC',
+        'General Partnership registered with SEC',
+        'Informal Freelancer unregistered trade'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Under RA 11232, a One Person Corporation (OPC) grants limited liability to a single stockholder while bypassing board and by-law requirements.'
+    },
+    reflectionPrompt: 'Are you building a solo lifestyle business or a scalable enterprise with outside co-founders? What assets do you need to shield from business liabilities?',
+    keyTakeaways: [
+      'DTI Sole Proprietorships carry unlimited personal liability for debts.',
+      'OPCs protect personal assets for solo founders through SEC corporate limited liability.',
+      'Regular corporations are essential if issuing equity or raising institutional investment.'
+    ]
+  },
+
+  // 28. Philippine Government Registration Blueprint
+  {
+    id: 'ph-government-registration',
+    title: 'PH Government Registration: DTI, SEC, LGU & BIR',
+    category: 'Business & Startups',
+    iconName: FileText,
+    description: 'Master the mandatory sequential steps to make your business 100% legal, avoiding common BIR and city hall penalty traps.',
+    durationMinutes: 8,
+    objectives: [
+      'Learn the exact sequential order: DTI/SEC -> LGU Clearances -> Mayor\'s Permit -> BIR Form 2303.',
+      'Understand LGU permits: Barangay Clearance, Zoning, FSIC Fire Inspection, and Mayor\'s Permit.',
+      'Complete BIR compliance: Books of Accounts, Invoicing under the EOPT Act, and avoiding open cases.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Step 1: Entity Registration (DTI or SEC)',
+        content: 'Before approaching local government, you must legally secure your business name. Sole proprietors register through the DTI Business Name Registration System (BNRS) for territorial scopes (Barangay ₱200, City ₱500, Regional ₱1,000, National ₱2,000). Corporations, OPCs, and Partnerships must register online via SEC eSPARC and obtain their Certificate of Incorporation.'
+      },
+      {
+        id: 's2',
+        title: 'Step 2: Local Government Unit (LGU) Clearances',
+        content: 'Take your DTI/SEC certificate and contract of lease to your Barangay Hall for a Barangay Business Clearance. Next, visit the City/Municipal Hall (BPLO) for Locational Zoning Clearance, Fire Safety Inspection Certificate (FSIC) from the Bureau of Fire Protection (BFP), and Sanitary Clearance. Once assessed, pay your local business taxes to receive your official Mayor\'s Permit.'
+      },
+      {
+        id: 's3',
+        title: 'Step 3: BIR Certificate of Registration (Form 2303)',
+        content: 'Within 30 days of securing your Mayor\'s Permit or commencing operations, register with your Revenue District Office (RDO) via Form 1901 (Sole Prop) or Form 1903 (Corp). Secure your Certificate of Registration (Form 2303), register official Books of Accounts, and apply for Authority to Print (ATP) invoices. Under the Ease of Paying Taxes (EOPT) Act (RA 11976), the annual ₱500 registration fee has been permanently eliminated!'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Under the Ease of Paying Taxes (EOPT) Act (RA 11976), what happened to the annual ₱500 BIR registration fee (Form 0605)?',
+      options: [
+        'It was increased to ₱1,000 annually.',
+        'It was permanently abolished for all business taxpayers.',
+        'It is now paid semi-annually through local barangays.',
+        'It only applies to corporations and not to sole proprietors.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'The EOPT Act permanently abolished the annual ₱500 BIR registration fee to streamline business compliance.'
+    },
+    reflectionPrompt: 'Have you verified which Revenue District Office (RDO) has jurisdiction over your intended commercial address? Are your lease contracts properly notarized?',
+    keyTakeaways: [
+      'DTI registration is step 1, not the final step--you must still secure a Mayor\'s Permit and BIR COR.',
+      'Always file nil or zero tax returns if you have no income to avoid ₱1,000 non-filing penalties per return.',
+      'Official sales invoices are now the universal primary documentation under the EOPT Act.'
+    ]
+  },
+
+  // 29. Intellectual Property & Trademark Protection
+  {
+    id: 'ph-trademark-ip',
+    title: 'Brand Protection: IPOPHL Trademarks & Intellectual Property',
+    category: 'Business & Startups',
+    iconName: Award,
+    description: 'Why your DTI/SEC name does NOT protect your brand, and how to safeguard logos and trade names under the Philippine First-to-File rule.',
+    durationMinutes: 6,
+    objectives: [
+      'Understand the legal difference between business name registration and trademark ownership.',
+      'Navigate the IPOPHL trademark application workflow and the 30-day opposition window.',
+      'Maintain your trademark through mandatory 3rd-year and 5th-year Declarations of Actual Use (DAU).'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'DTI/SEC Name vs. IPOPHL Trademark',
+        content: 'One of the most dangerous founder mistakes is believing a DTI or SEC certificate grants exclusive brand ownership. It only registers your corporate identity. Under Republic Act No. 8293 (Intellectual Property Code), brand names, slogans, and logos are only protected when registered with the Intellectual Property Office of the Philippines (IPOPHL). A competitor can legally trademark your brand with IPOPHL if you fail to file first!'
+      },
+      {
+        id: 's2',
+        title: 'The First-to-File Principle',
+        content: 'The Philippines operates under a strict First-to-File trademark doctrine. Whoever files the application first with IPOPHL holds legal priority. Before choosing a brand name, search the IPOPHL e-Search portal and WIPO Global Brand Database. File under the appropriate Nice Class (e.g., Class 9 for software/apps, Class 35 for retail, Class 42 for SaaS/tech services).'
+      },
+      {
+        id: 's3',
+        title: 'Maintaining Trademark Rights (DAU Rules)',
+        content: 'Once approved and published in the IPOPHL e-Gazette without opposition, your trademark is valid for 10 years. However, you must actively prove commercial use. You are legally required to file a Declaration of Actual Use (DAU) with real-world sales receipts, product labels, or website checkout proof within 3 years and 5 years from filing. Missing a DAU automatically cancels your trademark!'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'If you register a business name with DTI, can another person register the same brand name as a trademark with IPOPHL?',
+      options: [
+        'No, DTI automatically registers your trademark with IPOPHL.',
+        'Yes, because DTI registration does not confer intellectual property trademark rights.',
+        'No, the DTI certificate grants global intellectual property protection.',
+        'Yes, but only if they pay a fine to the local mayor\'s office.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'DTI registration only reserves a trade name for business permits. Brand protection requires filing a trademark with IPOPHL under RA 8293.'
+    },
+    reflectionPrompt: 'Have you conducted a search on the IPOPHL trademark database for your current business or brand name? Are you at risk of trademark squatting?',
+    keyTakeaways: [
+      'The Philippines follows a strict First-to-File trademark system.',
+      'File trademark applications with IPOPHL before launching public marketing campaigns.',
+      'Mandatory Declarations of Actual Use (DAU) at 3 and 5 years are required to keep trademarks active.'
+    ]
+  },
+
+  // 30. Digital & Tech Startup Compliance
+  {
+    id: 'ph-digital-startup-compliance',
+    title: 'Digital Startups: NPC Data Privacy, NTC & Sectoral Licenses',
+    category: 'Business & Startups',
+    iconName: Laptop,
+    description: 'Navigate regulatory requirements for software, e-commerce, mobile apps, and fintech in the Philippines.',
+    durationMinutes: 7,
+    objectives: [
+      'Comply with the Data Privacy Act of 2012 (RA 10173) and National Privacy Commission (NPC) mandates.',
+      'Understand NTC Value-Added Service (VAS) licenses and the Internet Transactions Act (RA 11967).',
+      'Identify specialized licenses: BSP payment systems (OPS), SEC digital lending, and FDA ecommerce clearances.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'National Privacy Commission (NPC) Compliance',
+        content: 'Any website, mobile application, or digital store that processes user personal data (names, emails, phone numbers, delivery addresses, payment records) is governed by Republic Act No. 10173 (Data Privacy Act of 2012). Startups must designate an official Data Protection Officer (DPO), publish a comprehensive Privacy Notice, obtain explicit user consent, and maintain security protocols capable of reporting breaches to the NPC within 72 hours.'
+      },
+      {
+        id: 's2',
+        title: 'NTC & Internet Transactions Act (RA 11967)',
+        content: 'If your platform sends automated SMS notifications, provides VoIP calls, or routes telecommunications content, you must register as a Value-Added Service (VAS) provider with the National Telecommunications Commission (NTC). Furthermore, the Internet Transactions Act of 2023 (RA 11967) mandates all digital commerce businesses to post verified merchant identity, DTI/SEC registration, and clear dispute resolution terms.'
+      },
+      {
+        id: 's3',
+        title: 'Fintech, Lending & Regulated Marketplaces',
+        content: 'If your platform handles customer balances, payment gateways, or electronic wallet funds, you must register with the Bangko Sentral ng Pilipinas (BSP) as an Operator of Payment System (OPS). If offering installment credit, Buy Now Pay Later (BNPL), or loans, an SEC Certificate of Authority under the Lending Company Regulation Act is strictly required. For health, cosmetics, or food e-commerce, secure FDA License to Operate (LTO) before listing products.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'What is the mandatory window for notifying the National Privacy Commission (NPC) in the event of a personal data breach under RA 10173?',
+      options: [
+        'Within 30 calendar days of discovery',
+        'Within 72 hours upon knowledge of the security breach',
+        'At the end of the fiscal quarter during annual tax filing',
+        'No notification is needed if the startup has fewer than 10 employees'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Under RA 10173 and NPC circulars, data controllers must notify the NPC and affected data subjects within 72 hours of discovering a personal data breach.'
+    },
+    reflectionPrompt: 'Does your digital product collect user emails, phone numbers, or payment data? Do you have an explicit Privacy Notice and an appointed Data Protection Officer?',
+    keyTakeaways: [
+      'The Data Privacy Act applies to any app or site processing Philippine user data.',
+      'The Internet Transactions Act of 2023 holds digital merchants and platforms legally accountable.',
+      'Fintech, payment processing, and digital lending require explicit prior clearances from BSP or SEC.'
+    ]
+  },
+
+  // 31. SaaS & Global App Revenue: BIR Taxes & Payouts
+  {
+    id: 'saas-global-tax-payouts',
+    title: 'SaaS & Global App Revenue: BIR Taxes, MoR & Bank Payouts',
+    category: 'Business & Startups',
+    iconName: CreditCard,
+    description: 'How to legally account for Apple, Google, Stripe, or Lemon Squeezy payouts in the Philippines, zero-rated VAT, and BIR invoicing under the EOPT Act.',
+    durationMinutes: 8,
+    objectives: [
+      'Understand the crucial difference between Payment Gateways (Stripe, PayMongo) and Merchants of Record (Paddle, Lemon Squeezy).',
+      'Learn how foreign digital income qualifies for 0% Zero-Rated VAT under Section 108 of the Tax Code.',
+      'Properly declare Apple/Google inward wire transfers and issue compliant sales invoices to foreign entities.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Merchant of Record (MoR) vs. Payment Gateway',
+        content: 'When selling SaaS subscriptions or digital downloads globally, you face two distinct paths. A Payment Gateway (like Stripe, PayMongo, or Xendit) merely processes cards; you remain the legal seller responsible for registering and remitting sales tax/VAT in the US, EU, UK, and every buyer jurisdiction. In contrast, a Merchant of Record (MoR) like Paddle or Lemon Squeezy legally buys the digital license from you and resells it to the consumer. The MoR assumes 100% liability for global VAT, sales taxes, and chargebacks, then remits a clean consolidated B2B payout to your Philippine bank account.'
+      },
+      {
+        id: 's2',
+        title: 'Philippine Tax Treatment: 0% Zero-Rated VAT',
+        content: 'Under Section 108(B)(2) of the Philippine Tax Code, services rendered to a person or entity engaged in business conducted outside the Philippines, paid for in acceptable foreign currency (USD, EUR) and accounted for in accordance with the rules of the Bangko Sentral ng Pilipinas (BSP), are subject to 0% Zero-Rated VAT (if you are a VAT-registered entity). For sole proprietors earning under ₱3,000,000 annually, the simplified 8% Gross Income Tax rate on gross receipts is often the most cost-effective structure.'
+      },
+      {
+        id: 's3',
+        title: 'BIR Invoicing & Bank Wire Paper Trail',
+        content: 'Under the Ease of Paying Taxes (EOPT) Act, you must issue an Official Sales Invoice for every payout received. When Apple Distribution International Ltd or Paddle sends your monthly remittance into your Philippine bank account (BPI, BDO, UnionBank) or Wise/Payoneer account, issue a zero-rated sales invoice bearing the foreign entity name, foreign address, inward remittance confirmation number, and PHP equivalent converted using the official BSP exchange rate.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Why do many solo SaaS developers prefer a Merchant of Record (like Paddle or Lemon Squeezy) over a raw payment gateway?',
+      options: [
+        'Because MoRs make software development 100% tax-exempt in the Philippines forever.',
+        'Because the MoR assumes legal liability for global sales tax and VAT compliance in every foreign buyer country.',
+        'Because MoRs allow you to bypass Philippine BIR registration completely.',
+        'Because payment gateways are illegal for Filipino software engineers to use.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'A Merchant of Record acts as the legal reseller, handling sales tax, EU VAT, and cross-border invoicing, remitting a single consolidated payout to the founder.'
+    },
+    reflectionPrompt: 'Are your SaaS customers primarily domestic (requiring Philippine 12% VAT and GCash/Maya checkout) or global (benefiting from MoR automation and zero-rated VAT)?',
+    keyTakeaways: [
+      'MoRs (Paddle, Lemon Squeezy) shield solo founders from multi-country tax registration headaches.',
+      'SaaS exports to foreign buyers qualify for 0% zero-rated VAT if paid in foreign currency through the banking system.',
+      'Always retain official bank credit memos and issue BIR sales invoices matching your inward remittances.'
+    ]
+  },
+
+  // 32. Launching on iOS & Android: Developer Accounts, D-U-N-S, IAP & Policies
+  {
+    id: 'app-store-google-play-launch',
+    title: 'App Store & Google Play Launch: D-U-N-S, IAP & Store Policies',
+    category: 'Business & Startups',
+    iconName: Smartphone,
+    description: 'Master Apple Developer Organization requirements, D-U-N-S numbers for Philippine entities, Google Play 20-tester rules, and store review survival.',
+    durationMinutes: 8,
+    objectives: [
+      'Choose between Individual and Organization developer accounts on Apple and Google Play.',
+      'Obtain a Dun & Bradstreet D-U-N-S number for your Philippine OPC or Corporation for free.',
+      'Pass App Store review: In-App Purchases (Guideline 3.1.1), Sign in with Apple, and mandatory account deletion.'
+    ],
+    sections: [
+      {
+        id: 's1',
+        title: 'Individual vs. Organization Developer Accounts',
+        content: 'An Apple Developer Individual account ($99/year) displays your personal legal name on the App Store as the seller. An Organization account ($99/year) displays your company name, permits multiple team members with granular roles, and protects personal privacy. Crucially, Google Play now imposes a strict hurdle on new personal developer accounts: you must recruit 20 testers who remain opted in for 14 continuous days before you can apply for production release! Organization accounts with verified legal entities avoid this friction.'
+      },
+      {
+        id: 's2',
+        title: 'Obtaining a Free D-U-N-S Number in the Philippines',
+        content: 'To enroll as an Organization with Apple, you must provide a 9-digit D-U-N-S Number from Dun & Bradstreet. If you have registered a One Person Corporation (OPC) or Regular Stock Corporation with the SEC, you can request a D-U-N-S number completely free of charge via the Apple D-U-N-S lookup portal (developer.apple.com/enroll/duns-lookup). You will need your SEC Certificate of Incorporation, an active company website with matching domain email (e.g. founder@company.com), and your registered office address.'
+      },
+      {
+        id: 's3',
+        title: 'App Store Review Guidelines & Instant-Rejection Traps',
+        content: 'App Store review rejections stall launches for weeks. Key non-negotiables: (1) Guideline 3.1.1: If your mobile app sells digital content, premium tiers, or features consumed inside the app, you MUST use Apple/Google In-App Purchases (IAP)--you cannot link out to external web checkout. (2) Guideline 5.1.1(v): If users can create an account in your app, you MUST offer a clear in-app button allowing them to initiate complete account deletion. (3) Guideline 4.8: If you offer Google or Facebook login, you must also offer Sign in with Apple.'
+      }
+    ],
+    knowledgeCheck: {
+      question: 'Which of the following is an Apple App Store review rejection trigger for an app that supports user accounts?',
+      options: [
+        'Having a public Privacy Policy URL accessible without logging in.',
+        'Failing to provide an in-app option for users to delete their account and personal data.',
+        'Offering subscription tiers through Apple In-App Purchase.',
+        'Displaying an OPC corporate entity name as the developer seller.'
+      ],
+      correctAnswerIndex: 1,
+      explanation: 'Under Apple App Store Review Guideline 5.1.1(v), apps that allow user account creation must provide an easy in-app path for users to delete their account.'
+    },
+    reflectionPrompt: 'Does your app feature digital goods that trigger mandatory IAP? Do you have an active website, corporate email, and D-U-N-S number ready for Organization enrollment?',
+    keyTakeaways: [
+      'Organization accounts protect personal privacy and bypass Google Play 20-tester closed testing bottlenecks.',
+      'D-U-N-S numbers are 100% free for SEC-registered Philippine corporations and OPCs.',
+      'In-app account deletion, external payment prohibitions (Guideline 3.1.1), and Privacy Policies are strictly enforced.'
+    ]
+  }
+];
+
+

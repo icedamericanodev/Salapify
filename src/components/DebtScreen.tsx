@@ -78,7 +78,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
           )}
           <div className="min-w-0 flex-1 flex items-center gap-1.5">
             <h1 className="text-lg sm:text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] truncate">
-              Debt & Installments
+              Debts
             </h1>
             <button
               type="button"
@@ -126,7 +126,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
               : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
           }`}
         >
-          Pahiram & Debts
+          Personal Debts
         </button>
         <button
           type="button"
@@ -137,7 +137,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
               : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
           }`}
         >
-          Installments & BNPL
+          Installments
         </button>
         <button
           type="button"
@@ -148,7 +148,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
               : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
           }`}
         >
-          Simulators
+          Calculators
         </button>
       </div>
 

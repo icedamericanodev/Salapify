@@ -67,9 +67,9 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
   };
 
   const overallHealth = statusSummary.critical > 0
-    ? { title: 'Needs Immediate Attention', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900' }
+    ? { title: 'Needs Attention', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900' }
     : statusSummary.warning > 1
-    ? { title: 'Moderate Watchlist', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' }
+    ? { title: 'Needs Attention', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900' }
     : { title: 'Healthy & Resilient', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900' };
 
   return (
@@ -84,7 +84,7 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
             <div>
               <h2 className="text-base font-bold tracking-tight">Money Health Check</h2>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
-                Explanatory diagnostic engine across 10 key indicators
+                Check your financial standing across 10 key indicators
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
           <div className={`p-3 rounded-2xl border ${overallHealth.bg} flex items-center justify-between`}>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D]">
-                Diagnostic Posture
+                Overall Status
               </span>
               <div className={`text-sm sm:text-base font-black ${overallHealth.color}`}>
                 {overallHealth.title}

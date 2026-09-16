@@ -100,9 +100,9 @@ export const SafeToSpendModal: React.FC<SafeToSpendModalProps> = ({ isOpen, onCl
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-tight">Safe-to-Spend Engine</h2>
+              <h2 className="text-base font-bold tracking-tight">Safe to Spend Details</h2>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
-                Payday-aware daily financial decision tool
+                Understand how much is safe to spend
               </p>
             </div>
           </div>

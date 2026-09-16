@@ -201,12 +201,12 @@ export function generateHealthCheckInsights(params: HealthCheckEngineParams): He
       amount: t.amount,
       date: t.date,
     })),
-    assumptions: 'Assumes interbank transfers could be routed through zero-fee platforms like SeaBank or CIMB.',
+    assumptions: 'Assumes interbank transfers could be routed through zero-fee platforms like MariBank or CIMB.',
     confidence: 'High',
     confidencePercentage: 96,
     recommendedAction:
       totalFeeLeakage > 0
-        ? 'Leverage SeaBank (15 free transfers weekly) or Maya to eliminate InstaPay transfer costs.'
+        ? 'Leverage MariBank (15 free transfers weekly) or Maya to eliminate InstaPay transfer costs.'
         : 'Great job maintaining zero fee leakage across all payment channels.',
     correctionActionLabel: 'Inspect Fee Entries',
     correctionType: 'fees',

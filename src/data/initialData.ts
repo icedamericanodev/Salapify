@@ -88,9 +88,9 @@ export const INITIAL_ACCOUNTS: Account[] = [
   },
   {
     id: 'acc_seabank',
-    name: 'SeaBank Digital Savings',
+    name: 'MariBank Digital Savings',
     kind: 'bank',
-    institution: 'SeaBank',
+    institution: 'MariBank',
     balance: 24250.00,
     currency: 'PHP',
     profile: 'side_hustle',

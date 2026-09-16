@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { FinancialProvider, useFinancial } from './context/FinancialContext';
 import { Header } from './components/Header';
 import { HeroPanel } from './components/HeroPanel';
 import { QuickActions } from './components/QuickActions';
 import { DebtBeamCard } from './components/DebtBeamCard';
 import { ComingUpCard } from './components/ComingUpCard';
+import { BudgetPulseCard } from './components/BudgetPulseCard';
 import { LatestTransactions } from './components/LatestTransactions';
 import { TabBar, TabType } from './components/TabBar';
 import { LogSheet } from './components/LogSheet';
@@ -18,6 +20,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { InfoModal } from './components/InfoModal';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { TaxCalculatorModal } from './components/TaxCalculatorModal';
+import { BusinessTaxSimulatorModal } from './components/BusinessTaxSimulatorModal';
+import { SavingsInvestmentModal } from './components/SavingsInvestmentModal';
 import { TransferModal } from './components/TransferModal';
 import { YourSetupModal } from './components/YourSetupModal';
 import { SplitBillModal } from './components/SplitBillModal';
@@ -35,7 +39,7 @@ import { Bell, Sparkles, Send, Gift, Home, Calculator } from 'lucide-react';
 function SalapifyMain() {
   const { themeMode, isOnboarded } = useFinancial();
   const [currentTab, setCurrentTab] = useState<TabType>('home');
-  const [planInitialSegment, setPlanInitialSegment] = useState<'budget' | 'upcoming' | 'goals' | 'decision'>('budget');
+  const [planInitialSegment, setPlanInitialSegment] = useState<'overview' | 'budget' | 'upcoming' | 'goals' | 'decision' | 'trackers' | 'calculators' | 'academy'>('overview');
   const [isViewingDebtScreen, setIsViewingDebtScreen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [logInitialType, setLogInitialType] = useState<TransactionType>('expense');
@@ -44,6 +48,8 @@ function SalapifyMain() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isTaxCalculatorOpen, setIsTaxCalculatorOpen] = useState(false);
+  const [isBusinessSimulatorOpen, setIsBusinessSimulatorOpen] = useState(false);
+  const [isSavingsPlannerOpen, setIsSavingsPlannerOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [setupInitialTab, setSetupInitialTab] = useState<'payday' | 'categories' | 'recurring' | 'emergency' | 'privacy'>('payday');
@@ -74,7 +80,7 @@ function SalapifyMain() {
   const handleSelectTab = (tab: TabType) => {
     setIsViewingDebtScreen(false);
     if (tab === 'plan') {
-      setPlanInitialSegment('budget');
+      setPlanInitialSegment('overview');
     }
     setCurrentTab(tab);
   };
@@ -134,6 +140,15 @@ function SalapifyMain() {
                 onOpenSafeToSpend={() => setIsSafeToSpendOpen(true)}
                 onOpenHealthCheck={() => setIsHealthCheckOpen(true)}
               />
+
+              {/* Budget Pulse */}
+              <BudgetPulseCard
+                onSeeAll={() => {
+                  setPlanInitialSegment('overview');
+                  setCurrentTab('plan');
+                }}
+              />
+
 
               {/* 4 Quick Actions in one row */}
               <QuickActions
@@ -202,7 +217,7 @@ function SalapifyMain() {
               </div>
 
               {/* Live Reminders & Simulator Action Banner */}
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] shadow-xs flex items-center justify-between gap-3">
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] shadow-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-[#FFEEDF] dark:bg-[#2A221C] text-[#B03C09] dark:text-[#FF9A52] flex items-center justify-center shrink-0">
                     <Bell size={18} />
@@ -231,7 +246,7 @@ function SalapifyMain() {
                   <Sparkles size={13} />
                   <span>Test Alerts</span>
                 </button>
-              </div>
+              </motion.div>
 
               {/* Debt Beam Card */}
               <DebtBeamCard onSeeAll={handleOpenDebt} />
@@ -261,6 +276,9 @@ function SalapifyMain() {
               initialSegment={planInitialSegment}
               onOpenBills={() => setIsBillsOpen(true)}
               onOpenDebt={handleOpenDebt}
+              onOpenTaxCalculator={() => setIsTaxCalculatorOpen(true)}
+              onOpenBusiness={() => setIsBusinessSimulatorOpen(true)}
+              onOpenSavingsPlanner={() => setIsSavingsPlannerOpen(true)}
             />
           ) : (
             <AccountsScreen onOpenDebt={handleOpenDebt} />
@@ -291,7 +309,7 @@ function SalapifyMain() {
             } else if (target === 'debt') {
               handleOpenDebt();
             } else if (target === 'plan-budget') {
-              setPlanInitialSegment('budget');
+              setPlanInitialSegment('overview');
               setCurrentTab('plan');
             } else if (target === 'decision') {
               setPlanInitialSegment('decision');
@@ -383,6 +401,16 @@ function SalapifyMain() {
         <TaxCalculatorModal
           isOpen={isTaxCalculatorOpen}
           onClose={() => setIsTaxCalculatorOpen(false)}
+        />
+        {/* Business & Pricing Simulator */}
+        <BusinessTaxSimulatorModal
+          isOpen={isBusinessSimulatorOpen}
+          onClose={() => setIsBusinessSimulatorOpen(false)}
+        />
+        {/* Savings & Investment Planner */}
+        <SavingsInvestmentModal
+          isOpen={isSavingsPlannerOpen}
+          onClose={() => setIsSavingsPlannerOpen(false)}
         />
 
         {/* Info Modal */}

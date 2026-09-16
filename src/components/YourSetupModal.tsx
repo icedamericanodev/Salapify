@@ -521,7 +521,7 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
                   <span>CPA & Investment Strategist Guidance</span>
                 </div>
                 <p className="text-xs leading-relaxed text-[#5A5148] dark:text-[#C6B8AC]">
-                  Keep 1 to 2 months of emergency funds in liquid high-yield digital banks (SeaBank, Maya, or GoTyme) earning 4.5% p.a. compound daily. Keep the remaining 4 months in Pag-IBIG MP2 for government-backed tax-free dividend growth (avg. 6.5% to 7% annual yield).
+                  Keep 1 to 2 months of emergency funds in liquid high-yield digital banks (MariBank, Maya, or GoTyme) earning 4.5% p.a. compound daily. Keep the remaining 4 months in Pag-IBIG MP2 for government-backed tax-free dividend growth (avg. 6.5% to 7% annual yield).
                 </p>
               </div>
             </div>
