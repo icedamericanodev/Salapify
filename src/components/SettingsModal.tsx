@@ -1,14 +1,32 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Download, Upload, RotateCcw, Palette, Calendar, Calculator, Briefcase, PlayCircle, Check } from 'lucide-react';
+import {
+  X,
+  ShieldCheck,
+  Download,
+  Upload,
+  RotateCcw,
+  Palette,
+  Calendar,
+  Calculator,
+  Briefcase,
+  PlayCircle,
+  Check,
+  Bell,
+  Clock,
+  Users,
+} from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { STARTER_CATEGORY_PACKS } from '../data/categoryPacks';
 import { StarterPackId } from '../types';
+import { formatTimeDisplay } from '../utils/notificationEngine';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenTaxCalculator: () => void;
   onOpenYourSetup: (tab?: 'payday' | 'categories' | 'recurring' | 'emergency' | 'privacy') => void;
+  onOpenReminders?: () => void;
+  onOpenCollaboration?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -16,6 +34,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onOpenTaxCalculator,
   onOpenYourSetup,
+  onOpenReminders,
+  onOpenCollaboration,
 }) => {
   const {
     themeMode,
@@ -30,6 +50,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     budgets,
     goals,
     upcoming,
+    categories,
+    reminderSettings,
+    updateReminderSettings,
+    unreadNotificationsCount,
+    spaces,
+    members,
   } = useFinancial();
 
   const [appliedPackId, setAppliedPackId] = useState<StarterPackId | null>(null);
@@ -50,6 +76,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       goals,
       upcoming,
       payday,
+      categories,
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -71,12 +98,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setImportError(null);
         const json = JSON.parse(event.target?.result as string);
         if (json.transactions && json.accounts) {
+          localStorage.setItem('salapify_transactions_v3_acct', JSON.stringify(json.transactions));
           localStorage.setItem('salapify_transactions_v3', JSON.stringify(json.transactions));
+          localStorage.setItem('salapify_accounts_v3_acct', JSON.stringify(json.accounts));
           localStorage.setItem('salapify_accounts_v3', JSON.stringify(json.accounts));
           if (json.debts) localStorage.setItem('salapify_debts_v3', JSON.stringify(json.debts));
           if (json.budgets) localStorage.setItem('salapify_budgets_v3', JSON.stringify(json.budgets));
           if (json.goals) localStorage.setItem('salapify_goals_v3', JSON.stringify(json.goals));
           if (json.upcoming) localStorage.setItem('salapify_upcoming_v3', JSON.stringify(json.upcoming));
+          if (json.categories) localStorage.setItem('salapify_categories_v3', JSON.stringify(json.categories));
           window.location.reload();
         } else {
           setImportError('Invalid backup file structure.');
@@ -92,14 +122,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
       <div className="w-full max-w-md bg-white dark:bg-[#27201A] rounded-2xl p-5 shadow-2xl border border-[#F3DFCD] dark:border-[#383029] max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] mb-4">
-          <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] mb-4 gap-2">
+          <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
             Settings
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer"
+            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer shrink-0"
           >
             <X size={18} />
           </button>
@@ -147,6 +177,87 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Combined Reminders & Notifications Section */}
+          <div className="flex flex-col gap-2 p-3.5 rounded-2xl border border-[#F3DFCD] dark:border-[#383029] bg-[#FFF9F3] dark:bg-[#1E1915]">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] flex items-center gap-1.5">
+                <Bell size={15} className="text-[#B03C09] dark:text-[#FF9A52]" /> Reminders &amp; Alerts Hub
+              </label>
+              {unreadNotificationsCount > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#B03C09] text-white">
+                  {unreadNotificationsCount} unread
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
+              Manage daily logging alarms, bill payment warnings, and recurring debt due notifications.
+            </p>
+
+            {/* Quick In-Place Toggles */}
+            <div className="space-y-2 pt-1 border-t border-[#F3DFCD]/80 dark:border-[#383029]/80 text-xs">
+              {/* Daily Log Reminder */}
+              <div className="flex items-center justify-between gap-2 py-1">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-[#15120F] dark:text-[#F6EFE8] block text-[11px]">
+                    Daily Expense Logging
+                  </span>
+                  <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] flex items-center gap-1">
+                    <Clock size={10} /> Cutoff at {formatTimeDisplay(reminderSettings.dailyExpenseReminderTime)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="time"
+                    value={reminderSettings.dailyExpenseReminderTime}
+                    onChange={(e) => updateReminderSettings({ dailyExpenseReminderTime: e.target.value })}
+                    className="text-[11px] font-mono px-1.5 py-0.5 rounded-lg border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-[#15120F] dark:text-[#F6EFE8]"
+                  />
+                  <input
+                    type="checkbox"
+                    checked={reminderSettings.dailyExpenseReminderEnabled}
+                    onChange={(e) => updateReminderSettings({ dailyExpenseReminderEnabled: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#B03C09] cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Payment & Bill Due Alerts */}
+              <div className="flex items-center justify-between gap-2 py-1 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-[#15120F] dark:text-[#F6EFE8] block text-[11px]">
+                    Bill &amp; Debt Due Warnings
+                  </span>
+                  <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+                    Alerts {reminderSettings.paymentDueDaysBefore} days before due date
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={reminderSettings.paymentDueReminderEnabled}
+                  onChange={(e) => updateReminderSettings({ paymentDueReminderEnabled: e.target.checked })}
+                  className="w-4 h-4 rounded text-[#B03C09] cursor-pointer"
+                />
+              </div>
+
+              {/* Sound & Notification Tray Button */}
+              {onOpenReminders && (
+                <button
+                  type="button"
+                  id="btn-settings-open-reminders"
+                  onClick={() => {
+                    onClose();
+                    onOpenReminders();
+                  }}
+                  className="w-full mt-2 py-2 px-3 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] hover:border-[#B03C09] dark:hover:border-[#FF9A52] text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Bell size={13} />
+                  <span>Open Full Notification Center &amp; Test Triggers</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Your Setup Hub (Payday, Categories, Recurring, Emergency Fund) */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] flex items-center gap-1.5">
@@ -158,26 +269,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onClose();
                 onOpenYourSetup('payday');
               }}
-              className="p-3.5 rounded-xl border border-[#B03C09]/30 dark:border-[#FF9A52]/30 bg-[#FFEEDF]/30 dark:bg-[#14100D] text-left flex items-center justify-between hover:border-[#B03C09] transition-colors cursor-pointer"
+              className="p-3.5 rounded-xl border border-[#B03C09]/30 dark:border-[#FF9A52]/30 bg-[#FFEEDF]/30 dark:bg-[#14100D] text-left flex items-center justify-between gap-2 hover:border-[#B03C09] transition-colors cursor-pointer"
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
                     Payday, Categories &amp; Recurring
                   </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#B03C09]/10 text-[#B03C09] dark:text-[#FF9A52]">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#B03C09]/10 text-[#B03C09] dark:text-[#FF9A52] shrink-0 whitespace-nowrap">
                     {payday.daysToPayday}d to payday
                   </span>
                 </div>
-                <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mt-0.5">
+                <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mt-0.5 break-words">
                   Configure sweldo cycle, customize budget limits, track bills, and emergency runway.
                 </span>
               </div>
-              <span className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52]">
+              <span className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] shrink-0">
                 Configure
               </span>
             </button>
           </div>
+
+          {/* Shared Finances & Multi-User Collaboration (Phase 5) */}
+          {onOpenCollaboration && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] flex items-center gap-1.5">
+                <Users size={14} /> Shared Finances &amp; Collaboration
+              </label>
+              <button
+                type="button"
+                id="btn-settings-open-collaboration"
+                onClick={() => {
+                  onClose();
+                  onOpenCollaboration();
+                }}
+                className="p-3.5 rounded-xl border border-[#16643F]/30 dark:border-[#5FCB8E]/30 bg-[#16643F]/5 dark:bg-[#5FCB8E]/5 text-left flex items-center justify-between gap-2 hover:border-[#16643F] dark:hover:border-[#5FCB8E] transition-colors cursor-pointer"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
+                      Shared Spaces, Members &amp; Approvals
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#16643F]/15 dark:bg-[#5FCB8E]/20 text-[#16643F] dark:text-[#5FCB8E] shrink-0 whitespace-nowrap">
+                      {spaces?.length || 1} Spaces • {members?.length || 1} Members
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mt-0.5 break-words">
+                    Couple, household, barkada, and business partner spaces with roles, approvals, audit logs, and simplified debt settlements.
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-[#16643F] dark:text-[#5FCB8E] shrink-0">
+                  Manage
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* 3. Tax & Salary Calculator (CPA & Tax Advisor) */}
           <div className="flex flex-col gap-1.5">
@@ -190,17 +336,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onClose();
                 onOpenTaxCalculator();
               }}
-              className="p-3 rounded-xl border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-left flex items-center justify-between hover:border-[#B03C09] transition-colors cursor-pointer"
+              className="p-3 rounded-xl border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-left flex items-center justify-between gap-2 hover:border-[#B03C09] transition-colors cursor-pointer"
             >
-              <div>
-                <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] block">
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] block truncate">
                   Open Tax & 13th Month Calculator
                 </span>
-                <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+                <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] break-words">
                   TRAIN law salary brackets, SSS, PhilHealth, Pag-IBIG, and freelancer 8% tax.
                 </span>
               </div>
-              <span className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52]">
+              <span className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] shrink-0">
                 Open
               </span>
             </button>

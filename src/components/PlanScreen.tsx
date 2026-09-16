@@ -1,14 +1,41 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Check, AlertCircle, CalendarClock, Target, Zap, Music, DollarSign } from 'lucide-react';
+import {
+  Plus,
+  Check,
+  AlertCircle,
+  CalendarClock,
+  Target,
+  Zap,
+  Music,
+  DollarSign,
+  Info,
+  Activity,
+  Sparkles,
+  ShieldCheck,
+  TrendingDown,
+  Clock,
+  Layers,
+  ChevronRight,
+  Trash2,
+} from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
-import { Budget, Goal, UpcomingItem } from '../types';
+import { Budget, Goal, UpcomingItem, IncomeStreamType } from '../types';
+import { SectionInfoModal, InfoTopic } from './SectionInfoModal';
+import { SafeToSpendModal } from './SafeToSpendModal';
+import { HealthCheckModal } from './HealthCheckModal';
 
 interface PlanScreenProps {
-  initialSegment?: 'budget' | 'upcoming' | 'goals';
+  initialSegment?: 'budget' | 'upcoming' | 'goals' | 'decision';
+  onOpenBills?: () => void;
+  onOpenDebt?: () => void;
 }
 
-export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget' }) => {
+export const PlanScreen: React.FC<PlanScreenProps> = ({
+  initialSegment = 'budget',
+  onOpenBills,
+  onOpenDebt,
+}) => {
   const {
     budgets,
     transactions,
@@ -18,9 +45,21 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
     updateBudgetLimit,
     contributeToGoal,
     addGoal,
+    safeToSpendAnalysis,
+    decisionScenario,
+    setDecisionScenario,
+    incomeStreams,
+    addIncomeStream,
+    deleteIncomeStream,
+    healthCheckInsights,
   } = useFinancial();
 
-  const [activeSegment, setActiveSegment] = useState<'budget' | 'upcoming' | 'goals'>(initialSegment);
+  const [activeSegment, setActiveSegment] = useState<'budget' | 'upcoming' | 'goals' | 'decision'>(initialSegment);
+  const [infoTopic, setInfoTopic] = useState<InfoTopic | null>(null);
+
+  // Modal dialog states
+  const [isSafeToSpendModalOpen, setIsSafeToSpendModalOpen] = useState(false);
+  const [isHealthCheckModalOpen, setIsHealthCheckModalOpen] = useState(false);
 
   useEffect(() => {
     setActiveSegment(initialSegment);
@@ -39,6 +78,13 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
   const [goalTarget, setGoalTarget] = useState('');
   const [goalDate, setGoalDate] = useState('Dec 2026');
   const [goalMonthly, setGoalMonthly] = useState('');
+
+  // New Stream form state
+  const [showAddStreamInline, setShowAddStreamInline] = useState(false);
+  const [streamName, setStreamName] = useState('');
+  const [streamType, setStreamType] = useState<IncomeStreamType>('semimonthly_salary');
+  const [streamAmount, setStreamAmount] = useState('');
+  const [streamDate, setStreamDate] = useState('');
 
   // Calculate spent per budget category
   const budgetStats = useMemo(() => {
@@ -82,7 +128,7 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
   const handleSaveGoal = (e: React.FormEvent) => {
     e.preventDefault();
     const target = parseFloat(goalTarget);
-    const monthly = parseFloat(goalMonthly) || (target / 12);
+    const monthly = parseFloat(goalMonthly) || target / 12;
     if (!goalName.trim() || isNaN(target) || target <= 0) return;
 
     addGoal({
@@ -110,28 +156,68 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
     setContribAmount('');
   };
 
-  return (
-    <div className="flex flex-col gap-4 pb-24">
-      {/* Top Header */}
-      <div className="flex items-center justify-between pt-2 px-1">
-        <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-          Plan
-        </h1>
+  const handleAddStreamSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(streamAmount);
+    if (!streamName || isNaN(amount) || amount <= 0) return;
 
-        {/* 3 Segments: Budget · Upcoming · Goals */}
-        <div className="flex rounded-xl p-1 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029]">
-          {(['budget', 'upcoming', 'goals'] as const).map((seg) => (
+    addIncomeStream({
+      name: streamName,
+      type: streamType,
+      expectedAmount: amount,
+      nextExpectedDate: streamDate || new Date().toISOString().split('T')[0],
+      isConfirmed: true,
+    });
+
+    setStreamName('');
+    setStreamAmount('');
+    setStreamDate('');
+    setShowAddStreamInline(false);
+  };
+
+  const streamTypeLabels: Record<IncomeStreamType, string> = {
+    weekly_income: 'Weekly Income',
+    semimonthly_salary: '15/30 Sweldo',
+    monthly_salary: 'Monthly Payroll',
+    freelance: 'Freelance & Retainer',
+    irregular: 'Irregular Gig',
+    thirteenth_month: '13th-Month Pay',
+    remittance: 'Padala / Remittance',
+  };
+
+  return (
+    <div className="flex flex-col gap-4 pb-36">
+      {/* Top Header */}
+      <div className="flex flex-wrap items-center justify-between pt-2 px-1 gap-2">
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
+            Plan
+          </h1>
+          <button
+            type="button"
+            onClick={() => setInfoTopic('budget')}
+            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#B03C09] dark:hover:text-[#FF9A52] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] transition-colors cursor-pointer shrink-0"
+            title="Learn about Plan and Budget tracking"
+            aria-label="Plan info"
+          >
+            <Info size={14} />
+          </button>
+        </div>
+
+        {/* 4 Segments: Budget · Upcoming · Goals · Decision */}
+        <div className="flex rounded-xl p-1 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] max-w-full overflow-x-auto">
+          {(['budget', 'upcoming', 'goals', 'decision'] as const).map((seg) => (
             <button
               key={seg}
               type="button"
               onClick={() => setActiveSegment(seg)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg capitalize transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg capitalize transition-all cursor-pointer whitespace-nowrap ${
                 activeSegment === seg
                   ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] shadow-xs'
                   : 'text-[#6B6156] dark:text-[#AC9E92]'
               }`}
             >
-              {seg}
+              {seg === 'decision' ? 'Decision & Health' : seg}
             </button>
           ))}
         </div>
@@ -142,13 +228,24 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
         <div className="space-y-4">
           {/* Hero: Left to spend this cycle */}
           <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92]">
-              Left to spend this cycle
-            </span>
-            <div className="text-3xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] my-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92]">
+                Left to spend this cycle
+              </span>
+              <button
+                type="button"
+                onClick={() => setInfoTopic('budget')}
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#B03C09] dark:hover:text-[#FF9A52] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] transition-colors cursor-pointer shrink-0"
+                title="How budget limits and pacing work"
+                aria-label="Budget info"
+              >
+                <Info size={13} strokeWidth={2.2} />
+              </button>
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] my-1 tabular-nums break-words">
               {formatPeso(totalLeftToSpend)}
             </div>
-            <p className="text-xs font-medium text-[#5A5148] dark:text-[#C6B8AC]">
+            <p className="text-xs font-medium text-[#5A5148] dark:text-[#C6B8AC] break-words">
               {watchClosely.length > 0
                 ? `${watchClosely.length} of ${budgets.length} categories need a look.`
                 : 'All your budget categories are smoothly on track!'}
@@ -172,15 +269,15 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                     }}
                     className="p-3.5 hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors cursor-pointer"
                   >
-                    <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{b.emoji}</span>
-                        <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                    <div className="flex justify-between items-center mb-1.5 gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-base shrink-0">{b.emoji}</span>
+                        <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
                           {b.category}
                         </span>
                       </div>
                       <span
-                        className={`text-xs font-bold ${
+                        className={`text-xs font-bold shrink-0 whitespace-nowrap pl-2 tabular-nums text-right ${
                           b.isOver
                             ? 'text-[#9E2C1B] dark:text-[#FF8A6E]'
                             : 'text-[#B03C09] dark:text-[#FF9A52]'
@@ -200,9 +297,9 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                       />
                     </div>
 
-                    <div className="flex justify-between text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
-                      <span>{formatPeso(b.spent)} of {formatPeso(b.limit)} limit</span>
-                      <span>{payday.daysToPayday} days left in cutoff</span>
+                    <div className="flex justify-between text-[10px] text-[#6B6156] dark:text-[#AC9E92] gap-1">
+                      <span className="truncate">{formatPeso(b.spent)} of {formatPeso(b.limit)} limit</span>
+                      <span className="shrink-0 whitespace-nowrap">{payday.daysToPayday} days left</span>
                     </div>
                   </div>
                 ))}
@@ -226,14 +323,14 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                   }}
                   className="p-3.5 hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors cursor-pointer"
                 >
-                  <div className="flex justify-between items-center mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{b.emoji}</span>
-                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                  <div className="flex justify-between items-center mb-1.5 gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-base shrink-0">{b.emoji}</span>
+                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
                         {b.category}
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                    <span className="text-xs font-bold text-[#16643F] dark:text-[#5FCB8E] shrink-0 whitespace-nowrap pl-2 tabular-nums text-right">
                       {formatPeso(b.remaining)} left
                     </span>
                   </div>
@@ -242,13 +339,13 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                   <div className="w-full h-1.5 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden mb-1">
                     <div
                       className="h-full rounded-full bg-[#16643F] dark:bg-[#5FCB8E] transition-all duration-300"
-                      style={{ width: `${b.percent}%` }}
+                      style={{ width: `${Math.min(100, b.percent)}%` }}
                     />
                   </div>
 
-                  <div className="flex justify-between text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
-                    <span>{formatPeso(b.spent)} of {formatPeso(b.limit)} limit</span>
-                    <span>{payday.daysToPayday} days left</span>
+                  <div className="flex justify-between text-[10px] text-[#6B6156] dark:text-[#AC9E92] gap-1">
+                    <span className="truncate">{formatPeso(b.spent)} of {formatPeso(b.limit)} limit</span>
+                    <span className="shrink-0 whitespace-nowrap">{b.percent}% spent</span>
                   </div>
                 </div>
               ))}
@@ -260,64 +357,142 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
       {/* 2. UPCOMING SEGMENT */}
       {activeSegment === 'upcoming' && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92] mb-1">
-              Sweldo Timeline
-            </h2>
-            <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC]">
-              Every bill, recurring subscription, and payday between now and your next cutoff.
-            </p>
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92]">
+                Total Scheduled Bills
+              </span>
+              <div className="text-xl sm:text-2xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] mt-0.5 tabular-nums">
+                {formatPeso(upcoming.reduce((sum, u) => sum + u.amount, 0))}
+              </div>
+            </div>
+
+            {onOpenBills && (
+              <button
+                type="button"
+                onClick={onOpenBills}
+                className="px-3 py-1.5 rounded-xl bg-[#B03C09] text-white text-xs font-bold hover:bg-[#8F3006] transition-colors cursor-pointer shadow-xs"
+              >
+                Manage All Bills
+              </button>
+            )}
           </div>
 
           <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl divide-y divide-[#F3DFCD] dark:divide-[#383029] shadow-xs overflow-hidden">
-            {upcoming.map((item) => {
-              const isIncome = item.isIncome || item.type === 'payday';
-              const isToday = item.dueDate.toLowerCase() === 'today';
-
-              return (
-                <div
-                  key={item.id}
-                  className="p-3.5 flex items-center justify-between hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isIncome
-                          ? 'bg-[#16643F]/10 dark:bg-[#5FCB8E]/15 text-[#16643F] dark:text-[#5FCB8E]'
-                          : 'bg-[#FFEEDF] dark:bg-[#14100D] text-[#5A5148] dark:text-[#C6B8AC]'
-                      }`}
-                    >
-                      {item.type === 'payday' ? (
-                        <DollarSign size={17} />
-                      ) : (
-                        <CalendarClock size={17} />
-                      )}
+            {upcoming.length === 0 ? (
+              <div className="p-6 text-center text-xs text-[#7A6E63] dark:text-[#A89A8D]">
+                No upcoming bills scheduled.
+              </div>
+            ) : (
+              upcoming.map((u) => (
+                <div key={u.id} className="p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center text-base shrink-0">
+                      {u.emoji || '🧾'}
                     </div>
-
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                          {item.name}
-                        </span>
-                        {isToday && (
-                          <span className="w-2 h-2 rounded-full bg-[#9E2C1B]" title="Due today" />
-                        )}
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
+                        {u.name}
                       </div>
-                      <span className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
-                        {item.dueDate}
-                      </span>
+                      <div className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                        Due {u.dueDate} • {u.category || u.type}
+                      </div>
                     </div>
                   </div>
 
-                  <span
-                    className={`text-xs font-bold ${
-                      isIncome
-                        ? 'text-[#16643F] dark:text-[#5FCB8E]'
-                        : 'text-[#15120F] dark:text-[#F6EFE8]'
-                    }`}
-                  >
-                    {isIncome ? `+${formatPeso(item.amount)}` : formatPeso(item.amount)}
-                  </span>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] tabular-nums">
+                      {formatPeso(u.amount)}
+                    </div>
+                    {u.isRecurring && (
+                      <span className="text-[9px] font-semibold text-[#16643F] dark:text-[#5FCB8E] block">
+                        Recurring
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. GOALS SEGMENT */}
+      {activeSegment === 'goals' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC]">
+                Ipon &amp; Wealth Milestones
+              </h2>
+              <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                Pag-IBIG MP2, Emergency Fund &amp; Savings Goals
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddGoalModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer"
+            >
+              <Plus size={14} /> Add Goal
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {goals.map((goal) => {
+              const progress = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+              const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
+
+              return (
+                <div
+                  key={goal.id}
+                  className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center text-lg shrink-0">
+                        {goal.emoji}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
+                          {goal.name}
+                        </h3>
+                        <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                          Target: {goal.targetDate} • ₱{goal.monthlyTarget.toLocaleString()}/mo
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setContributingGoal(goal)}
+                      className="px-3 py-1.5 rounded-xl bg-[#16643F] text-white text-xs font-bold hover:bg-[#124f32] transition-colors cursor-pointer shrink-0 shadow-xs"
+                    >
+                      Deposit
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold tabular-nums">
+                      <span className="text-[#15120F] dark:text-[#F6EFE8]">
+                        {formatPeso(goal.currentAmount)}
+                      </span>
+                      <span className="text-[#7A6E63] dark:text-[#A89A8D]">
+                        {progress}% of {formatPeso(goal.targetAmount)}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#16643F] dark:bg-[#5FCB8E] transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-[#7A6E63] dark:text-[#A89A8D] text-right">
+                      {formatPeso(remaining)} to go
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -325,88 +500,321 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
         </div>
       )}
 
-      {/* 3. GOALS (IPON) SEGMENT */}
-      {activeSegment === 'goals' && (
+      {/* 4. DAILY DECISION & HEALTH SEGMENT (Phase 3) */}
+      {activeSegment === 'decision' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92]">
-                Savings & Ipon Goals
-              </h2>
-            </div>
+          {/* Top Trigger Banner for Full Modals */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setShowAddGoalModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer"
+              onClick={() => setIsSafeToSpendModalOpen(true)}
+              className="p-3.5 text-left bg-gradient-to-br from-[#FFEEDF] to-[#FFD9B0] dark:from-[#2A221C] dark:to-[#382B22] rounded-2xl border border-[#F3DFCD] dark:border-[#383029] shadow-xs cursor-pointer hover:opacity-95 transition-opacity flex flex-col justify-between min-w-0"
             >
-              <Plus size={14} /> Add Goal
+              <div className="flex items-center justify-between w-full mb-1 gap-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#5E2C08] dark:text-[#FF9A52] truncate">
+                  Safe to Spend
+                </span>
+                <Sparkles size={14} className="text-[#B03C09] dark:text-[#FF9A52] shrink-0" />
+              </div>
+              <div className="text-lg font-black text-[#2A1207] dark:text-[#F6EFE8] tabular-nums truncate">
+                {formatPeso(safeToSpendAnalysis.safeToSpendToday)}
+              </div>
+              <span className="text-[10px] text-[#5E2C08]/80 dark:text-[#A89A8D] mt-1 truncate">
+                Tap for deep simulator &rarr;
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsHealthCheckModalOpen(true)}
+              className="p-3.5 text-left bg-white dark:bg-[#27201A] rounded-2xl border border-[#F3DFCD] dark:border-[#383029] shadow-xs cursor-pointer hover:opacity-95 transition-opacity flex flex-col justify-between min-w-0"
+            >
+              <div className="flex items-center justify-between w-full mb-1 gap-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#7A6E63] dark:text-[#A89A8D] truncate">
+                  Health Check
+                </span>
+                <Activity size={14} className="text-[#B03C09] dark:text-[#FF9A52] shrink-0" />
+              </div>
+              <div className="text-sm font-black text-[#15120F] dark:text-[#F6EFE8] truncate">
+                {healthCheckInsights.filter((i) => i.severity === 'optimal').length}/10 Indicators
+              </div>
+              <span className="text-[10px] text-[#B03C09] dark:text-[#FF9A52] font-semibold mt-1 truncate">
+                View 10 audits &rarr;
+              </span>
             </button>
           </div>
 
-          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl divide-y divide-[#F3DFCD] dark:divide-[#383029] shadow-xs overflow-hidden">
-            {goals.map((goal) => {
-              const percent = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
-              const isComplete = goal.currentAmount >= goal.targetAmount;
+          {/* Scenario Selector & Core Metrics */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D]">
+                  Scenario Modeling
+                </h3>
+                <p className="text-[11px] text-[#15120F] dark:text-[#F6EFE8] font-medium break-words">
+                  {decisionScenario === 'conservative'
+                    ? 'Guaranteed income only, full debt & bill reserves'
+                    : 'Includes expected irregular freelance & 13th month'}
+                </p>
+              </div>
 
-              return (
-                <div
-                  key={goal.id}
-                  className={`p-4 hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors ${
-                    isComplete ? 'bg-emerald-500/5' : ''
+              <div className="flex rounded-xl p-0.5 bg-[#FFEEDF] dark:bg-[#14100D] shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setDecisionScenario('conservative')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    decisionScenario === 'conservative'
+                      ? 'bg-[#B03C09] text-white shadow-xs'
+                      : 'text-[#7A6E63] dark:text-[#A89A8D]'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{goal.emoji}</span>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                          {goal.name}
-                        </span>
-                        <span className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
-                          {isComplete
-                            ? 'Goal Achieved! 🎉'
-                            : `${formatPeso(goal.monthlyTarget)}/mo to reach by ${goal.targetDate}`}
-                        </span>
-                      </div>
-                    </div>
+                  Conservative
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDecisionScenario('optimistic')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    decisionScenario === 'optimistic'
+                      ? 'bg-[#B03C09] text-white shadow-xs'
+                      : 'text-[#7A6E63] dark:text-[#A89A8D]'
+                  }`}
+                >
+                  Optimistic
+                </button>
+              </div>
+            </div>
 
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                        {formatPeso(goal.currentAmount)}
-                      </span>
-                      <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
-                        of {formatPeso(goal.targetAmount)} ({percent}%)
-                      </span>
-                    </div>
-                  </div>
+            {/* Decision Outputs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div className="p-3 rounded-xl bg-[#FFEEDF]/40 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block truncate">
+                  Until Payday ({payday.daysToPayday}d)
+                </span>
+                <div className="text-base sm:text-lg font-black text-[#15120F] dark:text-[#F6EFE8] tabular-nums mt-0.5 truncate">
+                  {formatPeso(safeToSpendAnalysis.safeToSpendUntilPayday)}
+                </div>
+              </div>
 
-                  {/* ThinBar */}
-                  <div className="w-full h-1.5 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden mb-2">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isComplete ? 'bg-[#16643F] dark:bg-[#5FCB8E]' : 'bg-[#B03C09] dark:bg-[#FF9A52]'
-                      }`}
-                      style={{ width: `${percent}%` }}
+              <div className="p-3 rounded-xl bg-[#FFEEDF]/40 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block truncate">
+                  Safe to Save (Ipon)
+                </span>
+                <div className="text-base sm:text-lg font-black text-[#16643F] dark:text-[#5FCB8E] tabular-nums mt-0.5 truncate">
+                  {formatPeso(safeToSpendAnalysis.safeToSave)}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#FFEEDF]/40 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block truncate">
+                  Must Remain Reserved
+                </span>
+                <div className="text-base sm:text-lg font-black text-[#B03C09] dark:text-[#FF9A52] tabular-nums mt-0.5 truncate">
+                  {formatPeso(safeToSpendAnalysis.amountReserved)}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#FFEEDF]/40 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block truncate">
+                  Cash Runway
+                </span>
+                <div className="text-base sm:text-lg font-black text-[#15120F] dark:text-[#F6EFE8] tabular-nums mt-0.5 truncate">
+                  {safeToSpendAnalysis.cashRunwayDays} days ({safeToSpendAnalysis.cashRunwayMonths.toFixed(1)} mo)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Income Streams Module */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D]">
+                  Income Streams &amp; Paydays
+                </h3>
+                <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                  Weekly, 15/30 salary, freelance retainers, remittances
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddStreamInline(!showAddStreamInline)}
+                className="px-2.5 py-1 rounded-xl bg-[#B03C09] text-white text-xs font-bold hover:bg-[#8F3006] transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+              >
+                <Plus size={13} /> Add Stream
+              </button>
+            </div>
+
+            {/* Inline Add Stream Form */}
+            {showAddStreamInline && (
+              <form onSubmit={handleAddStreamSubmit} className="p-3 bg-[#FFEEDF]/40 dark:bg-[#14100D] rounded-xl border border-[#F3DFCD] dark:border-[#383029] space-y-2.5 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#5A5148] dark:text-[#C6B8AC] block mb-1">
+                      Stream Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={streamName}
+                      onChange={(e) => setStreamName(e.target.value)}
+                      placeholder="e.g. Design Retainer"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
                     />
                   </div>
-
-                  {!isComplete && (
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setContributingGoal(goal);
-                          setContribAmount('1000');
-                        }}
-                        className="text-xs font-bold px-3 py-1 rounded-lg bg-[#B03C09]/10 dark:bg-[#FF9A52]/15 text-[#B03C09] dark:text-[#FF9A52] hover:bg-[#B03C09]/20 transition-colors cursor-pointer"
-                      >
-                        + Add Savings
-                      </button>
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-[10px] font-bold text-[#5A5148] dark:text-[#C6B8AC] block mb-1">
+                      Expected (₱)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="any"
+                      value={streamAmount}
+                      onChange={(e) => setStreamAmount(e.target.value)}
+                      placeholder="25000"
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    />
+                  </div>
                 </div>
-              );
-            })}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#5A5148] dark:text-[#C6B8AC] block mb-1">
+                      Income Type
+                    </label>
+                    <select
+                      value={streamType}
+                      onChange={(e) => setStreamType(e.target.value as IncomeStreamType)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    >
+                      <option value="semimonthly_salary">15th &amp; 30th Salary</option>
+                      <option value="weekly_income">Weekly Income</option>
+                      <option value="monthly_salary">Monthly Payroll</option>
+                      <option value="freelance">Freelance Retainer</option>
+                      <option value="irregular">Irregular Gig</option>
+                      <option value="thirteenth_month">13th-Month Pay</option>
+                      <option value="remittance">Remittance Padala</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#5A5148] dark:text-[#C6B8AC] block mb-1">
+                      Next Date
+                    </label>
+                    <input
+                      type="date"
+                      value={streamDate}
+                      onChange={(e) => setStreamDate(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStreamInline(false)}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold text-[#7A6E63] dark:text-[#A89A8D] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1 rounded-lg bg-[#B03C09] text-white text-xs font-bold hover:bg-[#8F3006] cursor-pointer"
+                  >
+                    Save Stream
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Income Streams List */}
+            <div className="divide-y divide-[#F3DFCD] dark:divide-[#383029] rounded-xl border border-[#F3DFCD] dark:border-[#383029] overflow-hidden">
+              {incomeStreams.map((stream) => (
+                <div key={stream.id} className="p-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
+                        {stream.name}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-[#FFEEDF] dark:bg-[#14100D] text-[#B03C09] dark:text-[#FF9A52]">
+                        {streamTypeLabels[stream.type] || stream.type}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#7A6E63] dark:text-[#A89A8D] block mt-0.5">
+                      Next: {stream.nextExpectedDate}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-black text-[#16643F] dark:text-[#5FCB8E] tabular-nums">
+                      +{formatPeso(stream.expectedAmount)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteIncomeStream(stream.id)}
+                      className="p-1 text-[#7A6E63] hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Remove stream"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Health Check Previews (Top 3) */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D]">
+                  Money Health Insights (Phase 3)
+                </h3>
+                <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                  Explanatory diagnostics across cash runway, fee leakage &amp; debt pressure
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHealthCheckModalOpen(true)}
+                className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+              >
+                All 10 &rarr;
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {healthCheckInsights.slice(0, 3).map((insight) => (
+                <div
+                  key={insight.id}
+                  onClick={() => setIsHealthCheckModalOpen(true)}
+                  className="p-3 rounded-xl bg-[#FFEEDF]/30 dark:bg-[#14100D]/50 border border-[#F3DFCD] dark:border-[#383029] hover:border-[#B03C09]/40 transition-colors cursor-pointer space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                      {insight.title}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-md text-[9px] font-bold uppercase ${
+                        insight.severity === 'critical'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                          : insight.severity === 'warning'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                      }`}
+                    >
+                      {insight.severity}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D] line-clamp-2">
+                    {insight.whatHappened}
+                  </p>
+                  <div className="text-[10px] text-[#B03C09] dark:text-[#FF9A52] font-semibold flex items-center gap-1">
+                    <span>Rec: {insight.recommendedAction}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -415,17 +823,17 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
       {editingBudget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="w-full max-w-sm bg-white dark:bg-[#27201A] rounded-2xl p-5 shadow-xl border border-[#F3DFCD] dark:border-[#383029]">
-            <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8] mb-1">
-              Adjust Limit for {editingBudget.emoji} {editingBudget.category}
+            <h3 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8] mb-1">
+              Edit {editingBudget.emoji} {editingBudget.category} Limit
             </h3>
-            <p className="text-xs text-[#6B6156] dark:text-[#AC9E92] mb-4">
-              Current cutoff spend: {formatPeso(editingBudget.spent || 0)}
+            <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC] mb-4">
+              Currently spent: {formatPeso(editingBudget.spent || 0)}
             </p>
 
-            <form onSubmit={handleSaveBudgetLimit} className="space-y-3">
+            <form onSubmit={handleSaveBudgetLimit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
-                  New Limit (₱)
+                  New Cycle Limit (₱)
                 </label>
                 <input
                   type="number"
@@ -438,7 +846,7 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setEditingBudget(null)}
@@ -462,17 +870,17 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
       {contributingGoal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="w-full max-w-sm bg-white dark:bg-[#27201A] rounded-2xl p-5 shadow-xl border border-[#F3DFCD] dark:border-[#383029]">
-            <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8] mb-1">
-              Add Savings to {contributingGoal.emoji} {contributingGoal.name}
+            <h3 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8] mb-1">
+              Deposit to {contributingGoal.emoji} {contributingGoal.name}
             </h3>
-            <p className="text-xs text-[#6B6156] dark:text-[#AC9E92] mb-4">
-              Saved {formatPeso(contributingGoal.currentAmount)} of {formatPeso(contributingGoal.targetAmount)}
+            <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC] mb-4">
+              Current: {formatPeso(contributingGoal.currentAmount)} / {formatPeso(contributingGoal.targetAmount)}
             </p>
 
-            <form onSubmit={handleContribute} className="space-y-3">
+            <form onSubmit={handleContribute} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
-                  Contribution Amount (₱)
+                  Deposit Amount (₱)
                 </label>
                 <input
                   type="number"
@@ -556,7 +964,7 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
                     Target Date
@@ -602,6 +1010,29 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({ initialSegment = 'budget
           </div>
         </div>
       )}
+
+      {/* Safe to Spend Sheet Modal */}
+      <SafeToSpendModal
+        isOpen={isSafeToSpendModalOpen}
+        onClose={() => setIsSafeToSpendModalOpen(false)}
+      />
+
+      {/* Health Check Sheet Modal */}
+      <HealthCheckModal
+        isOpen={isHealthCheckModalOpen}
+        onClose={() => setIsHealthCheckModalOpen(false)}
+        onNavigateTo={(target) => {
+          setIsHealthCheckModalOpen(false);
+          if (target === 'bills' && onOpenBills) {
+            onOpenBills();
+          } else if (target === 'debt' && onOpenDebt) {
+            onOpenDebt();
+          }
+        }}
+      />
+
+      {/* Section Info Modal */}
+      <SectionInfoModal topic={infoTopic} onClose={() => setInfoTopic(null)} />
     </div>
   );
 };

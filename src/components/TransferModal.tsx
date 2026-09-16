@@ -80,16 +80,16 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
 
       {/* Sheet */}
       <div className="relative w-full max-w-md bg-white dark:bg-[#27201A] rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 border border-[#F3DFCD] dark:border-[#383029] max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250">
-        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] mb-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52] shrink-0">
               <ArrowRightLeft size={18} />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8]">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
                 Move Money
               </h2>
-              <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+              <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] truncate block">
                 Between your accounts (Zero net worth change)
               </span>
             </div>
@@ -97,7 +97,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer"
+            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer shrink-0"
           >
             <X size={18} />
           </button>
@@ -181,13 +181,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
             </div>
 
             {/* Quick Presets */}
-            <div className="flex gap-1.5 mt-2">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {presets.map((val) => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => setAmountStr(val.toString())}
-                  className="flex-1 py-1.5 rounded-lg border border-[#F3DFCD] dark:border-[#383029] text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC] bg-white dark:bg-[#27201A] hover:border-[#B03C09] cursor-pointer"
+                  className="flex-1 min-w-[50px] py-1.5 rounded-lg border border-[#F3DFCD] dark:border-[#383029] text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC] bg-white dark:bg-[#27201A] hover:border-[#B03C09] cursor-pointer whitespace-nowrap"
                 >
                   +{val}
                 </button>
@@ -196,7 +196,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
                 <button
                   type="button"
                   onClick={() => setAmountStr(fromAccount.balance.toString())}
-                  className="py-1.5 px-2.5 rounded-lg border border-[#B03C09]/40 text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52] bg-white dark:bg-[#27201A] hover:bg-[#B03C09]/10 cursor-pointer"
+                  className="py-1.5 px-2.5 rounded-lg border border-[#B03C09]/40 text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52] bg-white dark:bg-[#27201A] hover:bg-[#B03C09]/10 cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   Max
                 </button>
@@ -205,7 +205,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
           </div>
 
           {/* Date & Optional Note */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="text-[11px] font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
                 Date

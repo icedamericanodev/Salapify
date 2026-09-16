@@ -165,22 +165,22 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = () => {
               </div>
 
               {/* Presets */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 {presetInstitutions.map((item) => (
                   <button
                     key={item.name}
                     type="button"
                     onClick={() => handleSelectPreset(item)}
-                    className={`p-2.5 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                    className={`p-2 sm:p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all cursor-pointer min-w-0 ${
                       accountName === item.name
                         ? 'border-[#B03C09] bg-[#FFEEDF]/40 dark:border-[#FF9A52] dark:bg-[#FF9A52]/10'
                         : 'border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A]'
                     }`}
                   >
-                    <span className="font-extrabold text-xs text-[#B03C09] dark:text-[#FF9A52]">
+                    <span className="font-extrabold text-xs text-[#B03C09] dark:text-[#FF9A52] truncate">
                       {item.monogram}
                     </span>
-                    <span className="font-bold text-xs text-[#15120F] dark:text-[#F6EFE8]">
+                    <span className="font-bold text-[11px] sm:text-xs text-[#15120F] dark:text-[#F6EFE8] truncate">
                       {item.name}
                     </span>
                   </button>

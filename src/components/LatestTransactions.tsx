@@ -51,9 +51,9 @@ export const LatestTransactions: React.FC<LatestTransactionsProps> = ({
               <div
                 key={tx.id}
                 onClick={() => onSelectTransaction?.(tx)}
-                className="flex items-center justify-between p-3.5 hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-3.5 hover:bg-[#FFEEDF]/30 dark:hover:bg-[#14100D]/40 transition-colors cursor-pointer gap-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#FFEEDF] dark:bg-[#14100D] text-[#5A5148] dark:text-[#C6B8AC]">
                     {isIncome ? (
                       <ArrowDownLeft size={17} className="text-[#16643F] dark:text-[#5FCB8E]" />
@@ -63,19 +63,19 @@ export const LatestTransactions: React.FC<LatestTransactionsProps> = ({
                       <ArrowUpRight size={17} className="text-[#5A5148] dark:text-[#C6B8AC]" />
                     )}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
                       {tx.merchant || tx.category}
                     </span>
-                    <span className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
+                    <span className="text-[11px] text-[#6B6156] dark:text-[#AC9E92] truncate">
                       {tx.category} · {getAccountName(tx.accountId)}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end shrink-0 pl-2 text-right">
                   <span
-                    className={`text-xs font-bold ${
+                    className={`text-xs font-bold whitespace-nowrap tabular-nums ${
                       isIncome
                         ? 'text-[#16643F] dark:text-[#5FCB8E]'
                         : 'text-[#15120F] dark:text-[#F6EFE8]'
@@ -83,7 +83,7 @@ export const LatestTransactions: React.FC<LatestTransactionsProps> = ({
                   >
                     {isIncome ? `+${formatPeso(tx.amount)}` : formatPeso(tx.amount)}
                   </span>
-                  <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+                  <span className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] whitespace-nowrap">
                     {formatDateLabel(tx.date)}
                   </span>
                 </div>

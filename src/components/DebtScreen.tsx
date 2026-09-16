@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Check, CheckCircle2, ChevronRight, ArrowLeft, Users } from 'lucide-react';
+import { Plus, Check, CheckCircle2, ChevronRight, ArrowLeft, Users, Info } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
 import { Debt, DebtDirection } from '../types';
+import { SectionInfoModal, InfoTopic } from './SectionInfoModal';
+import { InstallmentsView } from './InstallmentsView';
+import { DebtCalculatorsView } from './DebtCalculatorsView';
 
 interface DebtScreenProps {
   onBack?: () => void;
@@ -20,11 +23,13 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
     accounts,
   } = useFinancial();
 
+  const [mainSection, setMainSection] = useState<'debts' | 'installments' | 'calculators'>('debts');
   const [activeSegment, setActiveSegment] = useState<DebtDirection>('i_owe');
   const [selectedDebtForPayment, setSelectedDebtForPayment] = useState<Debt | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
   const [celebratingDebtId, setCelebratingDebtId] = useState<string | null>(null);
+  const [infoTopic, setInfoTopic] = useState<InfoTopic | null>(null);
 
   // Proportional beam
   const totalCombined = totalDebtsOwedToMe + totalDebtsIOwe;
@@ -36,9 +41,6 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
   const currentList = debts.filter((d) => d.direction === activeSegment);
   const openDebts = currentList.filter((d) => !d.isSettled);
   const settledDebts = currentList.filter((d) => d.isSettled);
-
-  // Next due debt
-  const nextDue = openDebts.find((d) => d.dueDate);
 
   const handleSettleDebt = (debt: Debt) => {
     setCelebratingDebtId(debt.id);
@@ -60,110 +62,162 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
   };
 
   return (
-    <div className="flex flex-col gap-5 pb-24">
+    <div className="flex flex-col gap-4 pb-36">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between pt-2 gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="p-1.5 rounded-full bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#5A5148] dark:text-[#C6B8AC] hover:text-[#15120F] dark:hover:text-[#F6EFE8] cursor-pointer"
+              className="p-1.5 rounded-full bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#5A5148] dark:text-[#C6B8AC] hover:text-[#15120F] dark:hover:text-[#F6EFE8] cursor-pointer shrink-0"
+              aria-label="Back"
             >
               <ArrowLeft size={18} />
             </button>
           )}
-          <div>
-            <h1 className="text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-              Debt
+          <div className="min-w-0 flex-1 flex items-center gap-1.5">
+            <h1 className="text-lg sm:text-xl font-extrabold text-[#15120F] dark:text-[#F6EFE8] truncate">
+              Debt & Installments
             </h1>
-            <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-              Both ways: what you owe, and what is owed to you.
-            </p>
+            <button
+              type="button"
+              onClick={() => setInfoTopic('debt')}
+              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#B03C09] dark:hover:text-[#FF9A52] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] transition-colors cursor-pointer shrink-0"
+              title="Learn how Debt Both Ways & the Debt Beam work"
+              aria-label="Debt info"
+            >
+              <Info size={15} />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {onOpenSplitBill && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenSplitBill && mainSection === 'debts' && (
             <button
               type="button"
               onClick={onOpenSplitBill}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-xs font-bold text-[#16643F] dark:text-[#5FCB8E] hover:bg-[#16643F]/10 cursor-pointer transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-xs font-bold text-[#16643F] dark:text-[#5FCB8E] hover:bg-[#16643F]/10 cursor-pointer transition-colors whitespace-nowrap"
               title="Split a bill with friends and record what they owe"
             >
               <Users size={14} /> Split
             </button>
           )}
-          <button
-            type="button"
-            onClick={onOpenAddDebt}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer"
-          >
-            <Plus size={15} /> Add
-          </button>
+          {mainSection === 'debts' && (
+            <button
+              type="button"
+              onClick={onOpenAddDebt}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer whitespace-nowrap"
+            >
+              <Plus size={15} /> Add
+            </button>
+          )}
         </div>
       </div>
 
-      {/* The Debt Beam Card */}
-      <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-[#6B6156] dark:text-[#AC9E92]">
-              Owed to you
-            </span>
-            <span className="text-xl font-extrabold text-[#16643F] dark:text-[#5FCB8E]">
-              {formatPeso(totalDebtsOwedToMe)}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-end">
-            <span className="text-xs font-medium text-[#6B6156] dark:text-[#AC9E92]">
-              You owe
-            </span>
-            <span className="text-xl font-extrabold text-[#B03C09] dark:text-[#FF9A52]">
-              {formatPeso(totalDebtsIOwe)}
-            </span>
-          </div>
-        </div>
-
-        {/* Proportional 5dp beam */}
-        <div className="w-full h-[5px] rounded-full overflow-hidden flex gap-[2px] bg-[#FFEEDF] dark:bg-[#14100D]">
-          <div
-            className="h-full rounded-l-full bg-[#16643F] dark:bg-[#5FCB8E] transition-all duration-500"
-            style={{ width: `${owedToMePercent}%` }}
-          />
-          <div
-            className="h-full rounded-r-full bg-[#B03C09] dark:bg-[#FF9A52] transition-all duration-500"
-            style={{ width: `${youOwePercent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Segmented Switcher: I owe / Owed to me */}
-      <div className="flex rounded-xl p-1 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029]">
+      {/* Main Feature Segment Bar */}
+      <div className="flex p-1 bg-white dark:bg-[#27201A] rounded-2xl border border-[#F3DFCD] dark:border-[#383029]">
         <button
           type="button"
-          onClick={() => setActiveSegment('i_owe')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-            activeSegment === 'i_owe'
-              ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] shadow-xs'
-              : 'text-[#6B6156] dark:text-[#AC9E92]'
+          onClick={() => setMainSection('debts')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            mainSection === 'debts'
+              ? 'bg-[#B03C09] text-white shadow-xs'
+              : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
           }`}
         >
-          You Owe ({debts.filter((d) => !d.isSettled && d.direction === 'i_owe').length})
+          Pahiram & Debts
         </button>
         <button
           type="button"
-          onClick={() => setActiveSegment('owed_to_me')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-            activeSegment === 'owed_to_me'
-              ? 'bg-[#16643F] dark:bg-[#5FCB8E] text-white dark:text-[#1E0E03] shadow-xs'
-              : 'text-[#6B6156] dark:text-[#AC9E92]'
+          onClick={() => setMainSection('installments')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            mainSection === 'installments'
+              ? 'bg-[#B03C09] text-white shadow-xs'
+              : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
           }`}
         >
-          Owed to You ({debts.filter((d) => !d.isSettled && d.direction === 'owed_to_me').length})
+          Installments & BNPL
+        </button>
+        <button
+          type="button"
+          onClick={() => setMainSection('calculators')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            mainSection === 'calculators'
+              ? 'bg-[#B03C09] text-white shadow-xs'
+              : 'text-[#7A6E63] dark:text-[#A89A8D] hover:text-[#15120F]'
+          }`}
+        >
+          Simulators
         </button>
       </div>
+
+      {mainSection === 'installments' && <InstallmentsView />}
+
+      {mainSection === 'calculators' && <DebtCalculatorsView />}
+
+      {mainSection === 'debts' && (
+        <>
+          {/* The Debt Beam Card */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs">
+            <div className="flex justify-between items-start mb-3 gap-2">
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-medium text-[#6B6156] dark:text-[#AC9E92] truncate">
+                  Owed to you
+                </span>
+                <span className="text-lg sm:text-xl font-extrabold text-[#16643F] dark:text-[#5FCB8E] truncate tabular-nums">
+                  {formatPeso(totalDebtsOwedToMe)}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-end shrink-0 text-right">
+                <span className="text-xs font-medium text-[#6B6156] dark:text-[#AC9E92]">
+                  You owe
+                </span>
+                <span className="text-lg sm:text-xl font-extrabold text-[#B03C09] dark:text-[#FF9A52] whitespace-nowrap tabular-nums">
+                  {formatPeso(totalDebtsIOwe)}
+                </span>
+              </div>
+            </div>
+
+            {/* Proportional 5dp beam */}
+            <div className="w-full h-[5px] rounded-full overflow-hidden flex gap-[2px] bg-[#FFEEDF] dark:bg-[#14100D]">
+              <div
+                className="h-full rounded-l-full bg-[#16643F] dark:bg-[#5FCB8E] transition-all duration-500"
+                style={{ width: `${owedToMePercent}%` }}
+              />
+              <div
+                className="h-full rounded-r-full bg-[#B03C09] dark:bg-[#FF9A52] transition-all duration-500"
+                style={{ width: `${youOwePercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Segmented Switcher: I owe / Owed to me */}
+          <div className="flex rounded-xl p-1 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029]">
+            <button
+              type="button"
+              onClick={() => setActiveSegment('i_owe')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                activeSegment === 'i_owe'
+                  ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] shadow-xs'
+                  : 'text-[#6B6156] dark:text-[#AC9E92]'
+              }`}
+            >
+              You Owe ({debts.filter((d) => !d.isSettled && d.direction === 'i_owe').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSegment('owed_to_me')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                activeSegment === 'owed_to_me'
+                  ? 'bg-[#16643F] dark:bg-[#5FCB8E] text-white dark:text-[#1E0E03] shadow-xs'
+                  : 'text-[#6B6156] dark:text-[#AC9E92]'
+              }`}
+            >
+              Owed to You ({debts.filter((d) => !d.isSettled && d.direction === 'owed_to_me').length})
+            </button>
+          </div>
 
       {/* Section: Open Debts */}
       <div className="flex flex-col gap-2">
@@ -192,15 +246,15 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center font-bold text-xs text-[#B03C09] dark:text-[#FF9A52]">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center font-bold text-xs text-[#B03C09] dark:text-[#FF9A52] shrink-0">
                         {debt.person.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex flex-col">
-                        <span className={`text-sm font-bold ${isCelebrating ? 'text-white' : 'text-[#15120F] dark:text-[#F6EFE8]'}`}>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className={`text-sm font-bold truncate ${isCelebrating ? 'text-white' : 'text-[#15120F] dark:text-[#F6EFE8]'}`}>
                           {debt.person}
                         </span>
-                        <span className={`text-xs ${isCelebrating ? 'text-white/80' : 'text-[#6B6156] dark:text-[#AC9E92]'}`}>
+                        <span className={`text-xs truncate ${isCelebrating ? 'text-white/80' : 'text-[#6B6156] dark:text-[#AC9E92]'}`}>
                           {debt.scheduleType === 'scheduled' && debt.installmentCurrent
                             ? `${debt.installmentCurrent} of ${debt.installmentTotal} · next ${debt.dueDate || 'due'}`
                             : 'Flexible · pay when you can'}
@@ -208,8 +262,8 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end">
-                      <span className={`text-sm font-extrabold ${
+                    <div className="flex flex-col items-end shrink-0 pl-2 text-right">
+                      <span className={`text-sm font-extrabold whitespace-nowrap tabular-nums ${
                         isCelebrating
                           ? 'text-white'
                           : activeSegment === 'i_owe'
@@ -218,7 +272,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
                       }`}>
                         {formatPeso(remaining)}
                       </span>
-                      <span className={`text-[10px] ${isCelebrating ? 'text-white/80' : 'text-[#6B6156] dark:text-[#AC9E92]'}`}>
+                      <span className={`text-[10px] whitespace-nowrap ${isCelebrating ? 'text-white/80' : 'text-[#6B6156] dark:text-[#AC9E92]'}`}>
                         of {formatPeso(debt.totalAmount)}
                       </span>
                     </div>
@@ -236,7 +290,7 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
 
                   {/* Action buttons */}
                   {!isCelebrating && (
-                    <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-[#F3DFCD]/50 dark:border-[#383029]/50">
+                    <div className="flex flex-wrap items-center justify-end gap-2 mt-3 pt-2 border-t border-[#F3DFCD]/50 dark:border-[#383029]/50">
                       <button
                         type="button"
                         onClick={() => handleSettleDebt(debt)}
@@ -275,23 +329,23 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
             {settledDebts.map((debt) => (
               <div
                 key={debt.id}
-                className="p-3.5 flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/5"
+                className="p-3.5 flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/5 gap-2"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#16643F]/10 dark:bg-[#5FCB8E]/20 text-[#16643F] dark:text-[#5FCB8E] flex items-center justify-center font-bold text-xs">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-[#16643F]/10 dark:bg-[#5FCB8E]/20 text-[#16643F] dark:text-[#5FCB8E] flex items-center justify-center font-bold text-xs shrink-0">
                     <Check size={15} />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-[#6B6156] dark:text-[#AC9E92] line-through">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-semibold text-[#6B6156] dark:text-[#AC9E92] line-through truncate">
                       {debt.person}
                     </span>
-                    <span className="text-[11px] font-bold text-[#16643F] dark:text-[#5FCB8E]">
+                    <span className="text-[11px] font-bold text-[#16643F] dark:text-[#5FCB8E] truncate">
                       Settled {debt.settledDate || 'recently'}, all paid
                     </span>
                   </div>
                 </div>
 
-                <span className="text-xs font-bold text-[#6B6156] dark:text-[#AC9E92]">
+                <span className="text-xs font-bold text-[#6B6156] dark:text-[#AC9E92] shrink-0 whitespace-nowrap pl-2 tabular-nums">
                   {formatPeso(debt.totalAmount)}
                 </span>
               </div>
@@ -299,31 +353,11 @@ export const DebtScreen: React.FC<DebtScreenProps> = ({ onBack, onOpenAddDebt, o
           </div>
         </div>
       )}
+        </>
+      )}
 
-      {/* Bottom Sticky Action Bar */}
-      <div className="fixed bottom-16 left-0 right-0 p-3 bg-white/90 dark:bg-[#27201A]/90 backdrop-blur-md border-t border-[#F3DFCD] dark:border-[#383029] flex items-center justify-center gap-2 max-w-md mx-auto z-30">
-        {nextDue ? (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDebtForPayment(nextDue);
-              const remaining = nextDue.totalAmount - nextDue.paidAmount;
-              setPaymentAmount((remaining > 2450 ? 2450 : remaining).toString());
-            }}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] font-bold text-xs shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer truncate"
-          >
-            Pay {nextDue.person.split(' ')[0]} ({formatPeso(Math.min(2450, nextDue.totalAmount - nextDue.paidAmount))})
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenAddDebt}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] font-bold text-xs shadow-xs hover:opacity-90 active:scale-98 transition-all cursor-pointer"
-          >
-            + Add New Debt Record
-          </button>
-        )}
-      </div>
+      {/* Section Info Modal */}
+      <SectionInfoModal topic={infoTopic} onClose={() => setInfoTopic(null)} />
 
       {/* Record Payment Dialog */}
       {selectedDebtForPayment && (

@@ -16,17 +16,20 @@ import {
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
+import { CategoryManager } from './CategoryManager';
 
 interface YourSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: 'payday' | 'categories' | 'recurring' | 'emergency' | 'privacy';
+  onOpenTaxCalculator?: () => void;
 }
 
 export const YourSetupModal: React.FC<YourSetupModalProps> = ({
   isOpen,
   onClose,
   initialTab = 'payday',
+  onOpenTaxCalculator,
 }) => {
   const {
     payday,
@@ -131,19 +134,19 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
       {/* Modal panel */}
       <div className="relative w-full max-w-lg bg-white dark:bg-[#27201A] rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 border border-[#F3DFCD] dark:border-[#383029] max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029]">
-          <div>
-            <h2 className="text-lg font-bold text-[#15120F] dark:text-[#F6EFE8]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#F3DFCD] dark:border-[#383029] gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
               Your Setup
             </h2>
-            <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
+            <p className="text-xs text-[#6B6156] dark:text-[#AC9E92] truncate">
               Payday timeline, category rules, and recurring bills
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer"
+            className="p-1 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] cursor-pointer shrink-0"
           >
             <X size={20} />
           </button>
@@ -299,6 +302,18 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
                     className="w-full pl-7 pr-3 py-2.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]"
                   />
                 </div>
+                {onOpenTaxCalculator && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenTaxCalculator();
+                    }}
+                    className="mt-1.5 text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Need help computing net take-home? Open Philippine Tax Calculator →</span>
+                  </button>
+                )}
               </div>
 
               <button
@@ -322,126 +337,7 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
 
           {/* TAB 2: CATEGORIES MANAGER */}
           {activeTab === 'categories' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                  Budget Categories ({budgets.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCat(!showAddCat)}
-                  className="flex items-center gap-1 text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
-                >
-                  <Plus size={14} /> Add Category
-                </button>
-              </div>
-
-              {showAddCat && (
-                <form
-                  onSubmit={handleAddCategorySubmit}
-                  className="p-3.5 rounded-2xl bg-[#FFEEDF]/40 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] space-y-3"
-                >
-                  <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                    New Category
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    <div className="col-span-1">
-                      <label className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mb-1">
-                        Emoji
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={newCatEmoji}
-                        onChange={(e) => setNewCatEmoji(e.target.value)}
-                        className="w-full text-center py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-base"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <label className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newCatName}
-                        onChange={(e) => setNewCatName(e.target.value)}
-                        placeholder="e.g. Coffee & Milk Tea"
-                        className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-[#6B6156] dark:text-[#AC9E92] block mb-1">
-                      Cycle Spending Limit (₱)
-                    </label>
-                    <input
-                      type="number"
-                      value={newCatLimit}
-                      onChange={(e) => setNewCatLimit(e.target.value)}
-                      className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCat(false)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#6B6156] dark:text-[#AC9E92] hover:bg-black/5 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-3.5 py-1.5 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold cursor-pointer"
-                    >
-                      Save Category
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              <div className="divide-y divide-[#F3DFCD] dark:divide-[#383029] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl bg-white dark:bg-[#27201A] overflow-hidden">
-                {budgets.map((b) => (
-                  <div
-                    key={b.category}
-                    className="p-3 flex items-center justify-between gap-3 hover:bg-[#FFEEDF]/20 dark:hover:bg-[#14100D]/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xl shrink-0">{b.emoji}</span>
-                      <div>
-                        <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                          {b.category}
-                        </div>
-                        <div className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
-                          Limit: {formatPeso(b.limit)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        defaultValue={b.limit}
-                        onBlur={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val) && val > 0) updateBudgetLimit(b.category, val);
-                        }}
-                        className="w-20 py-1 px-2 text-right rounded-lg bg-[#FFEEDF]/30 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]"
-                      />
-                      {budgets.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => deleteBudget(b.category)}
-                          className="p-1 text-[#6B6156] hover:text-red-500 cursor-pointer"
-                          title="Delete category"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CategoryManager />
           )}
 
           {/* TAB 3: RECURRING BILLS */}
