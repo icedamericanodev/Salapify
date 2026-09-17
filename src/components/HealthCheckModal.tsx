@@ -84,7 +84,7 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
             <div>
               <h2 className="text-base font-bold tracking-tight">Money Health Check</h2>
               <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
-                Check your financial standing across 10 key indicators
+                Check your financial standing across {healthCheckInsights.length} key indicators
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
                 : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D]'
             }`}
           >
-            All 10 Indicators
+            All {healthCheckInsights.length} Indicators
           </button>
           <button
             type="button"
@@ -226,8 +226,8 @@ export const HealthCheckModal: React.FC<HealthCheckModalProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-bold text-[#B03C09] dark:text-[#FF9A52]">
-                      {insight.confidencePercentage}% Conf.
+                    <span className="text-[11px] font-medium text-[#7A6E63] dark:text-[#A89A8D]">
+                      Based on records
                     </span>
                     <button
                       type="button"

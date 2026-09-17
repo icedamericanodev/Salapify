@@ -206,14 +206,36 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
 ];
 
-export const PHBusinessStartupGuide: React.FC<{ onBackToLessons?: () => void }> = ({ onBackToLessons }) => {
-  const [activeTab, setActiveTab] = useState<'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas'>('roadmap');
+interface PHBusinessStartupGuideProps {
+  onBackToLessons?: () => void;
+  initialTab?: 'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas';
+  initialSaasSubTab?: 'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator';
+}
+
+export const PHBusinessStartupGuide: React.FC<PHBusinessStartupGuideProps> = ({
+  onBackToLessons,
+  initialTab = 'roadmap',
+  initialSaasSubTab = 'overview',
+}) => {
+  const [activeTab, setActiveTab] = useState<'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas'>(initialTab);
   const [expandedPhase, setExpandedPhase] = useState<number | null>(1);
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
   const [entityFilter, setEntityFilter] = useState<'all' | 'sole_prop' | 'opc' | 'corp' | 'partnership'>('all');
 
   // SaaS & App Store Launchpad sub-tab state
-  const [saasSubTab, setSaasSubTab] = useState<'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator'>('overview');
+  const [saasSubTab, setSaasSubTab] = useState<'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator'>(initialSaasSubTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (initialSaasSubTab) {
+      setSaasSubTab(initialSaasSubTab);
+    }
+  }, [initialSaasSubTab]);
   const [saasRevUsd, setSaasRevUsd] = useState<number>(2500);
   const [saasChannel, setSaasChannel] = useState<'apple' | 'google' | 'mor' | 'stripe' | 'paymongo'>('apple');
   const [saasTxCount, setSaasTxCount] = useState<number>(100);

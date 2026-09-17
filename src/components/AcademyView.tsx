@@ -8,12 +8,28 @@ import { motion, AnimatePresence } from 'motion/react';
 import { academyCourses, CourseModule } from '../data/academyData';
 import { PHBusinessStartupGuide } from './PHBusinessStartupGuide';
 
-export const AcademyView: React.FC = () => {
+interface AcademyViewProps {
+  initialMode?: 'courses' | 'startup_guide';
+  initialStartupTab?: 'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas';
+  initialSaasSubTab?: 'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator';
+}
+
+export const AcademyView: React.FC<AcademyViewProps> = ({
+  initialMode = 'courses',
+  initialStartupTab = 'roadmap',
+  initialSaasSubTab = 'overview',
+}) => {
   const [selectedCourse, setSelectedCourse] = useState<CourseModule | null>(null);
   const [completedCourses, setCompletedCourses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [academyMode, setAcademyMode] = useState<'courses' | 'startup_guide'>('courses');
+  const [academyMode, setAcademyMode] = useState<'courses' | 'startup_guide'>(initialMode);
+
+  useEffect(() => {
+    if (initialMode) {
+      setAcademyMode(initialMode);
+    }
+  }, [initialMode]);
 
   // Load progress on mount
   useEffect(() => {
@@ -74,7 +90,11 @@ export const AcademyView: React.FC = () => {
   // If in Startup Guide mode, render the guide
   if (academyMode === 'startup_guide') {
     return (
-      <PHBusinessStartupGuide onBackToLessons={() => setAcademyMode('courses')} />
+      <PHBusinessStartupGuide
+        onBackToLessons={() => setAcademyMode('courses')}
+        initialTab={initialStartupTab}
+        initialSaasSubTab={initialSaasSubTab}
+      />
     );
   }
 

@@ -13,6 +13,7 @@ import {
   HelpCircle,
   ChevronRight,
   TrendingUp,
+  Database,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
@@ -23,6 +24,7 @@ interface YourSetupModalProps {
   onClose: () => void;
   initialTab?: 'payday' | 'categories' | 'recurring' | 'emergency' | 'privacy';
   onOpenTaxCalculator?: () => void;
+  onOpenOfflineRegistry?: () => void;
 }
 
 export const YourSetupModal: React.FC<YourSetupModalProps> = ({
@@ -30,6 +32,7 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
   onClose,
   initialTab = 'payday',
   onOpenTaxCalculator,
+  onOpenOfflineRegistry,
 }) => {
   const {
     payday,
@@ -558,6 +561,30 @@ export const YourSetupModal: React.FC<YourSetupModalProps> = ({
                   <strong className="text-[#15120F] dark:text-[#F6EFE8]">Anonymous & Keyless</strong>
                 </div>
               </div>
+
+              {onOpenOfflineRegistry && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenOfflineRegistry();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] hover:border-[#B03C09] dark:hover:border-[#FF9A52] transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Database size={15} className="text-[#B03C09] dark:text-[#FF9A52]" />
+                    <div className="text-left">
+                      <span className="block text-xs font-bold">System Limitations &amp; Offline Registry</span>
+                      <span className="block text-[10px] text-[#6B6156] dark:text-[#AC9E92] font-normal">
+                        View active guardrails and Pan limitation logs
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52]">
+                    View &rarr;
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>

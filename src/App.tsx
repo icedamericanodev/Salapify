@@ -33,13 +33,18 @@ import { HealthCheckModal } from './components/HealthCheckModal';
 import { CollaborationHub } from './components/CollaborationHub';
 import { TransactionDetailModal } from './components/TransactionDetailModal';
 import { PhilippineFeaturesModal } from './components/PhilippineFeaturesModal';
+import { PanChatModal } from './components/PanChatModal';
+import { OfflineRegistryModal } from './components/OfflineRegistryModal';
 import { TransactionType, AppNotification, Transaction } from './types';
-import { Bell, Sparkles, Send, Gift, Home, Calculator } from 'lucide-react';
+import { Bell, Sparkles, Send, Gift, Home, Calculator, Bot } from 'lucide-react';
 
 function SalapifyMain() {
   const { themeMode, isOnboarded } = useFinancial();
   const [currentTab, setCurrentTab] = useState<TabType>('home');
   const [planInitialSegment, setPlanInitialSegment] = useState<'overview' | 'budget' | 'upcoming' | 'goals' | 'decision' | 'trackers' | 'calculators' | 'academy'>('overview');
+  const [academyInitialMode, setAcademyInitialMode] = useState<'courses' | 'startup_guide'>('courses');
+  const [startupGuideInitialTab, setStartupGuideInitialTab] = useState<'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas'>('roadmap');
+  const [saasLaunchpadInitialSubTab, setSaasLaunchpadInitialSubTab] = useState<'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator'>('overview');
   const [isViewingDebtScreen, setIsViewingDebtScreen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [logInitialType, setLogInitialType] = useState<TransactionType>('expense');
@@ -63,6 +68,83 @@ function SalapifyMain() {
   const [philippineSuiteTab, setPhilippineSuiteTab] = useState<
     'remittance' | '13th_month' | 'household' | 'payday_routine' | 'freelance_tax'
   >('remittance');
+  const [isPanOpen, setIsPanOpen] = useState(false);
+  const [panInitialPrompt, setPanInitialPrompt] = useState<string | undefined>(undefined);
+  const [isOfflineRegistryOpen, setIsOfflineRegistryOpen] = useState(false);
+
+  const handleOpenPan = (prompt?: string) => {
+    setPanInitialPrompt(prompt);
+    setIsPanOpen(true);
+  };
+
+  const handlePanNavigate = (actionId: string, payload?: any) => {
+    if (actionId === 'open_safe_to_spend') {
+      setIsSafeToSpendOpen(true);
+    } else if (actionId === 'open_log_expense') {
+      handleOpenLog('expense');
+    } else if (actionId === 'open_debt') {
+      handleOpenDebt();
+    } else if (actionId === 'open_bills') {
+      setIsBillsOpen(true);
+    } else if (actionId === 'open_transfer') {
+      setIsTransferOpen(true);
+    } else if (actionId === 'open_split_bill') {
+      setIsSplitBillOpen(true);
+    } else if (actionId === 'open_13th_month') {
+      setPhilippineSuiteTab('13th_month');
+      setIsPhilippineSuiteOpen(true);
+    } else if (actionId === 'open_savings_planner') {
+      setIsSavingsPlannerOpen(true);
+    } else if (actionId === 'open_tax_calc') {
+      setIsTaxCalculatorOpen(true);
+    } else if (actionId === 'open_accounts') {
+      setIsViewingDebtScreen(false);
+      setCurrentTab('accounts');
+    } else if (actionId === 'open_ledger') {
+      setIsViewingDebtScreen(false);
+      setCurrentTab('ledger');
+    } else if (actionId === 'open_reports') {
+      setIsViewingDebtScreen(false);
+      setCurrentTab('reports');
+    } else if (actionId === 'open_academy') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('academy');
+      setAcademyInitialMode('courses');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_startup_guide') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('academy');
+      setAcademyInitialMode('startup_guide');
+      setStartupGuideInitialTab(payload?.tab || 'roadmap');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_startup_guide_saas') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('academy');
+      setAcademyInitialMode('startup_guide');
+      setStartupGuideInitialTab('saas');
+      setSaasLaunchpadInitialSubTab(payload?.subTab || 'overview');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_plan_trackers') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('trackers');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_plan_decision') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('decision');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_plan_calculators') {
+      setIsViewingDebtScreen(false);
+      setPlanInitialSegment('calculators');
+      setCurrentTab('plan');
+    } else if (actionId === 'open_settings') {
+      setIsSettingsOpen(true);
+    } else if (actionId === 'open_setup_privacy') {
+      setSetupInitialTab('privacy');
+      setIsSetupOpen(true);
+    } else if (actionId === 'open_offline_registry') {
+      setIsOfflineRegistryOpen(true);
+    }
+  };
 
   if (!isOnboarded) {
     return <OnboardingFlow />;
@@ -123,6 +205,7 @@ function SalapifyMain() {
             setPhilippineSuiteTab('remittance');
             setIsPhilippineSuiteOpen(true);
           }}
+          onOpenPan={() => handleOpenPan()}
         />
 
         {/* Tab / View Content */}
@@ -149,7 +232,6 @@ function SalapifyMain() {
                 }}
               />
 
-
               {/* 4 Quick Actions in one row */}
               <QuickActions
                 onOpenLog={() => handleOpenLog('expense')}
@@ -157,6 +239,55 @@ function SalapifyMain() {
                 onOpenBills={() => setIsBillsOpen(true)}
                 onOpenMove={() => setIsTransferOpen(true)}
               />
+
+              {/* Pan AI Copilot Quick Launcher Card */}
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#B03C09] to-[#FF9A52] text-white flex items-center justify-center shadow-xs">
+                      <Bot size={17} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                          Pan AI Copilot
+                        </h3>
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-[#16643F]/15 text-[#16643F] dark:bg-[#5FCB8E]/20 dark:text-[#5FCB8E]">
+                          OFFLINE
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+                        Instant answers on your balances, debts &amp; sweldo
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPanOpen(true)}
+                    className="text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+                  >
+                    Chat with Pan →
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                  {[
+                    'Can I afford ₱1,500?',
+                    'Who owes me?',
+                    'Which cards are due?',
+                    'Food spending this month',
+                  ].map((prompt, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleOpenPan(prompt)}
+                      className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#FFEEDF]/60 dark:bg-[#27201A] hover:bg-[#FFEEDF] dark:hover:bg-[#383029] text-[#5A5148] dark:text-[#C6B8AC] border border-[#F3DFCD] dark:border-[#383029] shrink-0 whitespace-nowrap cursor-pointer transition-colors"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Philippine Financial Suite Quick Launch Card */}
               <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] shadow-xs space-y-2.5">
@@ -274,6 +405,9 @@ function SalapifyMain() {
           ) : currentTab === 'plan' ? (
             <PlanScreen
               initialSegment={planInitialSegment}
+              initialAcademyMode={academyInitialMode}
+              initialStartupTab={startupGuideInitialTab}
+              initialSaasSubTab={saasLaunchpadInitialSubTab}
               onOpenBills={() => setIsBillsOpen(true)}
               onOpenDebt={handleOpenDebt}
               onOpenTaxCalculator={() => setIsTaxCalculatorOpen(true)}
@@ -284,6 +418,22 @@ function SalapifyMain() {
             <AccountsScreen onOpenDebt={handleOpenDebt} />
           )}
         </main>
+
+        {/* Floating Pan AI Copilot Launcher */}
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          id="floating-pan-btn"
+          onClick={() => handleOpenPan()}
+          title="Ask Pan AI Copilot"
+          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#B03C09] to-[#E05315] dark:from-[#FF9A52] dark:to-[#E06F28] text-white dark:text-[#1E0E03] shadow-lg shadow-black/20 font-bold text-xs cursor-pointer border border-white/20 transition-transform"
+        >
+          <Bot size={16} strokeWidth={2.4} />
+          <span>Ask Pan</span>
+        </motion.button>
 
         {/* Fixed TabBar */}
         <TabBar
@@ -360,6 +510,7 @@ function SalapifyMain() {
           }}
           onOpenReminders={() => setIsRemindersOpen(true)}
           onOpenCollaboration={() => setIsCollaborationOpen(true)}
+          onOpenOfflineRegistry={() => setIsOfflineRegistryOpen(true)}
         />
 
         {/* Phase 5 Shared Finances & Collaboration Hub */}
@@ -383,6 +534,7 @@ function SalapifyMain() {
           onClose={() => setIsSetupOpen(false)}
           initialTab={setupInitialTab}
           onOpenTaxCalculator={() => setIsTaxCalculatorOpen(true)}
+          onOpenOfflineRegistry={() => setIsOfflineRegistryOpen(true)}
         />
 
         {/* Dedicated Fast Transfer Modal */}
@@ -424,6 +576,24 @@ function SalapifyMain() {
           isOpen={isPhilippineSuiteOpen}
           onClose={() => setIsPhilippineSuiteOpen(false)}
           defaultTab={philippineSuiteTab}
+        />
+
+        {/* Pan AI Copilot Chatbot Modal */}
+        <PanChatModal
+          isOpen={isPanOpen}
+          onClose={() => {
+            setIsPanOpen(false);
+            setPanInitialPrompt(undefined);
+          }}
+          onNavigateTo={handlePanNavigate}
+          initialQuery={panInitialPrompt}
+        />
+
+        {/* System Limitations & Offline Registry Modal */}
+        <OfflineRegistryModal
+          isOpen={isOfflineRegistryOpen}
+          onClose={() => setIsOfflineRegistryOpen(false)}
+          onNavigateAction={handlePanNavigate}
         />
       </div>
     </div>

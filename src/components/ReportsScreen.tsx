@@ -1070,7 +1070,7 @@ export const ReportsScreen: React.FC = () => {
                 <Info size={16} className="text-[#B03C09] dark:text-[#FF9A52] shrink-0" />
                 <div>
                   <span className="font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                    Debt-Service Ratio (DSR): {Math.round(debtServiceRatio)}%
+                    Monthly Debt Share (DSR): {Math.round(debtServiceRatio)}%
                   </span>
                   <div className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
                     BSP guidelines recommend keeping total debt servicing under 35% of income.

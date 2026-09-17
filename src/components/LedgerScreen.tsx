@@ -19,6 +19,13 @@ import {
   ShieldCheck,
   Layers,
   RotateCcw,
+  CheckCircle2,
+  AlertTriangle,
+  AlertOctagon,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso, formatDateLabel } from '../utils/format';
@@ -33,6 +40,7 @@ export const LedgerScreen: React.FC = () => {
     activeProfile,
     setActiveProfile,
     safeToSpend,
+    healthCheckInsights,
   } = useFinancial();
 
   const [activeSegment, setActiveSegment] = useState<'entries' | 'insights'>('entries');
@@ -41,6 +49,23 @@ export const LedgerScreen: React.FC = () => {
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+  const [insightFilterType, setInsightFilterType] = useState<'all' | 'critical' | 'warning' | 'optimal'>('all');
+  const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
+  const [appliedCorrections, setAppliedCorrections] = useState<Record<string, boolean>>({});
+
+  const filteredInsights = useMemo(() => {
+    if (insightFilterType === 'all') return healthCheckInsights;
+    return healthCheckInsights.filter((i) => i.severity === insightFilterType);
+  }, [healthCheckInsights, insightFilterType]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedInsightId((prev) => (prev === id ? null : id));
+  };
+
+  const handleApplyCorrection = (id: string) => {
+    setAppliedCorrections((prev) => ({ ...prev, [id]: true }));
+  };
 
   // Scoped transactions based on profile, status, account, and search query
   const scopedTransactions = useMemo(() => {
@@ -771,87 +796,335 @@ export const LedgerScreen: React.FC = () => {
           </div>
         </>
       ) : (
-        /* Insights Segment */
+        /* Insights Segment - Comprehensive Health Check & Audits */
         <div className="space-y-6">
-          {/* Chart 1: Spending by Category this Cycle */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC] px-1">
-              1. Spending by Category (This Cycle)
-            </h2>
-            <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
-              {categorySpending.slice(0, 5).map(([category, amount]) => {
-                const percent = Math.round((amount / totalOut) * 100) || 0;
-                const barWidth = (amount / maxCategorySpend) * 100;
+          {/* Visual Health Summary Banner */}
+          <div className="bg-gradient-to-br from-[#FFEEDF] to-white dark:from-[#27201A] dark:to-[#1E1813] border border-[#F3DFCD] dark:border-[#383029] rounded-3xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] flex items-center justify-center shrink-0 shadow-sm font-black text-lg">
+                  {Math.round(
+                    (healthCheckInsights.filter((i) => i.severity === 'optimal').length /
+                      (healthCheckInsights.length || 1)) *
+                      100
+                  )}
+                  %
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
+                    Visual Money Health Dashboard
+                  </h2>
+                  <p className="text-xs text-[#7A6E63] dark:text-[#A89A8D]">
+                    {healthCheckInsights.filter((i) => i.severity === 'optimal').length} of {healthCheckInsights.length} financial indicators are in the healthy green zone.
+                  </p>
+                </div>
+              </div>
 
-                return (
-                  <div key={category} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-xs font-semibold gap-2">
-                      <span className="text-[#15120F] dark:text-[#F6EFE8] truncate min-w-0">{category}</span>
-                      <span className="text-[#5A5148] dark:text-[#C6B8AC] shrink-0 whitespace-nowrap">
-                        {formatPeso(amount)} ({percent}%)
-                      </span>
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setInsightFilterType('all')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    insightFilterType === 'all'
+                      ? 'bg-[#15120F] dark:bg-[#F6EFE8] text-white dark:text-[#15120F]'
+                      : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D]'
+                  }`}
+                >
+                  All ({healthCheckInsights.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInsightFilterType('critical')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    insightFilterType === 'critical'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D]'
+                  }`}
+                >
+                  Critical ({healthCheckInsights.filter(i => i.severity === 'critical').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInsightFilterType('warning')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    insightFilterType === 'warning'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D]'
+                  }`}
+                >
+                  Watchlist ({healthCheckInsights.filter(i => i.severity === 'warning').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInsightFilterType('optimal')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                    insightFilterType === 'optimal'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D]'
+                  }`}
+                >
+                  Optimal ({healthCheckInsights.filter(i => i.severity === 'optimal').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Progress Breakdown Bar */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[11px] font-bold text-[#7A6E63] dark:text-[#A89A8D]">
+                <span>Status Breakdown</span>
+                <span>
+                  {healthCheckInsights.filter((i) => i.severity === 'optimal').length} Optimal •{' '}
+                  {healthCheckInsights.filter((i) => i.severity === 'warning').length} Watchlist •{' '}
+                  {healthCheckInsights.filter((i) => i.severity === 'critical').length} Critical
+                </span>
+              </div>
+              <div className="w-full h-3 rounded-full bg-black/5 dark:bg-white/5 flex overflow-hidden p-0.5 gap-0.5">
+                <div
+                  className="bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(healthCheckInsights.filter((i) => i.severity === 'optimal').length / healthCheckInsights.length) * 100}%`,
+                  }}
+                  title="Optimal"
+                />
+                <div
+                  className="bg-amber-500 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(healthCheckInsights.filter((i) => i.severity === 'warning').length / healthCheckInsights.length) * 100}%`,
+                  }}
+                  title="Watchlist"
+                />
+                <div
+                  className="bg-rose-500 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(healthCheckInsights.filter((i) => i.severity === 'critical').length / healthCheckInsights.length) * 100}%`,
+                  }}
+                  title="Critical"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnostic Insights Cards Feed */}
+          <div className="space-y-3">
+            {filteredInsights.map((insight) => {
+              const isExpanded = expandedInsightId === insight.id;
+              const isApplied = appliedCorrections[insight.id];
+
+              const statusIcon =
+                insight.severity === 'optimal' ? (
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                ) : insight.severity === 'warning' ? (
+                  <AlertTriangle size={18} className="text-amber-500 shrink-0" />
+                ) : (
+                  <AlertOctagon size={18} className="text-rose-500 shrink-0" />
+                );
+
+              const statusBadgeColor =
+                insight.severity === 'optimal'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  : insight.severity === 'warning'
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+
+              return (
+                <div
+                  key={insight.id}
+                  className="bg-white dark:bg-[#27201A] rounded-2xl border border-[#F3DFCD] dark:border-[#383029] shadow-xs overflow-hidden transition-all duration-200"
+                >
+                  {/* Accordion Trigger Header */}
+                  <div
+                    onClick={() => toggleExpand(insight.id)}
+                    className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-black/2 dark:hover:bg-white/2"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="mt-0.5">{statusIcon}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs sm:text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                            {insight.title}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeColor}`}>
+                            {insight.severity.toUpperCase()}
+                          </span>
+                          <span className="text-[11px] font-bold text-[#7A6E63] dark:text-[#A89A8D]">
+                            {insight.scoreText}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#7A6E63] dark:text-[#A89A8D] mt-0.5 line-clamp-1">
+                          {insight.whatHappened}
+                        </p>
+                      </div>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden">
-                      <div
-                        className="h-full bg-[#B03C09] dark:bg-[#FF9A52] rounded-full transition-all duration-500"
-                        style={{ width: `${barWidth}%` }}
-                      />
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-medium text-[#7A6E63] dark:text-[#A89A8D]">
+                        Based on records
+                      </span>
+                      <button type="button" className="p-1 text-[#7A6E63] dark:text-[#A89A8D]">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-              <p className="text-xs font-medium text-[#5E2C08] dark:text-[#FF9A52] pt-2 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60">
-                Food & Dining takes {Math.round(((categorySpending[0]?.[1] || 0) / (totalOut || 1)) * 100)}% of your total spend this sweldo cycle.
-              </p>
-            </div>
+
+                  {/* Expanded Details Body */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-1 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60 space-y-3.5 text-xs bg-[#FFF9F3]/50 dark:bg-[#1E1915]/50">
+                      {/* What Happened */}
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block mb-0.5">
+                          What Happened
+                        </span>
+                        <p className="text-[#15120F] dark:text-[#F6EFE8] leading-relaxed">
+                          {insight.whatHappened}
+                        </p>
+                      </div>
+
+                      {/* Why It Was Detected */}
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block mb-0.5">
+                          Why Detected
+                        </span>
+                        <p className="text-[#5A5148] dark:text-[#C6B8AC] leading-relaxed">
+                          {insight.whyDetected}
+                        </p>
+                      </div>
+
+                      {/* Transactions Used */}
+                      {insight.usedTransactions && insight.usedTransactions.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block mb-1">
+                            Audited Transactions & Records ({insight.usedTransactions.length})
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {insight.usedTransactions.map((tx) => (
+                              <span
+                                key={tx.id || tx.name}
+                                className="px-2 py-0.5 bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-lg text-[10px] text-[#5A5148] dark:text-[#C6B8AC] font-mono"
+                              >
+                                {tx.name} (₱{tx.amount})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Assumptions */}
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6E63] dark:text-[#A89A8D] block mb-0.5">
+                          Mathematical Assumptions
+                        </span>
+                        <p className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D] italic">
+                          {insight.assumptions}
+                        </p>
+                      </div>
+
+                      {/* Action & Correction Box */}
+                      <div className="p-3 bg-white dark:bg-[#27201A] rounded-xl border border-[#F3DFCD] dark:border-[#383029] space-y-2">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#B03C09] dark:text-[#FF9A52] block mb-0.5">
+                            Recommended Action
+                          </span>
+                          <p className="text-xs font-semibold text-[#15120F] dark:text-[#F6EFE8]">
+                            {insight.recommendedAction}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60 flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-[#7A6E63] dark:text-[#A89A8D]">
+                            Option: {insight.correctionActionLabel || 'Review & Adjust'}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCorrection(insight.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              isApplied
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#B03C09] text-white hover:bg-[#8F3006]'
+                            }`}
+                          >
+                            {isApplied ? (
+                              <>
+                                <Check size={12} />
+                                <span>Acknowledged</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Apply Correction</span>
+                                <ChevronRight size={13} />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Chart 2: In vs Out */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC] px-1">
-              2. Cash Flow (In vs Out)
-            </h2>
-            <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="flex flex-col p-3 rounded-xl bg-[#16643F]/10 dark:bg-[#5FCB8E]/10 min-w-0">
-                  <span className="text-xs font-semibold text-[#16643F] dark:text-[#5FCB8E] truncate">
-                    Total Inflow
-                  </span>
-                  <span className="text-base sm:text-lg font-extrabold text-[#16643F] dark:text-[#5FCB8E] truncate tabular-nums">
-                    {formatPeso(totalIn)}
-                  </span>
-                </div>
-                <div className="flex flex-col p-3 rounded-xl bg-[#B03C09]/10 dark:bg-[#FF9A52]/10 min-w-0">
-                  <span className="text-xs font-semibold text-[#B03C09] dark:text-[#FF9A52] truncate">
-                    Total Outflow
-                  </span>
-                  <span className="text-base sm:text-lg font-extrabold text-[#B03C09] dark:text-[#FF9A52] truncate tabular-nums">
-                    {formatPeso(totalOut)}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-[#6B6156] dark:text-[#AC9E92] break-words">
-                You have retained {formatPeso(Math.max(0, totalIn - totalOut))} ({Math.round(((totalIn - totalOut) / (totalIn || 1)) * 100)}%) of all incoming cash this cycle.
-              </p>
-            </div>
-          </div>
+          {/* Supplementary Charts Section */}
+          <div className="pt-4 border-t border-[#F3DFCD] dark:border-[#383029] space-y-6">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC] px-1">
+              Supplementary Cash Flow & Category Breakdowns
+            </h3>
 
-          {/* Chart 3: Safe-to-Spend Trajectory */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC] px-1">
-              3. Safe-to-Spend Runway
-            </h2>
-            <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] text-[#B03C09] dark:text-[#FF9A52] shrink-0">
-                <TrendingUp size={24} />
+            {/* Chart 1: Spending by Category this Cycle */}
+            <div className="flex flex-col gap-2">
+              <h4 className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] px-1">
+                Spending by Category (This Cycle)
+              </h4>
+              <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
+                {categorySpending.slice(0, 5).map(([category, amount]) => {
+                  const percent = Math.round((amount / totalOut) * 100) || 0;
+                  const barWidth = (amount / maxCategorySpend) * 100;
+
+                  return (
+                    <div key={category} className="flex flex-col gap-1">
+                      <div className="flex justify-between text-xs font-semibold gap-2">
+                        <span className="text-[#15120F] dark:text-[#F6EFE8] truncate min-w-0">{category}</span>
+                        <span className="text-[#5A5148] dark:text-[#C6B8AC] shrink-0 whitespace-nowrap">
+                          {formatPeso(amount)} ({percent}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-[#FFEEDF] dark:bg-[#14100D] overflow-hidden">
+                        <div
+                          className="h-full bg-[#B03C09] dark:bg-[#FF9A52] rounded-full transition-all duration-500"
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
-                  {formatPeso(safeToSpend)} liquid buffer
-                </h3>
-                <p className="text-xs text-[#6B6156] dark:text-[#AC9E92] break-words">
-                  Keeps you on track with safe limits until next payday sweldo credit.
-                </p>
+            </div>
+
+            {/* Chart 2: In vs Out */}
+            <div className="flex flex-col gap-2">
+              <h4 className="text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC] px-1">
+                Cash Flow (In vs Out)
+              </h4>
+              <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs space-y-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="flex flex-col p-3 rounded-xl bg-[#16643F]/10 dark:bg-[#5FCB8E]/10 min-w-0">
+                    <span className="text-xs font-semibold text-[#16643F] dark:text-[#5FCB8E] truncate">
+                      Total Inflow
+                    </span>
+                    <span className="text-base sm:text-lg font-extrabold text-[#16643F] dark:text-[#5FCB8E] truncate tabular-nums">
+                      {formatPeso(totalIn)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col p-3 rounded-xl bg-[#B03C09]/10 dark:bg-[#FF9A52]/10 min-w-0">
+                    <span className="text-xs font-semibold text-[#B03C09] dark:text-[#FF9A52] truncate">
+                      Total Outflow
+                    </span>
+                    <span className="text-base sm:text-lg font-extrabold text-[#B03C09] dark:text-[#FF9A52] truncate tabular-nums">
+                      {formatPeso(totalOut)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

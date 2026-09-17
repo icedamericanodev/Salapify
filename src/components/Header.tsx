@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Settings, ShieldCheck, Bell, Users, Sparkles, CircleDollarSign } from 'lucide-react';
+import { Sun, Moon, Settings, ShieldCheck, Bell, Users, Sparkles, CircleDollarSign, Bot } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenReminders: () => void;
   onOpenCollaboration?: () => void;
   onOpenPhilippineSuite?: () => void;
+  onOpenPan?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenReminders,
   onOpenCollaboration,
   onOpenPhilippineSuite,
+  onOpenPan,
 }) => {
   const { themeMode, toggleTheme, unreadNotificationsCount, members } = useFinancial();
   const isDark = themeMode === 'gabi';
@@ -46,6 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+
+
         {/* Philippine Local Tools Suite */}
         {onOpenPhilippineSuite && (
           <button

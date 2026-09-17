@@ -14,6 +14,7 @@ import {
   Bell,
   Clock,
   Users,
+  Database,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { STARTER_CATEGORY_PACKS } from '../data/categoryPacks';
@@ -27,6 +28,7 @@ interface SettingsModalProps {
   onOpenYourSetup: (tab?: 'payday' | 'categories' | 'recurring' | 'emergency' | 'privacy') => void;
   onOpenReminders?: () => void;
   onOpenCollaboration?: () => void;
+  onOpenOfflineRegistry?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -36,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenYourSetup,
   onOpenReminders,
   onOpenCollaboration,
+  onOpenOfflineRegistry,
 }) => {
   const {
     themeMode,
@@ -414,17 +417,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </div>
 
-          {/* 6. Privacy Receipt */}
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
-            <ShieldCheck size={18} className="text-[#16643F] dark:text-[#5FCB8E] shrink-0 mt-0.5" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-[#16643F] dark:text-[#5FCB8E]">
-                Privacy Receipt & Offline Guarantee
-              </span>
-              <p className="text-[11px] text-[#16643F]/90 dark:text-[#5FCB8E]/90 mt-0.5">
-                No user account. No cloud database. No analytics tracking. All financial records and debt balances are stored exclusively on this device.
-              </p>
+          {/* 6. Privacy Receipt & Offline Registry */}
+          <div className="space-y-2">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
+              <ShieldCheck size={18} className="text-[#16643F] dark:text-[#5FCB8E] shrink-0 mt-0.5" />
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-[#16643F] dark:text-[#5FCB8E]">
+                  Privacy Receipt &amp; Offline Guarantee
+                </span>
+                <p className="text-[11px] text-[#16643F]/90 dark:text-[#5FCB8E]/90 mt-0.5">
+                  No user account. No cloud database. No analytics tracking. All financial records and debt balances are stored exclusively on this device.
+                </p>
+              </div>
             </div>
+
+            {onOpenOfflineRegistry && (
+              <button
+                type="button"
+                id="btn-settings-offline-registry"
+                onClick={() => {
+                  onClose();
+                  onOpenOfflineRegistry();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl border border-[#F3DFCD] dark:border-[#383029] bg-white dark:bg-[#27201A] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] hover:border-[#B03C09] dark:hover:border-[#FF9A52] transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Database size={15} className="text-[#B03C09] dark:text-[#FF9A52]" />
+                  <div className="text-left">
+                    <span className="block text-xs font-bold">System Limitations &amp; Offline Registry</span>
+                    <span className="block text-[10px] text-[#6B6156] dark:text-[#AC9E92] font-normal">
+                      View architectural guardrails and logged inquiries
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52]">
+                  View &rarr;
+                </span>
+              </button>
+            )}
           </div>
 
           {/* 7. Test Onboarding & Reset to Sample Data */}

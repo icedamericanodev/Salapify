@@ -35,6 +35,9 @@ import { AcademyView } from './AcademyView';
 
 interface PlanScreenProps {
   initialSegment?: 'overview' | 'budget' | 'upcoming' | 'goals' | 'decision' | 'trackers' | 'calculators' | 'academy';
+  initialAcademyMode?: 'courses' | 'startup_guide';
+  initialStartupTab?: 'entities' | 'roadmap' | 'checklist' | 'experts' | 'saas';
+  initialSaasSubTab?: 'overview' | 'stores' | 'billing' | 'taxation' | 'survival' | 'calculator';
   onOpenBills?: () => void;
   onOpenDebt?: () => void;
   onOpenTaxCalculator?: () => void;
@@ -44,6 +47,9 @@ interface PlanScreenProps {
 
 export const PlanScreen: React.FC<PlanScreenProps> = ({
   initialSegment = 'budget',
+  initialAcademyMode = 'courses',
+  initialStartupTab = 'roadmap',
+  initialSaasSubTab = 'overview',
   onOpenBills,
   onOpenDebt,
   onOpenTaxCalculator,
@@ -654,10 +660,10 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
                 <Activity size={14} className="text-[#B03C09] dark:text-[#FF9A52] shrink-0" />
               </div>
               <div className="text-sm font-black text-[#15120F] dark:text-[#F6EFE8] truncate">
-                {healthCheckInsights.filter((i) => i.severity === 'optimal').length}/10 Indicators
+                {healthCheckInsights.filter((i) => i.severity === 'optimal').length}/{healthCheckInsights.length} Indicators
               </div>
               <span className="text-[10px] text-[#B03C09] dark:text-[#FF9A52] font-semibold mt-1 truncate">
-                View 10 audits &rarr;
+                View {healthCheckInsights.length} audits &rarr;
               </span>
             </button>
           </div>
@@ -1141,7 +1147,11 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
       
       {/* 7. ACADEMY SEGMENT */}
       {activeSegment === 'academy' && (
-        <AcademyView />
+        <AcademyView
+          initialMode={initialAcademyMode}
+          initialStartupTab={initialStartupTab}
+          initialSaasSubTab={initialSaasSubTab}
+        />
       )}
       
       {activeSegment === 'calculators' && (

@@ -244,7 +244,9 @@ export type HealthCheckMetric =
   | 'reconciliation_status'
   | 'savings_consistency'
   | 'future_commitments'
-  | 'forecast_reliability';
+  | 'forecast_reliability'
+  | 'payday_crunch'
+  | 'yield_optimization';
 
 export type HealthSeverity = 'optimal' | 'warning' | 'critical' | 'neutral';
 
