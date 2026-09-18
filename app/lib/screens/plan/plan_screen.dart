@@ -11,6 +11,7 @@ import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/tax/business_tax_sheet.dart';
 import '../../features/tax/tax_calculator_sheet.dart';
 import '../../state/financial_state.dart';
+import 'academy_segment.dart';
 import 'plan_segments.dart';
 
 /// Plan, the prototype's fourth tab, from src/components/PlanScreen.tsx.

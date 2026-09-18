@@ -17,7 +17,7 @@ The prototype's tab order, finished one tab at a time including its modals.
 | 1b | Home's sheets | `SafeToSpendModal`, `AddDebtModal`, `BankAmortizationTable`, `TaxCalculatorModal`, `BusinessTaxSimulatorModal`, the category manager | Built and reachable from Home |
 | 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Done. List, detail and the Log write path, with quick parse and a date picker |
 | 3 | Reports | `ReportsScreen` | Position, Performance and Cash flow built. Reconciliation, the one that writes, is its own step |
-| 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | All eight segments built. The Academy's three long-form startup guides get their own pass |
+| 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | All eight segments built, Academy carrying the real 32-course curriculum. The three long-form startup guides get their own pass |
 | 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
 
 Screens that hang off several tabs (Safe to Spend, Health Check, Pan chat,
@@ -339,12 +339,47 @@ figures are now shown, side by side, and nothing stored changed.
    prints ₱3,288 beside a list that comes to ₱5,236.17 a month once an annual
    plan is divided by twelve. Computed here instead.
 
-#### Deferred, and said on screen
+#### Salapify Academy
 
-The Academy's three long-form guides (Philippine business registration, the
-SaaS and app store guide, the digital product checklist) are about 3,200 lines
-of written guidance between them. The course library is built; the guides get
-their own pass rather than being rushed in beside seven other segments.
+| Academy |
+|---|
+| ![Academy](screens/plan-academy.png) |
+
+**Two things were wrong here on the first pass, and the founder caught both
+from a screenshot of their own prototype.**
+
+It was renamed to "Learn". That was not mine to do: "Salapify Academy" is the
+product's own name for this, it is on the screen in the prototype, and a
+rename nobody asked for is a change to the brand dressed up as tidying.
+
+Worse, it shipped with **six courses I wrote myself**, because I never looked
+in `src/data/` where the prototype's **thirty-two** actually live. That is a
+straight breach of the rule this whole migration runs on: `src/` is the source
+of truth, and content gets ported, not invented.
+
+It now carries the real curriculum: **32 courses, 96 lesson sections, 24
+knowledge checks, 9 categories**, extracted from `src/data/academyData.ts` by
+`app/tool/extract_academy.ts` and generated into Dart by
+`app/tool/gen_academy_dart.py`. Nothing was retyped, for the same reason the
+fast-log keyword map was not: a hand-copied list that long is a list with a
+typo in it.
+
+`test/data/academy_integrity_test.dart` now asserts the counts, that no course
+is a stub, that every quiz points at an option that exists, and that every icon
+name resolves to a real glyph. Proved by dropping a course and watching it
+report `Expected: <32> / Actual: <31>`.
+
+The screen matches the prototype's: the progress track, the educational-only
+notice, the startup guide roadmap card, the search box, and the nine category
+chips. The disclaimer is deliberately NOT behind an info dot, which is the
+exception the dot rule names: somebody who takes a lesson on investing for
+licensed advice has drawn a wrong conclusion, and a wrong conclusion never goes
+one tap away.
+
+Still to come: the three long-form guides behind that roadmap card (Philippine
+business registration, the SaaS and app store guide, the digital product
+checklist), about 3,200 lines of written guidance between them. The card says
+so rather than offering a button that opens nothing.
 
 ### Sheets
 

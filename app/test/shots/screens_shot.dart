@@ -252,6 +252,7 @@ void main() {
         (label: 'Bills and payables', slug: 'bills'),
         (label: 'Goals', slug: 'goals'),
         (label: 'Trackers', slug: 'trackers'),
+        (label: 'Academy', slug: 'academy'),
       ]) {
     testWidgets('plan ${seg.slug} renders', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);

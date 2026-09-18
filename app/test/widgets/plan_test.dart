@@ -76,7 +76,7 @@ void main() {
       'Decisions': 'Decisions',
       'Trackers': 'Trackers',
       'Calculators': 'Calculators',
-      'Learn': 'Learn',
+      'Academy': 'Salapify Academy',
     };
 
     for (final MapEntry<String, String> e in tiles.entries) {
@@ -368,30 +368,156 @@ void main() {
     });
   });
 
-  group('learn', () {
+  group('academy', () {
+    testWidgets('it is called Academy, and the progress says 0 of 32', (
+      WidgetTester tester,
+    ) async {
+      // Both halves of a founder finding: an earlier pass renamed this to
+      // "Learn" and shipped six invented courses instead of the prototype's
+      // thirty-two. The name is product identity and the curriculum is real
+      // content, and neither was mine to make up.
+      await openSegment(tester, 'Academy');
+
+      expect(find.text('Salapify Academy'), findsOneWidget);
+      expect(find.text('Learn'), findsNothing);
+      expect(find.text('0 / 32 done'), findsOneWidget);
+    });
+
+    testWidgets('a real lesson is listed, with its own category and length', (
+      WidgetTester tester,
+    ) async {
+      await openSegment(tester, 'Academy');
+
+      expect(find.text('The Psychology of Money'), findsOneWidget);
+      expect(find.text('Psychology & Mindset · 5 min'), findsWidgets);
+    });
+
+    testWidgets('searching finds a lesson by what it is about', (
+      WidgetTester tester,
+    ) async {
+      await openSegment(tester, 'Academy');
+
+      // "MP2" is the prototype's own example in the search hint. Somebody
+      // typing it wants the lesson that discusses it, which is not one
+      // titled MP2, so the search reads the description too.
+      await typeIn(tester, 'academy-search', 'mp2');
+      expect(find.text('The Psychology of Money'), findsNothing);
+      expect(
+        find.byType(InkWell),
+        findsWidgets,
+        reason: 'searching MP2 matched no lesson at all',
+      );
+    });
+
+    testWidgets('a search that matches nothing says so', (
+      WidgetTester tester,
+    ) async {
+      await openSegment(tester, 'Academy');
+      await typeIn(tester, 'academy-search', 'zzzzzz');
+      expect(find.textContaining('No lesson matches that'), findsOneWidget);
+    });
+
     testWidgets('the category filter narrows the list', (
       WidgetTester tester,
     ) async {
-      await openSegment(tester, 'Learn');
+      await openSegment(tester, 'Academy');
+      expect(find.text('The Psychology of Money'), findsOneWidget);
 
-      expect(find.textContaining('Build your first emergency fund'), findsOne);
-
-      await tapAndSettle(tester, find.text('Debt'));
+      await tapAndSettle(tester, find.text('Credit & Debt'));
       expect(
-        find.textContaining('Build your first emergency fund'),
+        find.text('The Psychology of Money'),
         findsNothing,
+        reason: 'the category chip did not filter',
       );
-      expect(find.textContaining('Credit cards, instalments'), findsOne);
     });
 
-    testWidgets('the missing guides explain themselves', (
+    testWidgets('opening a lesson shows its real body and its quiz', (
       WidgetTester tester,
     ) async {
-      await openSegment(tester, 'Learn');
+      await openSegment(tester, 'Academy');
+      await tapAndSettle(tester, find.text('The Psychology of Money'));
+
+      // Prose from the prototype's own lesson, not a summary somebody wrote.
+      expect(find.text('Your Money Script'), findsOneWidget);
+      expect(find.textContaining('formed by age 7'), findsOneWidget);
+      expect(find.text('WORTH REMEMBERING'), findsOneWidget);
+    });
+
+    testWidgets('answering the quiz explains itself even when wrong', (
+      WidgetTester tester,
+    ) async {
+      // Zero-Based Budgeting rather than the first lesson, because the first
+      // lesson has no knowledge check. Eight of the thirty-two do not, and
+      // writing the test against one of those would have proved nothing while
+      // looking like it passed.
+      await openSegment(tester, 'Academy');
+      await tapAndSettle(tester, find.text('Zero-Based Budgeting'));
+
+      await tester.scrollUntilVisible(
+        find.text('KNOWLEDGE CHECK'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
       expect(
-        find.text('The business startup guides come next'),
+        find.text('What is the core principle of Zero-Based Budgeting?'),
         findsOneWidget,
       );
+
+      // Deliberately the WRONG option. A quiz that only says "wrong" teaches
+      // nothing, so the explanation has to appear either way.
+      await tapAndSettle(
+        tester,
+        find.text('You must spend zero pesos on entertainment and hobbies.'),
+      );
+
+      expect(find.text('Not quite.'), findsOneWidget);
+      expect(
+        find.textContaining('giving every single peso a designated job'),
+        findsOneWidget,
+        reason:
+            'a wrong answer got no explanation, which is the one thing a '
+            'knowledge check is for',
+      );
+    });
+
+    testWidgets('marking a lesson done moves the progress figure', (
+      WidgetTester tester,
+    ) async {
+      await openSegment(tester, 'Academy');
+      await tapAndSettle(tester, find.text('The Psychology of Money'));
+      await tapAndSettle(tester, find.text('Mark as done'));
+      await tapAndSettle(tester, find.text('All lessons'));
+
+      // The directional companion: it is not enough that the header is still
+      // valid, it has to have MOVED.
+      expect(find.text('1 / 32 done'), findsOneWidget);
+      expect(find.text('0 / 32 done'), findsNothing);
+    });
+
+    testWidgets('the startup guide is named rather than being a dead button', (
+      WidgetTester tester,
+    ) async {
+      await openSegment(tester, 'Academy');
+      expect(
+        find.text('Building a business or startup in the Philippines?'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Being ported next'),
+        findsOneWidget,
+        reason: 'a button that opens nothing is worse than a line saying when',
+      );
+    });
+
+    testWidgets('the educational-only notice is on the screen, not behind a '
+        'dot', (WidgetTester tester) async {
+      await openSegment(tester, 'Academy');
+
+      // The exception to the dot rule. Somebody who takes a lesson on
+      // investing for licensed advice has drawn a wrong conclusion, and a
+      // wrong conclusion never goes one tap away.
+      expect(find.text('Educational only'), findsOneWidget);
     });
   });
 
@@ -411,7 +537,7 @@ void main() {
       'Decisions',
       'Trackers',
       'Calculators',
-      'Learn',
+      'Academy',
     ]) {
       await openPlan(tester);
       expect(tester.takeException(), isNull, reason: 'the hub overflowed');

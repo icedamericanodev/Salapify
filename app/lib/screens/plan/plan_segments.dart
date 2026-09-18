@@ -42,7 +42,7 @@ enum PlanSegment {
     PlanSegment.decisions => 'Decisions',
     PlanSegment.trackers => 'Trackers',
     PlanSegment.calculators => 'Calculators',
-    PlanSegment.academy => 'Learn',
+    PlanSegment.academy => 'Academy',
   };
 
   String get kicker => switch (this) {
@@ -53,7 +53,7 @@ enum PlanSegment {
     PlanSegment.decisions => 'Before you spend',
     PlanSegment.trackers => 'Habits and subscriptions',
     PlanSegment.calculators => 'Tax, loans, pricing',
-    PlanSegment.academy => 'Short money lessons',
+    PlanSegment.academy => '32 lessons, PH specific',
   };
 
   IconData get icon => switch (this) {
@@ -850,142 +850,6 @@ class CalculatorsSegment extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
         ],
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------- academy ---
-
-class AcademySegment extends StatefulWidget {
-  const AcademySegment({super.key, required this.palette});
-
-  final Palette palette;
-
-  @override
-  State<AcademySegment> createState() => _AcademySegmentState();
-}
-
-class _AcademySegmentState extends State<AcademySegment> {
-  String _category = 'All';
-
-  @override
-  Widget build(BuildContext context) {
-    final Palette p = widget.palette;
-    const List<CourseItem> all = SeedData.courses;
-
-    // Derived from the courses rather than typed out, so adding a course with
-    // a new category cannot leave a filter nobody can reach.
-    final List<String> categories = <String>[
-      'All',
-      ...<String>{for (final CourseItem c in all) c.category},
-    ];
-
-    final List<CourseItem> shown = _category == 'All'
-        ? all
-        : all.where((CourseItem c) => c.category == _category).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Wrap(
-          spacing: Spacing.xs,
-          runSpacing: Spacing.xs,
-          children: <Widget>[
-            for (final String c in categories)
-              Semantics(
-                selected: c == _category,
-                button: true,
-                child: InkWell(
-                  onTap: () => setState(() => _category = c),
-                  borderRadius: BorderRadius.circular(Radii.pill),
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                    decoration: BoxDecoration(
-                      color: c == _category ? p.accent : p.card,
-                      borderRadius: BorderRadius.circular(Radii.pill),
-                      border: Border.all(
-                        color: c == _category ? p.accent : p.border,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          c,
-                          style: AppType.button(
-                            p,
-                            color: c == _category
-                                ? p.onAccent
-                                : p.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: Spacing.md),
-        for (final CourseItem c in shown) ...<Widget>[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(Spacing.md),
-            decoration: BoxDecoration(
-              color: p.surface,
-              borderRadius: BorderRadius.circular(Radii.card),
-              border: Border.all(color: p.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(child: Text(c.title, style: AppType.rowTitle(p))),
-                    const SizedBox(width: Spacing.sm),
-                    Text('${c.minutes} min', style: AppType.caption(p)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(c.summary, style: AppType.body(p)),
-              ],
-            ),
-          ),
-          const SizedBox(height: Spacing.sm),
-        ],
-        const SizedBox(height: Spacing.sm),
-        // The prototype's Academy also carries a Philippine business startup
-        // guide and a SaaS guide, together about three thousand lines of
-        // long-form content. Naming them is honest; pretending they ported in
-        // this batch would not be.
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(Spacing.md),
-          decoration: BoxDecoration(
-            color: p.surfaceAlt,
-            borderRadius: BorderRadius.circular(Radii.control),
-            border: Border.all(color: p.border),
-          ),
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.menu_book_outlined, size: 16, color: p.textMuted),
-              const SizedBox(width: Spacing.xs),
-              Expanded(
-                child: Text(
-                  'The business startup guides come next',
-                  style: AppType.label(p),
-                ),
-              ),
-              InfoDot(
-                color: p.textMuted,
-                semanticLabel: 'What the startup guides will cover',
-                onTap: () => InfoSheet.show(context, p, InfoTopic.academy),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

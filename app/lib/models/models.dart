@@ -446,26 +446,3 @@ class HabitItem {
   final bool doneToday;
   final bool isDaily;
 }
-
-/// One lesson in the Academy course library.
-class CourseItem {
-  const CourseItem({
-    required this.id,
-    required this.title,
-    required this.summary,
-    required this.category,
-    required this.minutes,
-    required this.icon,
-  });
-
-  final String id;
-  final String title;
-  final String summary;
-  final String category;
-  final int minutes;
-
-  /// A MEANING, not a glyph. Salapify's own icons resolve through one place so
-  /// restyling every icon is one edit, and emoji stay reserved for the user's
-  /// own data.
-  final String icon;
-}

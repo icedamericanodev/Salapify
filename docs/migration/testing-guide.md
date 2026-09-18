@@ -473,6 +473,73 @@ want it sooner.
 
 ---
 
+## 9. Plan, the fourth tab
+
+**Reach it:** the **Plan** icon in the bottom bar. It opens on a hub of seven
+tiles, each with a live figure. Tap any tile to go in, the arrow at the top
+left to come back.
+
+| On the hub | Expect |
+|---|---|
+| Left to spend this month | **₱25,425.25**, with "₱16,574.75 of ₱42,000.00 used" |
+| Budgets tile | **1 over**, in orange |
+| Bills and payables tile | ₱5,529 |
+| Goals tile | 1 of 3 done |
+
+### Budgets
+
+**Debt & Loan Servicing is over**, at the top, outlined, saying
+**"₱450.00 over limit"**. Trouble sorts to the top so you do not read all
+seven to find the one that needs you.
+
+**Bills & Utilities reads ₱2,840, not ₱5,680.** That is your decision working:
+the duplicate Meralco charge you marked excluded is not eating the budget.
+
+Tap any row to change its limit. Try Food & Dining at 12,000 and watch the
+headline rise to ₱28,425.25 before you even leave the sheet. Try 0 and it
+refuses to save.
+
+### Goals
+
+Three goals. **New Work Station Setup is funded**, outlined green, with no
+contribute button, because a button that can only refuse is worse than none.
+
+Tap **Add to this goal** on the Emergency Fund, enter 2,500, and the preview
+says ₱45,000 before you commit. One thing worth knowing: a goal records what
+you are aiming for and does **not** take money out of an account. If you
+actually moved the money, log a transfer too.
+
+### Academy
+
+**Your finding, fixed.** It is called Academy again, and it carries the real
+**32 lessons**, not the six I had invented. Check:
+
+- The header says **Salapify Academy**, **0 / 32 done**
+- Nine category chips, matching your prototype
+- The search box, hinting "Try MP2, credit cards, sweldo"
+- The educational-only notice, on the screen rather than hidden behind a dot
+- The startup guide roadmap card, saying honestly that it is being ported next
+
+Open **Zero-Based Budgeting**. You should get its objectives, three sections of
+real lesson text, the takeaways, and a knowledge check. Answer it wrong on
+purpose: the explanation appears either way, because that is what the question
+is for. Then **Mark as done** and go back, and the header should read 1 / 32.
+
+### The other three segments
+
+**Bills and payables** splits going out (₱5,529) from coming in (₱32,500).
+Your prototype adds them into one "Total Scheduled Bills" of ₱38,029, which
+counts payday as a bill.
+
+**Trackers** shows habits and subscriptions. The monthly subscription total is
+**₱5,236.17**, computed from the list; your prototype prints a hardcoded
+₱3,288 that does not match its own rows.
+
+**Calculators** launches the four sheets that already exist: income tax,
+business and pricing, loan payoff, and safe to spend.
+
+---
+
 ## What to tell Claude afterwards
 
 Most useful, in order:
