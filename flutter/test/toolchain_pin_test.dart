@@ -1,5 +1,18 @@
 // The Flutter pin is written in several workflow files, and only ONE property
-// about it is load bearing: they must all say the same thing.
+// about it is load bearing: every workflow serving the SAME APP must say the
+// same thing.
+//
+// It used to say "they must all say the same thing", and that was right while
+// this repository held one Flutter app. It now holds two. flutter/ is pinned
+// by SHOREBIRD, which lags stable and cannot be moved on a whim, and app/ has
+// no publisher at all, so it runs the SDK the founder actually has on their
+// Mac (docs/decision-log.md, 2026-09-18). Those are two different constraints
+// with two different reasons, and a guard that demanded one number would be
+// demanding the rebuild be built on a toolchain nothing requires.
+//
+// So the grouping is derived from each workflow's own `working-directory`
+// rather than from a list of filenames here, for the same reason the version
+// set is derived: a typed set is a promise and a derived set is a rule.
 //
 // The expensive version of getting this wrong is specific. flutter-preview.yml
 // names the version TWICE, once in the setup step that installs the SDK the
@@ -33,8 +46,29 @@ final _setupPin = RegExp(r"""flutter-version:\s*['"]?(\d+\.\d+\.\d+)['"]?""");
 /// `--flutter-version 3.44.6` passed to a shorebird command.
 final _argPin = RegExp(r'--flutter-version[=\s]+(\d+\.\d+\.\d+)');
 
+/// `working-directory: app` or `working-directory: flutter`, which is how a
+/// workflow says which of the two Flutter projects it builds. `.` and `mobile`
+/// are not Flutter projects and are ignored.
+final _project = RegExp(r"""working-directory:\s*['"]?(app|flutter)['"]?\s*$""",
+    multiLine: true);
+
+/// Strips YAML comments before any pattern is matched.
+///
+/// Not cosmetic. app-check.yml carries a comment EXPLAINING Shorebird's pin,
+/// which names `--flutter-version 3.44.6` in prose, and reading it as a real
+/// pin made app/ look like it was demanding two different toolchains at once.
+/// A guard that cannot tell a configured value from a sentence about one
+/// reports the wrong file.
+String _withoutComments(String yaml) => yaml
+    .split('\n')
+    .map((String line) {
+      final int hash = line.indexOf('#');
+      return hash == -1 ? line : line.substring(0, hash);
+    })
+    .join('\n');
+
 void main() {
-  test('every workflow pins the same Flutter version', () {
+  test('every workflow serving one app pins the same Flutter version', () {
     final dir = Directory('../.github/workflows');
     expect(
       dir.existsSync(),
@@ -42,19 +76,39 @@ void main() {
       reason: 'Cannot find ../.github/workflows from the flutter/ directory.',
     );
 
-    // file path -> every version string that file names, with a label saying
-    // which shape matched, so a failure points at the exact line to fix.
+    // project -> (label -> version). The label says which file and which shape
+    // matched, so a failure points at the exact line to fix.
+    final byProject = <String, Map<String, String>>{};
     final found = <String, String>{};
     for (final f in dir.listSync().whereType<File>()) {
       if (!f.path.endsWith('.yml') && !f.path.endsWith('.yaml')) continue;
-      final text = f.readAsStringSync();
+      final text = _withoutComments(f.readAsStringSync());
       final name = f.uri.pathSegments.last;
+
+      final here = <String, String>{};
       for (final m in _setupPin.allMatches(text)) {
-        found['$name (setup step)'] = m.group(1)!;
+        here['$name (setup step)'] = m.group(1)!;
       }
       for (final m in _argPin.allMatches(text)) {
-        found['$name (--flutter-version argument)'] = m.group(1)!;
+        here['$name (--flutter-version argument)'] = m.group(1)!;
       }
+      if (here.isEmpty) continue;
+      found.addAll(here);
+
+      // Which app does this workflow build? Derived from its own
+      // working-directory lines, never from a list of filenames in this test.
+      final projects =
+          _project.allMatches(text).map((m) => m.group(1)!).toSet();
+      expect(
+        projects,
+        hasLength(1),
+        reason:
+            '$name pins a Flutter version but does not name exactly one '
+            'Flutter project through working-directory: it names $projects. '
+            'Without that this test cannot tell which app its pin belongs to, '
+            'and a wrong pin would sail through.',
+      );
+      byProject.putIfAbsent(projects.single, () => <String, String>{}).addAll(here);
     }
 
     // If this ever drops to zero the regexes stopped matching and the test
@@ -69,17 +123,36 @@ void main() {
           'this test is passing for the wrong reason.',
     );
 
-    final distinct = found.values.toSet();
+    // Both apps must still be represented. Without this, deleting every
+    // workflow for one of them would leave the remaining group unanimous and
+    // this test would go green on a repository that had lost half its CI.
     expect(
-      distinct,
-      hasLength(1),
+      byProject.keys.toSet(),
+      <String>{'app', 'flutter'},
       reason:
-          'The workflows disagree about which Flutter version to use: $found. '
-          'They must all match. In particular flutter-preview.yml names it '
-          'twice, and the --flutter-version argument to shorebird release is '
-          'the one that decides what the phone actually runs, so bumping only '
-          'the setup step ships an app built on a toolchain nothing tested.',
+          'Expected workflows pinning Flutter for BOTH projects, found '
+          '${byProject.keys.toList()}. A project losing all of its pinned '
+          'workflows is not something this test should pass quietly.',
     );
+
+    for (final entry in byProject.entries) {
+      final distinct = entry.value.values.toSet();
+      expect(
+        distinct,
+        hasLength(1),
+        reason:
+            'The workflows building ${entry.key}/ disagree about which Flutter '
+            'version to use: ${entry.value}. Every workflow serving one app '
+            'must match. In particular flutter-preview.yml names it twice, and '
+            'the --flutter-version argument to shorebird release is the one '
+            'that decides what the phone actually runs, so bumping only the '
+            'setup step ships an app built on a toolchain nothing tested.',
+      );
+    }
+
+    // The two apps are pinned for DIFFERENT reasons (Shorebird for flutter/,
+    // the founder's own Mac for app/), so they are allowed to differ. They are
+    // not required to.
   });
 
   test('the Flutter README states the pin rule and names no version', () {
