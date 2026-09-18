@@ -1,37 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="Salapify 3"
+        android:label="Salapify"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:allowBackup="false"
-        android:fullBackupContent="@xml/backup_rules"
-        android:dataExtractionRules="@xml/data_extraction_rules"><!--
-        Data stays on the device, full stop. Ported unchanged from the shipped
-        app, where it is ADR 0002. It is written out again here rather than
-        assumed, because `flutter create` leaves allowBackup UNSET, which
-        Android reads as true: the scaffolded app would have been eligible for
-        Google auto backup on its first build, and test/core/data/
-        backup_posture_test.dart caught exactly that on its first run.
-
-        Android Auto Backup is OFF because the app holds the whole ledger
-        locally. With backup on, that data would be uploaded to the user's
-        Google Drive, which contradicts both the encrypted-at-rest promise and
-        the published privacy policy's "stays on your phone". It would also
-        break a restore onto a new phone, because the SQLCipher key lives in
-        the Android Keystore and is NOT backed up, so a restored encrypted
-        database could not be opened.
-
-        allowBackup=false is the primary control and not the whole story. On
-        Android 12 and newer it disables cloud backup but does NOT stop a
-        device-to-device transfer, which is governed by the <device-transfer>
-        section of data_extraction_rules.xml. So:
-          - fullBackupContent -> res/xml/backup_rules.xml (Android 11 and lower)
-          - dataExtractionRules -> res/xml/data_extraction_rules.xml (12+)
-        Both exclude every data domain, so financial data leaves this phone
-        only by the user's own backup export, on every Android version.
-        Removing either attribute, or flipping allowBackup, reddens the posture
-        test. -->
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"
