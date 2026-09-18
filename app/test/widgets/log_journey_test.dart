@@ -526,4 +526,133 @@ void main() {
       );
     });
   });
+
+  group('the date picker', () {
+    testWidgets('defaults to today and says so', (WidgetTester tester) async {
+      await pumpApp(tester);
+      await tapAndSettle(tester, logButton);
+
+      await tester.ensureVisible(find.text('When'));
+      await tester.pumpAndSettle();
+      // Scoped to the sheet: Home's Coming Up card also says "Today".
+      expect(
+        find.descendant(
+          of: find.byType(LogSheet),
+          matching: find.text('Today'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('yesterday\'s coffee files under yesterday and still moves '
+        'the money today', (WidgetTester tester) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double cashBefore = balanceOf(state, 'acc_cash');
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '180',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-merchant')),
+          matching: find.byType(TextField),
+        ),
+        'Kape Kahapon',
+      );
+      await tester.pumpAndSettle();
+
+      // Open the picker and step back one day. The picker is a Material
+      // dialog, so this drives it the way a person does rather than poking
+      // state directly.
+      await tapAndSettle(tester, find.text('Change'));
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+
+      final DateTime yesterday = state.now.subtract(const Duration(days: 1));
+      await tapAndSettle(
+        tester,
+        find.descendant(
+          of: find.byType(DatePickerDialog),
+          matching: find.text('${yesterday.day}'),
+        ),
+      );
+      await tapAndSettle(tester, find.text('OK'));
+
+      // It warns that the money still moves now, which is true and surprising.
+      expect(
+        find.textContaining('The balance changes now'),
+        findsOneWidget,
+        reason: 'a backdated entry still debits the account today',
+      );
+
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      final Transaction saved = state.transactions.first;
+      final String expectedIso =
+          '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-'
+          '${yesterday.day.toString().padLeft(2, '0')}';
+      expect(saved.date, expectedIso, reason: 'stored under the chosen day');
+
+      // The money moved anyway. This is the half that would be easy to lose
+      // while making the date work.
+      expect(balanceOf(state, 'acc_cash'), cashBefore - 180);
+
+      // A backdated entry is NOT at the top of Activity, because the list is
+      // newest day first. Landing on a screen whose first rows are today's
+      // reads exactly like it did not save, so the confirmation has to say
+      // which day it went under. This assertion is that sentence.
+      expect(
+        find.textContaining('Logged under Yesterday'),
+        findsOneWidget,
+        reason: 'nothing told the user where the entry actually went',
+      );
+
+      // And a person can SEE it, filed under Yesterday rather than Today.
+      // It is below the fold by construction, so scroll the way they would.
+      await tester.scrollUntilVisible(
+        find.text('Kape Kahapon'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Kape Kahapon'), findsWidgets);
+      expect(find.text('Yesterday'), findsWidgets);
+    });
+
+    testWidgets('the future is not offered, because the balance moves today', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, logButton);
+      await tapAndSettle(tester, find.text('Change'));
+
+      // Tomorrow is present in the grid but disabled. A future dated expense
+      // would take the money out today and file the entry under a day that
+      // has not happened, so the two would disagree until it arrived.
+      final DateTime tomorrow = state.now.add(const Duration(days: 1));
+      final Finder tomorrowCell = find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('${tomorrow.day}'),
+      );
+      await tester.tap(tomorrowCell, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('OK'));
+
+      // Still today, because the tap did nothing.
+      expect(
+        find.descendant(
+          of: find.byType(LogSheet),
+          matching: find.text('Today'),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
 }

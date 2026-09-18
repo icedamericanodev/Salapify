@@ -122,6 +122,27 @@ about money should be visible before it is committed, so it reads back what it
 understood and everything lands in the controls below where it can be
 corrected. Save is the same button it always was.
 
+**When it happened.** Founder request, 2026-09-18. The When row defaults to
+today and says so in words, and Change opens the calendar. A day that is not
+today is drawn in the accent so it cannot be missed, and the sheet adds one
+sentence: "The balance changes now, even though the entry is dated earlier."
+
+| Backdated to Sep 15 | The picker |
+|---|---|
+| ![Log sheet backdated](screens/log-sheet-backdated.png) | ![Date picker](screens/date-picker.png) |
+
+The future is deliberately not offered, and the greyed-out days after the 18th
+in that picture are that rule. Logging moves the balance IMMEDIATELY, so a
+future dated expense would take the money out today and file the entry under a
+day that has not happened; the account and the ledger would then disagree until
+it arrived. The prototype allows it. This is a named divergence rather than an
+oversight, and it is the one place the two differ on dates.
+
+Backdating also changed the confirmation AFTER saving. The Activity list groups
+by day, newest first, so a backdated entry is not at the top: you land on a
+screen whose first rows are today's, which reads exactly like it did not save.
+The snackbar now says which day it went under, and only when that is not today.
+
 Three things this sheet does deliberately:
 
 1. **It says what it is about to do before you do it.** With an amount and an
@@ -142,9 +163,10 @@ changing a number nobody decided to change is the worse error, and a vector
 locks it. The defence is in the UI: the destination is picked from a list that
 excludes the source, and Save refuses a destination that is not a real account.
 
-Not migrated with it, named rather than implied: the fast-log text parser, the
-foreign currency converter, the cash denomination counter, receipt attachment,
-and quick-add for categories. Each needs something `app/` does not have yet.
+Not migrated with it, named rather than implied: the foreign currency
+converter, the cash denomination counter, receipt attachment, and quick-add for
+categories. Each needs something `app/` does not have yet (an FX rate source, a
+camera, a writable category store).
 
 ### Sheets
 

@@ -53,6 +53,10 @@ class _LogSheetState extends State<LogSheet> {
   String _category = 'Food & Dining';
   bool _showMore = false;
 
+  /// Defaults to today and is set from the picker. Late because it reads the
+  /// store's clock, which a test pins.
+  late DateTime _date;
+
   List<Account> get _spendable =>
       widget.state.accounts.where((Account a) => a.isLiquid).toList();
 
@@ -60,6 +64,7 @@ class _LogSheetState extends State<LogSheet> {
   void initState() {
     super.initState();
     final List<Account> usable = _spendable;
+    _date = widget.state.now;
     _accountId = usable.isNotEmpty ? usable.first.id : '';
     // The destination defaults to a DIFFERENT account. A transfer from an
     // account to itself moves nothing and reads as a bug to whoever logged it.
@@ -220,7 +225,7 @@ class _LogSheetState extends State<LogSheet> {
         category: isTransfer ? 'Transfer' : _category,
         accountId: _accountId,
         toAccountId: isTransfer ? _toAccountId : null,
-        date: _isoToday(),
+        date: _iso(_date),
         createdAt: DateTime.now().millisecondsSinceEpoch,
         merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
@@ -242,11 +247,36 @@ class _LogSheetState extends State<LogSheet> {
     );
   }
 
-  String _isoToday() {
-    final DateTime d = widget.state.now;
+  String _iso(DateTime d) {
     final String m = d.month.toString().padLeft(2, '0');
     final String day = d.day.toString().padLeft(2, '0');
     return '${d.year}-$m-$day';
+  }
+
+  /// Opens the date picker.
+  ///
+  /// BOUNDS, and why they are a decision rather than a copy. The prototype is
+  /// a bare <input type="date"> with no min and no max, so it accepts any date
+  /// in either direction. Flutter's showDatePicker REQUIRES a first and last
+  /// date, so something has to be chosen either way.
+  ///
+  /// The past is open, five years, which is more than anybody will backfill on
+  /// a phone. The future is NOT, and that is the deliberate half: logging an
+  /// entry moves the account balance immediately, so a future-dated expense
+  /// would take the money out today and then file the entry under a day that
+  /// has not happened. The balance and the ledger would disagree until that
+  /// date arrived. Scheduling a payment is a real need and it belongs to the
+  /// Upcoming feature, which already exists to say what has not happened yet.
+  Future<void> _pickDate() async {
+    final DateTime today = widget.state.now;
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(today.year - 5, today.month, today.day),
+      lastDate: DateTime(today.year, today.month, today.day),
+      helpText: 'When did this happen',
+    );
+    if (picked != null) setState(() => _date = picked);
   }
 
   @override
@@ -362,6 +392,14 @@ class _LogSheetState extends State<LogSheet> {
           ),
 
           const SizedBox(height: Spacing.md),
+          _DateField(
+            palette: p,
+            date: _date,
+            now: widget.state.now,
+            onTap: _pickDate,
+          ),
+
+          const SizedBox(height: Spacing.md),
           _MoreToggle(
             palette: p,
             open: _showMore,
@@ -402,6 +440,7 @@ class _LogSheetState extends State<LogSheet> {
               amount: amount,
               from: _named(_accountId),
               to: isTransfer ? _named(_toAccountId) : null,
+              backdated: _iso(_date) != _iso(widget.state.now),
             ),
           ],
         ],
@@ -424,6 +463,7 @@ class _Confirmation extends StatelessWidget {
     required this.type,
     required this.amount,
     required this.from,
+    required this.backdated,
     this.to,
   });
 
@@ -432,6 +472,10 @@ class _Confirmation extends StatelessWidget {
   final double amount;
   final String from;
   final String? to;
+
+  /// Whether the entry is dated before today. It changes what this card has to
+  /// say, not how it looks.
+  final bool backdated;
 
   @override
   Widget build(BuildContext context) {
@@ -451,10 +495,115 @@ class _Confirmation extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.control),
         border: Border.all(color: palette.border),
       ),
-      child: Text(
-        sentence,
-        style: AppType.body(palette).copyWith(color: palette.accent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            sentence,
+            style: AppType.body(palette).copyWith(color: palette.accent),
+          ),
+          if (backdated) ...<Widget>[
+            const SizedBox(height: Spacing.xs),
+            Text(
+              // The balance moves NOW even for an entry dated last week. That
+              // is correct for a ledger catching up on a receipt, and it is
+              // surprising enough to say out loud rather than let somebody
+              // discover it by watching a figure change.
+              'The balance changes now, even though the entry is dated '
+              'earlier.',
+              style: AppType.caption(palette),
+            ),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+/// When it happened. Tapping it opens the date picker.
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.palette,
+    required this.date,
+    required this.now,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final DateTime date;
+  final DateTime now;
+  final VoidCallback onTap;
+
+  String _iso(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    final String iso = _iso(date);
+    final bool isToday = iso == _iso(now);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('When', style: AppType.label(palette)),
+        const SizedBox(height: Spacing.xs),
+        Semantics(
+          button: true,
+          label: 'Change the date, currently ${formatDateLabel(iso, now: now)}',
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.control),
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md,
+                vertical: Spacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: palette.card,
+                borderRadius: BorderRadius.circular(Radii.control),
+                border: Border.all(
+                  // Highlighted when it is NOT today, because a date somebody
+                  // deliberately changed is the one worth noticing on the way
+                  // back down to Save.
+                  color: isToday ? palette.border : palette.accent,
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.event_outlined,
+                    size: 18,
+                    color: isToday ? palette.textMuted : palette.accent,
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          formatDateLabel(iso, now: now),
+                          style: AppType.rowTitle(palette),
+                        ),
+                        // The stored date as well, for the same reason the
+                        // transaction detail shows it: "Yesterday" is useless
+                        // beside a bank statement.
+                        Text(iso, style: AppType.caption(palette)),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'Change',
+                    style: AppType.button(palette, color: palette.accent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

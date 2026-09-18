@@ -221,6 +221,127 @@ void main() {
     );
   });
 
+  // The Log sheet BACKDATED, which is the state worth looking at rather than
+  // the picker dialog (that one is stock Material and only inherits the
+  // theme). Two things have to read clearly here: the When row showing a day
+  // that is not today, and the extra sentence warning that the balance still
+  // moves now. Somebody logging last week's groceries needs to know the money
+  // comes out today, or the account will not match what they expect.
+  testWidgets('log sheet backdated renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    // The keys sit on the SheetField wrapper, not the TextField inside it, so
+    // enterText has to descend to the editable or it has nothing to type into.
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '820',
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-merchant')),
+        matching: find.byType(TextField),
+      ),
+      'Puregold groceries',
+    );
+    await tester.pumpAndSettle();
+
+    // Drive the real picker rather than setting the field, so the render shows
+    // what a person actually gets after using it. The When row sits below the
+    // fold of this viewport, so scroll to it first.
+    await tester.ensureVisible(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('15'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Scroll on to the confirmation itself. ensureVisible stops the moment its
+    // target is on screen, so stopping at the When row leaves the sentence
+    // underneath it half hidden behind the Save bar, and the render would then
+    // show a clipped warning that the real screen does not have.
+    await tester.ensureVisible(find.textContaining('The balance changes now'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet_backdated.png'),
+    );
+  });
+
+  // The picker dialog itself. It is stock Material, which is exactly why it
+  // gets looked at: a dialog Salapify did not draw is the easiest place for a
+  // white panel to appear in the middle of a dark app.
+  testWidgets('date picker renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/date_picker.png'),
+    );
+  });
+
   // The transaction detail, opened on the EXCLUDED row, dark only. That row
   // is chosen deliberately: it is the one carrying the struck-through amount
   // and the sentence explaining why it is not in the totals, so the render

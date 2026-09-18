@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/money/format.dart';
 import '../design/tokens.dart';
 import '../features/log/log_sheet.dart';
 import '../models/models.dart';
@@ -38,6 +39,12 @@ class _AppShellState extends State<AppShell> {
         onOpenLog: () => _openLog(context, palette),
       ),
     );
+  }
+
+  String _isoToday() {
+    final DateTime d = widget.state.now;
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
   }
 
   Widget _bodyFor(SalapifyTab tab, Palette palette) {
@@ -87,13 +94,23 @@ class _AppShellState extends State<AppShell> {
     // did not save.
     setState(() => _current = SalapifyTab.activity);
 
+    // A BACKDATED entry is not at the top of Activity, because the list is
+    // grouped by day and newest day first. Landing on a screen whose first
+    // rows are today's, with yours further down, reads exactly like it did not
+    // save. So the confirmation says which day it went under, and only when
+    // that is not today, because "Logged under Today" is noise.
+    final String whereItWent = logged.date == _isoToday()
+        ? 'Logged.'
+        : 'Logged under ${formatDateLabel(logged.date, now: widget.state.now)},'
+              ' further down the list.';
+
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(
-            'Logged. Entries are not saved to the phone yet, so this clears '
-            'when the app is closed.',
+            '$whereItWent Entries are not saved to the phone yet, so this '
+            'clears when the app is closed.',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,

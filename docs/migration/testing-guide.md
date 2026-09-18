@@ -1,4 +1,4 @@
-# Testing the six sheets on the emulator
+# Testing the sheets on the emulator
 
 Written for the founder, 2026-09-18. Every expected figure below was produced
 by running the app's own engines, not worked out by hand, so if your screen
@@ -288,6 +288,62 @@ Expect 18 categories. Try:
 
   A hidden button would leave you wondering where the option went. A button
   that explains itself answers the question in place.
+
+---
+
+## 7. Logging an entry, one line and a date
+
+**Reach it:** the orange **Log** pill at the far right of the tab bar, or the
+Log quick action on Home. Both open the same sheet.
+
+### Type it in one line
+
+The box at the top of the sheet. Type a line, then tap **Fill the form with
+this**. Every row below is what the parser really returns, printed by running
+it, so a difference on your screen is a defect worth reporting.
+
+| Type this | Expect the form to fill with |
+|---|---|
+| `Jollibee 500 gcash` | Spent, ₱500, Where "Jollibee", GCash Wallet, Food & Dining |
+| `grab 420` | Spent, ₱420, Where "Grab", Transport & Commute, account unchanged |
+| `Puregold 1250` | Spent, ₱1250, Where "Puregold", Groceries |
+| `sweldo 25000` | **Received**, ₱25000, Salary & Compensation |
+| `padala kay nanay 8000 palawan` | Spent, ₱8000, Family Support & Remittance, and Nanay in the person field under "Add a person, tags or a note" |
+| `lipat 1000 maya` | **Moved**, ₱1000, destination Maya Savings |
+
+Two deliberate details worth poking at:
+
+- It **fills the form, it does not save**. Nothing moves until you tap Save
+  entry, and everything it guessed is sitting in a control you can correct.
+- A line with **no amount**, e.g. `Jollibee`, offers nothing at all. The Fill
+  button does not appear. A parser that guesses an amount is worse than one
+  that admits it does not know.
+- On `padala kay nanay 8000 palawan` the Where box reads "Padala Kay Nanay
+  Palawan", which looks untidy and is deliberate: it is exactly what the
+  prototype produces, and the ported parser is locked to the prototype's own
+  output. If you want it changed, that is a change to both.
+
+### The date
+
+Scroll to the **When** row. It reads **Today** with the date under it.
+
+1. Tap **Change**. The calendar opens on today, circled in orange.
+2. Everything **after** today is greyed out and will not accept a tap. That is
+   on purpose: saving moves the balance immediately, so a future dated expense
+   would take the money out today and file the entry under a day that has not
+   happened yet, and the account and the ledger would disagree until it
+   arrived. The prototype allows it; this is the one place they differ.
+3. Pick a day a few back, say the 15th, and tap OK.
+4. The When row turns orange and shows that day.
+5. The confirmation at the bottom gains a second sentence: *"The balance
+   changes now, even though the entry is dated earlier."* That is the honest
+   version of what backdating does.
+6. Save it. You land on Activity, and the confirmation says **"Logged under
+   Tue, Sep 15, further down the list."** Scroll down and the entry is there,
+   under that day's heading, not at the top.
+
+Step 6 is the one to watch. Without that sentence you land on a list whose
+first rows are today's, which reads exactly like the save failed.
 
 ---
 
