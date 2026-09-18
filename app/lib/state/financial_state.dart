@@ -12,6 +12,7 @@ class FinancialState extends ChangeNotifier {
   FinancialState({this.clock}) {
     _transactions = SeedData.transactions();
     _upcoming = List<UpcomingItem>.of(SeedData.upcoming);
+    _debts = List<Debt>.of(SeedData.debts);
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -19,6 +20,7 @@ class FinancialState extends ChangeNotifier {
 
   late List<Transaction> _transactions;
   late List<UpcomingItem> _upcoming;
+  late List<Debt> _debts;
 
   ThemeMode2 _theme = ThemeMode2.gabi;
   DecisionScenario _scenario = DecisionScenario.conservative;
@@ -36,11 +38,14 @@ class FinancialState extends ChangeNotifier {
 
   List<Account> get accounts => SeedData.accounts;
   List<Transaction> get transactions => List<Transaction>.unmodifiable(_transactions);
-  List<Debt> get debts => SeedData.debts;
+  List<Debt> get debts => List<Debt>.unmodifiable(_debts);
   List<Budget> get budgets => SeedData.budgets;
+  List<CategoryInfo> get categories => SeedData.categories;
   List<Goal> get goals => SeedData.goals;
   List<UpcomingItem> get upcoming => List<UpcomingItem>.unmodifiable(_upcoming);
   List<BillItem> get bills => SeedData.bills;
+  List<IncomeStream> get incomeStreams => SeedData.incomeStreams;
+  List<InstallmentPlan> get installments => SeedData.installments;
   PaydayCycle get payday => SeedData.payday;
 
   /// Header badges. Static for now: the notification engine and the
@@ -75,6 +80,21 @@ class FinancialState extends ChangeNotifier {
   /// Ticks an upcoming item off. It leaves the ledger alone on purpose: this
   /// marks an EXPECTATION as met, it does not log a transaction, and the
   /// prototype behaves the same way.
+  /// Records a debt the user just entered in the Add Debt sheet.
+  ///
+  /// It goes to the front of the list because the screens that read debts sort
+  /// by due date and a brand new row with no due date would otherwise land
+  /// somewhere the person who just typed it would not think to look.
+  ///
+  /// This lives in memory only, like every other write on this store today:
+  /// the prototype's local storage layer is a later migration step, so a debt
+  /// added now is gone on the next cold start. That is honest rather than
+  /// desirable, and the sheet says so when it saves.
+  void addDebt(Debt debt) {
+    _debts = <Debt>[debt, ..._debts];
+    notifyListeners();
+  }
+
   void markUpcomingPaid(String id) {
     final int i = _upcoming.indexWhere((UpcomingItem u) => u.id == id);
     if (i == -1 || _upcoming[i].isPaid) return;

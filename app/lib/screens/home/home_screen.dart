@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
+import '../../features/debt/add_debt_sheet.dart';
+import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
+import '../../features/toolkit/toolkit_sheet.dart';
+import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'ask_pan_button.dart';
 import 'budget_pulse_card.dart';
@@ -40,8 +44,7 @@ class HomeScreen extends StatelessWidget {
           children: <Widget>[
             HomeHeader(
               state: state,
-              onOpenToolkit: () =>
-                  _soon(context, palette, 'The Philippine toolkit'),
+              onOpenToolkit: () => ToolkitSheet.show(context, state),
               onOpenCollaboration: () =>
                   _soon(context, palette, 'Collaboration'),
               onOpenReminders: () => _soon(context, palette, 'Reminders'),
@@ -50,11 +53,13 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: Spacing.md),
             HeroPanel(
               state: state,
-              onOpenDetails: () =>
-                  _soon(context, palette, 'Safe to Spend details'),
+              onOpenDetails: () => SafeToSpendSheet.show(context, state),
               onOpenHealthCheck: () => _soon(context, palette, 'Health Check'),
-              onInfo: () =>
-                  _soon(context, palette, 'The Safe to Spend explainer'),
+              // Both the Details button and the small info glyph open the same
+              // sheet. The prototype does the same: the explainer IS the
+              // breakdown, and a second lighter screen saying "this is your
+              // safe amount" would only delay the numbers that answer it.
+              onInfo: () => SafeToSpendSheet.show(context, state),
             ),
             const SizedBox(height: Spacing.md),
             BudgetPulseCard(
@@ -65,7 +70,7 @@ class HomeScreen extends StatelessWidget {
             QuickActions(
               palette: palette,
               onLog: () => _soon(context, palette, 'The Log sheet'),
-              onDebt: () => _soon(context, palette, 'Debts'),
+              onDebt: () => _addDebt(context, palette),
               onBills: () => _soon(context, palette, 'Bills'),
               onMove: () => _soon(context, palette, 'Move'),
             ),
@@ -105,6 +110,37 @@ class HomeScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Opens the Add Debt sheet and records what comes back.
+  ///
+  /// The messenger is captured BEFORE the await. The sheet can be dismissed
+  /// long after this context is gone, and reaching for ScaffoldMessenger.of
+  /// on the far side of an await is the usual way that turns into a crash.
+  Future<void> _addDebt(BuildContext context, Palette palette) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final Debt? saved = await AddDebtSheet.show(context, palette);
+    if (saved == null) {
+      return;
+    }
+    state.addDebt(saved);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            // Says out loud that this does not survive a restart. Storage is a
+            // later step, and somebody who types a real debt deserves to know
+            // it is not saved yet rather than finding out tomorrow.
+            'Added. Debts are not saved to the phone yet, so this clears when '
+            'the app is closed.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   /// Every control on this screen is real and reachable. The destinations

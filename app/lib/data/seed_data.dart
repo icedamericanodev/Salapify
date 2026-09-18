@@ -241,6 +241,30 @@ class SeedData {
     ),
   ];
 
+  /// The starting category tree, from src/data/initialData.ts. The emojis are
+  /// USER data: they live in the backup file and are never replaced by
+  /// Salapify's own icon set.
+  static const List<CategoryInfo> categories = <CategoryInfo>[
+    CategoryInfo(id: 'food', name: 'Food & Dining', emoji: '\u{1F354}', subcategories: <String>['Fast Food', 'Restaurants', 'Coffee', 'Delivery']),
+    CategoryInfo(id: 'groceries', name: 'Groceries', emoji: '\u{1F6D2}', subcategories: <String>['Supermarket', 'Wet Market', 'Toiletries']),
+    CategoryInfo(id: 'transport', name: 'Transport & Commute', emoji: '\u{1F6F5}', subcategories: <String>['Grab / Angkas', 'Public Transit', 'Fuel', 'Tolls']),
+    CategoryInfo(id: 'bills', name: 'Bills & Utilities', emoji: '⚡', subcategories: <String>['Electricity', 'Water', 'Internet', 'Subscriptions']),
+    CategoryInfo(id: 'housing', name: 'Housing & Rent', emoji: '\u{1F3E0}', subcategories: <String>['Rent', 'Condo Dues', 'Repairs']),
+    CategoryInfo(id: 'health', name: 'Health & Meds', emoji: '\u{1F48A}', subcategories: <String>['Pharmacy', 'Doctor', 'Dental', 'HMO']),
+    CategoryInfo(id: 'shopping', name: 'Shopping & Personal', emoji: '\u{1F6CD}', subcategories: <String>['Apparel', 'Gadgets', 'Online Shopping']),
+    CategoryInfo(id: 'debt_servicing', name: 'Debt & Loan Servicing', emoji: '\u{1F91D}', subcategories: <String>['Credit Card', 'Personal Loan', 'Mortgage']),
+    CategoryInfo(id: 'business_expense', name: 'Business & Freelance', emoji: '\u{1F4BC}', subcategories: <String>['Software', 'Contractors', 'Marketing']),
+    CategoryInfo(id: 'family_support', name: 'Family Support', emoji: '❤', subcategories: <String>['Allowance', 'Tuition', 'Gifts']),
+    CategoryInfo(id: 'salary', name: 'Salary & Compensation', emoji: '\u{1F4B0}', kind: CategoryKind.income, subcategories: <String>['15th Cutoff', '30th Cutoff', '13th Month']),
+    CategoryInfo(id: 'business_revenue', name: 'Business Revenue', emoji: '\u{1F3E2}', kind: CategoryKind.income, subcategories: <String>['Client Retainers', 'Product Sales']),
+    CategoryInfo(id: 'side_hustle_income', name: 'Side-hustle & Gigs', emoji: '✨', kind: CategoryKind.income, subcategories: <String>['Freelance Projects', 'Commissions']),
+    CategoryInfo(id: 'investment_income', name: 'Investment & Passive', emoji: '\u{1F4C8}', kind: CategoryKind.income, subcategories: <String>['High-Yield Interest', 'MP2 Dividends']),
+    CategoryInfo(id: 'receivables_collected', name: 'Receivables & Repayments', emoji: '\u{1F4B8}', kind: CategoryKind.income, subcategories: <String>['Pahiram Paid', 'Split Bill']),
+    CategoryInfo(id: 'transfer', name: 'Transfer', emoji: '\u{1F504}', kind: CategoryKind.both, subcategories: <String>['Bank to Wallet', 'Savings Transfer']),
+    CategoryInfo(id: 'adjustments', name: 'Adjustments & Variance', emoji: '⚖', kind: CategoryKind.both, subcategories: <String>['Reconciliation Adjustment']),
+    CategoryInfo(id: 'other', name: 'Other', emoji: '\u{1F4E6}', subcategories: <String>['General']),
+  ];
+
   static const List<Budget> budgets = <Budget>[
     Budget(category: 'Food & Dining', limit: 9000, emoji: '\u{1F354}'),
     Budget(category: 'Transport & Commute', limit: 3500, emoji: '\u{1F6F5}'),

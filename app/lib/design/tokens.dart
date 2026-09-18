@@ -36,6 +36,14 @@ class Palette {
 
   /// A second surface, used where a card sits on a card.
   final Color surfaceAlt;
+
+  /// The page behind everything. Same colour as [background]; the name exists
+  /// because the design notes call it the canvas, and one vocabulary is worth
+  /// more than a second class holding the same values.
+  Color get canvas => background;
+
+  /// The raised surface a card is drawn on. Same colour as [surface].
+  Color get card => surface;
   final Color border;
   final Color borderStrong;
   final Color textPrimary;

@@ -5,6 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
+import 'package:salapify/features/categories/category_manager_sheet.dart';
+import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
+import 'package:salapify/features/tax/business_tax_sheet.dart';
+import 'package:salapify/features/tax/tax_calculator_sheet.dart';
+import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/state/financial_state.dart';
@@ -123,4 +129,119 @@ void main() {
       });
     }
   }
+
+  // The sheets, dark only, which is what the founder uses. Each one is opened
+  // through its REAL route rather than pumped on its own, so what gets
+  // rendered is the modal as it actually appears over the app: the same grab
+  // handle, the same 92% height, the same dimmed Home behind it.
+  const List<({String name, String openWith})> sheets =
+      <({String name, String openWith})>[
+        (name: 'toolkit', openWith: 'toolkit'),
+        (name: 'safe_to_spend', openWith: 'safeToSpend'),
+        (name: 'add_debt', openWith: 'addDebt'),
+        (name: 'tax_calculator', openWith: 'tax'),
+        (name: 'business_tax', openWith: 'business'),
+        (name: 'categories', openWith: 'categories'),
+      ];
+
+  for (final ({String name, String openWith}) sheet in sheets) {
+    testWidgets('sheet ${sheet.name} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      // Taller than a phone on purpose: a sheet opens to 92% of the screen and
+      // a phone-height render would cut off the part worth reviewing.
+      tester.view.physicalSize = const Size(1170, 3400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'PlusJakartaSans',
+            scaffoldBackgroundColor: palette.background,
+          ),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(AppShell));
+      switch (sheet.openWith) {
+        case 'toolkit':
+          ToolkitSheet.show(context, state);
+        case 'safeToSpend':
+          SafeToSpendSheet.show(context, state);
+        case 'addDebt':
+          AddDebtSheet.show(context, palette);
+        case 'tax':
+          TaxCalculatorSheet.show(context, palette);
+        case 'business':
+          BusinessTaxSheet.show(context, palette);
+        case 'categories':
+          CategoryManagerSheet.show(context, state);
+      }
+      await tester.pumpAndSettle();
+
+      // MaterialApp, not AppShell: a modal sheet lives in the Overlay ABOVE
+      // the shell, so a render of the shell alone would be a picture of Home
+      // with nothing on it.
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${sheet.name}.png'),
+      );
+    });
+  }
+
+  // Add Debt with the form FILLED IN, because the amortization table only
+  // exists once there is something to amortise. An empty form is a picture of
+  // the half of this sheet that was already easy to get right.
+  testWidgets('sheet add_debt_schedule renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 4600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: ThemeData(
+          useMaterial3: true,
+          fontFamily: 'PlusJakartaSans',
+          scaffoldBackgroundColor: palette.background,
+        ),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AddDebtSheet.show(tester.element(find.byType(AppShell)), palette);
+    await tester.pumpAndSettle();
+
+    final Finder fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Home Credit');
+    await tester.enterText(fields.at(1), '85000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Installments'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_add_debt_schedule.png'),
+    );
+  });
 }

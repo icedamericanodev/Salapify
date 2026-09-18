@@ -14,6 +14,7 @@ The prototype's tab order, finished one tab at a time including its modals.
 | # | Tab | Prototype source | Status |
 |---|-----|------------------|--------|
 | 1 | Home | `Header`, `HeroPanel`, `BudgetPulseCard`, `QuickActions`, reminders banner, `DebtBeamCard`, `ComingUpCard`, `LatestTransactions`, `PanFloatingButton` | Built to match the prototype |
+| 1b | Home's sheets | `SafeToSpendModal`, `AddDebtModal`, `BankAmortizationTable`, `TaxCalculatorModal`, `BusinessTaxSimulatorModal`, the category manager | Built and reachable from Home |
 | 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Not started |
 | 3 | Reports | `ReportsScreen` | Not started |
 | 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | Not started |
@@ -43,6 +44,47 @@ Phone sized, what actually fits on a 390dp screen:
 | Gabi (dark) | Hapon (light) |
 |---|---|
 | ![Home, Gabi](screens/home-gabi.png) | ![Home, Hapon](screens/home-hapon.png) |
+
+### Sheets
+
+Ported from `src/components/`, 2026-09-18. Every one is opened through its real
+route, so what is pictured is the modal as it actually appears over Home: same
+grab handle, same 92% height, same dimmed app behind it. Dark only, which is
+what the founder uses.
+
+The tiny grey squares beside a category name are emoji. The render sandbox has
+no emoji font; they draw correctly on the phone and are deliberately not
+"fixed", because category icons are the user's own choice.
+
+| Philippine Toolkit | Safe to Spend Details |
+|---|---|
+| ![Toolkit](screens/sheet-toolkit.png) | ![Safe to Spend](screens/sheet-safe-to-spend.png) |
+
+| Add a debt | Add a debt, with the schedule |
+|---|---|
+| ![Add debt](screens/sheet-add-debt.png) | ![Add debt schedule](screens/sheet-add-debt-schedule.png) |
+
+| Tax Calculator | Business Tax Simulator |
+|---|---|
+| ![Tax calculator](screens/sheet-tax-calculator.png) | ![Business tax](screens/sheet-business-tax.png) |
+
+| Categories | |
+|---|---|
+| ![Categories](screens/sheet-categories.png) | |
+
+**A saved debt does not survive a restart yet.** There is no storage layer in
+`app/` at all: the store is seeded in memory and every write on it, the debt
+included, is gone on the next cold start. The sheet says so in plain words when
+it saves rather than letting somebody find out the next morning. Local storage
+is its own migration step and lands with the Activity tab.
+
+Where each one hangs off Home:
+
+| Control on Home | Opens |
+|---|---|
+| The sparkle in the header | Philippine Toolkit, and the three tools behind it |
+| DETAILS, or the info dot, on the Safe to Spend hero | Safe to Spend Details |
+| The Debt quick action | Add a debt |
 
 Rendered by `app/test/shots/screens_shot.dart`. To regenerate:
 

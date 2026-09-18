@@ -142,6 +142,30 @@ class Debt {
   double get remaining => (totalAmount - paidAmount).clamp(0, double.infinity);
 }
 
+/// Which side of the ledger a category is for.
+enum CategoryKind { expense, income, both }
+
+class CategoryInfo {
+  const CategoryInfo({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.subcategories,
+    this.kind = CategoryKind.expense,
+    this.isCustom = false,
+  });
+
+  final String id;
+  final String name;
+
+  /// User-facing emoji. Deliberately NOT a Salapify icon: category icons are
+  /// the user's own choice and live in their backup file.
+  final String emoji;
+  final List<String> subcategories;
+  final CategoryKind kind;
+  final bool isCustom;
+}
+
 class Budget {
   const Budget({
     required this.category,
