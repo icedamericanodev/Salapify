@@ -20,6 +20,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/screens/debt/debt_calculators.dart';
 import 'package:salapify/screens/debt/debt_screen.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
@@ -994,4 +995,73 @@ void main() {
       matchesGoldenFile('out/sheet_debt_payment.png'),
     );
   });
+
+  // Four of the nine calculators, chosen because each shows a different SHAPE
+  // of answer: a plain amortisation, a rate-type comparison, a trap, and a
+  // ratio with words rather than pesos.
+  for (final ({String label, String slug}) calc
+      in <({String label, String slug})>[
+        (label: '', slug: 'pagibig'),
+        (label: 'Car loan', slug: 'car'),
+        (label: 'Credit card trap', slug: 'card'),
+        (label: 'Snowball or avalanche', slug: 'strategy'),
+      ]) {
+    testWidgets('calculator ${calc.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byType(DebtBeamCard),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DebtBeamCard),
+          matching: find.text('See all'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Work it out'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(DebtCalculators),
+        findsOneWidget,
+        reason: 'the calculators tab did not open',
+      );
+
+      if (calc.label.isNotEmpty) {
+        await tester.ensureVisible(find.text(calc.label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(calc.label));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(DebtScreen),
+        matchesGoldenFile('out/calculator_${calc.slug}.png'),
+      );
+    });
+  }
 }

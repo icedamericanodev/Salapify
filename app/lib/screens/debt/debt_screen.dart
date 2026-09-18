@@ -10,6 +10,7 @@ import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+import 'debt_calculators.dart';
 
 /// The debt register, both ways, from src/components/DebtScreen.tsx.
 ///
@@ -18,12 +19,10 @@ import '../../state/financial_state.dart';
 /// control rather than one list with the receivables tucked underneath.
 ///
 /// SCOPE, named rather than implied. The prototype's screen has three
-/// sections: Debts, Installments and Calculators. This is Debts, the one with
-/// the write path in it. `InstallmentsView` (565 lines, formal instalment
-/// plans with their own amortisation) and `DebtCalculatorsView` (1,339 lines,
-/// nine loan products) are their own batches; their ENGINES are already ported
-/// and vector-locked in core/money/loan.dart, loan_products.dart and
-/// debt_strategy.dart, so those batches are screen work on proven arithmetic.
+/// sections. Two are here: the register itself, which holds the write path,
+/// and the nine calculators. The third, `InstallmentsView` (565 lines, formal
+/// instalment plans with their own amortisation), is a later batch and is NOT
+/// offered as a third tab rather than being offered and empty.
 class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key, required this.state, this.onBack});
 
@@ -34,8 +33,13 @@ class DebtScreen extends StatefulWidget {
   State<DebtScreen> createState() => _DebtScreenState();
 }
 
+/// The prototype's two main sections. Its third, Installments, is a later
+/// batch and is not offered here rather than being offered and empty.
+enum _Section { debts, calculators }
+
 class _DebtScreenState extends State<DebtScreen> {
   DebtDirection _direction = DebtDirection.iOwe;
+  _Section _section = _Section.debts;
 
   @override
   Widget build(BuildContext context) {
@@ -52,55 +56,89 @@ class _DebtScreenState extends State<DebtScreen> {
         _Header(
           palette: p,
           onBack: widget.onBack,
-          onAdd: () => _openAdd(context, p),
+          onAdd: _section == _Section.debts ? () => _openAdd(context, p) : null,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            0,
+          ),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: _Tab(
+                  palette: p,
+                  label: 'What is owed',
+                  selected: _section == _Section.debts,
+                  onTap: () => setState(() => _section = _Section.debts),
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: _Tab(
+                  palette: p,
+                  label: 'Work it out',
+                  selected: _section == _Section.calculators,
+                  onTap: () => setState(() => _section = _Section.calculators),
+                ),
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               Spacing.lg,
-              Spacing.sm,
+              Spacing.md,
               Spacing.lg,
               Spacing.xl,
             ),
-            children: <Widget>[
-              _Beam(palette: p, debts: debts),
-              const SizedBox(height: Spacing.md),
-              _DirectionPicker(
-                palette: p,
-                current: _direction,
-                owe: outstanding(debts, DebtDirection.iOwe),
-                owed: outstanding(debts, DebtDirection.owedToMe),
-                onSelect: (DebtDirection d) => setState(() => _direction = d),
-              ),
-              const SizedBox(height: Spacing.lg),
-              if (split.open.isEmpty && split.settled.isEmpty)
-                _Empty(palette: p, direction: _direction)
-              else ...<Widget>[
-                for (final Debt d in split.open) ...<Widget>[
-                  _DebtCard(
-                    palette: p,
-                    debt: d,
-                    onPay: () => _openPayment(context, p, d),
-                    onSettle: () => widget.state.toggleDebtSettledById(d.id),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                ],
-                if (split.settled.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: Spacing.sm),
-                  Text('CLEARED', style: AppType.kicker(p)),
-                  const SizedBox(height: Spacing.sm),
-                  for (final Debt d in split.settled) ...<Widget>[
-                    _DebtCard(
+            children: _section == _Section.calculators
+                ? <Widget>[DebtCalculators(palette: p)]
+                : <Widget>[
+                    _Beam(palette: p, debts: debts),
+                    const SizedBox(height: Spacing.md),
+                    _DirectionPicker(
                       palette: p,
-                      debt: d,
-                      onPay: null,
-                      onSettle: () => widget.state.toggleDebtSettledById(d.id),
+                      current: _direction,
+                      owe: outstanding(debts, DebtDirection.iOwe),
+                      owed: outstanding(debts, DebtDirection.owedToMe),
+                      onSelect: (DebtDirection d) =>
+                          setState(() => _direction = d),
                     ),
-                    const SizedBox(height: Spacing.sm),
+                    const SizedBox(height: Spacing.lg),
+                    if (split.open.isEmpty && split.settled.isEmpty)
+                      _Empty(palette: p, direction: _direction)
+                    else ...<Widget>[
+                      for (final Debt d in split.open) ...<Widget>[
+                        _DebtCard(
+                          palette: p,
+                          debt: d,
+                          onPay: () => _openPayment(context, p, d),
+                          onSettle: () =>
+                              widget.state.toggleDebtSettledById(d.id),
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
+                      if (split.settled.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: Spacing.sm),
+                        Text('CLEARED', style: AppType.kicker(p)),
+                        const SizedBox(height: Spacing.sm),
+                        for (final Debt d in split.settled) ...<Widget>[
+                          _DebtCard(
+                            palette: p,
+                            debt: d,
+                            onPay: null,
+                            onSettle: () =>
+                                widget.state.toggleDebtSettledById(d.id),
+                          ),
+                          const SizedBox(height: Spacing.sm),
+                        ],
+                      ],
+                    ],
                   ],
-                ],
-              ],
-            ],
           ),
         ),
       ],
@@ -137,7 +175,7 @@ class _Header extends StatelessWidget {
 
   final Palette palette;
   final VoidCallback? onBack;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -173,29 +211,33 @@ class _Header extends StatelessWidget {
                 InfoSheet.show(context, palette, InfoTopic.debtBothWays),
           ),
           const Spacer(),
-          Semantics(
-            button: true,
-            label: 'Add a debt',
-            child: InkWell(
-              onTap: onAdd,
-              borderRadius: BorderRadius.circular(Radii.pill),
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(Icons.add, size: 16, color: palette.accent),
-                    const SizedBox(width: Spacing.xs),
-                    Text(
-                      'Add',
-                      style: AppType.button(palette, color: palette.accent),
-                    ),
-                  ],
+          // Hidden rather than disabled on the calculators tab. A greyed
+          // button invites a tap and then does nothing, which reads as a bug;
+          // an absent one reads as "not on this tab".
+          if (onAdd != null)
+            Semantics(
+              button: true,
+              label: 'Add a debt',
+              child: InkWell(
+                onTap: onAdd,
+                borderRadius: BorderRadius.circular(Radii.pill),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(Icons.add, size: 16, color: palette.accent),
+                      const SizedBox(width: Spacing.xs),
+                      Text(
+                        'Add',
+                        style: AppType.button(palette, color: palette.accent),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

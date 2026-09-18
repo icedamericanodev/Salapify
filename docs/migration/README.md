@@ -487,11 +487,35 @@ Two buttons that look similar and do deliberately different things:
 hatch, for somebody who settled in cash they never logged. The sheet says
 plainly that nothing will appear in Activity if they pick it.
 
-Still to come, each its own batch: `InstallmentsView` (565 lines, formal
-instalment plans) and `DebtCalculatorsView` (1,339 lines, nine loan products).
-Their engines are already ported and vector-locked in `core/money/loan.dart`,
-`loan_products.dart` and `debt_strategy.dart`, so both are screen work on
-arithmetic that is already proven.
+#### Work it out, the nine calculators
+
+The second half of the screen, built the same day from
+`src/components/DebtCalculatorsView.tsx`. Pag-IBIG housing, bank housing, car,
+SSS and Pag-IBIG salary, personal and digital lenders, the credit card
+minimum trap, consolidation, snowball against avalanche, and an affordability
+check.
+
+Every figure comes out of `core/money/loan.dart`, `loan_products.dart` or
+`debt_strategy.dart`, all ported and vector-locked in earlier batches. The
+screen does no arithmetic at all: it collects numbers, calls an engine and
+lays the answer out. That is why nine calculators landed in one pass without a
+single new money decision, and why its tests compute their expectations by
+calling the same engine rather than by writing figures out by hand.
+
+Each opens with the prototype's own defaults already filled in, so it answers
+something the moment it is opened instead of showing a page of empty boxes.
+
+| Pag-IBIG housing | Car loan |
+|---|---|
+| ![Pag-IBIG](screens/calculator-pagibig.png) | ![Car loan](screens/calculator-car.png) |
+
+| The credit card trap | Snowball against avalanche |
+|---|---|
+| ![Credit card](screens/calculator-card.png) | ![Strategy](screens/calculator-strategy.png) |
+
+Still to come: `InstallmentsView` (565 lines, formal instalment plans with
+their own amortisation). It is NOT offered as a third tab meanwhile, because
+an empty tab is worse than an absent one.
 
 ### Sheets
 
