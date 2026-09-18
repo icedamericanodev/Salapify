@@ -88,6 +88,20 @@ class Account {
   bool get isLiquid => liquidKinds.contains(kind);
 }
 
+/// What the ledger believes about an entry, from src/types.ts.
+///
+/// Only two of these change a number: `excluded` and `duplicate` are left OUT
+/// of the in and out totals, everything else counts. That is the prototype's
+/// rule and the reason this enum exists rather than a bool.
+enum TransactionStatus {
+  pending,
+  confirmed,
+  reconciled,
+  duplicate,
+  corrected,
+  excluded,
+}
+
 class Transaction {
   const Transaction({
     required this.id,
@@ -101,6 +115,10 @@ class Transaction {
     this.toAccountId,
     this.merchant,
     this.note,
+    this.person,
+    this.tags = const <String>[],
+    this.status = TransactionStatus.confirmed,
+    this.profile,
   });
 
   final String id;
@@ -118,6 +136,24 @@ class Transaction {
   final String? toAccountId;
   final String? merchant;
   final String? note;
+
+  /// Who the entry involves: Mom, Kuya Mark, a client, a vendor.
+  final String? person;
+  final List<String> tags;
+
+  /// Defaults to confirmed, matching the prototype, which reads `t.status ||
+  /// 'confirmed'` everywhere rather than storing it on every row.
+  final TransactionStatus status;
+
+  /// Stored here when the entry says so. Where it is null the app INFERS it
+  /// from the name, the way the prototype does; see FinancialState.profileOf.
+  final ProfileEntity? profile;
+
+  /// Left out of the in and out totals. The two states that mean "this is not
+  /// really money that moved".
+  bool get countsTowardTotals =>
+      status != TransactionStatus.excluded &&
+      status != TransactionStatus.duplicate;
 }
 
 class Debt {
