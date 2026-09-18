@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'design/app_theme.dart';
 import 'design/scroll_behavior.dart';
 import 'design/tokens.dart';
 import 'shell/app_shell.dart';
@@ -48,17 +49,7 @@ class _SalapifyAppState extends State<SalapifyApp> {
       debugShowCheckedModeBanner: false,
       // Drops Android's stretch overscroll. See scroll_behavior.dart for why.
       scrollBehavior: const SalapifyScrollBehavior(),
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'PlusJakartaSans',
-        scaffoldBackgroundColor: palette.background,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: palette.accent,
-          brightness: _state.theme == ThemeMode2.gabi
-              ? Brightness.dark
-              : Brightness.light,
-        ),
-      ),
+      theme: salapifyTheme(palette, _state.theme),
       home: AppShell(state: _state),
     );
   }

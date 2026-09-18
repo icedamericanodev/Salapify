@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/categories/category_manager_sheet.dart';
@@ -105,11 +106,7 @@ void main() {
             // Same scrolling feel as the shipped app, so the harness renders
             // what ships rather than a near miss.
             scrollBehavior: const SalapifyScrollBehavior(),
-            theme: ThemeData(
-              useMaterial3: true,
-              fontFamily: 'PlusJakartaSans',
-              scaffoldBackgroundColor: palette.background,
-            ),
+            theme: salapifyTheme(palette, state.theme),
             home: AppShell(state: state),
           ),
         );
@@ -164,11 +161,7 @@ void main() {
         MaterialApp(
           debugShowCheckedModeBanner: false,
           scrollBehavior: const SalapifyScrollBehavior(),
-          theme: ThemeData(
-            useMaterial3: true,
-            fontFamily: 'PlusJakartaSans',
-            scaffoldBackgroundColor: palette.background,
-          ),
+          theme: salapifyTheme(palette, state.theme),
           home: AppShell(state: state),
         ),
       );
@@ -219,11 +212,7 @@ void main() {
       MaterialApp(
         debugShowCheckedModeBanner: false,
         scrollBehavior: const SalapifyScrollBehavior(),
-        theme: ThemeData(
-          useMaterial3: true,
-          fontFamily: 'PlusJakartaSans',
-          scaffoldBackgroundColor: palette.background,
-        ),
+        theme: salapifyTheme(palette, state.theme),
         home: AppShell(state: state),
       ),
     );
