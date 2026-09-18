@@ -78,19 +78,22 @@ prototype, the port is wrong and the vector stands.
 | `philippineFinances.ts` | `ph_tax.dart` | SSS, PhilHealth, Pag-IBIG, TRAIN withholding, 13th month and its 90k exemption, freelance 8% vs graduated | 24 |
 | `businessTaxes.ts` | `business_tax.dart` | Sole prop and partnership, 8% / OSD / itemized / RCIT, VAT vs percentage tax, BIR form list | 14 |
 | `loanCalculators.ts` | `loan.dart` | Diminishing and flat add-on amortization, extra payments, balloons, DSR against the BSP bands | 18 |
+| `loanCalculators.ts` | `loan_products.dart` | Pag-IBIG, bank housing with its repricing stress test, car, salary, personal, business, debt consolidation | 16 |
+| `loanCalculators.ts` | `debt_strategy.dart` | The credit card minimum payment trap under the BSP 3% cap, snowball against avalanche | 12 |
+| `financialTruthEngine.ts` | `financial_truth.dart` | The control centre alerts, and the digital twin across eight shocks | 18 |
 
 ### Not ported yet, and named rather than implied
 
-- `financialTruthEngine.ts`: `runControlCenterScan`, `simulateDigitalTwin`,
-  `analyzeScamRisk`. Roughly 600 lines. These drive the Health Check surface,
-  which migrates with the screen that opens it.
-- `loanCalculators.ts` product wrappers: Pag-IBIG, bank housing, car, salary,
-  personal and business loans, debt consolidation, credit card payoff, and the
-  avalanche and snowball strategy simulator. All of them sit on top of
-  `calculateAmortization`, which IS ported and locked, so they are preset
-  plumbing rather than new math.
+- `financialTruthEngine.ts`: `analyzeScamRisk` and
+  `buildFinancialTruthMetadata`. Scam risk is keyword analysis over message
+  TEXT rather than money math, so it has no vectors to lock and nothing to
+  disagree with the ledger about. It migrates with the Health Check screen.
 - `philippineFinances.ts` helpers: remittance fee estimation, cash
   denomination counting, and the Taglish reminder text.
+- `generateInstallmentAmortization`: a two-line adapter that turns a stored
+  installment plan into a schedule. It needs the InstallmentPlan model the
+  Plan tab will bring, and `calculateAmortization` underneath it is already
+  locked.
 
 ### Quirks preserved on purpose
 
@@ -106,6 +109,18 @@ it, because changing a number nobody decided to change is the worse error:
 3. **The 13th month gross is rounded in one function and not the other.**
    `calculateEmployeeTaxDeductions` rounds it, `calculate13thMonthPay` does
    not. Making them agree would move a figure on a screen.
+4. **Job loss makes the runway look BETTER.** Survival mode cuts spending by a
+   quarter, and the runway only reads cash against spending, so it rises from
+   3.95 months to 5.27. The damage is in the buffer impact and net worth. Any
+   screen showing this scenario must not lead with the runway, or it will tell
+   somebody who just lost their job that things improved.
+5. **The credit card payoff schedule is thinned after month 36**, keeping every
+   sixth month, and `monthsToPayoff` is read off the last row KEPT. Once
+   thinning starts it can under-report by up to five months, so a screen should
+   say "about".
+6. **Consolidation compares against a flat 18 month estimate** of the existing
+   debts' interest, not a real payoff simulation, which flatters consolidation
+   whenever those debts would have cleared sooner.
 
 ## Brand mark
 
