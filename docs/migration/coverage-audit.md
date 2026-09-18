@@ -72,20 +72,20 @@ is a rough proxy for how much is in them.
 |---|---|---|
 | `CollaborationHub.tsx` | 1,548 | Shared spaces, members, roles, approvals, expense splits, audit log |
 | `PHBusinessStartupGuide.tsx` | 1,488 | Academy long-form guide: entities, roadmap, checklist, experts |
-| `DebtCalculatorsView.tsx` | 1,339 | Pag-IBIG and bank housing, car, salary, personal, business loans, consolidation, credit card payoff, DSR |
+| ~~`DebtCalculatorsView.tsx`~~ | 1,339 | PORTED 2026-09-18, all nine calculators |
 | `InvestmentsView.tsx` | 1,114 | Holdings, allocation, market data adapters, PH principles |
-| `AccountsScreen.tsx` | 986 | Tab 5: bank accounts, e-wallets, credit cards, mortgages, receivables, investments |
+| ~~`AccountsScreen.tsx`~~ | 986 | PORTED 2026-09-18, less the holdings tracker |
 | `RemindersModal.tsx` | 932 | Reminder settings, notification list, simulated triggers |
 | `SaaSAppStoreGuide.tsx` | 926 | Academy long-form guide, nested inside the startup guide |
 | `DigitalProductLaunchChecklist.tsx` | 833 | Academy long-form guide, nested inside the SaaS guide |
 | `PhilippineFeaturesModal.tsx` | 807 | Remittance, 13th month planner, payday routines, household ambag, cash count |
 | `BillsModal.tsx` | 747 | Bill list, add, edit, mark paid |
 | `YourSetupModal.tsx` | 594 | Profile, payday, starter packs, category manager entry |
-| `InstallmentsView.tsx` | 565 | Installment plans, payment recording, extra payments |
+| ~~`InstallmentsView.tsx`~~ | 565 | PORTED 2026-09-18, less the amortisation table |
 | `SettingsModal.tsx` | 528 | Theme, profile, data, reset |
 | `PanChatModal.tsx` | 500 | The AI mascot's chat |
 | `SplitBillModal.tsx` | 493 | Split a bill between people, settle it |
-| `DebtScreen.tsx` | 427 | Debt list screen (the app has `AddDebtModal` but not this) |
+| ~~`DebtScreen.tsx`~~ | 427 | PORTED 2026-09-18, with the payment write path |
 | `OnboardingFlow.tsx` | 370 | First run: name, payday, starter pack |
 | `HealthCheckModal.tsx` | 352 | Health insights against the user's numbers |
 | `SavingsInvestmentModal.tsx` | 317 | Savings and investment planner (5th calculator) |
@@ -257,12 +257,51 @@ sized to be one batch with its own render and its own tests.
 Steps 1 to 5 are the ones that finish the product as the prototype defines it.
 Steps 6 onward are the ones that make it a real app somebody else can install.
 
+### Progress against that order, 2026-09-18
+
+Steps 1, 2 and 3 are done. Accounts and its write paths, the debt register with
+its payment path, all nine loan calculators, and instalment plans. Every tab in
+the prototype now has a real screen, and the Debt screen carries all three of
+the prototype's own sections.
+
+**Step 4 is next**: Reports' Reconciliation tab, together with Activity's
+correction path, because both write the same adjustment.
+
+**Step 6, storage, is the one waiting on a founder decision**, and it has got
+more urgent with every batch: there is now a great deal somebody can enter
+(accounts, debts, payments, instalments, budgets, goals) and all of it is gone
+when the app closes.
+
 ## What this audit does NOT claim
 
 It checked presence and content, not correctness. A row marked ported means the
 feature and its content exist in `app/`, not that every number matches the
 prototype to the centavo. That guarantee comes from the golden vectors in
 `app/test/core/money/`, and it exists only for the engines that have them.
+
+### And a blind spot it had, found on 2026-09-18
+
+**It compared RECORD COUNTS, not FIELDS**, and that hid a real gap. The
+instalment seed is listed above as ported, three records against three, which
+was true and almost useless: `InstallmentPlan` in `app/` held four of its
+twenty two fields. Three stubs count the same as three plans. The provider,
+the principal, the rate, how the rate is quoted, the term, the maturity date,
+the running balance, the principal and interest split and the extra payment
+history were all absent while this file said the data had crossed over.
+
+That happened because the class had only ever been read by Safe to Spend,
+which needs a monthly amount and nothing else, so nothing was broken and
+nothing complained. It surfaced only when a screen was built that needed the
+rest.
+
+The lesson generalises past this one class: a count is the weakest possible
+check on a port. Anywhere this file says a data file is ported on the strength
+of a matching number of records, treat that as "the rows exist" and not as
+"the rows are complete". The remaining unported data files
+(`initialCollaborationData.ts`, `initialInvestments.ts`, `categoryPacks.ts`)
+carry no such risk, because they are absent rather than partial, but the
+models behind any FUTURE port should be diffed field by field against
+`src/types.ts` before the port is called done.
 
 It also did not judge the look of anything, deliberately, because the founder
 asked for features and content first and a redesign after.
