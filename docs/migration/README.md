@@ -106,3 +106,36 @@ it, because changing a number nobody decided to change is the worse error:
 3. **The 13th month gross is rounded in one function and not the other.**
    `calculateEmployeeTaxDeductions` rounds it, `calculate13thMonthPay` does
    not. Making them agree would move a figure on a screen.
+
+## Brand mark
+
+The founder supplied the logo on 2026-09-18: a ribbon "S" wrapped around a peso
+coin, with a small bar chart, on a teal and navy plate. The artwork is theirs
+and is unchanged. Only the COLOUR was brought onto the Salapify palette, since
+teal sits on the opposite side of the wheel from Hapon and Gabi.
+
+Recoloured by mapping LUMINANCE onto real palette colours rather than tinting.
+The mark has three tonal layers (dark plate, mid ghost strokes, near-white
+ribbons) and a tint flattens them into mud; a ramp keeps every offset stroke,
+every anti-aliased edge, and the plate's own diagonal gradient.
+
+| | |
+|---|---|
+| Original, then rust, Gabi and hero variants | ![variants](screens/logo-variants.png) |
+| The shipped icon on both theme backgrounds | ![on both themes](screens/logo-on-both-themes.png) |
+
+**Rust ships.** It carries Hapon's accent `#B03C09`, and it holds the most
+contrast between plate and ribbon, which is what decides whether an icon still
+reads at 48dp. The Gabi variant is the closest runner-up. The hero variant is
+the weakest: cream ribbons on amber lose contrast at small sizes.
+
+Where it is used:
+
+    android/.../mipmap-*/ic_launcher.png     the launcher icon, five densities
+    android/.../drawable-*/launch_image.png  the launch screen, five densities
+    app/assets/brand/salapify_logo.png       in app, currently the Home header
+
+The launch screen also stopped being white. It now uses Salapify's own
+background, resolved per theme through `values/colors.xml` and
+`values-night/colors.xml`, so opening the app at night no longer starts with a
+white flash.

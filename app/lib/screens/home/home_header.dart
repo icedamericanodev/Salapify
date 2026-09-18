@@ -76,7 +76,7 @@ class HomeHeader extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _LogoMark(palette: palette),
+                const _LogoMark(),
                 const SizedBox(width: Spacing.sm),
                 Text(
                   'Salapify',
@@ -170,29 +170,31 @@ class HomeHeader extends StatelessWidget {
   }
 }
 
-/// The app mark. A drawn monogram rather than a bitmap: the prototype loads
-/// logo.png, and shipping a placeholder image would be a worse lie than a
-/// shape that is obviously the app's own initial.
+/// The app mark, the founder's own artwork recoloured to the Salapify palette.
+///
+/// This was a drawn "S" monogram while no logo existed, on the grounds that a
+/// placeholder bitmap would be a worse lie than an obvious stand-in. The real
+/// mark exists now, so the stand-in is gone.
+///
+/// 28 rather than 26: the ribbon strokes are fine and the peso sits inside
+/// them, and two extra pixels is the difference between reading as the logo
+/// and reading as a smudge.
 class _LogoMark extends StatelessWidget {
-  const _LogoMark({required this.palette});
-
-  final Palette palette;
+  const _LogoMark();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 26,
-      height: 26,
-      decoration: BoxDecoration(color: palette.accent, shape: BoxShape.circle),
-      alignment: Alignment.center,
-      child: Text(
-        'S',
-        style: TextStyle(
-          fontSize: 15,
-          height: 1,
-          fontWeight: FontWeight.w900,
-          color: palette.onAccent,
-        ),
+    return ClipRRect(
+      // Matches the squircle baked into the artwork, so the corners do not
+      // get clipped twice into a harder shape than the icon has.
+      borderRadius: BorderRadius.circular(8),
+      child: Image.asset(
+        'assets/brand/salapify_logo.png',
+        width: 28,
+        height: 28,
+        // The mark carries its own plate, so it must not be tinted by the
+        // theme. It is the one thing on this screen that stays put.
+        filterQuality: FilterQuality.medium,
       ),
     );
   }

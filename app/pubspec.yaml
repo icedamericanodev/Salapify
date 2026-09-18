@@ -64,6 +64,7 @@ flutter:
   # screenshot harness renders glyphs a person can read instead of boxes.
   assets:
     - assets/fonts/
+    - assets/brand/
 
   fonts:
     - family: PlusJakartaSans
