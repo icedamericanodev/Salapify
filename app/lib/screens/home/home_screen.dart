@@ -2,11 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
 import '../../state/financial_state.dart';
+import 'ask_pan_button.dart';
+import 'budget_pulse_card.dart';
+import 'coming_up_card.dart';
+import 'debt_beam_card.dart';
 import 'hero_panel.dart';
-import 'home_cards.dart';
+import 'home_header.dart';
+import 'latest_transactions.dart';
+import 'quick_actions.dart';
+import 'reminders_banner.dart';
 
-/// Home, the prototype's first tab. The card order follows App.tsx: hero,
-/// quick actions, debts, coming up, budget pulse, latest.
+/// Home, the prototype's first tab.
+///
+/// The card order is App.tsx's, not a preference: hero, budget pulse, quick
+/// actions, reminders, debts, coming up, latest. An earlier pass reordered it
+/// by guesswork and the founder spotted it against the real screens.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.state});
 
@@ -16,144 +26,103 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final Palette palette = Palette.of(state.theme);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.lg,
-        Spacing.md,
-        Spacing.lg,
-        Spacing.xxl,
-      ),
+    return Stack(
       children: <Widget>[
-        _Header(state: state),
-        const SizedBox(height: Spacing.lg),
-        HeroPanel(state: state),
-        const SizedBox(height: Spacing.md),
-        _QuickActions(palette: palette),
-        const SizedBox(height: Spacing.md),
-        DebtBeamCard(state: state),
-        const SizedBox(height: Spacing.md),
-        ComingUpCard(state: state),
-        const SizedBox(height: Spacing.md),
-        BudgetPulseCard(state: state),
-        const SizedBox(height: Spacing.md),
-        LatestTransactionsCard(state: state),
+        ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            // Clears the floating Ask Pan button, so the last card is never
+            // stuck underneath it.
+            88,
+          ),
+          children: <Widget>[
+            HomeHeader(
+              state: state,
+              onOpenToolkit: () =>
+                  _soon(context, palette, 'The Philippine toolkit'),
+              onOpenCollaboration: () =>
+                  _soon(context, palette, 'Collaboration'),
+              onOpenReminders: () => _soon(context, palette, 'Reminders'),
+              onOpenSettings: () => _soon(context, palette, 'Settings'),
+            ),
+            const SizedBox(height: Spacing.md),
+            HeroPanel(
+              state: state,
+              onOpenDetails: () =>
+                  _soon(context, palette, 'Safe to Spend details'),
+              onOpenHealthCheck: () => _soon(context, palette, 'Health Check'),
+              onInfo: () =>
+                  _soon(context, palette, 'The Safe to Spend explainer'),
+            ),
+            const SizedBox(height: Spacing.md),
+            BudgetPulseCard(
+              state: state,
+              onSeeAll: () => _soon(context, palette, 'The Plan tab'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            QuickActions(
+              palette: palette,
+              onLog: () => _soon(context, palette, 'The Log sheet'),
+              onDebt: () => _soon(context, palette, 'Debts'),
+              onBills: () => _soon(context, palette, 'Bills'),
+              onMove: () => _soon(context, palette, 'Move'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            RemindersBanner(
+              palette: palette,
+              onTest: () => _soon(context, palette, 'Alert testing'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            DebtBeamCard(
+              state: state,
+              onSeeAll: () => _soon(context, palette, 'Debts'),
+              onInfo: () => _soon(context, palette, 'The debt explainer'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            ComingUpCard(
+              state: state,
+              onManage: () => _soon(context, palette, 'Bills'),
+              onInfo: () => _soon(context, palette, 'The Coming Up explainer'),
+              onAddItem: () =>
+                  _soon(context, palette, 'Adding an upcoming item'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            LatestTransactions(
+              state: state,
+              onSeeAll: () => _soon(context, palette, 'The Activity tab'),
+            ),
+          ],
+        ),
+        Positioned(
+          right: Spacing.lg,
+          bottom: Spacing.lg,
+          child: AskPanButton(
+            palette: palette,
+            onTap: () => _soon(context, palette, 'Pan'),
+          ),
+        ),
       ],
     );
   }
-}
 
-/// The greeting row, with the theme switch on the right.
-class _Header extends StatelessWidget {
-  const _Header({required this.state});
-
-  final FinancialState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final Palette palette = Palette.of(state.theme);
-    final bool isNight = state.theme == ThemeMode2.gabi;
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Salapify',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  color: palette.textPrimary,
-                ),
-              ),
-              Text(
-                isNight ? 'Gabi' : 'Hapon',
-                style: TextStyle(fontSize: 12, color: palette.textMuted),
-              ),
-            ],
+  /// Every control on this screen is real and reachable. The destinations
+  /// behind most of them are later migration steps, so a tap says so rather
+  /// than doing nothing: a dead button is indistinguishable from a bug.
+  void _soon(BuildContext context, Palette palette, String what) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '$what is not migrated yet.',
+            style: TextStyle(color: palette.onAccent),
           ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
         ),
-        Semantics(
-          button: true,
-          label: isNight ? 'Switch to the Hapon theme' : 'Switch to the Gabi theme',
-          child: IconButton(
-            // IconButton already reserves a 48dp target.
-            onPressed: state.toggleTheme,
-            icon: Icon(
-              isNight ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              color: palette.accent,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The four shortcuts under the hero.
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.palette});
-
-  final Palette palette;
-
-  static const List<({String label, IconData icon})> _actions =
-      <({String label, IconData icon})>[
-    (label: 'Transfer', icon: Icons.swap_horiz),
-    (label: 'Bills', icon: Icons.receipt_long_outlined),
-    (label: 'Split', icon: Icons.call_split),
-    (label: 'Debt', icon: Icons.handshake_outlined),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        for (final ({String label, IconData icon}) action in _actions)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
-              child: Semantics(
-                button: true,
-                child: Material(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(Radii.control),
-                  child: InkWell(
-                    // Wired up as each feature lands, following the tab order.
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(Radii.control),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 64),
-                      padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(Radii.control),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(action.icon, size: 18, color: palette.accent),
-                          const SizedBox(height: 4),
-                          Text(
-                            action.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: palette.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+      );
   }
 }

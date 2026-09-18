@@ -29,6 +29,11 @@ const Set<AccountKind> liquidKinds = <AccountKind>{
 
 enum DebtDirection { iOwe, owedToMe }
 
+/// Which side of a person's life a row belongs to. The prototype INFERS this
+/// from the item's name rather than storing it, so the inference lives in one
+/// place (see FinancialState.profileOf) and this enum is only the vocabulary.
+enum ProfileEntity { personal, household, business, sideHustle }
+
 enum DecisionScenario { conservative, optimistic }
 
 /// The seven income shapes the prototype recognises. The names map one to one
@@ -178,6 +183,7 @@ class UpcomingItem {
     required this.type,
     this.isIncome = false,
     this.isPaid = false,
+    this.category,
   });
 
   final String id;
@@ -190,6 +196,13 @@ class UpcomingItem {
   final UpcomingItemType type;
   final bool isIncome;
   final bool isPaid;
+
+  /// Feeds the profile inference alongside the name.
+  final String? category;
+
+  /// Payday counts as income even when the flag is not set, which is the rule
+  /// the prototype applies everywhere it splits inflow from outflow.
+  bool get countsAsIncome => isIncome || type == UpcomingItemType.payday;
 }
 
 class PaydayCycle {

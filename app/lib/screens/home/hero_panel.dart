@@ -8,11 +8,22 @@ import '../../state/financial_state.dart';
 /// The Safe to Spend hero, ported from src/components/HeroPanel.tsx.
 ///
 /// It keeps its warm gradient in both themes, exactly as the prototype does,
-/// and lays a soft dark veil over it at night instead of inverting.
+/// and lays a soft dark veil over it at night instead of inverting. Every
+/// label on it is drawn in one of two browns, because the gradient underneath
+/// does not change between Hapon and Gabi.
 class HeroPanel extends StatelessWidget {
-  const HeroPanel({super.key, required this.state});
+  const HeroPanel({
+    super.key,
+    required this.state,
+    this.onOpenDetails,
+    this.onOpenHealthCheck,
+    this.onInfo,
+  });
 
   final FinancialState state;
+  final VoidCallback? onOpenDetails;
+  final VoidCallback? onOpenHealthCheck;
+  final VoidCallback? onInfo;
 
   @override
   Widget build(BuildContext context) {
@@ -49,16 +60,23 @@ class HeroPanel extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.md,
+              Spacing.lg,
+              Spacing.lg,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _kickerRow(context),
-                const SizedBox(height: Spacing.sm),
+                _kickerRow(),
+                _toolRow(),
                 Text(
                   formatPeso(state.safeToSpend),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 38,
+                    fontSize: 36,
                     height: 1.1,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.8,
@@ -68,7 +86,7 @@ class HeroPanel extends StatelessWidget {
                 const SizedBox(height: Spacing.xs),
                 Text(
                   '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday. '
-                  'Lasts ${analysis.cashRunwayDays} days.',
+                  '· Lasts ${analysis.cashRunwayDays} days',
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -76,10 +94,44 @@ class HeroPanel extends StatelessWidget {
                     color: HeroColors.ink,
                   ),
                 ),
-                const SizedBox(height: Spacing.lg),
-                _sweldoRail(progress),
+                const SizedBox(height: Spacing.md),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 5,
+                    backgroundColor: HeroColors.ink.withValues(alpha: 0.22),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      HeroColors.ink,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: Spacing.sm),
-                _railLabels(payday),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        '${payday.daysToPayday} days to payday',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: HeroColors.ink,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.sm),
+                    Text(
+                      '${payday.lastPayday} to ${payday.nextPayday.split(',').first}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: HeroColors.ink,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -88,27 +140,28 @@ class HeroPanel extends StatelessWidget {
     );
   }
 
-  Widget _kickerRow(BuildContext context) {
-    final bool isConservative =
-        state.scenario == DecisionScenario.conservative;
+  Widget _kickerRow() {
+    final bool isConservative = state.scenario == DecisionScenario.conservative;
 
-    return Row(
+    // A Wrap rather than a Row. At 320dp the label, the scenario chip and the
+    // info button together need more width than the card has, and a Row
+    // overflows instead of giving way. Wrapping lets the chip drop to a second
+    // line on a small phone and changes nothing on a normal one.
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
-        const Flexible(
-          child: Text(
-            'SAFE TO SPEND',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
-              color: HeroColors.ink,
-            ),
+        const Text(
+          'SAFE TO SPEND',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.1,
+            color: HeroColors.ink,
           ),
         ),
         const SizedBox(width: Spacing.sm),
-        // Tapping the badge flips the scenario, which is the prototype's
-        // conservative / optimistic switch.
+        // Tapping the chip flips the scenario, the prototype's conservative
+        // and optimistic switch.
         Semantics(
           button: true,
           label: 'Switch decision scenario',
@@ -119,74 +172,139 @@ class HeroPanel extends StatelessWidget {
                   : DecisionScenario.conservative,
             ),
             borderRadius: BorderRadius.circular(Radii.pill),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isConservative
-                      ? HeroColors.ink
-                      : HeroColors.ink.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  isConservative ? 'CONSERVATIVE' : 'OPTIMISTIC',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: isConservative
-                        ? const Color(0xFFFFEEDF)
-                        : HeroColors.ink,
+            // Center with widthFactor 1 is the point. A Container carrying an
+            // `alignment` expands to every pixel its parent allows, which in a
+            // Row went unnoticed (children get unbounded width there) and in a
+            // Wrap made the chip claim a whole line to itself. widthFactor
+            // shrink-wraps it back to the chip.
+            child: SizedBox(
+              height: 44,
+              child: Center(
+                widthFactor: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: HeroColors.ink.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isConservative ? 'CONSERVATIVE' : 'OPTIMISTIC',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: HeroColors.ink,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _sweldoRail(double progress) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Radii.pill),
-      child: LinearProgressIndicator(
-        value: progress,
-        minHeight: 5,
-        backgroundColor: HeroColors.ink.withValues(alpha: 0.22),
-        valueColor: const AlwaysStoppedAnimation<Color>(HeroColors.ink),
-      ),
-    );
-  }
-
-  Widget _railLabels(PaydayCycle payday) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        Flexible(
-          child: Text(
-            '${payday.daysToPayday} days to payday',
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: HeroColors.ink,
+        Semantics(
+          button: true,
+          label: 'How Safe to Spend is calculated',
+          child: InkWell(
+            onTap: onInfo,
+            customBorder: const CircleBorder(),
+            child: const SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(Icons.info_outline, size: 15, color: HeroColors.ink),
             ),
           ),
         ),
-        const SizedBox(width: Spacing.sm),
-        Text(
-          '${payday.lastPayday} to ${payday.nextPayday.split(',').first}',
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: HeroColors.ink,
+      ],
+    );
+  }
+
+  /// Health Check and Details, the two ways off this card. Wrapped for the
+  /// same reason as the kicker: both labels are set in caps and do not fit
+  /// beside each other on a 320dp phone.
+  Widget _toolRow() {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        _HeroTool(
+          icon: Icons.monitor_heart_outlined,
+          label: 'HEALTH CHECK',
+          onTap: onOpenHealthCheck,
+          // The dot is the diagnostic's own verdict. Until the health engine
+          // is migrated it stays a single neutral-to-warning marker rather
+          // than a green light nobody computed.
+          trailing: Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB91C1C),
+              shape: BoxShape.circle,
+            ),
           ),
         ),
+        const SizedBox(width: Spacing.md),
+        _HeroTool(
+          icon: Icons.auto_awesome,
+          label: 'DETAILS',
+          onTap: onOpenDetails,
+        ),
       ],
+    );
+  }
+}
+
+class _HeroTool extends StatelessWidget {
+  const _HeroTool({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.pill),
+        // Height fixed, width left to the child. Giving this an `alignment`
+        // instead made it expand to the full width of the Wrap, so each tool
+        // took a line of its own.
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 13, color: HeroColors.ink),
+              const SizedBox(width: Spacing.xs),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  color: HeroColors.ink,
+                ),
+              ),
+              if (trailing != null) ...<Widget>[
+                const SizedBox(width: Spacing.xs),
+                trailing!,
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

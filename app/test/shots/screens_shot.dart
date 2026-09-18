@@ -45,58 +45,82 @@ Future<void> loadRealFonts() async {
 }
 
 void main() {
+  // Two surfaces per theme, and both earn their place.
+  //
+  // The PHONE size is the honest one: it is what the founder holds, and it is
+  // the only one that can show a card being cut off or a control sitting under
+  // the tab bar.
+  //
+  // The FULL one is tall enough to fit the whole scroll in a single image. Home
+  // is now several screens long, so reviewing it phone-sized means sending
+  // three pictures and hoping they are read in order. This is the surface the
+  // founder actually compares against the prototype.
+  const List<({String suffix, Size size})> surfaces =
+      <({String suffix, Size size})>[
+        (suffix: '', size: Size(1170, 2532)),
+        // Tall enough for the whole scroll with very little dead space below
+        // it. Raise it when Home grows; a render that cuts the last card off
+        // is worse than one with a margin.
+        (suffix: '_full', size: Size(1170, 6000)),
+      ];
+
   for (final ThemeMode2 mode in ThemeMode2.values) {
-    final String name = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
 
-    testWidgets('home renders in $name', (WidgetTester tester) async {
-      await tester.runAsync(loadRealFonts);
+    for (final ({String suffix, Size size}) surface in surfaces) {
+      final String name = '$theme${surface.suffix}';
 
-      tester.view.physicalSize = const Size(1170, 2532);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets('home renders in $name', (WidgetTester tester) async {
+        await tester.runAsync(loadRealFonts);
 
-      // The palette is read during build, so the theme is set BEFORE pumping.
-      final FinancialState state =
-          FinancialState(clock: DateTime.utc(2026, 9, 18));
-      if (state.theme != mode) state.toggleTheme();
-      final Palette palette = Palette.of(state.theme);
+        tester.view.physicalSize = surface.size;
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      // The FULL shell, tab bar and all, not a bare screen.
-      //
-      // This harness used to render HomeScreen on its own, and that is exactly
-      // how it missed a bug that made the app unusable: the tab bar's Column
-      // grew to the whole window, the body was laid out at zero height, and
-      // Home showed nothing at all on a real device. The render looked perfect
-      // the entire time, because the thing at fault was the part it left out.
-      // A harness that renders something the user never sees proves nothing.
-      await tester.pumpWidget(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          // Same scrolling feel as the shipped app, so the harness renders
-          // what ships rather than a near miss.
-          scrollBehavior: const SalapifyScrollBehavior(),
-          theme: ThemeData(
-            useMaterial3: true,
-            fontFamily: 'PlusJakartaSans',
-            scaffoldBackgroundColor: palette.background,
+        // The palette is read during build, so the theme is set BEFORE pumping.
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        // The FULL shell, tab bar and all, not a bare screen.
+        //
+        // This harness used to render HomeScreen on its own, and that is exactly
+        // how it missed a bug that made the app unusable: the tab bar's Column
+        // grew to the whole window, the body was laid out at zero height, and
+        // Home showed nothing at all on a real device. The render looked perfect
+        // the entire time, because the thing at fault was the part it left out.
+        // A harness that renders something the user never sees proves nothing.
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            // Same scrolling feel as the shipped app, so the harness renders
+            // what ships rather than a near miss.
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: ThemeData(
+              useMaterial3: true,
+              fontFamily: 'PlusJakartaSans',
+              scaffoldBackgroundColor: palette.background,
+            ),
+            home: AppShell(state: state),
           ),
-          home: AppShell(state: state),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Guard the same defect directly: the body must have real height.
-      expect(
-        tester.getSize(find.byType(HomeScreen)).height,
-        greaterThan(200),
-        reason: 'the shell collapsed the body, so this render shows nothing',
-      );
+        // Guard the same defect directly: the body must have real height.
+        expect(
+          tester.getSize(find.byType(HomeScreen)).height,
+          greaterThan(200),
+          reason: 'the shell collapsed the body, so this render shows nothing',
+        );
 
-      await expectLater(
-        find.byType(AppShell),
-        matchesGoldenFile('out/home_$name.png'),
-      );
-    });
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/home_$name.png'),
+        );
+      });
+    }
   }
 }

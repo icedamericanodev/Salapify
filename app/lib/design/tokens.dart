@@ -22,12 +22,19 @@ class Palette {
     required this.onAccent,
     required this.accentSoft,
     required this.positive,
+    required this.positiveSoft,
     required this.negative,
+    required this.negativeSoft,
     required this.warning,
+    required this.warningSoft,
+    required this.iconTile,
+    required this.trackSoft,
   });
 
   final Color background;
   final Color surface;
+
+  /// A second surface, used where a card sits on a card.
   final Color surfaceAlt;
   final Color border;
   final Color borderStrong;
@@ -40,26 +47,41 @@ class Palette {
   /// theme puts white on a deep rust, the dark theme puts near-black on amber.
   final Color onAccent;
   final Color accentSoft;
+
   final Color positive;
+  final Color positiveSoft;
   final Color negative;
+  final Color negativeSoft;
   final Color warning;
+  final Color warningSoft;
+
+  /// The tinted square behind a small leading icon.
+  final Color iconTile;
+
+  /// The unfilled part of a progress rail.
+  final Color trackSoft;
 
   /// Hapon, the daylight theme.
   static const Palette hapon = Palette(
-    background: Color(0xFFFFF9F3),
+    background: Color(0xFFFDEFE2),
     surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFFFEEDF),
+    surfaceAlt: Color(0xFFFFFDF9),
     border: Color(0xFFF3DFCD),
     borderStrong: Color(0xFFF0D5C0),
     textPrimary: Color(0xFF15120F),
     textSecondary: Color(0xFF5A5148),
-    textMuted: Color(0xFF6B6156),
+    textMuted: Color(0xFF7A6E63),
     accent: Color(0xFFB03C09),
     onAccent: Color(0xFFFFFFFF),
     accentSoft: Color(0xFFFFEEDF),
     positive: Color(0xFF16643F),
-    negative: Color(0xFF9E2C1B),
-    warning: Color(0xFFB45309),
+    positiveSoft: Color(0xFFD9F2E4),
+    negative: Color(0xFFB03C09),
+    negativeSoft: Color(0xFFFCE3DE),
+    warning: Color(0xFF92400E),
+    warningSoft: Color(0xFFFBBF24),
+    iconTile: Color(0xFFFFEEDF),
+    trackSoft: Color(0xFFFFEEDF),
   );
 
   /// Gabi, the night theme.
@@ -71,13 +93,18 @@ class Palette {
     borderStrong: Color(0xFF332A22),
     textPrimary: Color(0xFFF6EFE8),
     textSecondary: Color(0xFFC6B8AC),
-    textMuted: Color(0xFFAC9E92),
+    textMuted: Color(0xFFA89A8D),
     accent: Color(0xFFFF9A52),
     onAccent: Color(0xFF1E0E03),
     accentSoft: Color(0xFF2A221C),
     positive: Color(0xFF5FCB8E),
-    negative: Color(0xFFF08A72),
+    positiveSoft: Color(0xFF17352A),
+    negative: Color(0xFFFF9A52),
+    negativeSoft: Color(0xFF3A241C),
     warning: Color(0xFFF0B24A),
+    warningSoft: Color(0xFF4A3410),
+    iconTile: Color(0xFF2A221C),
+    trackSoft: Color(0xFF14100D),
   );
 
   static Palette of(ThemeMode2 mode) =>
@@ -120,5 +147,6 @@ class Radii {
 
   static const double card = 24;
   static const double control = 16;
+  static const double tile = 12;
   static const double pill = 999;
 }
