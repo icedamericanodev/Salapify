@@ -200,6 +200,7 @@ void main() {
       'Position',
       'Performance',
       'Cash flow',
+      'Check',
     ]) {
       final String slug = subTab.toLowerCase().replaceAll(' ', '_');
 
@@ -1066,6 +1067,44 @@ void main() {
       );
     });
   }
+
+  // Reconciliation with a GAP on it, which is the state worth reviewing: the
+  // default shot shows an untouched form, and the whole point of the screen is
+  // what it says when the two numbers disagree.
+  testWidgets('reports check with a gap renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 5200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '1600');
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/reports_check_gap.png'),
+    );
+  });
 
   // The instalment plans, at both brightnesses, and the two sheets.
   for (final ThemeMode2 mode in ThemeMode2.values) {

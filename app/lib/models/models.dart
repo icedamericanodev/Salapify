@@ -236,6 +236,31 @@ class Transaction {
   bool get countsTowardTotals =>
       status != TransactionStatus.excluded &&
       status != TransactionStatus.duplicate;
+
+  /// The same entry with a different status on it.
+  ///
+  /// STATUS ONLY, deliberately narrow. Marking something a duplicate changes
+  /// what it MEANS to every total without changing a peso of it, and that is
+  /// the only correction Salapify offers on a logged entry today. A general
+  /// copyWith here would invite a caller to quietly change an amount, which is
+  /// the one thing a ledger must never let anybody do without a trace.
+  Transaction withStatus(TransactionStatus next) => Transaction(
+    id: id,
+    type: type,
+    amount: amount,
+    category: category,
+    accountId: accountId,
+    date: date,
+    createdAt: createdAt,
+    subcategory: subcategory,
+    toAccountId: toAccountId,
+    merchant: merchant,
+    note: note,
+    person: person,
+    tags: tags,
+    status: next,
+    profile: profile,
+  );
 }
 
 /// Whether a debt has a schedule or is paid whenever there is money.

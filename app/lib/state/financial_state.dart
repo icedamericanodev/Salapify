@@ -6,6 +6,7 @@ import '../core/money/debt.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
 import '../core/money/plan.dart';
+import '../core/money/reconciliation.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 
@@ -42,6 +43,12 @@ class FinancialState extends ChangeNotifier {
 
   /// Mutable now that the Installments screen can pay one.
   late List<InstallmentPlan> _installments;
+
+  /// Reconciliations recorded this session. Starts empty rather than seeded:
+  /// the prototype seeds one, and a history row claiming somebody checked an
+  /// account they have never opened is a small lie in the one place whose
+  /// whole job is to be trustworthy.
+  List<ReconciliationRecord> _reconciliations = const <ReconciliationRecord>[];
 
   ThemeMode2 _theme = ThemeMode2.gabi;
   DecisionScenario _scenario = DecisionScenario.conservative;
@@ -236,6 +243,95 @@ class FinancialState extends ChangeNotifier {
       logTransaction(entry);
       return;
     }
+    notifyListeners();
+  }
+
+  /// Everything reconciled so far, newest first.
+  List<ReconciliationRecord> get reconciliations =>
+      List<ReconciliationRecord>.unmodifiable(_reconciliations);
+
+  /// Records that an account was checked against a statement.
+  ///
+  /// This alone moves NO money. It is the note in the margin saying somebody
+  /// looked, and it is worth keeping even when the two agreed: "we checked on
+  /// the 18th and it matched" is exactly what you want to find when the
+  /// figures stop matching in November.
+  void recordReconciliation({
+    required String accountId,
+    required double bookBalance,
+    required double actualBalance,
+    String? notes,
+    String? adjustmentTxId,
+  }) {
+    final double variance = varianceOf(bookBalance, actualBalance);
+    _reconciliations = <ReconciliationRecord>[
+      ReconciliationRecord(
+        id: 'rec_${DateTime.now().microsecondsSinceEpoch}',
+        accountId: accountId,
+        date: isoDate(now),
+        bookBalance: bookBalance,
+        actualBalance: actualBalance,
+        variance: adjustmentTxId != null ? 0 : variance,
+        balanced: adjustmentTxId != null || isBalanced(variance),
+        notes: notes,
+        adjustmentTxId: adjustmentTxId,
+        createdAt: now.millisecondsSinceEpoch,
+      ),
+      ..._reconciliations,
+    ];
+    notifyListeners();
+  }
+
+  /// Closes a gap by POSTING AN ENTRY, never by editing the balance.
+  ///
+  /// The account still moves, but it moves the ordinary way, through
+  /// logTransaction, so its history explains its own balance afterwards.
+  /// Setting the number to match the statement would leave an account whose
+  /// entries do not add up to it, which for anybody who keeps books is worse
+  /// than the discrepancy they started with.
+  void postReconciliationAdjustment({
+    required String accountId,
+    required double actualBalance,
+    String? note,
+  }) {
+    final int i = _accounts.indexWhere((Account a) => a.id == accountId);
+    if (i < 0) return;
+    final Account account = _accounts[i];
+    final double book = bookBalanceOf(account);
+    final double variance = varianceOf(book, actualBalance);
+    if (isBalanced(variance)) return;
+
+    final Transaction? entry = adjustmentEntry(
+      account: account,
+      variance: variance,
+      today: now,
+      id: 'tx_recon_${DateTime.now().microsecondsSinceEpoch}',
+      note: note,
+    );
+    if (entry == null) return;
+
+    logTransaction(entry);
+    recordReconciliation(
+      accountId: accountId,
+      bookBalance: book,
+      actualBalance: actualBalance,
+      notes:
+          'Traceable adjustment posted: '
+          '${note?.trim().isNotEmpty == true ? note!.trim() : 'Statement balance alignment'}',
+      adjustmentTxId: entry.id,
+    );
+  }
+
+  /// Changes one entry's status, the Activity correction path.
+  ///
+  /// No money moves. What changes is whether the entry COUNTS: excluded and
+  /// duplicate entries are left out of every total, so marking one is how a
+  /// person says "the app is right that this happened, and wrong that it is
+  /// mine".
+  void setTransactionStatus(String id, TransactionStatus status) {
+    final int i = _transactions.indexWhere((Transaction t) => t.id == id);
+    if (i < 0 || _transactions[i].status == status) return;
+    _transactions = applyStatusChange(_transactions, id, status);
     notifyListeners();
   }
 

@@ -397,6 +397,41 @@ business registration, the SaaS and app store guide, the digital product
 checklist), about 3,200 lines of written guidance between them. The card says
 so rather than offering a button that opens nothing.
 
+#### Check, the reconciliation tab
+
+Reports' fourth tab, built 2026-09-18, and the only one that WRITES. Every
+other report reads; this one puts Salapify's number next to the bank's and
+asks what to do when they differ.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Check, Gabi](screens/reports-check-gabi.png) | ![Check, Hapon](screens/reports-check-hapon.png) |
+
+And with a gap on it, which is the state worth reviewing:
+
+![A gap](screens/reports-check-gap.png)
+
+**It never quietly changes the balance.** A gap is closed by posting a
+traceable entry, so the account moves for a reason that appears in Activity
+and can be found again in a year. Setting the number to match the statement
+would leave an account whose own history does not add up to its balance,
+which for anybody who keeps books is worse than the discrepancy they started
+with. A journey test walks to Activity afterwards and asserts the entry is
+genuinely there.
+
+A positive gap is filed as found cash and a negative one as a write-off. Both
+categories already existed in the app's list, so an adjustment lands somewhere
+Reports and Budgets can see it.
+
+The duplicate finder is a SUGGESTION and never an action. It says so on the
+card, before the button: two identical jeepney fares on one day are two real
+fares, and only the person who spent the money knows which. Marking one is
+the Activity correction path, and it changes what the entry MEANS to every
+total without moving a peso.
+
+Not ported with it: the prototype's CSV export, which needs a file-writing
+layer `app/` does not have.
+
 ### Accounts
 
 The fifth and last tab, built 2026-09-18 from `src/components/AccountsScreen.tsx`

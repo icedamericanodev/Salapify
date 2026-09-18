@@ -10,6 +10,7 @@ import '../../features/shared/sheet_scaffold.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'category_bar.dart';
+import 'reconciliation_view.dart';
 
 /// Reports, the prototype's third tab, from src/components/ReportsScreen.tsx.
 ///
@@ -38,7 +39,7 @@ class ReportsScreen extends StatefulWidget {
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-enum _ReportTab { position, performance, cashFlow }
+enum _ReportTab { position, performance, cashFlow, reconciliation }
 
 /// Money with an explicit minus sign when it is negative.
 ///
@@ -95,7 +96,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
               // balance sheet is what you own NOW; offering "this week" beside
               // it would imply the app can show last week's net worth, which
               // needs history it does not keep.
-              if (_tab != _ReportTab.position) ...<Widget>[
+              if (_tab != _ReportTab.position &&
+                  _tab != _ReportTab.reconciliation) ...<Widget>[
                 _PeriodPicker(
                   palette: p,
                   current: _period,
@@ -113,9 +115,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   period: _period,
                 ),
                 _ReportTab.cashFlow => _CashFlowView(palette: p, report: r),
+                _ReportTab.reconciliation => ReconciliationView(
+                  state: widget.state,
+                ),
               },
-              const SizedBox(height: Spacing.lg),
-              _ReconciliationNote(palette: p),
+              if (_tab != _ReportTab.reconciliation) ...<Widget>[
+                const SizedBox(height: Spacing.lg),
+                _ReconciliationNote(palette: p),
+              ],
             ],
           ),
         ),
@@ -177,6 +184,7 @@ class _TabBar extends StatelessWidget {
     _ReportTab.position: 'Position',
     _ReportTab.performance: 'Performance',
     _ReportTab.cashFlow: 'Cash flow',
+    _ReportTab.reconciliation: 'Check',
   };
 
   @override
