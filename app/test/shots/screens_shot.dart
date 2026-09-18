@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
@@ -72,6 +73,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           debugShowCheckedModeBanner: false,
+          // Same scrolling feel as the shipped app, so the harness renders
+          // what ships rather than a near miss.
+          scrollBehavior: const SalapifyScrollBehavior(),
           theme: ThemeData(
             useMaterial3: true,
             fontFamily: 'PlusJakartaSans',
