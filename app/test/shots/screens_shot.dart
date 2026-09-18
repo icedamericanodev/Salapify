@@ -16,6 +16,7 @@ import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
@@ -239,6 +240,61 @@ void main() {
         );
       });
     }
+  }
+
+  // Plan, the fourth tab. The hub plus the four segments with money on them,
+  // in dark. The other three (Calculators, Learn, Trackers) are covered by
+  // the widget tests; these are the ones where a wrong figure would show.
+  for (final ({String label, String slug}) seg
+      in <({String label, String slug})>[
+        (label: '', slug: 'hub'),
+        (label: 'Budgets', slug: 'budgets'),
+        (label: 'Bills and payables', slug: 'bills'),
+        (label: 'Goals', slug: 'goals'),
+        (label: 'Trackers', slug: 'trackers'),
+      ]) {
+    testWidgets('plan ${seg.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.track_changes_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(PlanScreen),
+        findsOneWidget,
+        reason: 'the Plan tab did not open',
+      );
+
+      if (seg.label.isNotEmpty) {
+        await tester.tap(find.text(seg.label).first);
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/plan_${seg.slug}.png'),
+      );
+    });
   }
 
   // An explainer, opened by TAPPING its dot on Reports rather than built on

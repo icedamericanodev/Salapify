@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../screens/activity/activity_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/placeholder/placeholder_screen.dart';
+import '../screens/plan/plan_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../state/financial_state.dart';
 
@@ -60,11 +61,7 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.reports:
         return ReportsScreen(state: widget.state);
       case SalapifyTab.plan:
-        return PlaceholderScreen(
-          palette: palette,
-          title: 'Plan',
-          note: 'Budgets, goals and upcoming move here.',
-        );
+        return PlanScreen(state: widget.state);
       case SalapifyTab.accounts:
         return PlaceholderScreen(
           palette: palette,

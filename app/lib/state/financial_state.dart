@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/seed_data.dart';
 import '../design/tokens.dart';
 import '../core/money/ledger.dart';
+import '../core/money/plan.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 
@@ -15,6 +16,9 @@ class FinancialState extends ChangeNotifier {
     _upcoming = List<UpcomingItem>.of(SeedData.upcoming);
     _debts = List<Debt>.of(SeedData.debts);
     _accounts = List<Account>.of(SeedData.accounts);
+    _budgets = List<Budget>.of(SeedData.budgets);
+    _goals = List<Goal>.of(SeedData.goals);
+    _incomeStreams = List<IncomeStream>.of(SeedData.incomeStreams);
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -24,6 +28,14 @@ class FinancialState extends ChangeNotifier {
   late List<UpcomingItem> _upcoming;
   late List<Debt> _debts;
   late List<Account> _accounts;
+
+  // Mutable from here, because Plan writes to all three: a budget limit can be
+  // changed, a goal can be added and contributed to, and an income stream can
+  // be added. They were const pass-throughs to the seed while every screen
+  // only read them.
+  late List<Budget> _budgets;
+  late List<Goal> _goals;
+  late List<IncomeStream> _incomeStreams;
 
   ThemeMode2 _theme = ThemeMode2.gabi;
   DecisionScenario _scenario = DecisionScenario.conservative;
@@ -43,12 +55,13 @@ class FinancialState extends ChangeNotifier {
   List<Transaction> get transactions =>
       List<Transaction>.unmodifiable(_transactions);
   List<Debt> get debts => List<Debt>.unmodifiable(_debts);
-  List<Budget> get budgets => SeedData.budgets;
+  List<Budget> get budgets => List<Budget>.unmodifiable(_budgets);
   List<CategoryInfo> get categories => SeedData.categories;
-  List<Goal> get goals => SeedData.goals;
+  List<Goal> get goals => List<Goal>.unmodifiable(_goals);
   List<UpcomingItem> get upcoming => List<UpcomingItem>.unmodifiable(_upcoming);
   List<BillItem> get bills => SeedData.bills;
-  List<IncomeStream> get incomeStreams => SeedData.incomeStreams;
+  List<IncomeStream> get incomeStreams =>
+      List<IncomeStream>.unmodifiable(_incomeStreams);
   List<InstallmentPlan> get installments => SeedData.installments;
   PaydayCycle get payday => SeedData.payday;
 
@@ -112,6 +125,52 @@ class FinancialState extends ChangeNotifier {
   void logTransaction(Transaction tx) {
     _transactions = <Transaction>[tx, ..._transactions];
     _accounts = applyToBalances(_accounts, tx);
+    notifyListeners();
+  }
+
+  /// Changes one budget's monthly limit.
+  ///
+  /// The decision about what is a valid limit lives in applyBudgetLimit, in
+  /// core/money/plan.dart, which is vector-locked. This method decides WHEN,
+  /// never WHAT, which is the same split every other write on this store uses.
+  void setBudgetLimit(String category, double limit) {
+    final List<Budget> next = applyBudgetLimit(_budgets, category, limit);
+    if (identical(next, _budgets)) return;
+    _budgets = next;
+    notifyListeners();
+  }
+
+  /// Adds a goal the user just created.
+  ///
+  /// Front of the list, because somebody who has just typed one looks at the
+  /// top for it.
+  void addGoal(Goal goal) {
+    _goals = <Goal>[goal, ..._goals];
+    notifyListeners();
+  }
+
+  /// Puts money towards a goal.
+  ///
+  /// NOTE, and it is the thing to get right when storage lands: this moves the
+  /// goal's own progress and DOES NOT move an account balance. A goal is a
+  /// statement of intent, not a pot. Somebody who wants the peso to leave an
+  /// account logs a transfer, which is a different action with a different
+  /// effect on net worth. Making this debit an account would double count
+  /// every contribution against the transfer that funded it.
+  void contributeToGoal(String goalId, double amount) {
+    final List<Goal> next = applyGoalContribution(_goals, goalId, amount);
+    if (identical(next, _goals)) return;
+    _goals = next;
+    notifyListeners();
+  }
+
+  /// Adds an expected income stream.
+  ///
+  /// Safe to Spend reads these, so a new stream changes the headline figure on
+  /// Home. That is the intended effect and it is why the sheet says what it
+  /// will do before saving.
+  void addIncomeStream(IncomeStream stream) {
+    _incomeStreams = <IncomeStream>[..._incomeStreams, stream];
     notifyListeners();
   }
 
@@ -263,7 +322,12 @@ class FinancialState extends ChangeNotifier {
     bills: SeedData.bills,
     debtsIOwe: debtsIOwe,
     installments: SeedData.installments,
-    incomeStreams: SeedData.incomeStreams,
+    // _incomeStreams, NOT the seed. This read the frozen seed list until Plan
+    // let somebody add a stream, at which point the new stream would have been
+    // stored, listed on Plan, and invisible to the one figure it is supposed
+    // to move. Exactly the shape of defect the write-path rule exists for: the
+    // write was correct where it was written and wrong where it was read.
+    incomeStreams: _incomeStreams,
     payday: payday,
     scenario: _scenario,
     now: clock,

@@ -386,3 +386,86 @@ class SafeToSpendAnalysis {
   final double totalExpectedInflow;
   final int daysToPayday;
 }
+
+/// How often a subscription bills. The two the prototype's data uses.
+enum BillingCycle { monthly, annual }
+
+/// Whether a subscription is live, on trial, or flagged for review.
+enum SubscriptionState { active, trial }
+
+/// One recurring charge, for the Subscriptions tracker.
+class SubscriptionItem {
+  const SubscriptionItem({
+    required this.id,
+    required this.name,
+    required this.amount,
+    required this.cycle,
+    required this.nextBilling,
+    required this.state,
+    this.unusedAlert = false,
+    this.duplicateAlert = false,
+    this.trialEnds,
+  });
+
+  final String id;
+  final String name;
+  final double amount;
+  final BillingCycle cycle;
+
+  /// ISO date, so it can be compared rather than only printed.
+  final String nextBilling;
+  final SubscriptionState state;
+
+  /// Flagged as probably not being used. The prototype carries these as data
+  /// rather than deriving them, and so does this: deriving "unused" needs
+  /// usage tracking the app does not have and must not pretend to.
+  final bool unusedAlert;
+  final bool duplicateAlert;
+  final String? trialEnds;
+
+  /// What this costs PER MONTH, so annual and monthly plans can be added up.
+  ///
+  /// The prototype hardcodes its monthly total, and the hardcoded figure does
+  /// not match its own list. Computing it is the fix.
+  double get monthlyCost => cycle == BillingCycle.annual ? amount / 12 : amount;
+}
+
+/// One habit in the Habits tracker.
+class HabitItem {
+  const HabitItem({
+    required this.id,
+    required this.name,
+    required this.streak,
+    required this.doneToday,
+    required this.isDaily,
+  });
+
+  final String id;
+  final String name;
+  final int streak;
+  final bool doneToday;
+  final bool isDaily;
+}
+
+/// One lesson in the Academy course library.
+class CourseItem {
+  const CourseItem({
+    required this.id,
+    required this.title,
+    required this.summary,
+    required this.category,
+    required this.minutes,
+    required this.icon,
+  });
+
+  final String id;
+  final String title;
+  final String summary;
+  final String category;
+  final int minutes;
+
+  /// A MEANING, not a glyph. Salapify's own icons resolve through one place so
+  /// restyling every icon is one edit, and emoji stay reserved for the user's
+  /// own data.
+  final String icon;
+}

@@ -69,6 +69,35 @@ void main() {
             },
           )
           .toList(),
+      'budgets': SeedData.budgets
+          .map(
+            (Budget b) => <String, Object?>{
+              'category': b.category,
+              'limit': b.limit,
+            },
+          )
+          .toList(),
+      'goals': SeedData.goals
+          .map(
+            (Goal g) => <String, Object?>{
+              'id': g.id,
+              'targetAmount': g.targetAmount,
+              'currentAmount': g.currentAmount,
+              'monthlyTarget': g.monthlyTarget,
+            },
+          )
+          .toList(),
+      'upcoming': SeedData.upcoming
+          .map(
+            (UpcomingItem u) => <String, Object?>{
+              'id': u.id,
+              'amount': u.amount,
+              'type': u.type.name,
+              'isIncome': u.isIncome,
+              'isPaid': u.isPaid,
+            },
+          )
+          .toList(),
       'transactions': SeedData.transactions()
           .map(
             (Transaction t) => <String, Object?>{

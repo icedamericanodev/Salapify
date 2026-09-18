@@ -72,13 +72,13 @@ void main() {
     await tapAndSettle(tester, find.text('Performance'));
 
     expect(find.text('₱51,000.00'), findsWidgets, reason: 'money in');
-    expect(find.text('₱24,274.75'), findsWidgets, reason: 'money out');
-    expect(find.text('₱26,725.25'), findsWidgets, reason: 'kept');
+    expect(find.text('₱25,774.75'), findsWidgets, reason: 'money out');
+    expect(find.text('₱25,225.25'), findsWidgets, reason: 'kept');
 
     // Percent, not a fraction. A savings rate printed as 0.5% instead of
     // 52.4% is the classic hundredfold slip and it looks entirely plausible.
-    expect(find.text('52.4%'), findsWidgets);
-    expect(find.text('9.7%'), findsWidgets);
+    expect(find.text('49.5%'), findsWidgets);
+    expect(find.text('12.6%'), findsWidgets);
   });
 
   testWidgets('Cash flow adds its three sections up to the headline', (
@@ -89,8 +89,8 @@ void main() {
 
     // The headline equals operating + investing + financing, which the engine
     // test proves. Here it just has to be the number actually on the screen.
-    expect(find.text('₱26,725.25'), findsWidgets, reason: 'net change');
-    expect(find.text('-₱4,950.00'), findsWidgets, reason: 'net financing');
+    expect(find.text('₱25,225.25'), findsWidgets, reason: 'net change');
+    expect(find.text('-₱6,450.00'), findsWidgets, reason: 'net financing');
   });
 
   testWidgets('a transfer is reported and visibly left out of the total', (

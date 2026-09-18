@@ -106,8 +106,8 @@ void main() {
 
     test('the income statement', () {
       closeTo(perf.totalIncome, 51000, 'totalIncome');
-      closeTo(perf.totalExpenses, 24274.75, 'totalExpenses');
-      closeTo(perf.netSurplus, 26725.25, 'netSurplus');
+      closeTo(perf.totalExpenses, 25774.75, 'totalExpenses');
+      closeTo(perf.netSurplus, 25225.25, 'netSurplus');
     });
 
     test('the business segment', () {
@@ -117,15 +117,15 @@ void main() {
     });
 
     test('the ratios, in percent rather than fractions', () {
-      closeTo(perf.savingsRate, 52.40245098039216, 'savingsRate');
-      closeTo(perf.debtServicingExpenses, 4950, 'debtServicingExpenses');
-      closeTo(perf.debtServiceRatio, 9.705882352941178, 'debtServiceRatio');
+      closeTo(perf.savingsRate, 49.46127450980392, 'savingsRate');
+      closeTo(perf.debtServicingExpenses, 6450, 'debtServicingExpenses');
+      closeTo(perf.debtServiceRatio, 12.647058823529411, 'debtServiceRatio');
     });
 
     test('the month-end run rate', () {
       closeTo(perf.projectedIncome, 85000, 'projectedIncome');
-      closeTo(perf.projectedExpenses, 40457.916666666664, 'projectedExpenses');
-      closeTo(perf.projectedSurplus, 44542.083333333336, 'projectedSurplus');
+      closeTo(perf.projectedExpenses, 42957.91666666667, 'projectedExpenses');
+      closeTo(perf.projectedSurplus, 42042.08333333333, 'projectedSurplus');
     });
   });
 
@@ -152,14 +152,14 @@ void main() {
 
     test('financing', () {
       closeTo(flow.financingInflows, 0, 'financingInflows');
-      closeTo(flow.financingOutflows, 4950, 'financingOutflows');
-      closeTo(flow.netFinancing, -4950, 'netFinancing');
+      closeTo(flow.financingOutflows, 6450, 'financingOutflows');
+      closeTo(flow.netFinancing, -6450, 'netFinancing');
     });
 
     test('transfers are counted and then left out of the net change', () {
       expect(flow.transfersCount, 1);
       closeTo(flow.transfersVolume, 5000, 'transfersVolume');
-      closeTo(flow.netCashChange, 26725.25, 'netCashChange');
+      closeTo(flow.netCashChange, 25225.25, 'netCashChange');
 
       // The invariant that makes the point: the 5,000 transfer is visible and
       // contributes nothing. Moving your own money between your own accounts
@@ -176,11 +176,11 @@ void main() {
     test('every period selects the count the prototype selects', () {
       const Map<ReportPeriod, int> expected = <ReportPeriod, int>{
         ReportPeriod.daily: 1,
-        ReportPeriod.weekly: 9,
-        ReportPeriod.monthly: 14,
-        ReportPeriod.quarterly: 14,
-        ReportPeriod.semiAnnually: 14,
-        ReportPeriod.annually: 14,
+        ReportPeriod.weekly: 10,
+        ReportPeriod.monthly: 15,
+        ReportPeriod.quarterly: 15,
+        ReportPeriod.semiAnnually: 15,
+        ReportPeriod.annually: 15,
       };
       expected.forEach((ReportPeriod period, int count) {
         expect(
@@ -226,10 +226,10 @@ void main() {
         profile: ProfileEntity.personal,
       ).performance;
       closeTo(p.totalIncome, 32500, 'totalIncome');
-      closeTo(p.totalExpenses, 11835, 'totalExpenses');
-      closeTo(p.netSurplus, 20665, 'netSurplus');
-      closeTo(p.savingsRate, 63.58461538461538, 'savingsRate');
-      closeTo(p.debtServiceRatio, 15.230769230769232, 'debtServiceRatio');
+      closeTo(p.totalExpenses, 13335, 'totalExpenses');
+      closeTo(p.netSurplus, 19165, 'netSurplus');
+      closeTo(p.savingsRate, 58.969230769230776, 'savingsRate');
+      closeTo(p.debtServiceRatio, 19.846153846153847, 'debtServiceRatio');
     });
 
     test('business, this year', () {
@@ -270,8 +270,8 @@ void main() {
       final List<CategoryBreakdown> rows = build().expenseByCategory;
 
       expect(rows.map((CategoryBreakdown c) => c.category).toList(), <String>[
-        'Family Support & Remittance',
         'Debt & Loan Servicing',
+        'Family Support & Remittance',
         'Groceries',
         'Housing & Rent',
         'Bills & Utilities',
@@ -281,11 +281,14 @@ void main() {
         'Transport & Commute',
       ], reason: 'the ordering is biggest first');
 
-      final CategoryBreakdown debt = rows[1];
-      closeTo(debt.total, 4950, 'debt total');
-      expect(debt.count, 2);
-      closeTo(debt.percentage, 20.391559, 'debt percentage');
-      expect(debt.subcategories, hasLength(2));
+      // Debt is now the largest category, because the fixture gained a credit
+      // card payment specifically to push one budget OVER its limit so the
+      // Plan screen's over-budget state could be reviewed at all.
+      final CategoryBreakdown debt = rows[0];
+      closeTo(debt.total, 6450, 'debt total');
+      expect(debt.count, 3);
+      closeTo(debt.percentage, 25.024491, 'debt percentage');
+      expect(debt.subcategories, hasLength(3));
 
       final CategoryBreakdown food = rows.firstWhere(
         (CategoryBreakdown c) => c.category == 'Food & Dining',

@@ -148,6 +148,11 @@ enum InfoTopic {
   reportScope,
   debtBothWays,
   comingUp,
+  budgets,
+  bills,
+  decisions,
+  trackers,
+  academy,
 }
 
 class InfoPoint {
@@ -482,6 +487,148 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'These amounts are subtracted before Safe to Spend is worked out, '
             'so the figure you are given to spend is money that is genuinely '
             'free.',
+      ),
+    ],
+  ),
+
+  InfoTopic.budgets: InfoContent(
+    title: 'Budgets',
+    subtitle: 'A limit per category, reset every month',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.calendar_month_outlined,
+        title: 'This month only',
+        body:
+            'Spending resets on the 1st. A limit that never resets is not a '
+            'limit, it is a running total that creeps past every cap.',
+      ),
+      InfoPoint(
+        icon: Icons.block,
+        title: 'Excluded entries do not count',
+        body:
+            'An entry you marked excluded or duplicate stays visible in '
+            'Activity and out of your budget. A charge you have already said '
+            'is not yours should not eat your limit.',
+      ),
+      InfoPoint(
+        icon: Icons.label_outline,
+        title: 'Matched by category',
+        body:
+            'An expense counts against the budget whose category it carries. '
+            'Something filed under the wrong category lands in the wrong '
+            'budget, which is the usual reason a figure looks surprising.',
+      ),
+      InfoPoint(
+        icon: Icons.warning_amber_outlined,
+        title: 'Watch closely, and over',
+        body:
+            'A budget past 80 percent is one to watch. Past 100 it is marked '
+            'over, outlined rather than just coloured, and the row tells you '
+            'by how much.',
+      ),
+    ],
+    formula: 'Left = limit - what you spent this month',
+  ),
+
+  InfoTopic.bills: InfoContent(
+    title: 'Bills and payables',
+    subtitle: 'Money already promised to somebody',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.north_east,
+        title: 'Going out, and coming in, kept apart',
+        body:
+            'Payday sits in this list too, and it is NOT a bill. Adding them '
+            'together makes a reassuring number that means nothing, so the '
+            'two are shown separately.',
+      ),
+      InfoPoint(
+        icon: Icons.shield_outlined,
+        title: 'Held back from Safe to Spend',
+        body:
+            'These amounts are subtracted before Safe to Spend is worked out. '
+            'That is the whole point of listing them: the money is spoken for '
+            'even though it is still in your account.',
+      ),
+    ],
+  ),
+
+  InfoTopic.decisions: InfoContent(
+    title: 'Before you spend',
+    subtitle: 'The check worth doing on a big purchase',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'Safe to spend',
+        body:
+            'What is left after every bill, minimum payment and buffer is set '
+            'aside. Spending this does not break anything you have already '
+            'committed to.',
+      ),
+      InfoPoint(
+        icon: Icons.south_west,
+        title: 'Income streams',
+        body:
+            'What you expect to come in before the next payday. The app '
+            'counts on these arriving, so an optimistic one makes Safe to '
+            'Spend optimistic too.',
+      ),
+    ],
+  ),
+
+  InfoTopic.trackers: InfoContent(
+    title: 'Trackers',
+    subtitle: 'Habits, and what quietly recurs',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.local_fire_department_outlined,
+        title: 'Habits',
+        body:
+            'Logging every day is what makes every other number here true. '
+            'The streak is there because it works, not because it is a game.',
+      ),
+      InfoPoint(
+        icon: Icons.autorenew,
+        title: 'Subscriptions, per month',
+        body:
+            'An annual plan is divided by twelve so it can be compared with a '
+            'monthly one. Adding a yearly fee straight into a monthly total '
+            'overstates it twelvefold.',
+      ),
+      InfoPoint(
+        icon: Icons.warning_amber_outlined,
+        title: 'The flags',
+        body:
+            'Unused, duplicate and trial-ending are recorded rather than '
+            'guessed. Detecting "unused" properly needs usage the app does '
+            'not have, and a guess dressed as a fact is worse than nothing.',
+      ),
+    ],
+  ),
+
+  InfoTopic.academy: InfoContent(
+    title: 'The startup guides',
+    subtitle: 'What is still to come here',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.storefront_outlined,
+        title: 'Registering a business here',
+        body:
+            'DTI or SEC, barangay and mayor permits, BIR registration, and '
+            'what each actually costs and takes.',
+      ),
+      InfoPoint(
+        icon: Icons.cloud_outlined,
+        title: 'Selling software and digital products',
+        body: 'App store rules, billing, and how income from abroad is taxed.',
+      ),
+      InfoPoint(
+        icon: Icons.schedule,
+        title: 'Why they are not here yet',
+        body:
+            'Together they are about three thousand lines of written guidance '
+            'and they deserve a proper pass rather than being rushed in '
+            'beside everything else on this tab.',
       ),
     ],
   ),

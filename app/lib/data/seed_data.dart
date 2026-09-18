@@ -314,6 +314,27 @@ class SeedData {
       date: '2026-09-10',
       createdAt: _daysAgo(8),
     ),
+    // Pushes Debt & Loan Servicing PAST its 6,000 limit, on purpose. Without
+    // it no budget in the fixture is over, so the over-budget state, the red
+    // bar and the negative remaining, could not be reviewed in a render or
+    // caught in one. A tidy fixture where nothing ever goes wrong is the same
+    // trap as the empty one: it cannot show the defect.
+    //
+    // Realistic rather than contrived: paying down a card in the same month as
+    // two loan instalments is an ordinary thing to do, and it is the month
+    // that tips somebody over.
+    Transaction(
+      id: 'tx_cc_payment',
+      profile: ProfileEntity.personal,
+      subcategory: 'Credit Card Balance Payment',
+      type: TransactionType.expense,
+      amount: 1500.00,
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_bpi',
+      merchant: 'BPI Rewards Card Payment',
+      date: '2026-09-12',
+      createdAt: _daysAgo(6),
+    ),
     Transaction(
       id: 'tx_condo_repair',
       profile: ProfileEntity.household,
@@ -836,6 +857,172 @@ class SeedData {
       name: 'OFW Sibling Support / Padala',
       type: IncomeStreamType.remittance,
       expectedAmount: 5000.00,
+    ),
+  ];
+
+  /// The Habits tracker's rows, from src/components/HabitTrackerView.tsx,
+  /// where they are hardcoded inside the component.
+  static const List<HabitItem> habits = <HabitItem>[
+    HabitItem(
+      id: 'habit_log',
+      name: 'Log every expense',
+      streak: 12,
+      doneToday: true,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_nospend',
+      name: 'No-spend day',
+      streak: 2,
+      doneToday: false,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_review',
+      name: 'Weekly review',
+      streak: 4,
+      doneToday: true,
+      isDaily: false,
+    ),
+    HabitItem(
+      id: 'habit_receipt',
+      name: 'Capture receipts',
+      streak: 5,
+      doneToday: true,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_reconcile',
+      name: 'Reconcile accounts',
+      streak: 1,
+      doneToday: false,
+      isDaily: false,
+    ),
+    HabitItem(
+      id: 'habit_budget',
+      name: 'Budget review',
+      streak: 8,
+      doneToday: true,
+      isDaily: false,
+    ),
+  ];
+
+  /// The Subscriptions tracker's rows, from
+  /// src/components/SubscriptionTrackerView.tsx.
+  ///
+  /// The prototype prints a hardcoded monthly total of 3,288 beside this list,
+  /// and the list does not add up to that under any reading. app/ computes it
+  /// from the rows instead, which is why SubscriptionItem carries monthlyCost.
+  static const List<SubscriptionItem> subscriptions = <SubscriptionItem>[
+    SubscriptionItem(
+      id: 'sub_netflix',
+      name: 'Netflix Premium',
+      amount: 549,
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-05',
+      state: SubscriptionState.active,
+    ),
+    SubscriptionItem(
+      id: 'sub_spotify',
+      name: 'Spotify Duo',
+      amount: 239,
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-12',
+      state: SubscriptionState.active,
+    ),
+    SubscriptionItem(
+      id: 'sub_google',
+      name: 'Google One 2TB',
+      amount: 4790,
+      cycle: BillingCycle.annual,
+      nextBilling: '2027-04-15',
+      state: SubscriptionState.active,
+      unusedAlert: true,
+    ),
+    SubscriptionItem(
+      id: 'sub_gym',
+      name: 'Gym Membership',
+      amount: 2500,
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-01',
+      state: SubscriptionState.active,
+      duplicateAlert: true,
+    ),
+    SubscriptionItem(
+      id: 'sub_adobe',
+      name: 'Adobe Creative Cloud',
+      amount: 1549,
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-22',
+      state: SubscriptionState.trial,
+      trialEnds: '2026-09-22',
+    ),
+  ];
+
+  /// The Academy's course library.
+  ///
+  /// Salapify-authored icons, so they are NAMES rather than emoji: these are
+  /// ours to restyle, unlike a category icon which is the user's own choice.
+  static const List<CourseItem> courses = <CourseItem>[
+    CourseItem(
+      id: 'course_emergency',
+      title: 'Build your first emergency fund',
+      summary:
+          'How much is enough for a Filipino household, where to keep it so '
+          'it is reachable but not tempting, and what counts as an emergency.',
+      category: 'Foundations',
+      minutes: 6,
+      icon: 'shield',
+    ),
+    CourseItem(
+      id: 'course_sweldo',
+      title: 'Make your sweldo last to the 30th',
+      summary:
+          'Pacing a 15 and 30 pay cycle, why the second week is where it '
+          'usually goes wrong, and how to see petsa de peligro coming.',
+      category: 'Foundations',
+      minutes: 8,
+      icon: 'calendar',
+    ),
+    CourseItem(
+      id: 'course_utang',
+      title: 'Lending to family without losing the money or the relationship',
+      summary:
+          'Saying no kindly, writing it down without making it awkward, and '
+          'why recording what you are owed changes how much you lend.',
+      category: 'Debt',
+      minutes: 7,
+      icon: 'handshake',
+    ),
+    CourseItem(
+      id: 'course_cards',
+      title: 'Credit cards, instalments and the real cost',
+      summary:
+          'What zero percent instalment actually costs, how the minimum '
+          'payment is designed, and the order to pay cards off in.',
+      category: 'Debt',
+      minutes: 9,
+      icon: 'card',
+    ),
+    CourseItem(
+      id: 'course_mp2',
+      title: 'Pag-IBIG MP2 and where else savings can go',
+      summary:
+          'What MP2 is, what it is not, how the dividend works, and how to '
+          'compare it with a digital bank rate honestly.',
+      category: 'Growing',
+      minutes: 8,
+      icon: 'mountain',
+    ),
+    CourseItem(
+      id: 'course_freelance',
+      title: 'Freelance income without a sweldo',
+      summary:
+          'Budgeting on an income that changes every month, what to set '
+          'aside for tax, and how to pay yourself a steady amount.',
+      category: 'Business',
+      minutes: 10,
+      icon: 'briefcase',
     ),
   ];
 }

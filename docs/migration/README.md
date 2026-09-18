@@ -17,7 +17,7 @@ The prototype's tab order, finished one tab at a time including its modals.
 | 1b | Home's sheets | `SafeToSpendModal`, `AddDebtModal`, `BankAmortizationTable`, `TaxCalculatorModal`, `BusinessTaxSimulatorModal`, the category manager | Built and reachable from Home |
 | 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Done. List, detail and the Log write path, with quick parse and a date picker |
 | 3 | Reports | `ReportsScreen` | Position, Performance and Cash flow built. Reconciliation, the one that writes, is its own step |
-| 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | Not started |
+| 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | All eight segments built. The Academy's three long-form startup guides get their own pass |
 | 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
 
 Screens that hang off several tabs (Safe to Spend, Health Check, Pan chat,
@@ -282,6 +282,69 @@ found:
 Also not ported with it: CSV export (nothing in `app/` can write a file yet)
 and the comparison toggle (previous period, budget, forecast), which needs
 period-over-period history the app does not keep.
+
+### Plan
+
+The fourth tab, from `src/components/PlanScreen.tsx`. A HUB rather than a
+screen: eight segments reached from a grid of tiles, which is the prototype's
+own shape and the right one, because the eight have little to do with each
+other beyond all being about the future.
+
+| The hub | Budgets |
+|---|---|
+| ![Plan hub](screens/plan-hub.png) | ![Budgets](screens/plan-budgets.png) |
+
+| Goals | Bills and payables |
+|---|---|
+| ![Goals](screens/plan-goals.png) | ![Bills](screens/plan-bills.png) |
+
+**All eight segments are built**, at founder direction: Budgets, Bills and
+payables, Goals, Decisions, Trackers, Calculators and Learn, plus the hub. Each
+tile carries a live figure rather than being one of eight identical doors.
+
+**Four write paths**, each of which says what it is about to do before it does
+it: change a budget limit, add a goal, contribute to a goal, add an income
+stream.
+
+#### Two money changes, decided by the founder rather than taken quietly
+
+Both were put to the founder with the actual figures before anything was
+built.
+
+**1. Budgets count THIS MONTH and ignore excluded entries.** The prototype
+sums every matching expense ever logged, whatever its status. With the current
+data that put Bills & Utilities at ₱5,680 of ₱6,500 and into "watch closely",
+because it counted the duplicate Meralco charge marked *"charged twice, this
+one is not mine to pay"*. It now reads ₱2,840, which is the truth. The second
+half matters more over time: a limit that never resets is not a limit.
+
+**2. Payday is not a bill.** The prototype's headline sums every upcoming row
+under the label "Total Scheduled Bills", so the ₱32,500 payday is counted as
+a bill and the figure reads ₱38,029 when the bills come to ₱5,529. Both
+figures are now shown, side by side, and nothing stored changed.
+
+#### Three defects found while building it
+
+1. **A false claim in my own copy, caught by a test written to prove it.** The
+   Add income stream sheet said the stream raises your Safe to Spend. It does
+   not: `computeSafeToSpend` works out expected inflow and then never uses it,
+   deriving the headline from liquid cash less reserves alone. That is the
+   prototype's behaviour and the engine is vector-locked to it, so the copy was
+   corrected rather than the arithmetic changed. **Whether expected income
+   SHOULD raise Safe to Spend is an open question for the founder.**
+2. **Safe to Spend read the frozen seed list.** A new income stream would have
+   been stored, listed on Plan, and invisible to the one figure it feeds. Found
+   while wiring the write path, before it could ship.
+3. **A hardcoded subscription total that does not add up.** The prototype
+   prints ₱3,288 beside a list that comes to ₱5,236.17 a month once an annual
+   plan is divided by twelve. Computed here instead.
+
+#### Deferred, and said on screen
+
+The Academy's three long-form guides (Philippine business registration, the
+SaaS and app store guide, the digital product checklist) are about 3,200 lines
+of written guidance between them. The course library is built; the guides get
+their own pass rather than being rushed in beside seven other segments.
 
 ### Sheets
 
