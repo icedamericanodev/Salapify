@@ -91,7 +91,7 @@ LoanCalculationResult calculateAmortization({
     final double factor = math.pow(1 + monthlyRate, termMonths).toDouble();
     baseMonthlyPayment =
         ((principal * monthlyRate * factor) - (balloonPayment * monthlyRate)) /
-            (factor - 1);
+        (factor - 1);
   }
 
   // A baseline run with NO extra payment, purely so the saving can be
@@ -101,8 +101,10 @@ LoanCalculationResult calculateAmortization({
   double balance = principal;
   for (int m = 1; m <= termMonths; m++) {
     final double interest = balance * monthlyRate;
-    final double principalPart =
-        math.min(balance, baseMonthlyPayment - interest);
+    final double principalPart = math.min(
+      balance,
+      baseMonthlyPayment - interest,
+    );
     baselineTotalInterest += interest;
     balance -= principalPart;
     if (balance <= 0) break;
@@ -133,8 +135,10 @@ LoanCalculationResult calculateAmortization({
       math.max(0, remainingBalance - scheduledPrincipal),
     );
 
-    remainingBalance =
-        math.max(0, remainingBalance - (scheduledPrincipal + extra));
+    remainingBalance = math.max(
+      0,
+      remainingBalance - (scheduledPrincipal + extra),
+    );
     final double scheduledPaymentForMonth =
         scheduledPrincipal + interestComponent;
 
@@ -142,15 +146,17 @@ LoanCalculationResult calculateAmortization({
     totalPaid += scheduledPaymentForMonth + extra;
     actualPayoffMonths = period;
 
-    schedule.add(AmortizationRow(
-      period: period,
-      dueDate: 'Month $period',
-      scheduledPayment: _c(scheduledPaymentForMonth),
-      principalComponent: _c(scheduledPrincipal),
-      interestComponent: _c(interestComponent),
-      extraPayment: _c(extra),
-      remainingBalance: _c(remainingBalance),
-    ));
+    schedule.add(
+      AmortizationRow(
+        period: period,
+        dueDate: 'Month $period',
+        scheduledPayment: _c(scheduledPaymentForMonth),
+        principalComponent: _c(scheduledPrincipal),
+        interestComponent: _c(interestComponent),
+        extraPayment: _c(extra),
+        remainingBalance: _c(remainingBalance),
+      ),
+    );
 
     if (remainingBalance <= 0) break;
   }
@@ -165,8 +171,9 @@ LoanCalculationResult calculateAmortization({
     totalInterest: _c(totalInterest),
     amortizationSchedule: schedule,
     payoffMonths: actualPayoffMonths,
-    interestSavedWithExtra:
-        _c(math.max(0, baselineTotalInterest - totalInterest)),
+    interestSavedWithExtra: _c(
+      math.max(0, baselineTotalInterest - totalInterest),
+    ),
     monthsSavedWithExtra: math.max(0, termMonths - actualPayoffMonths),
   );
 }
@@ -212,8 +219,10 @@ DsrResult calculateDsr({
 
   final double dsr = (monthlyDebtObligations / grossMonthlyIncome) * 100;
   final double maxRecommendedMonthlyDebt = grossMonthlyIncome * 0.35;
-  final double remainingDebtCapacity =
-      math.max(0, maxRecommendedMonthlyDebt - monthlyDebtObligations);
+  final double remainingDebtCapacity = math.max(
+    0,
+    maxRecommendedMonthlyDebt - monthlyDebtObligations,
+  );
 
   const double r = 0.07 / 12;
   const int n = 180;

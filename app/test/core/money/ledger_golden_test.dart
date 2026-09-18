@@ -141,10 +141,20 @@ List<String> _ids(List<Transaction> list) =>
 void main() {
   group('scoping', () {
     test('no filters keeps every row, in stored order', () {
-      final List<Transaction> s =
-          scopeTransactions(_fixture, const LedgerQuery());
+      final List<Transaction> s = scopeTransactions(
+        _fixture,
+        const LedgerQuery(),
+      );
       expect(_ids(s), <String>[
-        't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9',
+        't1',
+        't2',
+        't3',
+        't4',
+        't5',
+        't6',
+        't7',
+        't8',
+        't9',
       ]);
     });
 
@@ -152,17 +162,13 @@ void main() {
       // t4 moves money bpi -> gcash and must appear under each, which is the
       // whole reason the filter reads toAccountId as well.
       expect(
-        _ids(scopeTransactions(
-          _fixture,
-          const LedgerQuery(accountId: 'bpi'),
-        )),
+        _ids(scopeTransactions(_fixture, const LedgerQuery(accountId: 'bpi'))),
         <String>['t1', 't4', 't5', 't8', 't9'],
       );
       expect(
-        _ids(scopeTransactions(
-          _fixture,
-          const LedgerQuery(accountId: 'gcash'),
-        )),
+        _ids(
+          scopeTransactions(_fixture, const LedgerQuery(accountId: 'gcash')),
+        ),
         <String>['t2', 't4', 't6'],
       );
     });
@@ -171,20 +177,24 @@ void main() {
       // Six rows carry no explicit status and are therefore confirmed, so the
       // pending, excluded and duplicate rows drop out.
       expect(
-        _ids(scopeTransactions(
-          _fixture,
-          const LedgerQuery(status: TransactionStatus.confirmed),
-        )),
+        _ids(
+          scopeTransactions(
+            _fixture,
+            const LedgerQuery(status: TransactionStatus.confirmed),
+          ),
+        ),
         <String>['t1', 't2', 't3', 't4', 't7', 't9'],
       );
     });
 
     test('a profile filter keeps only that profile', () {
       expect(
-        _ids(scopeTransactions(
-          _fixture,
-          const LedgerQuery(profile: ProfileEntity.household),
-        )),
+        _ids(
+          scopeTransactions(
+            _fixture,
+            const LedgerQuery(profile: ProfileEntity.household),
+          ),
+        ),
         <String>['t9'],
       );
     });
@@ -251,8 +261,11 @@ void main() {
       expect(t.totalOut, 1250.5);
       expect(t.netMovement, -1250.5);
       expect(t.outflowPercentage, 100);
-      expect(t.retentionPercentage, 0,
-          reason: 'retention must never go negative');
+      expect(
+        t.retentionPercentage,
+        0,
+        reason: 'retention must never go negative',
+      );
     });
 
     test('an empty selection is all zeroes, not a division by zero', () {
@@ -284,33 +297,38 @@ void main() {
       final List<Transaction> withoutTransfer = _fixture
           .where((Transaction t) => t.type != TransactionType.transfer)
           .toList();
-      final LedgerTotals a =
-          computeTotals(scopeTransactions(_fixture, const LedgerQuery()));
+      final LedgerTotals a = computeTotals(
+        scopeTransactions(_fixture, const LedgerQuery()),
+      );
       final LedgerTotals b = computeTotals(
         scopeTransactions(withoutTransfer, const LedgerQuery()),
       );
       expect(b.totalIn, a.totalIn);
       expect(b.totalOut, a.totalOut);
       expect(b.transferCount, 0);
-      expect(a.transferCount, 1,
-          reason: 'the fixture must contain a transfer or this proves nothing');
+      expect(
+        a.transferCount,
+        1,
+        reason: 'the fixture must contain a transfer or this proves nothing',
+      );
     });
   });
 
   group('type filter', () {
     test('narrows the list without touching the summary', () {
-      final List<Transaction> scoped =
-          scopeTransactions(_fixture, const LedgerQuery());
+      final List<Transaction> scoped = scopeTransactions(
+        _fixture,
+        const LedgerQuery(),
+      );
       final LedgerTotals summary = computeTotals(scoped);
 
-      expect(
-        _ids(filterByType(scoped, LedgerTypeFilter.income)),
-        <String>['t1', 't8'],
-      );
-      expect(
-        _ids(filterByType(scoped, LedgerTypeFilter.transfer)),
-        <String>['t4'],
-      );
+      expect(_ids(filterByType(scoped, LedgerTypeFilter.income)), <String>[
+        't1',
+        't8',
+      ]);
+      expect(_ids(filterByType(scoped, LedgerTypeFilter.transfer)), <String>[
+        't4',
+      ]);
 
       // The card still describes the whole selection. This is the behaviour
       // that would break if scoping and the type tab were merged.
@@ -321,10 +339,12 @@ void main() {
   group('grouping', () {
     test('days come back newest first, order kept inside a day', () {
       final List<LedgerDay> days = groupByDay(_fixture);
-      expect(
-        days.map((LedgerDay d) => d.date).toList(),
-        <String>['2026-09-15', '2026-09-14', '2026-09-13', '2026-09-12'],
-      );
+      expect(days.map((LedgerDay d) => d.date).toList(), <String>[
+        '2026-09-15',
+        '2026-09-14',
+        '2026-09-13',
+        '2026-09-12',
+      ]);
       expect(_ids(days[0].transactions), <String>['t1', 't2']);
       expect(_ids(days[1].transactions), <String>['t3', 't4']);
       expect(_ids(days[2].transactions), <String>['t5', 't6']);
@@ -332,17 +352,17 @@ void main() {
     });
 
     test('every transaction survives grouping', () {
-      final int total = groupByDay(_fixture).fold<int>(
-        0,
-        (int sum, LedgerDay d) => sum + d.transactions.length,
-      );
+      final int total = groupByDay(
+        _fixture,
+      ).fold<int>(0, (int sum, LedgerDay d) => sum + d.transactions.length);
       expect(total, _fixture.length);
     });
   });
 
   test('category spending is biggest first and skips what does not count', () {
-    final List<({String category, double amount})> rows =
-        categorySpending(_fixture);
+    final List<({String category, double amount})> rows = categorySpending(
+      _fixture,
+    );
     expect(
       rows.map((({String category, double amount}) r) => r.category).toList(),
       <String>[
@@ -356,8 +376,10 @@ void main() {
     expect(rows.first.amount, 2840);
     expect(rows.last.amount, 420);
     expect(
-      rows.any((({String category, double amount}) r) =>
-          r.category == 'Shopping & Personal'),
+      rows.any(
+        (({String category, double amount}) r) =>
+            r.category == 'Shopping & Personal',
+      ),
       isFalse,
       reason: 'the excluded 9,999 row must not appear as a spending category',
     );

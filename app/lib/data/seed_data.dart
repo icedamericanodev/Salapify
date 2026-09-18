@@ -11,9 +11,8 @@ class SeedData {
   /// Transaction timestamps are anchored to "now" rather than to a fixed date,
   /// so the 30-day windows the engine reads still have signal whenever the app
   /// is opened. The calendar dates stay as the prototype wrote them.
-  static int _daysAgo(int days) => DateTime.now()
-      .subtract(Duration(days: days))
-      .millisecondsSinceEpoch;
+  static int _daysAgo(int days) =>
+      DateTime.now().subtract(Duration(days: days)).millisecondsSinceEpoch;
 
   static const List<Account> accounts = <Account>[
     Account(
@@ -111,129 +110,129 @@ class SeedData {
   ];
 
   static List<Transaction> transactions() => <Transaction>[
-        // Three rows that exist so the Activity screen can be REVIEWED rather
-        // than merely rendered. Without them every entry is a plain confirmed
-        // expense, so the status chips, the struck-through amount and the
-        // rule that keeps excluded money out of the totals are all invisible
-        // in a screenshot, and a picture that cannot show the defect proves
-        // nothing. See the fixture note in CLAUDE.md.
-        Transaction(
-          id: 'tx_pending_card',
-          type: TransactionType.expense,
-          amount: 1899.00,
-          category: 'Shopping & Personal',
-          accountId: 'acc_ub_debit',
-          merchant: 'Lazada Order',
-          date: '2026-09-17',
-          createdAt: _daysAgo(1),
-          status: TransactionStatus.pending,
-          note: 'Card authorisation, not posted yet',
-        ),
-        Transaction(
-          id: 'tx_excluded_double',
-          type: TransactionType.expense,
-          amount: 2840.00,
-          category: 'Bills & Utilities',
-          accountId: 'acc_maya',
-          merchant: 'Meralco',
-          date: '2026-09-15',
-          createdAt: _daysAgo(3),
-          status: TransactionStatus.excluded,
-          note: 'Charged twice, this one is not mine to pay',
-        ),
-        Transaction(
-          id: 'tx_transfer_1',
-          type: TransactionType.transfer,
-          amount: 5000.00,
-          category: 'Transfer',
-          accountId: 'acc_bpi',
-          toAccountId: 'acc_gcash',
-          merchant: 'Top up GCash',
-          date: '2026-09-16',
-          createdAt: _daysAgo(2),
-        ),
-        Transaction(
-          id: 'tx_salary_1',
-          type: TransactionType.income,
-          amount: 32500.00,
-          category: 'Salary & Compensation',
-          accountId: 'acc_bpi',
-          merchant: 'Corporate Payroll Direct Deposit',
-          date: '2026-09-01',
-          createdAt: _daysAgo(17),
-          note: 'First cutoff net pay after SSS, PhilHealth, and Pag-IBIG',
-        ),
-        Transaction(
-          id: 'tx_freelance_1',
-          type: TransactionType.income,
-          amount: 18500.00,
-          category: 'Business Revenue',
-          accountId: 'acc_seabank',
-          merchant: 'Apex Retainer Invoice #104',
-          date: '2026-09-08',
-          createdAt: _daysAgo(10),
-        ),
-        Transaction(
-          id: 'tx_meralco',
-          type: TransactionType.expense,
-          amount: 2840.00,
-          category: 'Bills & Utilities',
-          accountId: 'acc_maya',
-          merchant: 'Meralco',
-          date: '2026-09-15',
-          createdAt: _daysAgo(3),
-        ),
-        Transaction(
-          id: 'tx_groceries',
-          type: TransactionType.expense,
-          amount: 3250.75,
-          category: 'Groceries',
-          accountId: 'acc_ub_debit',
-          merchant: 'S&R Membership Shopping',
-          date: '2026-09-14',
-          createdAt: _daysAgo(4),
-        ),
-        Transaction(
-          id: 'tx_jollibee',
-          type: TransactionType.expense,
-          amount: 285.00,
-          category: 'Food & Dining',
-          accountId: 'acc_gcash',
-          merchant: 'Jollibee',
-          date: '2026-09-17',
-          createdAt: _daysAgo(1),
-        ),
-        Transaction(
-          id: 'tx_grab',
-          type: TransactionType.expense,
-          amount: 420.00,
-          category: 'Transport & Commute',
-          accountId: 'acc_gcash',
-          merchant: 'Grab',
-          date: '2026-09-17',
-          createdAt: _daysAgo(1),
-        ),
-        Transaction(
-          id: 'tx_padala',
-          type: TransactionType.expense,
-          amount: 6000.00,
-          category: 'Family & Remittance',
-          accountId: 'acc_bpi',
-          merchant: 'Nanay Monthly Padala',
-          date: '2026-09-16',
-          createdAt: _daysAgo(2),
-        ),
-        Transaction(
-          id: 'tx_coffee',
-          type: TransactionType.expense,
-          amount: 180.00,
-          category: 'Food & Dining',
-          accountId: 'acc_cash',
-          merchant: 'Local Kape Shop',
-          date: '2026-09-18',
-          createdAt: _daysAgo(0),
-        ),
-      ];
+    // Three rows that exist so the Activity screen can be REVIEWED rather
+    // than merely rendered. Without them every entry is a plain confirmed
+    // expense, so the status chips, the struck-through amount and the
+    // rule that keeps excluded money out of the totals are all invisible
+    // in a screenshot, and a picture that cannot show the defect proves
+    // nothing. See the fixture note in CLAUDE.md.
+    Transaction(
+      id: 'tx_pending_card',
+      type: TransactionType.expense,
+      amount: 1899.00,
+      category: 'Shopping & Personal',
+      accountId: 'acc_ub_debit',
+      merchant: 'Lazada Order',
+      date: '2026-09-17',
+      createdAt: _daysAgo(1),
+      status: TransactionStatus.pending,
+      note: 'Card authorisation, not posted yet',
+    ),
+    Transaction(
+      id: 'tx_excluded_double',
+      type: TransactionType.expense,
+      amount: 2840.00,
+      category: 'Bills & Utilities',
+      accountId: 'acc_maya',
+      merchant: 'Meralco',
+      date: '2026-09-15',
+      createdAt: _daysAgo(3),
+      status: TransactionStatus.excluded,
+      note: 'Charged twice, this one is not mine to pay',
+    ),
+    Transaction(
+      id: 'tx_transfer_1',
+      type: TransactionType.transfer,
+      amount: 5000.00,
+      category: 'Transfer',
+      accountId: 'acc_bpi',
+      toAccountId: 'acc_gcash',
+      merchant: 'Top up GCash',
+      date: '2026-09-16',
+      createdAt: _daysAgo(2),
+    ),
+    Transaction(
+      id: 'tx_salary_1',
+      type: TransactionType.income,
+      amount: 32500.00,
+      category: 'Salary & Compensation',
+      accountId: 'acc_bpi',
+      merchant: 'Corporate Payroll Direct Deposit',
+      date: '2026-09-01',
+      createdAt: _daysAgo(17),
+      note: 'First cutoff net pay after SSS, PhilHealth, and Pag-IBIG',
+    ),
+    Transaction(
+      id: 'tx_freelance_1',
+      type: TransactionType.income,
+      amount: 18500.00,
+      category: 'Business Revenue',
+      accountId: 'acc_seabank',
+      merchant: 'Apex Retainer Invoice #104',
+      date: '2026-09-08',
+      createdAt: _daysAgo(10),
+    ),
+    Transaction(
+      id: 'tx_meralco',
+      type: TransactionType.expense,
+      amount: 2840.00,
+      category: 'Bills & Utilities',
+      accountId: 'acc_maya',
+      merchant: 'Meralco',
+      date: '2026-09-15',
+      createdAt: _daysAgo(3),
+    ),
+    Transaction(
+      id: 'tx_groceries',
+      type: TransactionType.expense,
+      amount: 3250.75,
+      category: 'Groceries',
+      accountId: 'acc_ub_debit',
+      merchant: 'S&R Membership Shopping',
+      date: '2026-09-14',
+      createdAt: _daysAgo(4),
+    ),
+    Transaction(
+      id: 'tx_jollibee',
+      type: TransactionType.expense,
+      amount: 285.00,
+      category: 'Food & Dining',
+      accountId: 'acc_gcash',
+      merchant: 'Jollibee',
+      date: '2026-09-17',
+      createdAt: _daysAgo(1),
+    ),
+    Transaction(
+      id: 'tx_grab',
+      type: TransactionType.expense,
+      amount: 420.00,
+      category: 'Transport & Commute',
+      accountId: 'acc_gcash',
+      merchant: 'Grab',
+      date: '2026-09-17',
+      createdAt: _daysAgo(1),
+    ),
+    Transaction(
+      id: 'tx_padala',
+      type: TransactionType.expense,
+      amount: 6000.00,
+      category: 'Family & Remittance',
+      accountId: 'acc_bpi',
+      merchant: 'Nanay Monthly Padala',
+      date: '2026-09-16',
+      createdAt: _daysAgo(2),
+    ),
+    Transaction(
+      id: 'tx_coffee',
+      type: TransactionType.expense,
+      amount: 180.00,
+      category: 'Food & Dining',
+      accountId: 'acc_cash',
+      merchant: 'Local Kape Shop',
+      date: '2026-09-18',
+      createdAt: _daysAgo(0),
+    ),
+  ];
 
   static const List<Debt> debts = <Debt>[
     Debt(
@@ -286,24 +285,131 @@ class SeedData {
   /// USER data: they live in the backup file and are never replaced by
   /// Salapify's own icon set.
   static const List<CategoryInfo> categories = <CategoryInfo>[
-    CategoryInfo(id: 'food', name: 'Food & Dining', emoji: '\u{1F354}', subcategories: <String>['Fast Food', 'Restaurants', 'Coffee', 'Delivery']),
-    CategoryInfo(id: 'groceries', name: 'Groceries', emoji: '\u{1F6D2}', subcategories: <String>['Supermarket', 'Wet Market', 'Toiletries']),
-    CategoryInfo(id: 'transport', name: 'Transport & Commute', emoji: '\u{1F6F5}', subcategories: <String>['Grab / Angkas', 'Public Transit', 'Fuel', 'Tolls']),
-    CategoryInfo(id: 'bills', name: 'Bills & Utilities', emoji: '⚡', subcategories: <String>['Electricity', 'Water', 'Internet', 'Subscriptions']),
-    CategoryInfo(id: 'housing', name: 'Housing & Rent', emoji: '\u{1F3E0}', subcategories: <String>['Rent', 'Condo Dues', 'Repairs']),
-    CategoryInfo(id: 'health', name: 'Health & Meds', emoji: '\u{1F48A}', subcategories: <String>['Pharmacy', 'Doctor', 'Dental', 'HMO']),
-    CategoryInfo(id: 'shopping', name: 'Shopping & Personal', emoji: '\u{1F6CD}', subcategories: <String>['Apparel', 'Gadgets', 'Online Shopping']),
-    CategoryInfo(id: 'debt_servicing', name: 'Debt & Loan Servicing', emoji: '\u{1F91D}', subcategories: <String>['Credit Card', 'Personal Loan', 'Mortgage']),
-    CategoryInfo(id: 'business_expense', name: 'Business & Freelance', emoji: '\u{1F4BC}', subcategories: <String>['Software', 'Contractors', 'Marketing']),
-    CategoryInfo(id: 'family_support', name: 'Family Support', emoji: '❤', subcategories: <String>['Allowance', 'Tuition', 'Gifts']),
-    CategoryInfo(id: 'salary', name: 'Salary & Compensation', emoji: '\u{1F4B0}', kind: CategoryKind.income, subcategories: <String>['15th Cutoff', '30th Cutoff', '13th Month']),
-    CategoryInfo(id: 'business_revenue', name: 'Business Revenue', emoji: '\u{1F3E2}', kind: CategoryKind.income, subcategories: <String>['Client Retainers', 'Product Sales']),
-    CategoryInfo(id: 'side_hustle_income', name: 'Side-hustle & Gigs', emoji: '✨', kind: CategoryKind.income, subcategories: <String>['Freelance Projects', 'Commissions']),
-    CategoryInfo(id: 'investment_income', name: 'Investment & Passive', emoji: '\u{1F4C8}', kind: CategoryKind.income, subcategories: <String>['High-Yield Interest', 'MP2 Dividends']),
-    CategoryInfo(id: 'receivables_collected', name: 'Receivables & Repayments', emoji: '\u{1F4B8}', kind: CategoryKind.income, subcategories: <String>['Pahiram Paid', 'Split Bill']),
-    CategoryInfo(id: 'transfer', name: 'Transfer', emoji: '\u{1F504}', kind: CategoryKind.both, subcategories: <String>['Bank to Wallet', 'Savings Transfer']),
-    CategoryInfo(id: 'adjustments', name: 'Adjustments & Variance', emoji: '⚖', kind: CategoryKind.both, subcategories: <String>['Reconciliation Adjustment']),
-    CategoryInfo(id: 'other', name: 'Other', emoji: '\u{1F4E6}', subcategories: <String>['General']),
+    CategoryInfo(
+      id: 'food',
+      name: 'Food & Dining',
+      emoji: '\u{1F354}',
+      subcategories: <String>['Fast Food', 'Restaurants', 'Coffee', 'Delivery'],
+    ),
+    CategoryInfo(
+      id: 'groceries',
+      name: 'Groceries',
+      emoji: '\u{1F6D2}',
+      subcategories: <String>['Supermarket', 'Wet Market', 'Toiletries'],
+    ),
+    CategoryInfo(
+      id: 'transport',
+      name: 'Transport & Commute',
+      emoji: '\u{1F6F5}',
+      subcategories: <String>[
+        'Grab / Angkas',
+        'Public Transit',
+        'Fuel',
+        'Tolls',
+      ],
+    ),
+    CategoryInfo(
+      id: 'bills',
+      name: 'Bills & Utilities',
+      emoji: '⚡',
+      subcategories: <String>[
+        'Electricity',
+        'Water',
+        'Internet',
+        'Subscriptions',
+      ],
+    ),
+    CategoryInfo(
+      id: 'housing',
+      name: 'Housing & Rent',
+      emoji: '\u{1F3E0}',
+      subcategories: <String>['Rent', 'Condo Dues', 'Repairs'],
+    ),
+    CategoryInfo(
+      id: 'health',
+      name: 'Health & Meds',
+      emoji: '\u{1F48A}',
+      subcategories: <String>['Pharmacy', 'Doctor', 'Dental', 'HMO'],
+    ),
+    CategoryInfo(
+      id: 'shopping',
+      name: 'Shopping & Personal',
+      emoji: '\u{1F6CD}',
+      subcategories: <String>['Apparel', 'Gadgets', 'Online Shopping'],
+    ),
+    CategoryInfo(
+      id: 'debt_servicing',
+      name: 'Debt & Loan Servicing',
+      emoji: '\u{1F91D}',
+      subcategories: <String>['Credit Card', 'Personal Loan', 'Mortgage'],
+    ),
+    CategoryInfo(
+      id: 'business_expense',
+      name: 'Business & Freelance',
+      emoji: '\u{1F4BC}',
+      subcategories: <String>['Software', 'Contractors', 'Marketing'],
+    ),
+    CategoryInfo(
+      id: 'family_support',
+      name: 'Family Support',
+      emoji: '❤',
+      subcategories: <String>['Allowance', 'Tuition', 'Gifts'],
+    ),
+    CategoryInfo(
+      id: 'salary',
+      name: 'Salary & Compensation',
+      emoji: '\u{1F4B0}',
+      kind: CategoryKind.income,
+      subcategories: <String>['15th Cutoff', '30th Cutoff', '13th Month'],
+    ),
+    CategoryInfo(
+      id: 'business_revenue',
+      name: 'Business Revenue',
+      emoji: '\u{1F3E2}',
+      kind: CategoryKind.income,
+      subcategories: <String>['Client Retainers', 'Product Sales'],
+    ),
+    CategoryInfo(
+      id: 'side_hustle_income',
+      name: 'Side-hustle & Gigs',
+      emoji: '✨',
+      kind: CategoryKind.income,
+      subcategories: <String>['Freelance Projects', 'Commissions'],
+    ),
+    CategoryInfo(
+      id: 'investment_income',
+      name: 'Investment & Passive',
+      emoji: '\u{1F4C8}',
+      kind: CategoryKind.income,
+      subcategories: <String>['High-Yield Interest', 'MP2 Dividends'],
+    ),
+    CategoryInfo(
+      id: 'receivables_collected',
+      name: 'Receivables & Repayments',
+      emoji: '\u{1F4B8}',
+      kind: CategoryKind.income,
+      subcategories: <String>['Pahiram Paid', 'Split Bill'],
+    ),
+    CategoryInfo(
+      id: 'transfer',
+      name: 'Transfer',
+      emoji: '\u{1F504}',
+      kind: CategoryKind.both,
+      subcategories: <String>['Bank to Wallet', 'Savings Transfer'],
+    ),
+    CategoryInfo(
+      id: 'adjustments',
+      name: 'Adjustments & Variance',
+      emoji: '⚖',
+      kind: CategoryKind.both,
+      subcategories: <String>['Reconciliation Adjustment'],
+    ),
+    CategoryInfo(
+      id: 'other',
+      name: 'Other',
+      emoji: '\u{1F4E6}',
+      subcategories: <String>['General'],
+    ),
   ];
 
   static const List<Budget> budgets = <Budget>[
@@ -312,7 +418,11 @@ class SeedData {
     Budget(category: 'Bills & Utilities', limit: 6500, emoji: '⚡'),
     Budget(category: 'Groceries', limit: 8000, emoji: '\u{1F6D2}'),
     Budget(category: 'Shopping & Personal', limit: 4000, emoji: '\u{1F6CD}'),
-    Budget(category: 'Business & Freelance Ops', limit: 5000, emoji: '\u{1F4BC}'),
+    Budget(
+      category: 'Business & Freelance Ops',
+      limit: 5000,
+      emoji: '\u{1F4BC}',
+    ),
     Budget(category: 'Debt & Loan Servicing', limit: 6000, emoji: '\u{1F91D}'),
   ];
 
@@ -393,22 +503,85 @@ class SeedData {
   );
 
   static const List<BillItem> bills = <BillItem>[
-    BillItem(id: 'bill_meralco', name: 'Meralco Electricity', amount: 2840.00, dueDate: '2026-09-15'),
-    BillItem(id: 'bill_water', name: 'Manila Water', amount: 480.00, dueDate: '2026-09-18'),
-    BillItem(id: 'bill_internet', name: 'Converge FiberX 1500', amount: 1500.00, dueDate: '2026-09-20'),
-    BillItem(id: 'bill_spotify', name: 'Spotify Family Plan', amount: 239.00, dueDate: '2026-09-14', isPaid: true),
-    BillItem(id: 'bill_rent', name: 'Condo Unit Rental', amount: 14000.00, dueDate: '2026-09-30'),
-    BillItem(id: 'bill_insurance', name: 'Pru Life UK VUL Insurance', amount: 2500.00, dueDate: '2026-09-25'),
-    BillItem(id: 'bill_tuition', name: 'Sibling College Tuition (2nd Tranche)', amount: 8500.00, dueDate: '2026-10-05'),
-    BillItem(id: 'bill_sss', name: 'SSS Voluntary Contribution', amount: 1120.00, dueDate: '2026-09-30'),
-    BillItem(id: 'bill_philhealth', name: 'PhilHealth Contribution', amount: 500.00, dueDate: '2026-09-30'),
-    BillItem(id: 'bill_remittance', name: 'Nanay Monthly Padala & Groceries', amount: 6000.00, dueDate: '2026-09-16'),
+    BillItem(
+      id: 'bill_meralco',
+      name: 'Meralco Electricity',
+      amount: 2840.00,
+      dueDate: '2026-09-15',
+    ),
+    BillItem(
+      id: 'bill_water',
+      name: 'Manila Water',
+      amount: 480.00,
+      dueDate: '2026-09-18',
+    ),
+    BillItem(
+      id: 'bill_internet',
+      name: 'Converge FiberX 1500',
+      amount: 1500.00,
+      dueDate: '2026-09-20',
+    ),
+    BillItem(
+      id: 'bill_spotify',
+      name: 'Spotify Family Plan',
+      amount: 239.00,
+      dueDate: '2026-09-14',
+      isPaid: true,
+    ),
+    BillItem(
+      id: 'bill_rent',
+      name: 'Condo Unit Rental',
+      amount: 14000.00,
+      dueDate: '2026-09-30',
+    ),
+    BillItem(
+      id: 'bill_insurance',
+      name: 'Pru Life UK VUL Insurance',
+      amount: 2500.00,
+      dueDate: '2026-09-25',
+    ),
+    BillItem(
+      id: 'bill_tuition',
+      name: 'Sibling College Tuition (2nd Tranche)',
+      amount: 8500.00,
+      dueDate: '2026-10-05',
+    ),
+    BillItem(
+      id: 'bill_sss',
+      name: 'SSS Voluntary Contribution',
+      amount: 1120.00,
+      dueDate: '2026-09-30',
+    ),
+    BillItem(
+      id: 'bill_philhealth',
+      name: 'PhilHealth Contribution',
+      amount: 500.00,
+      dueDate: '2026-09-30',
+    ),
+    BillItem(
+      id: 'bill_remittance',
+      name: 'Nanay Monthly Padala & Groceries',
+      amount: 6000.00,
+      dueDate: '2026-09-16',
+    ),
   ];
 
   static const List<InstallmentPlan> installments = <InstallmentPlan>[
-    InstallmentPlan(id: 'inst_home_credit', name: 'Inverter Refrigerator (Abenson)', installmentAmount: 2409.17),
-    InstallmentPlan(id: 'inst_bpi_sip', name: 'MacBook Air M2 Work Setup', installmentAmount: 2291.25),
-    InstallmentPlan(id: 'inst_spaylater', name: 'Ergonomic Desk & Chair', installmentAmount: 1647.80),
+    InstallmentPlan(
+      id: 'inst_home_credit',
+      name: 'Inverter Refrigerator (Abenson)',
+      installmentAmount: 2409.17,
+    ),
+    InstallmentPlan(
+      id: 'inst_bpi_sip',
+      name: 'MacBook Air M2 Work Setup',
+      installmentAmount: 2291.25,
+    ),
+    InstallmentPlan(
+      id: 'inst_spaylater',
+      name: 'Ergonomic Desk & Chair',
+      installmentAmount: 1647.80,
+    ),
   ];
 
   static const List<IncomeStream> incomeStreams = <IncomeStream>[

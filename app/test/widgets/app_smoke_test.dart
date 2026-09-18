@@ -8,8 +8,9 @@ import 'package:salapify/main.dart';
 /// main.dart or the shell. This can: it is the only test that proves the app
 /// a person actually launches comes up at all.
 void main() {
-  testWidgets('the app boots and lands on Home with real money on screen',
-      (WidgetTester tester) async {
+  testWidgets('the app boots and lands on Home with real money on screen', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
@@ -40,7 +41,12 @@ void main() {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
-    for (final String tab in <String>['Activity', 'Reports', 'Plan', 'Accounts']) {
+    for (final String tab in <String>[
+      'Activity',
+      'Reports',
+      'Plan',
+      'Accounts',
+    ]) {
       await tester.tap(find.text(tab));
       await tester.pumpAndSettle();
       // The tab's own title is on screen, so the switch really happened.
@@ -49,14 +55,14 @@ void main() {
     }
   });
 
-  testWidgets('the theme switch actually changes the background',
-      (WidgetTester tester) async {
+  testWidgets('the theme switch actually changes the background', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
-    Color background() => tester
-        .widget<Scaffold>(find.byType(Scaffold).first)
-        .backgroundColor!;
+    Color background() =>
+        tester.widget<Scaffold>(find.byType(Scaffold).first).backgroundColor!;
 
     final Color before = background();
     await tester.tap(find.byIcon(Icons.light_mode_outlined));
@@ -66,8 +72,9 @@ void main() {
     expect(background(), isNot(before));
   });
 
-  testWidgets('switching the scenario moves the Safe to Spend figure',
-      (WidgetTester tester) async {
+  testWidgets('switching the scenario moves the Safe to Spend figure', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 

@@ -115,8 +115,7 @@ class Palette {
     trackSoft: Color(0xFF14100D),
   );
 
-  static Palette of(ThemeMode2 mode) =>
-      mode == ThemeMode2.hapon ? hapon : gabi;
+  static Palette of(ThemeMode2 mode) => mode == ThemeMode2.hapon ? hapon : gabi;
 }
 
 /// The Safe to Spend hero keeps ONE set of colours in both themes, because it

@@ -92,13 +92,15 @@ CreditCardPayoffResult calculateCreditCardPayoff({
     totalPaid += payment;
 
     if (month <= 36 || month % 6 == 0 || balance <= 0) {
-      schedule.add(CardPayoffRow(
-        month: month,
-        payment: jsRound(payment).toDouble(),
-        interest: jsRound(interest).toDouble(),
-        principal: jsRound(principalPaid).toDouble(),
-        balance: jsRound(balance).toDouble(),
-      ));
+      schedule.add(
+        CardPayoffRow(
+          month: month,
+          payment: jsRound(payment).toDouble(),
+          interest: jsRound(interest).toDouble(),
+          principal: jsRound(principalPaid).toDouble(),
+          balance: jsRound(balance).toDouble(),
+        ),
+      );
     }
 
     if (balance <= 0) break;
@@ -110,11 +112,12 @@ CreditCardPayoffResult calculateCreditCardPayoff({
     totalAmountPaid: jsRound(totalPaid).toDouble(),
     schedule: schedule,
     warningMessage:
-        paymentStrategy == CardPaymentStrategy.minimumOnly && currentBalance > 20000
-            ? 'Warning: Paying only the minimum due triggers compounding '
-                'finance charges under the 3% monthly BSP cap, extending '
-                'repayment to years.'
-            : null,
+        paymentStrategy == CardPaymentStrategy.minimumOnly &&
+            currentBalance > 20000
+        ? 'Warning: Paying only the minimum due triggers compounding '
+              'finance charges under the 3% monthly BSP cap, extending '
+              'repayment to years.'
+        : null,
   );
 }
 
@@ -172,7 +175,12 @@ class StrategyComparison {
 }
 
 class _Active {
-  _Active(this.name, this.currentBalance, this.monthlyRate, this.minimumPayment);
+  _Active(
+    this.name,
+    this.currentBalance,
+    this.monthlyRate,
+    this.minimumPayment,
+  );
 
   final String name;
   double currentBalance;
@@ -192,23 +200,28 @@ StrategyComparison simulateDebtStrategies({
 }) {
   StrategySimulationResult run(PayoffStrategy strategy) {
     final List<_Active> active = debts
-        .map((DebtItemForStrategy d) => _Active(
-              d.name,
-              d.balance,
-              d.interestRate / 100 / 12,
-              d.minimumPayment,
-            ))
+        .map(
+          (DebtItemForStrategy d) => _Active(
+            d.name,
+            d.balance,
+            d.interestRate / 100 / 12,
+            d.minimumPayment,
+          ),
+        )
         .toList();
 
     if (strategy == PayoffStrategy.snowball) {
-      active.sort((_Active a, _Active b) =>
-          a.currentBalance.compareTo(b.currentBalance));
+      active.sort(
+        (_Active a, _Active b) => a.currentBalance.compareTo(b.currentBalance),
+      );
     } else {
       final Map<String, double> rates = <String, double>{
         for (final DebtItemForStrategy d in debts) d.name: d.interestRate,
       };
-      active.sort((_Active a, _Active b) =>
-          (rates[b.name] ?? 0).compareTo(rates[a.name] ?? 0));
+      active.sort(
+        (_Active a, _Active b) =>
+            (rates[b.name] ?? 0).compareTo(rates[a.name] ?? 0),
+      );
     }
 
     int months = 0;

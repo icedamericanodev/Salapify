@@ -25,18 +25,17 @@ void main() {
   SafeToSpendAnalysis run({
     required DecisionScenario scenario,
     List<Transaction> transactions = const <Transaction>[],
-  }) =>
-      computeSafeToSpend(
-        accounts: SeedData.accounts,
-        transactions: transactions,
-        bills: SeedData.bills,
-        debtsIOwe: debtsIOwe(),
-        installments: SeedData.installments,
-        incomeStreams: SeedData.incomeStreams,
-        payday: SeedData.payday,
-        scenario: scenario,
-        now: pinnedNow,
-      );
+  }) => computeSafeToSpend(
+    accounts: SeedData.accounts,
+    transactions: transactions,
+    bills: SeedData.bills,
+    debtsIOwe: debtsIOwe(),
+    installments: SeedData.installments,
+    incomeStreams: SeedData.incomeStreams,
+    payday: SeedData.payday,
+    scenario: scenario,
+    now: pinnedNow,
+  );
 
   group('the fixture itself matches the prototype', () {
     test('debt totals agree', () {
@@ -55,16 +54,13 @@ void main() {
           .where((Account a) => !a.isLiquid)
           .map((Account a) => a.id)
           .toSet();
-      expect(
-        excluded,
-        <String>{
-          'acc_mp2',
-          'acc_receivables',
-          'acc_bpi_cc',
-          'acc_personal_loan',
-          'acc_pagibig_mortgage',
-        },
-      );
+      expect(excluded, <String>{
+        'acc_mp2',
+        'acc_receivables',
+        'acc_bpi_cc',
+        'acc_personal_loan',
+        'acc_pagibig_mortgage',
+      });
     });
   });
 
@@ -171,13 +167,17 @@ void main() {
 
   group('the split between spending and saving', () {
     test('safe to spend and safe to save are 85 / 15 of the same pot', () {
-      final SafeToSpendAnalysis a = run(scenario: DecisionScenario.conservative);
+      final SafeToSpendAnalysis a = run(
+        scenario: DecisionScenario.conservative,
+      );
       // 38414 + 6779 = 45193, the uncommitted cash, to the peso.
       expect(a.safeToSpendUntilPayday + a.safeToSave, 45193);
     });
 
     test('a day rate never exceeds the whole period', () {
-      final SafeToSpendAnalysis a = run(scenario: DecisionScenario.conservative);
+      final SafeToSpendAnalysis a = run(
+        scenario: DecisionScenario.conservative,
+      );
       expect(a.safeToSpendToday, lessThanOrEqualTo(a.safeToSpendUntilPayday));
     });
   });

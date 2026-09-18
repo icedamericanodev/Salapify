@@ -63,9 +63,7 @@ class _AmortizationTableState extends State<AmortizationTable> {
         const SizedBox(height: Spacing.lg),
         Row(
           children: <Widget>[
-            Expanded(
-              child: Text('Payoff schedule', style: AppType.section(p)),
-            ),
+            Expanded(child: Text('Payoff schedule', style: AppType.section(p))),
             Text('$total months', style: AppType.rowMeta(p)),
           ],
         ),
@@ -98,9 +96,7 @@ class _AmortizationTableState extends State<AmortizationTable> {
                 constraints: const BoxConstraints(minHeight: 44),
                 alignment: Alignment.center,
                 child: Text(
-                  _expanded
-                      ? 'Show less'
-                      : 'Show all $total months',
+                  _expanded ? 'Show less' : 'Show all $total months',
                   style: AppType.button(p, color: p.accent),
                 ),
               ),
@@ -128,9 +124,9 @@ class _AmortizationTableState extends State<AmortizationTable> {
                 width: 34,
                 child: Text(
                   '${row.period}',
-                  style: AppType.rowMeta(p).copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppType.rowMeta(
+                    p,
+                  ).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               Expanded(

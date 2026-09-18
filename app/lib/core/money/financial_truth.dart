@@ -85,7 +85,8 @@ List<ControlCenterAlert> runControlCenterScan({
       final Transaction b = expenses[j];
       if (a.id == b.id) continue;
 
-      final bool sameMerchant = a.merchant != null &&
+      final bool sameMerchant =
+          a.merchant != null &&
           b.merchant != null &&
           a.merchant!.toLowerCase() == b.merchant!.toLowerCase();
       final bool sameCategory =
@@ -99,19 +100,21 @@ List<ControlCenterAlert> runControlCenterScan({
           (da.difference(db).inMilliseconds).abs() / (1000 * 3600 * 24);
 
       if (sameAmount && (sameMerchant || sameCategory) && dayDiff <= 2) {
-        alerts.add(ControlCenterAlert(
-          id: 'alert_dup_${a.id}_${b.id}',
-          type: AlertType.duplicateCharge,
-          title: 'Potential Duplicate Transaction',
-          description:
-              'Two identical charges of ₱${_n(a.amount)} for "${a.merchant ?? a.category}" '
-              'recorded within 48 hours (${a.date} and ${b.date}).',
-          severity: AlertSeverity.medium,
-          amount: a.amount,
-          relatedTransactionId: b.id,
-          suggestedAction:
-              'Review transaction ledger and mark redundant entry as duplicate or excluded.',
-        ));
+        alerts.add(
+          ControlCenterAlert(
+            id: 'alert_dup_${a.id}_${b.id}',
+            type: AlertType.duplicateCharge,
+            title: 'Potential Duplicate Transaction',
+            description:
+                'Two identical charges of ₱${_n(a.amount)} for "${a.merchant ?? a.category}" '
+                'recorded within 48 hours (${a.date} and ${b.date}).',
+            severity: AlertSeverity.medium,
+            amount: a.amount,
+            relatedTransactionId: b.id,
+            suggestedAction:
+                'Review transaction ledger and mark redundant entry as duplicate or excluded.',
+          ),
+        );
         break; // One alert per left-hand transaction, not per pair.
       }
     }
@@ -121,48 +124,56 @@ List<ControlCenterAlert> runControlCenterScan({
   //    Credit, loan and mortgage accounts are excluded: owing money IS their
   //    normal state.
   for (final Account acc in accounts) {
-    final bool borrowing = acc.kind == AccountKind.credit ||
+    final bool borrowing =
+        acc.kind == AccountKind.credit ||
         acc.kind == AccountKind.loan ||
         acc.kind == AccountKind.mortgage;
     if (!borrowing && acc.balance < 0) {
-      alerts.add(ControlCenterAlert(
-        id: 'alert_neg_bal_${acc.id}',
-        type: AlertType.balanceMismatch,
-        title: 'Negative Balance in ${acc.name}',
-        description:
-            'Account has a negative balance of ₱${_n(acc.balance)}. '
-            'A reconciliation adjustment is needed.',
-        severity: AlertSeverity.high,
-        amount: acc.balance.abs(),
-        relatedAccountId: acc.id,
-        suggestedAction:
-            'Reconcile account balance against actual mobile banking / e-wallet statement.',
-      ));
+      alerts.add(
+        ControlCenterAlert(
+          id: 'alert_neg_bal_${acc.id}',
+          type: AlertType.balanceMismatch,
+          title: 'Negative Balance in ${acc.name}',
+          description:
+              'Account has a negative balance of ₱${_n(acc.balance)}. '
+              'A reconciliation adjustment is needed.',
+          severity: AlertSeverity.high,
+          amount: acc.balance.abs(),
+          relatedAccountId: acc.id,
+          suggestedAction:
+              'Reconcile account balance against actual mobile banking / e-wallet statement.',
+        ),
+      );
     }
   }
 
   // 3. A category more than 15% past its limit. High once it passes 30%.
   for (final Budget b in budgets) {
     final double spent = transactions
-        .where((Transaction t) =>
-            t.type == TransactionType.expense &&
-            t.category.toLowerCase() == b.category.toLowerCase())
+        .where(
+          (Transaction t) =>
+              t.type == TransactionType.expense &&
+              t.category.toLowerCase() == b.category.toLowerCase(),
+        )
         .fold<double>(0, (double s, Transaction t) => s + t.amount);
 
     if (spent > b.limit * 1.15) {
-      alerts.add(ControlCenterAlert(
-        id: 'alert_drift_${b.category}',
-        type: AlertType.categoryDrift,
-        title: 'Category Drift: ${b.category}',
-        description:
-            'Spent ₱${_n(spent)} which is ${((spent / b.limit) * 100).round()}% '
-            'of your ₱${_n(b.limit)} budget limit.',
-        severity:
-            spent > b.limit * 1.3 ? AlertSeverity.high : AlertSeverity.medium,
-        amount: spent - b.limit,
-        suggestedAction:
-            'Pace daily expenses or temporarily reallocate limit from discretionary categories.',
-      ));
+      alerts.add(
+        ControlCenterAlert(
+          id: 'alert_drift_${b.category}',
+          type: AlertType.categoryDrift,
+          title: 'Category Drift: ${b.category}',
+          description:
+              'Spent ₱${_n(spent)} which is ${((spent / b.limit) * 100).round()}% '
+              'of your ₱${_n(b.limit)} budget limit.',
+          severity: spent > b.limit * 1.3
+              ? AlertSeverity.high
+              : AlertSeverity.medium,
+          amount: spent - b.limit,
+          suggestedAction:
+              'Pace daily expenses or temporarily reallocate limit from discretionary categories.',
+        ),
+      );
     }
   }
 
@@ -170,68 +181,83 @@ List<ControlCenterAlert> runControlCenterScan({
   //    Spend engine's liquid set: it leaves out debit accounts. The difference
   //    is the prototype's and is preserved.
   final double liquidCash = accounts
-      .where((Account a) =>
-          a.kind == AccountKind.cash ||
-          a.kind == AccountKind.bank ||
-          a.kind == AccountKind.gcash ||
-          a.kind == AccountKind.maya)
+      .where(
+        (Account a) =>
+            a.kind == AccountKind.cash ||
+            a.kind == AccountKind.bank ||
+            a.kind == AccountKind.gcash ||
+            a.kind == AccountKind.maya,
+      )
       .fold<double>(0, (double s, Account a) => s + a.balance);
 
   if (liquidCash < 5000) {
-    alerts.add(ControlCenterAlert(
-      id: 'alert_cash_shortfall',
-      type: AlertType.cashShortfall,
-      title: 'Cash Shortfall Risk',
-      description:
-          'Liquid reserves are down to ₱${_n(liquidCash)}, below the '
-          '₱5,000 working buffer.',
-      severity: AlertSeverity.critical,
-      amount: liquidCash,
-      suggestedAction:
-          'Move funds from savings or pause discretionary spending until the next payday.',
-    ));
+    alerts.add(
+      ControlCenterAlert(
+        id: 'alert_cash_shortfall',
+        type: AlertType.cashShortfall,
+        title: 'Cash Shortfall Risk',
+        description:
+            'Liquid reserves are down to ₱${_n(liquidCash)}, below the '
+            '₱5,000 working buffer.',
+        severity: AlertSeverity.critical,
+        amount: liquidCash,
+        suggestedAction:
+            'Move funds from savings or pause discretionary spending until the next payday.',
+      ),
+    );
   }
 
   // 8. Debt owed above 80% of liquid reserves.
   final double totalDebtOwed = debts
       .where((Debt d) => d.direction == DebtDirection.iOwe && !d.isSettled)
-      .fold<double>(0, (double s, Debt d) => s + (d.totalAmount - d.paidAmount));
+      .fold<double>(
+        0,
+        (double s, Debt d) => s + (d.totalAmount - d.paidAmount),
+      );
 
   if (totalDebtOwed > liquidCash * 0.8 && totalDebtOwed > 0) {
-    alerts.add(ControlCenterAlert(
-      id: 'alert_debt_pressure',
-      type: AlertType.debtPaymentRisk,
-      title: 'Debt Service Cashflow Pressure',
-      description:
-          'Pending debt obligations (₱${_n(totalDebtOwed)}) represent '
-          '${((totalDebtOwed / (liquidCash == 0 ? 1 : liquidCash)) * 100).round()}% '
-          'of your available liquid reserves.',
-      severity: AlertSeverity.high,
-      amount: totalDebtOwed,
-      suggestedAction:
-          'Review installment amortization schedules and reserve minimum due amounts.',
-    ));
+    alerts.add(
+      ControlCenterAlert(
+        id: 'alert_debt_pressure',
+        type: AlertType.debtPaymentRisk,
+        title: 'Debt Service Cashflow Pressure',
+        description:
+            'Pending debt obligations (₱${_n(totalDebtOwed)}) represent '
+            '${((totalDebtOwed / (liquidCash == 0 ? 1 : liquidCash)) * 100).round()}% '
+            'of your available liquid reserves.',
+        severity: AlertSeverity.high,
+        amount: totalDebtOwed,
+        suggestedAction:
+            'Review installment amortization schedules and reserve minimum due amounts.',
+      ),
+    );
   }
 
   // 9. Total spending past total budget.
-  final double totalExpenses =
-      expenses.fold<double>(0, (double s, Transaction t) => s + t.amount);
-  final double totalBudgeted =
-      budgets.fold<double>(0, (double s, Budget b) => s + b.limit);
+  final double totalExpenses = expenses.fold<double>(
+    0,
+    (double s, Transaction t) => s + t.amount,
+  );
+  final double totalBudgeted = budgets.fold<double>(
+    0,
+    (double s, Budget b) => s + b.limit,
+  );
 
   if (totalBudgeted > 0 && totalExpenses > totalBudgeted) {
-    alerts.add(ControlCenterAlert(
-      id: 'alert_forecast_variance',
-      type: AlertType.forecastVariance,
-      title: 'Forecast Variance',
-      description:
-          'Total spending of ₱${_n(totalExpenses)} exceeds the '
-          '₱${_n(totalBudgeted)} budgeted across all categories.',
-      severity: AlertSeverity.high,
-      amount: totalExpenses - totalBudgeted,
-      suggestedAction:
-          'Re-forecast the remaining cycle or reallocate between category limits.',
-    ));
+    alerts.add(
+      ControlCenterAlert(
+        id: 'alert_forecast_variance',
+        type: AlertType.forecastVariance,
+        title: 'Forecast Variance',
+        description:
+            'Total spending of ₱${_n(totalExpenses)} exceeds the '
+            '₱${_n(totalBudgeted)} budgeted across all categories.',
+        severity: AlertSeverity.high,
+        amount: totalExpenses - totalBudgeted,
+        suggestedAction:
+            'Re-forecast the remaining cycle or reallocate between category limits.',
+      ),
+    );
   }
 
   return alerts;
@@ -295,7 +321,9 @@ TwinSimulationResult simulateDigitalTwin({
       ? currentLiquidCash / monthlyExpenseRunrate
       : 6;
   final double baselineSafeToSpend = math.max(0, currentLiquidCash * 0.4);
-  final double safeRunrate = monthlyExpenseRunrate == 0 ? 1 : monthlyExpenseRunrate;
+  final double safeRunrate = monthlyExpenseRunrate == 0
+      ? 1
+      : monthlyExpenseRunrate;
 
   switch (scenario) {
     case TwinScenario.jobLoss:
@@ -303,8 +331,7 @@ TwinSimulationResult simulateDigitalTwin({
       return TwinSimulationResult(
         scenario: scenario,
         baselineRunwayMonths: baselineRunwayMonths,
-        simulatedRunwayMonths:
-            survival > 0 ? currentLiquidCash / survival : 0,
+        simulatedRunwayMonths: survival > 0 ? currentLiquidCash / survival : 0,
         baselineSafeToSpend: baselineSafeToSpend,
         simulatedSafeToSpend: 0,
         baselineNetWorth: currentNetWorth,
@@ -322,8 +349,10 @@ TwinSimulationResult simulateDigitalTwin({
       return TwinSimulationResult(
         scenario: scenario,
         baselineRunwayMonths: baselineRunwayMonths,
-        simulatedRunwayMonths:
-            math.max(0, (currentLiquidCash - deficit) / safeRunrate),
+        simulatedRunwayMonths: math.max(
+          0,
+          (currentLiquidCash - deficit) / safeRunrate,
+        ),
         baselineSafeToSpend: baselineSafeToSpend,
         simulatedSafeToSpend: math.max(0, (currentLiquidCash - deficit) * 0.3),
         baselineNetWorth: currentNetWorth,
@@ -343,7 +372,9 @@ TwinSimulationResult simulateDigitalTwin({
         scenario: scenario,
         baselineRunwayMonths: baselineRunwayMonths,
         simulatedRunwayMonths: math.max(
-            0, currentLiquidCash / (monthlyExpenseRunrate + monthlyBump)),
+          0,
+          currentLiquidCash / (monthlyExpenseRunrate + monthlyBump),
+        ),
         baselineSafeToSpend: baselineSafeToSpend,
         simulatedSafeToSpend: math.max(0, baselineSafeToSpend - monthlyBump),
         baselineNetWorth: currentNetWorth,
@@ -362,8 +393,9 @@ TwinSimulationResult simulateDigitalTwin({
       return TwinSimulationResult(
         scenario: scenario,
         baselineRunwayMonths: baselineRunwayMonths,
-        simulatedRunwayMonths:
-            monthlyExpenseRunrate > 0 ? after / monthlyExpenseRunrate : 0,
+        simulatedRunwayMonths: monthlyExpenseRunrate > 0
+            ? after / monthlyExpenseRunrate
+            : 0,
         baselineSafeToSpend: baselineSafeToSpend,
         simulatedSafeToSpend: math.max(0, after * 0.2),
         baselineNetWorth: currentNetWorth,
@@ -421,8 +453,10 @@ TwinSimulationResult simulateDigitalTwin({
       return TwinSimulationResult(
         scenario: scenario,
         baselineRunwayMonths: baselineRunwayMonths,
-        simulatedRunwayMonths:
-            math.max(0, (currentLiquidCash - prepay) / safeRunrate),
+        simulatedRunwayMonths: math.max(
+          0,
+          (currentLiquidCash - prepay) / safeRunrate,
+        ),
         baselineSafeToSpend: baselineSafeToSpend,
         simulatedSafeToSpend: math.max(0, baselineSafeToSpend - prepay * 0.3),
         baselineNetWorth: currentNetWorth,
@@ -442,8 +476,10 @@ TwinSimulationResult simulateDigitalTwin({
         baselineRunwayMonths: baselineRunwayMonths,
         simulatedRunwayMonths: currentLiquidCash / safeRunrate,
         baselineSafeToSpend: baselineSafeToSpend,
-        simulatedSafeToSpend:
-            math.max(0, baselineSafeToSpend - revenueCut * 0.5),
+        simulatedSafeToSpend: math.max(
+          0,
+          baselineSafeToSpend - revenueCut * 0.5,
+        ),
         baselineNetWorth: currentNetWorth,
         simulatedNetWorth: currentNetWorth - revenueCut * 3,
         bufferImpactPhp: -revenueCut * 3,

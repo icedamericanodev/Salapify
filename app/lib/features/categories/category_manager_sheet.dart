@@ -45,14 +45,17 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
   /// How many ledger entries carry this category. The number that decides
   /// whether it can be deleted, and the number the refusal quotes.
   int _entryCount(CategoryInfo c) => widget.state.transactions
-      .where((Transaction t) =>
-          t.category.toLowerCase() == c.name.toLowerCase())
+      .where(
+        (Transaction t) => t.category.toLowerCase() == c.name.toLowerCase(),
+      )
       .length;
 
   double _spent(CategoryInfo c) => widget.state.transactions
-      .where((Transaction t) =>
-          t.type == TransactionType.expense &&
-          t.category.toLowerCase() == c.name.toLowerCase())
+      .where(
+        (Transaction t) =>
+            t.type == TransactionType.expense &&
+            t.category.toLowerCase() == c.name.toLowerCase(),
+      )
       .fold<double>(0, (double s, Transaction t) => s + t.amount);
 
   List<CategoryInfo> get _visible {
@@ -76,7 +79,8 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
       palette: p,
       icon: Icons.sell_outlined,
       title: 'Categories',
-      subtitle: '${widget.state.categories.length} categories, '
+      subtitle:
+          '${widget.state.categories.length} categories, '
           'and the sub-categories under them',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,9 +155,8 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
               button: true,
               expanded: expanded,
               child: InkWell(
-                onTap: () => setState(
-                  () => _expandedId = expanded ? null : c.id,
-                ),
+                onTap: () =>
+                    setState(() => _expandedId = expanded ? null : c.id),
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 44),
                   padding: const EdgeInsets.all(Spacing.md),
@@ -207,12 +210,7 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.md,
-        0,
-        Spacing.md,
-        Spacing.md,
-      ),
+      padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -269,10 +267,10 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
                         canDelete
                             ? 'Delete this category'
                             : entries == 1
-                                ? 'One entry is tagged with this, so deleting '
-                                    'it would leave that entry with no category.'
-                                : '$entries entries are tagged with this, so '
-                                    'deleting it would leave them with no category.',
+                            ? 'One entry is tagged with this, so deleting '
+                                  'it would leave that entry with no category.'
+                            : '$entries entries are tagged with this, so '
+                                  'deleting it would leave them with no category.',
                         style: canDelete
                             ? AppType.button(p, color: p.negative)
                             : AppType.caption(p),
@@ -302,7 +300,10 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Keep it', style: AppType.button(p, color: p.textMuted)),
+            child: Text(
+              'Keep it',
+              style: AppType.button(p, color: p.textMuted),
+            ),
           ),
           TextButton(
             onPressed: () {

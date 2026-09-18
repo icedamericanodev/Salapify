@@ -30,8 +30,7 @@ class BusinessTaxSheet extends StatefulWidget {
 }
 
 class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
-  final TextEditingController _revenue =
-      TextEditingController(text: '3000000');
+  final TextEditingController _revenue = TextEditingController(text: '3000000');
   final TextEditingController _cogs = TextEditingController(text: '1200000');
   final TextEditingController _opex = TextEditingController(text: '600000');
 
@@ -51,17 +50,17 @@ class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
       double.tryParse(c.text.replaceAll(',', '').trim()) ?? 0;
 
   BusinessFinancials get _financials => BusinessFinancials(
-        revenue: _num(_revenue),
-        cogs: _num(_cogs),
-        opex: _num(_opex),
-      );
+    revenue: _num(_revenue),
+    cogs: _num(_cogs),
+    opex: _num(_opex),
+  );
 
   BusinessTaxResult _run(TaxRegime regime) => calculateBusinessTax(
-        entity: _entity,
-        financials: _financials,
-        vatStatus: _vat,
-        regime: regime,
-      );
+    entity: _entity,
+    financials: _financials,
+    vatStatus: _vat,
+    regime: regime,
+  );
 
   static const List<(TaxRegime, String)> _regimes = <(TaxRegime, String)>[
     (TaxRegime.eightPercent, '8% flat'),
@@ -175,7 +174,7 @@ class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
                   cheapest == _regime
                       ? 'Nothing on this list costs you less.'
                       : '${_label(cheapest)} would cost '
-                          '${formatPeso(chosen.totalTax - lowest)} less a year.',
+                            '${formatPeso(chosen.totalTax - lowest)} less a year.',
                   style: AppType.body(p),
                 ),
               ],
@@ -284,11 +283,11 @@ class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
             p,
             _vat == VatStatus.vat
                 ? 'VAT is treated as pass-through here, so it adds nothing to '
-                    'your cost. Output VAT is billed to your customer and input '
-                    'VAT is credited back. This is a cash-flow view, not a '
-                    'filing figure.'
+                      'your cost. Output VAT is billed to your customer and input '
+                      'VAT is credited back. This is a cash-flow view, not a '
+                      'filing figure.'
                 : 'Non-VAT businesses pay 3% percentage tax on gross sales, '
-                    'except under the 8% regime, which replaces it.',
+                      'except under the 8% regime, which replaces it.',
           ),
         ],
       ),
@@ -315,9 +314,7 @@ class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
               padding: const EdgeInsets.all(Spacing.md),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(Radii.control),
-                border: Border.all(
-                  color: selected ? p.accent : p.border,
-                ),
+                border: Border.all(color: selected ? p.accent : p.border),
               ),
               child: Row(
                 children: <Widget>[
@@ -354,9 +351,9 @@ class _BusinessTaxSheetState extends State<BusinessTaxSheet> {
                   const SizedBox(width: Spacing.sm),
                   Text(
                     formatPeso(res.totalTax, showDecimals: false),
-                    style: AppType.amountSmall(p).copyWith(
-                      color: cheapest ? p.positive : p.textPrimary,
-                    ),
+                    style: AppType.amountSmall(
+                      p,
+                    ).copyWith(color: cheapest ? p.positive : p.textPrimary),
                   ),
                 ],
               ),

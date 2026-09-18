@@ -48,8 +48,9 @@ void main() {
       tester.widget<HomeScreen>(find.byType(HomeScreen)).state;
 
   group('reachability', () {
-    testWidgets('the header sparkle opens the Philippine Toolkit',
-        (WidgetTester tester) async {
+    testWidgets('the header sparkle opens the Philippine Toolkit', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       await tapAndSettle(tester, find.byIcon(Icons.auto_awesome_outlined));
@@ -78,8 +79,9 @@ void main() {
       });
     }
 
-    testWidgets('the hero Details button opens Safe to Spend',
-        (WidgetTester tester) async {
+    testWidgets('the hero Details button opens Safe to Spend', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       await tapAndSettle(tester, find.text('DETAILS'));
@@ -90,8 +92,9 @@ void main() {
       expect(find.text('Audit & Math'), findsOneWidget);
     });
 
-    testWidgets('the Debt quick action opens the Add Debt sheet',
-        (WidgetTester tester) async {
+    testWidgets('the Debt quick action opens the Add Debt sheet', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       await tapAndSettle(tester, find.text('Debt'));
@@ -102,8 +105,9 @@ void main() {
   });
 
   group('the write path', () {
-    testWidgets('a saved debt is visible on Home afterwards',
-        (WidgetTester tester) async {
+    testWidgets('a saved debt is visible on Home afterwards', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       final FinancialState state = storeOf(tester);
@@ -156,8 +160,9 @@ void main() {
       );
     });
 
-    testWidgets('Save debt refuses an empty form rather than writing a blank',
-        (WidgetTester tester) async {
+    testWidgets('Save debt refuses an empty form rather than writing a blank', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
 
       final FinancialState state = storeOf(tester);
@@ -190,8 +195,9 @@ void main() {
       await pumpHome(tester);
     }
 
-    testWidgets('the toolkit and the tax calculator fit at 320dp',
-        (WidgetTester tester) async {
+    testWidgets('the toolkit and the tax calculator fit at 320dp', (
+      WidgetTester tester,
+    ) async {
       await pumpNarrow(tester);
 
       await tapAndSettle(tester, find.byIcon(Icons.auto_awesome_outlined));
@@ -208,8 +214,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Add Debt fits at 320dp, schedule and all',
-        (WidgetTester tester) async {
+    testWidgets('Add Debt fits at 320dp, schedule and all', (
+      WidgetTester tester,
+    ) async {
       await pumpNarrow(tester);
 
       await tapAndSettle(tester, find.text('Debt'));
@@ -251,16 +258,18 @@ void main() {
       }
     }
 
-    testWidgets('every control in the toolkit clears the 44dp floor',
-        (WidgetTester tester) async {
+    testWidgets('every control in the toolkit clears the 44dp floor', (
+      WidgetTester tester,
+    ) async {
       await pumpHome(tester);
       await tapAndSettle(tester, find.byIcon(Icons.auto_awesome_outlined));
 
       await expectTouchTargets(tester, ToolkitSheet);
     });
 
-    testWidgets('every control in the tax calculator clears the 44dp floor',
-        (WidgetTester tester) async {
+    testWidgets('every control in the tax calculator clears the 44dp floor', (
+      WidgetTester tester,
+    ) async {
       // The densest sheet: two segmented controls whose segments are sized by
       // a one word label, which is where a target shrinks below the floor
       // without anybody noticing.

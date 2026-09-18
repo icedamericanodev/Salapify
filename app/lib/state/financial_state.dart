@@ -37,7 +37,8 @@ class FinancialState extends ChangeNotifier {
   DateTime get now => clock ?? DateTime.now();
 
   List<Account> get accounts => SeedData.accounts;
-  List<Transaction> get transactions => List<Transaction>.unmodifiable(_transactions);
+  List<Transaction> get transactions =>
+      List<Transaction>.unmodifiable(_transactions);
   List<Debt> get debts => List<Debt>.unmodifiable(_debts);
   List<Budget> get budgets => SeedData.budgets;
   List<CategoryInfo> get categories => SeedData.categories;
@@ -134,8 +135,15 @@ class FinancialState extends ChangeNotifier {
     final String category = rawCategory.toLowerCase();
 
     const List<String> businessWords = <String>[
-      'bir', 'tax', 'payroll', 'freelance', 'business', 'client', 'vendor',
-      'dti', 'sec',
+      'bir',
+      'tax',
+      'payroll',
+      'freelance',
+      'business',
+      'client',
+      'vendor',
+      'dti',
+      'sec',
     ];
     for (final String w in businessWords) {
       if (name.contains(w)) return ProfileEntity.business;
@@ -143,8 +151,18 @@ class FinancialState extends ChangeNotifier {
     if (category.contains('business')) return ProfileEntity.business;
 
     const List<String> householdWords = <String>[
-      'meralco', 'maynilad', 'manila water', 'water', 'electric', 'converge',
-      'pldt', 'rent', 'hoa', 'condo', 'household', 'groceries',
+      'meralco',
+      'maynilad',
+      'manila water',
+      'water',
+      'electric',
+      'converge',
+      'pldt',
+      'rent',
+      'hoa',
+      'condo',
+      'household',
+      'groceries',
     ];
     for (final String w in householdWords) {
       if (name.contains(w)) return ProfileEntity.household;
@@ -159,8 +177,10 @@ class FinancialState extends ChangeNotifier {
   /// Unpaid upcoming rows for the selected profile.
   List<UpcomingItem> get profileUpcoming => _upcoming
       .where((UpcomingItem u) => !u.isPaid)
-      .where((UpcomingItem u) =>
-          _activeProfile == null || profileOf(u) == _activeProfile)
+      .where(
+        (UpcomingItem u) =>
+            _activeProfile == null || profileOf(u) == _activeProfile,
+      )
       .toList();
 
   /// How many unpaid rows a profile tab should show on its counter.
@@ -204,10 +224,11 @@ class FinancialState extends ChangeNotifier {
 
   /// The soonest unsettled debt carrying a due date.
   Debt? get nextDueDebt {
-    final List<Debt> dated = debts
-        .where((Debt d) => !d.isSettled && d.dueDate != null)
-        .toList()
-      ..sort((Debt a, Debt b) => (a.dueDate ?? '').compareTo(b.dueDate ?? ''));
+    final List<Debt> dated =
+        debts.where((Debt d) => !d.isSettled && d.dueDate != null).toList()
+          ..sort(
+            (Debt a, Debt b) => (a.dueDate ?? '').compareTo(b.dueDate ?? ''),
+          );
     return dated.isEmpty ? null : dated.first;
   }
 
@@ -218,16 +239,16 @@ class FinancialState extends ChangeNotifier {
       .fold<double>(0, (double sum, Account a) => sum + a.balance);
 
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
-        accounts: accounts,
-        transactions: _transactions,
-        bills: SeedData.bills,
-        debtsIOwe: debtsIOwe,
-        installments: SeedData.installments,
-        incomeStreams: SeedData.incomeStreams,
-        payday: payday,
-        scenario: _scenario,
-        now: clock,
-      );
+    accounts: accounts,
+    transactions: _transactions,
+    bills: SeedData.bills,
+    debtsIOwe: debtsIOwe,
+    installments: SeedData.installments,
+    incomeStreams: SeedData.incomeStreams,
+    payday: payday,
+    scenario: _scenario,
+    now: clock,
+  );
 
   double get safeToSpend => safeToSpendAnalysis.safeToSpendUntilPayday;
   double get safeToSpendPerDay => safeToSpendAnalysis.safeToSpendToday;
@@ -244,7 +265,9 @@ class FinancialState extends ChangeNotifier {
   /// Newest first, for the Latest card.
   List<Transaction> get latestTransactions {
     final List<Transaction> sorted = List<Transaction>.of(_transactions)
-      ..sort((Transaction a, Transaction b) => b.createdAt.compareTo(a.createdAt));
+      ..sort(
+        (Transaction a, Transaction b) => b.createdAt.compareTo(a.createdAt),
+      );
     return sorted;
   }
 }

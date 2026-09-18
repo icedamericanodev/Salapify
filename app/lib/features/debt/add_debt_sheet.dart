@@ -21,10 +21,7 @@ class AddDebtSheet extends StatefulWidget {
   final Palette palette;
   final ValueChanged<Debt>? onSave;
 
-  static Future<Debt?> show(
-    BuildContext context,
-    Palette palette,
-  ) {
+  static Future<Debt?> show(BuildContext context, Palette palette) {
     return SheetScaffold.show<Debt>(
       context: context,
       palette: palette,
@@ -41,8 +38,7 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
   final TextEditingController _amount = TextEditingController();
   final TextEditingController _dueDate = TextEditingController();
   final TextEditingController _notes = TextEditingController();
-  final TextEditingController _installments =
-      TextEditingController(text: '6');
+  final TextEditingController _installments = TextEditingController(text: '6');
   final TextEditingController _rate = TextEditingController(text: '0');
 
   DebtDirection _direction = DebtDirection.iOwe;

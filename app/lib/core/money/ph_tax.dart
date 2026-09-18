@@ -173,8 +173,10 @@ EmployeeTaxCalculation calculateEmployeeTaxDeductions({
 
   // 2. PhilHealth. 5% premium split evenly, so 2.5% each, on a base floored at
   //    10,000 and capped at 100,000.
-  final double philhealthBase =
-      math.min(100000, math.max(10000, monthlyBaseSalary));
+  final double philhealthBase = math.min(
+    100000,
+    math.max(10000, monthlyBaseSalary),
+  );
   final double philhealth = jsRound(philhealthBase * 0.025).toDouble();
   final double philhealthEmployer = philhealth;
 
@@ -185,21 +187,25 @@ EmployeeTaxCalculation calculateEmployeeTaxDeductions({
 
   final double totalContributions = sss + philhealth + pagibig;
 
-  final double grossTaxable = monthlyBaseSalary +
+  final double grossTaxable =
+      monthlyBaseSalary +
       monthlyTaxableAllowance +
       monthlyOvertime +
       monthlyNightDiff;
   final double taxableIncome = math.max(0, grossTaxable - totalContributions);
   final double withholdingTax = monthlyWithholdingTax(taxableIncome);
 
-  final double grossMonthlyIncome = monthlyBaseSalary +
+  final double grossMonthlyIncome =
+      monthlyBaseSalary +
       monthlyTaxableAllowance +
       monthlyNonTaxableAllowance +
       monthlyOvertime +
       monthlyNightDiff;
   final double netTakeHome = math.max(
     0,
-    jsRound(grossMonthlyIncome - totalContributions - withholdingTax).toDouble(),
+    jsRound(
+      grossMonthlyIncome - totalContributions - withholdingTax,
+    ).toDouble(),
   );
   final double semiMonthlyTakeHome = jsRound(netTakeHome / 2).toDouble();
 
@@ -207,10 +213,13 @@ EmployeeTaxCalculation calculateEmployeeTaxDeductions({
   // 20% on the excess is the prototype's stated approximation, not a bracket
   // lookup, and it is kept as such rather than quietly made more precise.
   final int safeMonths = math.min(12, math.max(1, monthsWorked));
-  final double thirteenthMonthGross =
-      jsRound((monthlyBaseSalary * safeMonths) / 12).toDouble();
-  final double thirteenthMonthTaxable =
-      math.max(0, thirteenthMonthGross - 90000);
+  final double thirteenthMonthGross = jsRound(
+    (monthlyBaseSalary * safeMonths) / 12,
+  ).toDouble();
+  final double thirteenthMonthTaxable = math.max(
+    0,
+    thirteenthMonthGross - 90000,
+  );
   final double thirteenthMonthTax = thirteenthMonthTaxable > 0
       ? jsRound(thirteenthMonthTaxable * 0.20).toDouble()
       : 0;
@@ -234,9 +243,12 @@ EmployeeTaxCalculation calculateEmployeeTaxDeductions({
     netTakeHome: netTakeHome,
     semiMonthlyTakeHome: semiMonthlyTakeHome,
     annualGrossSalary: grossMonthlyIncome * 12,
-    annualTotalTax: jsRound(withholdingTax * 12 + thirteenthMonthTax).toDouble(),
-    annualNetTakeHome:
-        jsRound(netTakeHome * 12 + thirteenthMonthNet).toDouble(),
+    annualTotalTax: jsRound(
+      withholdingTax * 12 + thirteenthMonthTax,
+    ).toDouble(),
+    annualNetTakeHome: jsRound(
+      netTakeHome * 12 + thirteenthMonthNet,
+    ).toDouble(),
     thirteenthMonthGross: thirteenthMonthGross,
     thirteenthMonthTaxable: thirteenthMonthTaxable,
     thirteenthMonthTax: thirteenthMonthTax,
@@ -304,8 +316,10 @@ ThirteenthMonthPlan calculate13thMonthPay({
   const double taxExemptThreshold = 90000;
 
   final double taxExemptAmount = math.min(calculatedGross, taxExemptThreshold);
-  final double taxableExcessAmount =
-      math.max(0, calculatedGross - taxExemptThreshold);
+  final double taxableExcessAmount = math.max(
+    0,
+    calculatedGross - taxExemptThreshold,
+  );
   final double estimatedWithholdingTax = taxableExcessAmount * marginalTaxRate;
   final double net = calculatedGross - estimatedWithholdingTax;
 
@@ -411,8 +425,10 @@ FreelanceTaxCalculation calculateFreelanceTax({
   const double standardDeduction = 250000;
 
   if (taxOption == FreelanceTaxOption.eightPercentGit) {
-    final double taxableBase =
-        math.max(0, annualGrossIncome - standardDeduction);
+    final double taxableBase = math.max(
+      0,
+      annualGrossIncome - standardDeduction,
+    );
     final double estimatedTaxDue = taxableBase * 0.08;
     return FreelanceTaxCalculation(
       grossIncome: annualGrossIncome,
@@ -435,8 +451,9 @@ FreelanceTaxCalculation calculateFreelanceTax({
     allowableDeduction: 0,
     taxableBase: annualGrossIncome,
     estimatedTaxDue: tax,
-    effectiveTaxRate:
-        annualGrossIncome > 0 ? (tax / annualGrossIncome) * 100 : 0,
+    effectiveTaxRate: annualGrossIncome > 0
+        ? (tax / annualGrossIncome) * 100
+        : 0,
     monthlyTaxProvision: tax / 12,
     leanMonthsBufferRecommended: (annualGrossIncome / 12) * 4,
   );

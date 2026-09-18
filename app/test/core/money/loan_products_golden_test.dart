@@ -21,11 +21,11 @@ void main() {
 
     test('the regular rate is set by the fixing period, and rises with it', () {
       double rate(int fixing) => calculatePagIbigHousingLoan(
-            program: PagIbigProgram.regularHousing,
-            loanAmount: 2000000,
-            termYears: 20,
-            fixingPeriodYears: fixing,
-          ).monthlyPayment;
+        program: PagIbigProgram.regularHousing,
+        loanAmount: 2000000,
+        termYears: 20,
+        fixingPeriodYears: fixing,
+      ).monthlyPayment;
 
       expect(rate(3), 14041.67);
       expect(rate(10), 15656.4);
@@ -46,12 +46,14 @@ void main() {
       for (final int fixing in <int>[1, 3, 5, 10, 30]) {
         expect(
           affordable,
-          lessThan(calculatePagIbigHousingLoan(
-            program: PagIbigProgram.regularHousing,
-            loanAmount: 2000000,
-            termYears: 20,
-            fixingPeriodYears: fixing,
-          ).monthlyPayment),
+          lessThan(
+            calculatePagIbigHousingLoan(
+              program: PagIbigProgram.regularHousing,
+              loanAmount: 2000000,
+              termYears: 20,
+              fixingPeriodYears: fixing,
+            ).monthlyPayment,
+          ),
         );
       }
     });
@@ -152,28 +154,30 @@ void main() {
       expect(calamity.effectiveTotalCost, 6315);
     });
 
-    test('the Pag-IBIG MPL dividend makes the dearest headline the cheapest',
-        () {
-      final SalaryLoanResult mpl = calculateSalaryLoan(
-        loanType: SalaryLoanType.pagibigMpl,
-        loanAmount: 100000,
-        termMonths: 24,
-      );
-      expect(mpl.annualRate, 10.5);
-      expect(mpl.totalInterest, closeTo(11302.5, 0.01));
-      expect(mpl.estimatedDividendRebate, closeTo(2260.5, 0.01));
+    test(
+      'the Pag-IBIG MPL dividend makes the dearest headline the cheapest',
+      () {
+        final SalaryLoanResult mpl = calculateSalaryLoan(
+          loanType: SalaryLoanType.pagibigMpl,
+          loanAmount: 100000,
+          termMonths: 24,
+        );
+        expect(mpl.annualRate, 10.5);
+        expect(mpl.totalInterest, closeTo(11302.5, 0.01));
+        expect(mpl.estimatedDividendRebate, closeTo(2260.5, 0.01));
 
-      // 10.5% is a higher rate than SSS at 10%, and MPL still costs LESS in
-      // the end because a fifth of the interest comes back as a dividend and
-      // there is no processing fee.
-      expect(mpl.effectiveTotalCost, 9042);
-      final SalaryLoanResult sss = calculateSalaryLoan(
-        loanType: SalaryLoanType.sssSalary,
-        loanAmount: 100000,
-        termMonths: 24,
-      );
-      expect(mpl.effectiveTotalCost, lessThan(sss.effectiveTotalCost));
-    });
+        // 10.5% is a higher rate than SSS at 10%, and MPL still costs LESS in
+        // the end because a fifth of the interest comes back as a dividend and
+        // there is no processing fee.
+        expect(mpl.effectiveTotalCost, 9042);
+        final SalaryLoanResult sss = calculateSalaryLoan(
+          loanType: SalaryLoanType.sssSalary,
+          loanAmount: 100000,
+          termMonths: 24,
+        );
+        expect(mpl.effectiveTotalCost, lessThan(sss.effectiveTotalCost));
+      },
+    );
 
     test('GSIS consolidation is the dearest of the four', () {
       final SalaryLoanResult gsis = calculateSalaryLoan(
@@ -221,12 +225,12 @@ void main() {
   group('business loan repayment frequency', () {
     test('the same loan restated daily, weekly and monthly', () {
       BusinessLoanResult at(RepaymentSchedule s) => calculateBusinessLoan(
-            principal: 1000000,
-            termMonths: 24,
-            annualInterestRate: 18,
-            repaymentSchedule: s,
-            originationFeePercent: 2,
-          );
+        principal: 1000000,
+        termMonths: 24,
+        annualInterestRate: 18,
+        repaymentSchedule: s,
+        originationFeePercent: 2,
+      );
 
       final BusinessLoanResult monthly = at(RepaymentSchedule.monthly);
       expect(monthly.monthlyPayment, 49924.1);
@@ -243,22 +247,20 @@ void main() {
     });
 
     test('changing the frequency never changes what is actually owed', () {
-      final double a =
-          calculateBusinessLoan(
-            principal: 1000000,
-            termMonths: 24,
-            annualInterestRate: 18,
-            repaymentSchedule: RepaymentSchedule.monthly,
-            originationFeePercent: 2,
-          ).totalInterest;
-      final double b =
-          calculateBusinessLoan(
-            principal: 1000000,
-            termMonths: 24,
-            annualInterestRate: 18,
-            repaymentSchedule: RepaymentSchedule.dailyDebit,
-            originationFeePercent: 2,
-          ).totalInterest;
+      final double a = calculateBusinessLoan(
+        principal: 1000000,
+        termMonths: 24,
+        annualInterestRate: 18,
+        repaymentSchedule: RepaymentSchedule.monthly,
+        originationFeePercent: 2,
+      ).totalInterest;
+      final double b = calculateBusinessLoan(
+        principal: 1000000,
+        termMonths: 24,
+        annualInterestRate: 18,
+        repaymentSchedule: RepaymentSchedule.dailyDebit,
+        originationFeePercent: 2,
+      ).totalInterest;
       expect(a, closeTo(b, eps));
     });
   });
@@ -268,16 +270,25 @@ void main() {
       final ConsolidationResult r = calculateDebtConsolidation(
         debts: const <DebtToConsolidate>[
           DebtToConsolidate(
-            id: 'a', name: 'Card A', balance: 80000,
-            monthlyInterestRate: 3.0, currentMonthlyPayment: 4000,
+            id: 'a',
+            name: 'Card A',
+            balance: 80000,
+            monthlyInterestRate: 3.0,
+            currentMonthlyPayment: 4000,
           ),
           DebtToConsolidate(
-            id: 'b', name: 'Card B', balance: 45000,
-            monthlyInterestRate: 3.5, currentMonthlyPayment: 2500,
+            id: 'b',
+            name: 'Card B',
+            balance: 45000,
+            monthlyInterestRate: 3.5,
+            currentMonthlyPayment: 2500,
           ),
           DebtToConsolidate(
-            id: 'c', name: 'Loan C', balance: 60000,
-            monthlyInterestRate: 2.0, currentMonthlyPayment: 3500,
+            id: 'c',
+            name: 'Loan C',
+            balance: 60000,
+            monthlyInterestRate: 2.0,
+            currentMonthlyPayment: 3500,
           ),
         ],
         newLoanMonthlyRate: 1.2,

@@ -148,53 +148,65 @@ List<ComplianceForm> _forms(
   final List<ComplianceForm> forms = <ComplianceForm>[];
 
   if (entity == EntityType.soleProp) {
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 1701Q',
-      name: 'Quarterly Income Tax Return',
-      deadline: 'May 15, Aug 15, Nov 15',
-      frequency: 'Quarterly',
-      description: 'Declaration of quarterly income and tax dues.',
-    ));
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 1701/1701A',
-      name: 'Annual Income Tax Return',
-      deadline: 'April 15 of next year',
-      frequency: 'Annually',
-      description: 'Final annual consolidation of income.',
-    ));
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 1701Q',
+        name: 'Quarterly Income Tax Return',
+        deadline: 'May 15, Aug 15, Nov 15',
+        frequency: 'Quarterly',
+        description: 'Declaration of quarterly income and tax dues.',
+      ),
+    );
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 1701/1701A',
+        name: 'Annual Income Tax Return',
+        deadline: 'April 15 of next year',
+        frequency: 'Annually',
+        description: 'Final annual consolidation of income.',
+      ),
+    );
   } else {
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 1702Q',
-      name: 'Quarterly Corporate Income Tax',
-      deadline: '60 days after the end of quarter',
-      frequency: 'Quarterly',
-      description: 'Declaration of partnership/corporate quarterly income.',
-    ));
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 1702-RT/EX',
-      name: 'Annual Corporate Income Tax',
-      deadline: '105 days after the fiscal year end',
-      frequency: 'Annually',
-      description: 'Final annual consolidation for the partnership.',
-    ));
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 1702Q',
+        name: 'Quarterly Corporate Income Tax',
+        deadline: '60 days after the end of quarter',
+        frequency: 'Quarterly',
+        description: 'Declaration of partnership/corporate quarterly income.',
+      ),
+    );
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 1702-RT/EX',
+        name: 'Annual Corporate Income Tax',
+        deadline: '105 days after the fiscal year end',
+        frequency: 'Annually',
+        description: 'Final annual consolidation for the partnership.',
+      ),
+    );
   }
 
   if (vatStatus == VatStatus.vat) {
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 2550Q',
-      name: 'Quarterly Value-Added Tax Return',
-      deadline: '25th day of the month following the quarter',
-      frequency: 'Quarterly',
-      description: 'Summary of Output VAT vs Input VAT.',
-    ));
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 2550Q',
+        name: 'Quarterly Value-Added Tax Return',
+        deadline: '25th day of the month following the quarter',
+        frequency: 'Quarterly',
+        description: 'Summary of Output VAT vs Input VAT.',
+      ),
+    );
   } else if (regime != TaxRegime.eightPercent) {
-    forms.add(const ComplianceForm(
-      form: 'BIR Form 2551Q',
-      name: 'Quarterly Percentage Tax',
-      deadline: '25th day of the month following the quarter',
-      frequency: 'Quarterly',
-      description: '3% tax on gross sales/receipts.',
-    ));
+    forms.add(
+      const ComplianceForm(
+        form: 'BIR Form 2551Q',
+        name: 'Quarterly Percentage Tax',
+        deadline: '25th day of the month following the quarter',
+        frequency: 'Quarterly',
+        description: '3% tax on gross sales/receipts.',
+      ),
+    );
   }
 
   // The annual registration fee (BIR Form 0605) was repealed by the EOPT law,

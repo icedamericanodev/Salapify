@@ -28,10 +28,7 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: _bodyFor(_current, palette),
-      ),
+      body: SafeArea(bottom: false, child: _bodyFor(_current, palette)),
       bottomNavigationBar: _SalapifyTabBar(
         palette: palette,
         current: _current,
@@ -119,13 +116,16 @@ class _SalapifyTabBar extends StatelessWidget {
   final ValueChanged<SalapifyTab> onSelect;
   final VoidCallback onOpenLog;
 
-  static const Map<SalapifyTab, ({String label, IconData icon})> _items =
-      <SalapifyTab, ({String label, IconData icon})>{
+  static const Map<SalapifyTab, ({String label, IconData icon})>
+  _items = <SalapifyTab, ({String label, IconData icon})>{
     SalapifyTab.home: (label: 'Home', icon: Icons.home_outlined),
     SalapifyTab.activity: (label: 'Activity', icon: Icons.menu_book_outlined),
     SalapifyTab.reports: (label: 'Reports', icon: Icons.insert_chart_outlined),
     SalapifyTab.plan: (label: 'Plan', icon: Icons.track_changes_outlined),
-    SalapifyTab.accounts: (label: 'Accounts', icon: Icons.account_balance_wallet_outlined),
+    SalapifyTab.accounts: (
+      label: 'Accounts',
+      icon: Icons.account_balance_wallet_outlined,
+    ),
   };
 
   @override
@@ -144,7 +144,8 @@ class _SalapifyTabBar extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-              for (final MapEntry<SalapifyTab, ({String label, IconData icon})> entry
+              for (final MapEntry<SalapifyTab, ({String label, IconData icon})>
+                  entry
                   in _items.entries)
                 Expanded(
                   child: _TabButton(

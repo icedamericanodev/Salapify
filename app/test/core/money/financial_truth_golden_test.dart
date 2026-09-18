@@ -14,12 +14,12 @@ void main() {
     const double income = 51000;
 
     TwinSimulationResult run(TwinScenario s) => simulateDigitalTwin(
-          scenario: s,
-          currentLiquidCash: cash,
-          monthlyExpenseRunrate: runrate,
-          currentNetWorth: netWorth,
-          monthlyIncome: income,
-        );
+      scenario: s,
+      currentLiquidCash: cash,
+      monthlyExpenseRunrate: runrate,
+      currentNetWorth: netWorth,
+      monthlyIncome: income,
+    );
 
     test('the baseline is the same for every scenario', () {
       for (final TwinScenario s in TwinScenario.values) {
@@ -47,8 +47,11 @@ void main() {
       expect(r.simulatedRunwayMonths, closeTo(3.4543, eps));
       expect(r.simulatedSafeToSpend, closeTo(29016.15, 0.01));
       expect(r.bufferImpactPhp, -14000);
-      expect(r.simulatedNetWorth, netWorth,
-          reason: 'a delay moves timing, not wealth');
+      expect(
+        r.simulatedNetWorth,
+        netWorth,
+        reason: 'a delay moves timing, not wealth',
+      );
     });
 
     test('a 3,500 rent rise costs 42,000 a year', () {
@@ -74,8 +77,7 @@ void main() {
       expect(r.simulatedNetWorth, 82000);
     });
 
-    test('the 13th month is the only scenario that helps on every measure',
-        () {
+    test('the 13th month is the only scenario that helps on every measure', () {
       final TwinSimulationResult r = run(TwinScenario.thirteenthMonth);
       expect(r.simulatedRunwayMonths, closeTo(5.7757, eps));
       expect(r.simulatedSafeToSpend, closeTo(59588.20, 0.01));
@@ -133,17 +135,16 @@ void main() {
       String date, {
       String? merchant,
       TransactionType type = TransactionType.expense,
-    }) =>
-        Transaction(
-          id: id,
-          type: type,
-          amount: amount,
-          category: category,
-          accountId: 'acc_cash',
-          date: date,
-          createdAt: 0,
-          merchant: merchant,
-        );
+    }) => Transaction(
+      id: id,
+      type: type,
+      amount: amount,
+      category: category,
+      accountId: 'acc_cash',
+      date: date,
+      createdAt: 0,
+      merchant: merchant,
+    );
 
     test('the same charge twice within 48 hours is flagged', () {
       final List<ControlCenterAlert> alerts = runControlCenterScan(
@@ -155,8 +156,9 @@ void main() {
         debts: const <Debt>[],
         budgets: const <Budget>[],
       );
-      final Iterable<ControlCenterAlert> dup = alerts
-          .where((ControlCenterAlert a) => a.type == AlertType.duplicateCharge);
+      final Iterable<ControlCenterAlert> dup = alerts.where(
+        (ControlCenterAlert a) => a.type == AlertType.duplicateCharge,
+      );
       expect(dup.length, 1);
       expect(dup.first.amount, 1299);
       expect(dup.first.severity, AlertSeverity.medium);
@@ -173,8 +175,9 @@ void main() {
         budgets: const <Budget>[],
       );
       expect(
-        alerts.where((ControlCenterAlert a) =>
-            a.type == AlertType.duplicateCharge),
+        alerts.where(
+          (ControlCenterAlert a) => a.type == AlertType.duplicateCharge,
+        ),
         isEmpty,
       );
     });
@@ -184,19 +187,28 @@ void main() {
         transactions: const <Transaction>[],
         accounts: const <Account>[
           Account(
-            id: 'a1', name: 'GCash', kind: AccountKind.gcash,
-            institution: 'GCash', balance: -250, monogram: 'GC',
+            id: 'a1',
+            name: 'GCash',
+            kind: AccountKind.gcash,
+            institution: 'GCash',
+            balance: -250,
+            monogram: 'GC',
           ),
           Account(
-            id: 'a2', name: 'BPI Card', kind: AccountKind.credit,
-            institution: 'BPI', balance: -40000, monogram: 'BPI',
+            id: 'a2',
+            name: 'BPI Card',
+            kind: AccountKind.credit,
+            institution: 'BPI',
+            balance: -40000,
+            monogram: 'BPI',
           ),
         ],
         debts: const <Debt>[],
         budgets: const <Budget>[],
       );
-      final Iterable<ControlCenterAlert> neg = alerts
-          .where((ControlCenterAlert a) => a.type == AlertType.balanceMismatch);
+      final Iterable<ControlCenterAlert> neg = alerts.where(
+        (ControlCenterAlert a) => a.type == AlertType.balanceMismatch,
+      );
       expect(neg.length, 1, reason: 'a credit card is SUPPOSED to be negative');
       expect(neg.first.relatedAccountId, 'a1');
       expect(neg.first.amount, 250);
@@ -204,26 +216,30 @@ void main() {
 
     test('category drift needs 15 percent over, and 30 to turn high', () {
       List<ControlCenterAlert> at(double spent) => runControlCenterScan(
-            transactions: <Transaction>[tx('t', spent, 'Food', '2026-09-10')],
-            accounts: const <Account>[],
-            debts: const <Debt>[],
-            budgets: const <Budget>[
-              Budget(category: 'Food', limit: 10000, emoji: 'F'),
-            ],
-          );
+        transactions: <Transaction>[tx('t', spent, 'Food', '2026-09-10')],
+        accounts: const <Account>[],
+        debts: const <Debt>[],
+        budgets: const <Budget>[
+          Budget(category: 'Food', limit: 10000, emoji: 'F'),
+        ],
+      );
 
       expect(
-        at(11000).where((ControlCenterAlert a) => a.type == AlertType.categoryDrift),
+        at(
+          11000,
+        ).where((ControlCenterAlert a) => a.type == AlertType.categoryDrift),
         isEmpty,
         reason: '10 percent over is within tolerance',
       );
 
-      final ControlCenterAlert medium = at(11600).firstWhere(
-          (ControlCenterAlert a) => a.type == AlertType.categoryDrift);
+      final ControlCenterAlert medium = at(
+        11600,
+      ).firstWhere((ControlCenterAlert a) => a.type == AlertType.categoryDrift);
       expect(medium.severity, AlertSeverity.medium);
 
-      final ControlCenterAlert high = at(14000).firstWhere(
-          (ControlCenterAlert a) => a.type == AlertType.categoryDrift);
+      final ControlCenterAlert high = at(
+        14000,
+      ).firstWhere((ControlCenterAlert a) => a.type == AlertType.categoryDrift);
       expect(high.severity, AlertSeverity.high);
       expect(high.amount, 4000);
     });
@@ -233,15 +249,20 @@ void main() {
         transactions: const <Transaction>[],
         accounts: const <Account>[
           Account(
-            id: 'a1', name: 'Cash', kind: AccountKind.cash,
-            institution: 'Cash', balance: 1200, monogram: 'C',
+            id: 'a1',
+            name: 'Cash',
+            kind: AccountKind.cash,
+            institution: 'Cash',
+            balance: 1200,
+            monogram: 'C',
           ),
         ],
         debts: const <Debt>[],
         budgets: const <Budget>[],
       );
       final ControlCenterAlert a = alerts.firstWhere(
-          (ControlCenterAlert x) => x.type == AlertType.cashShortfall);
+        (ControlCenterAlert x) => x.type == AlertType.cashShortfall,
+      );
       expect(a.severity, AlertSeverity.critical);
       expect(a.amount, 1200);
     });
@@ -251,24 +272,37 @@ void main() {
         transactions: const <Transaction>[],
         accounts: const <Account>[
           Account(
-            id: 'a1', name: 'BPI', kind: AccountKind.bank,
-            institution: 'BPI', balance: 20000, monogram: 'B',
+            id: 'a1',
+            name: 'BPI',
+            kind: AccountKind.bank,
+            institution: 'BPI',
+            balance: 20000,
+            monogram: 'B',
           ),
         ],
         debts: const <Debt>[
           Debt(
-            id: 'd1', person: 'Home Credit', direction: DebtDirection.iOwe,
-            totalAmount: 30000, paidAmount: 0, isSettled: false,
+            id: 'd1',
+            person: 'Home Credit',
+            direction: DebtDirection.iOwe,
+            totalAmount: 30000,
+            paidAmount: 0,
+            isSettled: false,
           ),
           Debt(
-            id: 'd2', person: 'Settled', direction: DebtDirection.iOwe,
-            totalAmount: 99000, paidAmount: 99000, isSettled: true,
+            id: 'd2',
+            person: 'Settled',
+            direction: DebtDirection.iOwe,
+            totalAmount: 99000,
+            paidAmount: 99000,
+            isSettled: true,
           ),
         ],
         budgets: const <Budget>[],
       );
       final ControlCenterAlert a = alerts.firstWhere(
-          (ControlCenterAlert x) => x.type == AlertType.debtPaymentRisk);
+        (ControlCenterAlert x) => x.type == AlertType.debtPaymentRisk,
+      );
       expect(a.amount, 30000, reason: 'a settled debt is not pressure');
       expect(a.severity, AlertSeverity.high);
     });
@@ -278,8 +312,12 @@ void main() {
         transactions: <Transaction>[tx('t', 500, 'Food', '2026-09-10')],
         accounts: const <Account>[
           Account(
-            id: 'a1', name: 'BPI', kind: AccountKind.bank,
-            institution: 'BPI', balance: 90000, monogram: 'B',
+            id: 'a1',
+            name: 'BPI',
+            kind: AccountKind.bank,
+            institution: 'BPI',
+            balance: 90000,
+            monogram: 'B',
           ),
         ],
         debts: const <Debt>[],
@@ -287,8 +325,11 @@ void main() {
           Budget(category: 'Food', limit: 10000, emoji: 'F'),
         ],
       );
-      expect(alerts, isEmpty,
-          reason: 'an engine that always finds something gets ignored');
+      expect(
+        alerts,
+        isEmpty,
+        reason: 'an engine that always finds something gets ignored',
+      );
     });
   });
 }

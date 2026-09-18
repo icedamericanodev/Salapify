@@ -24,7 +24,11 @@ class PlaceholderScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.construction_outlined, size: 34, color: palette.textMuted),
+            Icon(
+              Icons.construction_outlined,
+              size: 34,
+              color: palette.textMuted,
+            ),
             const SizedBox(height: Spacing.md),
             Text(
               title,
@@ -39,7 +43,11 @@ class PlaceholderScreen extends StatelessWidget {
             Text(
               note,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: palette.textMuted, height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: palette.textMuted,
+                height: 1.4,
+              ),
             ),
           ],
         ),

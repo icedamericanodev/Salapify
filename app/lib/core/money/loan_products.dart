@@ -118,8 +118,10 @@ BankHousingResult calculateBankHousingLoan({
 
   double repricedMonthlyPayment = result.monthlyPayment;
   if (repricedRate != null && repricedRate > fixedRate) {
-    final int remainingTerm =
-        math.max(12, termMonths - (fixedPeriodYears * 12));
+    final int remainingTerm = math.max(
+      12,
+      termMonths - (fixedPeriodYears * 12),
+    );
     final double estimatedBalance = loanPrincipal * 0.85;
     repricedMonthlyPayment = calculateAmortization(
       principal: estimatedBalance,
@@ -138,8 +140,10 @@ BankHousingResult calculateBankHousingLoan({
     payoffMonths: result.payoffMonths,
     interestSavedWithExtra: result.interestSavedWithExtra,
     repricedMonthlyPayment: repricedMonthlyPayment,
-    monthlyPaymentJump:
-        math.max(0, repricedMonthlyPayment - result.monthlyPayment),
+    monthlyPaymentJump: math.max(
+      0,
+      repricedMonthlyPayment - result.monthlyPayment,
+    ),
     schedule: result.amortizationSchedule,
   );
 }
@@ -195,10 +199,12 @@ CarLoanResult calculateCarLoan({
   final double loanPrincipal = math.max(0, vehiclePrice - downpaymentAmount);
   final double balloonPayment = vehiclePrice * (balloonPercent / 100);
 
-  final double chattelMortgageFee =
-      includeInsuranceAndChattel ? loanPrincipal * 0.025 : 0;
-  final double comprehensiveInsurance =
-      includeInsuranceAndChattel ? vehiclePrice * 0.024 : 0;
+  final double chattelMortgageFee = includeInsuranceAndChattel
+      ? loanPrincipal * 0.025
+      : 0;
+  final double comprehensiveInsurance = includeInsuranceAndChattel
+      ? vehiclePrice * 0.024
+      : 0;
 
   final LoanCalculationResult result = calculateAmortization(
     principal: loanPrincipal,
@@ -303,8 +309,9 @@ SalaryLoanResult calculateSalaryLoan({
     totalPayment: result.totalPayment,
     totalInterest: result.totalInterest,
     estimatedDividendRebate: rebate,
-    effectiveTotalCost:
-        jsRound(result.totalInterest - rebate + processingFee).toDouble(),
+    effectiveTotalCost: jsRound(
+      result.totalInterest - rebate + processingFee,
+    ).toDouble(),
     annualRate: annualRate,
     schedule: result.amortizationSchedule,
   );
@@ -497,13 +504,18 @@ ConsolidationResult calculateDebtConsolidation({
   required int newTermMonths,
 }) {
   final double totalBalance = debts.fold<double>(
-      0, (double s, DebtToConsolidate d) => s + d.balance);
+    0,
+    (double s, DebtToConsolidate d) => s + d.balance,
+  );
   final double totalCurrentMonthlyPayment = debts.fold<double>(
-      0, (double s, DebtToConsolidate d) => s + d.currentMonthlyPayment);
+    0,
+    (double s, DebtToConsolidate d) => s + d.currentMonthlyPayment,
+  );
   final double currentTotalInterest = debts.fold<double>(
-      0,
-      (double s, DebtToConsolidate d) =>
-          s + (d.balance * (d.monthlyInterestRate / 100) * 18));
+    0,
+    (double s, DebtToConsolidate d) =>
+        s + (d.balance * (d.monthlyInterestRate / 100) * 18),
+  );
 
   final LoanCalculationResult newLoan = calculateAmortization(
     principal: totalBalance,
@@ -516,15 +528,15 @@ ConsolidationResult calculateDebtConsolidation({
     totalBalance: totalBalance,
     totalCurrentMonthlyPayment: totalCurrentMonthlyPayment,
     newMonthlyPayment: newLoan.monthlyPayment,
-    monthlyCashflowRelief: jsRound(math.max(
-            0, totalCurrentMonthlyPayment - newLoan.monthlyPayment))
-        .toDouble(),
+    monthlyCashflowRelief: jsRound(
+      math.max(0, totalCurrentMonthlyPayment - newLoan.monthlyPayment),
+    ).toDouble(),
     currentTotalInterest: jsRound(currentTotalInterest).toDouble(),
     newTotalInterest: newLoan.totalInterest,
     totalPayment: newLoan.totalPayment,
-    totalInterestSavings:
-        jsRound(math.max(0, currentTotalInterest - newLoan.totalInterest))
-            .toDouble(),
+    totalInterestSavings: jsRound(
+      math.max(0, currentTotalInterest - newLoan.totalInterest),
+    ).toDouble(),
     newTermMonths: newTermMonths,
     schedule: newLoan.amortizationSchedule,
   );

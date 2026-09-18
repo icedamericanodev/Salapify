@@ -44,7 +44,11 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
       title: 'Safe to Spend Details',
       subtitle: 'Understand how much is safe to spend',
       banner: _scenarioBanner(p),
-      tabs: const <String>['Outputs & Runway', 'Income Streams', 'Audit & Math'],
+      tabs: const <String>[
+        'Outputs & Runway',
+        'Income Streams',
+        'Audit & Math',
+      ],
       selectedTab: _tab,
       onSelectTab: (int i) => setState(() => _tab = i),
       child: switch (_tab) {
@@ -220,7 +224,9 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           child: BreakdownRow(
             palette: p,
             label: 'Total expected inflow',
-            value: formatPeso(widget.state.safeToSpendAnalysis.totalExpectedInflow),
+            value: formatPeso(
+              widget.state.safeToSpendAnalysis.totalExpectedInflow,
+            ),
             valueColor: p.positive,
             emphasis: true,
           ),
@@ -232,7 +238,8 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
   /// One income stream, with the haircut the conservative scenario applies
   /// shown rather than silently subtracted.
   Widget _streamRow(Palette p, IncomeStream s, bool conservative) {
-    final bool halved = conservative &&
+    final bool halved =
+        conservative &&
         (s.type == IncomeStreamType.freelance ||
             s.type == IncomeStreamType.irregular);
     final bool excluded =
@@ -241,8 +248,8 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
     final double counted = excluded
         ? 0
         : halved
-            ? s.expectedAmount * 0.5
-            : s.expectedAmount;
+        ? s.expectedAmount * 0.5
+        : s.expectedAmount;
 
     return Container(
       padding: const EdgeInsets.all(Spacing.md),
@@ -267,9 +274,9 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
               const SizedBox(width: Spacing.sm),
               Text(
                 formatPeso(counted),
-                style: AppType.amountSmall(p).copyWith(
-                  color: excluded ? p.textMuted : p.positive,
-                ),
+                style: AppType.amountSmall(
+                  p,
+                ).copyWith(color: excluded ? p.textMuted : p.positive),
               ),
             ],
           ),
@@ -300,14 +307,14 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
   }
 
   String _streamLabel(IncomeStreamType t) => switch (t) {
-        IncomeStreamType.weeklyIncome => 'Weekly Income',
-        IncomeStreamType.semimonthlySalary => '15th & 30th Cutoff Salary',
-        IncomeStreamType.monthlySalary => 'Monthly Payroll',
-        IncomeStreamType.freelance => 'Freelance & Retainers',
-        IncomeStreamType.irregular => 'Irregular Gig Income',
-        IncomeStreamType.thirteenthMonth => '13th-Month Pay Benefit',
-        IncomeStreamType.remittance => 'Remittance & Padala',
-      };
+    IncomeStreamType.weeklyIncome => 'Weekly Income',
+    IncomeStreamType.semimonthlySalary => '15th & 30th Cutoff Salary',
+    IncomeStreamType.monthlySalary => 'Monthly Payroll',
+    IncomeStreamType.freelance => 'Freelance & Retainers',
+    IncomeStreamType.irregular => 'Irregular Gig Income',
+    IncomeStreamType.thirteenthMonth => '13th-Month Pay Benefit',
+    IncomeStreamType.remittance => 'Remittance & Padala',
+  };
 
   /// The audit tab. Every step in order, with the figure it produced, so the
   /// headline number can be checked rather than believed.
@@ -323,35 +330,67 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           style: AppType.body(p),
         ),
         const SizedBox(height: Spacing.lg),
-        _step(p, '1', 'Add up liquid cash',
-            'Cash, GCash, Maya, banks and debit. Investments, receivables and '
-            'anything you can borrow are left out.',
-            formatPeso(a.totalLiquidCash)),
-        _step(p, '2', 'Hold back unpaid bills',
-            conservative
-                ? 'Padded by 10% in the conservative scenario.'
-                : 'Taken at face value in the optimistic scenario.',
-            formatPeso(a.reservedBills)),
-        _step(p, '3', 'Hold back debt minimums',
-            'Estimated at 8% of what is still outstanding.',
-            formatPeso(a.reservedDebtMinimums)),
-        _step(p, '4', 'Hold back installments',
-            'Every active BNPL and investment plan instalment.',
-            formatPeso(a.reservedInstallments)),
-        _step(p, '5', 'Hold back an emergency buffer',
-            conservative
-                ? '15% of liquid cash in the conservative scenario.'
-                : '5% of liquid cash in the optimistic scenario.',
-            formatPeso(a.emergencyBuffer)),
-        _step(p, '6', 'What is left is uncommitted',
-            'Liquid cash minus everything reserved above.',
-            formatPeso(a.safeToSpendUntilPayday + a.safeToSave)),
-        _step(p, '7', 'Split it 85 / 15',
-            '85% is safe to spend, 15% is safe to save.',
-            '${formatPeso(a.safeToSpendUntilPayday)} + ${formatPeso(a.safeToSave)}'),
-        _step(p, '8', 'Divide by days to payday',
-            '${a.daysToPayday} days left, so this is the daily figure.',
-            formatPeso(a.safeToSpendToday)),
+        _step(
+          p,
+          '1',
+          'Add up liquid cash',
+          'Cash, GCash, Maya, banks and debit. Investments, receivables and '
+              'anything you can borrow are left out.',
+          formatPeso(a.totalLiquidCash),
+        ),
+        _step(
+          p,
+          '2',
+          'Hold back unpaid bills',
+          conservative
+              ? 'Padded by 10% in the conservative scenario.'
+              : 'Taken at face value in the optimistic scenario.',
+          formatPeso(a.reservedBills),
+        ),
+        _step(
+          p,
+          '3',
+          'Hold back debt minimums',
+          'Estimated at 8% of what is still outstanding.',
+          formatPeso(a.reservedDebtMinimums),
+        ),
+        _step(
+          p,
+          '4',
+          'Hold back installments',
+          'Every active BNPL and investment plan instalment.',
+          formatPeso(a.reservedInstallments),
+        ),
+        _step(
+          p,
+          '5',
+          'Hold back an emergency buffer',
+          conservative
+              ? '15% of liquid cash in the conservative scenario.'
+              : '5% of liquid cash in the optimistic scenario.',
+          formatPeso(a.emergencyBuffer),
+        ),
+        _step(
+          p,
+          '6',
+          'What is left is uncommitted',
+          'Liquid cash minus everything reserved above.',
+          formatPeso(a.safeToSpendUntilPayday + a.safeToSave),
+        ),
+        _step(
+          p,
+          '7',
+          'Split it 85 / 15',
+          '85% is safe to spend, 15% is safe to save.',
+          '${formatPeso(a.safeToSpendUntilPayday)} + ${formatPeso(a.safeToSave)}',
+        ),
+        _step(
+          p,
+          '8',
+          'Divide by days to payday',
+          '${a.daysToPayday} days left, so this is the daily figure.',
+          formatPeso(a.safeToSpendToday),
+        ),
       ],
     );
   }
@@ -393,9 +432,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Expanded(
-                      child: Text(title, style: AppType.rowTitle(p)),
-                    ),
+                    Expanded(child: Text(title, style: AppType.rowTitle(p))),
                     const SizedBox(width: Spacing.sm),
                     Text(
                       value,

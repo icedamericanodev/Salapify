@@ -12,22 +12,25 @@ import 'package:salapify/main.dart';
 /// These assert the indicator is genuinely absent from the built tree, not
 /// merely invisible at rest.
 void main() {
-  testWidgets('no stretch or glow overscroll indicator is ever built',
-      (WidgetTester tester) async {
+  testWidgets('no stretch or glow overscroll indicator is ever built', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
     expect(
       find.byType(StretchingOverscrollIndicator),
       findsNothing,
-      reason: 'Android stretch overscroll is back, the screen will deform '
+      reason:
+          'Android stretch overscroll is back, the screen will deform '
           'when dragged past the end',
     );
     expect(find.byType(GlowingOverscrollIndicator), findsNothing);
   });
 
-  testWidgets('dragging past the end does not build an indicator either',
-      (WidgetTester tester) async {
+  testWidgets('dragging past the end does not build an indicator either', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
@@ -42,13 +45,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the list still scrolls, so the fix did not freeze it',
-      (WidgetTester tester) async {
+  testWidgets('the list still scrolls, so the fix did not freeze it', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
-    final ScrollableState scrollable =
-        tester.state<ScrollableState>(find.byType(Scrollable).first);
+    final ScrollableState scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
     final double before = scrollable.position.pixels;
 
     // Drag upward to scroll down the page.

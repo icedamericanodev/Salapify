@@ -22,23 +22,27 @@ void main() {
       expect(r.amortizationSchedule.length, 180);
     });
 
-    test('the first row is mostly interest and the last is mostly principal',
-        () {
-      final AmortizationRow first = r.amortizationSchedule.first;
-      expect(first.interestComponent, 14583.33);
-      expect(first.principalComponent, 7887.37);
-      expect(first.remainingBalance, 2492112.63);
+    test(
+      'the first row is mostly interest and the last is mostly principal',
+      () {
+        final AmortizationRow first = r.amortizationSchedule.first;
+        expect(first.interestComponent, 14583.33);
+        expect(first.principalComponent, 7887.37);
+        expect(first.remainingBalance, 2492112.63);
 
-      final AmortizationRow last = r.amortizationSchedule.last;
-      expect(last.interestComponent, 130.32);
-      expect(last.principalComponent, 22340.39);
-      expect(last.remainingBalance, 0);
-    });
+        final AmortizationRow last = r.amortizationSchedule.last;
+        expect(last.interestComponent, 130.32);
+        expect(last.principalComponent, 22340.39);
+        expect(last.remainingBalance, 0);
+      },
+    );
 
-    test('the loan actually finishes, which a schedule can silently fail to do',
-        () {
-      expect(r.amortizationSchedule.last.remainingBalance, 0);
-    });
+    test(
+      'the loan actually finishes, which a schedule can silently fail to do',
+      () {
+        expect(r.amortizationSchedule.last.remainingBalance, 0);
+      },
+    );
   });
 
   group('flat add-on, the convention car and appliance dealers quote', () {
@@ -49,16 +53,18 @@ void main() {
       rateType: RateType.flatAddon,
     );
 
-    test('every month carries the same interest, on the ORIGINAL principal',
-        () {
-      expect(flat.monthlyPayment, 19666.67);
-      expect(flat.totalInterest, 380000);
+    test(
+      'every month carries the same interest, on the ORIGINAL principal',
+      () {
+        expect(flat.monthlyPayment, 19666.67);
+        expect(flat.totalInterest, 380000);
 
-      // The defining property: interest never falls, because it is charged on
-      // what was borrowed rather than on what is still owed.
-      expect(flat.amortizationSchedule.first.interestComponent, 6333.33);
-      expect(flat.amortizationSchedule.last.interestComponent, 6333.33);
-    });
+        // The defining property: interest never falls, because it is charged on
+        // what was borrowed rather than on what is still owed.
+        expect(flat.amortizationSchedule.first.interestComponent, 6333.33);
+        expect(flat.amortizationSchedule.last.interestComponent, 6333.33);
+      },
+    );
 
     test('flat add-on costs far more than the same rate diminishing', () {
       final LoanCalculationResult diminishing = calculateAmortization(
@@ -119,17 +125,19 @@ void main() {
       expect(r.amortizationSchedule.length, 12);
     });
 
-    test('a zero principal returns an empty result rather than dividing by it',
-        () {
-      final LoanCalculationResult r = calculateAmortization(
-        principal: 0,
-        annualInterestRate: 10,
-        termMonths: 24,
-      );
-      expect(r.monthlyPayment, 0);
-      expect(r.amortizationSchedule, isEmpty);
-      expect(r.payoffMonths, 0);
-    });
+    test(
+      'a zero principal returns an empty result rather than dividing by it',
+      () {
+        final LoanCalculationResult r = calculateAmortization(
+          principal: 0,
+          annualInterestRate: 10,
+          termMonths: 24,
+        );
+        expect(r.monthlyPayment, 0);
+        expect(r.amortizationSchedule, isEmpty);
+        expect(r.payoffMonths, 0);
+      },
+    );
 
     test('a balloon lowers the instalment and OVERRUNS the stated term', () {
       final LoanCalculationResult r = calculateAmortization(
@@ -205,8 +213,11 @@ void main() {
           (double s, AmortizationRow row) =>
               s + row.principalComponent + row.extraPayment,
         );
-        expect(paidPrincipal, closeTo(300000, 1),
-            reason: 'the schedule must repay exactly what was borrowed');
+        expect(
+          paidPrincipal,
+          closeTo(300000, 1),
+          reason: 'the schedule must repay exactly what was borrowed',
+        );
       }
     });
 

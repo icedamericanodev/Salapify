@@ -73,9 +73,26 @@ Every figure on the card was checked independently of the code that drew it:
 | Kept ₱36,125.25 | 51,000 less 14,874.75 |
 | 29% out, 71% kept | 14,874.75 / 51,000 |
 
-Still to come on this tab: the transaction detail sheet, and the Log sheet,
-which is the write path and needs a journey proving an entry is visible on
-every screen that should mention it afterwards.
+Tapping any row opens its detail. The render below deliberately opens the
+EXCLUDED one, because that is the state most likely to confuse somebody
+reconciling against a bank statement: the amount is struck through, and a
+sentence underneath says in plain words why it is not in the totals. The date
+appears twice, friendly and as the stored ISO value, because "Yesterday" stops
+being useful the moment you are comparing against a statement.
+
+| Transaction detail (Gabi) |
+|---|
+| ![Transaction detail](screens/transaction-detail.png) |
+
+The detail is the VIEW half only. The prototype's modal also edits an entry and
+carries a collaboration thread: comments, mentions, approvals and receipt
+attachments. Those need a collaboration system and a storage layer that `app/`
+does not have, and a comment box that cannot save a comment is worse than no
+comment box. The sheet says so at the bottom rather than implying otherwise.
+
+Still to come on this tab: the Log sheet, which is the write path and needs a
+journey proving an entry is visible on every screen that should mention it
+afterwards.
 
 ### Sheets
 

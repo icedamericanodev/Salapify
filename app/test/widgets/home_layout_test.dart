@@ -15,8 +15,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the debt beam is actually drawn, not collapsed to nothing',
-      (WidgetTester tester) async {
+  testWidgets('the debt beam is actually drawn, not collapsed to nothing', (
+    WidgetTester tester,
+  ) async {
     await pumpHome(tester);
 
     await tester.scrollUntilVisible(find.byKey(debtBeamKey), 200);
@@ -45,8 +46,9 @@ void main() {
     }
   });
 
-  testWidgets('the tab bar leaves the body real height',
-      (WidgetTester tester) async {
+  testWidgets('the tab bar leaves the body real height', (
+    WidgetTester tester,
+  ) async {
     await pumpHome(tester);
 
     final Size listView = tester.getSize(find.byType(ListView).first);
@@ -57,8 +59,9 @@ void main() {
     );
   });
 
-  testWidgets('nothing on Home overflows its width at 320dp',
-      (WidgetTester tester) async {
+  testWidgets('nothing on Home overflows its width at 320dp', (
+    WidgetTester tester,
+  ) async {
     // 320 logical pixels is the narrowest phone worth supporting.
     tester.view.physicalSize = const Size(320, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -72,8 +75,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the Reminders card never truncates its own name',
-      (WidgetTester tester) async {
+  testWidgets('the Reminders card never truncates its own name', (
+    WidgetTester tester,
+  ) async {
     await pumpHome(tester);
 
     final Finder title = find.text('Reminders & Alerts');

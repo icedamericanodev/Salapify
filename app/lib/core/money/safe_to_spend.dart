@@ -39,7 +39,10 @@ SafeToSpendAnalysis computeSafeToSpend({
   // 3. Active installment obligations.
   final double totalInstallmentsObligation = installments
       .where((InstallmentPlan i) => !i.isSettled)
-      .fold<double>(0, (double sum, InstallmentPlan i) => sum + i.installmentAmount);
+      .fold<double>(
+        0,
+        (double sum, InstallmentPlan i) => sum + i.installmentAmount,
+      );
 
   // 4. Debt minimums, estimated at 8 percent of what is outstanding.
   final double debtMinimums = math.max(0, debtsIOwe * 0.08);
@@ -69,8 +72,9 @@ SafeToSpendAnalysis computeSafeToSpend({
   }
 
   // 6. Emergency buffer held back from spendable cash.
-  final double bufferRate =
-      scenario == DecisionScenario.conservative ? 0.15 : 0.05;
+  final double bufferRate = scenario == DecisionScenario.conservative
+      ? 0.15
+      : 0.05;
   final double emergencyBuffer = totalLiquidCash * bufferRate;
 
   // 7. Everything that must stay put.
@@ -88,18 +92,23 @@ SafeToSpendAnalysis computeSafeToSpend({
   final int daysToPayday = math.max(1, payday.daysToPayday);
   final double uncommittedCash = math.max(0, totalLiquidCash - amountReserved);
 
-  final double safeToSpendUntilPayday = jsRound(uncommittedCash * 0.85).toDouble();
+  final double safeToSpendUntilPayday = jsRound(
+    uncommittedCash * 0.85,
+  ).toDouble();
   final double safeToSave = jsRound(uncommittedCash * 0.15).toDouble();
-  final double safeToSpendToday =
-      math.max(0, jsRound(safeToSpendUntilPayday / daysToPayday)).toDouble();
+  final double safeToSpendToday = math
+      .max(0, jsRound(safeToSpendUntilPayday / daysToPayday))
+      .toDouble();
 
   // 9. Cash runway, from the burn rate of the last 30 days. A very quiet month
   //    (under 5,000 logged) is treated as not enough signal, and the override
   //    or the 28,000 default stands in.
   final int thirtyDaysAgo = nowMs - 30 * 86400000;
   final double recentExpenses = transactions
-      .where((Transaction t) =>
-          t.type == TransactionType.expense && t.createdAt >= thirtyDaysAgo)
+      .where(
+        (Transaction t) =>
+            t.type == TransactionType.expense && t.createdAt >= thirtyDaysAgo,
+      )
       .fold<double>(0, (double sum, Transaction t) => sum + t.amount);
 
   final double baselineMonthlyExpense = recentExpenses > 5000

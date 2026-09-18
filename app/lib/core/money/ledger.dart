@@ -110,13 +110,17 @@ List<Transaction> filterByType(
   return switch (type) {
     LedgerTypeFilter.all => scoped,
     LedgerTypeFilter.income =>
-      scoped.where((Transaction t) => t.type == TransactionType.income).toList(),
-    LedgerTypeFilter.expense => scoped
-        .where((Transaction t) => t.type == TransactionType.expense)
-        .toList(),
-    LedgerTypeFilter.transfer => scoped
-        .where((Transaction t) => t.type == TransactionType.transfer)
-        .toList(),
+      scoped
+          .where((Transaction t) => t.type == TransactionType.income)
+          .toList(),
+    LedgerTypeFilter.expense =>
+      scoped
+          .where((Transaction t) => t.type == TransactionType.expense)
+          .toList(),
+    LedgerTypeFilter.transfer =>
+      scoped
+          .where((Transaction t) => t.type == TransactionType.transfer)
+          .toList(),
   };
 }
 
@@ -157,8 +161,9 @@ LedgerTotals computeTotals(List<Transaction> scoped) {
   final int outflowPercentage = totalIn > 0
       ? ((totalOut / totalIn) * 100).round().clamp(0, 100)
       : (totalOut > 0 ? 100 : 0);
-  final int retentionPercentage =
-      totalIn > 0 ? ((net / totalIn) * 100).round().clamp(0, 1 << 31) : 0;
+  final int retentionPercentage = totalIn > 0
+      ? ((net / totalIn) * 100).round().clamp(0, 1 << 31)
+      : 0;
 
   return LedgerTotals(
     totalIn: totalIn,
@@ -185,9 +190,7 @@ List<LedgerDay> groupByDay(List<Transaction> transactions) {
   }
   final List<String> dates = byDate.keys.toList()
     ..sort((String a, String b) => b.compareTo(a));
-  return <LedgerDay>[
-    for (final String d in dates) LedgerDay(d, byDate[d]!),
-  ];
+  return <LedgerDay>[for (final String d in dates) LedgerDay(d, byDate[d]!)];
 }
 
 /// Total spent per category, biggest first, over EVERY transaction rather than
@@ -204,12 +207,16 @@ List<({String category, double amount})> categorySpending(
   }
   final List<({String category, double amount})> rows =
       byCategory.entries
-          .map((MapEntry<String, double> e) =>
-              (category: e.key, amount: e.value))
+          .map(
+            (MapEntry<String, double> e) => (category: e.key, amount: e.value),
+          )
           .toList()
-        ..sort((({String category, double amount}) a,
-                ({String category, double amount}) b) =>
-            b.amount.compareTo(a.amount));
+        ..sort(
+          (
+            ({String category, double amount}) a,
+            ({String category, double amount}) b,
+          ) => b.amount.compareTo(a.amount),
+        );
   return rows;
 }
 

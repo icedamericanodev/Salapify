@@ -6,6 +6,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
 import 'activity_screen.dart' show statusLabel, statusIsStruckThrough;
+import 'transaction_detail_sheet.dart';
 
 /// One day of entries: a header saying what day it is and what left that day,
 /// then the rows.
@@ -28,8 +29,10 @@ class DayGroup extends StatelessWidget {
     // Only what actually counts. A day whose single entry is excluded should
     // not claim money left, which is the whole point of marking it excluded.
     final double dayOut = day.transactions
-        .where((Transaction t) =>
-            t.type == TransactionType.expense && t.countsTowardTotals)
+        .where(
+          (Transaction t) =>
+              t.type == TransactionType.expense && t.countsTowardTotals,
+        )
         .fold<double>(0, (double s, Transaction t) => s + t.amount);
 
     return Column(
@@ -69,6 +72,7 @@ class DayGroup extends StatelessWidget {
                   palette: palette,
                   transaction: day.transactions[i],
                   accounts: accounts,
+                  now: now,
                 ),
               ],
             ],
@@ -85,11 +89,13 @@ class TransactionRow extends StatelessWidget {
     required this.palette,
     required this.transaction,
     required this.accounts,
+    required this.now,
   });
 
   final Palette palette;
   final Transaction transaction;
   final List<Account> accounts;
+  final DateTime now;
 
   Account? _account(String? id) {
     if (id == null) return null;
@@ -112,87 +118,89 @@ class TransactionRow extends StatelessWidget {
     final IconData icon = isIncome
         ? Icons.south_west
         : isTransfer
-            ? Icons.swap_horiz
-            : Icons.north_east;
+        ? Icons.swap_horiz
+        : Icons.north_east;
 
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: palette.iconTile,
-              borderRadius: BorderRadius.circular(Radii.tile),
+    return InkWell(
+      onTap: () => TransactionDetailSheet.show(
+        context,
+        palette: palette,
+        transaction: t,
+        accounts: accounts,
+        now: now,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: palette.iconTile,
+                borderRadius: BorderRadius.circular(Radii.tile),
+              ),
+              child: Icon(
+                icon,
+                size: 17,
+                color: isIncome ? palette.positive : palette.textSecondary,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 17,
-              color: isIncome ? palette.positive : palette.textSecondary,
-            ),
-          ),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        // The merchant is what a person recognises. The
-                        // category is the fallback, not the headline.
-                        t.merchant ?? t.category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.rowTitle(palette),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Flexible(
+                        child: Text(
+                          // The merchant is what a person recognises. The
+                          // category is the fallback, not the headline.
+                          t.merchant ?? t.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.rowTitle(palette),
+                        ),
                       ),
-                    ),
-                    if (t.status != TransactionStatus.confirmed) ...<Widget>[
-                      const SizedBox(width: Spacing.sm),
-                      _StatusChip(palette: palette, status: t.status),
+                      if (t.status != TransactionStatus.confirmed) ...<Widget>[
+                        const SizedBox(width: Spacing.sm),
+                        _StatusChip(palette: palette, status: t.status),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _subtitle(t, from, to, isTransfer),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.rowMeta(palette),
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _subtitle(t, from, to, isTransfer),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.rowMeta(palette),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: Spacing.sm),
-          Text(
-            isIncome
-                ? '+${formatPeso(t.amount)}'
-                : formatPeso(t.amount),
-            style: AppType.amountSmall(palette).copyWith(
-              fontSize: 14,
-              color: struck
-                  ? palette.textMuted
-                  : isIncome
-                      ? palette.positive
-                      : palette.textPrimary,
-              decoration: struck ? TextDecoration.lineThrough : null,
-              decorationColor: palette.textMuted,
+            const SizedBox(width: Spacing.sm),
+            Text(
+              isIncome ? '+${formatPeso(t.amount)}' : formatPeso(t.amount),
+              style: AppType.amountSmall(palette).copyWith(
+                fontSize: 14,
+                color: struck
+                    ? palette.textMuted
+                    : isIncome
+                    ? palette.positive
+                    : palette.textPrimary,
+                decoration: struck ? TextDecoration.lineThrough : null,
+                decorationColor: palette.textMuted,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  String _subtitle(
-    Transaction t,
-    Account? from,
-    Account? to,
-    bool isTransfer,
-  ) {
+  String _subtitle(Transaction t, Account? from, Account? to, bool isTransfer) {
     final StringBuffer b = StringBuffer(t.category);
     b.write(' · ');
     b.write(from?.name ?? 'Account');

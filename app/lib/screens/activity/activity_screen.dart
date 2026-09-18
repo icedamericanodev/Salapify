@@ -59,7 +59,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final List<LedgerDay> days = groupByDay(filterByType(scoped, _type));
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 88),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.sm,
+        Spacing.lg,
+        88,
+      ),
       children: <Widget>[
         Text('Activity', style: AppType.title(p)),
         Text(
@@ -147,14 +152,15 @@ class _SearchField extends StatelessWidget {
           style: AppType.rowTitle(palette).copyWith(fontSize: 15),
           decoration: InputDecoration(
             hintText: 'Search a merchant, category or amount',
-            hintStyle:
-                AppType.body(palette).copyWith(color: palette.textMuted),
+            hintStyle: AppType.body(palette).copyWith(color: palette.textMuted),
             prefixIcon: Icon(Icons.search, size: 18, color: palette.textMuted),
             suffixIcon: searching
                 ? IconButton(
                     // 44dp of tappable area, not just the glyph.
-                    constraints:
-                        const BoxConstraints(minWidth: 44, minHeight: 44),
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
                     icon: Icon(Icons.close, size: 18, color: palette.textMuted),
                     onPressed: () {
                       controller.clear();
@@ -267,11 +273,11 @@ class _TypeTabs extends StatelessWidget {
 
   static const Map<LedgerTypeFilter, String> _labels =
       <LedgerTypeFilter, String>{
-    LedgerTypeFilter.all: 'All',
-    LedgerTypeFilter.income: 'In',
-    LedgerTypeFilter.expense: 'Out',
-    LedgerTypeFilter.transfer: 'Moves',
-  };
+        LedgerTypeFilter.all: 'All',
+        LedgerTypeFilter.income: 'In',
+        LedgerTypeFilter.expense: 'Out',
+        LedgerTypeFilter.transfer: 'Moves',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -395,9 +401,7 @@ class _EmptyState extends StatelessWidget {
             // Two different situations. "No entries yet" on a screen with a
             // filter on it is a lie, and it sends somebody looking for a bug
             // instead of looking at the filter they set.
-            hasFilters
-                ? 'Nothing matches these filters'
-                : 'No entries yet',
+            hasFilters ? 'Nothing matches these filters' : 'No entries yet',
             style: AppType.rowTitle(palette),
             textAlign: TextAlign.center,
           ),
@@ -418,13 +422,13 @@ class _EmptyState extends StatelessWidget {
 /// The badge wording from src/data/categories.ts, kept identical so the two
 /// apps describe the same row the same way.
 String statusLabel(TransactionStatus s) => switch (s) {
-      TransactionStatus.confirmed => 'Confirmed',
-      TransactionStatus.reconciled => 'Reconciled',
-      TransactionStatus.pending => 'Pending',
-      TransactionStatus.duplicate => 'Duplicate',
-      TransactionStatus.corrected => 'Corrected',
-      TransactionStatus.excluded => 'Excluded',
-    };
+  TransactionStatus.confirmed => 'Confirmed',
+  TransactionStatus.reconciled => 'Reconciled',
+  TransactionStatus.pending => 'Pending',
+  TransactionStatus.duplicate => 'Duplicate',
+  TransactionStatus.corrected => 'Corrected',
+  TransactionStatus.excluded => 'Excluded',
+};
 
 /// Money the ledger is not counting is drawn struck through, which is the
 /// prototype's own treatment and the clearest way to say "this is here, and it

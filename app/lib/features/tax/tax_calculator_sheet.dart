@@ -32,8 +32,7 @@ class TaxCalculatorSheet extends StatefulWidget {
 class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
   int _tab = 0;
 
-  final TextEditingController _salary =
-      TextEditingController(text: '32500');
+  final TextEditingController _salary = TextEditingController(text: '32500');
   PayFrequency _frequency = PayFrequency.semiMonthly;
 
   final TextEditingController _basic = TextEditingController(text: '30000');
@@ -122,49 +121,45 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
         ),
         const SizedBox(height: Spacing.lg),
-        _card(
-          p,
-          'What comes out',
-          <Widget>[
-            BreakdownRow(
-              palette: p,
-              label: 'Gross monthly',
-              value: formatPeso(r.grossMonthlyIncome),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'SSS',
-              value: '- ${formatPeso(r.sss)}',
-              valueColor: p.negative,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'PhilHealth',
-              value: '- ${formatPeso(r.philhealth)}',
-              valueColor: p.negative,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Pag-IBIG',
-              value: '- ${formatPeso(r.pagibig)}',
-              valueColor: p.negative,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Withholding tax',
-              value: '- ${formatPeso(r.withholdingTax)}',
-              valueColor: p.negative,
-            ),
-            Divider(height: Spacing.lg, color: p.border),
-            BreakdownRow(
-              palette: p,
-              label: 'Net take home',
-              value: formatPeso(r.netTakeHome),
-              valueColor: p.positive,
-              emphasis: true,
-            ),
-          ],
-        ),
+        _card(p, 'What comes out', <Widget>[
+          BreakdownRow(
+            palette: p,
+            label: 'Gross monthly',
+            value: formatPeso(r.grossMonthlyIncome),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'SSS',
+            value: '- ${formatPeso(r.sss)}',
+            valueColor: p.negative,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'PhilHealth',
+            value: '- ${formatPeso(r.philhealth)}',
+            valueColor: p.negative,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Pag-IBIG',
+            value: '- ${formatPeso(r.pagibig)}',
+            valueColor: p.negative,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Withholding tax',
+            value: '- ${formatPeso(r.withholdingTax)}',
+            valueColor: p.negative,
+          ),
+          Divider(height: Spacing.lg, color: p.border),
+          BreakdownRow(
+            palette: p,
+            label: 'Net take home',
+            value: formatPeso(r.netTakeHome),
+            valueColor: p.positive,
+            emphasis: true,
+          ),
+        ]),
         const SizedBox(height: Spacing.md),
         _note(
           p,
@@ -214,42 +209,38 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           valueColor: p.positive,
         ),
         const SizedBox(height: Spacing.lg),
-        _card(
-          p,
-          'How it is worked out',
-          <Widget>[
-            BreakdownRow(
-              palette: p,
-              label: 'Gross (salary x months / 12)',
-              value: formatPeso(plan.calculatedGrossAmount),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Tax free portion',
-              value: formatPeso(plan.taxExemptAmount),
-              valueColor: p.positive,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Taxable excess',
-              value: formatPeso(plan.taxableExcessAmount),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Estimated tax',
-              value: '- ${formatPeso(plan.estimatedWithholdingTax)}',
-              valueColor: p.negative,
-            ),
-            Divider(height: Spacing.lg, color: p.border),
-            BreakdownRow(
-              palette: p,
-              label: 'Net 13th month',
-              value: formatPeso(plan.net13thMonthPay),
-              valueColor: p.positive,
-              emphasis: true,
-            ),
-          ],
-        ),
+        _card(p, 'How it is worked out', <Widget>[
+          BreakdownRow(
+            palette: p,
+            label: 'Gross (salary x months / 12)',
+            value: formatPeso(plan.calculatedGrossAmount),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Tax free portion',
+            value: formatPeso(plan.taxExemptAmount),
+            valueColor: p.positive,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Taxable excess',
+            value: formatPeso(plan.taxableExcessAmount),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Estimated tax',
+            value: '- ${formatPeso(plan.estimatedWithholdingTax)}',
+            valueColor: p.negative,
+          ),
+          Divider(height: Spacing.lg, color: p.border),
+          BreakdownRow(
+            palette: p,
+            label: 'Net 13th month',
+            value: formatPeso(plan.net13thMonthPay),
+            valueColor: p.positive,
+            emphasis: true,
+          ),
+        ]),
         const SizedBox(height: Spacing.lg),
         Text('A suggested split', style: AppType.section(p)),
         const SizedBox(height: Spacing.sm),
@@ -288,10 +279,7 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          alloc.category,
-                          style: AppType.rowTitle(p),
-                        ),
+                        Text(alloc.category, style: AppType.rowTitle(p)),
                         Text(alloc.note, style: AppType.rowMeta(p)),
                       ],
                     ),
@@ -372,72 +360,64 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
                 gross <= 0
                     ? 'Enter your yearly gross to compare the two.'
                     : 'You would save ${formatPeso((git.estimatedTaxDue - graduated.estimatedTaxDue).abs())} '
-                        'a year by choosing it.',
+                          'a year by choosing it.',
                 style: AppType.body(p),
               ),
             ],
           ),
         ),
         const SizedBox(height: Spacing.lg),
-        _card(
-          p,
-          'Side by side',
-          <Widget>[
-            BreakdownRow(
-              palette: p,
-              label: '8% of gross above ₱250,000',
-              value: formatPeso(git.estimatedTaxDue),
-              valueColor: gitWins ? p.positive : null,
-              emphasis: gitWins,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Graduated brackets on the full gross',
-              value: formatPeso(graduated.estimatedTaxDue),
-              valueColor: gitWins ? null : p.positive,
-              emphasis: !gitWins,
-            ),
-          ],
-        ),
+        _card(p, 'Side by side', <Widget>[
+          BreakdownRow(
+            palette: p,
+            label: '8% of gross above ₱250,000',
+            value: formatPeso(git.estimatedTaxDue),
+            valueColor: gitWins ? p.positive : null,
+            emphasis: gitWins,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Graduated brackets on the full gross',
+            value: formatPeso(graduated.estimatedTaxDue),
+            valueColor: gitWins ? null : p.positive,
+            emphasis: !gitWins,
+          ),
+        ]),
         const SizedBox(height: Spacing.md),
-        _card(
-          p,
-          'Your choice, in detail',
-          <Widget>[
-            BreakdownRow(
-              palette: p,
-              label: 'Allowable deduction',
-              value: formatPeso(chosen.allowableDeduction),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Taxable base',
-              value: formatPeso(chosen.taxableBase),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Tax due for the year',
-              value: formatPeso(chosen.estimatedTaxDue),
-              valueColor: p.negative,
-              emphasis: true,
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Effective rate',
-              value: '${chosen.effectiveTaxRate.toStringAsFixed(2)}%',
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Set aside each month',
-              value: formatPeso(chosen.monthlyTaxProvision),
-            ),
-            BreakdownRow(
-              palette: p,
-              label: 'Suggested lean-month buffer',
-              value: formatPeso(chosen.leanMonthsBufferRecommended),
-            ),
-          ],
-        ),
+        _card(p, 'Your choice, in detail', <Widget>[
+          BreakdownRow(
+            palette: p,
+            label: 'Allowable deduction',
+            value: formatPeso(chosen.allowableDeduction),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Taxable base',
+            value: formatPeso(chosen.taxableBase),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Tax due for the year',
+            value: formatPeso(chosen.estimatedTaxDue),
+            valueColor: p.negative,
+            emphasis: true,
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Effective rate',
+            value: '${chosen.effectiveTaxRate.toStringAsFixed(2)}%',
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Set aside each month',
+            value: formatPeso(chosen.monthlyTaxProvision),
+          ),
+          BreakdownRow(
+            palette: p,
+            label: 'Suggested lean-month buffer',
+            value: formatPeso(chosen.leanMonthsBufferRecommended),
+          ),
+        ]),
         const SizedBox(height: Spacing.md),
         _note(
           p,

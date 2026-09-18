@@ -175,6 +175,48 @@ void main() {
     });
   }
 
+  // The transaction detail, opened on the EXCLUDED row, dark only. That row
+  // is chosen deliberately: it is the one carrying the struck-through amount
+  // and the sentence explaining why it is not in the totals, so the render
+  // shows the state most likely to confuse somebody reconciling.
+  testWidgets('transaction detail renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.menu_book_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('EXCLUDED'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('EXCLUDED'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/transaction_detail.png'),
+    );
+  });
+
   // The sheets, dark only, which is what the founder uses. Each one is opened
   // through its REAL route rather than pumped on its own, so what gets
   // rendered is the modal as it actually appears over the app: the same grab
@@ -253,7 +295,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final FinancialState state = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
     final Palette palette = Palette.of(state.theme);
 
     await tester.pumpWidget(
