@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
 
+/// InfoDot moved to features/info, next to the sheet it opens, once Reports
+/// needed it too. Re-exported here so every Home card that already imports
+/// this file keeps working and the move stays invisible to them.
+export '../../features/info/info_dot.dart';
+
 /// Small shared pieces every Home card uses, so radius, border and tap target
 /// cannot drift between one card and the next.
 
@@ -116,37 +121,6 @@ class SectionLink extends StatelessWidget {
               Icon(Icons.chevron_right, size: 15, color: palette.accent),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The small circled "i" that opens an explanation.
-class InfoDot extends StatelessWidget {
-  const InfoDot({
-    super.key,
-    required this.color,
-    required this.semanticLabel,
-    this.onTap,
-  });
-
-  final Color color;
-  final String semanticLabel;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: semanticLabel,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(Icons.info_outline, size: 14, color: color),
         ),
       ),
     );

@@ -175,6 +175,44 @@ Flutter track:
    has actually enabled it, and CI stays the real, unconditional backstop
    either way.
 
+## A screen shows figures, the "i" dot explains them (founder direction, 2026-09-18)
+
+Verbatim, on reviewing the first Reports build: "CRITICALLY CHECK THE SCREENS,
+IT SEEMS TO WORDY. INSTEAD WE CAN PUT THE EXPLANATION IN THE 'i' ICON SO THE
+SCREENS ARE STILL NEAT LOOKING".
+
+The rule that follows, and it governs every screen from here on:
+
+    A FIGURE, and the one short line needed to READ it, stay on the screen.
+    Everything that TEACHES goes behind the dot.
+
+"₱26,725.25" stays. "That is 52.4% of what came in" stays, because it is
+another figure. "A straight line from the days so far, so treat it as a
+direction and not a forecast" goes behind the dot, because it is a lesson, and
+a lesson is read once and then skipped forever while still taking up room on
+every visit after the first.
+
+ONE EXCEPTION, and it is not a loophole. Anything a person needs in order to
+avoid a WRONG CONCLUSION stays on the screen, however long. Two survived the
+cut in Reports for exactly this reason: "A housing loan alone can do this."
+under a net worth of minus two hundred thousand, because alarm is the worst
+possible moment to send somebody hunting for reassurance; and "Not counted
+above, on purpose." under a 5,000 transfer that moves no total, because
+otherwise it reads as money the report lost. The test is not length, it is
+whether silence would mislead.
+
+The machinery is already built: `InfoDot` in app/lib/features/info/info_dot.dart
+and the topic-keyed explainer in info_sheet.dart, ported from the prototype's
+own src/components/SectionInfoModal.tsx. Adding a topic means adding an enum
+value AND an entry in `infoContent`; `test/widgets/info_sheet_test.dart`
+iterates the enum and reddens if either is missing, because InfoSheet reads the
+map with a `!` and a missing entry is a crash on a screen somebody tapped
+deliberately.
+
+A dot on every card is its own clutter. A card with nothing to teach gets no
+dot, or people learn the dots never say anything and stop tapping the one that
+matters.
+
 ## Look at the screen before shipping a screen
 
 Claude can render any Flutter screen to a PNG and actually look at it:

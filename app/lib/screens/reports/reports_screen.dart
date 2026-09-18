@@ -4,6 +4,8 @@ import '../../core/money/format.dart';
 import '../../core/money/reports.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../../features/info/info_dot.dart';
+import '../../features/info/info_sheet.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
@@ -150,10 +152,10 @@ class _Header extends StatelessWidget {
         children: <Widget>[
           Text('Reports', style: AppType.title(palette)),
           const SizedBox(height: 2),
-          Text(
-            'What you own, what you earned, where it went. $_scopeLabel.',
-            style: AppType.caption(palette),
-          ),
+          // The scope, and nothing else. This line used to read "What you own,
+          // what you earned, where it went" as well, which is a description of
+          // the three tabs whose labels sit directly underneath it.
+          Text(_scopeLabel, style: AppType.caption(palette)),
         ],
       ),
     );
@@ -306,12 +308,26 @@ class _ScopeNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String entries = count == 1 ? '1 entry' : '$count entries';
-    return Text(
-      count == 0
-          ? 'No entries in this period. Nothing below is wrong, there is just '
-                'nothing to report yet.'
-          : 'From $entries. Excluded and duplicate entries are left out.',
-      style: AppType.caption(palette),
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            // The zero case keeps its reassurance, because an empty report is
+            // the state most likely to be read as a broken one. The normal
+            // case is now three words instead of a sentence about excluded
+            // entries, which is in the explainer.
+            count == 0
+                ? 'No entries in this period, so nothing to report yet.'
+                : 'From $entries',
+            style: AppType.caption(palette),
+          ),
+        ),
+        InfoDot(
+          color: palette.textMuted,
+          semanticLabel: 'What is being counted',
+          onTap: () => InfoSheet.show(context, palette, InfoTopic.reportScope),
+        ),
+      ],
     );
   }
 }
@@ -333,6 +349,7 @@ class _PositionView extends StatelessWidget {
         _SectionCard(
           palette: palette,
           title: 'Net worth',
+          topic: InfoTopic.netWorth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -346,19 +363,21 @@ class _PositionView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: Spacing.xs),
-              Text(
-                // A negative net worth is normal for somebody with a mortgage
-                // and it should not read as a failure. Saying WHY it is
-                // negative is the difference between a number that frightens
-                // and a number that informs.
-                underwater
-                    ? 'You owe more than you hold. A mortgage or a car loan '
-                          'does this on its own, and it is not the same as '
-                          'being in trouble.'
-                    : 'What you would have left if every account settled today.',
-                style: AppType.caption(palette),
-              ),
+              // ONE short line when the figure is negative, and nothing at all
+              // when it is not. The full explanation moved behind the dot.
+              //
+              // This line stays on the screen while the rest went, and the
+              // distinction is the rule: seeing minus two hundred thousand is
+              // alarming, and alarm is the worst moment to ask somebody to go
+              // hunting for reassurance. Everything that TEACHES is one tap
+              // away; the one clause that stops a wrong conclusion is not.
+              if (underwater) ...<Widget>[
+                const SizedBox(height: 2),
+                Text(
+                  'A housing loan alone can do this.',
+                  style: AppType.caption(palette),
+                ),
+              ],
             ],
           ),
         ),
@@ -508,6 +527,7 @@ class _PerformanceView extends StatelessWidget {
         _SectionCard(
           palette: palette,
           title: 'Two ratios worth watching',
+          topic: InfoTopic.ratios,
           child: Column(
             children: <Widget>[
               BreakdownRow(
@@ -530,13 +550,11 @@ class _PerformanceView extends StatelessWidget {
                     ? palette.negative
                     : palette.textPrimary,
               ),
-              const SizedBox(height: Spacing.xs),
-              Text(
-                'Debt servicing is ${formatPeso(f.debtServicingExpenses)} of '
-                'loan and card repayments against '
-                '${formatPeso(f.totalIncome)} of income.',
-                style: AppType.caption(palette),
-              ),
+              // The sentence that spelled out "4,950 of loan repayments
+              // against 51,000 of income" is gone. Both figures were already
+              // on the screen, one of them twice, so it explained the
+              // arithmetic of a percentage rather than telling anybody
+              // anything.
             ],
           ),
         ),
@@ -582,6 +600,7 @@ class _PerformanceView extends StatelessWidget {
           _SectionCard(
             palette: palette,
             title: 'If the rest of the month looks like this',
+            topic: InfoTopic.runRate,
             child: Column(
               children: <Widget>[
                 BreakdownRow(
@@ -603,13 +622,6 @@ class _PerformanceView extends StatelessWidget {
                   valueColor: f.projectedSurplus >= 0
                       ? palette.positive
                       : palette.negative,
-                ),
-                const SizedBox(height: Spacing.xs),
-                Text(
-                  'A straight line from the days so far. One big bill later '
-                  'in the month changes it completely, so treat it as a '
-                  'direction and not a forecast.',
-                  style: AppType.caption(palette),
                 ),
               ],
             ),
@@ -652,6 +664,7 @@ class _CashFlowView extends StatelessWidget {
         _SectionCard(
           palette: palette,
           title: 'Net change in cash',
+          topic: InfoTopic.cashFlow,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -667,19 +680,24 @@ class _CashFlowView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: Spacing.xs),
+              const SizedBox(height: 2),
               Text(
-                'The three sections below add up to exactly this.',
+                'Operating + investing + financing',
                 style: AppType.caption(palette),
               ),
             ],
           ),
         ),
         const SizedBox(height: Spacing.md),
+        // The three sections carry a two or three word gloss instead of the
+        // sentence each used to have. The sentences are in the cash flow
+        // explainer, which the card above this one opens: three of them
+        // stacked here turned a statement of cash flows into a reading
+        // exercise.
         _FlowSection(
           palette: palette,
           title: 'Operating',
-          note: 'Everyday living: what you earned and what you spent on it.',
+          note: 'Everyday living',
           inflows: c.operatingInflows,
           outflows: c.operatingOutflows,
           net: c.netOperating,
@@ -688,7 +706,7 @@ class _CashFlowView extends StatelessWidget {
         _FlowSection(
           palette: palette,
           title: 'Investing',
-          note: 'Money put into, or taken out of, things meant to grow.',
+          note: 'Things meant to grow',
           inflows: c.investingInflows,
           outflows: c.investingOutflows,
           net: c.netInvesting,
@@ -697,9 +715,7 @@ class _CashFlowView extends StatelessWidget {
         _FlowSection(
           palette: palette,
           title: 'Financing',
-          note:
-              'Loan and card repayments. Money borrowed would show on the '
-              'other side, and nothing in the app records that yet.',
+          note: 'Loan and card repayments',
           inflows: c.financingInflows,
           outflows: c.financingOutflows,
           net: c.netFinancing,
@@ -708,6 +724,7 @@ class _CashFlowView extends StatelessWidget {
         _SectionCard(
           palette: palette,
           title: 'Your own transfers',
+          topic: InfoTopic.transfers,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -718,11 +735,13 @@ class _CashFlowView extends StatelessWidget {
                     : '${c.transfersCount} transfers',
                 value: formatPeso(c.transfersVolume),
               ),
-              const SizedBox(height: Spacing.xs),
+              const SizedBox(height: 2),
               Text(
-                'Counted here and deliberately left out of the total above. '
-                'Moving your own money between your own accounts is not money '
-                'entering or leaving.',
+                // The short version stays. Somebody who moved 5,000 and sees
+                // no total move needs to know that is intended, not that the
+                // report lost it, and that is a wrong conclusion rather than
+                // a missed lesson. The reasoning is behind the dot.
+                'Not counted above, on purpose.',
                 style: AppType.caption(palette),
               ),
             ],
@@ -789,12 +808,12 @@ class _FlowSection extends StatelessWidget {
               net >= 0 ? palette.positive : palette.negative,
             ),
           ),
-          const SizedBox(height: Spacing.xs),
+          const SizedBox(height: 2),
           Text(
             // Three zeros with no comment invite the reading that the section
-            // is broken. Saying nothing happened is shorter to read and
-            // answers the question the zeros raise.
-            empty ? 'Nothing of this kind in this period. $note' : note,
+            // is broken, so the empty case still says so. It is four words
+            // rather than a sentence.
+            empty ? '$note. None this period.' : note,
             style: AppType.caption(palette),
           ),
         ],
@@ -854,23 +873,24 @@ class _ReconciliationNote extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.control),
         border: Border.all(color: palette.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      // One line and a dot. This card used to be a four line paragraph at the
+      // bottom of all three sub-tabs, which is three times the room for a
+      // notice about something that does not exist yet.
+      child: Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(Icons.rule, size: 16, color: palette.textMuted),
-              const SizedBox(width: Spacing.xs),
-              Text('Reconciliation comes next', style: AppType.label(palette)),
-            ],
+          Icon(Icons.rule, size: 16, color: palette.textMuted),
+          const SizedBox(width: Spacing.xs),
+          Expanded(
+            child: Text(
+              'Reconciliation comes next',
+              style: AppType.label(palette),
+            ),
           ),
-          const SizedBox(height: Spacing.xs),
-          Text(
-            'Checking these figures against your real bank balance, and '
-            'recording an adjustment when they differ, is the one part of '
-            'Reports that changes your data. It lands as its own step so it '
-            'can be tested properly.',
-            style: AppType.caption(palette),
+          InfoDot(
+            color: palette.textMuted,
+            semanticLabel: 'What reconciliation will do',
+            onTap: () =>
+                InfoSheet.show(context, palette, InfoTopic.reconciliation),
           ),
         ],
       ),
@@ -883,11 +903,19 @@ class _SectionCard extends StatelessWidget {
     required this.palette,
     required this.title,
     required this.child,
+    this.topic,
   });
 
   final Palette palette;
   final String title;
   final Widget child;
+
+  /// The explainer this card's circled "i" opens, when it has one.
+  ///
+  /// A card with nothing to teach gets no dot. Putting one on every card
+  /// trains people that it never says anything worth reading, and then the
+  /// one card that genuinely needs explaining is ignored too.
+  final InfoTopic? topic;
 
   @override
   Widget build(BuildContext context) {
@@ -902,8 +930,26 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title.toUpperCase(), style: AppType.kicker(palette)),
-          const SizedBox(height: Spacing.sm),
+          // The dot sits in the header row rather than below the figures, so
+          // it costs no vertical space at all: the kicker line was already
+          // there and the 44dp tap target fits inside its height.
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: AppType.kicker(palette),
+                ),
+              ),
+              if (topic != null)
+                InfoDot(
+                  color: palette.textMuted,
+                  semanticLabel: 'What $title means',
+                  onTap: () => InfoSheet.show(context, palette, topic!),
+                ),
+            ],
+          ),
+          SizedBox(height: topic == null ? Spacing.sm : 0),
           child,
         ],
       ),

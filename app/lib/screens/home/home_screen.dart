@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
+import '../../features/info/info_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
@@ -89,13 +90,15 @@ class HomeScreen extends StatelessWidget {
             DebtBeamCard(
               state: state,
               onSeeAll: () => _soon(context, palette, 'Debts'),
-              onInfo: () => _soon(context, palette, 'The debt explainer'),
+              onInfo: () =>
+                  InfoSheet.show(context, palette, InfoTopic.debtBothWays),
             ),
             const SizedBox(height: Spacing.lg),
             ComingUpCard(
               state: state,
               onManage: () => _soon(context, palette, 'Bills'),
-              onInfo: () => _soon(context, palette, 'The Coming Up explainer'),
+              onInfo: () =>
+                  InfoSheet.show(context, palette, InfoTopic.comingUp),
               onAddItem: () =>
                   _soon(context, palette, 'Adding an upcoming item'),
             ),

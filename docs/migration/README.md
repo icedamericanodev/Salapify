@@ -241,6 +241,28 @@ one of the four that WRITES: it creates an adjustment transaction to force the
 app's balance to match a real bank balance, and it changes a transaction's
 status. A write path needs both halves tested, so it lands as its own step.
 
+**The screens carry figures, the dot carries the explanation.** Founder
+direction on reviewing the first build of this tab: "it seems too wordy,
+instead we can put the explanation in the 'i' icon so the screens are still
+neat looking". Every card that has something to teach now has a circled "i" in
+its header, costing no vertical space, and the teaching lives there.
+
+| The explainer behind a dot |
+|---|
+| ![Info sheet](screens/info-sheet.png) |
+
+The rule, now recorded in `CLAUDE.md` so it governs Plan and Accounts too: a
+figure and the one short line needed to READ it stay on the screen, everything
+that TEACHES goes behind the dot. The exception is anything a person needs to
+avoid a wrong conclusion. Two lines survived the cut on that test: "A housing
+loan alone can do this." under a net worth of minus two hundred thousand, and
+"Not counted above, on purpose." under a transfer that moves no total.
+
+The mechanism is ported from the prototype's own `SectionInfoModal.tsx`. It
+also filled a gap: two dots on Home showed a "coming soon" toast, which is
+worse than no dot because it costs a tap and teaches that the dots do nothing.
+Both now open real explainers.
+
 Two defects this screen found, both worth recording because of HOW they were
 found:
 

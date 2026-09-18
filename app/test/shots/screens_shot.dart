@@ -7,6 +7,8 @@ import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/categories/category_manager_sheet.dart';
+import 'package:salapify/features/info/info_dot.dart';
+import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
@@ -238,6 +240,53 @@ void main() {
       });
     }
   }
+
+  // An explainer, opened by TAPPING its dot on Reports rather than built on
+  // its own. Founder direction moved the teaching off the screens and behind
+  // these dots, and a picture of the emptied screen without a picture of
+  // where the words went only shows half the trade.
+  testWidgets('info sheet renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+
+    // The net worth dot, which is the first on the Position tab and opens the
+    // longest explainer.
+    await tester.tap(find.byType(InfoDot).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(InfoSheet),
+      findsOneWidget,
+      reason: 'the dot did not open an explainer',
+    );
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/info_sheet.png'),
+    );
+  });
 
   // The Log sheet, mid-entry rather than blank, because an empty form shows
   // none of the parts that can go wrong: the confirmation sentence, the

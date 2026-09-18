@@ -70,20 +70,17 @@ class CategoryBar extends StatelessWidget {
               const SizedBox(width: Spacing.sm),
               // The percentage is written out as well as drawn. A bar alone
               // cannot be read precisely, and this is a financial report.
-              SizedBox(
-                width: 44,
-                child: Text(
-                  '${row.percentage.toStringAsFixed(1)}%',
-                  textAlign: TextAlign.right,
-                  style: AppType.caption(palette),
-                ),
+              //
+              // The entry count rides on the same line rather than taking one
+              // of its own. Nine categories meant nine lines that each said
+              // "1 entry", which is a paragraph of nothing down the side of
+              // the screen.
+              Text(
+                '${row.percentage.toStringAsFixed(1)}% · '
+                '${row.count == 1 ? '1 entry' : '${row.count} entries'}',
+                style: AppType.caption(palette),
               ),
             ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            row.count == 1 ? '1 entry' : '${row.count} entries',
-            style: AppType.caption(palette),
           ),
           if (showSubs) ...<Widget>[
             const SizedBox(height: Spacing.xs),

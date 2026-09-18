@@ -440,6 +440,29 @@ or leaving. The screen says so rather than leaving you to wonder.
 The three section nets add up to the headline: 31,675.25 + 0 + (-4,950) =
 26,725.25.
 
+### The "i" dots
+
+Your note that the screens were too wordy. Every card with something to explain
+now has a small circled **i** in its top right corner, and the explanation
+moved there. Tap a few:
+
+| Dot on | Opens |
+|---|---|
+| Net worth | What counts as yours, what counts against you, why below zero is often fine, and the formula |
+| Two ratios worth watching | What a savings rate is, and why lenders care about debt servicing |
+| If the rest of the month looks like this | Why the projection is unreliable early in the month |
+| Net change in cash | What operating, investing and financing each mean |
+| Your own transfers | Why moving your own money changes no total |
+| From 14 entries | Exactly which entries are being counted |
+
+Two short lines deliberately stayed on the screen rather than moving into a
+dot: **"A housing loan alone can do this."** under the net worth figure, and
+**"Not counted above, on purpose."** under the transfer. Both stop a wrong
+conclusion, and a wrong conclusion is not something to hide behind a tap.
+
+Two dots on **Home** also work now, where they used to show a "coming soon"
+message: the one beside **Debts (Both ways)** and the one beside **Coming up**.
+
 ### What is deliberately missing
 
 At the bottom of every sub-tab there is a card reading **"Reconciliation comes

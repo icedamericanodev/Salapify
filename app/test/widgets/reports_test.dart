@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/main.dart';
+import 'package:salapify/features/info/info_dot.dart';
+import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
@@ -41,17 +43,25 @@ void main() {
     expect(find.text('₱399,200.00'), findsWidgets, reason: 'total liabilities');
   });
 
-  testWidgets('a negative net worth is explained rather than just shown', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('a negative net worth is defused on the screen, and explained '
+      'behind the dot', (WidgetTester tester) async {
     await openReports(tester);
 
-    // A mortgage makes net worth negative for a great many people and the
-    // screen must not read as an accusation. This sentence is the difference
-    // between a number that informs and a number that frightens.
+    // A mortgage makes net worth negative for a great many people, and the
+    // screen must not read as an accusation. After the founder's "too wordy"
+    // review the long reassurance moved into the explainer, but ONE short
+    // line stays: alarm is the worst possible moment to make somebody go
+    // hunting for the reason.
+    expect(find.text('A housing loan alone can do this.'), findsOneWidget);
+
+    // And the full version is genuinely one tap away, not merely written
+    // down somewhere. This is the assertion the old test could not make.
+    await tapAndSettle(tester, find.byType(InfoDot).first);
+    expect(find.byType(InfoSheet), findsOneWidget);
     expect(
-      find.textContaining('not the same as being in trouble'),
+      find.textContaining('nothing is actually wrong'),
       findsOneWidget,
+      reason: 'the net worth dot opened the wrong explainer, or an empty one',
     );
   });
 
@@ -97,7 +107,7 @@ void main() {
     expect(find.text('1 transfer'), findsOneWidget);
     expect(find.text('₱5,000.00'), findsWidgets);
     expect(
-      find.textContaining('deliberately left out'),
+      find.text('Not counted above, on purpose.'),
       findsOneWidget,
       reason:
           'a 5,000 transfer that changes no total needs saying so, or it '
