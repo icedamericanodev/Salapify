@@ -7,6 +7,15 @@ every screen so it can be reviewed without a phone.
 Founder direction, 2026-09-18: rebuild `app/` from zero against the prototype,
 and migrate the tabs in the prototype's own order.
 
+**`coverage-audit.md` in this folder is the authoritative gap list**, written
+2026-09-18 on founder direction ("check everything, make sure we migrate
+everything"). The table below says which TAB is done. That file says which
+FEATURE and which piece of CONTENT is done, file by file across
+`src/components`, `src/utils` and `src/data`, and it is the one to read before
+picking up the next batch. It exists because the Academy shipped with six
+courses I invented while the prototype's real thirty two sat unread in
+`src/data/academyData.ts`.
+
 ## Migration order
 
 The prototype's tab order, finished one tab at a time including its modals.
@@ -19,6 +28,13 @@ The prototype's tab order, finished one tab at a time including its modals.
 | 3 | Reports | `ReportsScreen` | Position, Performance and Cash flow built. Reconciliation, the one that writes, is its own step |
 | 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | All eight segments built, Academy carrying the real 32-course curriculum. The three long-form startup guides get their own pass |
 | 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
+
+"Built" in the column above means the tab's own screens exist and read the real
+engines. It does NOT mean every section of the prototype's screen crossed over.
+Reports is missing its Reconciliation tab and five smaller views, Activity is
+missing the correction write path, and Plan is missing the three long-form
+Academy guides. `coverage-audit.md` section 3 lists each one with the prototype
+line number, so a batch can be picked up without re-deriving the gap.
 
 Screens that hang off several tabs (Safe to Spend, Health Check, Pan chat,
 Collaboration, the business guides) migrate with the tab that opens them.
