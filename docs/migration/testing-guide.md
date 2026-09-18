@@ -311,6 +311,30 @@ it, so a difference on your screen is a defect worth reporting.
 | `padala kay nanay 8000 palawan` | Spent, ₱8000, Family Support & Remittance, and Nanay in the person field under "Add a person, tags or a note" |
 | `lipat 1000 maya` | **Moved**, ₱1000, destination Maya Savings |
 
+### When it does not know the word
+
+Your "Electricity" finding, fixed on 2026-09-18. Try these:
+
+| Type this | Expect |
+|---|---|
+| `Electricity 1500` | Bills & Utilities. It knows the plain English word now, not just `meralco` and `kuryente`. |
+| `Pharmacy 340` | Health & Medical |
+| `Groceries 2200` | Groceries, not Food & Dining. The plural was missing while the singular worked. |
+| `Mortgage 18000` | Housing & Rent |
+| `Xylophone lessons 1500` | **"category not recognized, so pick one below"** and the category picker does not move |
+
+That last row is the important one. Before the fix, an unknown word did not
+produce "I do not know", it produced **Food & Dining** with full confidence,
+because that is the parser's fallback. Worth testing directly: pick a category
+by hand first, say Transport & Commute, then type an unknown line and fill it.
+Your choice should survive.
+
+Seven words are deliberately still unrecognized, because they genuinely cannot
+be read without context: `bill`, `payment`, `credit`, `phone`, `power`, `game`,
+`refund`. A restaurant bill and an electricity bill are both "the bill". If one
+of those matters to you in practice, say so and we will decide where it goes
+rather than guessing.
+
 Two deliberate details worth poking at:
 
 - It **fills the form, it does not save**. Nothing moves until you tap Save

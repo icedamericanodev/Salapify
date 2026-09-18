@@ -121,11 +121,21 @@ class _LogSheetState extends State<LogSheet> {
         }
       }
 
-      // The category is applied ONLY when it belongs to the chosen type.
-      // "mp2 2000" parses as an expense in Investment & Passive Income, an
-      // income category, and the picker below filters by type, so applying it
-      // would select something the person cannot see and cannot change.
-      if (r.type != TransactionType.transfer) {
+      // The category is applied ONLY when the line actually named one, and
+      // only when it belongs to the chosen type.
+      //
+      // The first half of that is the founder's "Electricity" report. The
+      // parser's fallback category is 'Food & Dining', so a word it does not
+      // know produces a confident wrong answer rather than no answer, and
+      // applying it would overwrite a correct selection with a guess. Now an
+      // unrecognised line leaves the picker exactly where it was and the
+      // read-back says so.
+      //
+      // The second half: "mp2 2000" parses as an expense in Investment &
+      // Passive Income, an income category, and the picker below filters by
+      // type, so applying it would select something the person cannot see and
+      // cannot change.
+      if (r.categoryMatched && r.type != TransactionType.transfer) {
         final bool usable = widget.state.categories.any(
           (CategoryInfo c) =>
               c.name == r.category &&
@@ -374,6 +384,9 @@ class _LogSheetState extends State<LogSheet> {
           ] else ...<Widget>[
             const SizedBox(height: Spacing.md),
             _CategoryPicker(
+              // Keyed so a test can name a category in THIS control. Category
+              // names also appear in the read-back sentence above it.
+              key: const Key('log-category-picker'),
               palette: p,
               categories: _categoriesFor(_type),
               selected: _category,
@@ -652,6 +665,7 @@ class _AccountPicker extends StatelessWidget {
 
 class _CategoryPicker extends StatelessWidget {
   const _CategoryPicker({
+    super.key,
     required this.palette,
     required this.categories,
     required this.selected,
@@ -938,8 +952,18 @@ class _QuickParseField extends StatelessWidget {
     };
     final StringBuffer b = StringBuffer()
       ..write('$verb ${formatPeso(r.amount)}')
-      ..write(' at ${r.merchant}')
-      ..write(', filed under ${r.category}');
+      ..write(' at ${r.merchant}');
+
+    // Says "I do not know" instead of naming the fallback category. The
+    // fallback is 'Food & Dining', so the old sentence read "filed under Food
+    // & Dining" for a word the parser had never seen, which is the most
+    // confident possible way to be wrong. The founder typed "Electricity" and
+    // this sentence told them it was food.
+    if (r.categoryMatched) {
+      b.write(', filed under ${r.category}');
+    } else {
+      b.write(', category not recognized, so pick one below');
+    }
     if (r.person != null) b.write(', with ${r.person}');
     b.write('.');
     return b.toString();

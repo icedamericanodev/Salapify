@@ -219,6 +219,83 @@ void main() {
     );
   });
 
+  group('the category is either known or admitted to be unknown', () {
+    // The founder typed "Electricity" on the emulator and the sheet selected
+    // Food & Dining. The parser's fallback IS 'Food & Dining', so every word
+    // it had never seen produced that answer with full confidence. Measured
+    // at the time: 37 of 60 common English money words behaved this way.
+    //
+    // These are NOT prototype vectors. The prototype has the same defect, and
+    // the block below is the divergence, which is why it is grouped and
+    // labelled separately from everything above.
+
+    test('"Electricity 1500" is a utility bill, not lunch', () {
+      final FastLogResult r = parseFastLog('Electricity 1500');
+      expect(r.category, 'Bills & Utilities');
+      expect(r.categoryMatched, isTrue);
+    });
+
+    test('a word the parser does not know admits it', () {
+      final FastLogResult r = parseFastLog('Xylophone 1500');
+      expect(
+        r.categoryMatched,
+        isFalse,
+        reason: 'nothing in the line named a category, so nothing chose one',
+      );
+      // The engine still RETURNS the prototype's fallback, deliberately. The
+      // port stays faithful in what it computes; the flag is what lets the
+      // sheet decline to apply it. If this ever stops being 'Food & Dining'
+      // the divergence has leaked from the UI into the engine.
+      expect(r.category, 'Food & Dining');
+    });
+
+    test('the plain English words the founder would actually type', () {
+      const Map<String, String> expected = <String, String>{
+        'electricity': 'Bills & Utilities',
+        'water': 'Bills & Utilities',
+        'internet': 'Bills & Utilities',
+        'mortgage': 'Housing & Rent',
+        'groceries': 'Groceries',
+        'dentist': 'Health & Medical',
+        'pharmacy': 'Health & Medical',
+        'hospital': 'Health & Medical',
+        'haircut': 'Shopping & Personal',
+        'cinema': 'Entertainment & Leisure',
+        'installment': 'Debt & Loan Servicing',
+      };
+      final List<String> wrong = <String>[];
+      expected.forEach((String word, String category) {
+        final FastLogResult r = parseFastLog('$word 500');
+        if (r.category != category || !r.categoryMatched) {
+          wrong.add('$word -> ${r.category} (matched ${r.categoryMatched})');
+        }
+      });
+      expect(wrong, isEmpty, reason: 'these landed somewhere else: $wrong');
+    });
+
+    test('the deliberately ambiguous words are left unmatched', () {
+      // Each of these names no category on its own: a restaurant bill and an
+      // electricity bill are both "the bill". Guessing is the defect being
+      // fixed, so they must fall through rather than be quietly added later.
+      for (final String word in <String>[
+        'bill',
+        'payment',
+        'phone',
+        'power',
+        'refund',
+      ]) {
+        final FastLogResult r = parseFastLog('$word 500');
+        expect(
+          r.categoryMatched,
+          isFalse,
+          reason:
+              '"$word" cannot be read without context, so it must not '
+              'claim a category',
+        );
+      }
+    });
+  });
+
   test('every category the parser can return really exists', () {
     // This is the guard that would have caught the drift that prompted all of
     // this: the parser hands back a category NAME, and if the app's list

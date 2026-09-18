@@ -221,6 +221,50 @@ void main() {
     );
   });
 
+  // The read-back when the parser does NOT know the word. This is the state
+  // the founder hit on the emulator: they typed "Electricity" and the sheet
+  // silently selected Food & Dining, because that is the parser's fallback.
+  // The sentence is the whole fix, so it gets looked at rather than assumed.
+  testWidgets('log sheet unknown category renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('log-quick-parse')),
+      'Xylophone lessons 1500',
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet_unknown_category.png'),
+    );
+  });
+
   // The Log sheet BACKDATED, which is the state worth looking at rather than
   // the picker dialog (that one is stock Material and only inherits the
   // theme). Two things have to read clearly here: the When row showing a day

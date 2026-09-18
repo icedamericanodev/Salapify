@@ -122,6 +122,38 @@ about money should be visible before it is committed, so it reads back what it
 understood and everything lands in the controls below where it can be
 corrected. Save is the same button it always was.
 
+**And it says when it does not know.** Founder finding on the emulator,
+2026-09-18: typing "Electricity" selected Food & Dining. The prototype's
+parser falls back to `'Food & Dining'` for any word it has never seen, so it
+answers confidently instead of not answering. Measured before fixing: 37 of 60
+common English money words did this, including `hospital`, `pharmacy`,
+`mortgage` and `groceries`.
+
+| The parser admitting it does not know |
+|---|
+| ![Unknown category](screens/log-sheet-unknown-category.png) |
+
+Two changes, and the split between them is deliberate:
+
+1. **The engine** now reports whether anything actually DECIDED the category,
+   alongside the category itself. It still computes exactly what the prototype
+   computes, so every ported vector is untouched.
+2. **The sheet** applies the category only when something decided it, and the
+   read-back says "category not recognized, so pick one below" instead of
+   naming the fallback. An unrecognised line now leaves the picker exactly
+   where the person left it.
+
+The keyword map also gained the plain English words an English-first app needs.
+That block is kept separate from the prototype's own 145 and labelled as ours,
+so a future re-extraction of the prototype's list cannot silently delete it.
+
+Seven words are left out ON PURPOSE, because guessing is the defect being
+fixed and these cannot be read without context: `bill` (a restaurant bill and
+an electricity bill are both "the bill"), `payment`, `credit` (already an
+account hint), `phone` (the monthly bill, or the handset), `power` (the
+utility, or a power bank), `game`, and `refund`. Each falls through to "not
+recognized", which is the honest answer.
+
 **When it happened.** Founder request, 2026-09-18. The When row defaults to
 today and says so in words, and Change opens the calendar. A day that is not
 today is drawn in the accent so it cannot be missed, and the sheet adds one

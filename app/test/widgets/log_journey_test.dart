@@ -437,6 +437,73 @@ void main() {
         reason: 'an income category must not be attached to an expense',
       );
     });
+
+    testWidgets('"Electricity 1500" files a utility bill, not lunch', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'Electricity 1500',
+      );
+      await tester.pumpAndSettle();
+
+      // The read-back has to say it BEFORE anything is filled in. That
+      // sentence is the only place a wrong guess is visible while it is still
+      // cheap to correct.
+      expect(find.textContaining('filed under Bills & Utilities'), findsOne);
+
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(state.transactions.first.category, 'Bills & Utilities');
+    });
+
+    testWidgets('an unknown word does not silently become Food & Dining', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, logButton);
+
+      // Pick a real category FIRST, so the test can tell "left alone" apart
+      // from "happened to match the default". Without this the assertion
+      // below passes for the wrong reason, because the sheet's own default
+      // is Food & Dining too.
+      await tapAndSettle(
+        tester,
+        find.descendant(
+          of: find.byKey(const Key('log-category-picker')),
+          matching: find.text('Transport & Commute'),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'Xylophone 1500',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('category not recognized'),
+        findsOne,
+        reason: 'the read-back claimed a category it had no evidence for',
+      );
+
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(state.transactions.first.amount, 1500);
+      expect(
+        state.transactions.first.category,
+        'Transport & Commute',
+        reason: 'an unrecognised word overwrote a category the person chose',
+      );
+    });
   });
 
   group('defects the QA pass found in the Log sheet', () {

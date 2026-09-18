@@ -12,11 +12,18 @@ import '../../models/models.dart';
 ///   the ACCOUNT     gcash, maya, cash, a bank name, a card
 ///   the PERSON      "kay nanay", "ni kuya", "for mama"
 ///   the TYPE        sweldo and client mean income, lipat means a transfer
-///   the CATEGORY    from 145 keywords, first match in the line wins
+///   the CATEGORY    from the keyword map, first match in the line wins
 ///
 /// Every behaviour here is the prototype's, including the odd ones, and the
 /// vectors in test/core/money/fast_log_golden_test.dart were produced by
 /// running the TypeScript rather than by reasoning about it.
+///
+/// ONE THING IS OURS, and it is flagged rather than folded in. The prototype
+/// falls back to 'Food & Dining' for any word it does not know, so it answers
+/// confidently and wrongly instead of not answering. The engine still computes
+/// that same fallback, which is why the vectors are untouched, but it now also
+/// reports whether anything DECIDED the category, and the plain English words
+/// an English-first app needs were added to the map. See categoryMatched.
 class FastLogResult {
   const FastLogResult({
     required this.isValid,
@@ -24,6 +31,7 @@ class FastLogResult {
     required this.amount,
     required this.merchant,
     required this.category,
+    this.categoryMatched = false,
     this.person,
     this.accountKind,
     this.profile,
@@ -36,6 +44,18 @@ class FastLogResult {
   final double amount;
   final String merchant;
   final String category;
+
+  /// Whether anything in the line actually DECIDED the category, as opposed to
+  /// the category being the fallback nobody chose.
+  ///
+  /// This exists because the fallback is 'Food & Dining', so an unrecognised
+  /// word does not produce "I do not know", it produces a confident and wrong
+  /// answer. The founder typed "Electricity" and got Food & Dining, and 37 of
+  /// 60 common English words behaved the same way. The engine still computes
+  /// exactly what the prototype computes, so the vectors are untouched; this
+  /// flag is what lets the SHEET decline to apply a guess, which is where the
+  /// defence belongs.
+  final bool categoryMatched;
   final String? person;
 
   /// A HINT, not an account. The sheet matches it against the real accounts
@@ -44,8 +64,13 @@ class FastLogResult {
   final ProfileEntity? profile;
 }
 
-/// 145 keywords, extracted from the prototype's own map rather than retyped,
-/// because a hand-copied list of 145 entries is a list with a typo in it.
+/// The keyword map. The first block is the prototype's own 145, extracted
+/// rather than retyped, because a hand-copied list of 145 entries is a list
+/// with a typo in it. The second block, clearly marked, is ours.
+///
+/// No count in this sentence on purpose. The last version of it said 145 and
+/// was wrong the moment a word was added, two lines above a rule about numbers
+/// in prose going stale.
 const Map<String, String> fastLogCategoryKeywords = <String, String>{
   'jollibee': 'Food & Dining',
   'mcdonalds': 'Food & Dining',
@@ -192,6 +217,82 @@ const Map<String, String> fastLogCategoryKeywords = <String, String>{
   'ambagan': 'Bills & Utilities',
   'share': 'Bills & Utilities',
   'hati': 'Bills & Utilities',
+
+  // ---------------------------------------------------------------------
+  // PLAIN ENGLISH, added 2026-09-18 after the founder typed "Electricity"
+  // and got Food & Dining.
+  //
+  // The prototype's list is brand names and Filipino: it knows meralco and
+  // kuryente and has never heard of electricity. That was survivable while
+  // the app was the founder's own, and it is not survivable for a public
+  // app whose UI is English first (CLAUDE.md, founder decision 2026-07-23).
+  // Measured before fixing: 37 of 60 common English money words were absent,
+  // and every one of them landed on Food & Dining.
+  //
+  // This is a DIVERGENCE from src/, deliberately. Everything above is the
+  // prototype's map, extracted rather than retyped; everything below is ours.
+  // Keeping the two blocks separate is what lets a future re-extraction of
+  // the prototype's list replace the top half without silently deleting this.
+  'electricity': 'Bills & Utilities',
+  'electric': 'Bills & Utilities',
+  'water': 'Bills & Utilities',
+  'internet': 'Bills & Utilities',
+  'broadband': 'Bills & Utilities',
+  'cable': 'Bills & Utilities',
+  'subscription': 'Bills & Utilities',
+  'utilities': 'Bills & Utilities',
+
+  'mortgage': 'Housing & Rent',
+  'dorm': 'Housing & Rent',
+  'association': 'Housing & Rent',
+  'dues': 'Housing & Rent',
+
+  'restaurant': 'Food & Dining',
+  'takeout': 'Food & Dining',
+  'groceries': 'Groceries',
+  'market': 'Groceries',
+
+  'train': 'Transport & Commute',
+  'fuel': 'Transport & Commute',
+  'fare': 'Transport & Commute',
+
+  'dentist': 'Health & Medical',
+  'medicine': 'Health & Medical',
+  'pharmacy': 'Health & Medical',
+  'hospital': 'Health & Medical',
+  'clinic': 'Health & Medical',
+  'checkup': 'Health & Medical',
+  'vitamins': 'Health & Medical',
+
+  'shoes': 'Shopping & Personal',
+  'haircut': 'Shopping & Personal',
+  'salon': 'Shopping & Personal',
+  'barber': 'Shopping & Personal',
+  'gift': 'Shopping & Personal',
+
+  'movie': 'Entertainment & Leisure',
+  'cinema': 'Entertainment & Leisure',
+  'concert': 'Entertainment & Leisure',
+  'gym': 'Entertainment & Leisure',
+  'hobby': 'Entertainment & Leisure',
+
+  'installment': 'Debt & Loan Servicing',
+  'amortization': 'Debt & Loan Servicing',
+
+  'school': 'Family Support & Remittance',
+
+  // Left out ON PURPOSE, because a wrong confident answer is the defect being
+  // fixed and these words cannot be read without context:
+  //   bill      a restaurant bill and an electricity bill are both "the bill"
+  //   payment   every entry is a payment of something
+  //   credit    already an ACCOUNT hint, and "credit" alone names no category
+  //   phone     the monthly bill, or the handset; load and postpaid cover the
+  //             Philippine bill case already
+  //   power     the utility, or a power bank
+  //   game      an evening out, or a purchase
+  //   refund    a direction of travel, not a category
+  // Each of those now falls through to "no category recognised", which is the
+  // honest answer and leaves the picker to the person.
 };
 
 /// Words that flip the entry from an expense to something else.
@@ -306,9 +407,15 @@ FastLogResult parseFastLog(String input) {
   String category = 'Food & Dining';
   ProfileEntity profile = ProfileEntity.personal;
 
+  // Tracks whether the category was DECIDED or merely defaulted to. The type
+  // branches below decide one on purpose, so they set it; the initial
+  // 'Food & Dining' above is nobody's decision and deliberately does not.
+  bool categoryMatched = false;
+
   if (words.any(_incomeWords.contains)) {
     type = TransactionType.income;
     category = 'Salary & Compensation';
+    categoryMatched = true;
     if (words.any(_businessWords.contains)) {
       profile = ProfileEntity.business;
       category = 'Business Revenue';
@@ -316,6 +423,7 @@ FastLogResult parseFastLog(String input) {
   } else if (words.any(_transferWords.contains)) {
     type = TransactionType.transfer;
     category = 'Transfer';
+    categoryMatched = true;
   } else if (words.any(_householdWords.contains)) {
     profile = ProfileEntity.household;
   }
@@ -326,6 +434,7 @@ FastLogResult parseFastLog(String input) {
     final String? hit = fastLogCategoryKeywords[w];
     if (hit != null) {
       category = hit;
+      categoryMatched = true;
       break;
     }
   }
@@ -344,6 +453,7 @@ FastLogResult parseFastLog(String input) {
     amount: amount,
     merchant: merchant,
     category: category,
+    categoryMatched: categoryMatched,
     person: person,
     accountKind: accountKind,
     profile: profile,
