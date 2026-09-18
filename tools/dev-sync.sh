@@ -228,6 +228,31 @@ trap 'cleanup; exit 0' INT TERM
       continue
     fi
 
+    # THIS SCRIPT CANNOT UPGRADE ITSELF, so it says so instead of pretending.
+    #
+    # bash reads a script into memory once, when it starts. A pull that changes
+    # tools/dev-sync.sh therefore changes the file on disk and NOT the loop that
+    # is running, so a fix to this script only takes effect when somebody
+    # restarts it. That is not a theoretical nuisance: the auto-heal above was
+    # added precisely because pulls were being refused, and the founder then sat
+    # on a stale commit because the OLD copy of this loop was still the one
+    # running and still refusing. Two fixes, neither reaching them.
+    #
+    # It is announced loudly and the restart is left to the person, rather than
+    # exec'ing the new copy automatically. Re-running yourself mid-loop with a
+    # child `flutter run` attached is a good way to orphan the app and leave an
+    # emulator nobody owns.
+    if git --no-pager diff --name-only "$LOCAL" HEAD |
+      grep -q '^tools/dev-sync.sh$'; then
+      echo
+      echo "  ############################################################"
+      echo "  #  dev-sync.sh ITSELF was updated by this pull.            #"
+      echo "  #  This running copy is still the OLD one.                 #"
+      echo "  #  Press Ctrl-C and run it again to pick up the new one.   #"
+      echo "  ############################################################"
+      echo
+    fi
+
     # New packages have to be fetched before a restart, or the restart fails in
     # a way that reads as a code error.
     if git --no-pager diff --name-only "$LOCAL" HEAD |
