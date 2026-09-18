@@ -186,9 +186,45 @@ trap 'cleanup; exit 0' INT TERM
     echo "New work on origin/$BRANCH:"
     git --no-pager log --oneline "HEAD..origin/$BRANCH" | sed 's/^/    /'
 
+    # TWO GENERATED FILES WILL STRAND THIS SCRIPT IF NOTHING HANDLES THEM.
+    #
+    # `flutter pub get` rewrites app/pubspec.lock to whichever SDK ran it, and
+    # from 3.47 also writes an analyzer.exclude block into
+    # app/analysis_options.yaml. The founder's Mac runs a newer Flutter than
+    # the CI pin, so merely RUNNING the app dirties both, `--ff-only` then
+    # refuses, and this loop sits there fetching and declining to pull. The
+    # emulator stays on old code while the terminal looks healthy, which is
+    # exactly the failure this script exists to prevent. It happened on
+    # 2026-09-18 and cost a round trip to diagnose.
+    #
+    # Only these two paths, and only when they are the ONLY thing dirty. Real
+    # edits are never discarded: if anything else has changed the pull is left
+    # to fail loudly, the way it did before.
+    # "Anything else" means TRACKED changes only. An earlier version of this
+    # asked `git status --porcelain`, which also lists UNTRACKED files, so a
+    # stray file anywhere in the repo made it refuse to help. Untracked files
+    # do not block a fast forward in the first place. Caught by testing the
+    # check rather than reading it.
+    GENERATED="$APP_DIR/pubspec.lock $APP_DIR/analysis_options.yaml"
+    if ! git diff --quiet -- $GENERATED; then
+      OTHER="$( { git diff --name-only; git diff --cached --name-only; } |
+        grep -v -e "^$APP_DIR/pubspec.lock$" \
+          -e "^$APP_DIR/analysis_options.yaml$" | head -1 )"
+      if [ -z "$OTHER" ]; then
+        echo "  Your Flutter rewrote pubspec.lock / analysis_options.yaml."
+        echo "  Both are generated, so putting them back to let the pull through."
+        git checkout -- $GENERATED 2>/dev/null
+      else
+        echo "  Generated files are dirty, but so is $OTHER, so nothing is"
+        echo "  being discarded. The pull below will say what is in the way."
+      fi
+    fi
+
     if ! git pull --quiet --ff-only origin "$BRANCH"; then
       echo "  Could not fast forward. You have local changes, or the branch"
       echo "  was rebuilt. Sort it out by hand and this picks up again."
+      echo "  What is in the way:"
+      git --no-pager status --short | sed 's/^/    /'
       continue
     fi
 
