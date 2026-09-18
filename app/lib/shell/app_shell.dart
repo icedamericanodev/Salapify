@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
+import '../screens/activity/activity_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/placeholder/placeholder_screen.dart';
 import '../state/financial_state.dart';
@@ -45,11 +46,7 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.home:
         return HomeScreen(state: widget.state);
       case SalapifyTab.activity:
-        return PlaceholderScreen(
-          palette: palette,
-          title: 'Activity',
-          note: 'The Ledger tab is next in the migration order.',
-        );
+        return ActivityScreen(state: widget.state);
       case SalapifyTab.reports:
         return PlaceholderScreen(
           palette: palette,

@@ -116,9 +116,22 @@ class FinancialState extends ChangeNotifier {
   /// src/components/ComingUpCard.tsx. The prototype does not store this, it
   /// reads the name, so the keyword lists are the behaviour rather than a
   /// convenience.
-  ProfileEntity profileOf(UpcomingItem item) {
-    final String name = item.name.toLowerCase();
-    final String category = (item.category ?? '').toLowerCase();
+  ProfileEntity profileOf(UpcomingItem item) =>
+      _inferProfile(item.name, item.category ?? '');
+
+  /// The same inference for a ledger entry.
+  ///
+  /// A transaction MAY carry a stored profile, and when it does that wins:
+  /// the prototype reads `t.profile || 'personal'` and only guesses when the
+  /// field is absent. The guess reads the merchant rather than the note,
+  /// because the merchant is the name of the thing, and it falls back to the
+  /// category.
+  ProfileEntity profileOfTransaction(Transaction t) =>
+      t.profile ?? _inferProfile(t.merchant ?? t.category, t.category);
+
+  ProfileEntity _inferProfile(String rawName, String rawCategory) {
+    final String name = rawName.toLowerCase();
+    final String category = rawCategory.toLowerCase();
 
     const List<String> businessWords = <String>[
       'bir', 'tax', 'payroll', 'freelance', 'business', 'client', 'vendor',

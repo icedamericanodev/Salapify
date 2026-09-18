@@ -111,6 +111,47 @@ class SeedData {
   ];
 
   static List<Transaction> transactions() => <Transaction>[
+        // Three rows that exist so the Activity screen can be REVIEWED rather
+        // than merely rendered. Without them every entry is a plain confirmed
+        // expense, so the status chips, the struck-through amount and the
+        // rule that keeps excluded money out of the totals are all invisible
+        // in a screenshot, and a picture that cannot show the defect proves
+        // nothing. See the fixture note in CLAUDE.md.
+        Transaction(
+          id: 'tx_pending_card',
+          type: TransactionType.expense,
+          amount: 1899.00,
+          category: 'Shopping & Personal',
+          accountId: 'acc_ub_debit',
+          merchant: 'Lazada Order',
+          date: '2026-09-17',
+          createdAt: _daysAgo(1),
+          status: TransactionStatus.pending,
+          note: 'Card authorisation, not posted yet',
+        ),
+        Transaction(
+          id: 'tx_excluded_double',
+          type: TransactionType.expense,
+          amount: 2840.00,
+          category: 'Bills & Utilities',
+          accountId: 'acc_maya',
+          merchant: 'Meralco',
+          date: '2026-09-15',
+          createdAt: _daysAgo(3),
+          status: TransactionStatus.excluded,
+          note: 'Charged twice, this one is not mine to pay',
+        ),
+        Transaction(
+          id: 'tx_transfer_1',
+          type: TransactionType.transfer,
+          amount: 5000.00,
+          category: 'Transfer',
+          accountId: 'acc_bpi',
+          toAccountId: 'acc_gcash',
+          merchant: 'Top up GCash',
+          date: '2026-09-16',
+          createdAt: _daysAgo(2),
+        ),
         Transaction(
           id: 'tx_salary_1',
           type: TransactionType.income,

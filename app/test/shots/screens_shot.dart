@@ -12,6 +12,7 @@ import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
+import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/state/financial_state.dart';
@@ -125,6 +126,53 @@ void main() {
         );
       });
     }
+  }
+
+  // Activity, the second tab, at both brightnesses. It is reached by TAPPING
+  // the tab rather than by building the screen alone, because the tab bar
+  // collapsing the body to zero height is a defect this harness has already
+  // had to catch once.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('activity renders in $theme', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(ActivityScreen),
+        findsOneWidget,
+        reason: 'the Activity tab did not open',
+      );
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/activity_$theme.png'),
+      );
+    });
   }
 
   // The sheets, dark only, which is what the founder uses. Each one is opened

@@ -15,7 +15,7 @@ The prototype's tab order, finished one tab at a time including its modals.
 |---|-----|------------------|--------|
 | 1 | Home | `Header`, `HeroPanel`, `BudgetPulseCard`, `QuickActions`, reminders banner, `DebtBeamCard`, `ComingUpCard`, `LatestTransactions`, `PanFloatingButton` | Built to match the prototype |
 | 1b | Home's sheets | `SafeToSpendModal`, `AddDebtModal`, `BankAmortizationTable`, `TaxCalculatorModal`, `BusinessTaxSimulatorModal`, the category manager | Built and reachable from Home |
-| 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Not started |
+| 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Entries list built. Detail and Log sheet next |
 | 3 | Reports | `ReportsScreen` | Not started |
 | 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | Not started |
 | 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
@@ -44,6 +44,38 @@ Phone sized, what actually fits on a 390dp screen:
 | Gabi (dark) | Hapon (light) |
 |---|---|
 | ![Home, Gabi](screens/home-gabi.png) | ![Home, Hapon](screens/home-hapon.png) |
+
+### Activity
+
+The entries half of tab 2, built 2026-09-18. Search, status and account
+filters, the summary card, the type tabs, and the list grouped by day.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Activity, Gabi](screens/activity-gabi.png) | ![Activity, Hapon](screens/activity-hapon.png) |
+
+Three rows were added to the fixture so this screen can be REVIEWED rather than
+merely rendered: a pending card authorisation, a transfer, and a duplicate
+Meralco charge marked excluded. Without them every entry is a plain confirmed
+expense and the status chips, the struck-through amount and the rule that keeps
+excluded money out of the totals are all invisible in a screenshot.
+
+Look at Sep 15 in the render. Two identical Meralco rows, one struck through
+and badged EXCLUDED, and the day header says `Out: ₱2,840.00`, counting one of
+them. That is the rule doing its job where a person can see it.
+
+Every figure on the card was checked independently of the code that drew it:
+
+| On screen | Adds up to |
+|---|---|
+| Out ₱14,874.75, 7 entries | 180 + 1,899 + 285 + 420 + 6,000 + 2,840 + 3,250.75, with the excluded 2,840 left out |
+| In ₱51,000.00 | 32,500 + 18,500 |
+| Kept ₱36,125.25 | 51,000 less 14,874.75 |
+| 29% out, 71% kept | 14,874.75 / 51,000 |
+
+Still to come on this tab: the transaction detail sheet, and the Log sheet,
+which is the write path and needs a journey proving an entry is visible on
+every screen that should mention it afterwards.
 
 ### Sheets
 

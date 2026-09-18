@@ -24,8 +24,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Taps a control and lets the sheet's open animation finish.
+  /// Scrolls a control into view, taps it, and lets the animation finish.
+  ///
+  /// The ensureVisible is not decoration. The test viewport is 800x600 and the
+  /// tab bar covers the bottom of it, so a control that is perfectly reachable
+  /// on a real phone can sit underneath the bar here. Tapping it then reports
+  /// "the sheet did not open", which is a true statement about a cause that
+  /// has nothing to do with the sheet. Adding one entry to the fixture was
+  /// enough to push the Debt button under the bar and fail three tests at
+  /// once.
   Future<void> tapAndSettle(WidgetTester tester, Finder target) async {
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
     await tester.tap(target);
     await tester.pumpAndSettle();
   }
@@ -124,7 +134,15 @@ void main() {
       // card on Home must now print the new total. A write that is correct in
       // the store and invisible on the screen is the defect, not a polish
       // item, and that is exactly how a 1,500 payment once vanished.
-      await tester.scrollUntilVisible(find.byKey(debtBeamKey), 200);
+      // The scrollable is named explicitly. scrollUntilVisible otherwise
+      // demands there be exactly ONE Scrollable in the tree and throws "Bad
+      // state: Too many elements" the moment a second one exists, which says
+      // nothing about the debt and sends you looking in the wrong place.
+      await tester.scrollUntilVisible(
+        find.byKey(debtBeamKey),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       expect(
         find.text(formatPeso(oweBefore + 5000)),
