@@ -39,11 +39,44 @@ meaning, stored data, security or privacy, a real product fork, deleting
 files that exist on main, merge or release) still stop for the founder. That
 layers on top of, and does not loosen, the STOP conditions written below.
 
-Until the new app in app/ replaces it on the founder's phone (Phase 4 in
-docs/revamp/05-roadmap.md), flutter/ is FROZEN: no feature work, only a fix
-the founder needs on the phone they use daily. Every rule below about
-flutter/ delivery still applies to such a fix. mobile/ is frozen the same
-way. Neither is deleted until the founder says so (decision D5).
+## Salapify 2 is ARCHIVED (founder direction, 2026-09-18)
+
+flutter/ no longer exists. It is archive/salapify-2-flutter/, renamed on
+founder direction so that two folders holding a Flutter app called Salapify
+cannot be confused for one another again. app/ is the only live Flutter app.
+
+Read archive/README.md before touching anything in there. The short version:
+
+1. NOTHING in archive/ is built, tested or published. Its four workflows and
+   four scripts moved to archive/salapify-2-flutter/ci-disabled/, because
+   GitHub only runs workflows from .github/workflows and moving them is what
+   actually stops them.
+2. THE PUBLISHER IS OFF, so the founder's phone receives no further Salapify 2
+   updates. flutter-preview.yml triggered on the path flutter/**, and nothing
+   is at that path now. The app already installed keeps working; it stops
+   changing. Last delivered stamp: f4.72.
+3. Every delivery rule written below about flutter/ (the stamp bump, the
+   uniqueness guard, the QA row, the delivery-log check, "merged is not
+   delivered") is therefore DORMANT, not repealed. It governs an app nothing
+   can ship. Do not apply it to app/, which has no publisher, and do not treat
+   a green app-check as evidence about anything on a phone.
+4. The restored guards do NOT gate the current build, by founder direction:
+   qa_record_test, update_stamp_test, toolchain_pin_test and
+   constitution_citation_test are Salapify 2's rules, written for an app with a
+   publisher at the end of it. When app/ earns one, copy them forward
+   deliberately and rewritten; never inherit them by accident.
+5. Files can be pulled back any time, and the money engines are the likeliest
+   want. D24 still holds when you do: src/ is the source of truth for every
+   calculation, so an engine in the archive is a second opinion and the vectors
+   in app/test/core/money/ win.
+6. Un-archiving is five steps and they are written down in archive/README.md.
+   Do all five or none; a publisher without its stamp collision guard is how
+   three real collisions happened.
+
+mobile/ is frozen the same way but is NOT archived; it is still at the
+repository root, and its only workflow triggers on a retired branch, so it
+publishes nothing. Nothing is deleted, which is what decision D5 required:
+archiving is a rename, and every file is still in the tree.
 
 The constitution file is a verbatim reproduction of the founder's document,
 so its own punctuation is preserved exactly as delivered. Do NOT normalize
