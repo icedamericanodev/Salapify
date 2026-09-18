@@ -72,8 +72,33 @@ if [ ! -d "$APP_DIR" ]; then
 fi
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-PIDFILE="$(mktemp -u /tmp/salapify-flutter.XXXXXX.pid)"
-STAMP="$(mktemp -u /tmp/salapify-watch.XXXXXX)"
+# Built from the shell's own PID rather than mktemp, and that is a bug fix.
+#
+# This used to be `mktemp -u /tmp/salapify-flutter.XXXXXX.pid`. GNU mktemp
+# happily substitutes X's that have a suffix after them, so it worked on Linux
+# and in CI. BSD mktemp, which is what macOS ships, requires the X's to be LAST
+# and fails outright:
+#
+#   mktemp: mkstemp failed on /tmp/salapify-flutter.XXXXXX.pid: File exists
+#
+# The failure was not fatal, which is what made it expensive. PIDFILE became
+# the EMPTY STRING, the script carried on, and `flutter run --pid-file ""` died
+# with "Flutter failed to write to a file at ''" and a PathNotFoundException
+# pointing at nothing. The founder was told to fix a build error that did not
+# exist. $$ is unique per run, portable, and needs no subprocess at all.
+PIDFILE="/tmp/salapify-flutter.$$.pid"
+STAMP="/tmp/salapify-watch.$$"
+
+# A belt-and-braces guard for the class of failure above: never hand an empty
+# path to `flutter run --pid-file`, whatever went wrong upstream.
+if [ -z "$PIDFILE" ] || [ -z "$STAMP" ]; then
+  echo "Could not build the temporary file paths. Not starting." >&2
+  exit 1
+fi
+
+# A previous run that was killed rather than stopped can leave these behind,
+# and a stale pid file makes the watcher signal a process that is long gone.
+rm -f "$PIDFILE" "$STAMP"
 
 if [ "$MODE" = "local" ]; then
   echo "Watching your own files in $APP_DIR/, checking every ${LOCAL_INTERVAL}s."
@@ -311,11 +336,24 @@ while true; do
   rm -f "$PIDFILE"
   echo
   if [ "$RAN" -lt 30 ]; then
-    echo "The app did not start (it gave up after ${RAN}s), so this is a BUILD"
-    echo "error and not a disconnected emulator. The real reason is in the"
-    echo "output ABOVE, past the '* Try:' block."
+    # Deliberately does NOT name the cause any more.
+    #
+    # It used to assert "this is a BUILD error and not a disconnected
+    # emulator", and that confident sentence cost real time: a macOS-only
+    # mktemp fault produced an empty --pid-file path, `flutter run` died on
+    # that, and this told the founder to go hunting for a compiler error in a
+    # run whose build had SUCCEEDED and whose APK had installed. A short run
+    # proves the app did not stay up. It does not prove why.
+    echo "The app stopped after ${RAN}s, so it never got running properly."
+    echo "This is NOT a disconnected emulator, which would have run longer."
     echo
-    echo "Not retrying, because retrying a failed build just buries the error."
+    echo "The reason is in the output ABOVE. Worth checking, in order:"
+    echo "  1. A compile or Gradle error, usually past the '* Try:' block."
+    echo "  2. A flutter tool error that is not about your code at all,"
+    echo "     for example a path it could not write to."
+    echo "  3. An emulator that started but could not host the app."
+    echo
+    echo "Not retrying, because retrying just buries the message that matters."
     echo "Fix it, then run: bash tools/dev-sync.sh"
     break
   fi
