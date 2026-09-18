@@ -1,876 +1,690 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
-  Send,
-  Gift,
-  Home,
-  CalendarCheck,
   Calculator,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  Clock,
   Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  Building2,
-  Briefcase,
-  Wallet,
-  PiggyBank,
+  Gift,
+  Globe,
+  Trash2,
+  Plus,
+  Coffee,
   Check,
+  RefreshCw,
+  FileText,
+  ShieldCheck,
+  CheckCircle2,
+  ListTodo,
+  ArrowRightLeft,
+  Zap,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
-import {
-  RemittanceChannel,
-  ThirteenthMonthAllocation,
-} from '../types';
-import {
-  REMITTANCE_CHANNELS,
-  REMITTANCE_PURPOSES,
-  estimateRemittanceFee,
-  calculateEmployeeTaxDeductions,
-  calculateFreelanceTax,
-} from '../utils/philippineFinances';
-
-type RemitPurpose = 'living_allowance' | 'school_tuition' | 'medical_maintenance' | 'house_renovation' | 'emergency';
+import { formatPeso } from '../utils/format';
 
 interface PhilippineFeaturesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'remittance' | '13th_month' | 'household' | 'payday_routine' | 'freelance_tax';
+  defaultTab?: 'calculator' | 'mindset' | 'treats' | 'fx';
+}
+
+interface TreatHabitItem {
+  id: string;
+  treatName: string;
+  cost: number;
+  healthyTask: string;
+  isTaskDone: boolean;
+  isClaimed: boolean;
 }
 
 export const PhilippineFeaturesModal: React.FC<PhilippineFeaturesModalProps> = ({
   isOpen,
   onClose,
-  defaultTab = 'remittance',
+  defaultTab = 'calculator',
 }) => {
-  const {
-    accounts,
-    addTransaction,
-    updatePayday,
-    payday,
-    remittances,
-    addRemittance,
-    updateRemittance,
-    deleteRemittance,
-    thirteenthMonthPlan,
-    update13thMonthPlan,
-    update13thMonthAllocations,
-    paydayTemplates,
-    applyPaydayRoutine,
-    householdAmbag,
-    recordHouseholdAmbagPayment,
-  } = useFinancial();
+  const { addTransaction } = useFinancial();
 
-  const [activeTab, setActiveTab] = useState<
-    'remittance' | '13th_month' | 'household' | 'payday_routine' | 'freelance_tax'
-  >(defaultTab);
+  const [activeTab, setActiveTab] = useState<'calculator' | 'mindset' | 'treats' | 'fx'>(defaultTab);
 
-  // New Remittance Form State
-  const [showAddRemittance, setShowAddRemittance] = useState(false);
-  const [remitRecipient, setRemitRecipient] = useState('');
-  const [remitProvince, setRemitProvince] = useState('');
-  const [remitChannel, setRemitChannel] = useState<RemittanceChannel>('palawan_express');
-  const [remitAmount, setRemitAmount] = useState('');
-  const [remitPurpose, setRemitPurpose] = useState<RemitPurpose>('living_allowance');
-  const [remitRef, setRemitRef] = useState('');
-  const [remitAccountId, setRemitAccountId] = useState<string>(accounts[0]?.id || 'acc-gcash');
-  const [remitAutoDeduct, setRemitAutoDeduct] = useState(true);
+  // --- TAB 1: SMART TEXT NOTES CALCULATOR ---
+  const [notepadText, setNotepadText] = useState(
+`ate 50
+kuya 600
+mama 6*8
+electricity 1250
+groceries 1850 + 450`
+  );
 
-  // 13th-Month Pay Planner State
-  const [salaryInput, setSalaryInput] = useState(thirteenthMonthPlan.basicMonthlySalary.toString());
-  const [monthsWorkedInput, setMonthsWorkedInput] = useState(thirteenthMonthPlan.monthsWorkedTotal.toString());
-  const [bonusTargetAccountId, setBonusTargetAccountId] = useState<string>(accounts[0]?.id || 'acc-bpi');
-  const [bonusActionNotice, setBonusActionNotice] = useState<string | null>(null);
+  const parseNotesCalculator = (text: string) => {
+    const lines = text.split('\n');
+    let grandTotal = 0;
+    const items: { lineText: string; label: string; expr: string; value: number; isValid: boolean }[] = [];
 
-  // Tax Suite State
-  const [taxMode, setTaxMode] = useState<'employed' | 'freelance'>('employed');
-  const [taxMonthlySalary, setTaxMonthlySalary] = useState('45000');
-  const [grossIncomeInput, setGrossIncomeInput] = useState('750000');
-  const [taxOption, setTaxOption] = useState<'8_percent_git' | 'graduated_rates'>('8_percent_git');
-  const [taxSyncNotice, setTaxSyncNotice] = useState<string | null>(null);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
 
-  // Payday Routine feedback
-  const [selectedRoutineAccountId, setSelectedRoutineAccountId] = useState<string>(accounts[0]?.id || 'acc-bpi');
-  const [routineAppliedNotice, setRoutineAppliedNotice] = useState<string | null>(null);
+      const match = trimmed.match(/^(.*?)([\d\s+\-*/().]+)$/);
+      if (match) {
+        const label = match[1].trim() || 'Item';
+        const expr = match[2].trim();
+        try {
+          const sanitizedExpr = expr.replace(/[^0-9+\-*/().]/g, '');
+          const val = Function(`'use strict'; return (${sanitizedExpr})`)();
+          const numericVal = typeof val === 'number' && !isNaN(val) ? val : 0;
+          grandTotal += numericVal;
+          items.push({
+            lineText: trimmed,
+            label,
+            expr,
+            value: numericVal,
+            isValid: true,
+          });
+        } catch {
+          items.push({
+            lineText: trimmed,
+            label: trimmed,
+            expr: '',
+            value: 0,
+            isValid: false,
+          });
+        }
+      } else {
+        items.push({
+          lineText: trimmed,
+          label: trimmed,
+          expr: '',
+          value: 0,
+          isValid: false,
+        });
+      }
+    }
+
+    return { items, grandTotal };
+  };
+
+  const parsedNotes = parseNotesCalculator(notepadText);
+
+  // --- TAB 2: MONEY MINDSET (Impulse Buyer Pause) ---
+  const [itemName, setItemName] = useState('Wireless Noise-Canceling Earbuds');
+  const [itemPrice, setItemPrice] = useState('4500');
+  const [monthlyIncome, setMonthlyIncome] = useState('35000');
+  const [mindsetAnswers, setMindsetAnswers] = useState({
+    needOrWant: 'want',
+    useFrequency: 'weekly',
+    cheaperAlternative: 'yes',
+  });
+  const [mindsetVerdict, setMindsetVerdict] = useState<string | null>(null);
+
+  const numericPrice = parseFloat(itemPrice) || 0;
+  const numericSalary = parseFloat(monthlyIncome) || 35000;
+  const hourlyWage = numericSalary / 160;
+  const hoursOfWork = hourlyWage > 0 ? (numericPrice / hourlyWage).toFixed(1) : '0';
+
+  const handleEvaluateMindset = () => {
+    let score = 0;
+    if (mindsetAnswers.needOrWant === 'need') score += 40;
+    else score += 10;
+
+    if (mindsetAnswers.useFrequency === 'daily') score += 40;
+    else if (mindsetAnswers.useFrequency === 'weekly') score += 30;
+    else score += 10;
+
+    if (mindsetAnswers.cheaperAlternative === 'no') score += 20;
+    else score += 5;
+
+    if (score >= 70) {
+      setMindsetVerdict('🟢 GREEN LIGHT: This purchase aligns with your core utility. Still, try the 24-hour pause rule!');
+    } else if (score >= 40) {
+      setMindsetVerdict('🟡 YELLOW LIGHT: Moderate impulse risk. Consider waiting 48 hours or finding a budget-friendly alternative.');
+    } else {
+      setMindsetVerdict('🔴 RED LIGHT: High impulse risk! This item is likely an emotional itch. Walk away for 3 days.');
+    }
+  };
+
+  // --- TAB 3: EARN YOUR TREATS (Healthy Habit & Task Pairing) ---
+  const [treatsList, setTreatsList] = useState<TreatHabitItem[]>([
+    {
+      id: 't1',
+      treatName: 'Iced Caramel Macchiato',
+      cost: 180,
+      healthyTask: 'Walk 5,000 steps & drink 2L water',
+      isTaskDone: true,
+      isClaimed: false,
+    },
+    {
+      id: 't2',
+      treatName: 'Samgyupsal Dinner with Friends',
+      cost: 799,
+      healthyTask: 'Review weekly budget & categorize all expenses',
+      isTaskDone: false,
+      isClaimed: false,
+    },
+    {
+      id: 't3',
+      treatName: 'New Running Shoes',
+      cost: 2800,
+      healthyTask: 'Complete 5 workouts this week without skipping',
+      isTaskDone: false,
+      isClaimed: false,
+    },
+  ]);
+  const [showAddTreat, setShowAddTreat] = useState(false);
+  const [newTreatName, setNewTreatName] = useState('');
+  const [newTreatCost, setNewTreatCost] = useState('');
+  const [newHealthyTask, setNewHealthyTask] = useState('');
+
+  const handleAddTreat = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTreatName || !newHealthyTask) return;
+    setTreatsList([
+      {
+        id: `t-${Date.now()}`,
+        treatName: newTreatName.trim(),
+        cost: parseFloat(newTreatCost) || 150,
+        healthyTask: newHealthyTask.trim(),
+        isTaskDone: false,
+        isClaimed: false,
+      },
+      ...treatsList,
+    ]);
+    setNewTreatName('');
+    setNewTreatCost('');
+    setNewHealthyTask('');
+    setShowAddTreat(false);
+  };
+
+  const toggleTaskDone = (id: string) => {
+    setTreatsList(
+      treatsList.map((t) => {
+        if (t.id === id) {
+          return { ...t, isTaskDone: !t.isTaskDone };
+        }
+        return t;
+      })
+    );
+  };
+
+  const claimTreatReward = (id: string) => {
+    setTreatsList(
+      treatsList.map((t) => {
+        if (t.id === id && t.isTaskDone) {
+          return { ...t, isClaimed: true };
+        }
+        return t;
+      })
+    );
+  };
+
+  // --- TAB 4: FOREIGN EXCHANGE CONVERTER ---
+  const [fxAmount, setFxAmount] = useState('1000');
+  const [fromCurrency, setFromCurrency] = useState('PHP');
+  const [toCurrency, setToCurrency] = useState('USD');
+  const [fxRates, setFxRates] = useState<Record<string, number>>({
+    PHP: 1,
+    USD: 0.018,
+    JPY: 2.75,
+    EUR: 0.016,
+    SGD: 0.024,
+    AED: 0.066,
+    AUD: 0.027,
+    CAD: 0.025,
+  });
+  const [isLoadingFx, setIsLoadingFx] = useState(false);
+  const [fxApiStatus, setFxApiStatus] = useState('Using live exchange rates cache');
+
+  const fetchLiveFxRates = async () => {
+    setIsLoadingFx(true);
+    setFxApiStatus('Fetching live rates from exchange rate API...');
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/PHP');
+      const data = await res.json();
+      if (data && data.rates) {
+        setFxRates(data.rates);
+        setFxApiStatus('Successfully updated with live global FX rates!');
+      }
+    } catch {
+      setFxApiStatus('Using robust built-in FX rates baseline.');
+    } finally {
+      setIsLoadingFx(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveFxRates();
+  }, []);
+
+  const parsedFxInput = parseFloat(fxAmount) || 0;
+  const amountInPhp = fromCurrency === 'PHP' ? parsedFxInput : parsedFxInput / (fxRates[fromCurrency] || 1);
+  const convertedAmount = toCurrency === 'PHP' ? amountInPhp : amountInPhp * (fxRates[toCurrency] || 1);
 
   if (!isOpen) return null;
 
-  const handleCreateRemittance = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amountNum = parseFloat(remitAmount);
-    if (!remitRecipient || isNaN(amountNum) || amountNum <= 0) return;
-
-    const estFee = estimateRemittanceFee(amountNum, remitChannel);
-    const dateStr = new Date().toISOString().split('T')[0];
-    const generatedRef = remitRef || `REF-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    addRemittance({
-      recipientName: remitRecipient,
-      relationship: 'Family',
-      provinceCity: remitProvince || 'Provincial Claim',
-      channel: remitChannel,
-      amount: amountNum,
-      fee: estFee,
-      purpose: remitPurpose,
-      cadence: 'monthly',
-      date: dateStr,
-      referenceNumber: generatedRef,
-      status: 'sent',
-    });
-
-    if (remitAutoDeduct && remitAccountId) {
-      addTransaction({
-        type: 'expense',
-        amount: amountNum + estFee,
-        accountId: remitAccountId,
-        category: 'Family Support & Remittance',
-        note: `Padala to ${remitRecipient} (${remitProvince || 'Province'}) via ${remitChannel.replace(/_/g, ' ').toUpperCase()} [Fee: ₱${estFee}] Ref: ${generatedRef}`,
-        date: dateStr,
-        tags: ['padala', 'remittance', remitChannel],
-      });
-    }
-
-    setShowAddRemittance(false);
-    setRemitRecipient('');
-    setRemitProvince('');
-    setRemitAmount('');
-    setRemitRef('');
-  };
-
-  const handleUpdate13thMonth = () => {
-    const salary = parseFloat(salaryInput) || 0;
-    const months = parseInt(monthsWorkedInput, 10) || 12;
-    update13thMonthPlan(salary, months, 0.20);
-  };
-
-  const handleAllocationChange = (id: string, targetAmount: number) => {
-    const updated: ThirteenthMonthAllocation[] = thirteenthMonthPlan.allocations.map((a) =>
-      a.id === id ? { ...a, targetAmount: Math.max(0, targetAmount) } : a
-    );
-    update13thMonthAllocations(updated);
-  };
-
-  const handleLog13thMonthToLedger = () => {
-    if (thirteenthMonthPlan.net13thMonthPay <= 0) return;
-    const dateStr = new Date().toISOString().split('T')[0];
-    addTransaction({
-      type: 'income',
-      amount: thirteenthMonthPlan.net13thMonthPay,
-      accountId: bonusTargetAccountId,
-      category: 'Income',
-      note: `13th-Month Pay & Holiday Bonus (${thirteenthMonthPlan.monthsWorkedTotal} months credited, ₱${thirteenthMonthPlan.taxExemptAmount.toLocaleString()} tax-exempt)`,
-      date: dateStr,
-      tags: ['13th-month', 'bonus', 'sweldo'],
-    });
-    setBonusActionNotice(`Successfully posted ₱${thirteenthMonthPlan.net13thMonthPay.toLocaleString()} to your account!`);
-    setTimeout(() => setBonusActionNotice(null), 4000);
-  };
-
-  const handleSync13thMonthToPayday = () => {
-    if (thirteenthMonthPlan.net13thMonthPay <= 0) return;
-    updatePayday({
-      expectedIncome: thirteenthMonthPlan.net13thMonthPay,
-    });
-    setBonusActionNotice(`Updated next Payday sweldo expected income to ₱${thirteenthMonthPlan.net13thMonthPay.toLocaleString()}`);
-    setTimeout(() => setBonusActionNotice(null), 4000);
-  };
-
-  const handleExecute13thAllocations = () => {
-    const dateStr = new Date().toISOString().split('T')[0];
-    let count = 0;
-    thirteenthMonthPlan.allocations.forEach((alloc) => {
-      if (alloc.targetAmount > 0) {
-        addTransaction({
-          type: 'expense',
-          amount: alloc.targetAmount,
-          accountId: bonusTargetAccountId,
-          category: alloc.category || 'Savings & Investments',
-          note: `13th-Month Plan: ${alloc.name} (${alloc.percentage}% of bonus)`,
-          date: dateStr,
-          tags: ['13th-month-allocation', 'bonus-distribution'],
-        });
-        count++;
-      }
-    });
-    setBonusActionNotice(`Created ${count} allocation transactions in your ledger!`);
-    setTimeout(() => setBonusActionNotice(null), 4000);
-  };
-
-  const handleExecuteRoutine = (templateId: string, name: string) => {
-    const res = applyPaydayRoutine(templateId);
-    if (res.success) {
-      setRoutineAppliedNotice(`Successfully executed "${name}"! Created ${res.createdTxCount} ledger entries.`);
-      setTimeout(() => setRoutineAppliedNotice(null), 4000);
-    }
-  };
-
-  // Unified Tax Calculations
-  const employeeTaxRes = calculateEmployeeTaxDeductions(parseFloat(taxMonthlySalary) || 0, 12);
-  const freelanceTaxRes = calculateFreelanceTax(parseFloat(grossIncomeInput) || 0, taxOption);
-
-  const handleSyncTaxToPayday = (amount: number) => {
-    if (amount <= 0) return;
-    const cutoffAmount = payday.cycleType === '15_30' ? Math.round(amount / 2) : Math.round(amount);
-    updatePayday({
-      expectedIncome: cutoffAmount,
-    });
-    setTaxSyncNotice(`Applied take-home pay (₱${cutoffAmount.toLocaleString()}/cutoff) to your Payday Pacing!`);
-    setTimeout(() => setTaxSyncNotice(null), 4000);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#27201A] rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden border border-[#F3DFCD] dark:border-[#383029] animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3DFCD] dark:border-[#383029]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#FFEEDF] dark:bg-[#383029] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52]">
-              <Sparkles size={20} />
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+      <div className="bg-[#FFFDF9] dark:bg-[#181310] border border-[#EFE2D5] dark:border-[#332A22] rounded-[28px] w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        
+        {/* Elite Modal Header */}
+        <div className="px-5 py-4 border-b border-[#EFE2D5] dark:border-[#332A22] flex items-center justify-between bg-white dark:bg-[#201914] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FFEEDF] to-[#FCE2CE] dark:from-[#2B211A] dark:to-[#382B21] border border-[#F3DFCD] dark:border-[#423328] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52] shadow-xs">
+              <Sparkles size={22} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                Philippine Financial Suite
-              </h2>
-              <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-                Local tools crafted for Filipino earners, sweldo cycles &amp; families
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-black tracking-tight text-[#15120F] dark:text-[#F6EFE8]">
+                  Philippine Financial Toolkit
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#B03C09]/10 text-[#B03C09] dark:bg-[#FF9A52]/15 dark:text-[#FF9A52]">
+                  PRO EDITION
+                </span>
+              </div>
+              <p className="text-xs text-[#7A6E63] dark:text-[#A89A8D] font-medium">
+                Mindful spending, smart text calculations, and habit rewards
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] dark:hover:text-[#F6EFE8] cursor-pointer"
+            className="p-2.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D] transition-colors cursor-pointer"
           >
-            <X size={20} />
+            <X size={19} />
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-[#F3DFCD] dark:border-[#383029] overflow-x-auto bg-[#FFEEDF]/30 dark:bg-[#14100D]/40 px-3 py-1.5 gap-1 scrollbar-none">
-          {[
-            { id: 'remittance', label: 'Padala Tracker', icon: Send },
-            { id: '13th_month', label: '13th-Month Planner', icon: Gift },
-            { id: 'household', label: 'Ambagan sa Bahay', icon: Home },
-            { id: 'payday_routine', label: 'Sweldo Routines', icon: CalendarCheck },
-            { id: 'freelance_tax', label: 'TRAIN Tax & Take-Home', icon: Calculator },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'bg-white dark:bg-[#27201A] text-[#B03C09] dark:text-[#FF9A52] shadow-xs border border-[#F3DFCD] dark:border-[#383029]'
-                    : 'text-[#6B6156] dark:text-[#AC9E92] hover:text-[#15120F] dark:hover:text-[#F6EFE8]'
-                }`}
-              >
-                <Icon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        {/* Gorgeous Tab Navigation */}
+        <div className="grid grid-cols-4 gap-1 px-4 py-3 bg-[#F9F3EC] dark:bg-[#14100D] border-b border-[#EFE2D5] dark:border-[#332A22] shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('calculator')}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'calculator'
+                ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] shadow-md scale-[1.02]'
+                : 'text-[#7A6E63] dark:text-[#A89A8D] hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Calculator size={16} />
+            <span className="truncate">Notes Calc</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('mindset')}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'mindset'
+                ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] shadow-md scale-[1.02]'
+                : 'text-[#7A6E63] dark:text-[#A89A8D] hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Zap size={16} />
+            <span className="truncate">Mindset</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('treats')}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'treats'
+                ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] shadow-md scale-[1.02]'
+                : 'text-[#7A6E63] dark:text-[#A89A8D] hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Gift size={16} />
+            <span className="truncate">Treats</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('fx')}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'fx'
+                ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] shadow-md scale-[1.02]'
+                : 'text-[#7A6E63] dark:text-[#A89A8D] hover:bg-black/5 dark:hover:bg-white/5'
+            }`}
+          >
+            <Globe size={16} />
+            <span className="truncate">FX Rates</span>
+          </button>
         </div>
 
-        {/* Tab Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {/* TAB 1: PADALA & REMITTANCE TRACKER */}
-          {activeTab === 'remittance' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                    Provincial &amp; Family Padala Records
-                  </h3>
-                  <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-                    Track remittance channels, pickup codes, and auto-sync to accounts &amp; ledger
-                  </p>
+        {/* Modal Body with Rich Polish */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          
+          {/* TAB 1: SMART TEXT NOTES CALCULATOR */}
+          {activeTab === 'calculator' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FFEEDF]/70 to-[#FCE2CE]/40 dark:from-[#271E17] dark:to-[#1E1712] border border-[#F3DFCD] dark:border-[#382D24] shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-[#B03C09] dark:text-[#FF9A52] font-extrabold text-xs">
+                  <FileText size={16} /> Smart Text Notes Calculator
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddRemittance(!showAddRemittance)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] hover:opacity-90 transition-all cursor-pointer shadow-xs"
-                >
-                  <Plus size={14} />
-                  <span>Log Padala</span>
-                </button>
+                <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC] leading-relaxed">
+                  Type your notes line by line with labels and numbers or math formulas (e.g., <code className="bg-white/80 dark:bg-black/30 px-1.5 py-0.5 rounded font-mono font-bold text-[#B03C09] dark:text-[#FF9A52]">ate 50</code>, <code className="bg-white/80 dark:bg-black/30 px-1.5 py-0.5 rounded font-mono font-bold text-[#B03C09] dark:text-[#FF9A52]">mama 6*8</code>). The system automatically parses and computes your grand total instantly!
+                </p>
               </div>
 
-              {/* Add Padala Form */}
-              {showAddRemittance && (
-                <form
-                  onSubmit={handleCreateRemittance}
-                  className="p-4 rounded-2xl bg-[#FFEEDF]/40 dark:bg-[#14100D]/60 border border-[#F3DFCD] dark:border-[#383029] space-y-3 animate-in fade-in duration-150"
-                >
-                  <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] flex items-center gap-1.5">
-                    <Send size={14} className="text-[#B03C09] dark:text-[#FF9A52]" />
-                    <span>New Padala Outflow Entry</span>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Textarea Input */}
+                <div className="bg-white dark:bg-[#201914] border border-[#EFE2D5] dark:border-[#332A22] rounded-2xl p-4 shadow-xs space-y-2.5 flex flex-col">
+                  <label className="text-xs font-black uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8] flex items-center justify-between">
+                    <span>Type Notes & Amounts</span>
+                    <span className="text-[10px] font-semibold text-[#7A6E63] bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">Multi-line</span>
+                  </label>
+                  <textarea
+                    rows={8}
+                    value={notepadText}
+                    onChange={(e) => setNotepadText(e.target.value)}
+                    placeholder="ate 50&#10;kuya 600&#10;mama 6*8"
+                    className="w-full flex-1 p-3.5 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-mono font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09] resize-none shadow-inner"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Recipient Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={remitRecipient}
-                        onChange={(e) => setRemitRecipient(e.target.value)}
-                        placeholder="e.g. Nanay Gloria, Kuya Jomar"
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Province / Destination
-                      </label>
-                      <input
-                        type="text"
-                        value={remitProvince}
-                        onChange={(e) => setRemitProvince(e.target.value)}
-                        placeholder="e.g. Iloilo, Pangasinan, Cebu"
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Amount (₱ PHP)
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        step="any"
-                        value={remitAmount}
-                        onChange={(e) => setRemitAmount(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Channel / Remittance Center
-                      </label>
-                      <select
-                        value={remitChannel}
-                        onChange={(e) => setRemitChannel(e.target.value as RemittanceChannel)}
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      >
-                        {REMITTANCE_CHANNELS.map((ch: { id: RemittanceChannel; label: string; estFee: number }) => (
-                          <option key={ch.id} value={ch.id}>
-                            {ch.label} (Est. fee: ~₱{ch.estFee})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Source Account / Wallet
-                      </label>
-                      <select
-                        value={remitAccountId}
-                        onChange={(e) => setRemitAccountId(e.target.value)}
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      >
-                        {accounts.map((acc) => (
-                          <option key={acc.id} value={acc.id}>
-                            {acc.name} (₱{acc.balance.toLocaleString()})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Purpose of Padala
-                      </label>
-                      <select
-                        value={remitPurpose}
-                        onChange={(e) => setRemitPurpose(e.target.value as RemitPurpose)}
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      >
-                        {REMITTANCE_PURPOSES.map((p: { id: RemitPurpose; label: string }) => (
-                          <option key={p.id} value={p.id}>
-                            {p.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Claiming Reference Code (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={remitRef}
-                        onChange={(e) => setRemitRef(e.target.value)}
-                        placeholder="e.g. PAL-901248-X"
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={remitAutoDeduct}
-                        onChange={(e) => setRemitAutoDeduct(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#B03C09] cursor-pointer"
-                      />
-                      <span className="text-xs font-semibold text-[#15120F] dark:text-[#F6EFE8]">
-                        Deduct amount + fee from wallet balance &amp; post transaction
+                {/* Live Parsed Output & Grand Total */}
+                <div className="bg-white dark:bg-[#201914] border border-[#EFE2D5] dark:border-[#332A22] rounded-2xl p-4 shadow-xs space-y-3.5 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-[#EFE2D5] dark:border-[#332A22] pb-2.5">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8]">
+                        Auto-Computed Breakdown
+                      </h4>
+                      <span className="text-[11px] font-bold text-[#7A6E63] bg-[#FFEEDF] dark:bg-[#2B211A] px-2 py-0.5 rounded-lg text-[#B03C09] dark:text-[#FF9A52]">
+                        {parsedNotes.items.length} items
                       </span>
-                    </label>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowAddRemittance(false)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#6B6156] dark:text-[#AC9E92] hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] cursor-pointer shadow-xs"
-                      >
-                        Save &amp; Post to Ledger
-                      </button>
                     </div>
-                  </div>
-                </form>
-              )}
 
-              {/* Remittance Records List */}
-              <div className="space-y-2.5">
-                {remittances.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-[#6B6156] dark:text-[#AC9E92]">
-                    No remittance entries logged yet.
-                  </div>
-                ) : (
-                  remittances.map((r) => (
-                    <div
-                      key={r.id}
-                      className="p-3.5 rounded-2xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] flex items-center justify-between gap-3 shadow-xs hover:border-[#B03C09]/40 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#FFEEDF] dark:bg-[#14100D] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52] font-bold text-xs">
-                          {r.channel === 'palawan_express'
-                            ? 'PE'
-                            : r.channel === 'cebuana_lhuillier'
-                            ? 'CL'
-                            : r.channel === 'gcash_padala'
-                            ? 'GC'
-                            : 'PD'}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                              {r.recipientName}
-                            </span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-[#FFEEDF]/60 dark:bg-[#14100D] text-[#6B6156] dark:text-[#AC9E92]">
-                              {r.provinceCity}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-[#6B6156] dark:text-[#AC9E92] flex items-center gap-1.5 mt-0.5">
-                            <span>{r.channel.replace(/_/g, ' ').toUpperCase()}</span>
-                            <span>•</span>
-                            <span>Ref: {r.referenceNumber || 'N/A'}</span>
-                            <span>•</span>
-                            <span>Fee: ₱{r.fee}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className="text-xs font-extrabold text-[#B03C09] dark:text-[#FF9A52]">
-                            -₱{r.amount.toLocaleString()}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateRemittance(r.id, {
-                                status: r.status === 'claimed' ? 'sent' : 'claimed',
-                              })
-                            }
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 cursor-pointer transition-all ${
-                              r.status === 'claimed'
-                                ? 'bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E]'
-                                : 'bg-[#FFF3D6] text-[#8C5800] dark:bg-[#3D2C0D] dark:text-[#FFD166]'
-                            }`}
-                          >
-                            {r.status === 'claimed' ? (
-                              <>
-                                <CheckCircle2 size={10} />
-                                <span>Claimed</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock size={10} />
-                                <span>Sent / In Transit</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteRemittance(r.id)}
-                          className="p-1.5 text-[#6B6156] dark:text-[#AC9E92] hover:text-[#D83A52] cursor-pointer"
+                    <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar pr-1">
+                      {parsedNotes.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] rounded-xl text-xs font-mono shadow-xs"
                         >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                          <span className="text-[#15120F] dark:text-[#F6EFE8] font-bold truncate mr-2">
+                            {item.label} {item.expr ? <span className="text-[#7A6E63] font-normal">({item.expr})</span> : ''}
+                          </span>
+                          <span className="font-black text-[#B03C09] dark:text-[#FF9A52] shrink-0">
+                            {item.isValid ? formatPeso(item.value) : '—'}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                )}
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#B03C09] to-[#D45016] text-white shadow-md flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-90 block">Grand Total Sum</span>
+                      <span className="text-xl font-black font-mono">
+                        {formatPeso(parsedNotes.grandTotal)}
+                      </span>
+                    </div>
+                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                      <Calculator size={18} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: 13TH-MONTH PAY PLANNER */}
-          {activeTab === '13th_month' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-[#FFEEDF]/40 dark:bg-[#14100D]/50 border border-[#F3DFCD] dark:border-[#383029] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Gift size={16} className="text-[#B03C09] dark:text-[#FF9A52]" />
-                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                      TRAIN Law 13th-Month Bonus Computation
-                    </span>
+          {/* TAB 2: MONEY MINDSET (Impulse Buyer Pause) */}
+          {activeTab === 'mindset' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="bg-white dark:bg-[#201914] border border-[#EFE2D5] dark:border-[#332A22] rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFEEDF] to-[#FCE2CE] dark:from-[#2B211A] dark:to-[#382B21] border border-[#F3DFCD] dark:border-[#423328] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52] shrink-0 shadow-xs">
+                    <Zap size={22} />
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-[#27201A] text-[#16643F] dark:text-[#5FCB8E] border border-[#F3DFCD] dark:border-[#383029]">
-                    ₱90,000 Tax-Free Threshold
-                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-[#15120F] dark:text-[#F6EFE8]">
+                      Impulse Buyer Decision Helper
+                    </h3>
+                    <p className="text-xs text-[#7A6E63] dark:text-[#A89A8D]">
+                      Pause before checkout and calculate the true work hours cost of your purchase.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                      Basic Monthly Salary (₱)
+                    <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                      What are you eyeing to buy?
                     </label>
                     <input
-                      type="number"
-                      value={salaryInput}
-                      onChange={(e) => setSalaryInput(e.target.value)}
-                      onBlur={handleUpdate13thMonth}
-                      className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-extrabold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                      type="text"
+                      value={itemName}
+                      onChange={(e) => setItemName(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                      Months Worked This Calendar Year
+                    <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                      Item Price (₱)
                     </label>
                     <input
                       type="number"
-                      min="1"
-                      max="12"
-                      value={monthsWorkedInput}
-                      onChange={(e) => setMonthsWorkedInput(e.target.value)}
-                      onBlur={handleUpdate13thMonth}
-                      className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                      value={itemPrice}
+                      onChange={(e) => setItemPrice(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
                     />
                   </div>
                 </div>
 
-                {/* KPI Breakdown */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#F3DFCD]/80 dark:border-[#383029]/80 text-center">
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                    <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
-                      Gross Bonus
-                    </div>
-                    <div className="text-xs font-extrabold text-[#15120F] dark:text-[#F6EFE8]">
-                      ₱{thirteenthMonthPlan.calculatedGrossAmount.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                    <div className="text-[10px] text-[#16643F] dark:text-[#5FCB8E]">
-                      Tax-Exempt (TRAIN)
-                    </div>
-                    <div className="text-xs font-extrabold text-[#16643F] dark:text-[#5FCB8E]">
-                      ₱{thirteenthMonthPlan.taxExemptAmount.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                    <div className="text-[10px] text-[#B03C09] dark:text-[#FF9A52]">
-                      Net Take-Home
-                    </div>
-                    <div className="text-xs font-extrabold text-[#B03C09] dark:text-[#FF9A52]">
-                      ₱{thirteenthMonthPlan.net13thMonthPay.toLocaleString()}
-                    </div>
+                <div>
+                  <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                    Your Approximate Monthly Income (₱)
+                  </label>
+                  <input
+                    type="number"
+                    value={monthlyIncome}
+                    onChange={(e) => setMonthlyIncome(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                  />
+                  <div className="mt-2 p-3 rounded-xl bg-[#FFEEDF]/60 dark:bg-[#271E17] border border-[#F3DFCD] dark:border-[#382D24] text-xs font-bold text-[#B03C09] dark:text-[#FF9A52]">
+                    💡 True Work Cost: {hoursOfWork} hours of work based on your monthly income!
                   </div>
                 </div>
 
-                {/* Direct Ledger & Payday Action Bar */}
-                {bonusActionNotice && (
-                  <div className="p-2.5 rounded-xl bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E] text-xs font-bold animate-in fade-in">
-                    {bonusActionNotice}
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-[#F3DFCD]/80 dark:border-[#383029]/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">Target Account:</span>
-                    <select
-                      value={bonusTargetAccountId}
-                      onChange={(e) => setBonusTargetAccountId(e.target.value)}
-                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8]"
-                    >
-                      {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleLog13thMonthToLedger}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-[#16643F] dark:bg-[#5FCB8E] text-white dark:text-[#0C2B1B] text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs"
-                    >
-                      Post ₱{thirteenthMonthPlan.net13thMonthPay.toLocaleString()} Income
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSync13thMonthToPayday}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#B03C09] dark:text-[#FF9A52] text-xs font-bold hover:bg-[#FFEEDF]/30 transition-all cursor-pointer"
-                    >
-                      Sync to Payday
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bonus Allocations Planner */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                    13th-Month Allocation Strategy
+                {/* Reflection Quiz */}
+                <div className="pt-3 border-t border-[#EFE2D5] dark:border-[#332A22] space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8]">
+                    Quick Mindset Reflection Quiz:
                   </h4>
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex justify-between items-center bg-[#FFFDF9] dark:bg-[#14100D] p-3 rounded-xl border border-[#EFE2D5] dark:border-[#332A22]">
+                      <span className="text-[#7A6E63] dark:text-[#A89A8D] font-medium">Is this a strict necessity or a want?</span>
+                      <select
+                        value={mindsetAnswers.needOrWant}
+                        onChange={(e) => setMindsetAnswers({ ...mindsetAnswers, needOrWant: e.target.value })}
+                        className="bg-transparent font-extrabold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none cursor-pointer"
+                      >
+                        <option value="want">Just a Want</option>
+                        <option value="need">True Need</option>
+                      </select>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-[#FFFDF9] dark:bg-[#14100D] p-3 rounded-xl border border-[#EFE2D5] dark:border-[#332A22]">
+                      <span className="text-[#7A6E63] dark:text-[#A89A8D] font-medium">How often will you use it?</span>
+                      <select
+                        value={mindsetAnswers.useFrequency}
+                        onChange={(e) => setMindsetAnswers({ ...mindsetAnswers, useFrequency: e.target.value })}
+                        className="bg-transparent font-extrabold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none cursor-pointer"
+                      >
+                        <option value="rarely">Rarely / Once</option>
+                        <option value="weekly">Once a Week</option>
+                        <option value="daily">Every Single Day</option>
+                      </select>
+                    </div>
+
+                    <div className="flex justify-between items-center bg-[#FFFDF9] dark:bg-[#14100D] p-3 rounded-xl border border-[#EFE2D5] dark:border-[#332A22]">
+                      <span className="text-[#7A6E63] dark:text-[#A89A8D] font-medium">Can you find a cheaper alternative?</span>
+                      <select
+                        value={mindsetAnswers.cheaperAlternative}
+                        onChange={(e) => setMindsetAnswers({ ...mindsetAnswers, cheaperAlternative: e.target.value })}
+                        className="bg-transparent font-extrabold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none cursor-pointer"
+                      >
+                        <option value="yes">Yes, easily</option>
+                        <option value="no">No, this is the best value</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={handleExecute13thAllocations}
-                    className="text-[11px] font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+                    onClick={handleEvaluateMindset}
+                    className="w-full py-3 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] text-xs font-black uppercase tracking-wider cursor-pointer hover:opacity-95 transition-all shadow-md"
                   >
-                    Execute Allocations into Ledger →
+                    Evaluate Purchase Verdict
                   </button>
-                </div>
 
-                <div className="space-y-2">
-                  {thirteenthMonthPlan.allocations.map((alloc) => (
-                    <div
-                      key={alloc.id}
-                      className="p-3 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] flex items-center justify-between gap-3"
-                    >
-                      <div>
-                        <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                          {alloc.name}
-                        </div>
-                        <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
-                          {alloc.note || alloc.category}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-[#6B6156]">₱</span>
-                        <input
-                          type="number"
-                          step="100"
-                          value={alloc.targetAmount}
-                          onChange={(e) =>
-                            handleAllocationChange(alloc.id, parseFloat(e.target.value) || 0)
-                          }
-                          className="w-24 px-2 py-1 text-right text-xs font-bold rounded-lg bg-[#FFEEDF]/50 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                        />
-                      </div>
+                  {mindsetVerdict && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-[#FFEEDF] to-[#FCE2CE] dark:from-[#2B211A] dark:to-[#382B21] border border-[#F3DFCD] dark:border-[#423328] text-xs font-extrabold text-[#15120F] dark:text-[#F6EFE8] animate-fade-in shadow-xs">
+                      {mindsetVerdict}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: AMBAGAN SA BAHAY */}
-          {activeTab === 'household' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029]">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                      {householdAmbag.name}
-                    </h3>
-                    <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-                      Target: ₱{householdAmbag.totalMonthlyExpenseTarget.toLocaleString()} for {householdAmbag.cycleMonth}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-[#6B6156] dark:text-[#AC9E92]">
-                      Collected So Far
-                    </span>
-                    <div className="text-sm font-extrabold text-[#16643F] dark:text-[#5FCB8E]">
-                      ₱{householdAmbag.totalCollectedThisMonth.toLocaleString()}
-                    </div>
-                  </div>
+          {/* TAB 3: EARN YOUR TREATS (Healthy Habit & Task Pairing) */}
+          {activeTab === 'treats' && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Rule Explainer Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FFEEDF] to-[#FCE2CE] dark:from-[#271E17] dark:to-[#1E1712] border border-[#F3DFCD] dark:border-[#382D24] shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-[#B03C09] dark:text-[#FF9A52] font-black text-xs">
+                  <ShieldCheck size={17} /> Earn Your Treats (Habit & Task Pairing Rule)
                 </div>
+                <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC] leading-relaxed">
+                  Pair a small treat with a healthy habit or important task. <strong>Complete the healthy task first</strong> (e.g. walking, budgeting, working out), check it off, and your reward treat is officially unlocked and earned!
+                </p>
+              </div>
 
-                {/* Progress Bar */}
-                <div className="w-full bg-[#FFEEDF] dark:bg-[#14100D] h-2.5 rounded-full overflow-hidden mb-4">
-                  <div
-                    className="bg-[#16643F] dark:bg-[#5FCB8E] h-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        householdAmbag.totalMonthlyExpenseTarget > 0
-                          ? (householdAmbag.totalCollectedThisMonth /
-                              householdAmbag.totalMonthlyExpenseTarget) *
-                              100
-                          : 0
-                      )}%`,
-                    }}
-                  />
-                </div>
+              <div className="flex items-center justify-between pt-1">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8]">
+                  Treat & Habit Pairs ({treatsList.length})
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddTreat(!showAddTreat)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#160D05] text-xs font-bold cursor-pointer hover:opacity-90 transition-all shadow-xs"
+                >
+                  <Plus size={15} />
+                  <span>Add Treat Pair</span>
+                </button>
+              </div>
 
-                {/* Members contribution list */}
-                <div className="space-y-2">
-                  {householdAmbag.members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="p-3 rounded-xl bg-[#FFEEDF]/30 dark:bg-[#14100D]/40 border border-[#F3DFCD]/80 dark:border-[#383029]/80 flex items-center justify-between gap-3"
+              {showAddTreat && (
+                <form onSubmit={handleAddTreat} className="bg-white dark:bg-[#201914] border border-[#EFE2D5] dark:border-[#332A22] rounded-2xl p-4 shadow-md space-y-3 animate-fade-in">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8]">Create New Treat & Habit Pair</h4>
+                  <div className="space-y-2.5">
+                    <input
+                      type="text"
+                      value={newTreatName}
+                      onChange={(e) => setNewTreatName(e.target.value)}
+                      placeholder="Treat / Reward Name (e.g. Iced Latte)..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                    />
+                    <input
+                      type="text"
+                      value={newHealthyTask}
+                      onChange={(e) => setNewHealthyTask(e.target.value)}
+                      placeholder="Paired Healthy Task / Habit (e.g. Walk 5,000 steps)..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                    />
+                    <input
+                      type="number"
+                      value={newTreatCost}
+                      onChange={(e) => setNewTreatCost(e.target.value)}
+                      placeholder="Estimated Cost in PHP (e.g. 180)..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddTreat(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-[#7A6E63] hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                     >
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                            {member.name}
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-white dark:bg-[#27201A] font-semibold text-[#6B6156]">
-                            {member.relation}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[#6B6156] dark:text-[#AC9E92] mt-0.5">
-                          Target: ₱{member.monthlyExpectedAmbag.toLocaleString()} · Paid: ₱{member.actualPaidThisMonth.toLocaleString()}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {member.isSettled ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E] flex items-center gap-1">
-                            <CheckCircle2 size={12} />
-                            <span>Paid</span>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const remaining = member.monthlyExpectedAmbag - member.actualPaidThisMonth;
-                              recordHouseholdAmbagPayment(member.id, remaining);
-                              if (member.name === 'Ako (Self)') {
-                                addTransaction({
-                                  type: 'expense',
-                                  amount: remaining,
-                                  accountId: accounts[0]?.id || 'acc-cash',
-                                  category: 'Bills & Utilities',
-                                  note: `Ambagan sa Bahay: ${member.name} contribution`,
-                                  date: new Date().toISOString().split('T')[0],
-                                  tags: ['ambagan', 'household'],
-                                });
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] hover:opacity-90 transition-all cursor-pointer shadow-xs"
-                          >
-                            Mark Paid
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: PAYDAY DISTRIBUTION ROUTINES */}
-          {activeTab === 'payday_routine' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                    Sweldo Cutoff Automation Templates
-                  </h3>
-                  <p className="text-xs text-[#6B6156] dark:text-[#AC9E92]">
-                    Distribute your 15th/30th quincena salary to bills, MP2/savings, and guilt-free spend with 1 tap
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">Payroll Account:</span>
-                  <select
-                    value={selectedRoutineAccountId}
-                    onChange={(e) => setSelectedRoutineAccountId(e.target.value)}
-                    className="px-2.5 py-1 text-xs font-bold rounded-lg bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8]"
-                  >
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {routineAppliedNotice && (
-                <div className="p-3 rounded-xl bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E] text-xs font-bold animate-in fade-in">
-                  {routineAppliedNotice}
-                </div>
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 rounded-xl bg-[#B03C09] text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-xs"
+                    >
+                      Save Pair
+                    </button>
+                  </div>
+                </form>
               )}
 
+              {/* Treats & Habits Cards List */}
               <div className="space-y-3">
-                {paydayTemplates.map((template) => (
+                {treatsList.map((treat) => (
                   <div
-                    key={template.id}
-                    className="p-4 rounded-2xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] space-y-3 shadow-xs"
+                    key={treat.id}
+                    className={`bg-white dark:bg-[#201914] border rounded-2xl p-4 shadow-xs space-y-3 transition-all ${
+                      treat.isClaimed
+                        ? 'border-emerald-500/50 bg-emerald-500/5'
+                        : treat.isTaskDone
+                        ? 'border-[#B03C09]/50 dark:border-[#FF9A52]/50 shadow-sm'
+                        : 'border-[#EFE2D5] dark:border-[#332A22]'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                          {template.name}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
+                          treat.isClaimed ? 'bg-emerald-500/15 text-emerald-600' : 'bg-gradient-to-br from-[#FFEEDF] to-[#FCE2CE] dark:from-[#2B211A] dark:to-[#382B21] text-[#B03C09] dark:text-[#FF9A52]'
+                        }`}>
+                          <Coffee size={20} />
                         </div>
-                        <div className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
-                          Base Sweldo: ₱{template.baseSalary.toLocaleString()} · {template.cutoff} cutoff
+                        <div className="space-y-1">
+                          <h4 className="text-xs sm:text-sm font-black text-[#15120F] dark:text-[#F6EFE8] flex items-center gap-2 flex-wrap">
+                            {treat.treatName}
+                            <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded-lg bg-[#FFEEDF] dark:bg-[#2B211A] text-[#B03C09] dark:text-[#FF9A52]">
+                              {formatPeso(treat.cost)}
+                            </span>
+                          </h4>
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#7A6E63] dark:text-[#A89A8D]">
+                            <ListTodo size={14} className="text-[#B03C09] dark:text-[#FF9A52] shrink-0" />
+                            <span>Task: <strong className="text-[#15120F] dark:text-[#F6EFE8]">{treat.healthyTask}</strong></span>
+                          </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleExecuteRoutine(template.id, template.name)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] hover:opacity-90 transition-all cursor-pointer shadow-xs"
-                      >
-                        Apply on Payday
-                      </button>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setTreatsList(treatsList.filter((t) => t.id !== treat.id))}
+                          className="p-1.5 text-rose-500 hover:opacity-80 cursor-pointer"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60">
-                      {template.items.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2 rounded-lg bg-[#FFEEDF]/30 dark:bg-[#14100D]/40 text-xs"
+                    {/* Task Completion & Claim Action Bar */}
+                    <div className="pt-3 border-t border-[#EFE2D5] dark:border-[#332A22] flex items-center justify-between gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => toggleTaskDone(treat.id)}
+                        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                          treat.isTaskDone
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                            : 'bg-black/5 dark:bg-white/5 text-[#7A6E63] dark:text-[#A89A8D] hover:bg-black/10'
+                        }`}
+                      >
+                        <CheckCircle2 size={16} className={treat.isTaskDone ? 'text-emerald-600' : ''} />
+                        <span>{treat.isTaskDone ? 'Healthy Task Completed ✓' : 'Mark Task as Done'}</span>
+                      </button>
+
+                      {!treat.isClaimed && treat.isTaskDone && (
+                        <button
+                          type="button"
+                          onClick={() => claimTreatReward(treat.id)}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-wider hover:bg-emerald-700 cursor-pointer animate-bounce shadow-md"
                         >
-                          <span className="font-semibold text-[#5A5148] dark:text-[#C6B8AC]">
-                            {item.name}
-                          </span>
-                          <span className="font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                            ₱{item.amount.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
+                          Claim Reward! 🎉
+                        </button>
+                      )}
+
+                      {treat.isClaimed && (
+                        <span className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black tracking-wide">
+                          Reward Claimed! 🌟
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -878,198 +692,116 @@ export const PhilippineFeaturesModal: React.FC<PhilippineFeaturesModalProps> = (
             </div>
           )}
 
-          {/* TAB 5: UNIFIED TRAIN TAX & TAKE-HOME ENGINE */}
-          {activeTab === 'freelance_tax' && (
-            <div className="space-y-4">
-              {/* Type Switcher */}
-              <div className="flex rounded-xl bg-[#FFEEDF]/60 dark:bg-[#14100D] p-1 border border-[#F3DFCD] dark:border-[#383029]">
-                <button
-                  type="button"
-                  onClick={() => setTaxMode('employed')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    taxMode === 'employed'
-                      ? 'bg-white dark:bg-[#27201A] text-[#B03C09] dark:text-[#FF9A52] shadow-xs'
-                      : 'text-[#6B6156] dark:text-[#AC9E92]'
-                  }`}
-                >
-                  <Building2 size={13} />
-                  <span>Employed (TRAIN Law &amp; Deductions)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaxMode('freelance')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    taxMode === 'freelance'
-                      ? 'bg-white dark:bg-[#27201A] text-[#B03C09] dark:text-[#FF9A52] shadow-xs'
-                      : 'text-[#6B6156] dark:text-[#AC9E92]'
-                  }`}
-                >
-                  <Briefcase size={13} />
-                  <span>Freelancer &amp; 8% Flat GIT</span>
-                </button>
-              </div>
-
-              {taxSyncNotice && (
-                <div className="p-3 rounded-xl bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E] text-xs font-bold animate-in fade-in">
-                  {taxSyncNotice}
+          {/* TAB 4: FOREIGN EXCHANGE CONVERTER */}
+          {activeTab === 'fx' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="bg-white dark:bg-[#201914] border border-[#EFE2D5] dark:border-[#332A22] rounded-2xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFEEDF] to-[#FCE2CE] dark:from-[#2B211A] dark:to-[#382B21] border border-[#F3DFCD] dark:border-[#423328] flex items-center justify-center text-[#B03C09] dark:text-[#FF9A52] shrink-0 shadow-xs">
+                      <Globe size={22} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-[#15120F] dark:text-[#F6EFE8]">
+                        Live Foreign Exchange Converter
+                      </h3>
+                      <p className="text-xs text-[#7A6E63] dark:text-[#A89A8D]">
+                        {fxApiStatus}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchLiveFxRates}
+                    disabled={isLoadingFx}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FFEEDF] dark:bg-[#2B211A] text-[#B03C09] dark:text-[#FF9A52] text-xs font-bold hover:opacity-85 cursor-pointer transition-opacity shadow-xs"
+                    title="Refresh FX Rates"
+                  >
+                    <RefreshCw size={14} className={isLoadingFx ? 'animate-spin' : ''} />
+                    <span>Refresh Rates</span>
+                  </button>
                 </div>
-              )}
 
-              {taxMode === 'employed' ? (
-                <div className="p-4 rounded-2xl bg-[#FFEEDF]/40 dark:bg-[#14100D]/50 border border-[#F3DFCD] dark:border-[#383029] space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                      Monthly Basic Gross Salary (₱)
+                    <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                      Amount
                     </label>
                     <input
                       type="number"
-                      value={taxMonthlySalary}
-                      onChange={(e) => setTaxMonthlySalary(e.target.value)}
-                      className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                      value={fxAmount}
+                      onChange={(e) => setFxAmount(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-sm font-black text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
                     />
                   </div>
 
-                  {/* Deductions Breakdown */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#F3DFCD]/80 dark:border-[#383029]/80 text-center">
-                    <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                      <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">SSS Employee</div>
-                      <div className="text-xs font-extrabold text-[#D83A52]">₱{employeeTaxRes.sss.toLocaleString()}</div>
-                    </div>
-                    <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                      <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">PhilHealth (2.5%)</div>
-                      <div className="text-xs font-extrabold text-[#D83A52]">₱{employeeTaxRes.philhealth.toLocaleString()}</div>
-                    </div>
-                    <div className="p-2 rounded-xl bg-white dark:bg-[#27201A]">
-                      <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">Pag-IBIG Fund</div>
-                      <div className="text-xs font-extrabold text-[#D83A52]">₱{employeeTaxRes.pagibig.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {/* Tax & Net */}
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#27201A]">
-                      <div className="text-[10px] text-[#6B6156]">BIR Withholding Tax</div>
-                      <div className="text-xs font-bold text-[#D83A52]">₱{employeeTaxRes.withholdingTax.toLocaleString()}</div>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#27201A]">
-                      <div className="text-[10px] text-[#16643F] dark:text-[#5FCB8E]">Monthly Net Take-Home</div>
-                      <div className="text-xs font-extrabold text-[#16643F] dark:text-[#5FCB8E]">₱{employeeTaxRes.netTakeHome.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSyncTaxToPayday(employeeTaxRes.netTakeHome)}
-                    className="w-full py-2 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                  >
-                    <Check size={14} />
-                    <span>Sync Net Pay (₱{employeeTaxRes.semiMonthlyTakeHome.toLocaleString()}/quincena) to Payday</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-[#FFEEDF]/40 dark:bg-[#14100D]/50 border border-[#F3DFCD] dark:border-[#383029] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                      Freelancer / Self-Employed BIR Form 1701Q Evaluator
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-[#27201A] text-[#B03C09] dark:text-[#FF9A52]">
-                      TRAIN Law 8% Flat vs Graduated
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Annual Gross Professional Income (₱)
+                      <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                        From
                       </label>
-                      <input
-                        type="number"
-                        value={grossIncomeInput}
-                        onChange={(e) => setGrossIncomeInput(e.target.value)}
-                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
-                      />
+                      <select
+                        value={fromCurrency}
+                        onChange={(e) => setFromCurrency(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none cursor-pointer"
+                      >
+                        {Object.keys(fxRates).map((curr) => (
+                          <option key={curr} value={curr}>{curr}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-[#5A5148] dark:text-[#C6B8AC]">
-                        Tax Scheme Selection
+                      <label className="text-xs font-bold text-[#7A6E63] dark:text-[#A89A8D] block mb-1.5">
+                        To
                       </label>
-                      <div className="flex gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => setTaxOption('8_percent_git')}
-                          className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                            taxOption === '8_percent_git'
-                              ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] border-transparent'
-                              : 'bg-white dark:bg-[#27201A] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029]'
-                          }`}
-                        >
-                          8% Flat GIT
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTaxOption('graduated_rates')}
-                          className={`flex-1 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                            taxOption === 'graduated_rates'
-                              ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] border-transparent'
-                              : 'bg-white dark:bg-[#27201A] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029]'
-                          }`}
-                        >
-                          Graduated Rates
-                        </button>
-                      </div>
+                      <select
+                        value={toCurrency}
+                        onChange={(e) => setToCurrency(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl bg-[#FFFDF9] dark:bg-[#14100D] border border-[#EFE2D5] dark:border-[#332A22] text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] focus:outline-none cursor-pointer"
+                      >
+                        {Object.keys(fxRates).map((curr) => (
+                          <option key={curr} value={curr}>{curr}</option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
-
-                  {/* Recommendation Box */}
-                  <div className="p-3 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8]">
-                        Tax Analysis Summary
-                      </span>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E1F5EA] text-[#16643F] dark:bg-[#123824] dark:text-[#5FCB8E]">
-                        Effective Tax Rate: {freelanceTaxRes.effectiveTaxRate.toFixed(1)}%
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#5A5148] dark:text-[#C6B8AC]">
-                      {taxOption === '8_percent_git'
-                        ? '8% Flat Gross Income Tax with PHP 250,000 standard deduction simplifies accounting without needing itemized receipt deductions.'
-                        : 'Graduated tax rates under TRAIN Law calculate tax by income tiers up to 35%.'}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#F3DFCD]/60 dark:border-[#383029]/60 text-center">
-                      <div className="p-2 rounded-lg bg-[#FFEEDF]/30 dark:bg-[#14100D]/30">
-                        <div className="text-[10px] text-[#6B6156]">Estimated Annual Tax Due</div>
-                        <div className="text-xs font-bold text-[#D83A52]">
-                          ₱{freelanceTaxRes.estimatedTaxDue.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="p-2 rounded-lg bg-[#FFEEDF]/30 dark:bg-[#14100D]/30">
-                        <div className="text-[10px] text-[#6B6156]">Monthly Tax Provision</div>
-                        <div className="text-xs font-bold text-[#16643F] dark:text-[#5FCB8E]">
-                          ₱{Math.round(freelanceTaxRes.monthlyTaxProvision).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const monthlyNet = ((parseFloat(grossIncomeInput) || 0) - freelanceTaxRes.estimatedTaxDue) / 12;
-                        handleSyncTaxToPayday(monthlyNet);
-                      }}
-                      className="w-full mt-2 py-2 rounded-xl bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                    >
-                      <Check size={14} />
-                      <span>Sync Net Freelance Income to Payday</span>
-                    </button>
                   </div>
                 </div>
-              )}
+
+                {/* Conversion Result Box */}
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-[#B03C09] to-[#D45016] text-white shadow-md flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-90 block">
+                      Converted Total
+                    </span>
+                    <span className="text-xl sm:text-2xl font-black font-mono">
+                      {toCurrency === 'PHP' ? formatPeso(convertedAmount) : `${toCurrency} ${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    </span>
+                  </div>
+                  <div className="text-right text-xs font-semibold opacity-90">
+                    1 {fromCurrency} = <br/>
+                    <span className="font-mono font-bold">
+                      {((fxRates[toCurrency] || 1) / (fxRates[fromCurrency] || 1)).toFixed(4)} {toCurrency}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
         </div>
+
+        {/* Elite Modal Footer */}
+        <div className="px-5 py-3.5 border-t border-[#EFE2D5] dark:border-[#332A22] bg-white/60 dark:bg-[#201914]/60 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-xl bg-[#15120F] dark:bg-[#F6EFE8] text-white dark:text-[#15120F] text-xs font-black uppercase tracking-wider cursor-pointer hover:opacity-90 transition-all shadow-sm"
+          >
+            Close Toolkit
+          </button>
+        </div>
+
       </div>
     </div>
   );
 };
-

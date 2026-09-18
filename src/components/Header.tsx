@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             id="header-open-ph-suite-btn"
             onClick={onOpenPhilippineSuite}
-            title="Philippine Financial Tools (Padala, 13th-Month, Ambag, Sweldo)"
+            title="Philippine Financial Toolkit (Calculator, Money Mindset, Earn Treats, FX Converter)"
             className="p-2 rounded-full transition-colors bg-white dark:bg-[#27201A] text-[#B03C09] dark:text-[#FF9A52] hover:bg-[#FFEEDF]/50 dark:hover:bg-[#383029] border border-[#F3DFCD] dark:border-[#383029] shadow-xs cursor-pointer"
             aria-label="Open Philippine Financial Suite"
           >
