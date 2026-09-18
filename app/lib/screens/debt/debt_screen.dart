@@ -11,6 +11,7 @@ import '../../features/info/info_sheet.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'debt_calculators.dart';
+import 'installments_view.dart';
 
 /// The debt register, both ways, from src/components/DebtScreen.tsx.
 ///
@@ -33,9 +34,8 @@ class DebtScreen extends StatefulWidget {
   State<DebtScreen> createState() => _DebtScreenState();
 }
 
-/// The prototype's two main sections. Its third, Installments, is a later
-/// batch and is not offered here rather than being offered and empty.
-enum _Section { debts, calculators }
+/// The prototype's three main sections, all present.
+enum _Section { debts, installments, calculators }
 
 class _DebtScreenState extends State<DebtScreen> {
   DebtDirection _direction = DebtDirection.iOwe;
@@ -70,9 +70,18 @@ class _DebtScreenState extends State<DebtScreen> {
               Expanded(
                 child: _Tab(
                   palette: p,
-                  label: 'What is owed',
+                  label: 'Owed',
                   selected: _section == _Section.debts,
                   onTap: () => setState(() => _section = _Section.debts),
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: _Tab(
+                  palette: p,
+                  label: 'Plans',
+                  selected: _section == _Section.installments,
+                  onTap: () => setState(() => _section = _Section.installments),
                 ),
               ),
               const SizedBox(width: Spacing.sm),
@@ -95,50 +104,52 @@ class _DebtScreenState extends State<DebtScreen> {
               Spacing.lg,
               Spacing.xl,
             ),
-            children: _section == _Section.calculators
-                ? <Widget>[DebtCalculators(palette: p)]
-                : <Widget>[
-                    _Beam(palette: p, debts: debts),
-                    const SizedBox(height: Spacing.md),
-                    _DirectionPicker(
+            children: switch (_section) {
+              _Section.calculators => <Widget>[DebtCalculators(palette: p)],
+              _Section.installments => <Widget>[
+                InstallmentsView(state: widget.state),
+              ],
+              _Section.debts => <Widget>[
+                _Beam(palette: p, debts: debts),
+                const SizedBox(height: Spacing.md),
+                _DirectionPicker(
+                  palette: p,
+                  current: _direction,
+                  owe: outstanding(debts, DebtDirection.iOwe),
+                  owed: outstanding(debts, DebtDirection.owedToMe),
+                  onSelect: (DebtDirection d) => setState(() => _direction = d),
+                ),
+                const SizedBox(height: Spacing.lg),
+                if (split.open.isEmpty && split.settled.isEmpty)
+                  _Empty(palette: p, direction: _direction)
+                else ...<Widget>[
+                  for (final Debt d in split.open) ...<Widget>[
+                    _DebtCard(
                       palette: p,
-                      current: _direction,
-                      owe: outstanding(debts, DebtDirection.iOwe),
-                      owed: outstanding(debts, DebtDirection.owedToMe),
-                      onSelect: (DebtDirection d) =>
-                          setState(() => _direction = d),
+                      debt: d,
+                      onPay: () => _openPayment(context, p, d),
+                      onSettle: () => widget.state.toggleDebtSettledById(d.id),
                     ),
-                    const SizedBox(height: Spacing.lg),
-                    if (split.open.isEmpty && split.settled.isEmpty)
-                      _Empty(palette: p, direction: _direction)
-                    else ...<Widget>[
-                      for (final Debt d in split.open) ...<Widget>[
-                        _DebtCard(
-                          palette: p,
-                          debt: d,
-                          onPay: () => _openPayment(context, p, d),
-                          onSettle: () =>
-                              widget.state.toggleDebtSettledById(d.id),
-                        ),
-                        const SizedBox(height: Spacing.sm),
-                      ],
-                      if (split.settled.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: Spacing.sm),
-                        Text('CLEARED', style: AppType.kicker(p)),
-                        const SizedBox(height: Spacing.sm),
-                        for (final Debt d in split.settled) ...<Widget>[
-                          _DebtCard(
-                            palette: p,
-                            debt: d,
-                            onPay: null,
-                            onSettle: () =>
-                                widget.state.toggleDebtSettledById(d.id),
-                          ),
-                          const SizedBox(height: Spacing.sm),
-                        ],
-                      ],
+                    const SizedBox(height: Spacing.sm),
+                  ],
+                  if (split.settled.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: Spacing.sm),
+                    Text('CLEARED', style: AppType.kicker(p)),
+                    const SizedBox(height: Spacing.sm),
+                    for (final Debt d in split.settled) ...<Widget>[
+                      _DebtCard(
+                        palette: p,
+                        debt: d,
+                        onPay: null,
+                        onSettle: () =>
+                            widget.state.toggleDebtSettledById(d.id),
+                      ),
+                      const SizedBox(height: Spacing.sm),
                     ],
                   ],
+                ],
+              ],
+            },
           ),
         ),
       ],

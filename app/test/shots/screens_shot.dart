@@ -20,7 +20,9 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/features/debt/installment_sheet.dart';
 import 'package:salapify/screens/debt/debt_calculators.dart';
+import 'package:salapify/screens/debt/installments_view.dart';
 import 'package:salapify/screens/debt/debt_screen.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
@@ -1061,6 +1063,111 @@ void main() {
       await expectLater(
         find.byType(DebtScreen),
         matchesGoldenFile('out/calculator_${calc.slug}.png'),
+      );
+    });
+  }
+
+  // The instalment plans, at both brightnesses, and the two sheets.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('installments renders in $theme', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 5200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byType(DebtBeamCard),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DebtBeamCard),
+          matching: find.text('See all'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InstallmentsView), findsOneWidget);
+
+      await expectLater(
+        find.byType(DebtScreen),
+        matchesGoldenFile('out/installments_$theme.png'),
+      );
+    });
+  }
+
+  for (final ({bool extra, String slug}) shape in <({bool extra, String slug})>[
+    (extra: false, slug: 'scheduled'),
+    (extra: true, slug: 'extra'),
+  ]) {
+    testWidgets('sheet installment ${shape.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      InstallmentSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+        plan: state.installments.first,
+        extra: shape.extra,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.extra) {
+        await tester.enterText(find.byType(TextField).first, '5000');
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('GCash Wallet'));
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_installment_${shape.slug}.png'),
       );
     });
   }

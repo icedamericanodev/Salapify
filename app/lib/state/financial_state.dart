@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/seed_data.dart';
 import '../design/tokens.dart';
 import '../core/money/debt.dart';
+import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
 import '../core/money/plan.dart';
 import '../core/money/safe_to_spend.dart';
@@ -20,6 +21,7 @@ class FinancialState extends ChangeNotifier {
     _budgets = List<Budget>.of(SeedData.budgets);
     _goals = List<Goal>.of(SeedData.goals);
     _incomeStreams = List<IncomeStream>.of(SeedData.incomeStreams);
+    _installments = List<InstallmentPlan>.of(SeedData.installments);
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -37,6 +39,9 @@ class FinancialState extends ChangeNotifier {
   late List<Budget> _budgets;
   late List<Goal> _goals;
   late List<IncomeStream> _incomeStreams;
+
+  /// Mutable now that the Installments screen can pay one.
+  late List<InstallmentPlan> _installments;
 
   ThemeMode2 _theme = ThemeMode2.gabi;
   DecisionScenario _scenario = DecisionScenario.conservative;
@@ -63,7 +68,8 @@ class FinancialState extends ChangeNotifier {
   List<BillItem> get bills => SeedData.bills;
   List<IncomeStream> get incomeStreams =>
       List<IncomeStream>.unmodifiable(_incomeStreams);
-  List<InstallmentPlan> get installments => SeedData.installments;
+  List<InstallmentPlan> get installments =>
+      List<InstallmentPlan>.unmodifiable(_installments);
   PaydayCycle get payday => SeedData.payday;
 
   /// Header badges. Static for now: the notification engine and the
@@ -163,6 +169,73 @@ class FinancialState extends ChangeNotifier {
     final List<Debt> next = toggleDebtSettled(_debts, debtId, today: now);
     if (identical(next, _debts)) return;
     _debts = next;
+    notifyListeners();
+  }
+
+  /// Pays one scheduled instalment on a plan, in both halves.
+  ///
+  /// The plan advances through applyInstallmentPayment in
+  /// core/money/installments.dart, vector-locked to the prototype's reducer,
+  /// and a ledger entry explains the account movement. Same split as every
+  /// other write here: the engine decides WHAT, this decides WHEN.
+  void payInstallment(String planId, {String? accountId}) {
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0) return;
+    final InstallmentPlan before = _installments[i];
+    if (before.isSettled) return;
+
+    _installments = applyInstallmentPayment(_installments, planId);
+
+    final Transaction? entry = installmentEntry(
+      plan: before,
+      installmentNumber: before.paidInstallments + 1,
+      accountId: accountId,
+      today: now,
+      id: 'tx_inst_${DateTime.now().microsecondsSinceEpoch}',
+    );
+    if (entry != null) {
+      logTransaction(entry);
+      return;
+    }
+    notifyListeners();
+  }
+
+  /// Records money paid on TOP of a plan's schedule.
+  void payInstallmentExtra(
+    String planId,
+    double amount, {
+    String? accountId,
+    String? note,
+  }) {
+    if (amount <= 0) return;
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0) return;
+    final InstallmentPlan before = _installments[i];
+
+    _installments = applyExtraPayment(
+      _installments,
+      planId,
+      amount,
+      today: now,
+      note: note,
+    );
+
+    final Transaction? entry = extraPaymentEntry(
+      plan: before,
+      amount: amount,
+      accountId: accountId,
+      today: now,
+      id: 'tx_inst_extra_${DateTime.now().microsecondsSinceEpoch}',
+      note: note,
+    );
+    if (entry != null) {
+      logTransaction(entry);
+      return;
+    }
     notifyListeners();
   }
 

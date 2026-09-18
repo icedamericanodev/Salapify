@@ -854,21 +854,83 @@ class SeedData {
     ),
   ];
 
+  /// The prototype's three plans, in full.
+  ///
+  /// These were three name-and-amount stubs until 2026-09-18, because Safe to
+  /// Spend was the only thing reading them and an amount was all it needed.
+  /// Every other field here is transcribed from src/data/initialData.ts. The
+  /// three deliberately differ in shape: one with a monthly add-on rate, one
+  /// genuine 0 percent promo with an extra payment against it, and one
+  /// e-commerce plan at 2.95 a month, so the Installments screen can be
+  /// REVIEWED rather than merely rendered.
   static const List<InstallmentPlan> installments = <InstallmentPlan>[
     InstallmentPlan(
       id: 'inst_home_credit',
       name: 'Inverter Refrigerator (Abenson)',
+      provider: 'Home Credit',
+      principal: 24500.00,
+      interestRate: 1.5,
+      interestRateType: InterestRateType.monthly,
+      totalInterest: 4410.00,
+      totalPayable: 28910.00,
+      termMonths: 12,
+      startDate: '2026-04-18',
+      maturityDate: '2027-04-18',
       installmentAmount: 2409.17,
+      paidInstallments: 5,
+      totalInstallments: 12,
+      runningBalance: 16864.19,
+      principalRemaining: 14291.67,
+      interestRemaining: 2572.52,
+      notes: '0% downpayment promo, auto-debited on the 18th of each month',
     ),
     InstallmentPlan(
       id: 'inst_bpi_sip',
       name: 'MacBook Air M2 Work Setup',
+      provider: 'BPI Special Installment Plan (SIP)',
+      principal: 54990.00,
+      interestRate: 0.0,
+      interestRateType: InterestRateType.fixed,
+      totalInterest: 0.0,
+      totalPayable: 54990.00,
+      termMonths: 24,
+      startDate: '2025-11-25',
+      maturityDate: '2027-11-25',
       installmentAmount: 2291.25,
+      paidInstallments: 10,
+      totalInstallments: 24,
+      runningBalance: 32077.50,
+      principalRemaining: 32077.50,
+      interestRemaining: 0.0,
+      extraPayments: <ExtraPayment>[
+        ExtraPayment(
+          id: 'ext_1',
+          date: '2026-06-15',
+          amount: 4582.50,
+          note: 'Mid-year bonus prepayment',
+        ),
+      ],
+      notes: '24-month real 0% installment on BPI Rewards Credit Card',
     ),
     InstallmentPlan(
       id: 'inst_spaylater',
       name: 'Ergonomic Desk & Chair',
+      provider: 'SPayLater',
+      principal: 8400.00,
+      interestRate: 2.95,
+      interestRateType: InterestRateType.monthly,
+      totalInterest: 1486.80,
+      totalPayable: 9886.80,
+      termMonths: 6,
+      startDate: '2026-07-05',
+      maturityDate: '2027-01-05',
       installmentAmount: 1647.80,
+      paidInstallments: 2,
+      totalInstallments: 6,
+      runningBalance: 6591.20,
+      principalRemaining: 5600.00,
+      interestRemaining: 991.20,
+      notes: 'E-commerce installment via Shopee SPayLater',
     ),
   ];
 

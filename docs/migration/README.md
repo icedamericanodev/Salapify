@@ -513,9 +513,35 @@ something the moment it is opened instead of showing a page of empty boxes.
 |---|---|
 | ![Credit card](screens/calculator-card.png) | ![Strategy](screens/calculator-strategy.png) |
 
-Still to come: `InstallmentsView` (565 lines, formal instalment plans with
-their own amortisation). It is NOT offered as a third tab meanwhile, because
-an empty tab is worse than an absent one.
+#### Plans, the instalment register
+
+The third section, from `src/components/InstallmentsView.tsx`. A plan is a
+CONTRACT rather than a running balance, so the screen is built around that:
+how far through it you are, what the rate really works out to over a year,
+what is left, and how much of what is left is interest a prepayment could
+still remove.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Plans, Gabi](screens/installments-gabi.png) | ![Plans, Hapon](screens/installments-hapon.png) |
+
+The two payment sheets. A scheduled instalment is a fixed amount that advances
+the counter; an extra payment is any amount that comes off the principal and
+shortens the plan:
+
+| Scheduled | Extra |
+|---|---|
+| ![Scheduled](screens/sheet-installment-scheduled.png) | ![Extra](screens/sheet-installment-extra.png) |
+
+`InstallmentPlan` held four fields until this batch, a name and an amount,
+because Safe to Spend was the only thing reading it. The coverage audit did
+not catch that: it compared RECORD COUNTS, three against three, and three
+stubs count the same as three plans. All twenty two fields are ported now.
+
+Not built: the prototype's row-by-row amortisation TABLE, whose engine
+(`generateInstallmentAmortization`) is the one piece of `loanCalculators.ts`
+still unported. A schedule is a different job from "where am I and what should
+I do", so it is noted in the audit rather than half-built.
 
 ### Sheets
 

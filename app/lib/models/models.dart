@@ -427,18 +427,101 @@ class BillItem {
   final bool isPaid;
 }
 
+/// How a provider quotes the rate. The same number means wildly different
+/// money depending which of these it is: 1.5 a MONTH is 18 a year.
+enum InterestRateType { annual, monthly, daily, fixed }
+
+enum PaymentFrequency { monthly, semimonthly, biweekly, weekly }
+
+/// One extra payment somebody made on top of the schedule.
+class ExtraPayment {
+  const ExtraPayment({
+    required this.id,
+    required this.date,
+    required this.amount,
+    this.note,
+  });
+
+  final String id;
+  final String date;
+  final double amount;
+  final String? note;
+}
+
+/// A formal instalment plan: a phone on Home Credit, a laptop on a bank's
+/// special instalment plan, a desk on SPayLater.
+///
+/// Distinct from a Debt, and the distinction matters. A Debt is money owed to
+/// a person or a lender with a running balance. An InstallmentPlan is a
+/// CONTRACT: fixed term, fixed cycle, a maturity date, and a rate that was
+/// agreed at the start and does not move. That is why it carries its own
+/// interest split rather than deriving one.
+///
+/// This class was a four field stub until 2026-09-18, holding a name and an
+/// amount because that was all Safe to Spend needed. The coverage audit did
+/// not catch it: it compared RECORD COUNTS, three against three, and three
+/// stubs count the same as three plans.
 class InstallmentPlan {
   const InstallmentPlan({
     required this.id,
     required this.name,
+    required this.provider,
+    required this.principal,
+    required this.interestRate,
+    required this.interestRateType,
+    required this.totalInterest,
+    required this.totalPayable,
+    required this.termMonths,
     required this.installmentAmount,
+    required this.paidInstallments,
+    required this.totalInstallments,
+    required this.runningBalance,
+    required this.principalRemaining,
+    required this.interestRemaining,
+    required this.startDate,
+    required this.maturityDate,
+    this.paymentFrequency = PaymentFrequency.monthly,
+    this.extraPayments = const <ExtraPayment>[],
     this.isSettled = false,
+    this.notes,
   });
 
   final String id;
   final String name;
+  final String provider;
+  final double principal;
+  final double interestRate;
+  final InterestRateType interestRateType;
+  final double totalInterest;
+  final double totalPayable;
+  final int termMonths;
+  final PaymentFrequency paymentFrequency;
+  final String startDate;
+  final String maturityDate;
   final double installmentAmount;
+  final int paidInstallments;
+  final int totalInstallments;
+
+  /// What is left to pay, principal and interest together.
+  final double runningBalance;
+  final double principalRemaining;
+  final double interestRemaining;
+  final List<ExtraPayment> extraPayments;
   final bool isSettled;
+  final String? notes;
+
+  /// How far through the schedule, 0 to 1. Clamped, so an overpaid plan does
+  /// not draw a bar past the end of its own track.
+  double get progress => totalInstallments <= 0
+      ? 0
+      : (paidInstallments / totalInstallments).clamp(0.0, 1.0);
+
+  int get installmentsLeft =>
+      (totalInstallments - paidInstallments).clamp(0, totalInstallments);
+
+  /// True when the plan charges nothing, which is the real 0 percent promo
+  /// rather than one with the interest folded into the price.
+  bool get isZeroInterest => totalInterest <= 0;
 }
 
 class IncomeStream {
