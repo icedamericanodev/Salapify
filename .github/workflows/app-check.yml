@@ -41,12 +41,34 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # The pin, and it is not a preference. Shorebird decides which Flutter
-      # version the app can ship on, so this number lags stable and moving it
-      # forces a new base APK. It must match every other pin in this repo.
+      # THIS PIN DELIBERATELY DOES NOT MATCH THE REST OF THE REPOSITORY, and
+      # that is the one exception, argued rather than assumed.
+      #
+      # Everywhere else pins 3.44.6 because SHOREBIRD sets that number: the
+      # shipped app delivers over the air with
+      # `shorebird release android --flutter-version 3.44.6`, and Shorebird can
+      # only build versions it has published support for. Raising those pins
+      # would break delivery outright, which is the 2026-08-16 decision in
+      # docs/decision-log.md and it still stands.
+      #
+      # app/ is not that app. It has no Shorebird publisher, no app id and no
+      # update stamp, so there is no shipping toolchain for this check to
+      # diverge FROM. What it can diverge from is the founder's machine, which
+      # runs 3.47.4 and is the only place this app runs at all. Testing on
+      # 3.44.6 meant CI proving the app works on a Flutter nobody uses.
+      #
+      # The 2026-08-16 decision rejected raising only the branch check, and
+      # this does not contradict it: that objection was about flutter-check.yml
+      # splitting from the version that actually ships. Here there is nothing
+      # shipping to split from.
+      #
+      # WHEN app/ GAINS SHOREBIRD (Phase D), this pin stops being free. It must
+      # come back down to whatever Shorebird supports at that moment, and the
+      # committed pubspec.lock and analysis_options.yaml must be regenerated on
+      # that SDK in the same commit.
       - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
         with:
-          flutter-version: '3.44.6'
+          flutter-version: '3.47.4'
           channel: stable
           cache: true
 
