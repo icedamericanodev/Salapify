@@ -1,0 +1,596 @@
+{
+  "scenarios": {
+    "carryOn": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 12000,
+          "budgetCarryOver": true,
+          "pro": true
+        },
+        "categories": [
+          {
+            "id": "cat_food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 5000
+          },
+          {
+            "id": "cat_load",
+            "name": "Load",
+            "icon": "📶",
+            "monthlyCap": 0
+          }
+        ],
+        "transactions": [
+          {
+            "id": "p1",
+            "type": "expense",
+            "label": "Rent",
+            "amount": 7000,
+            "date": "2026-06-02"
+          },
+          {
+            "id": "p2",
+            "type": "expense",
+            "label": "Food",
+            "amount": 2000,
+            "date": "2026-06-10",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 3200,
+            "date": "2026-07-05",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "food",
+            "amount": 800,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "c",
+            "type": "expense",
+            "label": "Transport",
+            "amount": 900,
+            "date": "2026-07-09"
+          },
+          {
+            "id": "d",
+            "type": "expense",
+            "label": "  ",
+            "amount": 150,
+            "date": "2026-07-10"
+          },
+          {
+            "id": "e",
+            "type": "expense",
+            "label": "Load",
+            "amount": 300,
+            "date": "2026-07-11",
+            "categoryId": "cat_load"
+          },
+          {
+            "id": "f",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 450,
+            "date": "2026-07-12"
+          },
+          {
+            "id": "g",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "h",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Savings",
+            "amount": 1000,
+            "date": "2026-07-13"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 12000,
+        "carried": 3000,
+        "limit": 15000,
+        "spent": 5800,
+        "remaining": 9200,
+        "pct": 39,
+        "over": false
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Food",
+            "amount": 4000,
+            "cap": 5000
+          },
+          {
+            "label": "Transport",
+            "amount": 900,
+            "cap": 0
+          },
+          {
+            "label": "Milk tea",
+            "amount": 450,
+            "cap": 0
+          },
+          {
+            "label": "Load",
+            "amount": 300,
+            "cap": 0
+          }
+        ],
+        "max": 4000
+      }
+    },
+    "carryOff": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 12000,
+          "pro": false
+        },
+        "categories": [
+          {
+            "id": "cat_food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 5000
+          },
+          {
+            "id": "cat_load",
+            "name": "Load",
+            "icon": "📶",
+            "monthlyCap": 0
+          }
+        ],
+        "transactions": [
+          {
+            "id": "p1",
+            "type": "expense",
+            "label": "Rent",
+            "amount": 7000,
+            "date": "2026-06-02"
+          },
+          {
+            "id": "p2",
+            "type": "expense",
+            "label": "Food",
+            "amount": 2000,
+            "date": "2026-06-10",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 3200,
+            "date": "2026-07-05",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "food",
+            "amount": 800,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "c",
+            "type": "expense",
+            "label": "Transport",
+            "amount": 900,
+            "date": "2026-07-09"
+          },
+          {
+            "id": "d",
+            "type": "expense",
+            "label": "  ",
+            "amount": 150,
+            "date": "2026-07-10"
+          },
+          {
+            "id": "e",
+            "type": "expense",
+            "label": "Load",
+            "amount": 300,
+            "date": "2026-07-11",
+            "categoryId": "cat_load"
+          },
+          {
+            "id": "f",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 450,
+            "date": "2026-07-12"
+          },
+          {
+            "id": "g",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "h",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Savings",
+            "amount": 1000,
+            "date": "2026-07-13"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 12000,
+        "carried": 0,
+        "limit": 12000,
+        "spent": 5800,
+        "remaining": 6200,
+        "pct": 48,
+        "over": false
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Food",
+            "amount": 4000,
+            "cap": 0
+          },
+          {
+            "label": "Transport",
+            "amount": 900,
+            "cap": 0
+          },
+          {
+            "label": "Milk tea",
+            "amount": 450,
+            "cap": 0
+          },
+          {
+            "label": "Load",
+            "amount": 300,
+            "cap": 0
+          }
+        ],
+        "max": 4000
+      }
+    },
+    "overspent": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 3000,
+          "budgetCarryOver": true
+        },
+        "categories": [
+          {
+            "id": "cat_food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 5000
+          },
+          {
+            "id": "cat_load",
+            "name": "Load",
+            "icon": "📶",
+            "monthlyCap": 0
+          }
+        ],
+        "transactions": [
+          {
+            "id": "p1",
+            "type": "expense",
+            "label": "Rent",
+            "amount": 7000,
+            "date": "2026-06-02"
+          },
+          {
+            "id": "p2",
+            "type": "expense",
+            "label": "Food",
+            "amount": 2000,
+            "date": "2026-06-10",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 3200,
+            "date": "2026-07-05",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "food",
+            "amount": 800,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "c",
+            "type": "expense",
+            "label": "Transport",
+            "amount": 900,
+            "date": "2026-07-09"
+          },
+          {
+            "id": "d",
+            "type": "expense",
+            "label": "  ",
+            "amount": 150,
+            "date": "2026-07-10"
+          },
+          {
+            "id": "e",
+            "type": "expense",
+            "label": "Load",
+            "amount": 300,
+            "date": "2026-07-11",
+            "categoryId": "cat_load"
+          },
+          {
+            "id": "f",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 450,
+            "date": "2026-07-12"
+          },
+          {
+            "id": "g",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "h",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Savings",
+            "amount": 1000,
+            "date": "2026-07-13"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 3000,
+        "carried": 0,
+        "limit": 3000,
+        "spent": 5800,
+        "remaining": -2800,
+        "pct": 100,
+        "over": true
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Food",
+            "amount": 4000,
+            "cap": 0
+          },
+          {
+            "label": "Transport",
+            "amount": 900,
+            "cap": 0
+          },
+          {
+            "label": "Milk tea",
+            "amount": 450,
+            "cap": 0
+          },
+          {
+            "label": "Load",
+            "amount": 300,
+            "cap": 0
+          }
+        ],
+        "max": 4000
+      }
+    },
+    "noLimit": {
+      "data": {
+        "settings": {},
+        "categories": [
+          {
+            "id": "cat_food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 5000
+          },
+          {
+            "id": "cat_load",
+            "name": "Load",
+            "icon": "📶",
+            "monthlyCap": 0
+          }
+        ],
+        "transactions": [
+          {
+            "id": "p1",
+            "type": "expense",
+            "label": "Rent",
+            "amount": 7000,
+            "date": "2026-06-02"
+          },
+          {
+            "id": "p2",
+            "type": "expense",
+            "label": "Food",
+            "amount": 2000,
+            "date": "2026-06-10",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "a",
+            "type": "expense",
+            "label": "Groceries",
+            "amount": 3200,
+            "date": "2026-07-05",
+            "categoryId": "cat_food"
+          },
+          {
+            "id": "b",
+            "type": "expense",
+            "label": "food",
+            "amount": 800,
+            "date": "2026-07-08"
+          },
+          {
+            "id": "c",
+            "type": "expense",
+            "label": "Transport",
+            "amount": 900,
+            "date": "2026-07-09"
+          },
+          {
+            "id": "d",
+            "type": "expense",
+            "label": "  ",
+            "amount": 150,
+            "date": "2026-07-10"
+          },
+          {
+            "id": "e",
+            "type": "expense",
+            "label": "Load",
+            "amount": 300,
+            "date": "2026-07-11",
+            "categoryId": "cat_load"
+          },
+          {
+            "id": "f",
+            "type": "expense",
+            "label": "Milk tea",
+            "amount": 450,
+            "date": "2026-07-12"
+          },
+          {
+            "id": "g",
+            "type": "income",
+            "label": "Sweldo",
+            "amount": 20000,
+            "date": "2026-07-15"
+          },
+          {
+            "id": "h",
+            "type": "transfer",
+            "flow": "out",
+            "label": "Savings",
+            "amount": 1000,
+            "date": "2026-07-13"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 0,
+        "carried": 0,
+        "limit": 0,
+        "spent": 5800,
+        "remaining": -5800,
+        "pct": 0,
+        "over": true
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Food",
+            "amount": 4000,
+            "cap": 0
+          },
+          {
+            "label": "Transport",
+            "amount": 900,
+            "cap": 0
+          },
+          {
+            "label": "Milk tea",
+            "amount": 450,
+            "cap": 0
+          },
+          {
+            "label": "Load",
+            "amount": 300,
+            "cap": 0
+          }
+        ],
+        "max": 4000
+      }
+    },
+    "empty": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 10000,
+          "budgetCarryOver": true
+        },
+        "categories": [],
+        "transactions": []
+      },
+      "summary": {
+        "baseLimit": 10000,
+        "carried": 0,
+        "limit": 10000,
+        "spent": 0,
+        "remaining": 10000,
+        "pct": 0,
+        "over": false
+      },
+      "whereItWent": {
+        "rows": [],
+        "max": 1
+      }
+    },
+    "hugeSpent": {
+      "data": {
+        "settings": {
+          "monthlyLimit": 1
+        },
+        "categories": [],
+        "transactions": [
+          {
+            "id": "h1",
+            "type": "expense",
+            "label": "Absurd",
+            "amount": 1e+308,
+            "date": "2026-07-05"
+          },
+          {
+            "id": "h2",
+            "type": "expense",
+            "label": "Absurd",
+            "amount": 1e+308,
+            "date": "2026-07-06"
+          }
+        ]
+      },
+      "summary": {
+        "baseLimit": 1,
+        "carried": 0,
+        "limit": 1,
+        "spent": null,
+        "remaining": null,
+        "pct": 100,
+        "over": true
+      },
+      "whereItWent": {
+        "rows": [
+          {
+            "label": "Absurd",
+            "amount": null,
+            "cap": 0
+          }
+        ],
+        "max": null
+      }
+    }
+  }
+}

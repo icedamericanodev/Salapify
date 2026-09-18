@@ -1,0 +1,2353 @@
+{
+  "normalize": [
+    {
+      "in": {
+        "name": "flat",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚"
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚"
+          },
+          {
+            "id": "groceries",
+            "name": "Groceries",
+            "icon": "🛒",
+            "parentId": "food"
+          },
+          {
+            "id": "eatout",
+            "name": "Eating out",
+            "icon": "🍽️",
+            "parentId": "food"
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "parentId": "food"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️",
+          "parentId": "food"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "list": [
+          {
+            "id": "a",
+            "name": "A"
+          },
+          {
+            "id": "b",
+            "name": "B",
+            "parentId": "a"
+          },
+          {
+            "id": "c",
+            "name": "C",
+            "parentId": "b"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "parentId": "a"
+        },
+        {
+          "id": "c",
+          "name": "C"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "list": [
+          {
+            "id": "x",
+            "name": "X",
+            "parentId": "x"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "list": [
+          {
+            "id": "y",
+            "name": "Y",
+            "parentId": "ghost"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "list": [
+          {
+            "id": "p",
+            "name": "P",
+            "parentId": "q"
+          },
+          {
+            "id": "q",
+            "name": "Q",
+            "parentId": "p"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P"
+        },
+        {
+          "id": "q",
+          "name": "Q"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 3000
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡",
+            "monthlyCap": 0
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "list": [
+          null,
+          {
+            "name": "no id"
+          },
+          {
+            "id": "ok",
+            "name": "Ok"
+          }
+        ]
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    }
+  ],
+  "promote": [
+    {
+      "in": {
+        "name": "flat",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "flat",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "flat",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "flat",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "flat",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "parentId": "food"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️",
+          "parentId": "food"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "parentId": "food"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️",
+          "parentId": "food"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "parentId": "food"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️",
+          "parentId": "food"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚"
+        },
+        {
+          "id": "groceries",
+          "name": "Groceries",
+          "icon": "🛒",
+          "parentId": "food"
+        },
+        {
+          "id": "eatout",
+          "name": "Eating out",
+          "icon": "🍽️",
+          "parentId": "food"
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "parentId": "a"
+        },
+        {
+          "id": "c",
+          "name": "C",
+          "parentId": "b"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B"
+        },
+        {
+          "id": "c",
+          "name": "C",
+          "parentId": "b"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "parentId": "a"
+        },
+        {
+          "id": "c",
+          "name": "C",
+          "parentId": "b"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "parentId": "a"
+        },
+        {
+          "id": "c",
+          "name": "C",
+          "parentId": "b"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "a",
+          "name": "A"
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "parentId": "a"
+        },
+        {
+          "id": "c",
+          "name": "C",
+          "parentId": "b"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X",
+          "parentId": "x"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X",
+          "parentId": "x"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X",
+          "parentId": "x"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X",
+          "parentId": "x"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "x",
+          "name": "X",
+          "parentId": "x"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y",
+          "parentId": "ghost"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y",
+          "parentId": "ghost"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y",
+          "parentId": "ghost"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "y",
+          "name": "Y",
+          "parentId": "ghost"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P",
+          "parentId": "q"
+        },
+        {
+          "id": "q",
+          "name": "Q",
+          "parentId": "p"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P",
+          "parentId": "q"
+        },
+        {
+          "id": "q",
+          "name": "Q",
+          "parentId": "p"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P",
+          "parentId": "q"
+        },
+        {
+          "id": "q",
+          "name": "Q",
+          "parentId": "p"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P",
+          "parentId": "q"
+        },
+        {
+          "id": "q",
+          "name": "Q",
+          "parentId": "p"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "p",
+          "name": "P",
+          "parentId": "q"
+        },
+        {
+          "id": "q",
+          "name": "Q",
+          "parentId": "p"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "parentId": "food"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "parentId": "a"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "parentId": "ghost"
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "parentId": ""
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "parentId": null
+      },
+      "out": [
+        {
+          "id": "food",
+          "name": "Food",
+          "icon": "🍚",
+          "monthlyCap": 3000
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "icon": "💡",
+          "monthlyCap": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "parentId": "food"
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "parentId": "a"
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "parentId": "ghost"
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "parentId": ""
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "parentId": null
+      },
+      "out": [
+        null,
+        {
+          "name": "no id"
+        },
+        {
+          "id": "ok",
+          "name": "Ok"
+        }
+      ]
+    }
+  ],
+  "tree": [
+    {
+      "in": {
+        "name": "flat",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚"
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "depth": 0
+        },
+        {
+          "id": "bills",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "nested",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚"
+          },
+          {
+            "id": "groceries",
+            "name": "Groceries",
+            "icon": "🛒",
+            "parentId": "food"
+          },
+          {
+            "id": "eatout",
+            "name": "Eating out",
+            "icon": "🍽️",
+            "parentId": "food"
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "depth": 0
+        },
+        {
+          "id": "groceries",
+          "depth": 1
+        },
+        {
+          "id": "eatout",
+          "depth": 1
+        },
+        {
+          "id": "bills",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "threeDeep",
+        "list": [
+          {
+            "id": "a",
+            "name": "A"
+          },
+          {
+            "id": "b",
+            "name": "B",
+            "parentId": "a"
+          },
+          {
+            "id": "c",
+            "name": "C",
+            "parentId": "b"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "a",
+          "depth": 0
+        },
+        {
+          "id": "b",
+          "depth": 1
+        },
+        {
+          "id": "c",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "selfParent",
+        "list": [
+          {
+            "id": "x",
+            "name": "X",
+            "parentId": "x"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "x",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "dangling",
+        "list": [
+          {
+            "id": "y",
+            "name": "Y",
+            "parentId": "ghost"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "y",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "cycle",
+        "list": [
+          {
+            "id": "p",
+            "name": "P",
+            "parentId": "q"
+          },
+          {
+            "id": "q",
+            "name": "Q",
+            "parentId": "p"
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "p",
+          "depth": 0
+        },
+        {
+          "id": "q",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "withCaps",
+        "list": [
+          {
+            "id": "food",
+            "name": "Food",
+            "icon": "🍚",
+            "monthlyCap": 3000
+          },
+          {
+            "id": "bills",
+            "name": "Bills",
+            "icon": "💡",
+            "monthlyCap": 0
+          }
+        ]
+      },
+      "out": [
+        {
+          "id": "food",
+          "depth": 0
+        },
+        {
+          "id": "bills",
+          "depth": 0
+        }
+      ]
+    },
+    {
+      "in": {
+        "name": "junk",
+        "list": [
+          null,
+          {
+            "name": "no id"
+          },
+          {
+            "id": "ok",
+            "name": "Ok"
+          }
+        ]
+      },
+      "out": [
+        {
+          "depth": 0
+        },
+        {
+          "id": "ok",
+          "depth": 1
+        },
+        {
+          "id": "ok",
+          "depth": 0
+        }
+      ]
+    }
+  ],
+  "recategorize": [
+    {
+      "in": {
+        "fromId": "food",
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "bills"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "food",
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "food",
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "food",
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "food",
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "groceries",
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "groceries",
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "food"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "groceries",
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "groceries",
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "groceries",
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "bills",
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "bills",
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "food"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "bills",
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "bills",
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "bills",
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "missing",
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "missing",
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "missing",
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "missing",
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "missing",
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "",
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "",
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "",
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "",
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": "",
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": null,
+        "toId": "bills"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": null,
+        "toId": "food"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": null,
+        "toId": null
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": null,
+        "toId": ""
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    },
+    {
+      "in": {
+        "fromId": null,
+        "toId": "__undefined__"
+      },
+      "out": [
+        {
+          "id": "t1",
+          "type": "expense",
+          "amount": 250,
+          "categoryId": "food"
+        },
+        {
+          "id": "t2",
+          "type": "expense",
+          "amount": 100,
+          "categoryId": "groceries"
+        },
+        {
+          "id": "t3",
+          "type": "expense",
+          "amount": 80
+        },
+        {
+          "id": "t4",
+          "type": "income",
+          "amount": 15000,
+          "categoryId": "bills"
+        },
+        {
+          "id": "t5",
+          "type": "expense",
+          "amount": 60,
+          "categoryId": "food"
+        }
+      ]
+    }
+  ],
+  "transactions": [
+    {
+      "id": "t1",
+      "type": "expense",
+      "amount": 250,
+      "categoryId": "food"
+    },
+    {
+      "id": "t2",
+      "type": "expense",
+      "amount": 100,
+      "categoryId": "groceries"
+    },
+    {
+      "id": "t3",
+      "type": "expense",
+      "amount": 80
+    },
+    {
+      "id": "t4",
+      "type": "income",
+      "amount": 15000,
+      "categoryId": "bills"
+    },
+    {
+      "id": "t5",
+      "type": "expense",
+      "amount": 60,
+      "categoryId": "food"
+    }
+  ]
+}

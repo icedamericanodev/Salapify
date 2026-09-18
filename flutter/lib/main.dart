@@ -33,7 +33,7 @@ import 'widgets/lock_gate.dart';
 ///
 /// The limit is enforced by a test, not by good intentions.
 const String updateStamp =
-    'f4.72 · Cleaner cards, clearer section headings, and hero numbers that roll up when they change.';
+    'f4.73 · Nothing new to use. Restores the test suite a sync deleted, so this app is guarded again.';
 
 void main() async {
   // Bindings first: Diagnostics.load and path_provider both use platform

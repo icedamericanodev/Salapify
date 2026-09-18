@@ -1,0 +1,303 @@
+{
+ "cases": [
+  {
+   "name": "truly free 0%",
+   "fields": {
+    "cashPrice": 12000,
+    "downpayment": 0,
+    "months": 6,
+    "monthlyPayment": 2000,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 12000,
+    "down": 0,
+    "fee": 0,
+    "months": 6,
+    "monthly": 2000,
+    "financed": 12000,
+    "netCredit": 12000,
+    "totalPaid": 12000,
+    "extraCost": 0,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": true
+   }
+  },
+  {
+   "name": "fake 0% with fee",
+   "fields": {
+    "cashPrice": 12000,
+    "downpayment": 0,
+    "months": 6,
+    "monthlyPayment": 2000,
+    "upfrontFee": 480
+   },
+   "result": {
+    "cash": 12000,
+    "down": 0,
+    "fee": 480,
+    "months": 6,
+    "monthly": 2000,
+    "financed": 12000,
+    "netCredit": 11520,
+    "totalPaid": 12480,
+    "extraCost": 480,
+    "monthlyRate": 0.011789619850425474,
+    "annualRate": 0.15101937728230852,
+    "rateReliable": true,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "classic ggives",
+   "fields": {
+    "cashPrice": 15000,
+    "downpayment": 3000,
+    "months": 12,
+    "monthlyPayment": 1150,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 15000,
+    "down": 3000,
+    "fee": 0,
+    "months": 12,
+    "monthly": 1150,
+    "financed": 12000,
+    "netCredit": 12000,
+    "totalPaid": 16800,
+    "extraCost": 1800,
+    "monthlyRate": 0.022185466502121685,
+    "annualRate": 0.3012370548758323,
+    "rateReliable": true,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "punishing plan",
+   "fields": {
+    "cashPrice": 10000,
+    "downpayment": 0,
+    "months": 12,
+    "monthlyPayment": 1500,
+    "upfrontFee": 500
+   },
+   "result": {
+    "cash": 10000,
+    "down": 0,
+    "fee": 500,
+    "months": 12,
+    "monthly": 1500,
+    "financed": 10000,
+    "netCredit": 9500,
+    "totalPaid": 18500,
+    "extraCost": 8500,
+    "monthlyRate": 0.11524356979999376,
+    "annualRate": 2.702002730340493,
+    "rateReliable": true,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "underpays",
+   "fields": {
+    "cashPrice": 12000,
+    "downpayment": 0,
+    "months": 6,
+    "monthlyPayment": 1500,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 12000,
+    "down": 0,
+    "fee": 0,
+    "months": 6,
+    "monthly": 1500,
+    "financed": 12000,
+    "netCredit": 12000,
+    "totalPaid": 9000,
+    "extraCost": 0,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": true,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "fee eats credit",
+   "fields": {
+    "cashPrice": 5000,
+    "downpayment": 4500,
+    "months": 3,
+    "monthlyPayment": 400,
+    "upfrontFee": 600
+   },
+   "result": {
+    "cash": 5000,
+    "down": 4500,
+    "fee": 600,
+    "months": 3,
+    "monthly": 400,
+    "financed": 500,
+    "netCredit": 0,
+    "totalPaid": 6300,
+    "extraCost": 1300,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "downpayment over price clamps",
+   "fields": {
+    "cashPrice": 5000,
+    "downpayment": 9000,
+    "months": 3,
+    "monthlyPayment": 100,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 5000,
+    "down": 5000,
+    "fee": 0,
+    "months": 3,
+    "monthly": 100,
+    "financed": 0,
+    "netCredit": 0,
+    "totalPaid": 5300,
+    "extraCost": 300,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "months capped at 60",
+   "fields": {
+    "cashPrice": 60000,
+    "downpayment": 0,
+    "months": 240,
+    "monthlyPayment": 1100,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 60000,
+    "down": 0,
+    "fee": 0,
+    "months": 60,
+    "monthly": 1100,
+    "financed": 60000,
+    "netCredit": 60000,
+    "totalPaid": 66000,
+    "extraCost": 6000,
+    "monthlyRate": 0.003179498931533231,
+    "annualRate": 0.03882831740323489,
+    "rateReliable": true,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "months zero coerces to 1",
+   "fields": {
+    "cashPrice": 1000,
+    "downpayment": 0,
+    "months": 0,
+    "monthlyPayment": 1200,
+    "upfrontFee": 0
+   },
+   "result": {
+    "cash": 1000,
+    "down": 0,
+    "fee": 0,
+    "months": 1,
+    "monthly": 1200,
+    "financed": 1000,
+    "netCredit": 1000,
+    "totalPaid": 1200,
+    "extraCost": 200,
+    "monthlyRate": 0.19999999999999984,
+    "annualRate": 7.9161004482559765,
+    "rateReliable": true,
+    "underpays": false,
+    "trulyFree": false
+   }
+  },
+  {
+   "name": "junk everywhere",
+   "fields": {
+    "cashPrice": "abc",
+    "downpayment": null,
+    "months": "x",
+    "upfrontFee": -5
+   },
+   "result": {
+    "cash": 0,
+    "down": 0,
+    "fee": 0,
+    "months": 1,
+    "monthly": 0,
+    "financed": 0,
+    "netCredit": 0,
+    "totalPaid": 0,
+    "extraCost": 0,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": true
+   }
+  },
+  {
+   "name": "empty fields object",
+   "fields": {},
+   "result": {
+    "cash": 0,
+    "down": 0,
+    "fee": 0,
+    "months": 1,
+    "monthly": 0,
+    "financed": 0,
+    "netCredit": 0,
+    "totalPaid": 0,
+    "extraCost": 0,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": true
+   }
+  },
+  {
+   "name": "no fields at all",
+   "fields": null,
+   "result": {
+    "cash": 0,
+    "down": 0,
+    "fee": 0,
+    "months": 1,
+    "monthly": 0,
+    "financed": 0,
+    "netCredit": 0,
+    "totalPaid": 0,
+    "extraCost": 0,
+    "monthlyRate": 0,
+    "annualRate": 0,
+    "rateReliable": false,
+    "underpays": false,
+    "trulyFree": true
+   }
+  }
+ ]
+}

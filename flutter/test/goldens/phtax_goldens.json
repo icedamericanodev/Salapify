@@ -1,0 +1,1220 @@
+{
+ "annualIncomeTax": [
+  {
+   "input": 0,
+   "out": 0
+  },
+  {
+   "input": 100000,
+   "out": 0
+  },
+  {
+   "input": 250000,
+   "out": 0
+  },
+  {
+   "input": 250001,
+   "out": 0.15
+  },
+  {
+   "input": 400000,
+   "out": 22500
+  },
+  {
+   "input": 400001,
+   "out": 22500.2
+  },
+  {
+   "input": 500000,
+   "out": 42500
+  },
+  {
+   "input": 800000,
+   "out": 102500
+  },
+  {
+   "input": 800001,
+   "out": 102500.25
+  },
+  {
+   "input": 2000000,
+   "out": 402500
+  },
+  {
+   "input": 2000001,
+   "out": 402500.3
+  },
+  {
+   "input": 8000000,
+   "out": 2202500
+  },
+  {
+   "input": 8000001,
+   "out": 2202500.35
+  },
+  {
+   "input": 10000000,
+   "out": 2902500
+  },
+  {
+   "input": 137550,
+   "out": 0
+  },
+  {
+   "input": 561600,
+   "out": 54820
+  },
+  {
+   "input": 621600,
+   "out": 66820
+  },
+  {
+   "input": 275100,
+   "out": 3765
+  }
+ ],
+ "marginalRate": [
+  {
+   "input": 0,
+   "out": 0
+  },
+  {
+   "input": 100000,
+   "out": 0
+  },
+  {
+   "input": 250000,
+   "out": 0
+  },
+  {
+   "input": 250001,
+   "out": 0.15
+  },
+  {
+   "input": 400000,
+   "out": 0.15
+  },
+  {
+   "input": 400001,
+   "out": 0.2
+  },
+  {
+   "input": 500000,
+   "out": 0.2
+  },
+  {
+   "input": 800000,
+   "out": 0.2
+  },
+  {
+   "input": 800001,
+   "out": 0.25
+  },
+  {
+   "input": 2000000,
+   "out": 0.25
+  },
+  {
+   "input": 2000001,
+   "out": 0.3
+  },
+  {
+   "input": 8000000,
+   "out": 0.3
+  },
+  {
+   "input": 8000001,
+   "out": 0.35
+  },
+  {
+   "input": 10000000,
+   "out": 0.35
+  },
+  {
+   "input": 137550,
+   "out": 0
+  },
+  {
+   "input": 561600,
+   "out": 0.2
+  },
+  {
+   "input": 621600,
+   "out": 0.2
+  },
+  {
+   "input": 275100,
+   "out": 0.15
+  }
+ ],
+ "contributions": [
+  {
+   "input": 0,
+   "out": {
+    "msc": 0,
+    "sss": {
+     "employee": 0,
+     "employer": 0,
+     "total": 0
+    },
+    "philhealth": {
+     "employee": 0,
+     "employer": 0,
+     "total": 0
+    },
+    "pagibig": {
+     "employee": 0,
+     "employer": 0,
+     "total": 0
+    },
+    "employeeTotal": 0,
+    "employerTotal": 0,
+    "grandTotal": 0,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 1000,
+   "out": {
+    "msc": 5000,
+    "sss": {
+     "employee": 250,
+     "employer": 510,
+     "total": 760
+    },
+    "philhealth": {
+     "employee": 250,
+     "employer": 250,
+     "total": 500
+    },
+    "pagibig": {
+     "employee": 10,
+     "employer": 20,
+     "total": 30
+    },
+    "employeeTotal": 510,
+    "employerTotal": 780,
+    "grandTotal": 1290,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 1500,
+   "out": {
+    "msc": 5000,
+    "sss": {
+     "employee": 250,
+     "employer": 510,
+     "total": 760
+    },
+    "philhealth": {
+     "employee": 250,
+     "employer": 250,
+     "total": 500
+    },
+    "pagibig": {
+     "employee": 15,
+     "employer": 30,
+     "total": 45
+    },
+    "employeeTotal": 515,
+    "employerTotal": 790,
+    "grandTotal": 1305,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 3000,
+   "out": {
+    "msc": 5000,
+    "sss": {
+     "employee": 250,
+     "employer": 510,
+     "total": 760
+    },
+    "philhealth": {
+     "employee": 250,
+     "employer": 250,
+     "total": 500
+    },
+    "pagibig": {
+     "employee": 60,
+     "employer": 60,
+     "total": 120
+    },
+    "employeeTotal": 560,
+    "employerTotal": 820,
+    "grandTotal": 1380,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 5000,
+   "out": {
+    "msc": 5000,
+    "sss": {
+     "employee": 250,
+     "employer": 510,
+     "total": 760
+    },
+    "philhealth": {
+     "employee": 250,
+     "employer": 250,
+     "total": 500
+    },
+    "pagibig": {
+     "employee": 100,
+     "employer": 100,
+     "total": 200
+    },
+    "employeeTotal": 600,
+    "employerTotal": 860,
+    "grandTotal": 1460,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 10000,
+   "out": {
+    "msc": 10000,
+    "sss": {
+     "employee": 500,
+     "employer": 1010,
+     "total": 1510
+    },
+    "philhealth": {
+     "employee": 250,
+     "employer": 250,
+     "total": 500
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 950,
+    "employerTotal": 1460,
+    "grandTotal": 2410,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 12000,
+   "out": {
+    "msc": 12000,
+    "sss": {
+     "employee": 600,
+     "employer": 1210,
+     "total": 1810
+    },
+    "philhealth": {
+     "employee": 300,
+     "employer": 300,
+     "total": 600
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 1100,
+    "employerTotal": 1710,
+    "grandTotal": 2810,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 14999,
+   "out": {
+    "msc": 15000,
+    "sss": {
+     "employee": 750,
+     "employer": 1530,
+     "total": 2280
+    },
+    "philhealth": {
+     "employee": 374.98,
+     "employer": 374.98,
+     "total": 749.96
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 1324.98,
+    "employerTotal": 2104.98,
+    "grandTotal": 3429.96,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 15000,
+   "out": {
+    "msc": 15000,
+    "sss": {
+     "employee": 750,
+     "employer": 1530,
+     "total": 2280
+    },
+    "philhealth": {
+     "employee": 375,
+     "employer": 375,
+     "total": 750
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 1325,
+    "employerTotal": 2105,
+    "grandTotal": 3430,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 20000,
+   "out": {
+    "msc": 20000,
+    "sss": {
+     "employee": 1000,
+     "employer": 2030,
+     "total": 3030
+    },
+    "philhealth": {
+     "employee": 500,
+     "employer": 500,
+     "total": 1000
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 1700,
+    "employerTotal": 2730,
+    "grandTotal": 4430,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 25000,
+   "out": {
+    "msc": 25000,
+    "sss": {
+     "employee": 1250,
+     "employer": 2530,
+     "total": 3780
+    },
+    "philhealth": {
+     "employee": 625,
+     "employer": 625,
+     "total": 1250
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 2075,
+    "employerTotal": 3355,
+    "grandTotal": 5430,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 34750,
+   "out": {
+    "msc": 35000,
+    "sss": {
+     "employee": 1750,
+     "employer": 3530,
+     "total": 5280
+    },
+    "philhealth": {
+     "employee": 868.75,
+     "employer": 868.75,
+     "total": 1737.5
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 2818.75,
+    "employerTotal": 4598.75,
+    "grandTotal": 7417.5,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 35000,
+   "out": {
+    "msc": 35000,
+    "sss": {
+     "employee": 1750,
+     "employer": 3530,
+     "total": 5280
+    },
+    "philhealth": {
+     "employee": 875,
+     "employer": 875,
+     "total": 1750
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 2825,
+    "employerTotal": 4605,
+    "grandTotal": 7430,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 50000,
+   "out": {
+    "msc": 35000,
+    "sss": {
+     "employee": 1750,
+     "employer": 3530,
+     "total": 5280
+    },
+    "philhealth": {
+     "employee": 1250,
+     "employer": 1250,
+     "total": 2500
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 3200,
+    "employerTotal": 4980,
+    "grandTotal": 8180,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 100000,
+   "out": {
+    "msc": 35000,
+    "sss": {
+     "employee": 1750,
+     "employer": 3530,
+     "total": 5280
+    },
+    "philhealth": {
+     "employee": 2500,
+     "employer": 2500,
+     "total": 5000
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 4450,
+    "employerTotal": 6230,
+    "grandTotal": 10680,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "input": 200000,
+   "out": {
+    "msc": 35000,
+    "sss": {
+     "employee": 1750,
+     "employer": 3530,
+     "total": 5280
+    },
+    "philhealth": {
+     "employee": 2500,
+     "employer": 2500,
+     "total": 5000
+    },
+    "pagibig": {
+     "employee": 200,
+     "employer": 200,
+     "total": 400
+    },
+    "employeeTotal": 4450,
+    "employerTotal": 6230,
+    "grandTotal": 10680,
+    "ratesYear": 2026
+   }
+  }
+ ],
+ "takeHomePay": [
+  {
+   "basic": 0,
+   "opts": {},
+   "out": {
+    "basic": 0,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 0,
+    "gross": 0,
+    "sss": 0,
+    "philhealth": 0,
+    "pagibig": 0,
+    "contributions": 0,
+    "monthlyTaxable": 0,
+    "monthlyTax": 0,
+    "annualTax": 0,
+    "net": 0,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 12000,
+   "opts": {},
+   "out": {
+    "basic": 12000,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 0,
+    "gross": 12000,
+    "sss": 600,
+    "philhealth": 300,
+    "pagibig": 200,
+    "contributions": 1100,
+    "monthlyTaxable": 10900,
+    "monthlyTax": 0,
+    "annualTax": 0,
+    "net": 10900,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {},
+   "out": {
+    "basic": 25000,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 0,
+    "gross": 25000,
+    "sss": 1250,
+    "philhealth": 625,
+    "pagibig": 200,
+    "contributions": 2075,
+    "monthlyTaxable": 22925,
+    "monthlyTax": 313.75,
+    "annualTax": 3765,
+    "net": 22611.25,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {
+    "taxableAllowance": 5000
+   },
+   "out": {
+    "basic": 25000,
+    "taxableAllowance": 5000,
+    "nonTaxableAllowance": 0,
+    "gross": 30000,
+    "sss": 1250,
+    "philhealth": 625,
+    "pagibig": 200,
+    "contributions": 2075,
+    "monthlyTaxable": 27925,
+    "monthlyTax": 1063.75,
+    "annualTax": 12765,
+    "net": 26861.25,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {
+    "nonTaxableAllowance": 2000
+   },
+   "out": {
+    "basic": 25000,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 2000,
+    "gross": 27000,
+    "sss": 1250,
+    "philhealth": 625,
+    "pagibig": 200,
+    "contributions": 2075,
+    "monthlyTaxable": 22925,
+    "monthlyTax": 313.75,
+    "annualTax": 3765,
+    "net": 24611.25,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 50000,
+   "opts": {
+    "taxableAllowance": 20000,
+    "nonTaxableAllowance": 3000
+   },
+   "out": {
+    "basic": 50000,
+    "taxableAllowance": 20000,
+    "nonTaxableAllowance": 3000,
+    "gross": 73000,
+    "sss": 1750,
+    "philhealth": 1250,
+    "pagibig": 200,
+    "contributions": 3200,
+    "monthlyTaxable": 66800,
+    "monthlyTax": 8575,
+    "annualTax": 102900,
+    "net": 61225,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 100000,
+   "opts": {},
+   "out": {
+    "basic": 100000,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 0,
+    "gross": 100000,
+    "sss": 1750,
+    "philhealth": 2500,
+    "pagibig": 200,
+    "contributions": 4450,
+    "monthlyTaxable": 95550,
+    "monthlyTax": 15762.5,
+    "annualTax": 189150,
+    "net": 79787.5,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 250000,
+   "opts": {},
+   "out": {
+    "basic": 250000,
+    "taxableAllowance": 0,
+    "nonTaxableAllowance": 0,
+    "gross": 250000,
+    "sss": 1750,
+    "philhealth": 2500,
+    "pagibig": 200,
+    "contributions": 4450,
+    "monthlyTaxable": 245550,
+    "monthlyTax": 57206.67,
+    "annualTax": 686480,
+    "net": 188343.33,
+    "ratesYear": 2026
+   }
+  }
+ ],
+ "selfEmployed": [
+  {
+   "gross": 200000,
+   "opts": {},
+   "out": {
+    "gross": 200000,
+    "mixedIncome": false,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 0
+    },
+    "graduated": {
+     "deduction": 80000,
+     "net": 120000,
+     "incomeTax": 0,
+     "percentageTax": 6000,
+     "total": 6000
+    },
+    "recommended": "eight",
+    "savings": 6000,
+    "effectiveRate": 0,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 1000000,
+   "opts": {},
+   "out": {
+    "gross": 1000000,
+    "mixedIncome": false,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 60000
+    },
+    "graduated": {
+     "deduction": 400000,
+     "net": 600000,
+     "incomeTax": 62500,
+     "percentageTax": 30000,
+     "total": 92500
+    },
+    "recommended": "eight",
+    "savings": 32500,
+    "effectiveRate": 6,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 1000000,
+   "opts": {
+    "mixedIncome": true
+   },
+   "out": {
+    "gross": 1000000,
+    "mixedIncome": true,
+    "eligible8": true,
+    "canCompareGraduated": false,
+    "eightPercent": {
+     "exempt": 0,
+     "total": 80000
+    },
+    "graduated": {
+     "deduction": 400000,
+     "net": 600000,
+     "incomeTax": 62500,
+     "percentageTax": 30000,
+     "total": 92500
+    },
+    "recommended": "eight",
+    "savings": 0,
+    "effectiveRate": 8,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 1000000,
+   "opts": {
+    "mixedIncome": true,
+    "salaryTaxable": 500000
+   },
+   "out": {
+    "gross": 1000000,
+    "mixedIncome": true,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 0,
+     "total": 80000
+    },
+    "graduated": {
+     "deduction": 400000,
+     "net": 600000,
+     "incomeTax": 135000,
+     "percentageTax": 30000,
+     "total": 165000
+    },
+    "recommended": "eight",
+    "savings": 85000,
+    "effectiveRate": 8,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 800000,
+   "opts": {
+    "useOSD": false,
+    "expenses": 300000
+   },
+   "out": {
+    "gross": 800000,
+    "mixedIncome": false,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 44000
+    },
+    "graduated": {
+     "deduction": 300000,
+     "net": 500000,
+     "incomeTax": 42500,
+     "percentageTax": 24000,
+     "total": 66500
+    },
+    "recommended": "eight",
+    "savings": 22500,
+    "effectiveRate": 5.5,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 3000000,
+   "opts": {},
+   "out": {
+    "gross": 3000000,
+    "mixedIncome": false,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 220000
+    },
+    "graduated": {
+     "deduction": 1200000,
+     "net": 1800000,
+     "incomeTax": 352500,
+     "percentageTax": 90000,
+     "total": 442500
+    },
+    "recommended": "eight",
+    "savings": 222500,
+    "effectiveRate": 7.33,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 4000000,
+   "opts": {},
+   "out": {
+    "gross": 4000000,
+    "mixedIncome": false,
+    "eligible8": false,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 300000
+    },
+    "graduated": {
+     "deduction": 1600000,
+     "net": 2400000,
+     "incomeTax": 522500,
+     "percentageTax": 0,
+     "total": 522500
+    },
+    "recommended": "graduated",
+    "savings": 0,
+    "effectiveRate": 13.06,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "gross": 600000,
+   "opts": {},
+   "out": {
+    "gross": 600000,
+    "mixedIncome": false,
+    "eligible8": true,
+    "canCompareGraduated": true,
+    "eightPercent": {
+     "exempt": 250000,
+     "total": 28000
+    },
+    "graduated": {
+     "deduction": 240000,
+     "net": 360000,
+     "incomeTax": 16500,
+     "percentageTax": 18000,
+     "total": 34500
+    },
+    "recommended": "eight",
+    "savings": 6500,
+    "effectiveRate": 4.67,
+    "ratesYear": 2026
+   }
+  }
+ ],
+ "annualize": [
+  {
+   "basic": 25000,
+   "opts": {
+    "monthsWorked": 6,
+    "taxWithheld": 1882.5
+   },
+   "out": {
+    "regularTaxable": 137550,
+    "bonusTaxable": 0,
+    "annualTaxable": 137550,
+    "annualTaxDue": 0,
+    "taxWithheld": 1882.5,
+    "difference": 1882.5,
+    "isRefund": true,
+    "effectiveRate": 0,
+    "monthsWorked": 6,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 50000,
+   "opts": {
+    "bonuses": 150000,
+    "taxWithheld": 54820
+   },
+   "out": {
+    "regularTaxable": 561600,
+    "bonusTaxable": 60000,
+    "annualTaxable": 621600,
+    "annualTaxDue": 66820,
+    "taxWithheld": 54820,
+    "difference": -12000,
+    "isRefund": false,
+    "effectiveRate": 8.91,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {
+    "bonuses": 25000,
+    "taxWithheld": 3765
+   },
+   "out": {
+    "regularTaxable": 275100,
+    "bonusTaxable": 0,
+    "annualTaxable": 275100,
+    "annualTaxDue": 3765,
+    "taxWithheld": 3765,
+    "difference": 0,
+    "isRefund": false,
+    "effectiveRate": 1.16,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 50000,
+   "opts": {
+    "bonuses": 90000
+   },
+   "out": {
+    "regularTaxable": 561600,
+    "bonusTaxable": 0,
+    "annualTaxable": 561600,
+    "annualTaxDue": 54820,
+    "taxWithheld": 0,
+    "difference": -54820,
+    "isRefund": false,
+    "effectiveRate": 7.94,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 50000,
+   "opts": {
+    "bonuses": 90001
+   },
+   "out": {
+    "regularTaxable": 561600,
+    "bonusTaxable": 1,
+    "annualTaxable": 561601,
+    "annualTaxDue": 54820.2,
+    "taxWithheld": 0,
+    "difference": -54820.2,
+    "isRefund": false,
+    "effectiveRate": 7.94,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 12000,
+   "opts": {},
+   "out": {
+    "regularTaxable": 130800,
+    "bonusTaxable": 0,
+    "annualTaxable": 130800,
+    "annualTaxDue": 0,
+    "taxWithheld": 0,
+    "difference": 0,
+    "isRefund": false,
+    "effectiveRate": 0,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 0,
+   "opts": {},
+   "out": {
+    "regularTaxable": 0,
+    "bonusTaxable": 0,
+    "annualTaxable": 0,
+    "annualTaxDue": 0,
+    "taxWithheld": 0,
+    "difference": 0,
+    "isRefund": false,
+    "effectiveRate": 0,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {},
+   "out": {
+    "regularTaxable": 275100,
+    "bonusTaxable": 0,
+    "annualTaxable": 275100,
+    "annualTaxDue": 3765,
+    "taxWithheld": 0,
+    "difference": -3765,
+    "isRefund": false,
+    "effectiveRate": 1.26,
+    "monthsWorked": 12,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 80000,
+   "opts": {
+    "taxableAllowance": 10000,
+    "monthsWorked": 10,
+    "bonuses": 120000,
+    "taxWithheld": 100000
+   },
+   "out": {
+    "regularTaxable": 860500,
+    "bonusTaxable": 30000,
+    "annualTaxable": 890500,
+    "annualTaxDue": 125125,
+    "taxWithheld": 100000,
+    "difference": -25125,
+    "isRefund": false,
+    "effectiveRate": 12.27,
+    "monthsWorked": 10,
+    "ratesYear": 2026
+   }
+  }
+ ],
+ "thirteenth": [
+  {
+   "basic": 25000,
+   "opts": {},
+   "out": {
+    "amount": 25000,
+    "monthsWorked": 12,
+    "otherBenefits": 0,
+    "ceiling": 90000,
+    "taxFreePortion": 25000,
+    "taxable": 0,
+    "taxOnExcess": 0,
+    "net": 25000,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 25000,
+   "opts": {
+    "monthsWorked": 6
+   },
+   "out": {
+    "amount": 12500,
+    "monthsWorked": 6,
+    "otherBenefits": 0,
+    "ceiling": 90000,
+    "taxFreePortion": 12500,
+    "taxable": 0,
+    "taxOnExcess": 0,
+    "net": 12500,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 100000,
+   "opts": {},
+   "out": {
+    "amount": 100000,
+    "monthsWorked": 12,
+    "otherBenefits": 0,
+    "ceiling": 90000,
+    "taxFreePortion": 90000,
+    "taxable": 10000,
+    "taxOnExcess": 2500,
+    "net": 97500,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 100000,
+   "opts": {
+    "otherBenefits": 50000
+   },
+   "out": {
+    "amount": 100000,
+    "monthsWorked": 12,
+    "otherBenefits": 50000,
+    "ceiling": 90000,
+    "taxFreePortion": 40000,
+    "taxable": 60000,
+    "taxOnExcess": 15000,
+    "net": 85000,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 120000,
+   "opts": {
+    "otherBenefits": 90000
+   },
+   "out": {
+    "amount": 120000,
+    "monthsWorked": 12,
+    "otherBenefits": 90000,
+    "ceiling": 90000,
+    "taxFreePortion": 0,
+    "taxable": 120000,
+    "taxOnExcess": 30000,
+    "net": 90000,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 15000,
+   "opts": {
+    "monthsWorked": 1
+   },
+   "out": {
+    "amount": 1250,
+    "monthsWorked": 1,
+    "otherBenefits": 0,
+    "ceiling": 90000,
+    "taxFreePortion": 1250,
+    "taxable": 0,
+    "taxOnExcess": 0,
+    "net": 1250,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 0,
+   "opts": {},
+   "out": {
+    "amount": 0,
+    "monthsWorked": 12,
+    "otherBenefits": 0,
+    "ceiling": 90000,
+    "taxFreePortion": 0,
+    "taxable": 0,
+    "taxOnExcess": 0,
+    "net": 0,
+    "ratesYear": 2026
+   }
+  },
+  {
+   "basic": 95000,
+   "opts": {
+    "monthsWorked": 12,
+    "otherBenefits": 10000
+   },
+   "out": {
+    "amount": 95000,
+    "monthsWorked": 12,
+    "otherBenefits": 10000,
+    "ceiling": 90000,
+    "taxFreePortion": 80000,
+    "taxable": 15000,
+    "taxOnExcess": 3750,
+    "net": 91250,
+    "ratesYear": 2026
+   }
+  }
+ ]
+}
