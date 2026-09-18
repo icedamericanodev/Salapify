@@ -14,6 +14,7 @@ import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/state/financial_state.dart';
@@ -174,6 +175,68 @@ void main() {
         matchesGoldenFile('out/activity_$theme.png'),
       );
     });
+  }
+
+  // Reports, the third tab. ALL THREE sub-tabs at both brightnesses, because
+  // a sub-tab nobody renders is a screen nobody has looked at: the Position
+  // tab is what opens by default and the other two are one tap away, so
+  // shooting only the default would leave two thirds of the feature unseen.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final String subTab in <String>[
+      'Position',
+      'Performance',
+      'Cash flow',
+    ]) {
+      final String slug = subTab.toLowerCase().replaceAll(' ', '_');
+
+      testWidgets('reports $slug renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        // Taller than the other tabs on purpose: Performance carries the
+        // category breakdown, which is the longest thing in the app.
+        tester.view.physicalSize = const Size(1170, 6000);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(ReportsScreen),
+          findsOneWidget,
+          reason: 'the Reports tab did not open',
+        );
+
+        await tester.tap(find.text(subTab));
+        await tester.pumpAndSettle();
+
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/reports_${slug}_$theme.png'),
+        );
+      });
+    }
   }
 
   // The Log sheet, mid-entry rather than blank, because an empty form shows

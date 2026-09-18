@@ -17,6 +17,7 @@ class SeedData {
   static const List<Account> accounts = <Account>[
     Account(
       id: 'acc_cash',
+      profile: ProfileEntity.personal,
       name: 'Cash on Hand (Pitaka)',
       kind: AccountKind.cash,
       institution: 'Cash',
@@ -26,6 +27,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_gcash',
+      profile: ProfileEntity.personal,
       name: 'GCash Wallet',
       kind: AccountKind.gcash,
       institution: 'GCash',
@@ -35,6 +37,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_maya',
+      profile: ProfileEntity.household,
       name: 'Maya Savings',
       kind: AccountKind.maya,
       institution: 'Maya',
@@ -44,6 +47,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_bpi',
+      profile: ProfileEntity.personal,
       name: 'BPI Preferred Payroll',
       kind: AccountKind.bank,
       institution: 'BPI',
@@ -52,6 +56,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_seabank',
+      profile: ProfileEntity.sideHustle,
       name: 'MariBank Digital Savings',
       kind: AccountKind.bank,
       institution: 'MariBank',
@@ -60,6 +65,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_ub_debit',
+      profile: ProfileEntity.business,
       name: 'UnionBank Debit Card',
       kind: AccountKind.debit,
       institution: 'UnionBank',
@@ -68,6 +74,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_mp2',
+      profile: ProfileEntity.personal,
       name: 'Pag-IBIG MP2 Fund',
       kind: AccountKind.investment,
       institution: 'Pag-IBIG',
@@ -76,6 +83,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_receivables',
+      profile: ProfileEntity.personal,
       name: 'Accounts Receivable (Pahiram & Split)',
       kind: AccountKind.receivable,
       institution: 'Internal Ledger',
@@ -84,6 +92,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_bpi_cc',
+      profile: ProfileEntity.personal,
       name: 'BPI Rewards Card',
       kind: AccountKind.credit,
       institution: 'BPI',
@@ -93,6 +102,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_personal_loan',
+      profile: ProfileEntity.personal,
       name: 'BPI Gadget Loan',
       kind: AccountKind.loan,
       institution: 'BPI',
@@ -101,6 +111,7 @@ class SeedData {
     ),
     Account(
       id: 'acc_pagibig_mortgage',
+      profile: ProfileEntity.household,
       name: 'Pag-IBIG Housing Loan',
       kind: AccountKind.mortgage,
       institution: 'Pag-IBIG',
@@ -118,6 +129,8 @@ class SeedData {
     // nothing. See the fixture note in CLAUDE.md.
     Transaction(
       id: 'tx_pending_card',
+      profile: ProfileEntity.business,
+      subcategory: 'E-commerce (Shopee/Lazada)',
       type: TransactionType.expense,
       amount: 1899.00,
       category: 'Shopping & Personal',
@@ -130,6 +143,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_excluded_double',
+      profile: ProfileEntity.household,
+      subcategory: 'Electricity (Meralco)',
       type: TransactionType.expense,
       amount: 2840.00,
       category: 'Bills & Utilities',
@@ -142,6 +157,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_transfer_1',
+      profile: ProfileEntity.personal,
+      subcategory: 'Savings Allocation',
       type: TransactionType.transfer,
       amount: 5000.00,
       category: 'Transfer',
@@ -153,6 +170,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_salary_1',
+      profile: ProfileEntity.personal,
+      subcategory: '15th Sweldo Cutoff',
       type: TransactionType.income,
       amount: 32500.00,
       category: 'Salary & Compensation',
@@ -164,6 +183,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_freelance_1',
+      profile: ProfileEntity.business,
+      subcategory: 'Client Service Retainers',
       type: TransactionType.income,
       amount: 18500.00,
       category: 'Business Revenue',
@@ -174,6 +195,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_meralco',
+      profile: ProfileEntity.household,
+      subcategory: 'Electricity (Meralco)',
       type: TransactionType.expense,
       amount: 2840.00,
       category: 'Bills & Utilities',
@@ -184,6 +207,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_groceries',
+      profile: ProfileEntity.household,
+      subcategory: 'Supermarket (SM/Puregold/Robinsons)',
       type: TransactionType.expense,
       amount: 3250.75,
       category: 'Groceries',
@@ -194,6 +219,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_jollibee',
+      profile: ProfileEntity.personal,
+      subcategory: 'Fast Food & Karinderya',
       type: TransactionType.expense,
       amount: 285.00,
       category: 'Food & Dining',
@@ -204,6 +231,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_grab',
+      profile: ProfileEntity.personal,
+      subcategory: 'Ride Hailing (Grab/Angkas/Joyride)',
       type: TransactionType.expense,
       amount: 420.00,
       category: 'Transport & Commute',
@@ -214,6 +243,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_padala',
+      profile: ProfileEntity.personal,
+      subcategory: 'Parents & Sibling Support',
       type: TransactionType.expense,
       amount: 6000.00,
       category: 'Family Support & Remittance',
@@ -224,6 +255,8 @@ class SeedData {
     ),
     Transaction(
       id: 'tx_coffee',
+      profile: ProfileEntity.personal,
+      subcategory: 'Coffee & Milk Tea',
       type: TransactionType.expense,
       amount: 180.00,
       category: 'Food & Dining',
@@ -231,6 +264,68 @@ class SeedData {
       merchant: 'Local Kape Shop',
       date: '2026-09-18',
       createdAt: _daysAgo(0),
+    ),
+
+    // Four entries restored from the prototype's own fixture for the Reports
+    // tab. Without them three whole sections of that screen are structurally
+    // empty: FINANCING has no debt repayment to report, the debt service
+    // ratio is 0%, the business segment has one expense, and household
+    // spending is a single utility bill. A report whose sections are all
+    // zero cannot be reviewed, and the empty-fixture trap is exactly what
+    // put a crossed-out peso sign on the founder's phone once already.
+    //
+    // Amounts, dates, categories, sub-categories and accounts are the
+    // prototype's, not invented. Note that adding these does NOT move any
+    // balance: seed balances are stated on the accounts rather than derived
+    // from the ledger, which is the prototype's shape too.
+    Transaction(
+      id: 'tx_homecredit_loan',
+      profile: ProfileEntity.personal,
+      subcategory: 'Gadget Loan (Home Credit/SpayLater/LazPay)',
+      type: TransactionType.expense,
+      amount: 2450.00,
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_gcash',
+      merchant: 'Home Credit Philippines',
+      date: '2026-09-04',
+      createdAt: _daysAgo(14),
+    ),
+    Transaction(
+      id: 'tx_mp2_contribution',
+      profile: ProfileEntity.personal,
+      subcategory: 'Pag-IBIG / SSS Salary Loan Repayment',
+      type: TransactionType.expense,
+      amount: 2500.00,
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_bpi',
+      merchant: 'Pag-IBIG MP2 Top-up',
+      date: '2026-09-05',
+      createdAt: _daysAgo(13),
+    ),
+    Transaction(
+      id: 'tx_saas',
+      profile: ProfileEntity.business,
+      subcategory: 'Software & SaaS Subscriptions',
+      type: TransactionType.expense,
+      amount: 1250.00,
+      category: 'Business & Freelance Ops',
+      accountId: 'acc_ub_debit',
+      merchant: 'Figma Professional & GitHub Copilot',
+      date: '2026-09-10',
+      createdAt: _daysAgo(8),
+    ),
+    Transaction(
+      id: 'tx_condo_repair',
+      profile: ProfileEntity.household,
+      subcategory: 'Home Repairs & Maintenance',
+      type: TransactionType.expense,
+      amount: 3200.00,
+      category: 'Housing & Rent',
+      accountId: 'acc_maya',
+      merchant: 'Handyman Hardware BGC',
+      date: '2026-09-15',
+      createdAt: _daysAgo(3),
+      status: TransactionStatus.pending,
     ),
   ];
 

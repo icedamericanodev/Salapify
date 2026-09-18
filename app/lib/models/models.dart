@@ -68,6 +68,7 @@ class Account {
     required this.institution,
     required this.balance,
     required this.monogram,
+    this.profile,
     this.creditLimit,
     this.interestRate,
     this.accountNumber,
@@ -80,6 +81,15 @@ class Account {
   final String institution;
   final double balance;
   final String monogram;
+
+  /// Which entity this account belongs to, from src/types.ts.
+  ///
+  /// NULLABLE on purpose, and the null is meaningful rather than lazy. Reports
+  /// filters with `!a.profile || a.profile === activeProfile`, so an account
+  /// with no profile appears under EVERY entity. An account that belongs
+  /// nowhere in particular belongs everywhere, which is the right answer for
+  /// a wallet somebody has not classified yet.
+  final ProfileEntity? profile;
   final double? creditLimit;
   final double? interestRate;
   final String? accountNumber;
@@ -97,6 +107,7 @@ class Account {
     institution: institution,
     balance: balance ?? this.balance,
     monogram: monogram,
+    profile: profile,
     creditLimit: creditLimit,
     interestRate: interestRate,
     accountNumber: accountNumber,

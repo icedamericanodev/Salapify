@@ -15,8 +15,8 @@ The prototype's tab order, finished one tab at a time including its modals.
 |---|-----|------------------|--------|
 | 1 | Home | `Header`, `HeroPanel`, `BudgetPulseCard`, `QuickActions`, reminders banner, `DebtBeamCard`, `ComingUpCard`, `LatestTransactions`, `PanFloatingButton` | Built to match the prototype |
 | 1b | Home's sheets | `SafeToSpendModal`, `AddDebtModal`, `BankAmortizationTable`, `TaxCalculatorModal`, `BusinessTaxSimulatorModal`, the category manager | Built and reachable from Home |
-| 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Entries list built. Detail and Log sheet next |
-| 3 | Reports | `ReportsScreen` | Not started |
+| 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Done. List, detail and the Log write path, with quick parse and a date picker |
+| 3 | Reports | `ReportsScreen` | Position, Performance and Cash flow built. Reconciliation, the one that writes, is its own step |
 | 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | Not started |
 | 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
 
@@ -199,6 +199,67 @@ Not migrated with it, named rather than implied: the foreign currency
 converter, the cash denomination counter, receipt attachment, and quick-add for
 categories. Each needs something `app/` does not have yet (an FX rate source, a
 camera, a writable category store).
+
+### Reports
+
+The third tab, from `src/components/ReportsScreen.tsx`. Three sub-tabs, each
+answering one question, and each shown here in both themes.
+
+| Position, Gabi | Position, Hapon |
+|---|---|
+| ![Position dark](screens/reports-position-gabi.png) | ![Position light](screens/reports-position-hapon.png) |
+
+| Performance, Gabi | Performance, Hapon |
+|---|---|
+| ![Performance dark](screens/reports-performance-gabi.png) | ![Performance light](screens/reports-performance-hapon.png) |
+
+| Cash flow, Gabi | Cash flow, Hapon |
+|---|---|
+| ![Cash flow dark](screens/reports-cash-flow-gabi.png) | ![Cash flow light](screens/reports-cash-flow-hapon.png) |
+
+**POSITION** is the balance sheet: what you own, what you owe, and the
+difference. It takes no period on purpose, and the period picker is hidden
+there rather than shown and ignored. A balance sheet is what you hold NOW;
+offering "this week" beside it would promise last week's net worth, which needs
+history the app does not keep.
+
+**PERFORMANCE** is the income statement over a period, plus two ratios and a
+month-end run rate. The run rate appears on the monthly view only, because the
+prototype divides by the day of the MONTH whatever period is selected, so on
+"this year" it would project a year's income onto a month and print a confident
+nonsense figure.
+
+**CASH FLOW** sorts the same money into operating, investing and financing.
+Transfers are counted and then deliberately left out of the total, and the
+screen says so: moving your own money between your own accounts is not cash
+entering or leaving anything you own, and a 5,000 transfer that changes no
+total reads like money the report lost.
+
+**RECONCILIATION, the prototype's fourth tab, is not here yet**, and the screen
+says so rather than leaving a gap somebody has to guess about. It is the only
+one of the four that WRITES: it creates an adjustment transaction to force the
+app's balance to match a real bank balance, and it changes a transaction's
+status. A write path needs both halves tested, so it lands as its own step.
+
+Two defects this screen found, both worth recording because of HOW they were
+found:
+
+1. **A negative net worth rendered identically to a positive one.**
+   `formatPeso` returns the absolute value by design, leaving the sign to the
+   caller, and this screen was not adding it. A debt of 217,229.50 and savings
+   of 217,229.50 were the same characters, separated only by colour, which
+   fails for roughly one man in twelve and for any screenshot or printout.
+   Caught by a widget test written before the screen was looked at.
+2. **The period picker stacked into six full-width rows**, eating a third of
+   the screen. A `Container` given an `alignment` and no width expands to its
+   maximum constraint. Every test passed the whole time: the labels were
+   present, the taps worked, the figures were right. **Caught only by looking
+   at the render**, which is the entire reason that rule exists. There is now a
+   test that measures whether the first two pills share a row.
+
+Also not ported with it: CSV export (nothing in `app/` can write a file yet)
+and the comparison toggle (previous period, budget, forecast), which needs
+period-over-period history the app does not keep.
 
 ### Sheets
 

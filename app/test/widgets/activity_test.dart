@@ -45,10 +45,17 @@ void main() {
 
     // And the day header counts ONE of them. This is the assertion that would
     // fail if excluded money leaked back into a total.
+    //
+    // The arithmetic is spelled out because the figure is no longer just the
+    // Meralco bill: 2,840 for the one live Meralco charge plus 3,200 for the
+    // condo repair, which shares this date. If the excluded duplicate leaked
+    // back in, this reads 8,880.
     expect(
-      find.text('Out: ₱2,840.00'),
+      find.text('Out: ₱6,040.00'),
       findsOneWidget,
-      reason: 'the day header should count one Meralco charge, not both',
+      reason:
+          'the day header should count one Meralco charge, not both; '
+          '8,880 here would mean the excluded duplicate was counted',
     );
   });
 

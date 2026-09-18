@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../screens/activity/activity_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/placeholder/placeholder_screen.dart';
+import '../screens/reports/reports_screen.dart';
 import '../state/financial_state.dart';
 
 /// The five destinations, in the prototype's own order. Changing this order
@@ -57,11 +58,7 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.activity:
         return ActivityScreen(state: widget.state);
       case SalapifyTab.reports:
-        return PlaceholderScreen(
-          palette: palette,
-          title: 'Reports',
-          note: 'Migrates after Activity, following the prototype tab order.',
-        );
+        return ReportsScreen(state: widget.state);
       case SalapifyTab.plan:
         return PlaceholderScreen(
           palette: palette,

@@ -371,6 +371,85 @@ first rows are today's, which reads exactly like the save failed.
 
 ---
 
+## 8. Reports, the third tab
+
+**Reach it:** the **Reports** icon in the bottom bar, third from the left.
+
+It opens on **Position** and has three sub-tabs across the top. Every figure
+below was produced by running the app's own engine, so a difference on your
+screen is a real defect.
+
+### Position, what you own and what you owe
+
+| Expect | Figure |
+|---|---|
+| Net worth | **-₱217,229.50**, in red, with a visible minus sign |
+| Assets | ₱181,970.50 across 8 accounts |
+| Liabilities | ₱399,200.00 across 3 accounts |
+| Cash and e-wallets | ₱110,720.50 |
+| Investments | ₱65,000.00 |
+| Owed to you | ₱6,250.00 |
+| Credit cards | ₱4,200.00 |
+| Loans and mortgage | ₱395,000.00 |
+
+The minus sign matters. Check it is actually there, not just the red colour.
+For most of building this screen it was missing, and a debt of 217,229.50
+looked character for character like savings of 217,229.50.
+
+Note there is **no period picker** on this tab, on purpose. A balance sheet is
+what you hold right now.
+
+### Performance, what came in and went out
+
+Tap **Performance**. The six period pills should sit in **two tidy rows**, not
+six stacked full-width bars. Leave it on **This month**.
+
+| Expect | Figure |
+|---|---|
+| Money in | ₱51,000.00 |
+| Money out | ₱24,274.75 |
+| You kept | ₱26,725.25, and "52.4% of what came in" |
+| Savings rate | 52.4% |
+| Debt servicing | 9.7% |
+| Business net profit | ₱15,351.00 |
+| Income by month end | ₱85,000.00 |
+
+Then scroll to **Where it went**. Nine categories, biggest first, starting with
+Family Support & Remittance at ₱6,000.00 (24.7%). Debt & Loan Servicing is
+second with two entries listed underneath it.
+
+Now tap **Today**. Everything should change: one entry, ₱180.00 out, no income.
+If the figures do not move, the period picker is not working.
+
+### Cash flow, the same money sorted three ways
+
+Tap **Cash flow**.
+
+| Section | Expect |
+|---|---|
+| Net change in cash | ₱26,725.25 |
+| Operating net | ₱31,675.25 |
+| Investing net | ₱0.00, in grey, with "Nothing of this kind in this period" |
+| Financing net | **-₱4,950.00**, with the minus sign |
+| Your own transfers | 1 transfer, ₱5,000.00 |
+
+The transfer line is worth reading. ₱5,000 moved and the total did not change,
+because moving your own money between your own accounts is not money entering
+or leaving. The screen says so rather than leaving you to wonder.
+
+The three section nets add up to the headline: 31,675.25 + 0 + (-4,950) =
+26,725.25.
+
+### What is deliberately missing
+
+At the bottom of every sub-tab there is a card reading **"Reconciliation comes
+next"**. The prototype has a fourth tab there. It is the only one that changes
+your data (it creates an adjustment entry to force the app to agree with your
+real bank balance), so it lands as its own step with its own tests. Say if you
+want it sooner.
+
+---
+
 ## What to tell Claude afterwards
 
 Most useful, in order:
