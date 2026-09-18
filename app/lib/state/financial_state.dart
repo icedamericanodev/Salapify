@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/seed_data.dart';
 import '../design/tokens.dart';
+import '../core/money/debt.dart';
 import '../core/money/ledger.dart';
 import '../core/money/plan.dart';
 import '../core/money/safe_to_spend.dart';
@@ -106,6 +107,62 @@ class FinancialState extends ChangeNotifier {
   /// desirable, and the sheet says so when it saves.
   void addDebt(Debt debt) {
     _debts = <Debt>[debt, ..._debts];
+    notifyListeners();
+  }
+
+  /// Records a payment on a debt, in BOTH halves.
+  ///
+  /// Half one, the debt moves, goes through applyDebtPayment in
+  /// core/money/debt.dart, which is locked to vectors from the prototype's own
+  /// reducer. Half two, an ENTRY EXPLAINS IT, goes through logTransaction, so
+  /// the account balance moves down the ordinary path and the entry appears in
+  /// Activity, in Reports and against the Debt & Loan Servicing budget.
+  ///
+  /// Half two is the one that gets forgotten, and forgetting it is not a
+  /// cosmetic miss: a founder once paid 1,500 off a loan, opened the account
+  /// it came out of, and found nothing in its history. The balance had moved
+  /// and no entry said why, which for anybody who keeps books is the defect.
+  ///
+  /// Passing no [accountId] records the debt alone. That is a real choice, for
+  /// somebody settling in cash they never logged, and the sheet says what it
+  /// will and will not do before they confirm.
+  void recordDebtPayment(String debtId, double amount, {String? accountId}) {
+    if (amount <= 0) return;
+    final int i = _debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0) return;
+    final Debt before = _debts[i];
+
+    _debts = applyDebtPayment(_debts, debtId, amount, today: now);
+
+    final Transaction? entry = paymentEntry(
+      debt: before,
+      amount: amount,
+      accountId: accountId,
+      today: now,
+      id: 'tx_debt_${DateTime.now().microsecondsSinceEpoch}',
+    );
+    if (entry != null) {
+      // logTransaction notifies as well. One notify too many is a repaint;
+      // one too few is a screen showing yesterday's money.
+      logTransaction(entry);
+      return;
+    }
+    notifyListeners();
+  }
+
+  /// Marks a debt settled, or puts it back.
+  ///
+  /// Writes NO ledger entry, deliberately, and this is the difference between
+  /// the two buttons on that screen. "Record a payment" says money moved and
+  /// names the account it moved from. "Mark settled" says the books were
+  /// wrong and the debt is actually clear, which is a correction rather than
+  /// a movement. Writing an entry for it would invent a payment out of an
+  /// account that never lost the money, and the account and the ledger would
+  /// then disagree by exactly the amount nobody paid.
+  void toggleDebtSettledById(String debtId) {
+    final List<Debt> next = toggleDebtSettled(_debts, debtId, today: now);
+    if (identical(next, _debts)) return;
+    _debts = next;
     notifyListeners();
   }
 

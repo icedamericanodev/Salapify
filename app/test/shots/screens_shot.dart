@@ -18,7 +18,10 @@ import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
+import 'package:salapify/features/debt/payment_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/screens/debt/debt_screen.dart';
+import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
@@ -876,4 +879,119 @@ void main() {
       );
     });
   }
+
+  // The debt register, both directions, at both brightnesses. It is a pushed
+  // screen rather than a tab, so the harness reaches it the way a person does:
+  // through the beam on Home.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final ({String label, String slug}) side
+        in <({String label, String slug})>[
+          (label: '', slug: 'owe'),
+          (label: 'Owed to you', slug: 'owed'),
+        ]) {
+      testWidgets('debt ${side.slug} renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        tester.view.physicalSize = const Size(1170, 4200);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.byType(DebtBeamCard),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(DebtBeamCard),
+            matching: find.text('See all'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(DebtScreen),
+          findsOneWidget,
+          reason: 'the debt beam did not open the register',
+        );
+
+        if (side.label.isNotEmpty) {
+          await tester.tap(find.text(side.label));
+          await tester.pumpAndSettle();
+        }
+
+        await expectLater(
+          find.byType(DebtScreen),
+          matchesGoldenFile('out/debt_${side.slug}_$theme.png'),
+        );
+      });
+    }
+  }
+
+  // The payment sheet, which is where the money actually moves and therefore
+  // the one screen in this batch most worth looking at. Rendered with an
+  // amount typed and an account chosen, so the consequence lines are on it.
+  testWidgets('sheet debt payment renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    PaymentSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette: palette,
+      state: state,
+      debt: state.debts.firstWhere((Debt d) => d.id == 'debt_homecredit'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '2450');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GCash Wallet'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_debt_payment.png'),
+    );
+  });
 }

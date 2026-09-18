@@ -23,9 +23,19 @@ import 'reminders_banner.dart';
 /// actions, reminders, debts, coming up, latest. An earlier pass reordered it
 /// by guesswork and the founder spotted it against the real screens.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.state, this.onOpenLog});
+  const HomeScreen({
+    super.key,
+    required this.state,
+    this.onOpenLog,
+    this.onOpenDebt,
+  });
 
   final FinancialState state;
+
+  /// Opening the debt register belongs to the shell too: it is a whole screen
+  /// pushed over the tabs rather than a sheet, so the thing that owns the
+  /// navigator has to own the push.
+  final VoidCallback? onOpenDebt;
 
   /// Opening the Log sheet belongs to the shell, not to Home: the shell owns
   /// the store write AND the tab switch that lands somebody on the entry they
@@ -89,7 +99,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: Spacing.lg),
             DebtBeamCard(
               state: state,
-              onSeeAll: () => _soon(context, palette, 'Debts'),
+              onSeeAll: onOpenDebt,
               onInfo: () =>
                   InfoSheet.show(context, palette, InfoTopic.debtBothWays),
             ),

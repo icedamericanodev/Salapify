@@ -373,6 +373,11 @@ class SeedData {
   ];
 
   static const List<Debt> debts = <Debt>[
+    // The instalment counts, the schedule type, the settled date and the notes
+    // are all from the prototype's own seed. They were dropped when this list
+    // was first ported because no screen read them; the Debt screen does, and
+    // a debt with no "3 of 6" on it is a phone plan that looks like a mystery
+    // balance.
     Debt(
       id: 'debt_homecredit',
       person: 'Home Credit (Phone)',
@@ -381,6 +386,10 @@ class SeedData {
       paidAmount: 7350,
       dueDate: 'Sep 18',
       isSettled: false,
+      schedule: DebtSchedule.scheduled,
+      installmentCurrent: 3,
+      installmentTotal: 6,
+      notes: 'Monthly phone installment, auto-debit or pay via GCash',
     ),
     Debt(
       id: 'debt_bpi_loan',
@@ -390,6 +399,10 @@ class SeedData {
       paidAmount: 5000,
       dueDate: 'Sep 25',
       isSettled: false,
+      schedule: DebtSchedule.scheduled,
+      installmentCurrent: 2,
+      installmentTotal: 6,
+      notes: 'Gadget upgrade loan',
     ),
     Debt(
       id: 'debt_kuya_mark',
@@ -399,6 +412,7 @@ class SeedData {
       paidAmount: 0,
       dueDate: 'Sep 30',
       isSettled: false,
+      notes: 'Concert tickets advance for Olivia Rodrigo',
     ),
     Debt(
       id: 'debt_sarah',
@@ -408,6 +422,7 @@ class SeedData {
       paidAmount: 0,
       dueDate: 'Sep 16',
       isSettled: false,
+      notes: 'Hotpot dinner share at Robinson Galleria',
     ),
     Debt(
       id: 'debt_mom_settled',
@@ -416,6 +431,8 @@ class SeedData {
       totalAmount: 2000,
       paidAmount: 2000,
       isSettled: true,
+      settledDate: 'Sep 3',
+      notes: 'Pahiram for groceries last month, all paid',
     ),
   ];
 

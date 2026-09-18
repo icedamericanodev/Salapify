@@ -238,6 +238,13 @@ class Transaction {
       status != TransactionStatus.duplicate;
 }
 
+/// Whether a debt has a schedule or is paid whenever there is money.
+///
+/// This is not decoration. A scheduled debt has a next payment somebody can
+/// miss; a flexible one, the pahiram from a sibling, does not, and showing it
+/// a due date it was never going to keep turns a favour into a deadline.
+enum DebtSchedule { scheduled, flexible }
+
 class Debt {
   const Debt({
     required this.id,
@@ -247,6 +254,11 @@ class Debt {
     required this.paidAmount,
     required this.isSettled,
     this.dueDate,
+    this.schedule = DebtSchedule.flexible,
+    this.installmentCurrent,
+    this.installmentTotal,
+    this.settledDate,
+    this.notes,
   });
 
   final String id;
@@ -256,8 +268,44 @@ class Debt {
   final double paidAmount;
   final bool isSettled;
   final String? dueDate;
+  final DebtSchedule schedule;
+
+  /// Which payment this is, of how many. Null on a flexible debt, which has
+  /// no instalments to count.
+  final int? installmentCurrent;
+  final int? installmentTotal;
+
+  /// The day it was cleared, as an ISO date. Only set once [isSettled].
+  final String? settledDate;
+  final String? notes;
 
   double get remaining => (totalAmount - paidAmount).clamp(0, double.infinity);
+
+  /// How far through it is, from 0 to 1. Clamped, because an overpayment
+  /// would otherwise draw a bar past the end of its own track.
+  double get progress =>
+      totalAmount <= 0 ? 0 : (paidAmount / totalAmount).clamp(0.0, 1.0);
+
+  Debt copyWith({
+    double? paidAmount,
+    bool? isSettled,
+    String? settledDate,
+    int? installmentCurrent,
+    bool clearSettledDate = false,
+  }) => Debt(
+    id: id,
+    person: person,
+    direction: direction,
+    totalAmount: totalAmount,
+    paidAmount: paidAmount ?? this.paidAmount,
+    isSettled: isSettled ?? this.isSettled,
+    dueDate: dueDate,
+    schedule: schedule,
+    installmentCurrent: installmentCurrent ?? this.installmentCurrent,
+    installmentTotal: installmentTotal,
+    settledDate: clearSettledDate ? null : (settledDate ?? this.settledDate),
+    notes: notes,
+  );
 }
 
 /// Which side of the ledger a category is for.

@@ -451,6 +451,48 @@ Two things this screen does NOT do, named rather than left to be discovered:
   investment ACCOUNTS, which are real, and says in one line what the tracker
   will add.
 
+### Debts
+
+Built 2026-09-18 from `src/components/DebtScreen.tsx`. Not a tab: it is pushed
+over the tabs from the beam on Home and from the register card on Accounts,
+the same way the prototype reaches it.
+
+Debt here means BOTH directions, which is the product's own definition. The
+beam shows the two totals with the net stated as a sentence underneath, then
+the direction picker, then the debts themselves with their instalment count,
+due date, progress and the two actions.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![You owe, Gabi](screens/debt-owe-gabi.png) | ![You owe, Hapon](screens/debt-owe-hapon.png) |
+| ![Owed to you, Gabi](screens/debt-owed-gabi.png) | ![Owed to you, Hapon](screens/debt-owed-hapon.png) |
+
+The payment sheet, which is where the money actually moves. It states the
+consequence BEFORE the button: what will still be owed, which account moves
+and by how much, and that an entry will appear in Activity explaining it.
+
+![Recording a payment](screens/sheet-debt-payment.png)
+
+Two buttons that look similar and do deliberately different things:
+
+- **Record a payment** says money moved. It writes a ledger entry, so the
+  account balance moves down the ordinary path and the payment is visible in
+  Activity, in Reports and against the Debt and Loan Servicing budget.
+- **Mark settled** says the books were wrong and the debt is actually clear.
+  It writes NO entry, because inventing a payment out of an account that never
+  lost the money would leave the account and the ledger disagreeing by exactly
+  that amount.
+
+"No account, just the debt" is a real third option rather than an escape
+hatch, for somebody who settled in cash they never logged. The sheet says
+plainly that nothing will appear in Activity if they pick it.
+
+Still to come, each its own batch: `InstallmentsView` (565 lines, formal
+instalment plans) and `DebtCalculatorsView` (1,339 lines, nine loan products).
+Their engines are already ported and vector-locked in `core/money/loan.dart`,
+`loan_products.dart` and `debt_strategy.dart`, so both are screen work on
+arithmetic that is already proven.
+
 ### Sheets
 
 Ported from `src/components/`, 2026-09-18. Every one is opened through its real

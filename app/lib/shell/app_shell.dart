@@ -6,6 +6,7 @@ import '../features/log/log_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
+import '../screens/debt/debt_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/plan/plan_screen.dart';
 import '../screens/reports/reports_screen.dart';
@@ -55,6 +56,7 @@ class _AppShellState extends State<AppShell> {
         return HomeScreen(
           state: widget.state,
           onOpenLog: () => _openLog(context, palette),
+          onOpenDebt: () => _openDebt(context, palette),
         );
       case SalapifyTab.activity:
         return ActivityScreen(state: widget.state);
@@ -65,30 +67,36 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.accounts:
         return AccountsScreen(
           state: widget.state,
-          // The Debt screen is its own batch, so the register card on Accounts
-          // shows the two real figures and says the list is not built yet
-          // rather than opening nothing at all.
-          onOpenDebt: () => _soon(context, palette, 'The debt list'),
+          onOpenDebt: () => _openDebt(context, palette),
         );
     }
   }
 
-  /// Says plainly that something is not built yet, rather than a tap that
-  /// does nothing. A dead control reads as a bug; a note reads as a roadmap.
-  void _soon(BuildContext context, Palette palette, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            '$what is not migrated yet.',
-            style: TextStyle(color: palette.onAccent),
+  /// Pushes the debt register over the tabs.
+  ///
+  /// A pushed SCREEN rather than a sixth tab, matching the prototype: debts
+  /// are reached from the Home beam and from the Accounts register, both of
+  /// which already show the two figures, so a permanent tab would spend a
+  /// fifth of the bottom bar on a destination most people visit rarely.
+  ///
+  /// setState on return, because the payment path writes to the store and the
+  /// tab underneath has to redraw with the new figures.
+  Future<void> _openDebt(BuildContext context, Palette palette) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext ctx) => Scaffold(
+          backgroundColor: palette.background,
+          body: SafeArea(
+            bottom: false,
+            child: DebtScreen(
+              state: widget.state,
+              onBack: () => Navigator.of(ctx).pop(),
+            ),
           ),
-          backgroundColor: palette.accent,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
         ),
-      );
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   /// Opens the Log sheet and records what comes back.
