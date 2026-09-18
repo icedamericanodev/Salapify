@@ -466,7 +466,11 @@ class SheetField extends StatelessWidget {
     required this.label,
     required this.controller,
     this.hint,
-    this.keyboardType = TextInputType.number,
+    // WITH a decimal point. Plain TextInputType.number maps to Android's
+    // TYPE_CLASS_NUMBER without the decimal flag, so the numeric pad has no
+    // "." key at all and a centavo amount simply cannot be typed. Every field
+    // in these sheets that defaults to numeric is a money field.
+    this.keyboardType = const TextInputType.numberWithOptions(decimal: true),
     this.prefix,
     this.onChanged,
   });

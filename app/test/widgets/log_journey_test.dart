@@ -59,7 +59,13 @@ void main() {
     await tapAndSettle(tester, logButton);
     expect(find.byType(LogSheet), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).first, '250');
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '250',
+    );
     await tester.pumpAndSettle();
     await tapAndSettle(
       tester,
@@ -69,7 +75,10 @@ void main() {
       ),
     );
     await tester.enterText(
-      find.byType(TextField).at(1),
+      find.descendant(
+        of: find.byKey(const Key('log-merchant')),
+        matching: find.byType(TextField),
+      ),
       'Mang Tonio Carinderia',
     );
     await tester.pumpAndSettle();
@@ -127,7 +136,13 @@ void main() {
 
       await tapAndSettle(tester, logButton);
       await tapAndSettle(tester, find.text('Moved'));
-      await tester.enterText(find.byType(TextField).first, '1500');
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '1500',
+      );
       await tester.pumpAndSettle();
 
       // Scoped to each picker by key. Both pickers list account names, so a
@@ -180,7 +195,13 @@ void main() {
       await pumpApp(tester);
 
       await tapAndSettle(tester, logButton);
-      await tester.enterText(find.byType(TextField).first, '100');
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '100',
+      );
       await tester.pumpAndSettle();
       await tapAndSettle(tester, find.text('Save entry'));
 
@@ -201,7 +222,13 @@ void main() {
     await pumpApp(tester);
 
     await tapAndSettle(tester, logButton);
-    await tester.enterText(find.byType(TextField).first, '250');
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '250',
+    );
     await tester.pumpAndSettle();
     await tapAndSettle(
       tester,
@@ -224,7 +251,13 @@ void main() {
 
     await tapAndSettle(tester, logButton);
     await tapAndSettle(tester, find.text('Moved'));
-    await tester.enterText(find.byType(TextField).first, '500');
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '500',
+    );
     await tester.pumpAndSettle();
     await tapAndSettle(
       tester,
@@ -265,5 +298,232 @@ void main() {
     // The categories that DO belong are still there, so this is not passing
     // because the picker rendered nothing at all.
     expect(find.text('Food & Dining'), findsOneWidget);
+  });
+
+  group('the quick parse line', () {
+    testWidgets('"Jollibee 500" fills the form and then saves correctly', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double cashBefore = balanceOf(state, 'acc_cash');
+
+      await tapAndSettle(tester, logButton);
+
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'Jollibee 500',
+      );
+      await tester.pumpAndSettle();
+
+      // It reads back what it understood BEFORE anything is filled in. A
+      // parser that guesses silently is one nobody should trust with money.
+      expect(
+        find.textContaining('Spent ₱500.00 at Jollibee, filed under Food'),
+        findsOneWidget,
+      );
+
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+
+      // The amount landed in the real amount field, and the category picker
+      // moved. Both are checked because filling one and not the other is the
+      // failure a person would not notice until the entry was already saved.
+      expect(
+        find.textContaining('₱500.00 leaves'),
+        findsOneWidget,
+        reason: 'the amount did not reach the form',
+      );
+
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      final Transaction saved = state.transactions.first;
+      expect(saved.amount, 500);
+      expect(saved.merchant, 'Jollibee');
+      expect(saved.category, 'Food & Dining');
+      expect(saved.type, TransactionType.expense);
+      // The default account is Cash on Hand and no account word was typed.
+      expect(balanceOf(state, 'acc_cash'), cashBefore - 500);
+
+      // And a person can SEE it.
+      expect(find.text('Jollibee'), findsWidgets);
+    });
+
+    testWidgets('an account word picks the account', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double gcashBefore = balanceOf(state, 'acc_gcash');
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'angkas 85 gcash',
+      );
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(balanceOf(state, 'acc_gcash'), gcashBefore - 85);
+      expect(state.transactions.first.category, 'Transport & Commute');
+    });
+
+    testWidgets('sweldo is understood as money coming IN', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double cashBefore = balanceOf(state, 'acc_cash');
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'sweldo 32500',
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Received ₱32,500.00'), findsOneWidget);
+
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      // The sign is the whole point: getting this backwards would take 32,500
+      // OUT of an account on payday.
+      expect(state.transactions.first.type, TransactionType.income);
+      expect(balanceOf(state, 'acc_cash'), cashBefore + 32500);
+    });
+
+    testWidgets('a line with no amount is not offered as an entry', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      await tapAndSettle(tester, logButton);
+
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'jollibee',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Fill the form with this'), findsNothing);
+      expect(
+        find.textContaining('An amount plus a word or two'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a parsed category that does not fit the type is not applied', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, logButton);
+      // "mp2" maps to Investment & Passive Income, an INCOME category, while
+      // the type stays expense. Applying it would select a category the
+      // picker filters out, so the entry would be filed under something
+      // invisible and unchangeable.
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'mp2 2000',
+      );
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(state.transactions.first.amount, 2000);
+      expect(
+        state.transactions.first.category,
+        isNot('Investment & Passive Income'),
+        reason: 'an income category must not be attached to an expense',
+      );
+    });
+  });
+
+  group('defects the QA pass found in the Log sheet', () {
+    testWidgets('switching to Received moves the category off an expense one', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, logButton);
+      // Default is Spent with Food & Dining selected.
+      await tapAndSettle(tester, find.text('Received'));
+
+      // Food & Dining is an EXPENSE category and the picker filters by type,
+      // so leaving it selected meant nothing was highlighted and the income
+      // saved under it anyway. Save never looked at the category.
+      expect(find.text('Food & Dining'), findsNothing);
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '32500',
+      );
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      final Transaction saved = state.transactions.first;
+      expect(saved.type, TransactionType.income);
+      expect(
+        saved.category,
+        isNot('Food & Dining'),
+        reason: 'income must not be filed under an expense category',
+      );
+      final CategoryInfo filed = state.categories.firstWhere(
+        (CategoryInfo c) => c.name == saved.category,
+      );
+      expect(
+        filed.kind == CategoryKind.income || filed.kind == CategoryKind.both,
+        isTrue,
+        reason: '${saved.category} is not an income category',
+      );
+    });
+
+    testWidgets('an entry logged under a profile is visible on Activity', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+
+      // The profile is chosen on Home and silently scopes the whole Activity
+      // tab. An entry saved while one was active used to vanish from the very
+      // screen the app navigates to after saving, while the money had already
+      // left the account.
+      state.setActiveProfile(ProfileEntity.household);
+      await tester.pumpAndSettle();
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '500',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-merchant')),
+          matching: find.byType(TextField),
+        ),
+        'Kuryente Ambag',
+      );
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(
+        state.transactions.first.profile,
+        ProfileEntity.household,
+        reason: 'the entry must carry the profile it was logged under',
+      );
+      expect(
+        find.text('Kuryente Ambag'),
+        findsWidgets,
+        reason: 'the entry vanished from the screen the app landed on',
+      );
+    });
   });
 }

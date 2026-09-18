@@ -87,9 +87,14 @@ class LedgerSummaryCard extends StatelessWidget {
             },
             color: kept ? palette.positive : palette.negative,
           ),
-          const SizedBox(height: Spacing.lg),
-
-          _ProportionBar(palette: palette, totals: totals),
+          // Only when there IS money to describe. With a selection holding
+          // nothing but a transfer the bar drew 100% green under the words
+          // "Nothing came in during this selection", which reads as "you kept
+          // everything" over an empty set.
+          if (totals.totalIn > 0 || totals.totalOut > 0) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            _ProportionBar(palette: palette, totals: totals),
+          ],
         ],
       ),
     );

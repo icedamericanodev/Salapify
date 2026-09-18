@@ -104,6 +104,24 @@ Saving MOVES MONEY: the account balance changes, exactly as the prototype's
 so net worth is unchanged. The balance arithmetic lives in `applyToBalances`
 and is locked to vectors generated from the prototype's own code.
 
+**Type it in one line.** Founder request, 2026-09-18. The line at the top of
+the sheet takes "Jollibee 500 gcash" and works out that this is a 500 peso
+expense at Jollibee, out of the GCash wallet, filed under Food & Dining. It is
+the prototype's own parser from `src/utils/fastlog.ts`, 145 keywords, ported
+with vectors, and it understands Taglish because that is how people write a
+note to themselves: "padala kay nanay 8000 palawan" becomes an 8,000
+remittance to Nanay under Family Support & Remittance.
+
+It reads five things out of one line: the amount (250, 250.50, 2,500), the
+account (gcash, maya, cash, a bank, a card), the person ("kay nanay", "ni
+kuya"), the type (sweldo and client mean money coming in, lipat means a
+transfer), and the category.
+
+It FILLS THE FORM rather than saving. A parser is a good guess, and a guess
+about money should be visible before it is committed, so it reads back what it
+understood and everything lands in the controls below where it can be
+corrected. Save is the same button it always was.
+
 Three things this sheet does deliberately:
 
 1. **It says what it is about to do before you do it.** With an amount and an

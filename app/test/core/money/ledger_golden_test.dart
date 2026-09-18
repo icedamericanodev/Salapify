@@ -580,4 +580,86 @@ void _writeTests() {
       expect(parseLoggedAmount('abc'), isNull);
     });
   });
+
+  group('defects found by the QA pass, each with the failure it caused', () {
+    test('NaN and Infinity are refused as amounts', () {
+      // Dart parses the literal text "NaN" and "Infinity" into real doubles,
+      // and every comparison against NaN is false, so a `v <= 0` guard waves
+      // both through. Typing NaN set an account balance to NaN, which nothing
+      // could undo, and then Activity and Home both threw "Unsupported
+      // operation: Infinity or NaN toInt" on every rebuild.
+      expect(parseLoggedAmount('NaN'), isNull);
+      expect(parseLoggedAmount('Infinity'), isNull);
+      expect(parseLoggedAmount('-Infinity'), isNull);
+      expect(
+        parseLoggedAmount('1e400'),
+        isNull,
+        reason: 'overflows to Infinity',
+      );
+      // Still accepts the real ones.
+      expect(parseLoggedAmount('1e5'), 100000);
+      expect(parseLoggedAmount('1,250.50'), 1250.5);
+    });
+
+    test('the summary never throws, whatever it is handed', () {
+      // The reader is made safe as well as the writer, because a restored
+      // backup or an imported file does not go through parseLoggedAmount.
+      final List<Transaction> poisoned = <Transaction>[
+        Transaction(
+          id: 'in',
+          type: TransactionType.income,
+          amount: 100,
+          category: 'Salary & Compensation',
+          accountId: 'a',
+          date: '2026-09-18',
+          createdAt: 0,
+        ),
+        Transaction(
+          id: 'bad',
+          type: TransactionType.expense,
+          amount: double.nan,
+          category: 'Food & Dining',
+          accountId: 'a',
+          date: '2026-09-18',
+          createdAt: 0,
+        ),
+      ];
+      final LedgerTotals t = computeTotals(poisoned);
+      expect(t.outflowPercentage, isA<int>());
+      expect(t.retentionPercentage, isA<int>());
+    });
+
+    test('the profile is READ from the entry, never guessed', () {
+      // The prototype's rule is exactly `t.profile || personal`. An earlier
+      // version ran the upcoming-row keyword inference over transactions too,
+      // so a salary whose merchant said "Payroll" was reassigned to Business
+      // and selecting Personal showed income of zero on a ledger holding
+      // 51,000.
+      final Transaction payroll = Transaction(
+        id: 'p',
+        type: TransactionType.income,
+        amount: 32500,
+        category: 'Salary & Compensation',
+        accountId: 'a',
+        merchant: 'Corporate Payroll Direct Deposit',
+        date: '2026-09-18',
+        createdAt: 0,
+      );
+
+      expect(
+        scopeTransactions(<Transaction>[
+          payroll,
+        ], const LedgerQuery(profile: ProfileEntity.personal)),
+        hasLength(1),
+        reason: 'an entry with no stored profile is personal, whatever it says',
+      );
+      expect(
+        scopeTransactions(<Transaction>[
+          payroll,
+        ], const LedgerQuery(profile: ProfileEntity.business)),
+        isEmpty,
+        reason: 'the word payroll must not reassign it to Business',
+      );
+    });
+  });
 }

@@ -68,6 +68,10 @@ class LedgerDay {
   final List<Transaction> transactions;
 }
 
+/// Rounds, or returns a stated fallback when the value is not a real number.
+int _safeRound(double v, {required int ifBroken}) =>
+    v.isFinite ? v.round() : ifBroken;
+
 /// Applies the profile, status, account and search filters, in that order.
 ///
 /// The TYPE filter is deliberately not applied here. The prototype scopes
@@ -75,15 +79,20 @@ class LedgerDay {
 /// type for the list, so the summary card keeps describing the whole selection
 /// while the list below it narrows. Collapsing the two would make the card's
 /// figures change every time somebody tapped a tab.
+///
+/// The profile is READ, never guessed. The prototype's rule is exactly
+/// `t.profile || 'personal'` (LedgerScreen.tsx), and an earlier version of
+/// this function ran the keyword inference that belongs to UPCOMING ROWS over
+/// transactions too. That quietly reassigned every peso of salary to Business
+/// on the strength of the word "payroll" in a merchant name, so selecting the
+/// Personal profile showed income of zero on a ledger holding 51,000.
 List<Transaction> scopeTransactions(
   List<Transaction> transactions,
-  LedgerQuery query, {
-  ProfileEntity Function(Transaction)? profileOf,
-}) {
+  LedgerQuery query,
+) {
   return transactions.where((Transaction t) {
     if (query.profile != null) {
-      final ProfileEntity p =
-          t.profile ?? profileOf?.call(t) ?? ProfileEntity.personal;
+      final ProfileEntity p = t.profile ?? ProfileEntity.personal;
       if (p != query.profile) return false;
     }
 
@@ -158,11 +167,18 @@ LedgerTotals computeTotals(List<Transaction> scoped) {
   // Both percentages are the prototype's own expressions, including what they
   // do when nothing came in: outflow reads 100 if anything went out, and
   // retention reads 0 rather than a negative number.
+  //
+  // _safeRound is the one addition. .round() on a non-finite double raises
+  // "Unsupported operation: Infinity or NaN toInt", and this runs inside
+  // build(), so a single bad row turned the whole screen into a red error box
+  // that no tapping could clear. parseLoggedAmount now stops such a row being
+  // written; this makes the READER safe as well, which is where a restored
+  // backup or an imported file will eventually arrive from.
   final int outflowPercentage = totalIn > 0
-      ? ((totalOut / totalIn) * 100).round().clamp(0, 100)
+      ? _safeRound((totalOut / totalIn) * 100, ifBroken: 100).clamp(0, 100)
       : (totalOut > 0 ? 100 : 0);
   final int retentionPercentage = totalIn > 0
-      ? ((net / totalIn) * 100).round().clamp(0, 1 << 31)
+      ? _safeRound((net / totalIn) * 100, ifBroken: 0).clamp(0, 1 << 31)
       : 0;
 
   return LedgerTotals(
@@ -275,7 +291,15 @@ List<String> parseTags(String raw) {
 /// a zero, so a blank or a minus sign writes nothing at all.
 double? parseLoggedAmount(String raw) {
   final double? v = double.tryParse(raw.replaceAll(',', '').trim());
-  if (v == null || v <= 0) return null;
+  // isFinite is doing real work here, not being defensive. Dart parses the
+  // literal text "NaN" and "Infinity" into real doubles, and EVERY comparison
+  // against NaN is false, so `v <= 0` waves both through. Typing NaN into the
+  // amount field then set an account balance to NaN, which nothing can undo,
+  // and made Activity and Home throw "Unsupported operation: Infinity or NaN
+  // toInt" on every rebuild. "1e400" overflows to Infinity and does the same.
+  // The prototype is protected twice over, by isNaN and by an <input
+  // type="number">; Dart has neither for free.
+  if (v == null || !v.isFinite || v <= 0) return null;
   return v;
 }
 

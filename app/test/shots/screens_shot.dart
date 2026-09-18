@@ -205,14 +205,14 @@ void main() {
     LogSheet.show(tester.element(find.byType(AppShell)), state);
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).first, '250');
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('log-source-picker')),
-        matching: find.text('Cash on Hand (Pitaka)'),
-      ),
+    // The founder's own example, typed into the quick-parse line, so the
+    // render shows the read-back sentence AND the form it fills.
+    await tester.enterText(
+      find.byKey(const Key('log-quick-parse')),
+      'Jollibee 500 gcash',
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fill the form with this'));
     await tester.pumpAndSettle();
 
     await expectLater(

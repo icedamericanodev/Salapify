@@ -53,10 +53,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final List<Transaction> scoped = scopeTransactions(
       widget.state.transactions,
       query,
-      profileOf: widget.state.profileOfTransaction,
     );
     final LedgerTotals totals = computeTotals(scoped);
-    final List<LedgerDay> days = groupByDay(filterByType(scoped, _type));
+    final List<Transaction> listed = filterByType(scoped, _type);
+    final List<LedgerDay> days = groupByDay(listed);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -76,7 +76,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
         _SearchField(
           palette: p,
           controller: _search,
-          matchCount: scoped.length,
+          // The count must describe the LIST, not the scoped set. Searching
+          // "meralco" and then tapping In showed "Showing 2 of 11" above the
+          // words "Nothing matches these filters", in the same frame.
+          matchCount: listed.length,
           totalCount: widget.state.transactions.length,
           onChanged: (_) => setState(() {}),
         ),
@@ -118,11 +121,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
+  /// The PROFILE counts as a filter even though it is not set on this screen.
+  /// It is chosen on Home, and leaving it out meant a full ledger could show
+  /// "No entries yet", which is the exact lie the empty state was written to
+  /// avoid: it sends somebody hunting for a bug instead of for the filter.
   bool get _hasFilters =>
       _search.text.trim().isNotEmpty ||
       _status != null ||
       _accountId != null ||
-      _type != LedgerTypeFilter.all;
+      _type != LedgerTypeFilter.all ||
+      widget.state.activeProfile != null;
 }
 
 class _SearchField extends StatelessWidget {

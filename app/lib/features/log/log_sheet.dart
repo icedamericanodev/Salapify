@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/fast_log.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
 import '../../design/tokens.dart';
@@ -44,6 +45,7 @@ class _LogSheetState extends State<LogSheet> {
   final TextEditingController _note = TextEditingController();
   final TextEditingController _tags = TextEditingController();
   final TextEditingController _person = TextEditingController();
+  final TextEditingController _quick = TextEditingController();
 
   TransactionType _type = TransactionType.expense;
   late String _accountId;
@@ -71,10 +73,122 @@ class _LogSheetState extends State<LogSheet> {
     _note.dispose();
     _tags.dispose();
     _person.dispose();
+    _quick.dispose();
     super.dispose();
   }
 
   double? get _amountValue => parseLoggedAmount(_amount.text);
+
+  /// What the quick line currently means, or null when it means nothing yet.
+  FastLogResult? get _preview {
+    if (_quick.text.trim().isEmpty) return null;
+    final FastLogResult r = parseFastLog(_quick.text);
+    return r.isValid ? r : null;
+  }
+
+  /// Fills the form from one typed line.
+  ///
+  /// It fills the FORM rather than saving, deliberately. The parser is a good
+  /// guess and a guess about money should be visible before it is committed:
+  /// everything it worked out lands in the controls below, where it can be
+  /// corrected, and Save is the same button it always was.
+  void _applyQuick() {
+    final FastLogResult? r = _preview;
+    if (r == null) return;
+
+    setState(() {
+      _type = r.type;
+      _amount.text = r.amount == r.amount.roundToDouble()
+          ? r.amount.toStringAsFixed(0)
+          : r.amount.toStringAsFixed(2);
+      _merchant.text = r.merchant;
+      if (r.person != null) _person.text = r.person!;
+
+      // The account hint is a KIND, not an account. Match the first real one
+      // of that kind and ignore the hint when nothing fits, rather than
+      // silently leaving the wrong account selected.
+      if (r.accountKind != null) {
+        for (final Account a in _spendable) {
+          if (a.kind == r.accountKind) {
+            _accountId = a.id;
+            break;
+          }
+        }
+      }
+
+      // The category is applied ONLY when it belongs to the chosen type.
+      // "mp2 2000" parses as an expense in Investment & Passive Income, an
+      // income category, and the picker below filters by type, so applying it
+      // would select something the person cannot see and cannot change.
+      if (r.type != TransactionType.transfer) {
+        final bool usable = widget.state.categories.any(
+          (CategoryInfo c) =>
+              c.name == r.category &&
+              (c.kind == CategoryKind.both ||
+                  (r.type == TransactionType.income
+                      ? c.kind == CategoryKind.income
+                      : c.kind == CategoryKind.expense)),
+        );
+        if (usable) _category = r.category;
+      }
+
+      // Keep a transfer from pointing at its own source after a type change.
+      if (_type == TransactionType.transfer && _toAccountId == _accountId) {
+        for (final Account a in _spendable) {
+          if (a.id != _accountId) {
+            _toAccountId = a.id;
+            break;
+          }
+        }
+      }
+
+      _quick.clear();
+    });
+  }
+
+  /// Changes the type AND reconciles the category to it.
+  ///
+  /// The category picker filters by type, so switching to Received while
+  /// "Food & Dining" was selected left NOTHING highlighted and saved the
+  /// income under an expense category anyway, because Save never looked at
+  /// the category. The mirror case is worse: a spend filed under Salary is
+  /// invisible to every category total and budget. The prototype does this
+  /// same reconciliation in a useEffect on type.
+  void _setType(TransactionType next) {
+    setState(() {
+      _type = next;
+      if (next == TransactionType.transfer) return;
+
+      final List<CategoryInfo> usable = _categoriesFor(next);
+      final bool stillValid = usable.any(
+        (CategoryInfo c) => c.name == _category,
+      );
+      if (!stillValid && usable.isNotEmpty) _category = usable.first.name;
+
+      if (_toAccountId == _accountId) {
+        for (final Account a in _spendable) {
+          if (a.id != _accountId) {
+            _toAccountId = a.id;
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  /// The categories that belong to one side of the ledger. One definition,
+  /// used by the picker AND by the reconciliation above, so they cannot
+  /// disagree about what is selectable.
+  List<CategoryInfo> _categoriesFor(TransactionType type) {
+    return widget.state.categories.where((CategoryInfo c) {
+      // Transfer is a TYPE, not a category somebody picks.
+      if (c.name == 'Transfer') return false;
+      if (c.kind == CategoryKind.both) return true;
+      return type == TransactionType.income
+          ? c.kind == CategoryKind.income
+          : c.kind == CategoryKind.expense;
+    }).toList();
+  }
 
   bool get _canSave {
     if (_amountValue == null) return false;
@@ -112,6 +226,18 @@ class _LogSheetState extends State<LogSheet> {
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         person: _person.text.trim().isEmpty ? null : _person.text.trim(),
         tags: parseTags(_tags.text),
+        // STAMPED, never left null. The prototype stores the active profile on
+        // every entry and falls back to personal when the "All" tab is
+        // selected. Leaving it null here meant the ledger had to guess, and an
+        // entry logged while a profile tab was active vanished from the very
+        // screen the app navigated to after saving it.
+        profile: widget.state.activeProfile ?? ProfileEntity.personal,
+
+        // STAMPED, never left null. The prototype stores the active profile on
+        // every entry and falls back to personal when the "All" tab is
+        // selected. Leaving it null here meant the ledger had to guess, and
+        // an entry logged while a profile tab was active vanished from the
+        // very screen the app navigated to after saving it.
       ),
     );
   }
@@ -143,6 +269,15 @@ class _LogSheetState extends State<LogSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          _QuickParseField(
+            palette: p,
+            controller: _quick,
+            preview: _preview,
+            onChanged: (_) => setState(() {}),
+            onApply: _applyQuick,
+          ),
+          const SizedBox(height: Spacing.lg),
+
           Text('What kind', style: AppType.label(p)),
           const SizedBox(height: Spacing.xs),
           SegmentedChoice<TransactionType>(
@@ -153,11 +288,15 @@ class _LogSheetState extends State<LogSheet> {
               (TransactionType.income, 'Received'),
               (TransactionType.transfer, 'Moved'),
             ],
-            onSelect: (TransactionType t) => setState(() => _type = t),
+            onSelect: _setType,
           ),
           const SizedBox(height: Spacing.md),
 
           SheetField(
+            // Keyed so a test names THIS field rather than "the first one".
+            // Adding the quick-parse line above it silently turned four tests
+            // into tests of a different field.
+            key: const Key('log-amount'),
             palette: p,
             label: 'Amount',
             controller: _amount,
@@ -206,8 +345,7 @@ class _LogSheetState extends State<LogSheet> {
             const SizedBox(height: Spacing.md),
             _CategoryPicker(
               palette: p,
-              categories: widget.state.categories,
-              type: _type,
+              categories: _categoriesFor(_type),
               selected: _category,
               onSelect: (String c) => setState(() => _category = c),
             ),
@@ -215,6 +353,7 @@ class _LogSheetState extends State<LogSheet> {
 
           const SizedBox(height: Spacing.md),
           SheetField(
+            key: const Key('log-merchant'),
             palette: p,
             label: isTransfer ? 'What for (optional)' : 'Where (optional)',
             controller: _merchant,
@@ -366,33 +505,20 @@ class _CategoryPicker extends StatelessWidget {
   const _CategoryPicker({
     required this.palette,
     required this.categories,
-    required this.type,
     required this.selected,
     required this.onSelect,
   });
 
   final Palette palette;
+
+  /// Already narrowed to the chosen type by _categoriesFor, so this widget
+  /// cannot disagree with the reconciliation that keeps the selection valid.
   final List<CategoryInfo> categories;
-  final TransactionType type;
   final String selected;
   final ValueChanged<String> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    // Only the categories that belong to this side of the ledger. Offering
-    // Salary under an expense is how a ledger ends up uncategorisable later.
-    final List<CategoryInfo> usable = categories.where((CategoryInfo c) {
-      // Transfer is a TYPE, not a category somebody picks. It was showing up
-      // in the list for a spend, which invites an entry tagged Transfer that
-      // is not one, and those are the rows nobody can reconcile later. The
-      // sheet sets this category itself when the type is Moved.
-      if (c.name == 'Transfer') return false;
-      if (c.kind == CategoryKind.both) return true;
-      return type == TransactionType.income
-          ? c.kind == CategoryKind.income
-          : c.kind == CategoryKind.expense;
-    }).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -402,7 +528,7 @@ class _CategoryPicker extends StatelessWidget {
           spacing: Spacing.sm,
           runSpacing: Spacing.sm,
           children: <Widget>[
-            for (final CategoryInfo c in usable)
+            for (final CategoryInfo c in categories)
               _Pill(
                 palette: palette,
                 label: c.name,
@@ -524,5 +650,149 @@ class _MoreToggle extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The one line that fills the form.
+///
+/// It sits at the TOP of the sheet and it is optional. Somebody who does not
+/// want to type a sentence scrolls past it to the ordinary controls, and
+/// somebody who does gets the whole form filled from "Jollibee 500".
+class _QuickParseField extends StatelessWidget {
+  const _QuickParseField({
+    required this.palette,
+    required this.controller,
+    required this.preview,
+    required this.onChanged,
+    required this.onApply,
+  });
+
+  final Palette palette;
+  final TextEditingController controller;
+  final FastLogResult? preview;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final FastLogResult? r = preview;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(Icons.bolt, size: 16, color: palette.accent),
+            const SizedBox(width: Spacing.xs),
+            Text('Type it in one line', style: AppType.label(palette)),
+          ],
+        ),
+        const SizedBox(height: Spacing.xs),
+        TextField(
+          key: const Key('log-quick-parse'),
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: (_) => onApply(),
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.done,
+          style: AppType.rowTitle(palette).copyWith(fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Jollibee 500 gcash',
+            hintStyle: AppType.body(palette).copyWith(color: palette.textMuted),
+            filled: true,
+            fillColor: palette.card,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.accent, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.xs),
+        if (r == null)
+          Text(
+            'An amount plus a word or two. Try "grab 420" or '
+            '"padala kay nanay 8000".',
+            style: AppType.caption(palette),
+          )
+        else
+          // Shows WHAT IT UNDERSTOOD before anything is filled in, because a
+          // parser that guesses silently is a parser nobody should trust with
+          // money. Reading it back is what makes a wrong guess obvious.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Spacing.md),
+            decoration: BoxDecoration(
+              color: palette.accentSoft,
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(color: palette.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _readBack(r),
+                  style: AppType.body(palette).copyWith(color: palette.accent),
+                ),
+                const SizedBox(height: Spacing.sm),
+                Semantics(
+                  button: true,
+                  child: InkWell(
+                    onTap: onApply,
+                    borderRadius: BorderRadius.circular(Radii.control),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.arrow_downward,
+                            size: 16,
+                            color: palette.accent,
+                          ),
+                          const SizedBox(width: Spacing.sm),
+                          Text(
+                            'Fill the form with this',
+                            style: AppType.button(
+                              palette,
+                              color: palette.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _readBack(FastLogResult r) {
+    final String verb = switch (r.type) {
+      TransactionType.expense => 'Spent',
+      TransactionType.income => 'Received',
+      TransactionType.transfer => 'Moved',
+    };
+    final StringBuffer b = StringBuffer()
+      ..write('$verb ${formatPeso(r.amount)}')
+      ..write(' at ${r.merchant}')
+      ..write(', filed under ${r.category}');
+    if (r.person != null) b.write(', with ${r.person}');
+    b.write('.');
+    return b.toString();
   }
 }
