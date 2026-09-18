@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
-import '../../engine/format.dart';
+import '../../core/money/format.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 

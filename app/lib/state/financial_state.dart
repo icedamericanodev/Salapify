@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/seed_data.dart';
 import '../design/tokens.dart';
-import '../engine/safe_to_spend.dart';
+import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 
 /// The single store the screens read, standing in for the prototype's

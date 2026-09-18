@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../models/models.dart';
+import '../../models/models.dart';
 import 'js_round.dart';
 
 /// Safe to Spend, ported line for line from src/utils/safeToSpendEngine.ts.

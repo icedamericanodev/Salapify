@@ -62,3 +62,47 @@ disagrees with the prototype, the port is wrong and the vector stands.
 Covered so far: `safeToSpendEngine.ts`, locked by
 `app/test/engine/safe_to_spend_golden_test.dart` across three vectors
 (conservative, optimistic, and with recent spending).
+
+## Money engines
+
+Ported into `app/lib/core/money/`, locked by vectors in `app/test/core/money/`.
+
+Every vector was produced by RUNNING the prototype's own TypeScript under bun
+against the prototype's own inputs, never by working the formula out by hand
+and never by reading the Dart back. If a Dart figure ever disagrees with the
+prototype, the port is wrong and the vector stands.
+
+| Prototype source | Dart | Covers | Tests |
+|---|---|---|---|
+| `safeToSpendEngine.ts` | `safe_to_spend.dart` | Safe to Spend, reserves, buffer, cash runway, payday cadence | 11 |
+| `philippineFinances.ts` | `ph_tax.dart` | SSS, PhilHealth, Pag-IBIG, TRAIN withholding, 13th month and its 90k exemption, freelance 8% vs graduated | 24 |
+| `businessTaxes.ts` | `business_tax.dart` | Sole prop and partnership, 8% / OSD / itemized / RCIT, VAT vs percentage tax, BIR form list | 14 |
+| `loanCalculators.ts` | `loan.dart` | Diminishing and flat add-on amortization, extra payments, balloons, DSR against the BSP bands | 18 |
+
+### Not ported yet, and named rather than implied
+
+- `financialTruthEngine.ts`: `runControlCenterScan`, `simulateDigitalTwin`,
+  `analyzeScamRisk`. Roughly 600 lines. These drive the Health Check surface,
+  which migrates with the screen that opens it.
+- `loanCalculators.ts` product wrappers: Pag-IBIG, bank housing, car, salary,
+  personal and business loans, debt consolidation, credit card payoff, and the
+  avalanche and snowball strategy simulator. All of them sit on top of
+  `calculateAmortization`, which IS ported and locked, so they are preset
+  plumbing rather than new math.
+- `philippineFinances.ts` helpers: remittance fee estimation, cash
+  denomination counting, and the Taglish reminder text.
+
+### Quirks preserved on purpose
+
+Three places where the prototype does something surprising and the port keeps
+it, because changing a number nobody decided to change is the worse error:
+
+1. A **balloon payment overruns the stated term.** 900,000 at 8% over 36
+   months with a 200,000 balloon runs 45 months, because the schedule keeps
+   amortising to zero instead of stopping and charging the balloon.
+2. **VAT contributes nothing.** A VAT registered business shows zero business
+   tax, because the engine treats VAT as pure pass-through. That is a
+   cash-flow view, not a filing figure.
+3. **The 13th month gross is rounded in one function and not the other.**
+   `calculateEmployeeTaxDeductions` rounds it, `calculate13thMonthPay` does
+   not. Making them agree would move a figure on a screen.

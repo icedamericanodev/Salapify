@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/seed_data.dart';
-import 'package:salapify/engine/safe_to_spend.dart';
+import 'package:salapify/core/money/safe_to_spend.dart';
 import 'package:salapify/models/models.dart';
 
 /// Golden vectors for the Safe to Spend port.
