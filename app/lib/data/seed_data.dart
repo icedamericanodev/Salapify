@@ -61,7 +61,14 @@ class SeedData {
       kind: AccountKind.bank,
       institution: 'MariBank',
       balance: 24250.00,
-      monogram: 'SB',
+      // MB, not the SB the prototype's seed carries. SeaBank was renamed
+      // MariBank in 2024, the id still says seabank, and the monogram was
+      // never updated with the name. The prototype's OWN computeMonogram
+      // returns MB for MariBank, so its seed disagrees with its own function.
+      // Caught by accounts_test's "every seeded account still computes the
+      // monogram it was given", which is the whole reason that test compares
+      // the map against the data instead of trusting either one.
+      monogram: 'MB',
     ),
     Account(
       id: 'acc_ub_debit',
@@ -71,6 +78,12 @@ class SeedData {
       institution: 'UnionBank',
       balance: 12400.00,
       monogram: 'UB',
+      // From the prototype's own seed. Carried over 2026-09-18 with the
+      // Accounts tab, because a debit account is DRAWN AS A CARD there and a
+      // card with no digits on it is a picture of a defect.
+      accountNumber: '1029-****-6789',
+      cardNetwork: CardNetwork.mastercard,
+      notes: 'Operating account for business transactions and SaaS',
     ),
     Account(
       id: 'acc_mp2',
@@ -99,6 +112,11 @@ class SeedData {
       balance: 4200.00,
       creditLimit: 40000.00,
       monogram: 'BPI',
+      accountNumber: '5424-****-****-8819',
+      dueDate: 'Oct 3',
+      statementDate: '10th of the month',
+      cardNetwork: CardNetwork.visa,
+      notes: 'Kept below 30% utilization threshold for credit score health',
     ),
     Account(
       id: 'acc_personal_loan',
@@ -108,6 +126,8 @@ class SeedData {
       institution: 'BPI',
       balance: 10000.00,
       monogram: 'LOAN',
+      dueDate: 'Sep 25',
+      notes: 'Remaining gadget upgrade principal balance',
     ),
     Account(
       id: 'acc_pagibig_mortgage',
@@ -117,6 +137,8 @@ class SeedData {
       institution: 'Pag-IBIG',
       balance: 385000.00,
       monogram: 'MTG',
+      dueDate: 'Sep 28',
+      notes: '30-year residential housing mortgage',
     ),
   ];
 

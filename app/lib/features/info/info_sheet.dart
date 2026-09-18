@@ -138,6 +138,7 @@ class _Formula extends StatelessWidget {
 
 /// Every explainer the app can open. One value per dot.
 enum InfoTopic {
+  accounts,
   netWorth,
   performance,
   ratios,
@@ -187,6 +188,54 @@ class InfoContent {
 /// it assumed knowledge: "True balance sheet for Philippine accounts" tells
 /// somebody who does not know what a balance sheet is precisely nothing.
 const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
+  InfoTopic.accounts: InfoContent(
+    title: 'Accounts',
+    subtitle: 'Every place your money sits, and every place it is owed from',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.account_balance_wallet_outlined,
+        title: 'An account is a place, not a category',
+        body:
+            'Your pitaka, GCash, a payroll account, a digital savings app, an '
+            'MP2 fund, a credit card, a car loan. If money can sit there or be '
+            'owed from there, it belongs on this screen.',
+      ),
+      InfoPoint(
+        icon: Icons.groups_outlined,
+        title: 'The entity chips split business from personal',
+        body:
+            'An account you never classified shows under every entity, on '
+            'purpose. A wallet that belongs nowhere in particular belongs '
+            'everywhere, so it can never quietly disappear from a filter.',
+      ),
+      InfoPoint(
+        icon: Icons.credit_card_outlined,
+        title: 'A credit card balance is what you OWE',
+        body:
+            'So it counts against you, and it is drawn with a minus. The '
+            'limit is not money you have; it is how much the bank will let '
+            'you borrow.',
+      ),
+      InfoPoint(
+        icon: Icons.handshake_outlined,
+        title: 'Debts are counted separately, below',
+        body:
+            'The total at the top is your accounts only. Money you lent a '
+            'friend, and money a friend lent you, lives in the debt register '
+            'underneath with its own two figures, so neither one hides inside '
+            'the other.',
+      ),
+      InfoPoint(
+        icon: Icons.public_outlined,
+        title: 'Foreign balances are estimates',
+        body:
+            'Salapify works offline, so there is no live exchange rate. A '
+            'peso figure under a dollar or Singapore dollar balance uses a '
+            'fixed rate and is there for a rough sense of scale, never for a '
+            'decision.',
+      ),
+    ],
+  ),
   InfoTopic.netWorth: InfoContent(
     title: 'Net worth',
     subtitle: 'What you would have left if everything settled today',

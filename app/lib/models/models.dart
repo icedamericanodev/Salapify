@@ -2,6 +2,10 @@
 // Only the types the app actually reads today are here. The rest arrive with
 // the tabs that need them, so nothing sits unused.
 
+import '../core/money/currencies.dart';
+
+export '../core/money/currencies.dart' show CurrencyCode;
+
 enum TransactionType { expense, income, transfer }
 
 enum AccountKind {
@@ -60,6 +64,15 @@ enum UpcomingItemType {
   government,
 }
 
+/// The scheme printed on a physical card. `none` is a real answer, not a
+/// missing one: a passbook savings account and a virtual e-wallet card both
+/// legitimately have no network logo.
+enum CardNetwork { none, visa, mastercard, amex, jcb }
+
+/// How fancy the plastic is. Purely cosmetic, and it is the user's own
+/// statement about their card rather than anything Salapify computes.
+enum CardTier { regular, gold, platinum, black, custom }
+
 class Account {
   const Account({
     required this.id,
@@ -68,10 +81,15 @@ class Account {
     required this.institution,
     required this.balance,
     required this.monogram,
+    this.currency = CurrencyCode.php,
     this.profile,
     this.creditLimit,
     this.interestRate,
     this.accountNumber,
+    this.dueDate,
+    this.statementDate,
+    this.cardNetwork = CardNetwork.none,
+    this.cardTier = CardTier.regular,
     this.notes,
   });
 
@@ -81,6 +99,17 @@ class Account {
   final String institution;
   final double balance;
   final String monogram;
+
+  /// What the balance is DENOMINATED in.
+  ///
+  /// Defaults to pesos, which is what every account in the fixture is, so
+  /// nothing in the app changes by this field existing. It is here because
+  /// the prototype's Accounts screen shows a foreign balance in its own
+  /// currency with the peso equivalent underneath, and an OFW with a
+  /// Singapore payroll account is exactly who that was drawn for. Anything
+  /// that SUMS balances has to run them through convertToPhp first, or it
+  /// adds dollars to pesos and reports the total as pesos.
+  final CurrencyCode currency;
 
   /// Which entity this account belongs to, from src/types.ts.
   ///
@@ -93,13 +122,34 @@ class Account {
   final double? creditLimit;
   final double? interestRate;
   final String? accountNumber;
+
+  /// When the payment is due, as the user typed it ("Oct 3", "15th"). Free
+  /// text on purpose, matching the prototype: a card that bills on the last
+  /// working day of the month has no clean date to store, and asking somebody
+  /// to pick one is how a reminder ends up wrong.
+  final String? dueDate;
+  final String? statementDate;
+  final CardNetwork cardNetwork;
+  final CardTier cardTier;
   final String? notes;
 
   bool get isLiquid => liquidKinds.contains(kind);
 
+  /// The peso value of this balance, for anything that adds accounts up.
+  double get balanceInPhp => convertToPhp(balance, currency);
+
+  /// True when this balance is NOT in pesos, so the screen knows to show the
+  /// conversion and label it as an estimate.
+  bool get isForeign => currency != CurrencyCode.php;
+
   /// Only the balance ever changes on a logged entry, so this takes only that.
   /// Widening it later is easy; a general copyWith invites a caller to change
   /// something a ledger entry has no business changing.
+  ///
+  /// Editing an account is deliberately NOT done through here. The account
+  /// sheet builds a whole new Account with the same id, so every field a
+  /// person can change is visible in one place and nothing survives by
+  /// accident.
   Account copyWith({double? balance}) => Account(
     id: id,
     name: name,
@@ -107,10 +157,15 @@ class Account {
     institution: institution,
     balance: balance ?? this.balance,
     monogram: monogram,
+    currency: currency,
     profile: profile,
     creditLimit: creditLimit,
     interestRate: interestRate,
     accountNumber: accountNumber,
+    dueDate: dueDate,
+    statementDate: statementDate,
+    cardNetwork: cardNetwork,
+    cardTier: cardTier,
     notes: notes,
   );
 }

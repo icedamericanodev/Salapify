@@ -109,6 +109,47 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Adds an account the user just described.
+  ///
+  /// Newest first, the same order every other add on this store uses, so
+  /// somebody who has just typed one finds it at the top of its group rather
+  /// than wherever the alphabet put it.
+  ///
+  /// The balance they typed is taken AS THE TRUTH and no transaction is
+  /// written for it. That is deliberate: an opening balance is not income,
+  /// and logging one would put a made up 48,500 payday into Reports and
+  /// inflate the month's money in. The prototype does the same.
+  ///
+  /// In memory only, like every other write on this store today.
+  void addAccount(Account account) {
+    _accounts = <Account>[account, ..._accounts];
+    notifyListeners();
+  }
+
+  /// Replaces an account with an edited version of itself, matched on id.
+  ///
+  /// Whole-object replacement rather than a field-by-field patch, because the
+  /// sheet already holds every field a person can change and a patch API
+  /// invites a caller to change one thing while silently keeping a stale copy
+  /// of another.
+  ///
+  /// Editing a balance here is a CORRECTION, not a movement, so again no
+  /// transaction is written. Somebody fixing a typo in their opening balance
+  /// is not spending or earning anything, and Reports should not show a
+  /// phantom entry for it. Reconciliation, which is the feature for "the bank
+  /// says something different", is the one that writes a traceable adjustment,
+  /// and it is its own batch.
+  void updateAccount(Account account) {
+    final int i = _accounts.indexWhere((Account a) => a.id == account.id);
+    if (i < 0) return;
+    _accounts = <Account>[
+      ..._accounts.sublist(0, i),
+      account,
+      ..._accounts.sublist(i + 1),
+    ];
+    notifyListeners();
+  }
+
   /// Records an entry the user just logged, and moves the money.
   ///
   /// The balance side goes through applyToBalances in core/money/ledger.dart,

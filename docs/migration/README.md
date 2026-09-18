@@ -27,7 +27,7 @@ The prototype's tab order, finished one tab at a time including its modals.
 | 2 | Activity (Ledger) | `LedgerScreen`, `LogSheet`, `TransactionDetailModal` | Done. List, detail and the Log write path, with quick parse and a date picker |
 | 3 | Reports | `ReportsScreen` | Position, Performance and Cash flow built. Reconciliation, the one that writes, is its own step |
 | 4 | Plan | `PlanScreen`, `AcademyView`, `CalculatorLibrary`, trackers | All eight segments built, Academy carrying the real 32-course curriculum. The three long-form startup guides get their own pass |
-| 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Not started |
+| 5 | Accounts | `AccountsScreen`, `BankCard`, `InvestmentsView` | Screen, cards, groups and the add and edit write path built. `InvestmentsView`, the holdings tracker, is its own step |
 
 "Built" in the column above means the tab's own screens exist and read the real
 engines. It does NOT mean every section of the prototype's screen crossed over.
@@ -396,6 +396,60 @@ Still to come: the three long-form guides behind that roadmap card (Philippine
 business registration, the SaaS and app store guide, the digital product
 checklist), about 3,200 lines of written guidance between them. The card says
 so rather than offering a button that opens nothing.
+
+### Accounts
+
+The fifth and last tab, built 2026-09-18 from `src/components/AccountsScreen.tsx`
+and `BankCard.tsx`. Every tab in the prototype now has a real screen in `app/`.
+
+Net worth, the entity the figures are scoped to, the four view filters, then
+the wallet itself: e-wallets, bank accounts, cash, investments and receivables
+on the asset side, credit cards, loans and mortgages on the other, each group
+collapsible with its own subtotal. Debit and credit accounts are drawn as
+plastic; everything else is a row, because a screen made entirely of cards is
+one you have to scroll to count your wallets.
+
+| Gabi (dark) | Hapon (light) |
+|---|---|
+| ![Accounts, all, Gabi](screens/accounts-all-gabi.png) | ![Accounts, all, Hapon](screens/accounts-all-hapon.png) |
+
+The three narrower views. Own, Owe, and Invested:
+
+| Own | Owe | Invested |
+|---|---|---|
+| ![Assets, Gabi](screens/accounts-assets-gabi.png) | ![Liabilities, Gabi](screens/accounts-liabilities-gabi.png) | ![Invested, Gabi](screens/accounts-invested-gabi.png) |
+| ![Assets, Hapon](screens/accounts-assets-hapon.png) | ![Liabilities, Hapon](screens/accounts-liabilities-hapon.png) | ![Invested, Hapon](screens/accounts-invested-hapon.png) |
+
+Adding an account, plain and in its card shape. The card shape adds the last
+four digits, the scheme, the tier, the limit and the due date:
+
+| Plain | Credit card |
+|---|---|
+| ![Add account](screens/sheet-add-account-plain.png) | ![Add a card](screens/sheet-add-account-card.png) |
+
+And a FOREIGN balance, which no seeded account has. Adding one to the fixture
+would move every reports vector, so this render builds its own store instead.
+It is here because the conversion path would otherwise ship having been tested
+and never once looked at:
+
+![A Singapore dollar account](screens/accounts-foreign.png)
+
+The peso line says "about" on purpose. Salapify works offline, so the rate is
+compiled in and stale by construction, and a converted figure is a sense of
+scale rather than a number to decide on.
+
+Two things this screen does NOT do, named rather than left to be discovered:
+
+- **No delete.** Deleting an account is user data deletion, which CLAUDE.md
+  reserves for the founder, and it is the one action here that retyping cannot
+  undo. It also orphans things, since transactions carry an account id. The
+  proposal is in `docs/reviews/accounts-tab.md`. Until then a mistake is fixed
+  by editing, which loses nothing.
+- **No holdings tracker.** The prototype's Investments filter opens
+  `InvestmentsView.tsx`, 1,114 lines of units, cost basis, valuations and
+  market data adapters. That is its own batch. The filter here shows the
+  investment ACCOUNTS, which are real, and says in one line what the tracker
+  will add.
 
 ### Sheets
 

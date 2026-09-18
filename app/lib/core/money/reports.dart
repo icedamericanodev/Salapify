@@ -66,13 +66,16 @@ const List<AccountKind> cashEquivalentKinds = <AccountKind>[
 
 /// Converts an account balance to pesos.
 ///
-/// Every account in the fixture is PHP and the Dart model carries no currency
-/// field yet, so this is the identity function. It exists as a NAMED SEAM
-/// rather than being left out: the prototype calls convertToPhp on every one
-/// of these sums, and when multi-currency lands it has to land in exactly
-/// these places. A missing call site is invisible; a function that does
-/// nothing yet is greppable.
-double toPhp(double amount) => amount;
+/// This used to be the identity function, a named seam left for the day the
+/// model carried a currency. That day is 2026-09-18: `Account.currency`
+/// exists now, so the seam does the real conversion. Every account in the
+/// fixture is still PHP, so no figure on any screen moved, and the reports
+/// vector tests are what proves that rather than my saying so.
+///
+/// It stays a function rather than being inlined because the prototype calls
+/// convertToPhp at every one of these sums, and a MISSING call site is
+/// invisible while a wrapper is greppable.
+double toPhp(Account account) => account.balanceInPhp;
 
 /// What you own and what you owe, at this instant. No period applies: a
 /// balance sheet is a photograph, not a film.
@@ -380,7 +383,7 @@ FinancialPosition computePosition(
       .toList();
 
   double sum(Iterable<Account> list) =>
-      list.fold<double>(0, (double s, Account a) => s + toPhp(a.balance));
+      list.fold<double>(0, (double s, Account a) => s + toPhp(a));
 
   final double totalAssets = sum(assets);
   final double totalLiabilities = sum(liabilities);

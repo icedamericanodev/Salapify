@@ -4,9 +4,9 @@ import '../core/money/format.dart';
 import '../design/tokens.dart';
 import '../features/log/log_sheet.dart';
 import '../models/models.dart';
+import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/placeholder/placeholder_screen.dart';
 import '../screens/plan/plan_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../state/financial_state.dart';
@@ -63,12 +63,32 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.plan:
         return PlanScreen(state: widget.state);
       case SalapifyTab.accounts:
-        return PlaceholderScreen(
-          palette: palette,
-          title: 'Accounts',
-          note: 'Every wallet, bank, card and loan lands here.',
+        return AccountsScreen(
+          state: widget.state,
+          // The Debt screen is its own batch, so the register card on Accounts
+          // shows the two real figures and says the list is not built yet
+          // rather than opening nothing at all.
+          onOpenDebt: () => _soon(context, palette, 'The debt list'),
         );
     }
+  }
+
+  /// Says plainly that something is not built yet, rather than a tap that
+  /// does nothing. A dead control reads as a bug; a note reads as a roadmap.
+  void _soon(BuildContext context, Palette palette, String what) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '$what is not migrated yet.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   /// Opens the Log sheet and records what comes back.

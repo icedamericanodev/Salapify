@@ -15,6 +15,9 @@ import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
+import 'package:salapify/features/accounts/account_sheet.dart';
+import 'package:salapify/models/models.dart';
+import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
@@ -707,4 +710,170 @@ void main() {
       matchesGoldenFile('out/sheet_add_debt_schedule.png'),
     );
   });
+
+  // Accounts, the fifth tab. All four views at both brightnesses, because a
+  // view nobody renders is a screen nobody has looked at.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final ({String label, String slug}) view
+        in <({String label, String slug})>[
+          (label: '', slug: 'all'),
+          (label: 'Own 8', slug: 'assets'),
+          (label: 'Owe 3', slug: 'liabilities'),
+          (label: 'Invested', slug: 'invested'),
+        ]) {
+      testWidgets('accounts ${view.slug} renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        // Tall: the All view is the whole wallet, eleven accounts in eight
+        // groups plus the debt register, and it is the one worth seeing whole.
+        tester.view.physicalSize = const Size(1170, 6400);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byIcon(Icons.account_balance_wallet_outlined).last,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(AccountsScreen),
+          findsOneWidget,
+          reason: 'the Accounts tab did not open',
+        );
+
+        if (view.label.isNotEmpty) {
+          await tester.tap(find.text(view.label));
+          await tester.pumpAndSettle();
+        }
+
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/accounts_${view.slug}_$theme.png'),
+        );
+      });
+    }
+  }
+
+  // A FOREIGN balance, which no seeded account has. Without this shot the
+  // conversion path ships having been tested and never once looked at, and
+  // "about ₱88,400.00" under a Singapore dollar figure is exactly the kind of
+  // line that reads wrong at a glance and fine in an assertion.
+  testWidgets('accounts with a foreign balance renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    state.addAccount(
+      const Account(
+        id: 'acc_sg_shot',
+        name: 'Singapore payroll',
+        kind: AccountKind.bank,
+        institution: 'Other',
+        balance: 2000,
+        monogram: 'SG',
+        currency: CurrencyCode.sgd,
+        profile: ProfileEntity.personal,
+      ),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Own 9'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/accounts_foreign.png'),
+    );
+  });
+
+  // The add sheet, in both of its shapes: the plain one somebody sees first,
+  // and the card one with the limit, the scheme and the due date on it.
+  for (final ({String kind, String slug}) shape
+      in <({String kind, String slug})>[
+        (kind: '', slug: 'plain'),
+        (kind: 'Credit card', slug: 'card'),
+      ]) {
+    testWidgets('sheet add account ${shape.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      AccountSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.kind.isNotEmpty) {
+        await tester.tap(find.text(shape.kind));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_add_account_${shape.slug}.png'),
+      );
+    });
+  }
 }
