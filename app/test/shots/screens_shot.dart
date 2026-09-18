@@ -7,6 +7,7 @@ import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/categories/category_manager_sheet.dart';
+import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
@@ -175,6 +176,51 @@ void main() {
     });
   }
 
+  // The Log sheet, mid-entry rather than blank, because an empty form shows
+  // none of the parts that can go wrong: the confirmation sentence, the
+  // selected account pill, and the Save button becoming live.
+  testWidgets('log sheet renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '250');
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('log-source-picker')),
+        matching: find.text('Cash on Hand (Pitaka)'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet.png'),
+    );
+  });
+
   // The transaction detail, opened on the EXCLUDED row, dark only. That row
   // is chosen deliberately: it is the one carrying the struck-through amount
   // and the sentence explaining why it is not in the totals, so the render
@@ -187,7 +233,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final FinancialState state = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
     final Palette palette = Palette.of(state.theme);
 
     await tester.pumpWidget(

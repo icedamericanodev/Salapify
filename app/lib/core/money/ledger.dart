@@ -220,6 +220,65 @@ List<({String category, double amount})> categorySpending(
   return rows;
 }
 
+// ------------------------------------------------------------------- writing
+
+/// Applies a newly logged entry to the account balances, ported from
+/// addTransaction in src/context/FinancialContext.tsx.
+///
+/// The rules, all of them the prototype's:
+///   expense   the source account falls
+///   income    the source account rises
+///   transfer  the source falls AND the destination rises
+///   excluded or duplicate  NOTHING moves, because those mean "this is not
+///             really money that moved", exactly as they do in the totals
+///
+/// A PRESERVED QUIRK, named rather than fixed: a transfer whose destination
+/// id matches no account debits the source and credits nobody, so money
+/// simply disappears from net worth. That is what the prototype does, and the
+/// vectors lock it, because changing a number nobody decided to change is the
+/// worse error. The defence is that the UI must make it unreachable: a
+/// destination is picked from the account list and cannot be the source. If a
+/// caller ever manages to produce it, that is a bug in the caller.
+List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
+  if (!tx.countsTowardTotals) return accounts;
+
+  return accounts.map((Account a) {
+    if (a.id == tx.accountId) {
+      final double delta = switch (tx.type) {
+        TransactionType.income => tx.amount,
+        TransactionType.expense => -tx.amount,
+        TransactionType.transfer => -tx.amount,
+      };
+      return a.copyWith(balance: a.balance + delta);
+    }
+    if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
+      return a.copyWith(balance: a.balance + tx.amount);
+    }
+    return a;
+  }).toList();
+}
+
+/// Splits the Log sheet's tag field the way the prototype does: on commas,
+/// trimmed, empties dropped, and every tag forced to start with a hash so the
+/// stored shape cannot depend on whether somebody typed one.
+List<String> parseTags(String raw) {
+  return raw
+      .split(',')
+      .map((String t) => t.trim())
+      .where((String t) => t.isNotEmpty)
+      .map((String t) => t.startsWith('#') ? t : '#$t')
+      .toList();
+}
+
+/// The Log sheet's amount parse: commas stripped, and anything that is not a
+/// positive number is refused. The prototype returns early rather than saving
+/// a zero, so a blank or a minus sign writes nothing at all.
+double? parseLoggedAmount(String raw) {
+  final double? v = double.tryParse(raw.replaceAll(',', '').trim());
+  if (v == null || v <= 0) return null;
+  return v;
+}
+
 // --------------------------------------------------------------------- search
 
 /// The prototype's search, which is far more forgiving than it looks.

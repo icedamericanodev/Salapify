@@ -139,6 +139,7 @@ List<String> _ids(List<Transaction> list) =>
     list.map((Transaction t) => t.id).toList();
 
 void main() {
+  _writeTests();
   group('scoping', () {
     test('no filters keeps every row, in stored order', () {
       final List<Transaction> s = scopeTransactions(
@@ -383,5 +384,200 @@ void main() {
       isFalse,
       reason: 'the excluded 9,999 row must not appear as a spending category',
     );
+  });
+}
+
+/// The WRITE side: what logging an entry does to account balances. Every
+/// figure below came from running addTransaction's own balance block out of
+/// src/context/FinancialContext.tsx under bun.
+void _writeTests() {
+  List<Account> base() => <Account>[
+    const Account(
+      id: 'bpi',
+      name: 'BPI',
+      kind: AccountKind.bank,
+      institution: 'BPI',
+      balance: 48500,
+      monogram: 'B',
+    ),
+    const Account(
+      id: 'gcash',
+      name: 'GCash',
+      kind: AccountKind.gcash,
+      institution: 'GCash',
+      balance: 8420.5,
+      monogram: 'G',
+    ),
+    const Account(
+      id: 'cash',
+      name: 'Cash',
+      kind: AccountKind.cash,
+      institution: 'Cash',
+      balance: 1850,
+      monogram: 'C',
+    ),
+  ];
+
+  double balanceOf(List<Account> accounts, String id) =>
+      accounts.firstWhere((Account a) => a.id == id).balance;
+
+  double sumOf(List<Account> accounts) =>
+      accounts.fold<double>(0, (double s, Account a) => s + a.balance);
+
+  Transaction logged({
+    required TransactionType type,
+    required double amount,
+    required String accountId,
+    String? toAccountId,
+    TransactionStatus status = TransactionStatus.confirmed,
+  }) => Transaction(
+    id: 'new',
+    type: type,
+    amount: amount,
+    category: 'Test',
+    accountId: accountId,
+    toAccountId: toAccountId,
+    date: '2026-09-18',
+    createdAt: 0,
+    status: status,
+  );
+
+  group('applying a logged entry to balances', () {
+    test('an expense lowers the source account by exactly the amount', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(type: TransactionType.expense, amount: 285, accountId: 'gcash'),
+      );
+      expect(balanceOf(r, 'gcash'), 8135.5);
+      expect(
+        balanceOf(r, 'bpi'),
+        48500,
+        reason: 'other accounts must not move',
+      );
+      expect(sumOf(r), 58485.5);
+    });
+
+    test('income raises the source account', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(type: TransactionType.income, amount: 32500, accountId: 'bpi'),
+      );
+      expect(balanceOf(r, 'bpi'), 81000);
+      expect(sumOf(r), 91270.5);
+    });
+
+    test('a transfer moves money and changes net worth by nothing', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.transfer,
+          amount: 5000,
+          accountId: 'bpi',
+          toAccountId: 'gcash',
+        ),
+      );
+      // The invariant.
+      expect(sumOf(r), sumOf(base()));
+      // And the directional companion, without which a transfer that
+      // transferred nothing would satisfy the line above perfectly.
+      expect(balanceOf(r, 'bpi'), 43500);
+      expect(balanceOf(r, 'gcash'), 13420.5);
+    });
+
+    test('an excluded entry moves no money at all', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.expense,
+          amount: 9999,
+          accountId: 'gcash',
+          status: TransactionStatus.excluded,
+        ),
+      );
+      expect(sumOf(r), sumOf(base()));
+      expect(balanceOf(r, 'gcash'), 8420.5);
+    });
+
+    test('a duplicate entry moves no money at all', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.income,
+          amount: 8000,
+          accountId: 'bpi',
+          status: TransactionStatus.duplicate,
+        ),
+      );
+      expect(balanceOf(r, 'bpi'), 48500);
+    });
+
+    test('a PENDING entry does move the money, and may go negative', () {
+      // Pending means not yet settled, not "did not happen". The prototype
+      // debits it, and it is allowed to push an account below zero, which is
+      // how an overdrawn wallet shows up rather than being hidden.
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.expense,
+          amount: 1899,
+          accountId: 'cash',
+          status: TransactionStatus.pending,
+        ),
+      );
+      expect(balanceOf(r, 'cash'), -49);
+    });
+
+    test('centavos survive', () {
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.expense,
+          amount: 1250.5,
+          accountId: 'gcash',
+        ),
+      );
+      expect(balanceOf(r, 'gcash'), 7170);
+    });
+
+    test('a transfer to an unknown account LOSES money, quirk preserved', () {
+      // Documented in applyToBalances and locked here so it cannot change by
+      // accident in either direction. The source is debited, nobody is
+      // credited, and net worth falls. The UI must make this unreachable; the
+      // engine reproduces the prototype.
+      final List<Account> r = applyToBalances(
+        base(),
+        logged(
+          type: TransactionType.transfer,
+          amount: 100,
+          accountId: 'bpi',
+          toAccountId: 'nope',
+        ),
+      );
+      expect(balanceOf(r, 'bpi'), 48400);
+      expect(sumOf(r), 58670.5);
+      expect(
+        sumOf(r),
+        lessThan(sumOf(base())),
+        reason: 'this is the quirk: money genuinely disappears',
+      );
+    });
+  });
+
+  group('the Log sheet parsers', () {
+    test('tags split on commas and gain a hash', () {
+      expect(parseTags('weekly, groceries'), <String>['#weekly', '#groceries']);
+      expect(parseTags('#already, plain'), <String>['#already', '#plain']);
+      expect(parseTags('  '), isEmpty);
+      expect(parseTags('a,,b'), <String>['#a', '#b']);
+    });
+
+    test('an amount must be a positive number, commas allowed', () {
+      expect(parseLoggedAmount('1,250.50'), 1250.5);
+      expect(parseLoggedAmount('285'), 285);
+      expect(parseLoggedAmount(''), isNull);
+      expect(parseLoggedAmount('0'), isNull);
+      expect(parseLoggedAmount('-5'), isNull);
+      expect(parseLoggedAmount('abc'), isNull);
+    });
   });
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../design/tokens.dart';
+import '../features/log/log_sheet.dart';
+import '../models/models.dart';
 import '../screens/activity/activity_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/placeholder/placeholder_screen.dart';
@@ -41,7 +43,10 @@ class _AppShellState extends State<AppShell> {
   Widget _bodyFor(SalapifyTab tab, Palette palette) {
     switch (tab) {
       case SalapifyTab.home:
-        return HomeScreen(state: widget.state);
+        return HomeScreen(
+          state: widget.state,
+          onOpenLog: () => _openLog(context, palette),
+        );
       case SalapifyTab.activity:
         return ActivityScreen(state: widget.state);
       case SalapifyTab.reports:
@@ -65,39 +70,37 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  void _openLog(BuildContext context, Palette palette) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: palette.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.card)),
-      ),
-      builder: (BuildContext context) => Padding(
-        padding: const EdgeInsets.all(Spacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Log',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: palette.textPrimary,
-              ),
-            ),
-            const SizedBox(height: Spacing.sm),
-            Text(
-              'The fast log sheet is part of the Activity migration step. '
-              'This sheet is here so the button it hangs off is real.',
-              style: TextStyle(fontSize: 14, color: palette.textMuted),
-            ),
-            const SizedBox(height: Spacing.xl),
-          ],
+  /// Opens the Log sheet and records what comes back.
+  ///
+  /// The messenger is captured BEFORE the await: the sheet can be dismissed
+  /// long after this context is gone, and reaching for ScaffoldMessenger.of on
+  /// the far side of an await is the usual way that becomes a crash.
+  Future<void> _openLog(BuildContext context, Palette palette) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final Transaction? logged = await LogSheet.show(context, widget.state);
+    if (logged == null) return;
+
+    widget.state.logTransaction(logged);
+
+    // Land on Activity, where the entry now is. Saving something and being
+    // left on the screen that does not show it is how somebody concludes it
+    // did not save.
+    setState(() => _current = SalapifyTab.activity);
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Logged. Entries are not saved to the phone yet, so this clears '
+            'when the app is closed.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
   }
 }
 

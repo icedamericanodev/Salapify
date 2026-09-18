@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/seed_data.dart';
 import '../design/tokens.dart';
+import '../core/money/ledger.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 
@@ -13,6 +14,7 @@ class FinancialState extends ChangeNotifier {
     _transactions = SeedData.transactions();
     _upcoming = List<UpcomingItem>.of(SeedData.upcoming);
     _debts = List<Debt>.of(SeedData.debts);
+    _accounts = List<Account>.of(SeedData.accounts);
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -21,6 +23,7 @@ class FinancialState extends ChangeNotifier {
   late List<Transaction> _transactions;
   late List<UpcomingItem> _upcoming;
   late List<Debt> _debts;
+  late List<Account> _accounts;
 
   ThemeMode2 _theme = ThemeMode2.gabi;
   DecisionScenario _scenario = DecisionScenario.conservative;
@@ -36,7 +39,7 @@ class FinancialState extends ChangeNotifier {
 
   DateTime get now => clock ?? DateTime.now();
 
-  List<Account> get accounts => SeedData.accounts;
+  List<Account> get accounts => List<Account>.unmodifiable(_accounts);
   List<Transaction> get transactions =>
       List<Transaction>.unmodifiable(_transactions);
   List<Debt> get debts => List<Debt>.unmodifiable(_debts);
@@ -78,9 +81,6 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Ticks an upcoming item off. It leaves the ledger alone on purpose: this
-  /// marks an EXPECTATION as met, it does not log a transaction, and the
-  /// prototype behaves the same way.
   /// Records a debt the user just entered in the Add Debt sheet.
   ///
   /// It goes to the front of the list because the screens that read debts sort
@@ -93,6 +93,25 @@ class FinancialState extends ChangeNotifier {
   /// desirable, and the sheet says so when it saves.
   void addDebt(Debt debt) {
     _debts = <Debt>[debt, ..._debts];
+    notifyListeners();
+  }
+
+  /// Records an entry the user just logged, and moves the money.
+  ///
+  /// The balance side goes through applyToBalances in core/money/ledger.dart,
+  /// which is locked to vectors from the prototype's own addTransaction, so
+  /// this method decides WHEN money moves and never HOW MUCH.
+  ///
+  /// Newest first, matching the prototype, and matching what the Activity
+  /// screen shows: somebody who has just logged something looks at the top.
+  ///
+  /// In memory only, like every other write on this store today. There is no
+  /// storage layer in app/ yet, so this is gone on the next cold start, and
+  /// the sheet says so when it saves rather than letting somebody find out
+  /// tomorrow.
+  void logTransaction(Transaction tx) {
+    _transactions = <Transaction>[tx, ..._transactions];
+    _accounts = applyToBalances(_accounts, tx);
     notifyListeners();
   }
 

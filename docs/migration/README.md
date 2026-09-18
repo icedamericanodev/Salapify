@@ -90,9 +90,43 @@ attachments. Those need a collaboration system and a storage layer that `app/`
 does not have, and a comment box that cannot save a comment is worse than no
 comment box. The sheet says so at the bottom rather than implying otherwise.
 
-Still to come on this tab: the Log sheet, which is the write path and needs a
-journey proving an entry is visible on every screen that should mention it
-afterwards.
+### Logging an entry
+
+The write path, reachable from the Log button in the tab bar and the Log quick
+action on Home.
+
+| Log sheet (Gabi) |
+|---|
+| ![Log sheet](screens/log-sheet.png) |
+
+Saving MOVES MONEY: the account balance changes, exactly as the prototype's
+`addTransaction` does, and a transfer debits one account and credits the other
+so net worth is unchanged. The balance arithmetic lives in `applyToBalances`
+and is locked to vectors generated from the prototype's own code.
+
+Three things this sheet does deliberately:
+
+1. **It says what it is about to do before you do it.** With an amount and an
+   account chosen it reads "₱250.00 leaves Cash on Hand (Pitaka)." A transfer
+   adds "Your net worth does not change."
+2. **It says out loud that nothing is saved to the phone yet**, at the moment
+   you save, rather than letting you find out tomorrow. There is no storage
+   layer in `app/` yet.
+3. **Saving lands you on Activity**, where the entry now is. Being left on a
+   screen that does not show what you just saved is how somebody concludes it
+   did not save.
+
+**A quirk preserved and then made unreachable.** The prototype's
+`addTransaction` debits the source of a transfer and credits the destination.
+If the destination id matches no account, it debits and credits nobody, so
+money disappears from net worth. The engine reproduces that faithfully, because
+changing a number nobody decided to change is the worse error, and a vector
+locks it. The defence is in the UI: the destination is picked from a list that
+excludes the source, and Save refuses a destination that is not a real account.
+
+Not migrated with it, named rather than implied: the fast-log text parser, the
+foreign currency converter, the cash denomination counter, receipt attachment,
+and quick-add for categories. Each needs something `app/` does not have yet.
 
 ### Sheets
 

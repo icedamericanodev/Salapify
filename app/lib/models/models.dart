@@ -86,6 +86,22 @@ class Account {
   final String? notes;
 
   bool get isLiquid => liquidKinds.contains(kind);
+
+  /// Only the balance ever changes on a logged entry, so this takes only that.
+  /// Widening it later is easy; a general copyWith invites a caller to change
+  /// something a ledger entry has no business changing.
+  Account copyWith({double? balance}) => Account(
+    id: id,
+    name: name,
+    kind: kind,
+    institution: institution,
+    balance: balance ?? this.balance,
+    monogram: monogram,
+    creditLimit: creditLimit,
+    interestRate: interestRate,
+    accountNumber: accountNumber,
+    notes: notes,
+  );
 }
 
 /// What the ledger believes about an entry, from src/types.ts.

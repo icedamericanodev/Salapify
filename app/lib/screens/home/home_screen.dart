@@ -22,9 +22,14 @@ import 'reminders_banner.dart';
 /// actions, reminders, debts, coming up, latest. An earlier pass reordered it
 /// by guesswork and the founder spotted it against the real screens.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.state});
+  const HomeScreen({super.key, required this.state, this.onOpenLog});
 
   final FinancialState state;
+
+  /// Opening the Log sheet belongs to the shell, not to Home: the shell owns
+  /// the store write AND the tab switch that lands somebody on the entry they
+  /// just made. Home only needs to say the button was pressed.
+  final VoidCallback? onOpenLog;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +74,8 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: Spacing.lg),
             QuickActions(
               palette: palette,
-              onLog: () => _soon(context, palette, 'The Log sheet'),
+              onLog:
+                  onOpenLog ?? () => _soon(context, palette, 'The Log sheet'),
               onDebt: () => _addDebt(context, palette),
               onBills: () => _soon(context, palette, 'Bills'),
               onMove: () => _soon(context, palette, 'Move'),
