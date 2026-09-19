@@ -99,6 +99,21 @@ class Snapshot {
   static const String kReconciliations = 'reconciliations';
   static const String kBills = 'bills';
 
+  /// Every collection this build reads, for the shape check that tells a
+  /// Salapify document from any other valid JSON. See looksLikeSalapify.
+  static const List<String> collectionKeys = <String>[
+    kAccounts,
+    kTransactions,
+    kDebts,
+    kBudgets,
+    kGoals,
+    kUpcoming,
+    kIncomeStreams,
+    kInstallments,
+    kReconciliations,
+    kBills,
+  ];
+
   /// Top level keys this build writes itself. Anything else in a loaded file
   /// is somebody else's and is preserved rather than dropped.
   static const Set<String> _ownTopKeys = <String>{
@@ -379,4 +394,33 @@ class ExtrasBuilder {
   }
 
   Extras build() => Extras(top, _records);
+}
+
+/// Does this document even LOOK like a Salapify ledger?
+///
+/// [Snapshot.fromJson] is deliberately tolerant: an absent collection reads as
+/// an empty list, because that is how a prototype backup covering nine of the
+/// thirty four keys is allowed to open at all. The cost of that tolerance is
+/// that `{}` decodes perfectly into a complete, entirely empty ledger.
+///
+/// Which means a JSON file that has nothing to do with Salapify, another app's
+/// export, a stray `{}`, loads as a valid ledger of nothing. The loader then
+/// turns saving ON and writes that emptiness over the real file within two
+/// notifications, because every notify is a save and every save demotes the
+/// previous generation.
+///
+/// `loadSnapshot` already guards the empty STRING case, with a comment saying
+/// exactly why: "something wrote nothing where a ledger should be". The empty
+/// OBJECT is the same failure wearing a different hat, and it was not guarded.
+///
+/// So: a document must carry a schemaVersion, or at least one collection key
+/// holding a list. A genuinely empty Salapify backup, from somebody who
+/// cleared everything and exported, passes on its schemaVersion and is still
+/// importable. A photo's metadata sidecar is not.
+bool looksLikeSalapify(Map<String, dynamic> raw) {
+  if (raw['schemaVersion'] is num) return true;
+  for (final String key in Snapshot.collectionKeys) {
+    if (raw[key] is List) return true;
+  }
+  return false;
 }

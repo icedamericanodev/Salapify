@@ -62,8 +62,6 @@ class HomeScreen extends StatelessWidget {
             HomeHeader(
               state: state,
               onOpenToolkit: () => ToolkitSheet.show(context, state),
-              onOpenCollaboration: () =>
-                  _soon(context, palette, 'Collaboration'),
               onOpenReminders: () => _soon(context, palette, 'Reminders'),
               // The one real destination behind this button so far. The
               // sample data control lives here because that is where somebody

@@ -850,7 +850,6 @@ class SeedData {
   /// notification engine and the collaboration hub are later migration steps,
   /// and the badges exist now so the header they sit in is the real one.
   static const int unreadNotifications = 12;
-  static const int memberCount = 5;
 
   static const PaydayCycle payday = PaydayCycle(
     cycleType: '15_30',

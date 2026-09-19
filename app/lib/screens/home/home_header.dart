@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/store.dart';
 import '../../design/tokens.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
@@ -15,14 +16,12 @@ class HomeHeader extends StatelessWidget {
     super.key,
     required this.state,
     this.onOpenToolkit,
-    this.onOpenCollaboration,
     this.onOpenReminders,
     this.onOpenSettings,
   });
 
   final FinancialState state;
   final VoidCallback? onOpenToolkit;
-  final VoidCallback? onOpenCollaboration;
   final VoidCallback? onOpenReminders;
   final VoidCallback? onOpenSettings;
 
@@ -109,10 +108,18 @@ class HomeHeader extends StatelessWidget {
   }
 
   Widget _actions(Palette palette, bool isNight, int unread) {
-    // Only when saving is genuinely OFF. A recovery sets loadProblem too,
-    // and everything is fine after one, so marking it would put a red badge
-    // on the header for an event the app handled correctly.
-    final bool needsAttention = state.saveProblem != null || !state.isSaving;
+    // The two genuine failures, and nothing else.
+    //
+    // NOT "!isSaving": a store that has not been restored yet is not saving
+    // either, and that state marked the gear in every preview and test
+    // fixture. main() awaits restore() before the first frame, so on a phone
+    // it would never have shown, which is exactly the kind of wrongness that
+    // survives because nobody can see it.
+    //
+    // NOT loadProblem on its own either: a RECOVERY sets it, and everything is
+    // fine after one.
+    final bool needsAttention =
+        state.saveProblem != null || state.loadStatus == LoadStatus.unreadable;
     return Wrap(
       spacing: Spacing.xs,
       children: <Widget>[
@@ -123,20 +130,26 @@ class HomeHeader extends StatelessWidget {
           foreground: palette.accent,
           onTap: onOpenToolkit,
         ),
-        _HeaderButton(
-          palette: palette,
-          icon: Icons.people_outline,
-          tooltip: 'Shared finances and collaboration',
-          onTap: onOpenCollaboration,
-          badge: state.memberCount > 1
-              ? CornerBadge(
-                  text: '${state.memberCount}',
-                  background: palette.positive,
-                  foreground: palette.background,
-                  ringColor: palette.background,
-                )
-              : null,
-        ),
+        // THE COLLABORATION BUTTON IS GONE, on the principal engineer's
+        // decision, 2026-09-19, and the founder's instruction to implement
+        // what the experts advised.
+        //
+        // The reasoning, so nobody rebuilds it by accident: multi-user
+        // collaboration needs identity, transport and conflict resolution, and
+        // Salapify has none of the three. The prototype's 72KB
+        // CollaborationHub makes no network call at all: its "invite" sends
+        // nothing, its member switcher is described in its own types as
+        // "local persona simulation", and its approvals are therefore one
+        // person approving themselves. Shipping that would tell somebody their
+        // business partner has view-only access when the partner has no access
+        // and the permission does nothing.
+        //
+        // The real need underneath it is served: the debt register already
+        // tracks what people owe you in both directions, and household money
+        // already has ProfileEntity.household.
+        //
+        // It also carried a badge reading "5", from a hardcoded seed constant,
+        // on a phone that had never had a second user.
         _HeaderButton(
           palette: palette,
           icon: Icons.notifications_none,

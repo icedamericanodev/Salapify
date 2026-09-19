@@ -29,6 +29,8 @@ import 'package:salapify/state/financial_state.dart';
 /// in full. What is no longer asserted is a banner, because the founder
 /// removed it and it is their app.
 void main() {
+  exportGuardTests();
+
   Future<void> pump(WidgetTester tester, MemorySnapshotStore store) async {
     final FinancialState state = FinancialState(
       clock: DateTime(2026, 9, 18, 12),
@@ -176,5 +178,58 @@ void main() {
             'trusting the app over something it handled correctly.',
       );
     });
+  });
+}
+
+/// Export must never hand somebody Salapify's demo accounts as their backup.
+///
+/// When the data file cannot be read, restore() never applies it, so the state
+/// still holds the seed. Exporting then encodes eleven demo accounts under a
+/// row promising "everything on this phone". The person in front of the red
+/// panel is exactly the person who taps Export to rescue their data.
+void exportGuardTests() {
+  testWidgets('export is refused while the data file is unreadable', (
+    WidgetTester tester,
+  ) async {
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+      store: MemorySnapshotStore('{ not json'),
+    );
+    await state.restore();
+    await tester.pumpWidget(SalapifyApp(state: state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings_outlined).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('would hold the sample data and not yours'),
+      findsOneWidget,
+      reason:
+          'Export is still offered, and it would write eleven demo accounts '
+          'into a file the person keeps as their backup',
+    );
+  });
+
+  testWidgets('a healthy app still offers the export', (
+    WidgetTester tester,
+  ) async {
+    // The other half. A guard that disabled export permanently would pass the
+    // test above and remove the feature.
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+    await tester.pumpWidget(SalapifyApp(state: state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings_outlined).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('One file holding everything on this phone'),
+      findsOneWidget,
+    );
   });
 }

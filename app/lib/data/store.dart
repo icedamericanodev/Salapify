@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
@@ -217,6 +218,27 @@ Future<LoadResult> loadSnapshot(SnapshotStore store) async {
     // ledger should be, and treating it as a first run would hand the person
     // demo accounts and then save those over whatever went wrong.
     return _fallBackToPrevious(store, 'Salapify\'s data file is empty.');
+  }
+
+  // The shape check runs FIRST, and quietly: anything it cannot parse is left
+  // for Snapshot.decode below, which produces a sentence written for a person
+  // rather than a raw FormatException. Doing the jsonDecode here and letting it
+  // throw replaced "The file is not valid JSON" with the parser's own output,
+  // which store_test caught.
+  Object? peek;
+  try {
+    peek = jsonDecode(raw);
+  } on Object {
+    peek = null;
+  }
+  if (peek is Map && !looksLikeSalapify(Map<String, dynamic>.from(peek))) {
+    // Valid JSON, and not a ledger. Falling back to the previous generation
+    // turns "everything is gone" into "one save is gone".
+    return _fallBackToPrevious(
+      store,
+      'The data file does not look like a Salapify ledger any more. It has '
+      'none of the parts one has.',
+    );
   }
 
   try {

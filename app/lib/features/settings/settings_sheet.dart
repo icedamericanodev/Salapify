@@ -61,6 +61,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
   Widget build(BuildContext context) {
     final Palette p = Palette.of(state.theme);
     final String? problem = state.saveProblem ?? state.loadProblem;
+    final bool cannotExport = state.loadStatus == LoadStatus.unreadable;
 
     return SheetScaffold(
       palette: p,
@@ -90,16 +91,33 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
             _Section(palette: p, title: 'Your data'),
             _StorageStatus(palette: p, state: state, problem: problem),
+            // EXPORT IS REFUSED WHEN THE FILE COULD NOT BE READ, and this is
+            // a defect that was live until now rather than a precaution.
+            //
+            // On an unreadable file, restore() never runs _apply, so the state
+            // still holds SeedData. state.snapshot() then encodes ELEVEN DEMO
+            // ACCOUNTS under a row promising "everything on this phone". The
+            // person standing in front of the red "not being saved" panel is
+            // exactly the person who taps Export to rescue their data, and
+            // they would receive a file of Salapify's samples and keep it as
+            // their backup.
             _Row(
               palette: p,
               icon: Icons.ios_share_outlined,
-              title: _busy ? 'Preparing your backup...' : 'Export a backup',
+              title: cannotExport
+                  ? 'Export a backup'
+                  : _busy
+                  ? 'Preparing your backup...'
+                  : 'Export a backup',
               // Says what it IS, because a person about to hand a file to
               // Google Drive deserves to know it holds their salary.
-              subtitle:
-                  'One file holding everything on this phone. Keep it '
-                  'somewhere you trust.',
-              onTap: _busy ? null : _export,
+              subtitle: cannotExport
+                  ? 'Not available. Salapify cannot read your data file, so a '
+                        'backup taken now would hold the sample data and not '
+                        'yours.'
+                  : 'One file holding everything on this phone. Keep it '
+                        'somewhere you trust.',
+              onTap: _busy || cannotExport ? null : _export,
             ),
             _Row(
               palette: p,

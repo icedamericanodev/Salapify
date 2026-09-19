@@ -295,7 +295,6 @@ class FinancialState extends ChangeNotifier {
   /// collaboration hub are later migration steps, and a badge that lies is
   /// worse than one that is honest about where its number comes from.
   int get unreadNotificationsCount => SeedData.unreadNotifications;
-  int get memberCount => SeedData.memberCount;
 
   void toggleTheme() {
     _theme = _theme == ThemeMode2.hapon ? ThemeMode2.gabi : ThemeMode2.hapon;
