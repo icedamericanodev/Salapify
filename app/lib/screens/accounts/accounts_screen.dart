@@ -573,10 +573,29 @@ class _Group extends StatelessWidget {
                 ),
                 child:
                     a.kind == AccountKind.debit || a.kind == AccountKind.credit
-                    ? BankCard(
-                        account: a,
-                        palette: palette,
-                        onTap: () => onEdit(a),
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          BankCard(
+                            account: a,
+                            palette: palette,
+                            onTap: () => onEdit(a),
+                          ),
+                          // A card has no meta line to carry the marking, so
+                          // two sample accounts were the only unmarked ones on
+                          // the screen, and they are the two that look MOST
+                          // real. It sits under the plastic rather than on it,
+                          // the same place the utilisation bar goes, because a
+                          // real card does not have one printed on it.
+                          if (a.isSample)
+                            Padding(
+                              padding: const EdgeInsets.only(top: Spacing.xs),
+                              child: Text(
+                                'Sample card, not yours',
+                                style: AppType.caption(palette),
+                              ),
+                            ),
+                        ],
                       )
                     : _AccountRow(
                         palette: palette,
@@ -622,6 +641,10 @@ class _AccountRow extends StatelessWidget {
     final Color amountColor = owed ? palette.negative : palette.positive;
 
     final List<String> meta = <String>[
+      // FIRST, before anything else on the line. A banner is read once and
+      // scrolled past; this is present at the moment somebody reads the
+      // balance, which is where the three week trap actually springs.
+      if (account.isSample) 'Sample',
       _kindLabel(account.kind),
       account.institution,
       if (account.interestRate != null) '${account.interestRate}% a year',

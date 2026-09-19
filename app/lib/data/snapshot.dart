@@ -40,6 +40,7 @@ class Snapshot {
     required this.reconciliations,
     required this.bills,
     required this.payday,
+    this.sampleDataRemovedAt,
     required this.theme,
     required this.scenario,
     this.activeProfile,
@@ -64,6 +65,15 @@ class Snapshot {
   /// The payday cycle. Previously a compile time constant, so a fresh install
   /// said "4 days to payday, Sep 15" and would have said it in December too.
   final PaydayCycle payday;
+
+  /// When the person cleared Salapify's sample data, if they ever did.
+  ///
+  /// This is what gates the put-it-back control, and gating it on a STORED
+  /// key rather than on a screen flag is the whole safety argument. A ledger
+  /// restored from another phone, or imported from the prototype, has no such
+  /// key and no sample flags, so the button is simply not there and cannot
+  /// inject demo money into somebody's real book.
+  final String? sampleDataRemovedAt;
 
   final ThemeMode2 theme;
   final DecisionScenario scenario;
@@ -108,6 +118,7 @@ class Snapshot {
     kReconciliations,
     kBills,
     'payday',
+    'sampleDataRemovedAt',
   };
 
   String encode({required DateTime at}) =>
@@ -175,6 +186,8 @@ class Snapshot {
         for (final BillItem b in bills) merged(kBills, b.id, billToJson(b)),
       ],
       'payday': merged('payday', 'payday', paydayToJson(payday)),
+      if (sampleDataRemovedAt != null)
+        'sampleDataRemovedAt': sampleDataRemovedAt,
     };
   }
 
@@ -314,6 +327,9 @@ class Snapshot {
       // unless it is stashed here. Same rule as every record, applied to an
       // object that is not in a collection.
       payday: _readPayday(m['payday'], extras),
+      sampleDataRemovedAt: m['sampleDataRemovedAt'] is String
+          ? m['sampleDataRemovedAt'] as String
+          : null,
       theme:
           themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??
           ThemeMode2.gabi,

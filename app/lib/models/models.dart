@@ -91,7 +91,19 @@ class Account {
     this.cardNetwork = CardNetwork.none,
     this.cardTier = CardTier.regular,
     this.notes,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String name;
@@ -150,7 +162,14 @@ class Account {
   /// sheet builds a whole new Account with the same id, so every field a
   /// person can change is visible in one place and nothing survives by
   /// accident.
-  Account copyWith({double? balance}) => Account(
+  /// [isSample] is carried through DELIBERATELY.
+  ///
+  /// This is the copy the ledger makes when a balance moves, so logging a
+  /// 250 peso expense against a demo account must not turn that whole demo
+  /// account into the user's own. The sweep handles that case properly
+  /// instead: an account a real entry points at is KEPT, with its seeded
+  /// opening balance subtracted, rather than deleted underneath the entry.
+  Account copyWith({double? balance, bool? isSample}) => Account(
     id: id,
     name: name,
     kind: kind,
@@ -167,6 +186,7 @@ class Account {
     cardNetwork: cardNetwork,
     cardTier: cardTier,
     notes: notes,
+    isSample: isSample ?? this.isSample,
   );
 }
 
@@ -201,7 +221,19 @@ class Transaction {
     this.tags = const <String>[],
     this.status = TransactionStatus.confirmed,
     this.profile,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final TransactionType type;
@@ -260,6 +292,9 @@ class Transaction {
     tags: tags,
     status: next,
     profile: profile,
+    // Preserved: marking a sample entry excluded from a reconciliation is
+    // housekeeping on Salapify's own demo row, not the person adopting it.
+    isSample: isSample,
   );
 }
 
@@ -284,7 +319,19 @@ class Debt {
     this.installmentTotal,
     this.settledDate,
     this.notes,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String person;
@@ -311,6 +358,13 @@ class Debt {
   double get progress =>
       totalAmount <= 0 ? 0 : (paidAmount / totalAmount).clamp(0.0, 1.0);
 
+  /// [isSample] is NOT carried through, and that is the point.
+  ///
+  /// This copy is made when a payment is recorded against a debt. Paying a
+  /// demo debt with real money makes it the person's own debt, so it must
+  /// survive the sample sweep rather than being deleted with the payment
+  /// history pointing at it. Letting the field default to false here is what
+  /// adopts it, with no extra rule anywhere.
   Debt copyWith({
     double? paidAmount,
     bool? isSettled,
@@ -362,7 +416,19 @@ class Budget {
     required this.category,
     required this.limit,
     required this.emoji,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String category;
   final double limit;
@@ -378,7 +444,19 @@ class Goal {
     required this.currentAmount,
     required this.targetDate,
     required this.monthlyTarget,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String name;
@@ -399,7 +477,19 @@ class UpcomingItem {
     this.isIncome = false,
     this.isPaid = false,
     this.category,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String name;
@@ -478,6 +568,7 @@ class BillItem {
     required this.amount,
     required this.dueDate,
     this.isPaid = false,
+    this.isSample = false,
   });
 
   final String id;
@@ -485,6 +576,10 @@ class BillItem {
   final double amount;
   final String dueDate;
   final bool isPaid;
+
+  /// See Account.isSample. Bills carry it for the same reason and with more
+  /// urgency: demo bills were reserving 41,184 pesos of a real person's money.
+  final bool isSample;
 }
 
 /// How a provider quotes the rate. The same number means wildly different
@@ -544,7 +639,19 @@ class InstallmentPlan {
     this.extraPayments = const <ExtraPayment>[],
     this.isSettled = false,
     this.notes,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String name;
@@ -590,7 +697,19 @@ class IncomeStream {
     required this.name,
     required this.type,
     required this.expectedAmount,
+    this.isSample = false,
   });
+
+  /// True for a record Salapify put there itself, so the screens are not blank
+  /// on a brand new phone. NEVER true for anything the person entered.
+  ///
+  /// This one flag is what makes the sample data removable without a rule
+  /// anybody has to remember: the sweep deletes only where this is true, which
+  /// is a single condition in one method rather than a convention spread
+  /// across every write path. It defaults to false, so a record rebuilt by the
+  /// plain constructor, which is what an edit does, becomes the user's own
+  /// automatically.
+  final bool isSample;
 
   final String id;
   final String name;

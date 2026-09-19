@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/main.dart';
 
 /// Boots the real app the way the phone does.
@@ -78,8 +79,17 @@ void main() {
     await tester.pumpWidget(const SalapifyApp());
     await tester.pumpAndSettle();
 
+    // Scoped to the HERO, not to "the first peso figure on the screen".
+    // That shortcut broke the moment anything else on Home showed a peso
+    // amount above it, which the sample data notice now does, and the test
+    // then compared a figure that has nothing to do with the scenario.
     String heroAmount() => tester
-        .widgetList<Text>(find.byType(Text))
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(HeroPanel),
+            matching: find.byType(Text),
+          ),
+        )
         .map((Text t) => t.data ?? '')
         .firstWhere((String s) => s.startsWith('₱'));
 

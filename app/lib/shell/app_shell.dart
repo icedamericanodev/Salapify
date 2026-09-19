@@ -5,6 +5,7 @@ import '../data/store.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../features/log/log_sheet.dart';
+import '../features/settings/sample_data_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
@@ -41,6 +42,25 @@ class _AppShellState extends State<AppShell> {
         child: Column(
           children: <Widget>[
             _StorageWarning(palette: palette, state: widget.state),
+            // THE SAMPLE NOTICE IS ON HOME ONLY, and that is a change of mind
+            // worth writing down. It was on every tab first, for a good
+            // reason: Reports shows a net worth built from demo money. But it
+            // is a 44dp tappable strip, and on five tabs it pushed the top of
+            // every list down on a phone-height screen.
+            //
+            // What replaced it is better than what it was: a Sample chip on
+            // each demo ROW, in Accounts and in Activity. A banner is read
+            // once and scrolled past. A chip is present at the moment somebody
+            // looks at the figure, which is where the trap actually springs.
+            if (_current == SalapifyTab.home)
+              _SampleNotice(
+                palette: palette,
+                state: widget.state,
+                onOpen: () async {
+                  await SampleDataSheet.show(context, widget.state);
+                  if (mounted) setState(() {});
+                },
+              ),
             Expanded(child: _bodyFor(_current, palette)),
           ],
         ),
@@ -418,6 +438,81 @@ class _StorageWarning extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Some of this money is not yours", on every tab until it is cleared.
+///
+/// On EVERY tab, deliberately, and for the same reason _StorageWarning is:
+/// somebody who reads it on Home and then opens Reports is looking at a net
+/// worth built from demo accounts, and a warning they have scrolled past is a
+/// warning that is not there. It removes itself the moment they clear the
+/// sample data, so it cannot become wallpaper.
+class _SampleNotice extends StatelessWidget {
+  const _SampleNotice({
+    required this.palette,
+    required this.state,
+    required this.onOpen,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!state.hasSampleData) return const SizedBox.shrink();
+    final SampleSummary s = state.sampleSummary;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
+      child: Material(
+        color: palette.accentSoft,
+        borderRadius: BorderRadius.circular(Radii.tile),
+        child: InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(Radii.tile),
+          child: Container(
+            width: double.infinity,
+            // 44 minimum because this whole strip is a BUTTON. Shrinking the
+            // padding to make it compact took it to 34dp, under the touch
+            // target floor, and accounts_test caught it. Compact and tappable
+            // is a constraint, not a choice between the two.
+            constraints: const BoxConstraints(minHeight: 44),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.xs,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.tile),
+              border: Border.all(color: palette.accent.withValues(alpha: 0.45)),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.science_outlined, size: 16, color: palette.accent),
+                const SizedBox(width: Spacing.sm),
+                // ONE LINE, on purpose, and it took a regression to learn it.
+                // The first version carried a three line explanation of why
+                // sample data exists. That is teaching, it belongs behind the
+                // tap, and on a short screen it pushed the top of every list
+                // out of view. The figure and the way out are all that has to
+                // be here.
+                Expanded(
+                  child: Text(
+                    '${formatPeso(s.assets)} here is sample money. Tap to '
+                    'remove it.',
+                    style: AppType.caption(
+                      palette,
+                    ).copyWith(color: palette.accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

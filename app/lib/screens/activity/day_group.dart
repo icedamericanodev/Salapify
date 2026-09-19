@@ -201,7 +201,11 @@ class TransactionRow extends StatelessWidget {
   }
 
   String _subtitle(Transaction t, Account? from, Account? to, bool isTransfer) {
-    final StringBuffer b = StringBuffer(t.category);
+    // "Sample" leads the line for a demo entry, the same rule the Accounts
+    // rows follow: the marking has to be where the figure is read.
+    final StringBuffer b = StringBuffer(
+      t.isSample ? 'Sample · ${t.category}' : t.category,
+    );
     b.write(' · ');
     b.write(from?.name ?? 'Account');
     if (isTransfer && to != null) {

@@ -24,6 +24,7 @@ class SeedData {
       balance: 1850.00,
       monogram: '₱',
       notes: 'Physical cash for jeepneys, trike, and street food',
+      isSample: true,
     ),
     Account(
       id: 'acc_gcash',
@@ -34,6 +35,7 @@ class SeedData {
       balance: 8420.50,
       monogram: 'GC',
       accountNumber: '0917-***-4821',
+      isSample: true,
     ),
     Account(
       id: 'acc_maya',
@@ -44,6 +46,7 @@ class SeedData {
       balance: 15300.00,
       monogram: 'MY',
       interestRate: 6.0,
+      isSample: true,
     ),
     Account(
       id: 'acc_bpi',
@@ -53,6 +56,7 @@ class SeedData {
       institution: 'BPI',
       balance: 48500.00,
       monogram: 'BPI',
+      isSample: true,
     ),
     Account(
       id: 'acc_seabank',
@@ -69,6 +73,7 @@ class SeedData {
       // monogram it was given", which is the whole reason that test compares
       // the map against the data instead of trusting either one.
       monogram: 'MB',
+      isSample: true,
     ),
     Account(
       id: 'acc_ub_debit',
@@ -84,6 +89,7 @@ class SeedData {
       accountNumber: '1029-****-6789',
       cardNetwork: CardNetwork.mastercard,
       notes: 'Operating account for business transactions and SaaS',
+      isSample: true,
     ),
     Account(
       id: 'acc_mp2',
@@ -93,6 +99,7 @@ class SeedData {
       institution: 'Pag-IBIG',
       balance: 65000.00,
       monogram: 'MP2',
+      isSample: true,
     ),
     Account(
       id: 'acc_receivables',
@@ -102,6 +109,7 @@ class SeedData {
       institution: 'Internal Ledger',
       balance: 6250.00,
       monogram: 'AR',
+      isSample: true,
     ),
     Account(
       id: 'acc_bpi_cc',
@@ -117,6 +125,7 @@ class SeedData {
       statementDate: '10th of the month',
       cardNetwork: CardNetwork.visa,
       notes: 'Kept below 30% utilization threshold for credit score health',
+      isSample: true,
     ),
     Account(
       id: 'acc_personal_loan',
@@ -128,6 +137,7 @@ class SeedData {
       monogram: 'LOAN',
       dueDate: 'Sep 25',
       notes: 'Remaining gadget upgrade principal balance',
+      isSample: true,
     ),
     Account(
       id: 'acc_pagibig_mortgage',
@@ -139,6 +149,7 @@ class SeedData {
       monogram: 'MTG',
       dueDate: 'Sep 28',
       notes: '30-year residential housing mortgage',
+      isSample: true,
     ),
   ];
 
@@ -162,6 +173,7 @@ class SeedData {
       createdAt: _daysAgo(1),
       status: TransactionStatus.pending,
       note: 'Card authorisation, not posted yet',
+      isSample: true,
     ),
     Transaction(
       id: 'tx_excluded_double',
@@ -176,6 +188,7 @@ class SeedData {
       createdAt: _daysAgo(3),
       status: TransactionStatus.excluded,
       note: 'Charged twice, this one is not mine to pay',
+      isSample: true,
     ),
     Transaction(
       id: 'tx_transfer_1',
@@ -189,6 +202,7 @@ class SeedData {
       merchant: 'Top up GCash',
       date: '2026-09-16',
       createdAt: _daysAgo(2),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_salary_1',
@@ -202,6 +216,7 @@ class SeedData {
       date: '2026-09-01',
       createdAt: _daysAgo(17),
       note: 'First cutoff net pay after SSS, PhilHealth, and Pag-IBIG',
+      isSample: true,
     ),
     Transaction(
       id: 'tx_freelance_1',
@@ -214,6 +229,7 @@ class SeedData {
       merchant: 'Apex Retainer Invoice #104',
       date: '2026-09-08',
       createdAt: _daysAgo(10),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_meralco',
@@ -226,6 +242,7 @@ class SeedData {
       merchant: 'Meralco',
       date: '2026-09-15',
       createdAt: _daysAgo(3),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_groceries',
@@ -238,6 +255,7 @@ class SeedData {
       merchant: 'S&R Membership Shopping',
       date: '2026-09-14',
       createdAt: _daysAgo(4),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_jollibee',
@@ -250,6 +268,7 @@ class SeedData {
       merchant: 'Jollibee',
       date: '2026-09-17',
       createdAt: _daysAgo(1),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_grab',
@@ -262,6 +281,7 @@ class SeedData {
       merchant: 'Grab',
       date: '2026-09-17',
       createdAt: _daysAgo(1),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_padala',
@@ -274,6 +294,7 @@ class SeedData {
       merchant: 'Nanay Monthly Padala',
       date: '2026-09-16',
       createdAt: _daysAgo(2),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_coffee',
@@ -286,6 +307,7 @@ class SeedData {
       merchant: 'Local Kape Shop',
       date: '2026-09-18',
       createdAt: _daysAgo(0),
+      isSample: true,
     ),
 
     // Four entries restored from the prototype's own fixture for the Reports
@@ -311,6 +333,7 @@ class SeedData {
       merchant: 'Home Credit Philippines',
       date: '2026-09-04',
       createdAt: _daysAgo(14),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_mp2_contribution',
@@ -323,6 +346,7 @@ class SeedData {
       merchant: 'Pag-IBIG MP2 Top-up',
       date: '2026-09-05',
       createdAt: _daysAgo(13),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_saas',
@@ -335,6 +359,7 @@ class SeedData {
       merchant: 'Figma Professional & GitHub Copilot',
       date: '2026-09-10',
       createdAt: _daysAgo(8),
+      isSample: true,
     ),
     // Pushes Debt & Loan Servicing PAST its 6,000 limit, on purpose. Without
     // it no budget in the fixture is over, so the over-budget state, the red
@@ -356,6 +381,7 @@ class SeedData {
       merchant: 'BPI Rewards Card Payment',
       date: '2026-09-12',
       createdAt: _daysAgo(6),
+      isSample: true,
     ),
     Transaction(
       id: 'tx_condo_repair',
@@ -369,6 +395,7 @@ class SeedData {
       date: '2026-09-15',
       createdAt: _daysAgo(3),
       status: TransactionStatus.pending,
+      isSample: true,
     ),
   ];
 
@@ -390,6 +417,7 @@ class SeedData {
       installmentCurrent: 3,
       installmentTotal: 6,
       notes: 'Monthly phone installment, auto-debit or pay via GCash',
+      isSample: true,
     ),
     Debt(
       id: 'debt_bpi_loan',
@@ -403,6 +431,7 @@ class SeedData {
       installmentCurrent: 2,
       installmentTotal: 6,
       notes: 'Gadget upgrade loan',
+      isSample: true,
     ),
     Debt(
       id: 'debt_kuya_mark',
@@ -413,6 +442,7 @@ class SeedData {
       dueDate: 'Sep 30',
       isSettled: false,
       notes: 'Concert tickets advance for Olivia Rodrigo',
+      isSample: true,
     ),
     Debt(
       id: 'debt_sarah',
@@ -423,6 +453,7 @@ class SeedData {
       dueDate: 'Sep 16',
       isSettled: false,
       notes: 'Hotpot dinner share at Robinson Galleria',
+      isSample: true,
     ),
     Debt(
       id: 'debt_mom_settled',
@@ -433,6 +464,7 @@ class SeedData {
       isSettled: true,
       settledDate: 'Sep 3',
       notes: 'Pahiram for groceries last month, all paid',
+      isSample: true,
     ),
   ];
 
@@ -701,17 +733,48 @@ class SeedData {
   ];
 
   static const List<Budget> budgets = <Budget>[
-    Budget(category: 'Food & Dining', limit: 9000, emoji: '\u{1F354}'),
-    Budget(category: 'Transport & Commute', limit: 3500, emoji: '\u{1F6F5}'),
-    Budget(category: 'Bills & Utilities', limit: 6500, emoji: '⚡'),
-    Budget(category: 'Groceries', limit: 8000, emoji: '\u{1F6D2}'),
-    Budget(category: 'Shopping & Personal', limit: 4000, emoji: '\u{1F6CD}'),
+    Budget(
+      category: 'Food & Dining',
+      limit: 9000,
+      emoji: '\u{1F354}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Transport & Commute',
+      limit: 3500,
+      emoji: '\u{1F6F5}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Bills & Utilities',
+      limit: 6500,
+      emoji: '⚡',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Groceries',
+      limit: 8000,
+      emoji: '\u{1F6D2}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Shopping & Personal',
+      limit: 4000,
+      emoji: '\u{1F6CD}',
+      isSample: true,
+    ),
     Budget(
       category: 'Business & Freelance Ops',
       limit: 5000,
       emoji: '\u{1F4BC}',
+      isSample: true,
     ),
-    Budget(category: 'Debt & Loan Servicing', limit: 6000, emoji: '\u{1F91D}'),
+    Budget(
+      category: 'Debt & Loan Servicing',
+      limit: 6000,
+      emoji: '\u{1F91D}',
+      isSample: true,
+    ),
   ];
 
   static const List<UpcomingItem> upcoming = <UpcomingItem>[
@@ -721,6 +784,7 @@ class SeedData {
       amount: 2840.00,
       dueDate: 'Today',
       type: UpcomingItemType.bill,
+      isSample: true,
     ),
     UpcomingItem(
       id: 'up_spotify',
@@ -728,6 +792,7 @@ class SeedData {
       amount: 239.00,
       dueDate: 'Sunday',
       type: UpcomingItemType.subscription,
+      isSample: true,
     ),
     UpcomingItem(
       id: 'up_homecredit',
@@ -735,6 +800,7 @@ class SeedData {
       amount: 2450.00,
       dueDate: 'Sep 18',
       type: UpcomingItemType.debt,
+      isSample: true,
     ),
     UpcomingItem(
       id: 'up_payday',
@@ -743,6 +809,7 @@ class SeedData {
       dueDate: 'Monday, Sep 15',
       type: UpcomingItemType.payday,
       isIncome: true,
+      isSample: true,
     ),
   ];
 
@@ -755,6 +822,7 @@ class SeedData {
       currentAmount: 42500,
       targetDate: 'Dec 2026',
       monthlyTarget: 5000,
+      isSample: true,
     ),
     Goal(
       id: 'goal_japan',
@@ -764,6 +832,7 @@ class SeedData {
       currentAmount: 28000,
       targetDate: 'Nov 2027',
       monthlyTarget: 4500,
+      isSample: true,
     ),
     Goal(
       id: 'goal_phone',
@@ -773,6 +842,7 @@ class SeedData {
       currentAmount: 35000,
       targetDate: 'Aug 2026',
       monthlyTarget: 0,
+      isSample: true,
     ),
   ];
 
@@ -796,18 +866,21 @@ class SeedData {
       name: 'Meralco Electricity',
       amount: 2840.00,
       dueDate: '2026-09-15',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_water',
       name: 'Manila Water',
       amount: 480.00,
       dueDate: '2026-09-18',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_internet',
       name: 'Converge FiberX 1500',
       amount: 1500.00,
       dueDate: '2026-09-20',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_spotify',
@@ -815,42 +888,49 @@ class SeedData {
       amount: 239.00,
       dueDate: '2026-09-14',
       isPaid: true,
+      isSample: true,
     ),
     BillItem(
       id: 'bill_rent',
       name: 'Condo Unit Rental',
       amount: 14000.00,
       dueDate: '2026-09-30',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_insurance',
       name: 'Pru Life UK VUL Insurance',
       amount: 2500.00,
       dueDate: '2026-09-25',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_tuition',
       name: 'Sibling College Tuition (2nd Tranche)',
       amount: 8500.00,
       dueDate: '2026-10-05',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_sss',
       name: 'SSS Voluntary Contribution',
       amount: 1120.00,
       dueDate: '2026-09-30',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_philhealth',
       name: 'PhilHealth Contribution',
       amount: 500.00,
       dueDate: '2026-09-30',
+      isSample: true,
     ),
     BillItem(
       id: 'bill_remittance',
       name: 'Nanay Monthly Padala & Groceries',
       amount: 6000.00,
       dueDate: '2026-09-16',
+      isSample: true,
     ),
   ];
 
@@ -883,6 +963,7 @@ class SeedData {
       principalRemaining: 14291.67,
       interestRemaining: 2572.52,
       notes: '0% downpayment promo, auto-debited on the 18th of each month',
+      isSample: true,
     ),
     InstallmentPlan(
       id: 'inst_bpi_sip',
@@ -911,6 +992,7 @@ class SeedData {
         ),
       ],
       notes: '24-month real 0% installment on BPI Rewards Credit Card',
+      isSample: true,
     ),
     InstallmentPlan(
       id: 'inst_spaylater',
@@ -931,6 +1013,7 @@ class SeedData {
       principalRemaining: 5600.00,
       interestRemaining: 991.20,
       notes: 'E-commerce installment via Shopee SPayLater',
+      isSample: true,
     ),
   ];
 
@@ -940,24 +1023,28 @@ class SeedData {
       name: 'Corporate Employment Salary',
       type: IncomeStreamType.semimonthlySalary,
       expectedAmount: 32500.00,
+      isSample: true,
     ),
     IncomeStream(
       id: 'stream_freelance',
       name: 'UI/UX Design Retainer (Apex Digital)',
       type: IncomeStreamType.freelance,
       expectedAmount: 18500.00,
+      isSample: true,
     ),
     IncomeStream(
       id: 'stream_13th_month',
       name: '13th-Month Pay Projection',
       type: IncomeStreamType.thirteenthMonth,
       expectedAmount: 65000.00,
+      isSample: true,
     ),
     IncomeStream(
       id: 'stream_remittance',
       name: 'OFW Sibling Support / Padala',
       type: IncomeStreamType.remittance,
       expectedAmount: 5000.00,
+      isSample: true,
     ),
   ];
 

@@ -6,6 +6,7 @@ import '../data/seed_data.dart';
 import '../data/snapshot.dart';
 import '../data/store.dart';
 import '../design/tokens.dart';
+import '../core/money/accounts.dart';
 import '../core/money/debt.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
@@ -168,6 +169,7 @@ class FinancialState extends ChangeNotifier {
     _reconciliations = List<ReconciliationRecord>.of(s.reconciliations);
     _bills = List<BillItem>.of(s.bills);
     _payday = s.payday;
+    _sampleRemovedAt = s.sampleDataRemovedAt;
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
@@ -187,6 +189,7 @@ class FinancialState extends ChangeNotifier {
     reconciliations: _reconciliations,
     bills: _bills,
     payday: _payday,
+    sampleDataRemovedAt: _sampleRemovedAt,
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
@@ -835,7 +838,257 @@ class FinancialState extends ChangeNotifier {
       );
     return sorted;
   }
+
+  // -------------------------------------------------------------------------
+  // Sample data
+  // -------------------------------------------------------------------------
+
+  String? _sampleRemovedAt;
+
+  /// True while any record on this phone is still Salapify's own demo data.
+  bool get hasSampleData =>
+      _accounts.any((Account a) => a.isSample) ||
+      _transactions.any((Transaction t) => t.isSample) ||
+      _debts.any((Debt d) => d.isSample) ||
+      _budgets.any((Budget b) => b.isSample) ||
+      _goals.any((Goal g) => g.isSample) ||
+      _upcoming.any((UpcomingItem u) => u.isSample) ||
+      _installments.any((InstallmentPlan p) => p.isSample) ||
+      _bills.any((BillItem b) => b.isSample);
+
+  /// True once it has been removed AND is not back. Gates the put-it-back
+  /// control, so a ledger restored from another phone never offers it.
+  bool get canRestoreSampleData => _sampleRemovedAt != null && !hasSampleData;
+
+  /// The ids of sample accounts that a record the USER made points at.
+  ///
+  /// These cannot be deleted. Somebody's first ever entry defaults to the
+  /// first usable account, which on a new phone is a sample one, so deleting
+  /// it would leave their transaction pointing at nothing: the entry would
+  /// survive, the balance movement it caused would not, and no screen could
+  /// explain the difference. They are adopted instead.
+  Set<String> _sampleAccountsInUse() {
+    final Set<String> used = <String>{};
+    for (final Transaction t in _transactions) {
+      if (t.isSample) continue;
+      used.add(t.accountId);
+      if (t.toAccountId != null) used.add(t.toAccountId!);
+    }
+    for (final ReconciliationRecord r in _reconciliations) {
+      used.add(r.accountId);
+    }
+    return used
+        .where(
+          (String id) => _accounts.any((Account a) => a.id == id && a.isSample),
+        )
+        .toSet();
+  }
+
+  /// What is on the phone, so the confirmation can name it rather than saying
+  /// "some data".
+  SampleSummary get sampleSummary {
+    final Set<String> kept = _sampleAccountsInUse();
+    final List<Account> sampleAccounts = _accounts
+        .where((Account a) => a.isSample)
+        .toList();
+    return SampleSummary(
+      accounts: sampleAccounts.length,
+      transactions: _transactions.where((Transaction t) => t.isSample).length,
+      debts: _debts.where((Debt d) => d.isSample).length,
+      budgets: _budgets.where((Budget b) => b.isSample).length,
+      goals: _goals.where((Goal g) => g.isSample).length,
+      upcoming: _upcoming.where((UpcomingItem u) => u.isSample).length,
+      installments: _installments
+          .where((InstallmentPlan p) => p.isSample)
+          .length,
+      bills: _bills.where((BillItem b) => b.isSample).length,
+      assets: accountsTotalPhp(assetsOf(sampleAccounts)),
+      liabilities: accountsTotalPhp(liabilitiesOf(sampleAccounts)),
+      keptAccounts: sampleAccounts
+          .where((Account a) => kept.contains(a.id))
+          .toList(),
+    );
+  }
+
+  /// Removes everything Salapify put there itself, and NOTHING else.
+  ///
+  /// The safety property is one condition, `isSample`, tested in one method.
+  /// It is not a convention spread across eight collections that somebody has
+  /// to remember, because that is the kind of rule that holds until the ninth
+  /// collection is added.
+  ///
+  /// The one subtle case is an account the user's own entries point at. It is
+  /// KEPT and adopted, with the seeded opening balance subtracted, so what
+  /// remains is exactly the movement their own entries explain. Deleting it
+  /// would silently destroy the balance half of their first ever entry.
+  void removeSampleData() {
+    if (!hasSampleData) return;
+
+    final Set<String> keep = _sampleAccountsInUse();
+
+    _transactions = _transactions
+        .where((Transaction t) => !t.isSample)
+        .toList();
+    _debts = _debts.where((Debt d) => !d.isSample).toList();
+    _budgets = _budgets.where((Budget b) => !b.isSample).toList();
+    _goals = _goals.where((Goal g) => !g.isSample).toList();
+    _upcoming = _upcoming.where((UpcomingItem u) => !u.isSample).toList();
+    _installments = _installments
+        .where((InstallmentPlan p) => !p.isSample)
+        .toList();
+    _bills = _bills.where((BillItem b) => !b.isSample).toList();
+
+    _accounts = <Account>[
+      for (final Account a in _accounts)
+        if (!a.isSample)
+          a
+        else if (keep.contains(a.id))
+          a.copyWith(
+            // Take the seeded opening back out. What is left is the movement
+            // the person's own entries caused, and nothing else.
+            balance: a.balance - _seededBalanceOf(a.id),
+            isSample: false,
+          ),
+    ];
+
+    // The seed's payday is Salapify's, not theirs.
+    _payday = PaydayCycle.unset;
+    _sampleRemovedAt = now.toUtc().toIso8601String();
+    notifyListeners();
+  }
+
+  static double _seededBalanceOf(String id) {
+    for (final Account a in SeedData.accounts) {
+      if (a.id == id) return a.balance;
+    }
+    return 0;
+  }
+
+  /// Puts the sample data back, without touching anything the person made.
+  ///
+  /// This is the undo, and it is a permanent control rather than a snackbar.
+  /// Every mutation here saves immediately, so a snackbar undo would be a
+  /// second write racing the first, and an app killed in between would leave
+  /// a half swept ledger with no way back. A control that is still there next
+  /// launch has no race and no window.
+  void restoreSampleData() {
+    final Set<String> accountIds = _accounts.map((Account a) => a.id).toSet();
+    final Set<String> txIds = _transactions
+        .map((Transaction t) => t.id)
+        .toSet();
+    final Set<String> debtIds = _debts.map((Debt d) => d.id).toSet();
+    final Set<String> goalIds = _goals.map((Goal g) => g.id).toSet();
+    final Set<String> upIds = _upcoming.map((UpcomingItem u) => u.id).toSet();
+    final Set<String> planIds = _installments
+        .map((InstallmentPlan p) => p.id)
+        .toSet();
+    final Set<String> billIds = _bills.map((BillItem b) => b.id).toSet();
+    final Set<String> categories = _budgets
+        .map((Budget b) => b.category)
+        .toSet();
+
+    // Skip anything whose id is already here, so this can never overwrite a
+    // record the person made or adopted. Their ids are timestamped, so a
+    // collision with 'acc_bpi' is not possible in the first place; this is the
+    // belt as well as the braces.
+    _accounts = <Account>[
+      ..._accounts,
+      for (final Account a in SeedData.accounts)
+        if (!accountIds.contains(a.id)) a,
+    ];
+    _transactions = <Transaction>[
+      ..._transactions,
+      for (final Transaction t in SeedData.transactions())
+        if (!txIds.contains(t.id)) t,
+    ];
+    _debts = <Debt>[
+      ..._debts,
+      for (final Debt d in SeedData.debts)
+        if (!debtIds.contains(d.id)) d,
+    ];
+    _budgets = <Budget>[
+      ..._budgets,
+      for (final Budget b in SeedData.budgets)
+        if (!categories.contains(b.category)) b,
+    ];
+    _goals = <Goal>[
+      ..._goals,
+      for (final Goal g in SeedData.goals)
+        if (!goalIds.contains(g.id)) g,
+    ];
+    _upcoming = <UpcomingItem>[
+      ..._upcoming,
+      for (final UpcomingItem u in SeedData.upcoming)
+        if (!upIds.contains(u.id)) u,
+    ];
+    _installments = <InstallmentPlan>[
+      ..._installments,
+      for (final InstallmentPlan p in SeedData.installments)
+        if (!planIds.contains(p.id)) p,
+    ];
+    _bills = <BillItem>[
+      ..._bills,
+      for (final BillItem b in SeedData.bills)
+        if (!billIds.contains(b.id)) b,
+    ];
+
+    _payday = SeedData.payday;
+    _sampleRemovedAt = null;
+    notifyListeners();
+  }
 }
 
 /// Which side of the cash movement the Coming Up list is showing.
 enum MovementFilter { all, inflow, outflow }
+
+/// What Salapify put on the phone itself, and what removing it would take.
+class SampleSummary {
+  const SampleSummary({
+    required this.accounts,
+    required this.transactions,
+    required this.debts,
+    required this.budgets,
+    required this.goals,
+    required this.upcoming,
+    required this.installments,
+    required this.bills,
+    required this.assets,
+    required this.liabilities,
+    required this.keptAccounts,
+  });
+
+  final int accounts;
+  final int transactions;
+  final int debts;
+  final int budgets;
+  final int goals;
+  final int upcoming;
+  final int installments;
+  final int bills;
+
+  /// What the sample ASSETS come to, and what the sample DEBTS come to, kept
+  /// apart because adding them together produces a number that means nothing.
+  ///
+  /// The first version of this summed every account balance and the banner
+  /// announced "581,170.50 here is sample money", which counted a 385,000 peso
+  /// demo mortgage as money somebody had. Caught by looking at the render, not
+  /// by any test: every assertion about it was about the sweep, and the sweep
+  /// was correct.
+  final double assets;
+  final double liabilities;
+
+  /// Sample accounts that a REAL entry points at. These are not deleted; they
+  /// are kept and adopted, with the seeded opening balance taken back out.
+  /// Named here so the confirmation can say which ones and what happens.
+  final List<Account> keptAccounts;
+
+  bool get isEmpty =>
+      accounts == 0 &&
+      transactions == 0 &&
+      debts == 0 &&
+      budgets == 0 &&
+      goals == 0 &&
+      upcoming == 0 &&
+      installments == 0 &&
+      bills == 0;
+}

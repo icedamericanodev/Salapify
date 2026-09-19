@@ -286,6 +286,7 @@ const Set<String> accountKeys = <String>{
   'cardNetwork',
   'cardTier',
   'notes',
+  'isSample',
 };
 
 Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
@@ -305,6 +306,7 @@ Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
   'cardNetwork': cardNetworkWire.encode(a.cardNetwork),
   'cardTier': cardTierWire.encode(a.cardTier),
   if (a.notes != null) 'notes': a.notes,
+  if (a.isSample) 'isSample': true,
 };
 
 Account accountFromJson(Map<String, dynamic> m) {
@@ -333,6 +335,7 @@ Account accountFromJson(Map<String, dynamic> m) {
     cardTier:
         cardTierWire.decodeOptional(m, 'cardTier', what) ?? CardTier.regular,
     notes: _optStr(m, 'notes'),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -356,6 +359,7 @@ const Set<String> transactionKeys = <String>{
   'tags',
   'status',
   'profile',
+  'isSample',
 };
 
 Map<String, dynamic> transactionToJson(Transaction t) => <String, dynamic>{
@@ -374,6 +378,7 @@ Map<String, dynamic> transactionToJson(Transaction t) => <String, dynamic>{
   if (t.tags.isNotEmpty) 'tags': t.tags,
   'status': transactionStatusWire.encode(t.status),
   if (t.profile != null) 'profile': profileWire.encode(t.profile!),
+  if (t.isSample) 'isSample': true,
 };
 
 Transaction transactionFromJson(Map<String, dynamic> m) {
@@ -398,6 +403,7 @@ Transaction transactionFromJson(Map<String, dynamic> m) {
         transactionStatusWire.decodeOptional(m, 'status', what) ??
         TransactionStatus.confirmed,
     profile: profileWire.decodeOptional(m, 'profile', what),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -418,6 +424,7 @@ const Set<String> debtKeys = <String>{
   'installmentTotal',
   'settledDate',
   'notes',
+  'isSample',
 };
 
 Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
@@ -434,6 +441,7 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   if (d.installmentTotal != null) 'installmentTotal': d.installmentTotal,
   if (d.settledDate != null) 'settledDate': d.settledDate,
   if (d.notes != null) 'notes': d.notes,
+  if (d.isSample) 'isSample': true,
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -453,6 +461,7 @@ Debt debtFromJson(Map<String, dynamic> m) {
     installmentTotal: _optInt(m, 'installmentTotal'),
     settledDate: _optStr(m, 'settledDate'),
     notes: _optStr(m, 'notes'),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -460,18 +469,25 @@ Debt debtFromJson(Map<String, dynamic> m) {
 // Budget, Goal, UpcomingItem, IncomeStream
 // ---------------------------------------------------------------------------
 
-const Set<String> budgetKeys = <String>{'category', 'limit', 'emoji'};
+const Set<String> budgetKeys = <String>{
+  'category',
+  'limit',
+  'emoji',
+  'isSample',
+};
 
 Map<String, dynamic> budgetToJson(Budget b) => <String, dynamic>{
   'category': b.category,
   'limit': b.limit,
   'emoji': b.emoji,
+  if (b.isSample) 'isSample': true,
 };
 
 Budget budgetFromJson(Map<String, dynamic> m) => Budget(
   category: _reqStr(m, 'category', 'budget'),
   limit: _reqNum(m, 'limit', 'budget'),
   emoji: _optStr(m, 'emoji') ?? '',
+  isSample: _optBool(m, 'isSample'),
 );
 
 const Set<String> goalKeys = <String>{
@@ -482,6 +498,7 @@ const Set<String> goalKeys = <String>{
   'currentAmount',
   'targetDate',
   'monthlyTarget',
+  'isSample',
 };
 
 Map<String, dynamic> goalToJson(Goal g) => <String, dynamic>{
@@ -492,6 +509,7 @@ Map<String, dynamic> goalToJson(Goal g) => <String, dynamic>{
   'currentAmount': g.currentAmount,
   'targetDate': g.targetDate,
   'monthlyTarget': g.monthlyTarget,
+  if (g.isSample) 'isSample': true,
 };
 
 Goal goalFromJson(Map<String, dynamic> m) => Goal(
@@ -502,6 +520,7 @@ Goal goalFromJson(Map<String, dynamic> m) => Goal(
   currentAmount: _reqNum(m, 'currentAmount', 'goal'),
   targetDate: _optStr(m, 'targetDate') ?? '',
   monthlyTarget: _optNum(m, 'monthlyTarget') ?? 0,
+  isSample: _optBool(m, 'isSample'),
 );
 
 const Set<String> upcomingKeys = <String>{
@@ -513,6 +532,7 @@ const Set<String> upcomingKeys = <String>{
   'isIncome',
   'isPaid',
   'category',
+  'isSample',
 };
 
 Map<String, dynamic> upcomingToJson(UpcomingItem u) => <String, dynamic>{
@@ -524,6 +544,7 @@ Map<String, dynamic> upcomingToJson(UpcomingItem u) => <String, dynamic>{
   'isIncome': u.isIncome,
   'isPaid': u.isPaid,
   if (u.category != null) 'category': u.category,
+  if (u.isSample) 'isSample': true,
 };
 
 UpcomingItem upcomingFromJson(Map<String, dynamic> m) {
@@ -537,6 +558,7 @@ UpcomingItem upcomingFromJson(Map<String, dynamic> m) {
     isIncome: _optBool(m, 'isIncome'),
     isPaid: _optBool(m, 'isPaid'),
     category: _optStr(m, 'category'),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -545,6 +567,7 @@ const Set<String> incomeStreamKeys = <String>{
   'name',
   'type',
   'expectedAmount',
+  'isSample',
 };
 
 Map<String, dynamic> incomeStreamToJson(IncomeStream s) => <String, dynamic>{
@@ -552,6 +575,7 @@ Map<String, dynamic> incomeStreamToJson(IncomeStream s) => <String, dynamic>{
   'name': s.name,
   'type': incomeStreamTypeWire.encode(s.type),
   'expectedAmount': s.expectedAmount,
+  if (s.isSample) 'isSample': true,
 };
 
 IncomeStream incomeStreamFromJson(Map<String, dynamic> m) {
@@ -561,6 +585,7 @@ IncomeStream incomeStreamFromJson(Map<String, dynamic> m) {
     name: _reqStr(m, 'name', what),
     type: incomeStreamTypeWire.decodeRequired(m, 'type', what),
     expectedAmount: _reqNum(m, 'expectedAmount', what),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -604,6 +629,7 @@ const Set<String> installmentKeys = <String>{
   'extraPayments',
   'isSettled',
   'notes',
+  'isSample',
 };
 
 Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
@@ -630,6 +656,7 @@ Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
       .toList(growable: false),
   'isSettled': p.isSettled,
   if (p.notes != null) 'notes': p.notes,
+  if (p.isSample) 'isSample': true,
 };
 
 InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
@@ -663,6 +690,7 @@ InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
     ).map(extraPaymentFromJson).toList(growable: false),
     isSettled: _optBool(m, 'isSettled'),
     notes: _optStr(m, 'notes'),
+    isSample: _optBool(m, 'isSample'),
   );
 }
 
@@ -758,6 +786,7 @@ const Set<String> billKeys = <String>{
   'amount',
   'dueDate',
   'isPaid',
+  'isSample',
 };
 
 Map<String, dynamic> billToJson(BillItem b) => <String, dynamic>{
@@ -766,6 +795,7 @@ Map<String, dynamic> billToJson(BillItem b) => <String, dynamic>{
   'amount': b.amount,
   'dueDate': b.dueDate,
   'isPaid': b.isPaid,
+  if (b.isSample) 'isSample': true,
 };
 
 BillItem billFromJson(Map<String, dynamic> m) => BillItem(
@@ -774,6 +804,7 @@ BillItem billFromJson(Map<String, dynamic> m) => BillItem(
   amount: _reqNum(m, 'amount', 'bill'),
   dueDate: _reqStr(m, 'dueDate', 'bill'),
   isPaid: _optBool(m, 'isPaid'),
+  isSample: _optBool(m, 'isSample'),
 );
 
 /// The payday cycle, which was a compile time constant read straight off the

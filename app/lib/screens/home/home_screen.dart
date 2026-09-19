@@ -6,6 +6,7 @@ import '../../features/info/info_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
+import '../../features/settings/sample_data_sheet.dart';
 import '../../state/financial_state.dart';
 import 'ask_pan_button.dart';
 import 'budget_pulse_card.dart';
@@ -64,7 +65,11 @@ class HomeScreen extends StatelessWidget {
               onOpenCollaboration: () =>
                   _soon(context, palette, 'Collaboration'),
               onOpenReminders: () => _soon(context, palette, 'Reminders'),
-              onOpenSettings: () => _soon(context, palette, 'Settings'),
+              // The one real destination behind this button so far. The
+              // sample data control lives here because that is where somebody
+              // goes looking for it, and because the header already calls this
+              // "Settings and backup".
+              onOpenSettings: () => SampleDataSheet.show(context, state),
             ),
             const SizedBox(height: Spacing.md),
             HeroPanel(
