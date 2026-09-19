@@ -1,4 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        The ONE network permission, added 2026-09-19 on founder direction:
+        "Live rates for FX converter, suggest reliable API and implement. Lets
+        fix the data privacy later on."
+
+        It was in the DEBUG manifest only, which is why a live fetch would have
+        worked on the founder's emulator and failed silently in a real build.
+
+        Salapify makes exactly one request, from lib/data/fx_service.dart, to
+        open.er-api.com, with no key, no account, no identifying header and no
+        body. Nothing about the user's money leaves the device.
+
+        THREE THINGS THIS BREAKS, and all three are for before the store
+        rather than for today:
+          - the app's own header says "Offline Only";
+          - main.dart's doc comment says there is no network call anywhere;
+          - Play's data safety form has to declare it.
+        They are written up in docs/reviews/fx-live-rates.md rather than left
+        for somebody to rediscover in a rejection email.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Salapify"
         android:name="${applicationName}"

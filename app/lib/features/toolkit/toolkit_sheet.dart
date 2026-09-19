@@ -4,6 +4,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
 import '../categories/category_manager_sheet.dart';
+import '../fx/fx_sheet.dart';
 import '../shared/sheet_scaffold.dart';
 import '../tax/business_tax_sheet.dart';
 import '../tax/tax_calculator_sheet.dart';
@@ -38,6 +39,17 @@ class ToolkitSheet extends StatelessWidget {
       subtitle: 'Calculators built on BIR and BSP rules',
       child: Column(
         children: <Widget>[
+          _tool(
+            context,
+            p,
+            icon: Icons.public_outlined,
+            title: 'Foreign exchange',
+            subtitle: 'Live rates between the peso and four major currencies',
+            onTap: () {
+              Navigator.of(context).pop();
+              FxSheet.show(context, p);
+            },
+          ),
           _tool(
             context,
             p,

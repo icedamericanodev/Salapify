@@ -29,7 +29,9 @@ import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
+import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
+import 'package:salapify/features/fx/fx_sheet.dart';
 import 'package:salapify/state/financial_state.dart';
 
 /// The screenshot harness.
@@ -88,6 +90,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   planCalculatorShots();
+  fxShot();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -1382,6 +1385,42 @@ void planCalculatorShots() {
     await expectLater(
       find.byType(DebtScreen),
       matchesGoldenFile('out/plan_to_debt_calculators.png'),
+    );
+  });
+}
+
+/// The FX converter, on the built-in rates so the shot needs no network.
+void fxShot() {
+  testWidgets('fx converter renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final Palette palette = Palette.of(ThemeMode2.gabi);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, ThemeMode2.gabi),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          // An endpoint that resolves to nothing, so the shot exercises the
+          // OFFLINE path: built-in rates on screen, no spinner, no error.
+          body: FxSheet(
+            palette: palette,
+            service: FxService(endpoint: 'https://127.0.0.1:1/none'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(FxSheet),
+      matchesGoldenFile('out/fx_converter.png'),
     );
   });
 }
