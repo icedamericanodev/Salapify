@@ -1,4 +1,5 @@
 import '../core/money/reconciliation.dart';
+import '../core/money/reminders.dart';
 import '../design/tokens.dart';
 import '../models/models.dart';
 
@@ -847,3 +848,121 @@ PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
   daysToPayday: (_optNum(m, 'daysToPayday') ?? 0).round().clamp(0, 400),
   expectedIncome: _optNum(m, 'expectedIncome') ?? 0,
 );
+
+// ---------------------------------------------------------------------------
+// Reminders: the settings, and the tray of notifications already raised.
+// ---------------------------------------------------------------------------
+
+/// The prototype's own wire names, so a backup written by either app reads in
+/// the other. `daily_expense` rather than `dailyExpense` for the same reason
+/// every other multi word enum here is snake_case.
+final Wire<ReminderKind> reminderKindWire = _makeWire(<ReminderKind, String>{
+  ReminderKind.dailyExpense: 'daily_expense',
+  ReminderKind.paymentDue: 'payment_due',
+  ReminderKind.billDue: 'bill_due',
+  ReminderKind.subscription: 'subscription',
+});
+
+const Set<String> notificationKeys = <String>{
+  'id',
+  'type',
+  'title',
+  'body',
+  'timestamp',
+  'isRead',
+};
+
+Map<String, dynamic> notificationToJson(AppNotification n) => <String, dynamic>{
+  'id': n.id,
+  'type': reminderKindWire.encode(n.kind),
+  'title': n.title,
+  'body': n.body,
+  'timestamp': n.createdAt,
+  'isRead': n.isRead,
+};
+
+AppNotification notificationFromJson(Map<String, dynamic> m) => AppNotification(
+  id: _reqStr(m, 'id', 'notification'),
+  kind: reminderKindWire.decodeRequired(m, 'type', 'notification'),
+  title: _reqStr(m, 'title', 'notification'),
+  body: _reqStr(m, 'body', 'notification'),
+  createdAt: _optInt(m, 'timestamp') ?? 0,
+  isRead: _optBool(m, 'isRead'),
+);
+
+/// The reminder rules.
+///
+/// EVERY field is optional here, the same departure paydayFromJson makes and
+/// for the same reason: a required field throws, a throw makes the whole
+/// document unreadable, and that is far too high a price for a preference
+/// about when to be nudged. A missing rule falls back to the default, which is
+/// a state the app already handles.
+const Set<String> reminderSettingsKeys = <String>{
+  'dailyExpenseReminderEnabled',
+  'dailyExpenseReminderTime',
+  'paymentDueReminderEnabled',
+  'paymentDueDaysBefore',
+  'billReminderEnabled',
+  'billDaysBefore',
+  'subscriptionReminderEnabled',
+  'subscriptionDaysBefore',
+};
+
+Map<String, dynamic> reminderSettingsToJson(ReminderSettings s) =>
+    <String, dynamic>{
+      'dailyExpenseReminderEnabled': s.dailyExpenseEnabled,
+      // "20:00", the prototype's shape, which is also what an HTML time input
+      // reads and writes.
+      'dailyExpenseReminderTime':
+          '${s.dailyExpenseHour.toString().padLeft(2, '0')}:'
+          '${s.dailyExpenseMinute.toString().padLeft(2, '0')}',
+      'paymentDueReminderEnabled': s.paymentDueEnabled,
+      'paymentDueDaysBefore': s.paymentDueDaysBefore,
+      'billReminderEnabled': s.billEnabled,
+      'billDaysBefore': s.billDaysBefore,
+      'subscriptionReminderEnabled': s.subscriptionEnabled,
+      'subscriptionDaysBefore': s.subscriptionDaysBefore,
+    };
+
+ReminderSettings reminderSettingsFromJson(Map<String, dynamic> m) {
+  const ReminderSettings d = ReminderSettings.defaults;
+  final List<String> parts = (_optStr(m, 'dailyExpenseReminderTime') ?? '')
+      .split(':');
+  final int? hour = parts.length == 2 ? int.tryParse(parts[0]) : null;
+  final int? minute = parts.length == 2 ? int.tryParse(parts[1]) : null;
+
+  // Clamped, not trusted. An hour of 30 would make the nudge unreachable, so
+  // the rule would simply never fire and nothing would say why.
+  return ReminderSettings(
+    dailyExpenseEnabled: _optBool(
+      m,
+      'dailyExpenseReminderEnabled',
+      fallback: d.dailyExpenseEnabled,
+    ),
+    dailyExpenseHour: (hour ?? d.dailyExpenseHour).clamp(0, 23),
+    dailyExpenseMinute: (minute ?? d.dailyExpenseMinute).clamp(0, 59),
+    paymentDueEnabled: _optBool(
+      m,
+      'paymentDueReminderEnabled',
+      fallback: d.paymentDueEnabled,
+    ),
+    paymentDueDaysBefore:
+        (_optInt(m, 'paymentDueDaysBefore') ?? d.paymentDueDaysBefore).clamp(
+          0,
+          30,
+        ),
+    billEnabled: _optBool(m, 'billReminderEnabled', fallback: d.billEnabled),
+    billDaysBefore: (_optInt(m, 'billDaysBefore') ?? d.billDaysBefore).clamp(
+      0,
+      30,
+    ),
+    subscriptionEnabled: _optBool(
+      m,
+      'subscriptionReminderEnabled',
+      fallback: d.subscriptionEnabled,
+    ),
+    subscriptionDaysBefore:
+        (_optInt(m, 'subscriptionDaysBefore') ?? d.subscriptionDaysBefore)
+            .clamp(0, 30),
+  );
+}

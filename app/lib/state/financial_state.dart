@@ -13,6 +13,7 @@ import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
 import '../core/money/plan.dart';
 import '../core/money/reconciliation.dart';
+import '../core/money/reminders.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 
@@ -44,6 +45,8 @@ class FinancialState extends ChangeNotifier {
     _installments = List<InstallmentPlan>.of(SeedData.installments);
     _bills = List<BillItem>.of(SeedData.bills);
     _payday = SeedData.payday;
+    _notifications = <AppNotification>[];
+    _reminderSettings = ReminderSettings.defaults;
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -77,6 +80,16 @@ class FinancialState extends ChangeNotifier {
   /// collection entirely.
   late List<BillItem> _bills;
   late PaydayCycle _payday;
+
+  /// The reminder tray, newest first, and the rules that fill it.
+  ///
+  /// It starts EMPTY on a fresh install, which is a deliberate change from
+  /// what shipped before: the bell carried a hardcoded 12, from a seed
+  /// constant, on a phone that had never been reminded of anything. A badge
+  /// that lies is worse than no badge, and a beginner tapping it found a
+  /// screen saying "coming soon".
+  late List<AppNotification> _notifications;
+  late ReminderSettings _reminderSettings;
 
   /// Reconciliations recorded this session. Starts empty rather than seeded:
   /// the prototype seeds one, and a history row claiming somebody checked an
@@ -156,6 +169,10 @@ class FinancialState extends ChangeNotifier {
         _saveEnabled = false;
     }
     super.notifyListeners();
+    // AFTER the notify and after saving is decided, so a reminder raised on
+    // open is written to the file rather than living until the next restart
+    // and being raised all over again.
+    refreshReminders();
   }
 
   void _apply(Snapshot s) {
@@ -169,6 +186,8 @@ class FinancialState extends ChangeNotifier {
     _installments = List<InstallmentPlan>.of(s.installments);
     _reconciliations = List<ReconciliationRecord>.of(s.reconciliations);
     _bills = List<BillItem>.of(s.bills);
+    _notifications = List<AppNotification>.of(s.notifications);
+    _reminderSettings = s.reminderSettings;
     _payday = s.payday;
     _sampleRemovedAt = s.sampleDataRemovedAt;
     _theme = s.theme;
@@ -189,6 +208,8 @@ class FinancialState extends ChangeNotifier {
     installments: _installments,
     reconciliations: _reconciliations,
     bills: _bills,
+    notifications: _notifications,
+    reminderSettings: _reminderSettings,
     payday: _payday,
     sampleDataRemovedAt: _sampleRemovedAt,
     theme: _theme,
@@ -292,10 +313,144 @@ class FinancialState extends ChangeNotifier {
       List<InstallmentPlan>.unmodifiable(_installments);
   PaydayCycle get payday => _payday;
 
-  /// Header badges. Static for now: the notification engine and the
-  /// collaboration hub are later migration steps, and a badge that lies is
-  /// worse than one that is honest about where its number comes from.
-  int get unreadNotificationsCount => SeedData.unreadNotifications;
+  // -------------------------------------------------------------------------
+  // Reminders
+  // -------------------------------------------------------------------------
+
+  List<AppNotification> get notifications =>
+      List<AppNotification>.unmodifiable(_notifications);
+
+  ReminderSettings get reminderSettings => _reminderSettings;
+
+  /// What the bell counts. A real number now: it is the tray, filtered.
+  int get unreadNotificationsCount =>
+      _notifications.where((AppNotification n) => !n.isRead).length;
+
+  /// Works out what is newly due and puts it in the tray. Returns how many.
+  ///
+  /// Called when the app opens and whenever the reminders screen is opened,
+  /// rather than on a timer. There IS no timer: Salapify has no background
+  /// service and no notification permission, so a reminder exists the moment
+  /// somebody looks, and the screen says so in as many words rather than
+  /// implying the phone will buzz.
+  ///
+  /// The dedupe set is the tray's own ids, so a reminder that was raised and
+  /// then DELETED can come back. That is deliberate. Deleting a message is
+  /// not paying the bill, and an app that took a swipe as "handled" would go
+  /// quiet about a payment that is still due.
+  int refreshReminders() {
+    // Nothing is swept while the data file is unreadable. The ledger on
+    // screen is the seed in that state, so every reminder would be about
+    // somebody else's demo bills, written into a tray they would keep.
+    if (_loadStatus == LoadStatus.unreadable) return 0;
+
+    final ReminderResult result = evaluateReminders(
+      settings: _reminderSettings,
+      transactions: _transactions,
+      debts: _debts,
+      bills: _bills,
+      accounts: _accounts,
+      installments: _installments,
+      upcoming: _upcoming,
+      sentTags: _notifications.map((AppNotification n) => n.id).toSet(),
+      now: now,
+    );
+    if (result.fresh.isEmpty) return 0;
+
+    final int stamp = now.millisecondsSinceEpoch;
+    _notifications = <AppNotification>[
+      for (final Reminder r in result.fresh)
+        AppNotification(
+          id: r.tag,
+          kind: r.kind,
+          title: r.title,
+          body: r.body,
+          createdAt: stamp,
+        ),
+      ..._notifications,
+    ];
+    // Old messages are dropped from the bottom. A tray nobody can reach the
+    // end of is a tray nobody reads, and these are reminders rather than
+    // records: the bill itself is still in the ledger.
+    if (_notifications.length > maxNotifications) {
+      _notifications = _notifications.sublist(0, maxNotifications);
+    }
+    notifyListeners();
+    return result.fresh.length;
+  }
+
+  /// How many messages the tray keeps.
+  static const int maxNotifications = 60;
+
+  void markNotificationRead(String id) {
+    final int at = _notifications.indexWhere(
+      (AppNotification n) => n.id == id && !n.isRead,
+    );
+    if (at < 0) return;
+    _notifications = List<AppNotification>.of(_notifications);
+    _notifications[at] = _notifications[at].copyWith(isRead: true);
+    notifyListeners();
+  }
+
+  void markAllNotificationsRead() {
+    if (unreadNotificationsCount == 0) return;
+    _notifications = <AppNotification>[
+      for (final AppNotification n in _notifications) n.copyWith(isRead: true),
+    ];
+    notifyListeners();
+  }
+
+  void clearNotification(String id) {
+    final int before = _notifications.length;
+    _notifications = _notifications
+        .where((AppNotification n) => n.id != id)
+        .toList();
+    if (_notifications.length != before) notifyListeners();
+  }
+
+  void clearAllNotifications() {
+    if (_notifications.isEmpty) return;
+    _notifications = <AppNotification>[];
+    notifyListeners();
+  }
+
+  void updateReminderSettings(ReminderSettings next) {
+    _reminderSettings = next;
+    notifyListeners();
+    // A rule that was just widened can make something due immediately, and
+    // waiting until the next app open to say so would make the setting look
+    // broken.
+    refreshReminders();
+  }
+
+  /// Puts one message in the tray so a person can see what a reminder looks
+  /// like, and check it is switched on at all.
+  ///
+  /// Ported from the prototype's Test Simulator. It is marked as a test in its
+  /// own body, because a tray that mixes a drill with the real thing is how
+  /// somebody ends up ignoring a real one.
+  void sendTestReminder(ReminderKind kind) {
+    final int stamp = now.millisecondsSinceEpoch;
+    const Map<ReminderKind, String> what = <ReminderKind, String>{
+      ReminderKind.dailyExpense: 'a daily logging nudge',
+      ReminderKind.paymentDue: 'a payment reminder',
+      ReminderKind.billDue: 'a bill reminder',
+      ReminderKind.subscription: 'a subscription renewal',
+    };
+    _notifications = <AppNotification>[
+      AppNotification(
+        id: 'test-$stamp-${kind.index}',
+        kind: kind,
+        title: 'Test: ${what[kind]}',
+        body:
+            'This is a test, not a real reminder. Nothing is due. It is here '
+            'so you can see where reminders appear.',
+        createdAt: stamp,
+      ),
+      ..._notifications,
+    ];
+    notifyListeners();
+  }
 
   void toggleTheme() {
     _theme = _theme == ThemeMode2.hapon ? ThemeMode2.gabi : ThemeMode2.hapon;
@@ -1061,6 +1216,13 @@ class FinancialState extends ChangeNotifier {
 
     // The seed's payday is Salapify's, not theirs.
     _payday = PaydayCycle.unset;
+
+    // And so is anything the tray was reminding them about. Every message in
+    // it was raised from a record that has just been deleted, so leaving it
+    // would hand somebody a bill reminder naming a bill that is no longer on
+    // any screen, which is unanswerable rather than merely stale.
+    _notifications = <AppNotification>[];
+
     _sampleRemovedAt = now.toUtc().toIso8601String();
     notifyListeners();
   }

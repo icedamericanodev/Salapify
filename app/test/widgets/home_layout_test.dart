@@ -80,14 +80,26 @@ void main() {
   ) async {
     await pumpHome(tester);
 
-    final Finder title = find.text('Reminders & Alerts');
+    final Finder title = find.text('Reminders');
     await tester.scrollUntilVisible(title, 200);
     await tester.pumpAndSettle();
 
     // Present in full. When it was a Row, the title lost the fight with the
-    // SIMULATOR tag and the card read "Reminders & ..." instead.
+    // tag beside it and the card read "Reminders & ..." instead.
     expect(title, findsOneWidget);
     final Text widget = tester.widget<Text>(title);
     expect(widget.overflow, isNot(TextOverflow.ellipsis));
+  });
+
+  testWidgets('and it no longer calls itself a simulator', (
+    WidgetTester tester,
+  ) async {
+    // The tag was honest while nothing behind the card worked. Something does
+    // now, so the tag would be the lie instead. This asserts the swap
+    // happened rather than the label merely being restyled.
+    await pumpHome(tester);
+
+    expect(find.text('SIMULATOR'), findsNothing);
+    expect(find.text('Test Alerts'), findsNothing);
   });
 }

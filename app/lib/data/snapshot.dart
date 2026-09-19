@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../core/money/reconciliation.dart';
+import '../core/money/reminders.dart';
 import '../design/tokens.dart';
 import '../models/models.dart';
 import 'json_codec.dart';
@@ -39,6 +40,8 @@ class Snapshot {
     required this.installments,
     required this.reconciliations,
     required this.bills,
+    this.notifications = const <AppNotification>[],
+    this.reminderSettings = ReminderSettings.defaults,
     required this.payday,
     this.sampleDataRemovedAt,
     required this.theme,
@@ -61,6 +64,17 @@ class Snapshot {
   /// the SEED list, so a new user's headline figure was reduced by demo bills
   /// they had never entered and could find on no screen.
   final List<BillItem> bills;
+
+  /// The reminders already raised, newest first.
+  ///
+  /// Stored rather than recomputed, and that is the whole design. The engine
+  /// decides what is DUE; this list is what has already been SAID, which is
+  /// the only way a reminder can be dismissed, marked read, or kept from
+  /// firing a second time when the app is reopened an hour later.
+  final List<AppNotification> notifications;
+
+  /// When the person wants to be reminded, and how far ahead.
+  final ReminderSettings reminderSettings;
 
   /// The payday cycle. Previously a compile time constant, so a fresh install
   /// said "4 days to payday, Sep 15" and would have said it in December too.
@@ -98,9 +112,15 @@ class Snapshot {
   static const String kInstallments = 'installments';
   static const String kReconciliations = 'reconciliations';
   static const String kBills = 'bills';
+  static const String kNotifications = 'notifications';
 
-  /// Every collection this build reads, for the shape check that tells a
-  /// Salapify document from any other valid JSON. See looksLikeSalapify.
+  /// Every LEDGER collection this build reads, for the shape check that tells
+  /// a Salapify document from any other valid JSON. See looksLikeSalapify.
+  ///
+  /// [kNotifications] is deliberately NOT here. It is a tray of messages, not
+  /// a ledger, and a file holding nothing but notifications would otherwise
+  /// pass the gate and restore as an empty book. The gate exists to stop
+  /// exactly that.
   static const List<String> collectionKeys = <String>[
     kAccounts,
     kTransactions,
@@ -132,6 +152,8 @@ class Snapshot {
     kInstallments,
     kReconciliations,
     kBills,
+    kNotifications,
+    'reminderSettings',
     'payday',
     'sampleDataRemovedAt',
   };
@@ -200,6 +222,15 @@ class Snapshot {
       kBills: <Map<String, dynamic>>[
         for (final BillItem b in bills) merged(kBills, b.id, billToJson(b)),
       ],
+      kNotifications: <Map<String, dynamic>>[
+        for (final AppNotification n in notifications)
+          merged(kNotifications, n.id, notificationToJson(n)),
+      ],
+      'reminderSettings': merged(
+        'reminderSettings',
+        'reminderSettings',
+        reminderSettingsToJson(reminderSettings),
+      ),
       'payday': merged('payday', 'payday', paydayToJson(payday)),
       if (sampleDataRemovedAt != null)
         'sampleDataRemovedAt': sampleDataRemovedAt,
@@ -219,6 +250,29 @@ class Snapshot {
     };
     if (leftover.isNotEmpty) extras.put('payday', 'payday', leftover);
     return paydayFromJson(row);
+  }
+
+  /// The reminder rules, plus whatever else was inside them.
+  ///
+  /// Same shape as [_readPayday], and same reason: one object rather than a
+  /// collection, so it gets a record in [Extras] under its own name and its
+  /// unknown sub-keys survive a save. The prototype's own object carries
+  /// `webNotificationsEnabled`, `inAppToastsEnabled` and `soundEnabled`, none
+  /// of which mean anything on a phone, and all three come back out untouched.
+  static ReminderSettings _readReminderSettings(
+    Object? raw,
+    ExtrasBuilder extras,
+  ) {
+    if (raw is! Map) return ReminderSettings.defaults;
+    final Map<String, dynamic> row = Map<String, dynamic>.from(raw);
+    final Map<String, dynamic> leftover = <String, dynamic>{
+      for (final MapEntry<String, dynamic> e in row.entries)
+        if (!reminderSettingsKeys.contains(e.key)) e.key: e.value,
+    };
+    if (leftover.isNotEmpty) {
+      extras.put('reminderSettings', 'reminderSettings', leftover);
+    }
+    return reminderSettingsFromJson(row);
   }
 
   /// Reads a document, or throws [SnapshotFormatException].
@@ -341,6 +395,13 @@ class Snapshot {
       // anything else inside it would be silently dropped on the next save
       // unless it is stashed here. Same rule as every record, applied to an
       // object that is not in a collection.
+      notifications: read<AppNotification>(
+        kNotifications,
+        notificationKeys,
+        notificationFromJson,
+        (AppNotification n) => n.id,
+      ),
+      reminderSettings: _readReminderSettings(m['reminderSettings'], extras),
       payday: _readPayday(m['payday'], extras),
       sampleDataRemovedAt: m['sampleDataRemovedAt'] is String
           ? m['sampleDataRemovedAt'] as String

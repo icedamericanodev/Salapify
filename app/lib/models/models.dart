@@ -582,6 +582,47 @@ class BillItem {
   final bool isSample;
 }
 
+/// The four things Salapify will remind somebody about, ported from the
+/// prototype's `ReminderType`. The wire names in json_codec.dart are the
+/// prototype's own, so a backup written by either app reads in the other.
+enum ReminderKind { dailyExpense, paymentDue, billDue, subscription }
+
+/// One reminder that has actually been raised, sitting in the tray.
+///
+/// The [id] IS the dedupe tag, deliberately. The engine builds a tag from what
+/// a reminder is about and the day it is about it, and storing it as the id
+/// means there is exactly one thing to compare against instead of two that can
+/// drift apart. Whether a reminder has been seen before is then the same
+/// question as whether the tray already holds it.
+class AppNotification {
+  const AppNotification({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.body,
+    required this.createdAt,
+    this.isRead = false,
+  });
+
+  final String id;
+  final ReminderKind kind;
+  final String title;
+  final String body;
+
+  /// Milliseconds since the epoch, so "2h ago" can be worked out later.
+  final int createdAt;
+  final bool isRead;
+
+  AppNotification copyWith({bool? isRead}) => AppNotification(
+    id: id,
+    kind: kind,
+    title: title,
+    body: body,
+    createdAt: createdAt,
+    isRead: isRead ?? this.isRead,
+  );
+}
+
 /// How a provider quotes the rate. The same number means wildly different
 /// money depending which of these it is: 1.5 a MONTH is 18 a year.
 enum InterestRateType { annual, monthly, daily, fixed }

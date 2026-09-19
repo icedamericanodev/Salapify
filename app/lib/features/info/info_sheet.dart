@@ -154,6 +154,7 @@ enum InfoTopic {
   decisions,
   trackers,
   academy,
+  reminders,
 }
 
 class InfoPoint {
@@ -678,6 +679,51 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Together they are about three thousand lines of written guidance '
             'and they deserve a proper pass rather than being rushed in '
             'beside everything else on this tab.',
+      ),
+    ],
+  ),
+  InfoTopic.reminders: InfoContent(
+    title: 'How reminders work',
+    subtitle: 'What raises one, and what it can and cannot do',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.phone_iphone,
+        title: 'Salapify does not buzz your phone',
+        body:
+            'A real notification needs permission from Android and a rebuilt '
+            'app, so for now a reminder is worked out and shown when you '
+            'open Salapify. Nothing runs in the background and nothing is '
+            'watching you between visits.',
+      ),
+      InfoPoint(
+        icon: Icons.rule,
+        title: 'Four rules, and you own all of them',
+        body:
+            'A nudge if nothing is logged by an evening hour you pick, and a '
+            'warning ahead of a payment you owe, a bill, and a subscription '
+            'renewal. Switch any of them off and it goes quiet for good.',
+      ),
+      InfoPoint(
+        icon: Icons.repeat_one,
+        title: 'The same thing is only said once a day',
+        body:
+            'Opening the app five times in an evening does not produce five '
+            'copies. It can say it again tomorrow, which is the point.',
+      ),
+      InfoPoint(
+        icon: Icons.warning_amber_outlined,
+        title: 'Something late keeps being mentioned',
+        body:
+            'A bill you missed goes on reminding you and says how late it is, '
+            'until it is paid or removed. The prototype went silent the day '
+            'after a due date, which is the moment it matters most.',
+      ),
+      InfoPoint(
+        icon: Icons.delete_outline,
+        title: 'Removing a message is not paying it',
+        body:
+            'Clear one and it can come back, because the bill underneath it '
+            'is still there. Nothing here changes your money.',
       ),
     ],
   ),

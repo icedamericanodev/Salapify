@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/info/info_sheet.dart';
+import '../../features/reminders/reminders_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
@@ -62,7 +63,7 @@ class HomeScreen extends StatelessWidget {
             HomeHeader(
               state: state,
               onOpenToolkit: () => ToolkitSheet.show(context, state),
-              onOpenReminders: () => _soon(context, palette, 'Reminders'),
+              onOpenReminders: () => RemindersSheet.show(context, state),
               // The one real destination behind this button so far. The
               // sample data control lives here because that is where somebody
               // goes looking for it, and because the header already calls this
@@ -96,8 +97,8 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.lg),
             RemindersBanner(
-              palette: palette,
-              onTest: () => _soon(context, palette, 'Alert testing'),
+              state: state,
+              onOpen: () => RemindersSheet.show(context, state),
             ),
             const SizedBox(height: Spacing.lg),
             DebtBeamCard(

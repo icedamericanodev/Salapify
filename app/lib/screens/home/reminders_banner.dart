@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
+import '../../design/type.dart';
+import '../../state/financial_state.dart';
 import 'home_kit.dart';
 
-/// The Reminders and Alerts banner, ported from the block inside App.tsx's
-/// home branch.
+/// The Reminders card on Home, ported from the block inside App.tsx's home
+/// branch.
 ///
-/// The SIMULATOR tag is load-bearing honesty: nothing here schedules a real
-/// notification yet, and a reminders card that quietly did nothing would be
-/// worse than one that says what it is.
+/// It used to carry a SIMULATOR tag and a Test Alerts button that opened a
+/// "coming soon" message. The tag was load-bearing honesty while nothing
+/// behind it worked, and it is gone now because something does: the card says
+/// how many reminders are waiting and opens the tray that holds them.
+///
+/// A card that says a feature is fake is better than one that pretends. A card
+/// that does the thing is better than both.
 class RemindersBanner extends StatelessWidget {
-  const RemindersBanner({super.key, required this.palette, this.onTest});
+  const RemindersBanner({super.key, required this.state, this.onOpen});
 
-  final Palette palette;
-  final VoidCallback? onTest;
+  final FinancialState state;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final Palette palette = Palette.of(state.theme);
+    final int unread = state.unreadNotificationsCount;
+    final int total = state.notifications.length;
+
     return SectionCard(
       palette: palette,
       padding: const EdgeInsets.all(Spacing.md),
@@ -29,76 +39,44 @@ class RemindersBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // A Wrap, not a Row. In a Row the SIMULATOR tag holds fixed
-                // width and the TITLE is what gives way, so the card read
-                // "Reminders & ..." on a 390dp phone. Wrapping drops the tag
-                // to its own line instead, which costs a few pixels of height
-                // and never truncates the name of the thing.
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: Spacing.sm,
-                  runSpacing: 2,
-                  children: <Widget>[
-                    Text(
-                      'Reminders & Alerts',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: palette.textPrimary,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.warningSoft,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'SIMULATOR',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          // textPrimary reads correctly on warningSoft in both
-                          // themes: near-black on amber, near-white on the
-                          // dark brown. No theme test needed.
-                          color: palette.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                Text('Reminders', style: AppType.rowTitle(palette)),
+                const SizedBox(height: 2),
                 Text(
-                  'Daily log, payment due, bill & subscription reminders',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: palette.textSecondary),
+                  // A figure, not a lesson. What the rules ARE lives behind
+                  // the dot on the sheet itself.
+                  switch ((unread, total)) {
+                    (0, 0) => 'Nothing due in the next few days',
+                    (0, _) => '$total in the tray, all read',
+                    _ => '$unread waiting for you',
+                  },
+                  maxLines: 2,
+                  style: AppType.caption(palette),
                 ),
               ],
             ),
           ),
           const SizedBox(width: Spacing.sm),
-          _TestButton(palette: palette, onTap: onTest),
+          _OpenButton(palette: palette, onTap: onOpen, unread: unread),
         ],
       ),
     );
   }
 }
 
-class _TestButton extends StatelessWidget {
-  const _TestButton({required this.palette, this.onTap});
+class _OpenButton extends StatelessWidget {
+  const _OpenButton({required this.palette, required this.unread, this.onTap});
 
   final Palette palette;
+  final int unread;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final bool loud = unread > 0;
     return Semantics(
       button: true,
       child: Material(
-        color: palette.accent,
+        color: loud ? palette.accent : palette.surfaceAlt,
         borderRadius: BorderRadius.circular(Radii.tile),
         child: InkWell(
           onTap: onTap,
@@ -106,18 +84,17 @@ class _TestButton extends StatelessWidget {
           child: Container(
             constraints: const BoxConstraints(minHeight: 44),
             padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-            alignment: Alignment.center,
+            // A Row with mainAxisSize.min rather than an alignment: a
+            // Container with an alignment and no width fills whatever the
+            // Row hands it, which here is everything the Expanded left over.
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(Icons.auto_awesome, size: 13, color: palette.onAccent),
-                const SizedBox(width: 4),
                 Text(
-                  'Test Alerts',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: palette.onAccent,
+                  'Open',
+                  style: AppType.button(
+                    palette,
+                    color: loud ? palette.onAccent : palette.textSecondary,
                   ),
                 ),
               ],

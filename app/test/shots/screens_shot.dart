@@ -11,6 +11,7 @@ import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/reminders/reminders_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
@@ -653,6 +654,8 @@ void main() {
         (name: 'tax_calculator', openWith: 'tax'),
         (name: 'business_tax', openWith: 'business'),
         (name: 'categories', openWith: 'categories'),
+        (name: 'reminders', openWith: 'reminders'),
+        (name: 'reminders_rules', openWith: 'remindersRules'),
       ];
 
   for (final ({String name, String openWith}) sheet in sheets) {
@@ -695,8 +698,19 @@ void main() {
           BusinessTaxSheet.show(context, palette);
         case 'categories':
           CategoryManagerSheet.show(context, state);
+        case 'reminders':
+        case 'remindersRules':
+          RemindersSheet.show(context, state);
       }
       await tester.pumpAndSettle();
+
+      // The Rules tab is a second shot rather than a second sheet: it is the
+      // half a founder reviews for whether the controls read right, and the
+      // tray above it is the half they review for whether the words do.
+      if (sheet.openWith == 'remindersRules') {
+        await tester.tap(find.text('Rules'));
+        await tester.pumpAndSettle();
+      }
 
       // MaterialApp, not AppShell: a modal sheet lives in the Overlay ABOVE
       // the shell, so a render of the shell alone would be a picture of Home

@@ -846,10 +846,15 @@ class SeedData {
     ),
   ];
 
-  /// Header badge counts. These are placeholders with a deliberate shape: the
-  /// notification engine and the collaboration hub are later migration steps,
-  /// and the badges exist now so the header they sit in is the real one.
-  static const int unreadNotifications = 12;
+  // The header badge counts are GONE, both of them, and this note is here so
+  // nobody puts one back.
+  //
+  // `unreadNotifications = 12` fed the bell, and `memberCount = 5` fed the
+  // collaboration button. Both were placeholders "so the header is the real
+  // one", and both shipped as numbers on a brand new phone that had never had
+  // a notification or a second person. The collaboration button was removed;
+  // the bell counts its own tray now. A placeholder that renders is not a
+  // placeholder, it is a claim.
 
   static const PaydayCycle payday = PaydayCycle(
     cycleType: '15_30',
