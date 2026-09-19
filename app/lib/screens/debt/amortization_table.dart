@@ -113,10 +113,7 @@ class _AmortizationTableState extends State<AmortizationTable> {
           _ExportRow(palette: p, busy: _busy, onExport: _export, onCopy: _copy),
           const SizedBox(height: Spacing.md),
           if (_view == AmortizationView.monthly)
-            _MonthlyRows(
-              palette: p,
-              rows: widget.schedule.sublist(from, to),
-            )
+            _MonthlyRows(palette: p, rows: widget.schedule.sublist(from, to))
           else
             _AnnualRows(palette: p, rows: _years.sublist(from, to)),
           const SizedBox(height: Spacing.sm),
@@ -170,10 +167,9 @@ class _AmortizationTableState extends State<AmortizationTable> {
       await file.writeAsString('﻿${_csv()}', flush: true);
       // share_plus 10's API, checked against the installed package rather
       // than remembered: version 11 renamed this to SharePlus.instance.share.
-      await Share.shareXFiles(
-        <XFile>[XFile(file.path, mimeType: 'text/csv')],
-        subject: widget.meta.title,
-      );
+      await Share.shareXFiles(<XFile>[
+        XFile(file.path, mimeType: 'text/csv'),
+      ], subject: widget.meta.title);
     } on MissingPluginException {
       // The app is running a build made before share_plus or path_provider
       // were added, so the native side of them is not in the APK. A hot
@@ -346,13 +342,11 @@ class _ViewToggle extends StatelessWidget {
       spacing: Spacing.sm,
       runSpacing: Spacing.sm,
       children: <Widget>[
-        for (final (AmortizationView v, String label) in <(
-          AmortizationView,
-          String,
-        )>[
-          (AmortizationView.monthly, 'Monthly schedule ($months mos)'),
-          (AmortizationView.annual, 'Annual summary ($years yrs)'),
-        ])
+        for (final (AmortizationView v, String label)
+            in <(AmortizationView, String)>[
+              (AmortizationView.monthly, 'Monthly schedule ($months mos)'),
+              (AmortizationView.annual, 'Annual summary ($years yrs)'),
+            ])
           Semantics(
             button: true,
             selected: view == v,
@@ -525,7 +519,9 @@ class _AnnualRows extends StatelessWidget {
           _DataRow(
             palette: palette,
             cells: <String>[
-              y.monthCount == 12 ? 'Year ${y.year}' : 'Year ${y.year} (${y.monthCount} mos)',
+              y.monthCount == 12
+                  ? 'Year ${y.year}'
+                  : 'Year ${y.year} (${y.monthCount} mos)',
               formatPeso(y.totalPayment),
               formatPeso(y.endingBalance),
             ],
@@ -548,7 +544,10 @@ class _HeadRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: Spacing.xs),
       child: Row(
         children: <Widget>[
-          Expanded(flex: 3, child: Text(labels[0], style: AppType.kicker(palette))),
+          Expanded(
+            flex: 3,
+            child: Text(labels[0], style: AppType.kicker(palette)),
+          ),
           Expanded(
             flex: 4,
             child: Text(
@@ -610,10 +609,9 @@ class _DataRow extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Text(
                 cells[2],
-                style: AppType.body(palette).copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: tint,
-                ),
+                style: AppType.body(
+                  palette,
+                ).copyWith(fontWeight: FontWeight.w700, color: tint),
               ),
             ),
           ),

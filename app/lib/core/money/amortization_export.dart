@@ -60,9 +60,7 @@ List<YearSummary> summariseByYear(List<AmortizationRow> schedule) {
   }
 
   final List<int> ordered = years.keys.toList()..sort();
-  return <YearSummary>[
-    for (final int y in ordered) years[y]!.build(),
-  ];
+  return <YearSummary>[for (final int y in ordered) years[y]!.build()];
 }
 
 class _YearAccumulator {

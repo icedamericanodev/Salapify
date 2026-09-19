@@ -258,9 +258,7 @@ class _MastercardPainter extends CustomPainter {
 
     // The intersection, which on the real mark is a distinct darker orange.
     canvas.save();
-    canvas.clipPath(
-      Path()..addOval(Rect.fromCircle(center: left, radius: r)),
-    );
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: left, radius: r)));
     canvas.drawCircle(right, r, Paint()..color = const Color(0xFFFF5F00));
     canvas.restore();
   }

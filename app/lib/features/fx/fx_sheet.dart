@@ -110,12 +110,7 @@ class _FxSheetState extends State<FxSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _Status(
-            palette: p,
-            rates: _rates,
-            busy: _busy,
-            onRefresh: _refresh,
-          ),
+          _Status(palette: p, rates: _rates, busy: _busy, onRefresh: _refresh),
           if (_lastAttemptFailed != null) ...<Widget>[
             const SizedBox(height: Spacing.sm),
             Text(

@@ -167,7 +167,10 @@ void main() {
       final List<String> first = lines[11].split(',');
       final List<String> second = lines[12].split(',');
 
-      expect(double.parse(first[7]), closeTo(schedule[0].principalComponent, 0.01));
+      expect(
+        double.parse(first[7]),
+        closeTo(schedule[0].principalComponent, 0.01),
+      );
       expect(
         double.parse(second[7]),
         closeTo(

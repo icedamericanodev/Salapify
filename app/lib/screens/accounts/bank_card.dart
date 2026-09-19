@@ -11,33 +11,6 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import 'card_art.dart';
 
-/// The last four digits of a stored card number, and NEVER any more than that.
-///
-/// This exists as one shared function rather than as a getter on the front,
-/// and the reason is a defect this repository actually shipped into a render.
-/// The front masked correctly from the day it was written. The back, added
-/// later, listed `account.accountNumber` straight out of storage, so a card
-/// recorded in full printed all sixteen digits on a screen somebody opens in
-/// public, directly beneath a badge reading NO CVV. Twenty four green tests
-/// had nothing to say about it and the screenshot showed it immediately.
-///
-/// Two faces that mask independently will drift apart again. One function
-/// cannot.
-String? maskedTail(String? stored) {
-  if (stored == null) return null;
-  final String digits = stored.replaceAll(RegExp(r'[^0-9]'), '');
-  if (digits.length < 4) return null;
-  return digits.substring(digits.length - 4);
-}
-
-/// The number in card groups: `••••  ••••  ••••  6789`.
-///
-/// The grouping is what makes it read as a card rather than as a code. A
-/// number too short to have a meaningful tail masks completely instead of
-/// showing what little was typed.
-String pannedNumber(String? stored) =>
-    '••••  ••••  ••••  ${maskedTail(stored) ?? '••••'}';
-
 /// A debit or credit account drawn as a piece of plastic, from
 /// src/components/BankCard.tsx.
 ///
@@ -420,6 +393,11 @@ class _TopRow extends StatelessWidget {
       CardTier.regular || CardTier.custom => null,
     };
 
+    // Whether the issuer's own logo is going to be drawn on the right. The
+    // kicker below depends on it, so it is worked out once here rather than
+    // asked twice and allowed to disagree with itself.
+    final bool hasMark = brand != null && brand!.hasMark;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -427,19 +405,32 @@ class _TopRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                account.institution.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: AppType.family,
-                  fontSize: height * 0.075,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: height * 0.012,
-                  color: inkSoft,
-                  height: 1.1,
+              // THE BANK'S NAME APPEARS ONCE, not twice.
+              //
+              // Founder direction, 2026-09-19, looking at a card reading "BPI"
+              // over "BPI Rewards Card" with the BPI logo beside it: "i think
+              // its redundant there are two brand name. We can retain 1 plus
+              // the logo in the right side".
+              //
+              // So the kicker is dropped wherever the LOGO already says which
+              // bank it is, and kept only where there is no mark to say it. A
+              // Pag-IBIG card draws a monogram rather than a logo, and with
+              // the kicker gone as well an account somebody named "Main card"
+              // would name no institution anywhere on the plastic.
+              if (!hasMark)
+                Text(
+                  account.institution.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppType.family,
+                    fontSize: height * 0.075,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: height * 0.012,
+                    color: inkSoft,
+                    height: 1.1,
+                  ),
                 ),
-              ),
               Text(
                 account.name,
                 maxLines: 1,
@@ -469,7 +460,7 @@ class _TopRow extends StatelessWidget {
         const SizedBox(width: Spacing.sm),
         // The issuer's own mark on a white plate, which is how it appears on
         // the real card: printed, not tinted to the plastic.
-        if (brand != null && brand!.hasMark)
+        if (hasMark)
           Container(
             width: height * 0.2,
             height: height * 0.2,

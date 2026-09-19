@@ -53,8 +53,7 @@ class FxRates {
   /// this. Never empty, so there is always something to convert with.
   factory FxRates.builtIn() => FxRates(
     pesosPerUnit: <String, double>{
-      for (final MapEntry<CurrencyCode, double> e
-          in exchangeRatesToPhp.entries)
+      for (final MapEntry<CurrencyCode, double> e in exchangeRatesToPhp.entries)
         e.key.wire: e.value,
     },
     source: FxSource.builtIn,

@@ -39,7 +39,10 @@ void main() {
           'THE test. Saving was off, the state knew it, and the app said '
           'nothing for a whole batch.',
     );
-    expect(find.textContaining('Nothing already on this phone'), findsOneWidget);
+    expect(
+      find.textContaining('Nothing already on this phone'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the warning follows you to every tab', (
@@ -65,9 +68,7 @@ void main() {
     }
   });
 
-  testWidgets('a working app says nothing at all', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('a working app says nothing at all', (WidgetTester tester) async {
     await pump(tester, MemorySnapshotStore());
 
     // The directional companion. A banner that is always there would satisfy

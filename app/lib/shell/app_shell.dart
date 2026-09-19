@@ -386,7 +386,25 @@ class _StorageWarning extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(problem, style: AppType.caption(palette)),
+                // The plain sentence leads. See plainStorageProblem: the raw
+                // failure names a channel and a method and answers none of
+                // the questions somebody holding the phone actually has.
+                Text(
+                  plainStorageProblem(problem),
+                  style: AppType.caption(palette),
+                ),
+                // The raw text still ships, underneath and dimmer, because it
+                // is what makes a screenshot diagnosable. It is kept out of
+                // the headline, not thrown away.
+                if (plainStorageProblem(problem) != problem) ...<Widget>[
+                  const SizedBox(height: Spacing.xs),
+                  Text(
+                    problem,
+                    style: AppType.caption(palette).copyWith(
+                      color: palette.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
                 if (!recovered && !state.isSaving) ...<Widget>[
                   const SizedBox(height: Spacing.xs),
                   Text(

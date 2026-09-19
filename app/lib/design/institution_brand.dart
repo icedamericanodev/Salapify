@@ -23,11 +23,7 @@ import 'package:flutter/material.dart';
 /// that shows them, exactly as the prototype's own Accounts screen does.
 @immutable
 class InstitutionBrand {
-  const InstitutionBrand({
-    required this.name,
-    required this.color,
-    this.asset,
-  });
+  const InstitutionBrand({required this.name, required this.color, this.asset});
 
   /// The institution's display name.
   final String name;

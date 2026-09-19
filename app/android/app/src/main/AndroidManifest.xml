@@ -20,10 +20,33 @@
         for somebody to rediscover in a rejection email.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!--
+        NO CLOUD BACKUP OF THE LEDGER. Decided 2026-09-19 on the founder's
+        instruction to have the security and privacy reviewer settle it.
+
+        Android's default is allowBackup="true", which quietly copies the app's
+        files to the user's Google Drive. The reason that is refused here is
+        not the encryption, which is genuinely good: it is that the copy is one
+        Salapify cannot see, cannot verify and cannot delete. The honest answer
+        to "delete everything you hold about me" has to be one sentence,
+        "uninstall the app", and a Drive copy turns it into a treasure hunt
+        through Google One settings.
+
+        It also is not only the user's own data. Debt.person is free text
+        naming whoever owes them money, and those people consented to nothing.
+
+        THE COST IS REAL AND IS ACCEPTED: with this off and no export built
+        yet, a lost phone means the data is gone. That is precisely why the
+        export is a launch blocker rather than something Auto Backup is
+        allowed to stand in for.
+    -->
     <application
         android:label="Salapify"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

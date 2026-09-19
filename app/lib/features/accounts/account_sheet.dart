@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/money/accounts.dart';
 import '../../core/money/currencies.dart';
@@ -242,12 +243,27 @@ class _AccountSheetState extends State<AccountSheet> {
           ),
           if (_isCard) ...<Widget>[
             const SizedBox(height: Spacing.lg),
+            // FOUR DIGITS, ENFORCED, not merely requested.
+            //
+            // This field used to say "last four digits" and accept anything at
+            // all, storing it verbatim. The card draws it masked, so somebody
+            // who pasted a full sixteen digit number saw "•••• 4402" and quite
+            // reasonably concluded that four digits were what got kept. The
+            // file held the whole card number. The masking made the deception
+            // better, not worse, which is why a label was never enough here.
+            //
+            // Refusing the fifth digit at the keyboard is the only version of
+            // this that cannot be got around by not reading the label.
             SheetField(
               palette: p,
               label: 'Last four digits, if you want them shown',
               controller: _number,
               hint: '8819',
-              keyboardType: TextInputType.text,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
             ),
             const SizedBox(height: Spacing.lg),
             _Label(palette: p, text: 'Card scheme'),
@@ -348,7 +364,12 @@ class _AccountSheetState extends State<AccountSheet> {
           ? double.tryParse(_limit.text.trim().replaceAll(',', ''))
           : widget.existing?.creditLimit,
       interestRate: double.tryParse(_rate.text.trim().replaceAll(',', '')),
-      accountNumber: _number.text.trim().isEmpty ? null : _number.text.trim(),
+      // Clamped again HERE, not only at the keyboard. The formatter above
+      // governs what can be typed, and this controller is also filled
+      // programmatically when editing an existing account, which no formatter
+      // ever sees. An account recorded in full before this rule existed would
+      // otherwise be written back in full on the next save.
+      accountNumber: cardTailForStorage(_number.text),
       dueDate: _due.text.trim().isEmpty ? null : _due.text.trim(),
       statementDate: widget.existing?.statementDate,
       cardNetwork: _isCard ? _network : CardNetwork.none,

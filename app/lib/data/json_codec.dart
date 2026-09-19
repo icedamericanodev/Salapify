@@ -92,10 +92,12 @@ List<Map<String, dynamic>> readList(Object? raw, String what) {
   if (raw is! List) {
     _bad('$what should be a list, found ${raw.runtimeType}');
   }
-  return raw.map<Map<String, dynamic>>((Object? e) {
-    if (e is Map) return Map<String, dynamic>.from(e);
-    return _bad('$what should hold objects, found ${e.runtimeType}');
-  }).toList(growable: false);
+  return raw
+      .map<Map<String, dynamic>>((Object? e) {
+        if (e is Map) return Map<String, dynamic>.from(e);
+        return _bad('$what should hold objects, found ${e.runtimeType}');
+      })
+      .toList(growable: false);
 }
 
 // ---------------------------------------------------------------------------
@@ -139,24 +141,22 @@ Wire<T> _makeWire<T>(Map<T, String> forward) => Wire<T>(forward, <String, T>{
   for (final MapEntry<T, String> e in forward.entries) e.value: e.key,
 });
 
-final Wire<TransactionType> transactionTypeWire = _makeWire(
-  <TransactionType, String>{
-    TransactionType.expense: 'expense',
-    TransactionType.income: 'income',
-    TransactionType.transfer: 'transfer',
-  },
-);
+final Wire<TransactionType> transactionTypeWire =
+    _makeWire(<TransactionType, String>{
+      TransactionType.expense: 'expense',
+      TransactionType.income: 'income',
+      TransactionType.transfer: 'transfer',
+    });
 
-final Wire<TransactionStatus> transactionStatusWire = _makeWire(
-  <TransactionStatus, String>{
-    TransactionStatus.pending: 'pending',
-    TransactionStatus.confirmed: 'confirmed',
-    TransactionStatus.reconciled: 'reconciled',
-    TransactionStatus.duplicate: 'duplicate',
-    TransactionStatus.corrected: 'corrected',
-    TransactionStatus.excluded: 'excluded',
-  },
-);
+final Wire<TransactionStatus> transactionStatusWire =
+    _makeWire(<TransactionStatus, String>{
+      TransactionStatus.pending: 'pending',
+      TransactionStatus.confirmed: 'confirmed',
+      TransactionStatus.reconciled: 'reconciled',
+      TransactionStatus.duplicate: 'duplicate',
+      TransactionStatus.corrected: 'corrected',
+      TransactionStatus.excluded: 'excluded',
+    });
 
 final Wire<ProfileEntity> profileWire = _makeWire(<ProfileEntity, String>{
   ProfileEntity.personal: 'personal',
@@ -213,54 +213,51 @@ final Wire<DebtSchedule> debtScheduleWire = _makeWire(<DebtSchedule, String>{
   DebtSchedule.flexible: 'flexible',
 });
 
-final Wire<UpcomingItemType> upcomingTypeWire = _makeWire(
-  <UpcomingItemType, String>{
-    UpcomingItemType.bill: 'bill',
-    UpcomingItemType.subscription: 'subscription',
-    UpcomingItemType.payday: 'payday',
-    UpcomingItemType.debt: 'debt',
-    UpcomingItemType.remittance: 'remittance',
-    UpcomingItemType.rent: 'rent',
-    UpcomingItemType.insurance: 'insurance',
-    UpcomingItemType.tuition: 'tuition',
-    UpcomingItemType.government: 'government',
-  },
-);
+final Wire<UpcomingItemType> upcomingTypeWire =
+    _makeWire(<UpcomingItemType, String>{
+      UpcomingItemType.bill: 'bill',
+      UpcomingItemType.subscription: 'subscription',
+      UpcomingItemType.payday: 'payday',
+      UpcomingItemType.debt: 'debt',
+      UpcomingItemType.remittance: 'remittance',
+      UpcomingItemType.rent: 'rent',
+      UpcomingItemType.insurance: 'insurance',
+      UpcomingItemType.tuition: 'tuition',
+      UpcomingItemType.government: 'government',
+    });
 
-final Wire<IncomeStreamType> incomeStreamTypeWire = _makeWire(
-  <IncomeStreamType, String>{
-    IncomeStreamType.weeklyIncome: 'weekly_income',
-    IncomeStreamType.semimonthlySalary: 'semimonthly_salary',
-    IncomeStreamType.monthlySalary: 'monthly_salary',
-    IncomeStreamType.freelance: 'freelance',
-    IncomeStreamType.irregular: 'irregular',
-    IncomeStreamType.thirteenthMonth: 'thirteenth_month',
-    IncomeStreamType.remittance: 'remittance',
-  },
-);
+final Wire<IncomeStreamType> incomeStreamTypeWire =
+    _makeWire(<IncomeStreamType, String>{
+      IncomeStreamType.weeklyIncome: 'weekly_income',
+      IncomeStreamType.semimonthlySalary: 'semimonthly_salary',
+      IncomeStreamType.monthlySalary: 'monthly_salary',
+      IncomeStreamType.freelance: 'freelance',
+      IncomeStreamType.irregular: 'irregular',
+      IncomeStreamType.thirteenthMonth: 'thirteenth_month',
+      IncomeStreamType.remittance: 'remittance',
+    });
 
-final Wire<InterestRateType> interestRateTypeWire = _makeWire(
-  <InterestRateType, String>{
-    InterestRateType.annual: 'annual',
-    InterestRateType.monthly: 'monthly',
-    InterestRateType.daily: 'daily',
-    InterestRateType.fixed: 'fixed',
-  },
-);
+final Wire<InterestRateType> interestRateTypeWire =
+    _makeWire(<InterestRateType, String>{
+      InterestRateType.annual: 'annual',
+      InterestRateType.monthly: 'monthly',
+      InterestRateType.daily: 'daily',
+      InterestRateType.fixed: 'fixed',
+    });
 
-final Wire<PaymentFrequency> paymentFrequencyWire = _makeWire(
-  <PaymentFrequency, String>{
-    PaymentFrequency.monthly: 'monthly',
-    PaymentFrequency.semimonthly: 'semimonthly',
-    PaymentFrequency.biweekly: 'biweekly',
-    PaymentFrequency.weekly: 'weekly',
-  },
-);
+final Wire<PaymentFrequency> paymentFrequencyWire =
+    _makeWire(<PaymentFrequency, String>{
+      PaymentFrequency.monthly: 'monthly',
+      PaymentFrequency.semimonthly: 'semimonthly',
+      PaymentFrequency.biweekly: 'biweekly',
+      PaymentFrequency.weekly: 'weekly',
+    });
 
-final Wire<DecisionScenario> scenarioWire = _makeWire(<DecisionScenario, String>{
-  DecisionScenario.conservative: 'conservative',
-  DecisionScenario.optimistic: 'optimistic',
-});
+final Wire<DecisionScenario> scenarioWire =
+    _makeWire(<DecisionScenario, String>{
+      DecisionScenario.conservative: 'conservative',
+      DecisionScenario.optimistic: 'optimistic',
+    });
 
 /// Salapify 3's own, with no prototype counterpart to match.
 final Wire<ThemeMode2> themeWire = _makeWire(<ThemeMode2, String>{

@@ -47,8 +47,7 @@ class FileSnapshotStore implements SnapshotStore {
   Future<Directory> _directory() async =>
       _dir ??= await getApplicationDocumentsDirectory();
 
-  Future<File> _file() async =>
-      File('${(await _directory()).path}/$fileName');
+  Future<File> _file() async => File('${(await _directory()).path}/$fileName');
 
   Future<File> _previousFile() async =>
       File('${(await _directory()).path}/$fileName.prev');
@@ -217,10 +216,7 @@ Future<LoadResult> loadSnapshot(SnapshotStore store) async {
     // An empty file is not a fresh start. Something wrote nothing where a
     // ledger should be, and treating it as a first run would hand the person
     // demo accounts and then save those over whatever went wrong.
-    return _fallBackToPrevious(
-      store,
-      'Salapify\'s data file is empty.',
-    );
+    return _fallBackToPrevious(store, 'Salapify\'s data file is empty.');
   }
 
   try {
@@ -259,4 +255,59 @@ Future<LoadResult> _fallBackToPrevious(
         '$problem Nothing has been deleted and nothing has been written over '
         'it.',
       );
+}
+
+/// Turns a stored failure into a sentence a person can act on.
+///
+/// The raw text of these failures is written for whoever wrote the plugin, not
+/// for whoever is holding the phone. The founder's own screenshot is the
+/// argument for this function: the headline on their screen was
+///
+///     MissingPluginException(No implementation found for method
+///     getApplicationDocumentsDirectory on channel
+///     plugins.flutter.io/path_provider)
+///
+/// which names a channel, a method and a package, and answers none of the
+/// three questions somebody actually has: is my money gone, was this my fault,
+/// and what do I do now.
+///
+/// The raw text is NOT discarded by the caller, because it is what makes a
+/// screenshot diagnosable. It moves underneath the plain sentence instead of
+/// standing in for one.
+String plainStorageProblem(String raw) {
+  // The app is missing its own file-access plugin. On a development build this
+  // means the running app predates the plugin and needs rebuilding; on a real
+  // install it means the package was built wrong. "Reinstall" is the one
+  // instruction that is true and useful in both cases.
+  if (raw.contains('MissingPluginException')) {
+    return 'This copy of Salapify cannot reach the phone’s file storage, '
+        'so it was built without a part it needs. Reinstalling the app fixes '
+        'it. Nothing already saved has been damaged.';
+  }
+
+  // Out of space. Worth its own sentence because it is the one on this list
+  // the person can actually fix in the next minute.
+  if (raw.contains('ENOSPC') || raw.contains('No space left')) {
+    return 'This phone has run out of storage, so Salapify cannot write your '
+        'entries. Freeing up some space will let it save again.';
+  }
+
+  if (raw.contains('EACCES') || raw.contains('Permission denied')) {
+    return 'Salapify was refused permission to write to its own folder. '
+        'Reinstalling the app usually restores it.';
+  }
+
+  // A file that exists and cannot be understood. Deliberately does NOT say
+  // "corrupted", which sounds like everything is lost, when the previous
+  // generation has usually already been opened instead.
+  if (raw.contains('SnapshotFormatException') ||
+      raw.contains('FormatException')) {
+    return 'Salapify could not make sense of its data file. It has not '
+        'overwritten anything while it cannot read it.';
+  }
+
+  // Anything unrecognised is returned unchanged. Inventing a friendly sentence
+  // for a failure nobody has seen would be guessing at a cause, and a wrong
+  // reassuring sentence is worse than an ugly accurate one.
+  return raw;
 }

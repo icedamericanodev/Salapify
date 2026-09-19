@@ -199,38 +199,42 @@ void main() {
       expect(state.isSaving, isFalse);
     });
 
-    test('a file this build is too old to read is refused, not rewritten',
-        () async {
-      final String fromTheFuture = jsonEncode(<String, dynamic>{
-        'schemaVersion': Snapshot.currentSchemaVersion + 1,
-        'accounts': <Map<String, dynamic>>[],
-        'transactions': <Map<String, dynamic>>[],
-      });
-      final MemorySnapshotStore store = MemorySnapshotStore(fromTheFuture);
-      final FinancialState state = stateOn(store);
-      await state.restore();
+    test(
+      'a file this build is too old to read is refused, not rewritten',
+      () async {
+        final String fromTheFuture = jsonEncode(<String, dynamic>{
+          'schemaVersion': Snapshot.currentSchemaVersion + 1,
+          'accounts': <Map<String, dynamic>>[],
+          'transactions': <Map<String, dynamic>>[],
+        });
+        final MemorySnapshotStore store = MemorySnapshotStore(fromTheFuture);
+        final FinancialState state = stateOn(store);
+        await state.restore();
 
-      expect(state.loadStatus, LoadStatus.unreadable);
-      state.toggleTheme();
-      await state.flushWrites();
-      expect(
-        store.contents,
-        fromTheFuture,
-        reason:
-            'Shorebird can roll a patch back, so an older build opening a '
-            'newer file is a real Saturday, not a theoretical one',
-      );
-    });
+        expect(state.loadStatus, LoadStatus.unreadable);
+        state.toggleTheme();
+        await state.flushWrites();
+        expect(
+          store.contents,
+          fromTheFuture,
+          reason:
+              'Shorebird can roll a patch back, so an older build opening a '
+              'newer file is a real Saturday, not a theoretical one',
+        );
+      },
+    );
 
-    test('the message says what happened, in words a beginner can act on',
-        () async {
-      final MemorySnapshotStore store = MemorySnapshotStore('{ broken');
-      final FinancialState state = stateOn(store);
-      await state.restore();
+    test(
+      'the message says what happened, in words a beginner can act on',
+      () async {
+        final MemorySnapshotStore store = MemorySnapshotStore('{ broken');
+        final FinancialState state = stateOn(store);
+        await state.restore();
 
-      expect(state.loadProblem, contains('Nothing has been deleted'));
-      expect(state.loadProblem, isNot(contains('Exception:')));
-    });
+        expect(state.loadProblem, contains('Nothing has been deleted'));
+        expect(state.loadProblem, isNot(contains('Exception:')));
+      },
+    );
   });
 
   group('the previous generation', () {
@@ -260,33 +264,35 @@ void main() {
       expect(store.previous, isNot(store.contents));
     });
 
-    test('an interrupted save falls back to it instead of to the seed',
-        () async {
-      final MemorySnapshotStore store = await storeWithTwoGenerations();
-      // A save that died partway through the write.
-      store.contents = '{"accounts": [{"id": "acc_older", "name": "Older';
+    test(
+      'an interrupted save falls back to it instead of to the seed',
+      () async {
+        final MemorySnapshotStore store = await storeWithTwoGenerations();
+        // A save that died partway through the write.
+        store.contents = '{"accounts": [{"id": "acc_older", "name": "Older';
 
-      final FinancialState state = stateOn(store);
-      await state.restore();
+        final FinancialState state = stateOn(store);
+        await state.restore();
 
-      expect(state.loadStatus, LoadStatus.recovered);
-      expect(
-        state.accounts.any((Account a) => a.id == 'acc_older'),
-        isTrue,
-        reason:
-            'the whole point of two generations: the worst case is losing '
-            'the last change, not losing everything',
-      );
-      expect(state.loadProblem, isNotNull);
-      expect(
-        state.isSaving,
-        isTrue,
-        reason:
-            'the good copy is open, so the next entry belongs in a file. '
-            'Staying read-only here would turn a recovered save into a '
-            'second outage.',
-      );
-    });
+        expect(state.loadStatus, LoadStatus.recovered);
+        expect(
+          state.accounts.any((Account a) => a.id == 'acc_older'),
+          isTrue,
+          reason:
+              'the whole point of two generations: the worst case is losing '
+              'the last change, not losing everything',
+        );
+        expect(state.loadProblem, isNotNull);
+        expect(
+          state.isSaving,
+          isTrue,
+          reason:
+              'the good copy is open, so the next entry belongs in a file. '
+              'Staying read-only here would turn a recovered save into a '
+              'second outage.',
+        );
+      },
+    );
 
     test('only when BOTH generations fail is it read-only', () async {
       final MemorySnapshotStore store = await storeWithTwoGenerations();

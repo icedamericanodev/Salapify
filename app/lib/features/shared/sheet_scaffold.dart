@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -473,6 +474,7 @@ class SheetField extends StatelessWidget {
     this.keyboardType = const TextInputType.numberWithOptions(decimal: true),
     this.prefix,
     this.onChanged,
+    this.inputFormatters,
   });
 
   final Palette palette;
@@ -482,6 +484,11 @@ class SheetField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? prefix;
   final ValueChanged<String>? onChanged;
+
+  /// Restricts what can be TYPED, for the fields where the stored value has to
+  /// be narrower than the label implies. The card number field is the reason
+  /// this exists: see account_sheet.dart.
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -493,6 +500,7 @@ class SheetField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           onChanged: onChanged,
           style: AppType.rowTitle(palette).copyWith(fontSize: 15),
           decoration: InputDecoration(

@@ -269,3 +269,52 @@ AccountsSummary summarize(List<Account> accounts) {
     liabilityCount: l.length,
   );
 }
+
+/// The last four digits of a stored card number, and NEVER any more than that.
+///
+/// This lives with the DATA rather than with the card that draws it, because
+/// it turned out to be a rule about what may be stored and not only about what
+/// may be shown. Two defects, a week apart, both came from treating it as
+/// presentation:
+///
+///  1. The back of the card listed `account.accountNumber` straight out of
+///     storage while the front masked it, so a card recorded in full printed
+///     all sixteen digits on a screen people open in public.
+///  2. The account form was labelled "last four digits" and accepted anything,
+///     so somebody pasting a full number saw a masked card and concluded four
+///     digits were what got kept. The masking made that MORE convincing.
+///
+/// Returns null rather than a partial mask when there is nothing usable, so a
+/// caller can leave the row out entirely instead of drawing an empty one.
+String? maskedTail(String? stored) {
+  if (stored == null) return null;
+  final String digits = stored.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.length < 4) return null;
+  return digits.substring(digits.length - 4);
+}
+
+/// The number in card groups: `••••  ••••  ••••  6789`.
+///
+/// The grouping is what makes it read as a card rather than as a code. A
+/// number too short to have a meaningful tail masks completely instead of
+/// showing what little was typed.
+String pannedNumber(String? stored) =>
+    '••••  ••••  ••••  ${maskedTail(stored) ?? '••••'}';
+
+/// What may be WRITTEN to the file for a card number: never more than the last
+/// four digits, and never more than the person actually typed.
+///
+/// Deliberately a different rule from [maskedTail], which is about DISPLAY.
+/// maskedTail insists on a full four, because "•••• 88" is not a tail anybody
+/// can identify a card by, so it would rather draw nothing. Storage has the
+/// opposite duty: whatever the person typed is theirs, and silently dropping a
+/// two digit entry on save is a small data loss that they would discover only
+/// by noticing something missing later.
+///
+/// So this caps, and never discards. Returns null only for genuinely nothing.
+String? cardTailForStorage(String? typed) {
+  if (typed == null) return null;
+  final String digits = typed.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return null;
+  return digits.length > 4 ? digits.substring(digits.length - 4) : digits;
+}

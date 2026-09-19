@@ -119,7 +119,8 @@ class Snapshot {
       'timestamp': at.toUtc().toIso8601String(),
       'themeMode': themeWire.encode(theme),
       'scenario': scenarioWire.encode(scenario),
-      if (activeProfile != null) 'activeProfile': profileWire.encode(activeProfile!),
+      if (activeProfile != null)
+        'activeProfile': profileWire.encode(activeProfile!),
       kAccounts: <Map<String, dynamic>>[
         for (final Account a in accounts)
           merged(kAccounts, a.id, accountToJson(a)),
@@ -200,7 +201,10 @@ class Snapshot {
       T Function(Map<String, dynamic>) decode,
       String Function(T) idOf,
     ) {
-      final List<Map<String, dynamic>> rows = readList(m[collection], collection);
+      final List<Map<String, dynamic>> rows = readList(
+        m[collection],
+        collection,
+      );
       final List<T> out = <T>[];
       for (final Map<String, dynamic> row in rows) {
         final T value = decode(row);
@@ -261,9 +265,11 @@ class Snapshot {
         reconciliationFromJson,
         (ReconciliationRecord r) => r.id,
       ),
-      theme: themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??
+      theme:
+          themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??
           ThemeMode2.gabi,
-      scenario: scenarioWire.decodeOptional(m, 'scenario', 'snapshot') ??
+      scenario:
+          scenarioWire.decodeOptional(m, 'scenario', 'snapshot') ??
           DecisionScenario.conservative,
       activeProfile: profileWire.decodeOptional(m, 'activeProfile', 'snapshot'),
       extras: extras.build(),
@@ -292,8 +298,10 @@ class Extras {
   bool get isEmpty => top.isEmpty && _records.isEmpty;
 
   /// How many records carry kept keys, for the diagnostics line.
-  int get recordCount =>
-      _records.values.fold(0, (int sum, Map<String, Map<String, dynamic>> m) => sum + m.length);
+  int get recordCount => _records.values.fold(
+    0,
+    (int sum, Map<String, Map<String, dynamic>> m) => sum + m.length,
+  );
 }
 
 class ExtrasBuilder {

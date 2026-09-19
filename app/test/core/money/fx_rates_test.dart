@@ -13,13 +13,12 @@ import 'package:salapify/core/money/fx_rates.dart';
 /// yen, which is not obviously anything and would quietly overstate an OFW's
 /// savings by six times.
 void main() {
-  String apiBody(Map<String, double> ratesPerPeso) => jsonEncode(
-    <String, dynamic>{
-      'result': 'success',
-      'base_code': 'PHP',
-      'rates': <String, dynamic>{'PHP': 1, ...ratesPerPeso},
-    },
-  );
+  String apiBody(Map<String, double> ratesPerPeso) =>
+      jsonEncode(<String, dynamic>{
+        'result': 'success',
+        'base_code': 'PHP',
+        'rates': <String, dynamic>{'PHP': 1, ...ratesPerPeso},
+      });
 
   group('reading the API', () {
     test('it inverts units-per-peso into pesos-per-unit', () {

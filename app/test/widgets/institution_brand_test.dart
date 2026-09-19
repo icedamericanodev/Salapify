@@ -469,6 +469,50 @@ void cardFlipTests() {
     );
   });
 
+  testWidgets('the bank is named once, not twice, when it has a logo', (
+    WidgetTester tester,
+  ) async {
+    // Founder direction, 2026-09-19, looking at a card that read "BPI" over
+    // "BPI Rewards Card" with the BPI logo beside it: "i think its redundant
+    // there are two brand name. We can retain 1 plus the logo in the right
+    // side."
+    await tester.pumpWidget(host(card()));
+
+    expect(find.text('BPI Rewards Card'), findsOneWidget);
+    expect(
+      find.text('BPI'),
+      findsNothing,
+      reason:
+          'the kicker is back. The logo on the right already says which bank '
+          'this is, so the word is the third time of asking.',
+    );
+  });
+
+  testWidgets('a bank with no logo still says who it is', (
+    WidgetTester tester,
+  ) async {
+    // The other half, and the reason the rule is conditional rather than a
+    // deletion. Pag-IBIG ships no mark, so it draws a monogram. Drop the
+    // kicker there too and an account somebody named "Main card" would name
+    // no institution anywhere on the plastic.
+    expect(brandFor('Pag-IBIG')!.hasMark, isFalse);
+
+    await tester.pumpWidget(
+      host(
+        const Account(
+          id: 'acc_mp2',
+          name: 'Main card',
+          kind: AccountKind.debit,
+          institution: 'Pag-IBIG',
+          balance: 900,
+          monogram: 'HDMF',
+        ),
+      ),
+    );
+
+    expect(find.text('PAG-IBIG'), findsOneWidget);
+  });
+
   testWidgets('the back is the same shape as the front', (
     WidgetTester tester,
   ) async {

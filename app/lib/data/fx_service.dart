@@ -32,8 +32,7 @@ class FxService {
   FxService({this.endpoint = defaultEndpoint, this.cacheDir});
 
   /// open.er-api.com, keyless, and the prototype's own choice.
-  static const String defaultEndpoint =
-      'https://open.er-api.com/v6/latest/PHP';
+  static const String defaultEndpoint = 'https://open.er-api.com/v6/latest/PHP';
 
   final String endpoint;
 
@@ -51,7 +50,8 @@ class FxService {
 
   Future<File?> _cacheFile() async {
     try {
-      final Directory dir = cacheDir ?? await getApplicationDocumentsDirectory();
+      final Directory dir =
+          cacheDir ?? await getApplicationDocumentsDirectory();
       return File('${dir.path}/$_fileName');
     } on Object {
       // No documents directory, which on a device usually means the plugin is

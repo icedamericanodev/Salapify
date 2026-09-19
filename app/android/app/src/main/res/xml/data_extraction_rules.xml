@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Salapify keeps a person's whole ledger, their salary, their debts and the
+    names of people who owe them money, in one JSON file in the app's own
+    documents directory. Two rules below, and they are deliberately different
+    from each other.
+
+    CLOUD BACKUP IS OFF. A copy of that file in Google Drive is a copy Salapify
+    cannot see, cannot check and cannot delete when somebody asks us to delete
+    their data. android:allowBackup="false" in the manifest already turns it
+    off; this file says so again where a reader will look for it, and is what
+    actually governs it from Android 12 onward.
+
+    DEVICE TO DEVICE TRANSFER IS ON, and that is the part worth explaining.
+    D2D copies straight from the old phone to the new one during setup, with no
+    server anywhere in the path, while the person is holding both handsets. That
+    is somebody moving their own data across, not a silent upload, so it stays.
+
+    THIS IS NOT THE USER'S BACKUP. Their backup is the export they are owed and
+    do not have yet. Do not let this file be mistaken for having built it.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+        <exclude domain="device_root" />
+        <exclude domain="device_file" />
+        <exclude domain="device_database" />
+        <exclude domain="device_sharedpref" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="." />
+    </device-transfer>
+</data-extraction-rules>

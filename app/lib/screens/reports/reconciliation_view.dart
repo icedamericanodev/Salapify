@@ -164,10 +164,7 @@ class _ReconciliationViewState extends State<ReconciliationView> {
     children: <Widget>[
       Text('CHECK AN ACCOUNT', style: AppType.kicker(p)),
       const SizedBox(height: Spacing.sm),
-      Text(
-        'Add an account first.',
-        style: AppType.title(p),
-      ),
+      Text('Add an account first.', style: AppType.title(p)),
       const SizedBox(height: Spacing.xs),
       Text(
         'Checking compares what Salapify thinks an account holds against '
