@@ -290,12 +290,75 @@ PanAnswer _boundary(String q, PanFacts facts) {
 // The person's own figures
 // ---------------------------------------------------------------------------
 
+/// The account a question is about, matched on WHOLE WORDS and longest first.
+///
+/// The first version was `q.contains(name)` with a length guard, and it was
+/// wrong in both directions at once.
+///
+/// It fired when it should not: an account called "One" made "how much MONEY
+/// do i have" answer about that account, because "money" contains "one". The
+/// same for an account called "Pay" against "when is my payday", and "Due"
+/// against "what bills are due". An account literally called "Cash" beat the
+/// question about total cash every time, because this runs first.
+///
+/// And it missed when it should have fired: the WHOLE stored name had to
+/// appear in the question, so "how much is in BPI" never matched an account
+/// called "BPI Preferred Payroll", which is how people actually name accounts
+/// and how they actually ask.
+///
+/// Whole words fix the first. Matching the first word as well fixes the
+/// second. Longest match wins, so "GCash Business" beats "GCash" rather than
+/// whichever happens to be earlier in the list.
 Account? _accountNamed(String q, PanFacts facts) {
+  final List<String> words = q.split(' ');
+  Account? best;
+  int bestLength = 0;
+
+  bool holdsPhrase(String phrase) {
+    final List<String> parts = phrase.split(' ');
+    if (parts.isEmpty || parts.length > words.length) return false;
+    for (int i = 0; i + parts.length <= words.length; i++) {
+      bool all = true;
+      for (int j = 0; j < parts.length; j++) {
+        if (words[i + j] != parts[j]) {
+          all = false;
+          break;
+        }
+      }
+      if (all) return true;
+    }
+    return false;
+  }
+
   for (final Account a in facts.accounts) {
     final String name = normalise(a.name);
-    if (name.isNotEmpty && name.length > 2 && q.contains(name)) return a;
+    if (name.isEmpty) continue;
+
+    // A one word name that IS a question word loses to the question. An
+    // account called "Due" answered "what bills are due", and one called
+    // "Cash" beat the question about total cash every time. A longer name
+    // containing the same word is unaffected, because "Due Payments Card" is
+    // unambiguously a name.
+    if (!name.contains(' ') && reservedWords.contains(name)) continue;
+
+    // The full name first. A one word name still has to be a whole word, so
+    // "One" no longer matches inside "money".
+    if (name.length > bestLength && holdsPhrase(name)) {
+      best = a;
+      bestLength = name.length;
+      continue;
+    }
+
+    // Then the first word, for "how much is in BPI" against "BPI Preferred
+    // Payroll". Three letters minimum, so a name starting with "My" or "A"
+    // cannot swallow an ordinary sentence.
+    final String head = name.split(' ').first;
+    if (head.length >= 3 && head.length > bestLength && holdsPhrase(head)) {
+      best = a;
+      bestLength = head.length;
+    }
   }
-  return null;
+  return best;
 }
 
 PanAnswer _oneAccount(Account a, PanFacts facts) {
@@ -322,17 +385,22 @@ PanAnswer _oneAccount(Account a, PanFacts facts) {
 
 PanAnswer _cash(PanFacts facts) {
   if (facts.isEmpty) return _nothingYet('how much you have');
+  // Signed for the same reason as net worth: an overdrawn set of accounts
+  // reads as money held if the minus is dropped.
   return PanAnswer(
     topic: 'cash',
     text:
-        'You can reach ${formatPeso(facts.liquidCash)} today across '
+        'You can reach ${formatPesoWithSign(facts.liquidCash)} today across '
         '${facts.accounts.length} '
         '${facts.accounts.length == 1 ? 'account' : 'accounts'}. That counts '
         'cash, bank and e-wallet balances. A credit limit is not in there, '
         'because money you can borrow is not money you have.'
         '${facts.hasSampleData ? ' Some of this is still Salapify\'s sample data, which you can remove in Settings.' : ''}',
     figures: <PanFigure>[
-      PanFigure(label: 'Reachable today', value: formatPeso(facts.liquidCash)),
+      PanFigure(
+        label: 'Reachable today',
+        value: formatPesoWithSign(facts.liquidCash),
+      ),
     ],
     followUps: <String>[
       'What is safe to spend?',
@@ -381,12 +449,15 @@ PanAnswer _netWorth(PanFacts facts) {
             'number hides which half is moving.';
   return PanAnswer(
     topic: 'netWorth',
+    // formatPesoWithSign, NOT formatPeso. formatPeso drops the sign, which for
+    // a net worth does not understate it, it reverses it: minus 200,000 read
+    // as 200,000 while Reports showed the minus for the same store.
     text:
-        'Your net worth is ${formatPeso(net)}. That is '
+        'Your net worth is ${formatPesoWithSign(net)}. That is '
         '${formatPeso(facts.assets)} held, less ${formatPeso(facts.liabilities)} '
         'owed on your accounts.\n\n$shape',
     figures: <PanFigure>[
-      PanFigure(label: 'Net worth', value: formatPeso(net)),
+      PanFigure(label: 'Net worth', value: formatPesoWithSign(net)),
       PanFigure(label: 'Held', value: formatPeso(facts.assets)),
       PanFigure(label: 'Owed', value: formatPeso(facts.liabilities)),
     ],

@@ -52,7 +52,10 @@ enum _ReportTab { position, performance, cashFlow, reconciliation }
 /// Colour alone cannot carry it. Roughly one man in twelve cannot reliably
 /// separate the red from the green, and a screenshot, a printout or a
 /// greyscale screen loses it for everybody.
-String _signed(double v) => v < 0 ? '-${formatPeso(v)}' : formatPeso(v);
+/// Was a private copy of what is now formatPesoWithSign in format.dart. Pan
+/// lacked the same line and reported a negative net worth as a positive
+/// figure, so the two screens disagreed about a sign over one store.
+String _signed(double v) => formatPesoWithSign(v);
 
 class _ReportsScreenState extends State<ReportsScreen> {
   _ReportTab _tab = _ReportTab.position;

@@ -24,6 +24,23 @@ String formatPeso(num amount, {bool showDecimals = true}) {
   return '₱$body';
 }
 
+/// A figure that can legitimately be NEGATIVE, with its minus sign kept.
+///
+/// [formatPeso] drops the sign on purpose, because for most figures the sign
+/// is a presentation decision: a spend of 250 is drawn in red with a category
+/// beside it, not as minus 250. A net worth is the exception. It is a single
+/// number that can genuinely be below zero, and dropping the sign does not
+/// understate it, it REVERSES it.
+///
+/// This exists because Reports had its own private version of this line and
+/// Pan did not, so on a ledger with 100,000 held and 300,000 owed, Reports
+/// said minus 200,000 and Pan said 200,000 about the same store on the same
+/// afternoon. One shared function is what stops that happening again.
+String formatPesoWithSign(num amount, {bool showDecimals = true}) {
+  final String body = formatPeso(amount, showDecimals: showDecimals);
+  return amount < 0 ? '-$body' : body;
+}
+
 /// Income reads with a leading plus, spending reads plain.
 String formatSignedPeso(num amount, {bool isIncome = false}) {
   final String formatted = formatPeso(amount.abs());

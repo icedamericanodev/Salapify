@@ -16,6 +16,7 @@ import 'package:salapify/models/models.dart';
 /// title. A content rule with no test is a rule that lasts until the next
 /// person adds an answer.
 void main() {
+  qaRegressions();
   PanFacts facts({
     List<Account>? accounts,
     List<Transaction>? transactions,
@@ -502,6 +503,155 @@ void main() {
             'which makes it useless rather than careful',
       );
       expect(a.text, contains('41,000'));
+    });
+  });
+}
+
+/// Findings from an adversarial QA pass, each pinned so it cannot return.
+void qaRegressions() {
+  PanFacts ledger({
+    List<Account>? accounts,
+    double liquid = 23400,
+    double assets = 23400,
+    double liabilities = 0,
+  }) => PanFacts(
+    now: DateTime(2026, 9, 19, 12),
+    accounts: accounts ?? const <Account>[],
+    transactions: const <Transaction>[],
+    debts: const <Debt>[],
+    budgets: const <Budget>[],
+    goals: const <Goal>[],
+    bills: const <BillItem>[],
+    installments: const <InstallmentPlan>[],
+    upcoming: const <UpcomingItem>[],
+    payday: PaydayCycle.unset,
+    liquidCash: liquid,
+    assets: assets,
+    liabilities: liabilities,
+    owed: 0,
+    owedToMe: 0,
+    safeToSpendUntilPayday: 0,
+    safeToSpendPerDay: 0,
+    amountReserved: 0,
+    cashRunwayMonths: 1,
+    monthIn: 0,
+    monthOut: 0,
+    spendingByCategory: const <({String category, double amount})>[],
+    hasSampleData: false,
+    phoneRemindersOn: false,
+    unreadReminders: 0,
+  );
+
+  Account account(String name, double balance) => Account(
+    id: name,
+    name: name,
+    kind: balance < 0 ? AccountKind.credit : AccountKind.bank,
+    institution: 'Somewhere',
+    balance: balance,
+    monogram: 'XX',
+  );
+
+  group('a negative figure keeps its minus sign', () {
+    test('net worth below zero is not reported as money held', () {
+      // formatPeso drops the sign on purpose, and for a net worth that does
+      // not understate it, it REVERSES it. Reports showed minus 200,000 and
+      // Pan showed 200,000 for the same store on the same afternoon.
+      final PanAnswer a = askPan(
+        'what is my net worth',
+        ledger(
+          accounts: <Account>[account('Savings', 100000)],
+          assets: 100000,
+          liabilities: 300000,
+        ),
+      );
+      expect(
+        a.text,
+        contains('-₱200,000.00'),
+        reason: 'a net worth of minus 200,000 was read out as a positive sum',
+      );
+      expect(a.figures.first.value, '-₱200,000.00');
+    });
+
+    test('and a positive one carries no sign at all', () {
+      final PanAnswer a = askPan(
+        'what is my net worth',
+        ledger(
+          accounts: <Account>[account('Savings', 100000)],
+          assets: 100000,
+          liabilities: 40000,
+        ),
+      );
+      expect(a.text, contains('₱60,000.00'));
+      expect(a.text, isNot(contains('-₱60,000.00')));
+    });
+
+    test('overdrawn cash reads as overdrawn', () {
+      final PanAnswer a = askPan(
+        'how much do i have',
+        ledger(accounts: <Account>[account('Everyday', -5000)], liquid: -5000),
+      );
+      expect(a.text, contains('-₱5,000.00'));
+    });
+  });
+
+  group('an account name does not swallow the sentence', () {
+    test('an account called One does not answer a question about money', () {
+      // "money" contains "one". The old match was a bare substring test, so
+      // "how much MONEY do i have" answered about the account.
+      final PanFacts f = ledger(accounts: <Account>[account('One', 42)]);
+      expect(askPan('how much money do i have', f).topic, 'cash');
+      expect(askPan('where did my money go', f).topic, isNot('account'));
+    });
+
+    test('accounts called Pay and Due do not hijack their words', () {
+      expect(
+        askPan(
+          'when is my payday',
+          ledger(accounts: <Account>[account('Pay', 42)]),
+        ).topic,
+        'payday',
+      );
+      expect(
+        askPan(
+          'what bills are due',
+          ledger(accounts: <Account>[account('Due', 42)]),
+        ).topic,
+        'due',
+      );
+    });
+
+    test('the LONGEST matching account wins, not the first in the list', () {
+      final PanFacts f = ledger(
+        accounts: <Account>[
+          account('GCash', 500),
+          account('GCash Business', 90000),
+        ],
+      );
+      final PanAnswer a = askPan('how much is in my gcash business', f);
+      expect(
+        a.text,
+        contains('₱90,000.00'),
+        reason:
+            'the shorter name matched first and answered about the '
+            'wrong account',
+      );
+    });
+
+    test('the first word of a long account name is enough', () {
+      // The converse failure: the WHOLE stored name had to appear in the
+      // question, so "how much is in BPI" never matched "BPI Preferred
+      // Payroll", which is how people name accounts and how they ask.
+      final PanFacts f = ledger(
+        accounts: <Account>[account('BPI Preferred Payroll', 12400)],
+      );
+      final PanAnswer a = askPan('how much is in bpi', f);
+      expect(a.topic, 'account');
+      expect(a.text, contains('₱12,400.00'));
+    });
+
+    test('and an exact name still works', () {
+      final PanFacts f = ledger(accounts: <Account>[account('Everyday', 300)]);
+      expect(askPan('how much is in everyday', f).topic, 'account');
     });
   });
 }

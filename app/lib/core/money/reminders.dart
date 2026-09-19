@@ -156,6 +156,14 @@ String _iso(DateTime d) =>
 /// `today`, `tomorrow`, and a bare day of the month like `15` or `15th`, which
 /// means the NEXT such day rather than one in the past.
 int? daysUntil(String? dueDate, DateTime now) {
+  final int? days = _daysUntil(dueDate, now);
+  if (days == null) return null;
+  // A date a decade out in either direction is not a date somebody meant.
+  if (days.abs() > _absurdDayCount) return null;
+  return days;
+}
+
+int? _daysUntil(String? dueDate, DateTime now) {
   if (dueDate == null) return null;
   final String raw = dueDate.trim();
   if (raw.isEmpty) return null;
@@ -166,8 +174,13 @@ int? daysUntil(String? dueDate, DateTime now) {
 
   final DateTime today = DateTime(now.year, now.month, now.day);
 
+  // `\d{1,2}`, not `\d{2}`. The field is free text with the hint "Oct 3, or
+  // the 15th", and `2026-9-21` is exactly what somebody types. It returned
+  // null, which means NO REMINDER EVER, silently: the account screen accepts
+  // the date, shows it back, and the payment reminder simply never happens
+  // with nothing anywhere saying why.
   final RegExpMatch? isoMatch = RegExp(
-    r'^(\d{4})-(\d{2})-(\d{2})$',
+    r'^(\d{4})-(\d{1,2})-(\d{1,2})$',
   ).firstMatch(raw);
   if (isoMatch != null) {
     final DateTime target = DateTime(
@@ -193,8 +206,14 @@ int? daysUntil(String? dueDate, DateTime now) {
 
   // "Sep 18" and friends. Parsed against the current year, which is what the
   // prototype does and is right far more often than it is wrong.
+  //
+  // The ordinal suffix and a trailing year are both accepted, because "Oct
+  // 3rd" and "Oct 3, 2026" are what people write and both used to produce no
+  // reminder at all. A year that is given WINS over the roll-forward below,
+  // since somebody who typed a year meant it.
   final RegExpMatch? named = RegExp(
-    r'^([A-Za-z]{3,9})\s+(\d{1,2})$',
+    r'^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?$',
+    caseSensitive: false,
   ).firstMatch(raw);
   if (named != null) {
     const List<String> months = <String>[
@@ -213,16 +232,45 @@ int? daysUntil(String? dueDate, DateTime now) {
     ];
     final int m = months.indexOf(named.group(1)!.toLowerCase().substring(0, 3));
     if (m < 0) return null;
-    final DateTime target = DateTime(
-      now.year,
-      m + 1,
-      int.parse(named.group(2)!),
-    );
+    final int day = int.parse(named.group(2)!);
+    final int? statedYear = named.group(3) == null
+        ? null
+        : int.parse(named.group(3)!);
+    if (statedYear != null) {
+      return DateTime(statedYear, m + 1, day).difference(today).inDays;
+    }
+    DateTime target = DateTime(now.year, m + 1, day);
+    // ROLLS FORWARD once it is well past, which the bare-day branch above
+    // already did and this one did not.
+    //
+    // Without it, "Sep 5" written in a free text field is fourteen days
+    // overdue on 19 September and STAYS overdue forever, growing by a day
+    // every morning, because the year and month are both pinned. It can never
+    // self-correct.
+    //
+    // Two months is the cut, and the number is a judgement between two real
+    // costs. Too short and a genuinely missed payment goes quiet, which is the
+    // prototype defect this engine exists to avoid. Too long and somebody is
+    // nagged about last year. Sixty days is long enough for a missed bill to
+    // stay loud through a full cycle and short enough that it stops before it
+    // becomes furniture.
+    if (target.difference(today).inDays < -60) {
+      target = DateTime(now.year + 1, m + 1, day);
+    }
     return target.difference(today).inDays;
   }
 
   return null;
 }
+
+/// How far a stored date may be from today before it is treated as unreadable.
+///
+/// A bill cannot genuinely be two thousand years overdue. `DateTime` accepts
+/// `0000-00-00` and `2026-13-45` without complaint and normalises them, so a
+/// hand-edited or imported file produced "was due 740275 days ago" in the
+/// tray. That is not a reminder, it is a defect with a peso sign in front of
+/// it, and saying nothing is better.
+const int _absurdDayCount = 3650;
 
 /// How a due date reads in a sentence.
 String _whenPhrase(int days, String dueDate) {
@@ -436,19 +484,33 @@ DateTime? nextInstallmentDate(InstallmentPlan p) {
   final int n = p.paidInstallments;
   switch (p.paymentFrequency) {
     case PaymentFrequency.monthly:
-      return DateTime(start.year, start.month + n, start.day);
+      return _monthsOn(start, n);
     case PaymentFrequency.semimonthly:
       // Two a month, so every other step lands mid month.
-      return DateTime(
-        start.year,
-        start.month + (n ~/ 2),
-        start.day + (n.isOdd ? 15 : 0),
-      );
+      final DateTime base = _monthsOn(start, n ~/ 2);
+      return n.isOdd ? base.add(const Duration(days: 15)) : base;
     case PaymentFrequency.biweekly:
       return start.add(Duration(days: 14 * n));
     case PaymentFrequency.weekly:
       return start.add(Duration(days: 7 * n));
   }
+}
+
+/// [months] whole months after [start], CLAMPED to the last day of the month
+/// it lands in.
+///
+/// `DateTime(y, m + n, day)` overflows silently, and for a plan starting on
+/// the 31st that is not a rounding difference, it is the wrong month. A
+/// monthly plan starting 31 January stepped this way gave 31 Jan, then
+/// 3 MARCH, then 31 Mar, then 1 MAY: February is never mentioned at all, and
+/// the person is told a payment is due days after the lender expected it.
+DateTime _monthsOn(DateTime start, int months) {
+  final int year = start.year + ((start.month - 1 + months) ~/ 12);
+  final int month = ((start.month - 1 + months) % 12) + 1;
+  // Day zero of the following month is the last day of this one, which is the
+  // standard way to ask Dart how long a month is.
+  final int lastDay = DateTime(year, month + 1, 0).day;
+  return DateTime(year, month, start.day < lastDay ? start.day : lastDay);
 }
 
 /// One reminder, and the moment the phone should say it.

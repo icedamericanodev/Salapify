@@ -7,6 +7,7 @@ import 'package:salapify/models/models.dart';
 /// pinned rather than assumed.
 void main() {
   planningTests();
+  dateReadingTests();
   // Midday on purpose. The daily nudge fires from 8pm, so a default clock in
   // the evening would add a second reminder to every bill and debt test and
   // turn each of them into a test of two features at once.
@@ -715,6 +716,160 @@ void planningTests() {
           ],
         ),
         isEmpty,
+      );
+    });
+  });
+}
+
+/// Dates people actually type, and dates no person ever meant.
+///
+/// Every case here is from an adversarial QA pass. The due date field is free
+/// text with the hint "Oct 3, or the 15th", so the app invites all of these.
+void dateReadingTests() {
+  final DateTime at = DateTime(2026, 9, 19, 12);
+
+  group('dates the app invites but used to ignore', () {
+    test('a single digit month is read, not silently dropped', () {
+      // The ISO pattern demanded two digits, so `2026-9-21` returned null,
+      // which means NO REMINDER EVER. The account screen accepts the date,
+      // shows it back, and the payment reminder simply never happens with
+      // nothing anywhere saying why.
+      expect(daysUntil('2026-9-21', at), 2);
+      expect(daysUntil('2026-09-21', at), 2);
+    });
+
+    test('an ordinal and a written year are both read', () {
+      expect(daysUntil('Oct 3rd', at), 14);
+      expect(daysUntil('Oct 3, 2026', at), 14);
+      expect(
+        daysUntil('Sep 5, 2027', at),
+        351,
+        reason: 'a year somebody typed must win over the roll-forward',
+      );
+    });
+  });
+
+  group('dates that used to nag forever', () {
+    test('a month name LONG past rolls to next year rather than nagging', () {
+      // "Jun 5" was 106 days overdue and stayed overdue forever, growing by a
+      // day every morning, because the year and month were both pinned. It
+      // could never self-correct.
+      expect(
+        daysUntil('Jun 5', at),
+        greaterThan(250),
+        reason:
+            'a due date months in the past keeps being announced as overdue '
+            'and the lateness grows every day, with no way back',
+      );
+    });
+
+    test('but a date only just past still reads as overdue', () {
+      // The other half of the alarm, and the more important one. Rolling
+      // EVERYTHING forward would silence a genuinely missed payment, which is
+      // the exact prototype defect this engine exists to avoid.
+      expect(daysUntil('Sep 12', at), -7);
+      expect(daysUntil('Sep 5', at), -14);
+      expect(daysUntil('Aug 25', at), -25);
+    });
+  });
+
+  group('dates no person meant', () {
+    test('a garbage stored date is ignored rather than shouted', () {
+      // DateTime accepts these and normalises them silently, so the tray said
+      // "was due 740275 days ago" with a peso figure in front of it.
+      expect(daysUntil('0000-00-00', at), isNull);
+      expect(daysUntil('9999-12-31', at), isNull);
+    });
+
+    test('and a real date near today is still fine', () {
+      // The guard must not eat ordinary dates.
+      expect(daysUntil('2026-09-21', at), 2);
+      expect(daysUntil('2027-09-21', at), 367);
+    });
+
+    test('nothing throws, whatever is typed', () {
+      for (final String s in <String>[
+        '',
+        '   ',
+        'next friday',
+        '0',
+        '99',
+        '2026-13-45',
+        'Feb 30',
+        'Oct',
+        '10/3',
+        'tomorrow',
+      ]) {
+        expect(
+          () => daysUntil(s, at),
+          returnsNormally,
+          reason: 'threw on "$s"',
+        );
+      }
+    });
+  });
+
+  group('payment plan dates land in the right month', () {
+    InstallmentPlan onThe(String start, int paid) => InstallmentPlan(
+      id: 'p1',
+      name: 'Laptop',
+      provider: 'Provider',
+      principal: 48000,
+      interestRate: 0,
+      interestRateType: InterestRateType.fixed,
+      totalInterest: 0,
+      totalPayable: 48000,
+      termMonths: 12,
+      installmentAmount: 4000,
+      paidInstallments: paid,
+      totalInstallments: 12,
+      runningBalance: 48000,
+      principalRemaining: 48000,
+      interestRemaining: 0,
+      startDate: start,
+      maturityDate: '2027-01-20',
+    );
+
+    test('a plan starting on the 31st does not skip February', () {
+      // DateTime(y, m + n, 31) overflows silently. A monthly plan starting
+      // 31 January gave 31 Jan, then 3 MARCH, then 31 Mar, then 1 MAY: the
+      // February payment is never mentioned at all, and the person is told a
+      // payment is due days after the lender expected it.
+      expect(
+        nextInstallmentDate(onThe('2026-01-31', 0)),
+        DateTime(2026, 1, 31),
+      );
+      expect(
+        nextInstallmentDate(onThe('2026-01-31', 1)),
+        DateTime(2026, 2, 28),
+        reason: 'the February payment landed in March',
+      );
+      expect(
+        nextInstallmentDate(onThe('2026-01-31', 2)),
+        DateTime(2026, 3, 31),
+      );
+      expect(
+        nextInstallmentDate(onThe('2026-01-31', 3)),
+        DateTime(2026, 4, 30),
+        reason: 'April has thirty days',
+      );
+    });
+
+    test('an ordinary day of the month is untouched', () {
+      expect(
+        nextInstallmentDate(onThe('2026-01-20', 1)),
+        DateTime(2026, 2, 20),
+      );
+      expect(
+        nextInstallmentDate(onThe('2026-01-20', 11)),
+        DateTime(2026, 12, 20),
+      );
+    });
+
+    test('it rolls into the next year correctly', () {
+      expect(
+        nextInstallmentDate(onThe('2026-12-29', 2)),
+        DateTime(2027, 2, 28),
       );
     });
   });

@@ -41,7 +41,17 @@ class PanSheet extends StatefulWidget {
 
 class _PanSheetState extends State<PanSheet> {
   final TextEditingController _input = TextEditingController();
-  final ScrollController _scroll = ScrollController();
+
+  /// The KEY of the newest message, so it can be scrolled into view.
+  ///
+  /// Not a ScrollController. The first version made one, called animateTo on
+  /// it, and attached it to nothing: SheetScaffold owns its own
+  /// SingleChildScrollView and takes no controller, so `hasClients` was always
+  /// false and the scroll was silently skipped every time. On a phone that
+  /// reads as "I tapped a question and nothing happened", because the answer
+  /// is appended below the fold. Scrolling to a widget needs no controller at
+  /// all and cannot be wired to the wrong scroll view.
+  final GlobalKey _newest = GlobalKey();
 
   /// The conversation, oldest first. Not stored: a question somebody typed
   /// about their own money is not something Salapify needs to keep, and
@@ -58,7 +68,6 @@ class _PanSheetState extends State<PanSheet> {
   @override
   void dispose() {
     _input.dispose();
-    _scroll.dispose();
     super.dispose();
   }
 
@@ -83,13 +92,15 @@ class _PanSheetState extends State<PanSheet> {
       _messages.add(_Msg.answer(answer));
       _input.clear();
     });
-    // After the frame, so the new message has a height to scroll to.
+    // After the frame, so the new message exists and has a height.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
+      final BuildContext? target = _newest.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
+        alignment: 0.1,
       );
     });
   }
@@ -114,10 +125,11 @@ class _PanSheetState extends State<PanSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          for (final _Msg m in _messages)
+          for (int i = 0; i < _messages.length; i++)
             Padding(
+              key: i == _messages.length - 1 ? _newest : null,
               padding: const EdgeInsets.only(bottom: Spacing.md),
-              child: _Bubble(palette: p, message: m),
+              child: _Bubble(palette: p, message: _messages[i]),
             ),
         ],
       ),

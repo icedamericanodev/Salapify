@@ -252,6 +252,37 @@ class Snapshot {
     return paydayFromJson(row);
   }
 
+  /// The tray, skipping any message that cannot be read.
+  ///
+  /// A skipped message is not a loss worth reporting: the engine works out
+  /// what is due again on the next open. A REJECTED DOCUMENT is a loss, of
+  /// everything.
+  static List<AppNotification> _readNotifications(
+    Object? raw,
+    ExtrasBuilder extras,
+  ) {
+    if (raw is! List) return const <AppNotification>[];
+    final List<AppNotification> out = <AppNotification>[];
+    for (final Object? entry in raw) {
+      if (entry is! Map) continue;
+      final Map<String, dynamic> row = Map<String, dynamic>.from(entry);
+      try {
+        final AppNotification n = notificationFromJson(row);
+        final Map<String, dynamic> leftover = <String, dynamic>{
+          for (final MapEntry<String, dynamic> e in row.entries)
+            if (!notificationKeys.contains(e.key)) e.key: e.value,
+        };
+        if (leftover.isNotEmpty) {
+          extras.put(kNotifications, n.id, leftover);
+        }
+        out.add(n);
+      } on SnapshotFormatException {
+        // Dropped on purpose. See the note at the call site.
+      }
+    }
+    return out;
+  }
+
   /// The reminder rules, plus whatever else was inside them.
   ///
   /// Same shape as [_readPayday], and same reason: one object rather than a
@@ -395,12 +426,25 @@ class Snapshot {
       // anything else inside it would be silently dropped on the next save
       // unless it is stashed here. Same rule as every record, applied to an
       // object that is not in a collection.
-      notifications: read<AppNotification>(
-        kNotifications,
-        notificationKeys,
-        notificationFromJson,
-        (AppNotification n) => n.id,
-      ),
+      // READ LENIENTLY, and this is the one collection that gets to be.
+      //
+      // Everywhere else a bad field throws, and that is right: a balance this
+      // build cannot read must stop the load, because a file left untouched
+      // can still be recovered while a guessed number cannot.
+      //
+      // The tray is different in kind. It is DERIVED, disposable data, rebuilt
+      // from the ledger every time the app opens, and it is already the one
+      // collection deliberately excluded from looksLikeSalapify because a file
+      // holding only messages is not a ledger. Letting one unreadable message
+      // reject the whole document would make accounts, entries and debts
+      // unreadable over a notification, which turns saving off entirely and
+      // shows the red panel. A future build's reminder kind, or a row with a
+      // missing body, would be enough.
+      //
+      // reminderSettingsFromJson already makes exactly this argument about a
+      // preference being too small to brick a ledger. The same argument
+      // applies to the messages and was not applied until QA pointed at it.
+      notifications: _readNotifications(m[kNotifications], extras),
       reminderSettings: _readReminderSettings(m['reminderSettings'], extras),
       payday: _readPayday(m['payday'], extras),
       sampleDataRemovedAt: m['sampleDataRemovedAt'] is String

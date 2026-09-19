@@ -58,3 +58,43 @@ const List<String> investingWords = <String>[
 ];
 
 const List<String> borrowingWords = <String>['borrow', 'loan'];
+
+/// Single words that belong to a QUESTION, not to an account.
+///
+/// An account match runs before every topic, because a name is the most
+/// specific thing somebody can ask about. That is right until the name IS a
+/// question word: an account called "Due" then answered "what bills are due",
+/// and one called "Cash" always beat the question about total cash.
+///
+/// So a one-word account name that appears here loses to the topic. A longer
+/// name containing one of these is unaffected, because "Due Payments Card" is
+/// unambiguously a name.
+const List<String> reservedWords = <String>[
+  'cash',
+  'money',
+  'due',
+  'bill',
+  'bills',
+  'budget',
+  'limit',
+  'goal',
+  'target',
+  'owe',
+  'owed',
+  'debt',
+  'payday',
+  'sweldo',
+  'worth',
+  'overall',
+  'spending',
+  'biggest',
+  'receivable',
+  'ipon',
+  'lampas',
+  'magkano',
+  'bayarin',
+  'upcoming',
+  'save',
+  'pay',
+  'spend',
+];

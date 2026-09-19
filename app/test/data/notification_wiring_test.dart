@@ -50,6 +50,7 @@ class _Recorder implements NotificationGateway {
 }
 
 void main() {
+  qaRegressions();
   Future<FinancialState> ready(_Recorder r) async {
     final FinancialState state = FinancialState(
       clock: DateTime(2026, 9, 19, 12),
@@ -197,4 +198,165 @@ class _ThrowingGateway implements NotificationGateway {
 
   @override
   Future<void> cancelAll() async {}
+}
+
+/// Findings from an adversarial QA pass.
+void qaRegressions() {
+  test(
+    'a gateway that throws on the PERMISSION call does not escape',
+    () async {
+      // The guard went into replanNotifications only, and the fake threw only
+      // from replaceAll, so the test could not have caught this. On a real
+      // device requestPermission initialises the plugin and the timezone
+      // database first, and a platform exception there went straight out of the
+      // tap, leaving the switch spinning forever with nothing on screen.
+      final FinancialState state = FinancialState(
+        clock: DateTime(2026, 9, 19, 12),
+        store: MemorySnapshotStore(),
+        notifications: _ThrowsOnPermission(),
+      );
+      await state.restore();
+
+      late bool granted;
+      expect(
+        () async => granted = await state.enablePhoneReminders(),
+        returnsNormally,
+      );
+      granted = await state.enablePhoneReminders();
+      expect(granted, isFalse);
+      expect(
+        state.reminderSettings.phoneEnabled,
+        isFalse,
+        reason: 'the switch stored "on" against a permission that never came',
+      );
+    },
+  );
+
+  test('switching off survives a gateway that throws on cancel', () async {
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 19, 12),
+      store: MemorySnapshotStore(),
+      notifications: _ThrowsOnCancel(),
+    );
+    await state.restore();
+    await state.disablePhoneReminders();
+    expect(state.reminderSettings.phoneEnabled, isFalse);
+  });
+
+  test('test reminders cannot grow the tray without limit', () async {
+    // refreshReminders truncated and this path did not, so holding the Test
+    // button built a tray of any length, persisted it, and re-encoded all of
+    // it on every save afterwards.
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 19, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+
+    for (int i = 0; i < 200; i++) {
+      state.sendTestReminder(ReminderKind.billDue);
+    }
+    await state.flushWrites();
+
+    expect(
+      state.notifications.length,
+      lessThanOrEqualTo(FinancialState.maxNotifications),
+      reason: 'the tray grew past its own cap and is persisted at that size',
+    );
+  });
+
+  test(
+    'a loaded file with an enormous tray is trimmed on the way in',
+    () async {
+      // Trimming only the add path leaves a long tray long forever.
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState first = FinancialState(
+        clock: DateTime(2026, 9, 19, 12),
+        store: store,
+      );
+      await first.restore();
+      for (int i = 0; i < 200; i++) {
+        first.sendTestReminder(ReminderKind.billDue);
+      }
+      await first.flushWrites();
+
+      final FinancialState second = FinancialState(
+        clock: DateTime(2026, 9, 19, 12),
+        store: store,
+      );
+      await second.restore();
+      expect(
+        second.notifications.length,
+        lessThanOrEqualTo(FinancialState.maxNotifications),
+      );
+    },
+  );
+
+  test(
+    'after a wipe, Settings does not offer to put demo money back',
+    () async {
+      // The wipe marked the sample data as "removed", which is what gates the
+      // put-it-back control. So two taps after reading "The sample data has NOT
+      // come back", Settings offered a button injecting eleven demo accounts
+      // and a demo salary into the ledger they had just erased.
+      final FinancialState state = FinancialState(
+        clock: DateTime(2026, 9, 19, 12),
+        store: MemorySnapshotStore(),
+      );
+      await state.restore();
+      await state.deleteEverything();
+
+      expect(state.accounts, isEmpty);
+      expect(
+        state.canRestoreSampleData,
+        isFalse,
+        reason:
+            'the app promised an empty ledger and then offered a button that '
+            'fills it with money the person never earned',
+      );
+    },
+  );
+
+  test('but removing ONLY the sample data still offers the way back', () async {
+    // The other half. Suppressing it everywhere would delete a control the
+    // founder asked for.
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 19, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+    state.removeSampleData();
+    await state.flushWrites();
+
+    expect(state.canRestoreSampleData, isTrue);
+  });
+}
+
+class _ThrowsOnPermission implements NotificationGateway {
+  @override
+  Future<bool> requestPermission() async =>
+      throw Exception('no notification service on this device');
+
+  @override
+  Future<bool> hasPermission() async => false;
+
+  @override
+  Future<void> replaceAll(List<PlannedReminder> planned) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+}
+
+class _ThrowsOnCancel implements NotificationGateway {
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<bool> hasPermission() async => true;
+
+  @override
+  Future<void> replaceAll(List<PlannedReminder> planned) async {}
+
+  @override
+  Future<void> cancelAll() async => throw Exception('cannot cancel');
 }

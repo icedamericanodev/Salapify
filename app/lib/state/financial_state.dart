@@ -197,6 +197,7 @@ class FinancialState extends ChangeNotifier {
     _reconciliations = List<ReconciliationRecord>.of(s.reconciliations);
     _bills = List<BillItem>.of(s.bills);
     _notifications = List<AppNotification>.of(s.notifications);
+    _trimTray();
     _reminderSettings = s.reminderSettings;
     _payday = s.payday;
     _sampleRemovedAt = s.sampleDataRemovedAt;
@@ -253,6 +254,18 @@ class FinancialState extends ChangeNotifier {
   }
 
   Future<void> _writeNow() async {
+    // Re-checked HERE, not only where the write was scheduled.
+    //
+    // `deleteEverything` turns saving off and awaits the chain, which covers
+    // writes already on it. A notify raised in the same turn as the wipe
+    // appends through a microtask AFTER that await, and this method used to
+    // write unconditionally once it was on the chain, so the ledger that had
+    // just been erased was written straight back out. It is not reachable
+    // from today's tap, because microtasks drain between events, but the
+    // comment on deleteEverything claims a guard that was an accident of
+    // scheduling rather than a guard. One line makes it real.
+    if (!_saveEnabled) return;
+
     final String encoded;
     try {
       encoded = snapshot().encode(at: now);
@@ -385,18 +398,25 @@ class FinancialState extends ChangeNotifier {
         ),
       ..._notifications,
     ];
-    // Old messages are dropped from the bottom. A tray nobody can reach the
-    // end of is a tray nobody reads, and these are reminders rather than
-    // records: the bill itself is still in the ledger.
-    if (_notifications.length > maxNotifications) {
-      _notifications = _notifications.sublist(0, maxNotifications);
-    }
+    _trimTray();
     notifyListeners();
     return result.fresh.length;
   }
 
   /// How many messages the tray keeps.
   static const int maxNotifications = 60;
+
+  /// Old messages are dropped from the bottom.
+  ///
+  /// A tray nobody can reach the end of is a tray nobody reads, and these are
+  /// reminders rather than records: the bill itself is still in the ledger.
+  /// Applied on every path that can grow the tray, including a loaded file,
+  /// because trimming only on the add path leaves a long tray long forever.
+  void _trimTray() {
+    if (_notifications.length > maxNotifications) {
+      _notifications = _notifications.sublist(0, maxNotifications);
+    }
+  }
 
   void markNotificationRead(String id) {
     final int at = _notifications.indexWhere(
@@ -534,10 +554,26 @@ class FinancialState extends ChangeNotifier {
     _payday = PaydayCycle.unset;
     _activeProfile = null;
 
-    // Kept in memory, both of them deliberately. Wiping the ledger is not a
-    // reason to throw away keys this build cannot read, and the theme is a
-    // preference rather than data about somebody's money.
-    _sampleRemovedAt = now.toUtc().toIso8601String();
+    // NULL, not a timestamp, and this is a bug fix rather than tidiness.
+    //
+    // Setting it marked the sample data as "removed", which is what gates the
+    // put-it-back control. So two taps after reading "The sample data has NOT
+    // come back. You asked for an empty app, so that is what this is",
+    // Settings offered a button that injects eleven demo accounts, a demo
+    // salary and demo debts into the ledger they had just erased, under the
+    // sentence "You removed Salapify's sample data. Everything here is
+    // yours." Neither half of that was true of what had happened.
+    //
+    // After a wipe there is no sample data and none was removed: the ledger is
+    // empty and new. Null says exactly that, and the control is correctly
+    // absent. Nothing re-seeds, because the empty file written below loads as
+    // a real ledger on the next launch rather than as a fresh install.
+    _sampleRemovedAt = null;
+
+    // Extras ARE cleared, and that is deliberate the other way. They hold keys
+    // from the person's own file that this build cannot read, so carrying them
+    // through a wipe would write a piece of their data straight back into the
+    // supposedly empty file.
     _extras = const Extras.empty();
 
     _loadStatus = LoadStatus.fresh;
@@ -559,8 +595,22 @@ class FinancialState extends ChangeNotifier {
   /// switch stays off and the screen says where to change their mind. Storing
   /// "on" against a denied permission would be a control that claims to do
   /// something and does nothing, which is the defect this app keeps finding.
+  /// The try is around the PERMISSION CALL too, not only the scheduling.
+  ///
+  /// An earlier note here claimed this path was already guarded. It was not:
+  /// the guard went into replanNotifications, and the test's fake threw only
+  /// from replaceAll, so it could not have caught this. `requestPermission`
+  /// on the real gateway first initialises the plugin and the timezone
+  /// database, and any platform exception there (a missing icon resource, a
+  /// detached activity, a vendor ROM refusing the call) went straight out of
+  /// the tap, leaving the switch spinning forever with nothing on screen.
   Future<bool> enablePhoneReminders() async {
-    final bool granted = await _notifier.requestPermission();
+    final bool granted;
+    try {
+      granted = await _notifier.requestPermission();
+    } on Object {
+      return false;
+    }
     if (!granted) return false;
     updateReminderSettings(_reminderSettings.copyWith(phoneEnabled: true));
     await replanNotifications();
@@ -569,7 +619,12 @@ class FinancialState extends ChangeNotifier {
 
   Future<void> disablePhoneReminders() async {
     updateReminderSettings(_reminderSettings.copyWith(phoneEnabled: false));
-    await _notifier.cancelAll();
+    try {
+      await _notifier.cancelAll();
+    } on Object {
+      // The setting is off either way, which is the part the person asked
+      // for. A phone that will not take the cancel is not worth a crash.
+    }
   }
 
   /// Hands Android the next fortnight of reminders, replacing whatever it had.
@@ -643,6 +698,11 @@ class FinancialState extends ChangeNotifier {
       ),
       ..._notifications,
     ];
+    // Capped HERE too. refreshReminders truncates and this did not, so holding
+    // the Test button built a tray of any length, persisted it, and re-encoded
+    // all of it on every save afterwards, with every row built eagerly into
+    // one Column.
+    _trimTray();
     notifyListeners();
   }
 

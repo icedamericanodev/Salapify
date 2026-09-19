@@ -66,9 +66,17 @@ abstract class SnapshotStore {
 
 /// One JSON file in the app's documents directory.
 class FileSnapshotStore implements SnapshotStore {
-  FileSnapshotStore({this.fileName = 'salapify_data.json'});
+  FileSnapshotStore({
+    this.fileName = 'salapify_data.json',
+    Directory? directory,
+  }) : _dir = directory;
 
   final String fileName;
+
+  /// Where the files go. Null means ask path_provider, which is what the app
+  /// does; a test passes a temp directory and never touches a platform
+  /// channel. Same shape as FxService's cacheDir, and for the same reason:
+  /// without it the only way to exercise the real file paths is on a phone.
   Directory? _dir;
 
   /// Makes each temp file its own, so two writes can never share a path even
@@ -113,18 +121,9 @@ class FileSnapshotStore implements SnapshotStore {
   @override
   Future<int> deleteEverything() async {
     int removed = 0;
-    for (final File f in <File>[
-      await _file(),
-      await _previousFile(),
-      await _preImportFile(),
-      // The FX cache. Not a ledger and not secret, but it is a file Salapify
-      // put on this phone, and "everything" has to mean everything or the
-      // sentence is doing work it has not earned.
-      File('${(await _directory()).path}/salapify_fx_cache.json'),
-    ]) {
+    for (final File f in await filesToDeleteInOrder()) {
       // Each in its own try. One file refusing to go must not leave the
-      // others behind, and the ledger is first in the list on purpose: it is
-      // the one that matters most, so it is the one deleted first.
+      // others behind.
       try {
         if (await f.exists()) {
           await f.delete();
@@ -136,6 +135,68 @@ class FileSnapshotStore implements SnapshotStore {
       }
     }
     return removed;
+  }
+
+  /// Every file a wipe removes, IN THE ORDER IT MUST REMOVE THEM.
+  ///
+  /// The order is a correctness property rather than an implementation
+  /// detail, which is why it is a named method with its own test rather than
+  /// a list inside the loop.
+  Future<List<File>> filesToDeleteInOrder() async {
+    final Directory dir = await _directory();
+    final File live = await _file();
+
+    // THE LIVE LEDGER GOES LAST, and getting this backwards handed somebody
+    // their whole ledger back.
+    //
+    // The first version deleted it FIRST, reasoning that it is the file that
+    // matters most. That is exactly wrong for a wipe, because `loadSnapshot`
+    // reads a MISSING live file as an interrupted save and recovers from
+    // `.prev`. So a phone killed between the two deletes (a force stop, an
+    // OOM, a swipe away) came back next launch with every account and entry
+    // restored, a banner saying only the last change was lost, and saving
+    // re-enabled so it was immediately written back to disk. For somebody who
+    // wiped before handing the phone over, that is the precise failure this
+    // feature exists to prevent.
+    //
+    // With the copies removed first, an interrupted wipe leaves at most the
+    // live file, which loads normally and can simply be wiped again.
+    return <File>[
+      await _preImportFile(),
+      await _previousFile(),
+      // Every orphaned temp file, ENUMERATED rather than named.
+      //
+      // `write` stages to `<file>.<n>.tmp` and renames. A process that dies
+      // between the flush and the rename leaves that temp behind, holding a
+      // complete plaintext ledger, and `_writeCounter` restarts at zero each
+      // launch so a high-numbered orphan is never reused or overwritten.
+      // Deleting four literal paths left it there while the screen said
+      // everything had been removed.
+      ...await _orphans(dir, live),
+      // The FX cache. Not a ledger and not secret, but it is a file Salapify
+      // put on this phone, and "everything" has to mean everything or the
+      // sentence is doing work it has not earned.
+      File('${dir.path}/salapify_fx_cache.json'),
+      live,
+    ];
+  }
+
+  /// Leftover staging files from a write that never finished.
+  Future<List<File>> _orphans(Directory dir, File live) async {
+    try {
+      final List<FileSystemEntity> all = await dir.list().toList();
+      return <File>[
+        for (final FileSystemEntity e in all)
+          if (e is File &&
+              e.path.startsWith(live.path) &&
+              e.path.endsWith('.tmp'))
+            e,
+      ];
+    } on Object {
+      // A directory that cannot be listed is not a reason to abandon the
+      // wipe. The four known paths below still go.
+      return const <File>[];
+    }
   }
 
   /// Same temp-flush-rename dance as [write], and deliberately NO .prev
