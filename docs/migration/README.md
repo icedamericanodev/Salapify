@@ -839,3 +839,94 @@ Two genuine gaps remain in this area, both already on the list:
   `loanCalculators.ts` still unported.
 - **The savings and investment planner**, which is the prototype's fourth
   library tile. This build shows Safe to spend in that slot instead.
+
+---
+
+## Real institution marks, and cards that look like cards
+
+Founder direction, 2026-09-19: "Use the real logos of the banks and other
+services, build freely. Also improve the skin of the physical card for both
+debit and credit cards so it would look like near the real bank physical cards
+depend of their scheme."
+
+### The marks are bundled, not fetched
+
+The prototype resolves every logo from the internet, through
+`https://www.google.com/s2/favicons?domain=...` (`src/utils/logos.ts`). That is
+NOT ported, for two reasons that both outrank the pixels:
+
+1. It is a network call, and the app says **Offline Only** on its own header. A
+   logo that needs signal is a logo that vanishes on the MRT.
+2. It tells Google which banks somebody keeps their money at, one request per
+   institution, every time the screen draws. That is a person's financial
+   relationships leaking to a third party in exchange for a favicon.
+
+So eleven marks ship inside the app: GCash, Maya, BPI, BDO, UnionBank,
+MariBank, GoTyme, Metrobank, Security Bank, Tonik and RCBC. They draw
+instantly, they work in a basement, and nothing leaves the phone. Another
+thirteen institutions are known by their brand colour and carry a clean
+monogram, which for a government fund with a seal rather than a logo reads
+better at 40dp than a blurry crest would.
+
+`brandDisclaimer` is on the Accounts screen, on the screen rather than behind
+the info dot, and says these marks belong to the institutions they name.
+
+### The card
+
+Four cues do the work, all of them from the real object:
+
+- the **ISO/IEC 7810 ID-1 proportion**, 85.60 by 53.98 mm, so it is the shape
+  of a card and not of a banner;
+- the **issuer's own mark**, printed on a white plate the way it is on plastic;
+- a **drawn EMV chip** with its contact pattern, and contactless arcs. Painted
+  rather than shipped as images, because a chip is six gold contacts and
+  bundling a bitmap to say so would cost APK size and gain nothing;
+- the **scheme's own mark** in its own colours: Visa's italic wordmark,
+  Mastercard's two interlocking circles with the darker overlap, the Amex blue
+  box, JCB's three bars. This is how two cards from the same bank are told
+  apart in a wallet.
+
+The tier decides the **finish**, the way it does on real plastic: gold, brushed
+platinum, matte black, each with a diagonal sheen because a flat fill reads as
+paper. The tier overrides the issuer's palette, since somebody who recorded a
+card as Platinum is describing the object in their hand.
+
+Credit utilisation **moved off the plastic** rather than being dropped. Real
+cards do not print how much of the limit you have spent, and squeezing it
+inside would have cost the card its proportions. It sits underneath, where it
+can use the palette's own warning colour.
+
+| | |
+|---|---|
+| Accounts, dark | ![accounts dark](screens/accounts-all-gabi.png) |
+| Accounts, light | ![accounts light](screens/accounts-all-hapon.png) |
+
+### The render could not show the logos, and passed anyway
+
+Worth writing down, because it is the exact failure mode `CLAUDE.md` warns
+about: a fixture that cannot show the defect.
+
+`Image.asset` resolves asynchronously, and `testWidgets` runs on a fake clock
+where that never completes, so every logo plate rendered **blank**. The dark
+renders showed the marks only because the light ones ran first and warmed the
+global image cache: correct by accident, and silently wrong the moment the
+order changed. The first review render of this work was therefore proof of
+nothing.
+
+`settleImages` in the shot harness now precaches every `Image` inside
+`runAsync` before the golden is taken.
+
+### Not done, and why
+
+**The prototype's FX converter is a live network call.** Its "Live Foreign
+Exchange Converter" fetches `https://open.er-api.com/v6/latest/PHP`
+(`PhilippineFeaturesModal.tsx`). Building that would make the app's own
+"Offline Only" badge false, and `main.dart`'s "no network call anywhere in this
+app" with it, and it is a Play data-safety declaration. It is a founder
+decision, not an engineering one, so it is raised rather than built. Salapify
+already has offline conversion in `core/money/currencies.dart`, vector-locked
+to the prototype's own arithmetic, so the converter itself can be built without
+the live refresh whenever the founder wants it.
+
+The rest of that modal, Notes Calc, Mindset and Treats, is still unported and
+stays on the list.

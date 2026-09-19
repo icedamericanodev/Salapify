@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/money/accounts.dart';
 import '../../core/money/currencies.dart';
 import '../../core/money/format.dart';
+import '../../design/institution_brand.dart';
+import '../../design/institution_mark.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/accounts/account_sheet.dart';
@@ -117,6 +119,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 state: widget.state,
                 onOpen: widget.onOpenDebt,
               ),
+              const SizedBox(height: Spacing.lg),
+              // Not decoration, and not behind the info dot either. Using a
+              // bank's own mark to label an account is fair use; letting a
+              // reader infer a relationship that does not exist is not, and
+              // silence here would mislead. The prototype carries the same
+              // sentence at the foot of its own Accounts screen.
+              Text(brandDisclaimer, style: AppType.caption(p)),
             ],
           ),
         ),
@@ -629,22 +638,15 @@ class _AccountRow extends StatelessWidget {
           padding: const EdgeInsets.all(Spacing.md),
           child: Row(
             children: <Widget>[
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: palette.iconTile,
-                  borderRadius: BorderRadius.circular(Radii.tile),
-                ),
-                child: Text(
-                  account.monogram,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: palette.accent,
-                  ),
-                ),
+              // The institution's own mark where Salapify ships one, and the
+              // account's monogram where it does not. Both are drawn from the
+              // device: see design/institution_brand.dart for why this is not
+              // the prototype's remote favicon lookup.
+              InstitutionMark(
+                institution: account.institution,
+                monogram: account.monogram,
+                palette: palette,
+                size: 38,
               ),
               const SizedBox(width: Spacing.md),
               Expanded(

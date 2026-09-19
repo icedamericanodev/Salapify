@@ -67,6 +67,25 @@ Future<void> loadRealFonts() async {
   }
 }
 
+/// Finishes decoding every Image on screen, then repaints.
+///
+/// WITHOUT THIS THE LOGOS RENDER BLANK, and the first version of the brand
+/// work shipped a review render that proved nothing about them. Image.asset
+/// resolves asynchronously, and testWidgets runs on a fake clock where that
+/// never completes, so the plate draws empty. The dark renders happened to
+/// show the marks only because the light ones ran first and warmed the global
+/// image cache, which is the worst kind of pass: correct by accident, and
+/// silently wrong whenever the order changes.
+Future<void> settleImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final Element e in find.byType(Image).evaluate()) {
+      final Image image = e.widget as Image;
+      await precacheImage(image.image, e);
+    }
+  });
+  await tester.pumpAndSettle();
+}
+
 void main() {
   planCalculatorShots();
   // Two surfaces per theme, and both earn their place.
@@ -775,6 +794,8 @@ void main() {
           await tester.tap(find.text(view.label));
           await tester.pumpAndSettle();
         }
+
+        await settleImages(tester);
 
         await expectLater(
           find.byType(AppShell),
