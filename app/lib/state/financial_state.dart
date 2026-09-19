@@ -12,6 +12,7 @@ import '../core/money/accounts.dart';
 import '../core/money/debt.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
+import '../core/money/pan_facts.dart';
 import '../core/money/plan.dart';
 import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
@@ -436,6 +437,55 @@ class FinancialState extends ChangeNotifier {
     // waiting until the next app open to say so would make the setting look
     // broken.
     refreshReminders();
+  }
+
+  // -------------------------------------------------------------------------
+  // Pan
+  // -------------------------------------------------------------------------
+
+  /// Everything Pan is allowed to see, as a plain value.
+  ///
+  /// Built here and handed over, rather than giving Pan this object, so the
+  /// assistant is a pure function of a snapshot: it cannot write anything, it
+  /// cannot reach the store, and a test can put any ledger in front of it
+  /// without building an app. Whatever is not on [PanFacts] is something Pan
+  /// physically cannot mention.
+  PanFacts get panFacts {
+    final List<Transaction> thisMonth = _transactions.where((Transaction t) {
+      final DateTime? d = DateTime.tryParse(t.date);
+      return d != null && d.year == now.year && d.month == now.month;
+    }).toList();
+
+    final LedgerTotals totals = computeTotals(thisMonth);
+    final SafeToSpendAnalysis s = safeToSpendAnalysis;
+
+    return PanFacts(
+      now: now,
+      accounts: accounts,
+      transactions: transactions,
+      debts: debts,
+      budgets: budgets,
+      goals: goals,
+      bills: bills,
+      installments: installments,
+      upcoming: upcoming,
+      payday: _payday,
+      liquidCash: totalLiquidCash,
+      assets: accountsTotalPhp(assetsOf(_accounts)),
+      liabilities: accountsTotalPhp(liabilitiesOf(_accounts)),
+      owed: debtsIOwe,
+      owedToMe: debtsOwedToMe,
+      safeToSpendUntilPayday: s.safeToSpendUntilPayday,
+      safeToSpendPerDay: s.safeToSpendToday,
+      amountReserved: s.amountReserved,
+      cashRunwayMonths: s.cashRunwayMonths,
+      monthIn: totals.totalIn,
+      monthOut: totals.totalOut,
+      spendingByCategory: categorySpending(thisMonth),
+      hasSampleData: hasSampleData,
+      phoneRemindersOn: _reminderSettings.phoneEnabled,
+      unreadReminders: unreadNotificationsCount,
+    );
   }
 
   // -------------------------------------------------------------------------

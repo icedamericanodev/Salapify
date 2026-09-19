@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/info/info_sheet.dart';
+import '../../features/pan/pan_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
 import '../../features/settings/privacy_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
@@ -130,7 +131,7 @@ class HomeScreen extends StatelessWidget {
           bottom: Spacing.lg,
           child: AskPanButton(
             palette: palette,
-            onTap: () => _soon(context, palette, 'Pan'),
+            onTap: () => PanSheet.show(context, state),
           ),
         ),
       ],

@@ -11,6 +11,7 @@ import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/pan/pan_sheet.dart';
 import 'package:salapify/features/reminders/reminders_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
@@ -658,6 +659,7 @@ void main() {
         (name: 'reminders', openWith: 'reminders'),
         (name: 'reminders_rules', openWith: 'remindersRules'),
         (name: 'privacy', openWith: 'privacy'),
+        (name: 'pan', openWith: 'pan'),
       ];
 
   for (final ({String name, String openWith}) sheet in sheets) {
@@ -705,6 +707,8 @@ void main() {
           RemindersSheet.show(context, state);
         case 'privacy':
           PrivacySheet.show(context, palette);
+        case 'pan':
+          PanSheet.show(context, state);
       }
       await tester.pumpAndSettle();
 
@@ -713,6 +717,15 @@ void main() {
       // tray above it is the half they review for whether the words do.
       if (sheet.openWith == 'remindersRules') {
         await tester.tap(find.text('Rules'));
+        await tester.pumpAndSettle();
+      }
+
+      // Pan renders with a question ALREADY ASKED. An empty chat is a picture
+      // of an opening paragraph and proves nothing about the thing being
+      // reviewed, which is whether an answer about somebody's own money reads
+      // well.
+      if (sheet.openWith == 'pan') {
+        await tester.tap(find.text('What is safe to spend?'));
         await tester.pumpAndSettle();
       }
 
