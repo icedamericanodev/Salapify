@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/money/accounts.dart';
@@ -8,6 +10,33 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
 import 'card_art.dart';
+
+/// The last four digits of a stored card number, and NEVER any more than that.
+///
+/// This exists as one shared function rather than as a getter on the front,
+/// and the reason is a defect this repository actually shipped into a render.
+/// The front masked correctly from the day it was written. The back, added
+/// later, listed `account.accountNumber` straight out of storage, so a card
+/// recorded in full printed all sixteen digits on a screen somebody opens in
+/// public, directly beneath a badge reading NO CVV. Twenty four green tests
+/// had nothing to say about it and the screenshot showed it immediately.
+///
+/// Two faces that mask independently will drift apart again. One function
+/// cannot.
+String? maskedTail(String? stored) {
+  if (stored == null) return null;
+  final String digits = stored.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.length < 4) return null;
+  return digits.substring(digits.length - 4);
+}
+
+/// The number in card groups: `••••  ••••  ••••  6789`.
+///
+/// The grouping is what makes it read as a card rather than as a code. A
+/// number too short to have a meaningful tail masks completely instead of
+/// showing what little was typed.
+String pannedNumber(String? stored) =>
+    '••••  ••••  ••••  ${maskedTail(stored) ?? '••••'}';
 
 /// A debit or credit account drawn as a piece of plastic, from
 /// src/components/BankCard.tsx.
@@ -37,7 +66,7 @@ import 'card_art.dart';
 /// platinum, matte black. That overrides the issuer's marketing palette,
 /// because somebody who recorded a card as Platinum is describing the object
 /// they hold.
-class BankCard extends StatelessWidget {
+class BankCard extends StatefulWidget {
   const BankCard({
     super.key,
     required this.account,
@@ -47,10 +76,50 @@ class BankCard extends StatelessWidget {
 
   final Account account;
   final Palette palette;
+
+  /// Opens the edit sheet. Reached from the BACK of the card now rather than
+  /// from the card itself, because tapping the card turns it over.
   final VoidCallback? onTap;
+
+  /// How long the turn takes. Long enough to read as a physical object being
+  /// flipped, short enough that somebody checking a due date twice does not
+  /// start waiting for it.
+  static const Duration flipDuration = Duration(milliseconds: 420);
 
   /// ISO/IEC 7810 ID-1: 85.60 by 53.98 mm.
   static const double aspect = 85.60 / 53.98;
+
+  @override
+  State<BankCard> createState() => _BankCardState();
+}
+
+class _BankCardState extends State<BankCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _flip = AnimationController(
+    vsync: this,
+    duration: BankCard.flipDuration,
+  );
+
+  Account get account => widget.account;
+  Palette get palette => widget.palette;
+  VoidCallback? get onTap => widget.onTap;
+
+  @override
+  void dispose() {
+    _flip.dispose();
+    super.dispose();
+  }
+
+  bool get _showingBack => _flip.value > 0.5;
+
+  void _turn() {
+    if (_flip.isAnimating) return;
+    if (_showingBack) {
+      _flip.reverse();
+    } else {
+      _flip.forward();
+    }
+  }
 
   /// The issuer skins, the banks' own colours rather than Salapify's.
   ///
@@ -106,7 +175,12 @@ class BankCard extends StatelessWidget {
           true,
         );
       case CardTier.custom:
-        return (palette.surfaceAlt, palette.surface, palette.textPrimary, false);
+        return (
+          palette.surfaceAlt,
+          palette.surface,
+          palette.textPrimary,
+          false,
+        );
       case CardTier.regular:
         final (Color, Color)? issuer = _issuerSkins[account.institution];
         if (issuer == null) {
@@ -121,21 +195,7 @@ class BankCard extends StatelessWidget {
     }
   }
 
-  /// The number in card groups: `•••• •••• •••• 6789`.
-  ///
-  /// Never the whole number. This screen gets opened in public, and a full PAN
-  /// on a phone is a PAN on a phone. The grouping is what makes it read as a
-  /// card rather than as a code.
-  String get _pan {
-    final String? stored = account.accountNumber;
-    final String digits = stored == null
-        ? ''
-        : stored.replaceAll(RegExp(r'[^0-9]'), '');
-    final String tail = digits.length >= 4
-        ? digits.substring(digits.length - 4)
-        : '••••';
-    return '••••  ••••  ••••  $tail';
-  }
+  String get _pan => pannedNumber(account.accountNumber);
 
   @override
   Widget build(BuildContext context) {
@@ -152,17 +212,59 @@ class BankCard extends StatelessWidget {
     final InstitutionBrand? brand = brandFor(account.institution);
 
     return Semantics(
-      button: onTap != null,
+      button: true,
       label:
           '${account.name}, ${account.institution}, '
-          '${isCredit ? 'outstanding' : 'available'} $balance',
+          '${isCredit ? 'outstanding' : 'available'} $balance. '
+          'Tap to turn the card over.',
       child: InkWell(
-        onTap: onTap,
+        onTap: _turn,
         borderRadius: BorderRadius.circular(Radii.card),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _plastic(from, to, ink, inkSoft, metallic, paleCard, brand, isCredit, balance),
+            // The turn. A rotation about Y with a little perspective, so the
+            // card reads as a physical object turning rather than a picture
+            // being squashed and swapped. The back is pre-rotated by pi so it
+            // is not mirror-imaged when it comes round.
+            AnimatedBuilder(
+              animation: _flip,
+              builder: (BuildContext context, _) {
+                final double t = Curves.easeInOut.transform(_flip.value);
+                final double angle = t * math.pi;
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.0012)
+                    ..rotateY(angle),
+                  child: t <= 0.5
+                      ? _plastic(
+                          from,
+                          to,
+                          ink,
+                          inkSoft,
+                          metallic,
+                          paleCard,
+                          brand,
+                          isCredit,
+                          balance,
+                        )
+                      : Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()..rotateY(math.pi),
+                          child: _CardBack(
+                            account: account,
+                            palette: palette,
+                            from: from,
+                            to: to,
+                            ink: ink,
+                            inkSoft: inkSoft,
+                            onEdit: onTap,
+                          ),
+                        ),
+                );
+              },
+            ),
             // Utilisation sits BELOW the plastic rather than on it. Real cards
             // do not print how much of the limit you have spent, and squeezing
             // it inside would cost the card its proportions, which are the
@@ -186,109 +288,109 @@ class BankCard extends StatelessWidget {
     String balance,
   ) {
     return AspectRatio(
-          aspectRatio: aspect,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[from, to],
-              ),
-              borderRadius: BorderRadius.circular(Radii.card),
-              border: Border.all(color: ink.withValues(alpha: 0.18)),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+      aspectRatio: BankCard.aspect,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[from, to],
+          ),
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(color: ink.withValues(alpha: 0.18)),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                // The sheen: one soft diagonal band, the way light falls
-                // across a real metal card. Only on the finishes that have
-                // one, or every card looks like it is behind glass.
-                if (metallic)
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(Radii.card),
-                        gradient: LinearGradient(
-                          begin: const Alignment(-1, -1),
-                          end: const Alignment(1, 1),
-                          stops: const <double>[0.30, 0.46, 0.62],
-                          colors: <Color>[
-                            Colors.white.withValues(alpha: 0),
-                            Colors.white.withValues(alpha: 0.22),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            // The sheen: one soft diagonal band, the way light falls
+            // across a real metal card. Only on the finishes that have
+            // one, or every card looks like it is behind glass.
+            if (metallic)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Radii.card),
+                    gradient: LinearGradient(
+                      begin: const Alignment(-1, -1),
+                      end: const Alignment(1, 1),
+                      stops: const <double>[0.30, 0.46, 0.62],
+                      colors: <Color>[
+                        Colors.white.withValues(alpha: 0),
+                        Colors.white.withValues(alpha: 0.22),
+                        Colors.white.withValues(alpha: 0),
+                      ],
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.all(Spacing.lg),
-                  child: LayoutBuilder(
-                    builder: (BuildContext context, BoxConstraints c) {
-                      // Everything scales off the card's own height, so the
-                      // chip and the type keep their proportions whether this
-                      // is drawn full width or in a narrow column.
-                      final double h = c.maxHeight;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          _TopRow(
-                            account: account,
-                            brand: brand,
-                            ink: ink,
-                            inkSoft: inkSoft,
-                            height: h,
-                          ),
-                          SizedBox(height: h * 0.06),
-                          Row(
-                            children: <Widget>[
-                              EmvChip(width: h * 0.175, dark: paleCard),
-                              SizedBox(width: h * 0.05),
-                              ContactlessMark(ink: inkSoft, size: h * 0.13),
-                            ],
-                          ),
-                          SizedBox(height: h * 0.05),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _pan,
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontFamily: AppType.family,
-                                fontSize: h * 0.115,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: h * 0.012,
-                                color: inkSoft,
-                                height: 1,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          _BottomRow(
-                            account: account,
-                            isCredit: isCredit,
-                            balance: balance,
-                            ink: ink,
-                            inkSoft: inkSoft,
-                            height: h,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
                 ),
-              ],
+              ),
+            Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints c) {
+                  // Everything scales off the card's own height, so the
+                  // chip and the type keep their proportions whether this
+                  // is drawn full width or in a narrow column.
+                  final double h = c.maxHeight;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _TopRow(
+                        account: account,
+                        brand: brand,
+                        ink: ink,
+                        inkSoft: inkSoft,
+                        height: h,
+                      ),
+                      SizedBox(height: h * 0.06),
+                      Row(
+                        children: <Widget>[
+                          EmvChip(width: h * 0.175, dark: paleCard),
+                          SizedBox(width: h * 0.05),
+                          ContactlessMark(ink: inkSoft, size: h * 0.13),
+                        ],
+                      ),
+                      SizedBox(height: h * 0.05),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _pan,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontFamily: AppType.family,
+                            fontSize: h * 0.115,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: h * 0.012,
+                            color: inkSoft,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      _BottomRow(
+                        account: account,
+                        isCredit: isCredit,
+                        balance: balance,
+                        ink: ink,
+                        inkSoft: inkSoft,
+                        height: h,
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        );
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -547,4 +649,262 @@ class _Utilisation extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The back of the card: the magnetic stripe, the signature panel, and every
+/// detail that has no room on the front.
+///
+/// Founder direction, 2026-09-19: "For the card we can apply animation, like
+/// by tapping the card it will turn back and the other details are there."
+///
+/// ONE THING IS DELIBERATELY ABSENT, and its absence is stated on the card
+/// rather than left as a blank box: the CVV. Salapify does not store one, will
+/// not ask for one, and drawing three dots where a real card has three digits
+/// would invite somebody to write theirs into the account notes. A finance app
+/// that looks like it wants your CVV has taught the wrong lesson even if it
+/// never reads the field.
+class _CardBack extends StatelessWidget {
+  const _CardBack({
+    required this.account,
+    required this.palette,
+    required this.from,
+    required this.to,
+    required this.ink,
+    required this.inkSoft,
+    required this.onEdit,
+  });
+
+  final Account account;
+  final Palette palette;
+  final Color from;
+  final Color to;
+  final Color ink;
+  final Color inkSoft;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    // The detail rows, built from what the account ACTUALLY holds. An empty
+    // field is left out rather than shown blank: a card back listing "Due
+    // date: —" four times reads as an app that lost something.
+    final List<(String, String)> details = <(String, String)>[
+      // The masked tail, never the stored string. See maskedTail: the back
+      // printed the whole number here once, under a NO CVV badge.
+      if (maskedTail(account.accountNumber) != null)
+        ('Number', '•••• ${maskedTail(account.accountNumber)}'),
+      if (account.dueDate != null) ('Payment due', account.dueDate!),
+      if (account.statementDate != null) ('Statement', account.statementDate!),
+      if (account.interestRate != null)
+        ('Interest', '${account.interestRate}% a year'),
+      if (account.creditLimit != null)
+        (
+          'Credit limit',
+          formatCurrency(account.creditLimit!, account.currency),
+        ),
+      if (account.isForeign)
+        ('Currency', currencyNames[account.currency] ?? account.currency.wire),
+      if (account.profile != null) ('Entity', _entity(account.profile!)),
+    ];
+
+    return AspectRatio(
+      aspectRatio: BankCard.aspect,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            // Reversed against the front, the way the two faces of a real card
+            // catch light differently.
+            begin: Alignment.bottomRight,
+            end: Alignment.topLeft,
+            colors: <Color>[from, to],
+          ),
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(color: ink.withValues(alpha: 0.18)),
+        ),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints c) {
+            final double h = c.maxHeight;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                SizedBox(height: h * 0.07),
+                // The magnetic stripe, full bleed, as on the real thing.
+                Container(height: h * 0.16, color: Colors.black87),
+                SizedBox(height: h * 0.06),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      // The signature panel.
+                      Expanded(
+                        child: Container(
+                          height: h * 0.13,
+                          padding: EdgeInsets.symmetric(horizontal: h * 0.03),
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            borderRadius: BorderRadius.circular(h * 0.02),
+                          ),
+                          child: Text(
+                            account.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: AppType.family,
+                              fontSize: h * 0.07,
+                              fontStyle: FontStyle.italic,
+                              color: const Color(0xFF15120F),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: h * 0.04),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: h * 0.03,
+                          vertical: h * 0.02,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: inkSoft, width: 1),
+                          borderRadius: BorderRadius.circular(h * 0.02),
+                        ),
+                        child: Text(
+                          'NO CVV',
+                          style: TextStyle(
+                            fontFamily: AppType.family,
+                            fontSize: h * 0.05,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: h * 0.004,
+                            color: inkSoft,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: h * 0.04),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                    child: details.isEmpty
+                        ? Text(
+                            'Nothing else recorded for this card yet.',
+                            style: TextStyle(
+                              fontFamily: AppType.family,
+                              fontSize: h * 0.06,
+                              color: inkSoft,
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                for (final (String k, String v) in details)
+                                  Padding(
+                                    padding: EdgeInsets.only(bottom: h * 0.015),
+                                    child: Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: Text(
+                                            k,
+                                            style: TextStyle(
+                                              fontFamily: AppType.family,
+                                              fontSize: h * 0.055,
+                                              color: inkSoft,
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            v,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(
+                                              fontFamily: AppType.family,
+                                              fontSize: h * 0.055,
+                                              fontWeight: FontWeight.w700,
+                                              color: ink,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Spacing.lg,
+                    0,
+                    Spacing.lg,
+                    Spacing.md,
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          'Tap to turn back',
+                          style: TextStyle(
+                            fontFamily: AppType.family,
+                            fontSize: h * 0.05,
+                            color: inkSoft,
+                          ),
+                        ),
+                      ),
+                      if (onEdit != null)
+                        Semantics(
+                          button: true,
+                          label: 'Edit this account',
+                          child: InkWell(
+                            onTap: onEdit,
+                            borderRadius: BorderRadius.circular(Radii.pill),
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minHeight: 32,
+                                minWidth: 64,
+                              ),
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Spacing.md,
+                              ),
+                              decoration: BoxDecoration(
+                                color: ink.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(Radii.pill),
+                                border: Border.all(
+                                  color: ink.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                'Edit',
+                                style: TextStyle(
+                                  fontFamily: AppType.family,
+                                  fontSize: h * 0.055,
+                                  fontWeight: FontWeight.w800,
+                                  color: ink,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static String _entity(ProfileEntity e) => switch (e) {
+    ProfileEntity.personal => 'Personal',
+    ProfileEntity.household => 'Household',
+    ProfileEntity.business => 'Business',
+    ProfileEntity.sideHustle => 'Side hustle',
+  };
 }

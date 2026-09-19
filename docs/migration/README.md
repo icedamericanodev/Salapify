@@ -1000,3 +1000,49 @@ spreadsheet beside the one the bank sent.
 Every figure matches the prototype exactly: ₱10,531.25 a month, ₱855,171.14
 interest, ₱2,355,171.14 total, ₱172,329.49 saved by prepaying, 205 months,
 month 1 principal ₱3,343.75.
+
+## The card turns over
+
+Founder direction, 2026-09-19: "For the card we can apply animation, like by
+tapping the card it will turn back and the other details are there."
+
+Tapping a debit or credit card rotates it about its own vertical axis, with a
+little perspective so it reads as a physical object turning rather than a
+picture being swapped. The back carries the magnetic stripe, the signature
+panel, and every detail that has no room on the front: the number, the payment
+due and statement dates, the interest rate, the credit limit, the currency on a
+foreign account, and which entity it belongs to.
+
+| Front | Back |
+|---|---|
+| ![Card front](screens/card-front.png) | ![Card back](screens/card-back.png) |
+
+Four decisions worth writing down, because each one is the sort a later change
+would undo without noticing:
+
+**Editing moved to the back.** The tap used to open the edit sheet, and the
+flip took that gesture. So the back carries an Edit button. Without it the
+feature would have quietly removed the only way to change an account, which is
+a regression dressed as an animation, and a test asserts the button is there.
+
+**The back says NO CVV rather than leaving a blank.** A real card has three
+digits there, and drawing an empty box in that position invites somebody to
+write theirs into the account notes. Salapify does not store one and does not
+want one, so the card says so where the digits would be.
+
+**A field with nothing in it is left out, not shown blank.** A back listing
+"Payment due: —" four times reads as an app that lost something. A card with
+nothing else recorded says exactly that, in one line.
+
+**The number is masked on BOTH faces, by one shared function.** This one is a
+defect that got as far as a render. The front has masked to the last four since
+it was written, for the reason in its own comment: this screen gets opened in
+public. The back, added with the flip, listed the stored string directly, so a
+card recorded in full printed all sixteen digits, under the NO CVV badge.
+Twenty five green tests had nothing to say about it and the first screenshot
+showed it instantly. Both faces now call `maskedTail`, because two faces that
+mask independently will drift apart again and one function cannot.
+
+That is the second defect this batch that only the picture could find, and it
+is the argument for the founder's own rule: a feature reported as finished with
+no picture anybody opened is not finished, however green the tests are.

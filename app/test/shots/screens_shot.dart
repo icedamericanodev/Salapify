@@ -18,6 +18,7 @@ import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
+import 'package:salapify/screens/accounts/bank_card.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/features/debt/installment_sheet.dart';
@@ -89,6 +90,7 @@ Future<void> settleImages(WidgetTester tester) async {
 }
 
 void main() {
+  _cardFaceShots();
   planCalculatorShots();
   fxShot();
   // Two surfaces per theme, and both earn their place.
@@ -1157,7 +1159,8 @@ void main() {
     expect(
       state.accounts,
       isEmpty,
-      reason: 'the fixture has to actually be empty, or this shot proves '
+      reason:
+          'the fixture has to actually be empty, or this shot proves '
           'nothing about the empty state',
     );
 
@@ -1423,4 +1426,122 @@ void fxShot() {
       matchesGoldenFile('out/fx_converter.png'),
     );
   });
+}
+
+// The two faces of the plastic, which is the whole point of the flip and the
+// one thing no other shot can show. Every other accounts render draws the
+// FRONT, because that is what a card is at rest, so a back that came out
+// mirror-imaged, clipped or the wrong shape would render perfectly in all of
+// them and be wrong on the phone.
+//
+// Three cards, because the finish is the thing most likely to break: a plain
+// issuer skin, a gold one with the sheen, and a bare debit with nothing
+// recorded so the empty back is looked at too and not just asserted.
+void _cardFaceShots() {
+  const Account rewards = Account(
+    id: 'shot_card_visa',
+    name: 'BPI Rewards Card',
+    kind: AccountKind.credit,
+    institution: 'BPI',
+    balance: 12480.5,
+    monogram: 'BP',
+    accountNumber: '**** 8819',
+    creditLimit: 40000,
+    dueDate: 'Oct 3',
+    statementDate: 'Sep 18',
+    interestRate: 3.5,
+    cardNetwork: CardNetwork.visa,
+    profile: ProfileEntity.personal,
+  );
+
+  const Account gold = Account(
+    id: 'shot_card_gold',
+    name: 'Metrobank Gold',
+    kind: AccountKind.credit,
+    institution: 'Metrobank',
+    balance: 6200,
+    monogram: 'MB',
+    accountNumber: '4127 8890 2211 4402',
+    creditLimit: 150000,
+    dueDate: 'Oct 12',
+    statementDate: 'Sep 26',
+    interestRate: 2.0,
+    cardNetwork: CardNetwork.mastercard,
+    cardTier: CardTier.gold,
+    profile: ProfileEntity.personal,
+  );
+
+  const Account bare = Account(
+    id: 'shot_card_bare',
+    name: 'GoTyme Debit',
+    kind: AccountKind.debit,
+    institution: 'GoTyme',
+    balance: 3150,
+    monogram: 'GT',
+  );
+
+  for (final ({String slug, bool flipped}) face
+      in <({String slug, bool flipped})>[
+        (slug: 'front', flipped: false),
+        (slug: 'back', flipped: true),
+      ]) {
+    testWidgets('card ${face.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final Palette palette = Palette.of(ThemeMode2.gabi);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, ThemeMode2.gabi),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  for (final Account a in <Account>[rewards, gold, bare])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Spacing.lg),
+                      child: BankCard(
+                        account: a,
+                        palette: palette,
+                        onTap: () {},
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+
+      if (face.flipped) {
+        for (final Element e in find.byType(BankCard).evaluate()) {
+          await tester.tap(find.byWidget(e.widget));
+        }
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Tap to turn back'),
+          findsNWidgets(3),
+          reason: 'a card did not turn, so this shot is not of the back',
+        );
+      }
+
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile('out/card_${face.slug}.png'),
+      );
+    });
+  }
 }
