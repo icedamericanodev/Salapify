@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 /// `https://www.google.com/s2/favicons?domain=...` in `src/utils/logos.ts`.
 /// That is not ported, for two reasons that both matter more than the pixels:
 ///
-///  1. It is a network call, and Salapify says "Offline Only" on its own
-///     header. A logo that only appears with signal is a logo that vanishes on
-///     the MRT.
+///  1. A logo that only appears with signal is a logo that vanishes on the
+///     MRT. (This used to reason from the header saying "Offline Only". That
+///     badge now reads "On this phone", because the FX converter does make one
+///     request; the argument below stands on its own and never needed it.)
 ///  2. It tells Google which banks somebody keeps their money at, one request
 ///     per institution, every time the screen is drawn. That is a person's
 ///     financial relationships leaking to a third party in exchange for a

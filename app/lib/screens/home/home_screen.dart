@@ -4,6 +4,7 @@ import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
+import '../../features/settings/privacy_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
@@ -69,6 +70,7 @@ class HomeScreen extends StatelessWidget {
               // goes looking for it, and because the header already calls this
               // "Settings and backup".
               onOpenSettings: () => SettingsSheet.show(context, state),
+              onOpenPrivacy: () => PrivacySheet.show(context, palette),
             ),
             const SizedBox(height: Spacing.md),
             HeroPanel(

@@ -21,6 +21,29 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!--
+        NOTIFICATIONS, added 2026-09-19 on founder direction: "Yes, build real
+        phone notifications now."
+
+        POST_NOTIFICATIONS is a RUNTIME permission from Android 13. Salapify
+        does NOT ask for it at launch: the switch lives in Settings, off by
+        default, and the dialog appears only when somebody turns it on. The
+        Android permission dialog has no second chance, so asking before a
+        person has seen what the app does is how an app collects a permanent
+        no, and the only way back is a system settings screen nobody finds.
+
+        RECEIVE_BOOT_COMPLETED lets the plugin put its schedule back after the
+        phone restarts. Without it, every reminder is silently lost the first
+        time somebody reboots, and nothing anywhere says so.
+
+        DELIBERATELY ABSENT: SCHEDULE_EXACT_ALARM and USE_EXACT_ALARM. Google
+        restricts those to alarm clocks and calendars and a budgeting app
+        would have to argue for them at review. Salapify schedules INEXACTLY
+        (AndroidScheduleMode.inexactAllowWhileIdle), because a bill reminder
+        that lands at 9:07 instead of 9:00 is the same reminder.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!--
         NO CLOUD BACKUP OF THE LEDGER. Decided 2026-09-19 on the founder's
         instruction to have the security and privacy reviewer settle it.
 
@@ -74,6 +97,35 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!--
+            flutter_local_notifications' own receivers, which the PLUGIN DOES
+            NOT DECLARE FOR YOU. Its bundled manifest carries the permissions
+            and nothing else, so leaving these out compiles, runs, and silently
+            delivers no scheduled notification at all. Read from the plugin's
+            README at the pinned version rather than remembered.
+
+            ScheduledNotificationReceiver is what actually posts a scheduled
+            notification when its time arrives.
+
+            ScheduledNotificationBootReceiver puts the whole schedule back
+            after a restart. MY_PACKAGE_REPLACED is in the filter for the same
+            reason: an app update wipes pending alarms too, and without it
+            every reminder would quietly vanish on the update that was meant
+            to improve them.
+        -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

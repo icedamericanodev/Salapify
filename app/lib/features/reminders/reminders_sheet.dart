@@ -140,7 +140,10 @@ class _AlertsTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _HowTheyReachYou(palette: palette),
+        _HowTheyReachYou(
+          palette: palette,
+          onPhone: state.reminderSettings.phoneEnabled,
+        ),
         const SizedBox(height: Spacing.md),
         _Filters(
           palette: palette,
@@ -191,9 +194,18 @@ class _AlertsTab extends StatelessWidget {
 /// The honest line about delivery, and the only thing on this screen that is
 /// not a figure or a message.
 class _HowTheyReachYou extends StatelessWidget {
-  const _HowTheyReachYou({required this.palette});
+  const _HowTheyReachYou({required this.palette, required this.onPhone});
 
   final Palette palette;
+
+  /// Whether reminders are being handed to Android.
+  ///
+  /// The sentence CHANGES with it, and that is the whole reason this is a
+  /// parameter rather than a constant. "Your phone does not buzz" is exactly
+  /// the kind of absolute claim that goes quietly false the moment a feature
+  /// lands, which is how the header ended up saying "Offline Only" for weeks
+  /// after the app started making a request.
+  final bool onPhone;
 
   @override
   Widget build(BuildContext context) {
@@ -210,8 +222,11 @@ class _HowTheyReachYou extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              'These appear here when you open Salapify. Your phone does not '
-              'buzz.',
+              onPhone
+                  ? 'Your phone will tell you about these, and they collect '
+                        'here too.'
+                  : 'These appear here when you open Salapify. Your phone '
+                        'does not buzz. Turn that on under Rules.',
               style: AppType.body(palette).copyWith(color: palette.textPrimary),
             ),
           ),
@@ -449,6 +464,8 @@ class _RulesTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        _PhoneSwitch(palette: palette, state: state),
+        const SizedBox(height: Spacing.md),
         _RuleCard(
           palette: palette,
           icon: Icons.edit_calendar_outlined,
@@ -540,6 +557,111 @@ class _RulesTab extends StatelessWidget {
   static String _isoToday(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
+}
+
+/// The one control that decides whether a phone buzzes at all.
+///
+/// It sits ABOVE the four rules rather than among them, because it is not a
+/// fifth rule: it is the difference between reminders you have to open the app
+/// to see and reminders that reach you. The four below say WHAT, this says
+/// WHETHER.
+class _PhoneSwitch extends StatefulWidget {
+  const _PhoneSwitch({required this.palette, required this.state});
+
+  final Palette palette;
+  final FinancialState state;
+
+  @override
+  State<_PhoneSwitch> createState() => _PhoneSwitchState();
+}
+
+class _PhoneSwitchState extends State<_PhoneSwitch> {
+  /// Set when Android was asked and said no.
+  ///
+  /// Kept because a switch that silently springs back is the worst possible
+  /// answer: the person did the thing, nothing happened, and the app said
+  /// nothing about why or what to do next.
+  bool _refused = false;
+  bool _asking = false;
+
+  Future<void> _toggle(bool wanted) async {
+    if (!wanted) {
+      await widget.state.disablePhoneReminders();
+      if (mounted) setState(() => _refused = false);
+      return;
+    }
+    setState(() => _asking = true);
+    final bool granted = await widget.state.enablePhoneReminders();
+    if (!mounted) return;
+    setState(() {
+      _asking = false;
+      _refused = !granted;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = widget.palette;
+    final bool on = widget.state.reminderSettings.phoneEnabled;
+
+    return Container(
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: on ? p.accentSoft : p.surfaceAlt,
+        borderRadius: BorderRadius.circular(Radii.tile),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.phone_iphone, size: 20, color: p.accent),
+              const SizedBox(width: Spacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Reminders on your phone', style: AppType.rowTitle(p)),
+                    const SizedBox(height: 2),
+                    Text(
+                      on
+                          ? 'Salapify can reach you when the app is closed.'
+                          : 'Off. Reminders only appear when you open '
+                                'Salapify.',
+                      style: AppType.caption(p),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              if (_asking)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Switch(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: p.onAccent,
+                  activeTrackColor: p.accent,
+                ),
+            ],
+          ),
+          if (_refused) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Android said no, so the switch stayed off rather than '
+              'pretending. Turn notifications on for Salapify in your phone '
+              'settings, then come back here.',
+              style: AppType.caption(p).copyWith(color: p.negative),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _RuleCard extends StatelessWidget {

@@ -15,8 +15,11 @@ import '../core/money/fx_rates.dart';
 ///
 /// What that means in practice, written down so nobody has to reconstruct it:
 ///
-///   - The app's own header says "Offline Only". That is now false on this
-///     one screen, and it is false in `main.dart`'s doc comment too.
+///   - The app's own header used to say "Offline Only", which this request
+///     made false. RESOLVED on 2026-09-19 by founder direction: the badge
+///     reads "On this phone", which is true of the ledger without
+///     qualification, and it taps through to a receipt that names this
+///     request by name. `main.dart`'s doc comment was corrected with it.
 ///   - `android:INTERNET` had to move into the release manifest. It was in
 ///     the debug one only, which is why this would have worked on the
 ///     founder's emulator and failed silently in a real build.

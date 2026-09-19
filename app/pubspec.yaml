@@ -46,6 +46,13 @@ dependencies:
   # Framework, so Salapify needs no storage permission and no manifest change.
   # It IS a new plugin, so it needs a new base APK and one manual install.
   file_selector: ^1.0.3
+  # Real phone notifications, so a reminder can arrive when Salapify is
+  # closed. Founder direction, 2026-09-19, choosing this over the in-app tray
+  # alone. It is a NATIVE change: new plugin, new permission, new base APK.
+  flutter_local_notifications: ^22.3.1
+  # zonedSchedule needs a real timezone, not the device offset: Manila has no
+  # daylight saving but the plugin's API is written for places that do.
+  timezone: ^0.11.1
 
 dev_dependencies:
   flutter_test:

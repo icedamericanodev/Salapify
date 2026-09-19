@@ -906,6 +906,10 @@ const Set<String> reminderSettingsKeys = <String>{
   'billDaysBefore',
   'subscriptionReminderEnabled',
   'subscriptionDaysBefore',
+  // Ours, not the prototype's: the web has no notification permission to
+  // remember. A prototype backup simply has no such key and reads as off,
+  // which is the right answer for a phone that has never been asked.
+  'phoneNotificationsEnabled',
 };
 
 Map<String, dynamic> reminderSettingsToJson(ReminderSettings s) =>
@@ -922,6 +926,7 @@ Map<String, dynamic> reminderSettingsToJson(ReminderSettings s) =>
       'billDaysBefore': s.billDaysBefore,
       'subscriptionReminderEnabled': s.subscriptionEnabled,
       'subscriptionDaysBefore': s.subscriptionDaysBefore,
+      'phoneNotificationsEnabled': s.phoneEnabled,
     };
 
 ReminderSettings reminderSettingsFromJson(Map<String, dynamic> m) {
@@ -964,5 +969,10 @@ ReminderSettings reminderSettingsFromJson(Map<String, dynamic> m) {
     subscriptionDaysBefore:
         (_optInt(m, 'subscriptionDaysBefore') ?? d.subscriptionDaysBefore)
             .clamp(0, 30),
+    phoneEnabled: _optBool(
+      m,
+      'phoneNotificationsEnabled',
+      fallback: d.phoneEnabled,
+    ),
   );
 }

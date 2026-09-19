@@ -35,6 +35,7 @@ import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/features/fx/fx_sheet.dart';
 import 'package:salapify/features/settings/import_sheet.dart';
+import 'package:salapify/features/settings/privacy_sheet.dart';
 import 'package:salapify/features/settings/settings_sheet.dart';
 import 'package:salapify/state/financial_state.dart';
 
@@ -656,6 +657,7 @@ void main() {
         (name: 'categories', openWith: 'categories'),
         (name: 'reminders', openWith: 'reminders'),
         (name: 'reminders_rules', openWith: 'remindersRules'),
+        (name: 'privacy', openWith: 'privacy'),
       ];
 
   for (final ({String name, String openWith}) sheet in sheets) {
@@ -701,6 +703,8 @@ void main() {
         case 'reminders':
         case 'remindersRules':
           RemindersSheet.show(context, state);
+        case 'privacy':
+          PrivacySheet.show(context, palette);
       }
       await tester.pumpAndSettle();
 

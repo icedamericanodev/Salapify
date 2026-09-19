@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../data/import.dart';
+import '../data/notification_gateway.dart';
 import '../data/seed_data.dart';
 import '../data/snapshot.dart';
 import '../data/store.dart';
@@ -29,8 +30,12 @@ class FinancialState extends ChangeNotifier {
   /// `main_wiring_test.dart` is what catches that, by reading main.dart and
   /// insisting it hands over a real [FileSnapshotStore]. Defaulting the other
   /// way would put the cost of forgetting on the person's disk.
-  FinancialState({this.clock, SnapshotStore? store})
-    : _store = store ?? MemorySnapshotStore() {
+  FinancialState({
+    this.clock,
+    SnapshotStore? store,
+    NotificationGateway? notifications,
+  }) : _store = store ?? MemorySnapshotStore(),
+       _notifier = notifications ?? const NoNotifications() {
     _seed();
   }
 
@@ -107,6 +112,10 @@ class FinancialState extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   final SnapshotStore _store;
+
+  /// The phone's notification tray. [NoNotifications] by default, so a test,
+  /// a preview and the render harness never reach a platform channel.
+  final NotificationGateway _notifier;
 
   /// Keys read from the file that this build does not model. Carried so that
   /// saving cannot destroy what a newer build, or the prototype, wrote.
@@ -256,6 +265,12 @@ class FinancialState extends ChangeNotifier {
         _saveProblem = null;
         super.notifyListeners();
       }
+      // The ledger on disk just changed, so what the phone has been told to
+      // say about it is now potentially wrong. Replanning here rather than at
+      // twenty call sites is the same argument as saving here: the twenty
+      // first is the one somebody forgets. It swallows its own failures, so a
+      // save that succeeded is never reported as one that did not.
+      await replanNotifications();
     } on Object catch (e) {
       _reportSaveProblem(
         'Salapify could not save to this device. Your entries are on screen '
@@ -421,6 +436,70 @@ class FinancialState extends ChangeNotifier {
     // waiting until the next app open to say so would make the setting look
     // broken.
     refreshReminders();
+  }
+
+  /// Turns phone notifications on, asking Android for permission first.
+  ///
+  /// Returns false when the person said no, and that is not an error: the
+  /// switch stays off and the screen says where to change their mind. Storing
+  /// "on" against a denied permission would be a control that claims to do
+  /// something and does nothing, which is the defect this app keeps finding.
+  Future<bool> enablePhoneReminders() async {
+    final bool granted = await _notifier.requestPermission();
+    if (!granted) return false;
+    updateReminderSettings(_reminderSettings.copyWith(phoneEnabled: true));
+    await replanNotifications();
+    return true;
+  }
+
+  Future<void> disablePhoneReminders() async {
+    updateReminderSettings(_reminderSettings.copyWith(phoneEnabled: false));
+    await _notifier.cancelAll();
+  }
+
+  /// Hands Android the next fortnight of reminders, replacing whatever it had.
+  ///
+  /// Called after every successful write, which is what keeps a scheduled
+  /// notification honest: pay the bill and the buzz about it disappears on
+  /// the same tap, rather than arriving on Saturday morning about something
+  /// settled on Thursday.
+  /// It NEVER throws outward, and the guard lives here rather than at each
+  /// call site.
+  ///
+  /// The first version guarded only the save path, and a test caught what that
+  /// missed: tapping the switch on a device whose notification service is
+  /// unavailable threw straight out of the tap, through
+  /// `enablePhoneReminders`, into the widget. A phone that will not accept a
+  /// schedule is a disappointment, not a crash, and it is never a reason to
+  /// tell somebody their money was not saved.
+  Future<void> replanNotifications() async {
+    try {
+      await _replan();
+    } on Object {
+      // Deliberately silent. See above.
+    }
+  }
+
+  Future<void> _replan() async {
+    if (!_reminderSettings.phoneEnabled) {
+      await _notifier.cancelAll();
+      return;
+    }
+    await _notifier.replaceAll(
+      planReminders(
+        settings: _reminderSettings,
+        transactions: _transactions,
+        debts: _debts,
+        bills: _bills,
+        accounts: _accounts,
+        installments: _installments,
+        upcoming: _upcoming,
+        // The tray's own ids, so the phone does not buzz about something
+        // already sitting unread on the Alerts tab.
+        sentTags: _notifications.map((AppNotification n) => n.id).toSet(),
+        from: now,
+      ),
+    );
   }
 
   /// Puts one message in the tray so a person can see what a reminder looks

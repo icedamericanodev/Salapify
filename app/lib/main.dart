@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'data/notification_gateway.dart';
 import 'data/store.dart';
 import 'design/app_theme.dart';
 import 'design/scroll_behavior.dart';
@@ -15,16 +16,36 @@ Future<void> main() async {
   // would show the seed's demo accounts for a moment and then swap them for
   // the person's real money, which reads like the app lost their data and
   // found it again.
-  final FinancialState state = FinancialState(store: FileSnapshotStore());
+  final FinancialState state = FinancialState(
+    store: FileSnapshotStore(),
+    // The ONLY place the real notification plugin is constructed. Everywhere
+    // else, including every test and the render harness, gets NoNotifications
+    // by default, so nothing reaches a platform channel by accident.
+    notifications: LocalNotificationGateway(),
+  );
   await state.restore();
+
+  // Rebuild the phone's schedule from the ledger that was just loaded. It is
+  // a no-op until somebody switches phone reminders on in Settings, and it
+  // matters on every launch after that: a bill paid on another day has to
+  // stop buzzing, and a new one has to start.
+  await state.replanNotifications();
 
   runApp(SalapifyApp(state: state));
 }
 
 /// Salapify, rebuilt in Flutter from the Google AI Studio prototype in src/.
 ///
-/// Everything stays on the device. There is no account, no server and no
-/// network call anywhere in this app.
+/// Everything a person types stays on the device. There is no account and no
+/// server of ours.
+///
+/// NOT "no network call anywhere", which this comment claimed until
+/// 2026-09-19 and which was false: `data/fx_service.dart` asks a public rate
+/// service for today's exchange rates, sending a currency code and nothing
+/// else. It is the only outbound request in the app. The sentence is
+/// corrected here rather than quietly deleted, because the next person to
+/// read this file would otherwise reason from a premise that has not been
+/// true for some time.
 class SalapifyApp extends StatefulWidget {
   const SalapifyApp({super.key, this.state});
 

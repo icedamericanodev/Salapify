@@ -44,6 +44,7 @@ class ReminderSettings {
     this.billDaysBefore = 2,
     this.subscriptionEnabled = true,
     this.subscriptionDaysBefore = 1,
+    this.phoneEnabled = false,
   });
 
   /// The prototype's own defaults: 8pm for the daily nudge, two days before a
@@ -60,6 +61,15 @@ class ReminderSettings {
   final bool subscriptionEnabled;
   final int subscriptionDaysBefore;
 
+  /// Whether reminders are handed to Android to arrive while Salapify is shut.
+  ///
+  /// OFF until somebody turns it on, and that default is the whole design.
+  /// Asking for the notification permission at first launch, before a person
+  /// has seen what the app does, is how an app collects a permanent no: the
+  /// Android dialog has no second chance, and after a denial the only route
+  /// back is the system settings screen, which nobody finds.
+  final bool phoneEnabled;
+
   int get dailyExpenseMinuteOfDay => dailyExpenseHour * 60 + dailyExpenseMinute;
 
   ReminderSettings copyWith({
@@ -72,6 +82,7 @@ class ReminderSettings {
     int? billDaysBefore,
     bool? subscriptionEnabled,
     int? subscriptionDaysBefore,
+    bool? phoneEnabled,
   }) => ReminderSettings(
     dailyExpenseEnabled: dailyExpenseEnabled ?? this.dailyExpenseEnabled,
     dailyExpenseHour: dailyExpenseHour ?? this.dailyExpenseHour,
@@ -83,6 +94,7 @@ class ReminderSettings {
     subscriptionEnabled: subscriptionEnabled ?? this.subscriptionEnabled,
     subscriptionDaysBefore:
         subscriptionDaysBefore ?? this.subscriptionDaysBefore,
+    phoneEnabled: phoneEnabled ?? this.phoneEnabled,
   );
 }
 
@@ -92,6 +104,7 @@ class Reminder {
     required this.kind,
     required this.title,
     required this.body,
+    this.daysAway,
   });
 
   /// What it is about and when, so the same thing cannot fire twice in a day.
@@ -99,6 +112,28 @@ class Reminder {
   final ReminderKind kind;
   final String title;
   final String body;
+
+  /// Whole days to the due date, negative when it has passed. Null for the
+  /// daily nudge, which is not about a date.
+  ///
+  /// Carried so the SCHEDULER can tell an urgent reminder from a nagging one.
+  /// On screen an overdue bill is mentioned every visit, which is right: the
+  /// person is already looking. As a phone notification that same rule would
+  /// buzz somebody every morning for a fortnight about one unpaid bill, and
+  /// the fortnight is how an alarm gets its battery taken out.
+  final int? daysAway;
+
+  /// Is this worth waking a phone for on this particular day?
+  ///
+  /// Inside the warning window, yes, every day: the run is a few days long by
+  /// construction and each one is closer than the last. Once OVERDUE, weekly.
+  /// The debt does not go away and neither does the reminder, it just stops
+  /// being said every single morning.
+  bool get worthSchedulingToday {
+    final int? d = daysAway;
+    if (d == null || d >= 0) return true;
+    return (-d) % 7 == 0;
+  }
 }
 
 class ReminderResult {
@@ -216,10 +251,24 @@ ReminderResult evaluateReminders({
   final Set<String> tags = <String>{...sentTags};
   final String today = _iso(now);
 
-  void add(String tag, ReminderKind kind, String title, String body) {
+  void add(
+    String tag,
+    ReminderKind kind,
+    String title,
+    String body, {
+    int? daysAway,
+  }) {
     if (tags.contains(tag)) return;
     tags.add(tag);
-    fresh.add(Reminder(tag: tag, kind: kind, title: title, body: body));
+    fresh.add(
+      Reminder(
+        tag: tag,
+        kind: kind,
+        title: title,
+        body: body,
+        daysAway: daysAway,
+      ),
+    );
   }
 
   // 1. The daily nudge, once the configured time has passed and nothing has
@@ -264,6 +313,7 @@ ReminderResult evaluateReminders({
         'Payment due: ${d.person}',
         'Your payment of ${formatPeso(remaining)} to ${d.person} '
             '${_whenPhrase(days, d.dueDate ?? '')}.',
+        daysAway: days,
       );
     }
 
@@ -284,6 +334,7 @@ ReminderResult evaluateReminders({
         '${formatPeso(a.balance.abs())} on ${a.name} '
             '${_whenPhrase(days, a.dueDate ?? '')}. Paying before the cutoff '
             'is what keeps the interest off it.',
+        daysAway: days,
       );
     }
 
@@ -308,6 +359,7 @@ ReminderResult evaluateReminders({
         'Payment plan: ${p.name}',
         '${formatPeso(p.installmentAmount)} to ${p.provider} '
             '${_whenPhrase(days, _iso(next))}.',
+        daysAway: days,
       );
     }
   }
@@ -326,6 +378,7 @@ ReminderResult evaluateReminders({
         'Bill due: ${b.name}',
         '${formatPeso(b.amount)} for ${b.name} '
             '${_whenPhrase(days, b.dueDate)}.',
+        daysAway: days,
       );
     }
 
@@ -340,6 +393,7 @@ ReminderResult evaluateReminders({
         'Bill due: ${u.name}',
         '${formatPeso(u.amount)} for ${u.name} '
             '${_whenPhrase(days, u.dueDate)}.',
+        daysAway: days,
       );
     }
   }
@@ -361,6 +415,7 @@ ReminderResult evaluateReminders({
         '${formatPeso(u.amount)} for ${u.name} '
             '${_whenPhrase(days, u.dueDate).replaceFirst('due', 'charged')}. '
             'Cancel before it renews if you are not using it.',
+        daysAway: days,
       );
     }
   }
@@ -395,3 +450,114 @@ DateTime? nextInstallmentDate(InstallmentPlan p) {
       return start.add(Duration(days: 7 * n));
   }
 }
+
+/// One reminder, and the moment the phone should say it.
+class PlannedReminder {
+  const PlannedReminder({required this.at, required this.reminder});
+
+  final DateTime at;
+  final Reminder reminder;
+}
+
+/// What the phone should be scheduled to say over the next [days].
+///
+/// [evaluateReminders] answers "what is due NOW", which is all the in-app tray
+/// needs. A real Android notification has to be handed to the operating system
+/// BEFORE it is due, because Salapify is not running when it fires. So this
+/// walks the calendar forward and asks the same engine the same question once
+/// per day, at the hour a person would want to hear it.
+///
+/// ## Why it is safe to schedule a nudge for a day that has not happened
+///
+/// The daily nudge fires when nothing has been logged, and whether tomorrow
+/// gets logged is unknowable today. Scheduling it anyway is not a guess, it is
+/// the correct default: if the person never opens Salapify tomorrow, they have
+/// not logged, and the nudge is exactly right. If they DO open it, the app
+/// replans and the nudge for a day that now has an entry is cancelled before
+/// it can fire. Logging is opening, so there is no path where a stale nudge
+/// survives a day somebody used the app.
+///
+/// ## Everything already in the tray is skipped
+///
+/// [sentTags] carries the tray's own ids, so a reminder somebody has already
+/// read on screen does not then buzz their phone about the same bill on the
+/// same day.
+List<PlannedReminder> planReminders({
+  required ReminderSettings settings,
+  required List<Transaction> transactions,
+  required List<Debt> debts,
+  required List<BillItem> bills,
+  required Set<String> sentTags,
+  required DateTime from,
+  List<Account> accounts = const <Account>[],
+  List<InstallmentPlan> installments = const <InstallmentPlan>[],
+  List<UpcomingItem> upcoming = const <UpcomingItem>[],
+  int days = 14,
+
+  /// When a due-date reminder should arrive. Morning, because a bill you are
+  /// told about at 11pm is a bill you cannot pay until tomorrow anyway.
+  int deliveryHour = 9,
+}) {
+  final List<PlannedReminder> planned = <PlannedReminder>[];
+  final Set<String> seen = <String>{...sentTags};
+
+  for (int d = 0; d < days; d++) {
+    final DateTime day = DateTime(from.year, from.month, from.day + d);
+
+    // Two passes per day, because the two kinds of reminder want different
+    // hours: a due date in the morning, the logging nudge in the evening.
+    final List<({DateTime at, ReminderSettings settings})> passes =
+        <({DateTime at, ReminderSettings settings})>[
+          (
+            at: DateTime(day.year, day.month, day.day, deliveryHour),
+            settings: settings.copyWith(dailyExpenseEnabled: false),
+          ),
+          (
+            at: DateTime(
+              day.year,
+              day.month,
+              day.day,
+              settings.dailyExpenseHour,
+              settings.dailyExpenseMinute,
+            ),
+            settings: _nudgeOnly(settings),
+          ),
+        ];
+
+    for (final ({DateTime at, ReminderSettings settings}) pass in passes) {
+      // Never schedule into the past. The plugin would fire it immediately,
+      // which on a first launch would mean a burst of notifications for
+      // yesterday.
+      if (!pass.at.isAfter(from)) continue;
+
+      final ReminderResult result = evaluateReminders(
+        settings: pass.settings,
+        transactions: transactions,
+        debts: debts,
+        bills: bills,
+        accounts: accounts,
+        installments: installments,
+        upcoming: upcoming,
+        sentTags: seen,
+        now: pass.at,
+      );
+      for (final Reminder r in result.fresh) {
+        // Marked seen either way, so an overdue item skipped today is not
+        // re-offered tomorrow by a tag that never got recorded.
+        seen.add(r.tag);
+        if (!r.worthSchedulingToday) continue;
+        planned.add(PlannedReminder(at: pass.at, reminder: r));
+      }
+    }
+  }
+
+  return planned;
+}
+
+/// The nudge pass: everything else off, so a bill is not scheduled twice in
+/// one day at two different hours.
+ReminderSettings _nudgeOnly(ReminderSettings s) => s.copyWith(
+  paymentDueEnabled: false,
+  billEnabled: false,
+  subscriptionEnabled: false,
+);

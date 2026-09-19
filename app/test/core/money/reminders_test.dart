@@ -6,6 +6,7 @@ import 'package:salapify/models/models.dart';
 /// `evaluateReminders` under bun, plus one deliberate divergence that is
 /// pinned rather than assumed.
 void main() {
+  planningTests();
   // Midday on purpose. The daily nudge fires from 8pm, so a default clock in
   // the evening would add a second reminder to every bill and debt test and
   // turn each of them into a test of two features at once.
@@ -462,6 +463,259 @@ void main() {
       expect(daysUntil('whenever', DateTime(2026, 9, 19)), isNull);
       expect(daysUntil('', DateTime(2026, 9, 19)), isNull);
       expect(daysUntil(null, DateTime(2026, 9, 19)), isNull);
+    });
+  });
+}
+
+/// Scheduling AHEAD, which is what makes a phone buzz when Salapify is closed.
+void planningTests() {
+  final DateTime from = DateTime(2026, 9, 19, 12);
+
+  List<PlannedReminder> plan({
+    ReminderSettings? settings,
+    List<BillItem>? bills,
+    List<Transaction>? txs,
+    Set<String>? sent,
+    int days = 14,
+    DateTime? at,
+  }) => planReminders(
+    settings: settings ?? ReminderSettings.defaults,
+    transactions: txs ?? const <Transaction>[],
+    debts: const <Debt>[],
+    bills: bills ?? const <BillItem>[],
+    sentTags: sent ?? <String>{},
+    from: at ?? from,
+    days: days,
+  );
+
+  group('planning ahead', () {
+    test('a bill five days out is scheduled, on the right morning', () {
+      // Two days of warning, so a bill on the 24th is spoken about on the
+      // 22nd. The whole point of scheduling: on the 19th, nothing is due, and
+      // the phone still has to be told now.
+      final List<PlannedReminder> p = plan(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b1',
+            name: 'Meralco',
+            amount: 2840,
+            dueDate: '2026-09-24',
+          ),
+        ],
+      );
+      final List<PlannedReminder> bill = p
+          .where((PlannedReminder x) => x.reminder.kind == ReminderKind.billDue)
+          .toList();
+
+      expect(
+        bill,
+        isNotEmpty,
+        reason:
+            'nothing was scheduled, so the phone stays silent about a bill it '
+            'already knows is coming',
+      );
+      expect(bill.first.at, DateTime(2026, 9, 22, 9));
+      expect(bill.first.reminder.body, contains('is due in 2 days'));
+    });
+
+    test('the same bill is scheduled once, not once a day until it is due', () {
+      final List<PlannedReminder> p = plan(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b1',
+            name: 'Meralco',
+            amount: 2840,
+            dueDate: '2026-09-24',
+          ),
+        ],
+      );
+      final Set<String> days = p
+          .where((PlannedReminder x) => x.reminder.kind == ReminderKind.billDue)
+          .map((PlannedReminder x) => '${x.at.month}-${x.at.day}')
+          .toSet();
+      expect(
+        days,
+        <String>{'9-22', '9-23', '9-24', '10-1'},
+        reason:
+            'a bill speaks once a day inside its window, on the 22nd, 23rd '
+            'and 24th, and then ONCE A WEEK while it stays unpaid. Every '
+            'morning for a fortnight is how an alarm gets its battery taken '
+            'out.',
+      );
+    });
+
+    test('an overdue bill is weekly on the phone, daily on the screen', () {
+      // The two rules are different on purpose, and this pins the difference.
+      // On screen, somebody is already looking and an unpaid bill should be
+      // in front of them every visit. On a phone it would be a buzz every
+      // morning until they pay, which teaches them to swipe.
+      final BillItem late = BillItem(
+        id: 'b1',
+        name: 'Meralco',
+        amount: 2840,
+        dueDate: '2026-09-12',
+      );
+
+      final ReminderResult onScreen = evaluateReminders(
+        settings: ReminderSettings.defaults,
+        transactions: const <Transaction>[],
+        debts: const <Debt>[],
+        bills: <BillItem>[late],
+        sentTags: <String>{},
+        now: from,
+      );
+      expect(
+        onScreen.fresh,
+        hasLength(1),
+        reason: 'the screen went quiet about a bill a week overdue',
+      );
+
+      final List<PlannedReminder> p = plan(bills: <BillItem>[late], days: 10);
+      final List<DateTime> when = p
+          .where((PlannedReminder x) => x.reminder.kind == ReminderKind.billDue)
+          .map((PlannedReminder x) => x.at)
+          .toList();
+      expect(
+        when.map((DateTime d) => d.day),
+        <int>[26],
+        reason:
+            'the phone was scheduled to say it more than once a week, or was '
+            'scheduled not to say it at all',
+      );
+    });
+
+    test('nothing is ever scheduled into the past', () {
+      // The plugin fires a past time immediately, so a first launch would
+      // produce a burst of notifications about yesterday.
+      final List<PlannedReminder> p = plan(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b1',
+            name: 'Meralco',
+            amount: 2840,
+            dueDate: '2026-09-10',
+          ),
+        ],
+        at: DateTime(2026, 9, 19, 23, 30),
+      );
+      for (final PlannedReminder x in p) {
+        expect(x.at.isAfter(DateTime(2026, 9, 19, 23, 30)), isTrue);
+      }
+    });
+
+    test('the nudge lands at the hour chosen, not the morning hour', () {
+      final List<PlannedReminder> p = plan(
+        settings: ReminderSettings.defaults.copyWith(dailyExpenseHour: 21),
+        days: 2,
+      );
+      final PlannedReminder nudge = p.firstWhere(
+        (PlannedReminder x) => x.reminder.kind == ReminderKind.dailyExpense,
+      );
+      expect(nudge.at.hour, 21);
+    });
+
+    test('a nudge is planned for tomorrow, which is not a guess', () {
+      // Whether tomorrow gets logged is unknowable today. Planning it anyway
+      // is right: if they never open Salapify tomorrow they have not logged,
+      // and if they do, the app replans and this one is cancelled first.
+      final List<PlannedReminder> p = plan(days: 3);
+      final Set<int> nudgeDays = p
+          .where(
+            (PlannedReminder x) => x.reminder.kind == ReminderKind.dailyExpense,
+          )
+          .map((PlannedReminder x) => x.at.day)
+          .toSet();
+      expect(nudgeDays, containsAll(<int>[20, 21]));
+    });
+
+    test('an expense logged today takes TODAY off the plan, not the week', () {
+      // The directional half. A planner that dropped every nudge would pass
+      // an assertion about today on its own.
+      final List<PlannedReminder> p = plan(
+        days: 3,
+        at: DateTime(2026, 9, 19, 12),
+        txs: <Transaction>[
+          Transaction(
+            id: 't1',
+            type: TransactionType.expense,
+            amount: 50,
+            category: 'Food & Dining',
+            accountId: 'a1',
+            date: '2026-09-19',
+            createdAt: 0,
+          ),
+        ],
+      );
+      final Set<int> nudgeDays = p
+          .where(
+            (PlannedReminder x) => x.reminder.kind == ReminderKind.dailyExpense,
+          )
+          .map((PlannedReminder x) => x.at.day)
+          .toSet();
+
+      expect(nudgeDays, isNot(contains(19)));
+      expect(
+        nudgeDays,
+        containsAll(<int>[20, 21]),
+        reason:
+            'logging once silenced the rest of the week, so the nudge stops '
+            'working the day somebody uses the app',
+      );
+    });
+
+    test('what is already in the tray is not also scheduled', () {
+      final List<PlannedReminder> first = plan(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b1',
+            name: 'Meralco',
+            amount: 2840,
+            dueDate: '2026-09-20',
+          ),
+        ],
+      );
+      expect(first, isNotEmpty);
+
+      final List<PlannedReminder> second = plan(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b1',
+            name: 'Meralco',
+            amount: 2840,
+            dueDate: '2026-09-20',
+          ),
+        ],
+        sent: first.map((PlannedReminder x) => x.reminder.tag).toSet(),
+      );
+      expect(
+        second,
+        isEmpty,
+        reason:
+            'a reminder already read on screen would buzz the phone about the '
+            'same bill on the same day',
+      );
+    });
+
+    test('everything switched off plans nothing at all', () {
+      expect(
+        plan(
+          settings: const ReminderSettings(
+            dailyExpenseEnabled: false,
+            paymentDueEnabled: false,
+            billEnabled: false,
+            subscriptionEnabled: false,
+          ),
+          bills: <BillItem>[
+            BillItem(
+              id: 'b1',
+              name: 'Meralco',
+              amount: 2840,
+              dueDate: '2026-09-20',
+            ),
+          ],
+        ),
+        isEmpty,
+      );
     });
   });
 }

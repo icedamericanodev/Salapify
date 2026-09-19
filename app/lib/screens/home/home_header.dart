@@ -8,9 +8,11 @@ import 'home_kit.dart';
 
 /// The Home header, ported from src/components/Header.tsx.
 ///
-/// Left: the wordmark, the Offline Only badge and today's date. Right: five
+/// Left: the wordmark, the "On this phone" badge and today's date. Right: four
 /// round buttons. The badge is not decoration, it is the product's core claim,
-/// so it sits beside the name rather than in Settings.
+/// so it sits beside the name rather than in Settings, and it TAPS through to
+/// the receipt that backs the claim up. See _OfflineBadge for why the wording
+/// changed.
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
     super.key,
@@ -18,12 +20,16 @@ class HomeHeader extends StatelessWidget {
     this.onOpenToolkit,
     this.onOpenReminders,
     this.onOpenSettings,
+    this.onOpenPrivacy,
   });
 
   final FinancialState state;
   final VoidCallback? onOpenToolkit;
   final VoidCallback? onOpenReminders;
   final VoidCallback? onOpenSettings;
+
+  /// The badge taps through to the privacy receipt.
+  final VoidCallback? onOpenPrivacy;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +94,7 @@ class HomeHeader extends StatelessWidget {
                 ),
               ],
             ),
-            _OfflineBadge(palette: palette),
+            _OfflineBadge(palette: palette, onTap: onOpenPrivacy),
           ],
         ),
         const SizedBox(height: 2),
@@ -238,33 +244,64 @@ class _LogoMark extends StatelessWidget {
   }
 }
 
+/// The claim beside the wordmark.
+///
+/// It read "Offline Only" until 2026-09-19, and that was no longer true. The
+/// FX converter asks a public rate service for today's rates
+/// (`fx_service.dart`), sending a currency code and nothing else. One request
+/// is enough to make an ABSOLUTE claim false, and this is the strongest
+/// position in the whole interface: beside the name, under a shield.
+///
+/// "On this phone" is the claim people actually care about and it is true of
+/// the ledger without qualification. Founder direction, 2026-09-19, choosing
+/// the badge change and keeping the converter as it is.
+///
+/// It TAPS, which is the other half. A claim that explains itself when
+/// somebody presses it is a claim that can carry the exception, and the
+/// receipt behind it names the one request by name rather than hiding it.
 class _OfflineBadge extends StatelessWidget {
-  const _OfflineBadge({required this.palette});
+  const _OfflineBadge({required this.palette, this.onTap});
 
   final Palette palette;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
-      decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: 'What Salapify keeps on this phone',
+      child: Material(
         color: palette.accentSoft,
         borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(Icons.verified_user_outlined, size: 12, color: palette.accent),
-          const SizedBox(width: 4),
-          Text(
-            'Offline Only',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: palette.accent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.sm,
+              vertical: 3,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 12,
+                  color: palette.accent,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'On this phone',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: palette.accent,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
