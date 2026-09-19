@@ -92,6 +92,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   _cardFaceShots();
+  toolkitShots();
   settingsShots();
   realMoneyHomeShot();
   planCalculatorShots();
@@ -1645,4 +1646,61 @@ void settingsShots() {
       matchesGoldenFile('out/settings.png'),
     );
   });
+}
+
+/// The toolkit's four tabs, which the founder asked to match the prototype.
+void toolkitShots() {
+  for (final ({int index, String slug}) tab in <({int index, String slug})>[
+    (index: 0, slug: 'notes'),
+    (index: 1, slug: 'mindset'),
+    (index: 2, slug: 'treats'),
+  ]) {
+    testWidgets('toolkit ${tab.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2900);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: ToolkitSheet(state: state),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      if (tab.index > 0) {
+        await tester.tap(
+          find.text(<String>['Notes Calc', 'Mindset', 'Treats'][tab.index]),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      // The mindset tab only shows its verdict after it is asked, and the
+      // verdict is the whole feature, so the shot asks.
+      if (tab.index == 1) {
+        await tester.ensureVisible(find.text('Should I buy it?'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Should I buy it?'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(ToolkitSheet),
+        matchesGoldenFile('out/toolkit_${tab.slug}.png'),
+      );
+    });
+  }
 }
