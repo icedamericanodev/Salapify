@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../core/money/format.dart';
+import '../data/store.dart';
 import '../design/tokens.dart';
+import '../design/type.dart';
 import '../features/log/log_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
@@ -34,7 +36,15 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(bottom: false, child: _bodyFor(_current, palette)),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: <Widget>[
+            _StorageWarning(palette: palette, state: widget.state),
+            Expanded(child: _bodyFor(_current, palette)),
+          ],
+        ),
+      ),
       bottomNavigationBar: _SalapifyTabBar(
         palette: palette,
         current: _current,
@@ -305,6 +315,91 @@ class _LogPill extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Says, on every screen, when what you type is NOT being kept.
+///
+/// This is the piece that was missing, and its absence was worse than the bug
+/// that revealed it. `FinancialState` has recorded `loadProblem`, `saveProblem`
+/// and `isSaving` since storage landed, and NOTHING in the app read any of
+/// them. So when the founder's emulator could not reach path_provider, every
+/// save failed silently: the entries went on screen, the file was never
+/// written, and the app said nothing at all.
+///
+/// A banner rather than a dialog, and on every tab rather than one. Somebody
+/// who dismisses a dialog at launch and then spends ten minutes typing in real
+/// figures needs the warning to still be there while they type.
+class _StorageWarning extends StatelessWidget {
+  const _StorageWarning({required this.palette, required this.state});
+
+  final Palette palette;
+  final FinancialState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? problem = state.saveProblem ?? state.loadProblem;
+    // Saving is on and nothing has failed: the ordinary case, and it gets no
+    // pixels. A permanent "your data is safe" strip is the kind of
+    // reassurance that stops being read by the second day.
+    if (problem == null && state.isSaving) return const SizedBox.shrink();
+    if (problem == null) return const SizedBox.shrink();
+
+    final bool recovered = state.loadStatus == LoadStatus.recovered;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: (recovered ? palette.accent : palette.negative).withValues(
+          alpha: 0.14,
+        ),
+        borderRadius: BorderRadius.circular(Radii.tile),
+        border: Border.all(
+          color: (recovered ? palette.accent : palette.negative).withValues(
+            alpha: 0.45,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            recovered ? Icons.history : Icons.warning_amber_rounded,
+            size: 18,
+            color: recovered ? palette.accent : palette.negative,
+          ),
+          const SizedBox(width: Spacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  recovered
+                      ? 'We opened your last saved copy'
+                      : 'Your entries are NOT being saved',
+                  style: AppType.rowTitle(palette).copyWith(
+                    color: recovered ? palette.accent : palette.negative,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(problem, style: AppType.caption(palette)),
+                if (!recovered && !state.isSaving) ...<Widget>[
+                  const SizedBox(height: Spacing.xs),
+                  Text(
+                    'Nothing already on this phone has been deleted or '
+                    'written over. Anything you type now will be gone when '
+                    'the app closes.',
+                    style: AppType.caption(palette),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

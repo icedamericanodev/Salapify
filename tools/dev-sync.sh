@@ -87,6 +87,25 @@ BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 # pointing at nothing. The founder was told to fix a build error that did not
 # exist. $$ is unique per run, portable, and needs no subprocess at all.
 PIDFILE="/tmp/salapify-flutter.$$.pid"
+
+# Set when a NEW PACKAGE arrives and the app must be rebuilt rather than hot
+# restarted. A file rather than a variable, because the watcher runs in a
+# background subshell and a variable set there never reaches the run loop.
+#
+# WHY THIS EXISTS. A hot restart re-runs Dart and nothing else. Adding a
+# package with a NATIVE side (path_provider, share_plus, anything with a
+# platform channel) also adds a generated plugin registrant that is compiled
+# into the APK, so the running app has no implementation for the new channel
+# no matter how many times it restarts. The founder hit this exactly:
+#
+#   MissingPluginException(No implementation found for method
+#   getTemporaryDirectory on channel plugins.flutter.io/path_provider)
+#
+# and the same missing plugin was ALSO silently stopping every save, because
+# storage reads the documents directory through the same channel. The script
+# had been reporting "Restarting the app" the whole time and was telling the
+# truth: it restarted, and a restart was never going to be enough.
+REBUILD_FLAG="/tmp/salapify-rebuild.$$.flag"
 STAMP="/tmp/salapify-watch.$$"
 
 # A belt-and-braces guard for the class of failure above: never hand an empty
@@ -98,7 +117,7 @@ fi
 
 # A previous run that was killed rather than stopped can leave these behind,
 # and a stale pid file makes the watcher signal a process that is long gone.
-rm -f "$PIDFILE" "$STAMP"
+rm -f "$PIDFILE" "$STAMP" "$REBUILD_FLAG"
 
 if [ "$MODE" = "local" ]; then
   echo "Watching your own files in $APP_DIR/, checking every ${LOCAL_INTERVAL}s."
@@ -124,7 +143,7 @@ cleanup() {
     kill "$(cat "$PIDFILE")" 2>/dev/null
     rm -f "$PIDFILE"
   fi
-  rm -f "$STAMP"
+  rm -f "$STAMP" "$REBUILD_FLAG"
   [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
 }
 trap cleanup EXIT
@@ -181,15 +200,25 @@ trap 'cleanup; exit 0' INT TERM
       echo
       echo "Files changed. Restarting the app."
 
+      NEEDS_REBUILD=0
       if find "$APP_DIR/pubspec.yaml" -newer "$STAMP" -print 2>/dev/null | grep -q . ||
         [ "$CHANGED" = "$APP_DIR/pubspec.yaml" ]; then
         echo "  pubspec.yaml changed, fetching packages."
         (cd "$APP_DIR" && flutter pub get >/dev/null)
+        NEEDS_REBUILD=1
       fi
 
       if [ -f "$PIDFILE" ]; then
-        kill -USR2 "$(cat "$PIDFILE")" 2>/dev/null ||
-          echo "  Could not signal the app. Is it still running?"
+        if [ "$NEEDS_REBUILD" = "1" ]; then
+          # A new package needs the NATIVE side rebuilt, which a hot restart
+          # cannot do. Stop the app and let the run loop start it again.
+          echo "  A package changed, so this needs a full rebuild."
+          : >"$REBUILD_FLAG"
+          kill -TERM "$(cat "$PIDFILE")" 2>/dev/null || true
+        else
+          kill -USR2 "$(cat "$PIDFILE")" 2>/dev/null ||
+            echo "  Could not signal the app. Is it still running?"
+        fi
       else
         echo "  App is not running, so there is nothing to restart."
       fi
@@ -280,13 +309,19 @@ trap 'cleanup; exit 0' INT TERM
 
     # New packages have to be fetched before a restart, or the restart fails in
     # a way that reads as a code error.
+    NEEDS_REBUILD=0
     if git --no-pager diff --name-only "$LOCAL" HEAD |
       grep -q "$APP_DIR/pubspec.yaml"; then
       echo "  pubspec.yaml changed, fetching packages."
       (cd "$APP_DIR" && flutter pub get >/dev/null)
+      NEEDS_REBUILD=1
     fi
 
-    if [ -f "$PIDFILE" ]; then
+    if [ -f "$PIDFILE" ] && [ "$NEEDS_REBUILD" = "1" ]; then
+      echo "  A package changed, so this needs a full rebuild."
+      : >"$REBUILD_FLAG"
+      kill -TERM "$(cat "$PIDFILE")" 2>/dev/null || true
+    elif [ -f "$PIDFILE" ]; then
       # SIGUSR2 is a hot RESTART, not a reload, and that is deliberate. A pull
       # brings whole new files and changes to things that only run at startup,
       # and a plain reload silently skips const widgets. That exact gap left a
@@ -335,6 +370,17 @@ while true; do
 
   rm -f "$PIDFILE"
   echo
+
+  # A rebuild we asked for is not a crash, however fast it came back. Without
+  # this the loop reads its own deliberate stop as "the app never got running
+  # properly" and prints a page of troubleshooting for a problem nobody has.
+  if [ -f "$REBUILD_FLAG" ]; then
+    rm -f "$REBUILD_FLAG"
+    echo "Rebuilding with the new package. This one takes longer than a restart."
+    echo
+    continue
+  fi
+
   if [ "$RAN" -lt 30 ]; then
     # Deliberately does NOT name the cause any more.
     #

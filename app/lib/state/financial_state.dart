@@ -232,8 +232,16 @@ class FinancialState extends ChangeNotifier {
 
   /// Waits for any queued write to finish. For tests, and for anywhere that
   /// has to know the file is on disk before moving on.
+  ///
+  /// A MICROTASK, never `Future.delayed`. Delayed schedules a TIMER, and a
+  /// widget test runs on a fake clock where timers only fire when somebody
+  /// pumps, so awaiting one inside `testWidgets` deadlocks the whole test with
+  /// no output at all. It worked everywhere it was first used because those
+  /// were plain `test()` cases on real async, and it hung the moment a widget
+  /// test called it. The save is queued with `scheduleMicrotask`, so a
+  /// microtask is also the correct thing to wait on.
   Future<void> flushWrites() async {
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.microtask(() {});
     await _writeChain;
   }
 

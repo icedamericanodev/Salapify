@@ -174,8 +174,22 @@ class _AmortizationTableState extends State<AmortizationTable> {
         <XFile>[XFile(file.path, mimeType: 'text/csv')],
         subject: widget.meta.title,
       );
+    } on MissingPluginException {
+      // The app is running a build made before share_plus or path_provider
+      // were added, so the native side of them is not in the APK. A hot
+      // restart cannot fix that and neither can the person holding the phone.
+      //
+      // The statement itself is not lost, though, so it goes to the clipboard
+      // instead of nowhere. Failing outright here would have thrown away a
+      // 205 row export over a plugin registration.
+      await Clipboard.setData(ClipboardData(text: _csv()));
+      _say(
+        'This build cannot open the share sheet yet, so the statement is on '
+        'your clipboard instead. A full rebuild fixes it.',
+      );
     } on Object catch (e) {
-      _say('Could not export the statement. $e');
+      await Clipboard.setData(ClipboardData(text: _csv()));
+      _say('Could not share the file, so it is on your clipboard instead. $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
