@@ -63,7 +63,10 @@ class _AppShellState extends State<AppShell> {
       case SalapifyTab.reports:
         return ReportsScreen(state: widget.state);
       case SalapifyTab.plan:
-        return PlanScreen(state: widget.state);
+        return PlanScreen(
+          state: widget.state,
+          onOpenDebt: () => _openDebt(context, palette),
+        );
       case SalapifyTab.accounts:
         return AccountsScreen(
           state: widget.state,

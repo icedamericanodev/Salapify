@@ -750,14 +750,14 @@ class CalculatorsSegment extends StatelessWidget {
     required this.palette,
     required this.onOpenTax,
     required this.onOpenBusiness,
-    required this.onOpenDebt,
+    this.onOpenDebt,
     required this.onOpenSafeToSpend,
   });
 
   final Palette palette;
   final VoidCallback onOpenTax;
   final VoidCallback onOpenBusiness;
-  final VoidCallback onOpenDebt;
+  final VoidCallback? onOpenDebt;
   final VoidCallback onOpenSafeToSpend;
 
   @override
@@ -765,8 +765,8 @@ class CalculatorsSegment extends StatelessWidget {
     // These four already EXIST in app/, built with the Home sheets. This
     // segment is a launcher, not new work, which is why it earns its place in
     // this batch rather than waiting.
-    final List<({String title, String note, IconData icon, VoidCallback tap})>
-    items = <({String title, String note, IconData icon, VoidCallback tap})>[
+    final List<({String title, String note, IconData icon, VoidCallback? tap})>
+    items = <({String title, String note, IconData icon, VoidCallback? tap})>[
       (
         title: 'Income tax',
         note: 'Graduated rates against the 8 percent option',
@@ -780,8 +780,8 @@ class CalculatorsSegment extends StatelessWidget {
         tap: onOpenBusiness,
       ),
       (
-        title: 'Loan and payoff',
-        note: 'What a debt really costs and when it ends',
+        title: 'Debt and loan',
+        note: 'Your debts, your instalment plans, and nine loan calculators',
         icon: Icons.account_balance_outlined,
         tap: onOpenDebt,
       ),
@@ -799,7 +799,7 @@ class CalculatorsSegment extends StatelessWidget {
               String title,
               String note,
               IconData icon,
-              VoidCallback tap,
+              VoidCallback? tap,
             })
             i
             in items) ...<Widget>[

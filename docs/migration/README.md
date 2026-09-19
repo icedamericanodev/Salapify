@@ -800,3 +800,42 @@ the moment a ledger could come off the disk.
 | | |
 |---|---|
 | Nothing to check yet | ![check empty](screens/reports-check-empty.png) |
+
+---
+
+## Plan, Calculators, Debt and loan: the door was wired to the wrong room
+
+Founder report, 2026-09-19, comparing the prototype against this build: under
+Plan, Calculators, Debt & Loan the prototype has three sections, personal
+debts, instalments and the loan calculators, and they could not find them here.
+
+**All three were built.** So were all nine calculators, one for one with
+`src/components/DebtCalculatorsView.tsx`: Pag-IBIG housing, bank housing, car,
+SSS and Pag-IBIG salary, personal and digital, the credit card trap,
+consolidation, snowball or avalanche, and the affordability check.
+
+The **tile** was wrong. `plan_screen.dart` pointed the "Loan and payoff" tile
+at `AddDebtSheet`, so somebody who tapped a tile promising what a loan costs
+and when it ends was handed a form asking who they owe and how much. The
+prototype's own handler for that tile is `handleOpenDebt`, the same one Home
+and Accounts call, so all three doors lead to the same register.
+
+A feature can be complete and still be unreachable, and no test noticed
+because every existing test of the calculators reached them the other way,
+from Home. `test/widgets/plan_calculators_journey_test.dart` now walks the
+founder's own path instead, and four of its five assertions go red when the
+old wiring is put back.
+
+| | |
+|---|---|
+| Plan, Calculators | ![plan calculators](screens/plan-calculators.png) |
+| The register it opens, on Work it out | ![plan to debt calculators](screens/plan-to-debt-calculators.png) |
+
+Two genuine gaps remain in this area, both already on the list:
+
+- **The amortisation schedule**, the prototype's row-by-row table behind "View
+  Amortization Schedule" on an instalment plan. Deferred in `app-c24`; its
+  engine, `generateInstallmentAmortization`, is the one piece of
+  `loanCalculators.ts` still unported.
+- **The savings and investment planner**, which is the prototype's fourth
+  library tile. This build shows Safe to spend in that slot instead.

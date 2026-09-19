@@ -68,6 +68,7 @@ Future<void> loadRealFonts() async {
 }
 
 void main() {
+  planCalculatorShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -1284,3 +1285,82 @@ const String emptyLedgerFile = '''
   "reconciliations": []
 }
 ''';
+
+/// The Plan library, and the register the Debt and loan tile now opens.
+///
+/// Rendered because the founder reported the three debt sections missing and
+/// they were not missing, the TILE was wired to the add-a-debt form. A picture
+/// of the door is the only way to show that the door now works.
+void planCalculatorShots() {
+  testWidgets('plan calculators library renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.track_changes_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calculators'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/plan_calculators.png'),
+    );
+  });
+
+  testWidgets('the debt register reached from Plan renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.track_changes_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calculators'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Debt and loan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Work it out'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(DebtScreen),
+      matchesGoldenFile('out/plan_to_debt_calculators.png'),
+    );
+  });
+}
