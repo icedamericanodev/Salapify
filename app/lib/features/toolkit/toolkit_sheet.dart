@@ -109,8 +109,16 @@ class _NotesTabState extends State<_NotesTab> {
         const SizedBox(height: Spacing.md),
         TextField(
           controller: _c,
-          maxLines: 8,
-          minLines: 5,
+          // BIGGER. Founder direction, 2026-09-19: "Expand the notepad in the
+          // notes calc". It opened five lines tall on a screen with room for
+          // far more, so a real day's worth of notes scrolled inside a box
+          // while the space below it sat empty.
+          //
+          // No maxLines, so it grows with what is typed rather than stopping
+          // at an arbitrary line and scrolling within itself. The sheet
+          // already scrolls, which is the right place for it to happen.
+          maxLines: null,
+          minLines: 12,
           onChanged: (_) => setState(() {}),
           // The APP's own face, not 'monospace'. Salapify bundles Plus
           // Jakarta Sans and nothing else, so a declared monospace family is

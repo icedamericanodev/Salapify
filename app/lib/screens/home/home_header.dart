@@ -109,6 +109,10 @@ class HomeHeader extends StatelessWidget {
   }
 
   Widget _actions(Palette palette, bool isNight, int unread) {
+    // Only when saving is genuinely OFF. A recovery sets loadProblem too,
+    // and everything is fine after one, so marking it would put a red badge
+    // on the header for an event the app handled correctly.
+    final bool needsAttention = state.saveProblem != null || !state.isSaving;
     return Wrap(
       spacing: Spacing.xs,
       children: <Widget>[
@@ -162,8 +166,29 @@ class HomeHeader extends StatelessWidget {
         _HeaderButton(
           palette: palette,
           icon: Icons.settings_outlined,
-          tooltip: 'Settings and backup',
+          tooltip: needsAttention
+              ? 'Settings, and something needs your attention'
+              : 'Settings and backup',
+          foreground: needsAttention ? palette.negative : null,
           onTap: onOpenSettings,
+          // A DOT, not a banner. The two banners that used to sit above this
+          // header were removed on founder direction, 2026-09-19, because they
+          // were in front of every screen and were distracting. This is what
+          // is left of them: a mark on the gear when Settings has something
+          // worth opening, and nothing at all when it does not.
+          //
+          // It carries no number, deliberately. A count would invite the same
+          // "what is this" glance the banners did. It is on when saving has
+          // failed, which is the one state where silence costs somebody
+          // everything they typed.
+          badge: needsAttention
+              ? CornerBadge(
+                  text: '!',
+                  background: palette.negative,
+                  foreground: palette.background,
+                  ringColor: palette.background,
+                )
+              : null,
         ),
       ],
     );

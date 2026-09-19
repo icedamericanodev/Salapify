@@ -40,9 +40,11 @@ void main() {
     );
     await pump(tester, state);
 
-    // Home carries the notice, because that is where the hero figure and the
-    // way out both are.
-    expect(find.textContaining('here is sample money'), findsOneWidget);
+    // NO NOTICE ON HOME any more. Founder direction, 2026-09-19: both banners
+    // came off the tab screens because they were distracting. The control
+    // lives in Settings and the MARKING lives on the rows, which is the half
+    // that was doing the real work anyway.
+    expect(find.textContaining('here is sample money'), findsNothing);
 
     // Accounts and Activity carry the marking on the ROWS instead. A banner
     // is read once and scrolled past; the row is what somebody is looking at
@@ -94,10 +96,11 @@ void main() {
     );
 
     await pump(tester, state);
-    expect(find.textContaining('here is sample money'), findsOneWidget);
 
-    // Tap the banner, then Remove, then confirm.
-    await tester.tap(find.textContaining('here is sample money'));
+    // Reached through Settings now, which is where the founder asked for it.
+    await tester.tap(find.byIcon(Icons.settings_outlined).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sample data'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove the sample data'));
     await tester.pumpAndSettle();
@@ -108,11 +111,13 @@ void main() {
 
     await tester.tap(find.text('Remove it'));
     await tester.pumpAndSettle();
+    // Close the sample sheet and the Settings sheet behind it.
     await tester.tap(find.byIcon(Icons.close).last);
     await tester.pumpAndSettle();
-
-    // NOW WALK TO EVERY SCREEN. The banner is gone.
-    expect(find.textContaining('here is sample money'), findsNothing);
+    if (find.byIcon(Icons.close).evaluate().isNotEmpty) {
+      await tester.tap(find.byIcon(Icons.close).last);
+      await tester.pumpAndSettle();
+    }
 
     // Activity still holds the user's own entry, and only it.
     await tester.tap(find.text('Activity').last);

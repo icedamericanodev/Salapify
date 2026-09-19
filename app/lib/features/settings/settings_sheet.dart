@@ -208,10 +208,19 @@ class _StorageStatus extends StatelessWidget {
     // has not been restored yet has no problem AND is not saving, and the
     // two-way test read that as failure. An alarm with nothing under it is
     // worse than no alarm: it is frightening and it says nothing.
-    final bool failed = problem != null;
-    final bool ok = !failed && state.isSaving;
+    // RECOVERY IS NOT FAILURE, and conflating them is a specific mistake the
+    // old banner was careful not to make. When the last save was interrupted
+    // the previous copy opens, everything is here except the final change,
+    // and saving carries on working. Reporting that in the words used for
+    // losing everything is how a beginner stops trusting the app over
+    // something it handled correctly.
+    final bool recovered = state.loadStatus == LoadStatus.recovered;
+    final bool failed = problem != null && !recovered;
+    final bool ok = problem == null && state.isSaving;
     final Color tint = failed
         ? palette.negative
+        : recovered
+        ? palette.accent
         : ok
         ? palette.positive
         : palette.textMuted;
@@ -233,6 +242,8 @@ class _StorageStatus extends StatelessWidget {
               Icon(
                 failed
                     ? Icons.warning_amber_rounded
+                    : recovered
+                    ? Icons.history
                     : ok
                     ? Icons.check_circle_outline
                     : Icons.hourglass_empty,
@@ -244,6 +255,8 @@ class _StorageStatus extends StatelessWidget {
                 child: Text(
                   failed
                       ? 'Your entries are NOT being saved'
+                      : recovered
+                      ? 'We opened your last saved copy'
                       : ok
                       ? 'Your entries are being saved to this phone'
                       : 'Still opening your data file',
@@ -254,7 +267,7 @@ class _StorageStatus extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.xs),
           Text(
-            failed
+            failed || recovered
                 ? plainStorageProblem(problem!)
                 : ok
                 ? 'Everything stays in one file in Salapify’s own private '
@@ -263,7 +276,7 @@ class _StorageStatus extends StatelessWidget {
                 : 'Nothing has been written yet.',
             style: AppType.caption(palette),
           ),
-          if (failed) ...<Widget>[
+          if (failed || recovered) ...<Widget>[
             const SizedBox(height: Spacing.sm),
             // The raw text, kept because it is what makes a screenshot
             // diagnosable, and moved off Home because it is unreadable there.

@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/money/format.dart';
-import '../data/store.dart';
 import '../design/tokens.dart';
-import '../design/type.dart';
 import '../features/log/log_sheet.dart';
-import '../features/settings/sample_data_sheet.dart';
-import '../features/settings/settings_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
@@ -42,33 +38,22 @@ class _AppShellState extends State<AppShell> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            _StorageWarning(
-              palette: palette,
-              state: widget.state,
-              onOpen: () async {
-                await SettingsSheet.show(context, widget.state);
-                if (mounted) setState(() {});
-              },
-            ),
-            // THE SAMPLE NOTICE IS ON HOME ONLY, and that is a change of mind
-            // worth writing down. It was on every tab first, for a good
-            // reason: Reports shows a net worth built from demo money. But it
-            // is a 44dp tappable strip, and on five tabs it pushed the top of
-            // every list down on a phone-height screen.
+            // NO BANNERS ON THE TAB SCREENS. Founder direction, 2026-09-19,
+            // after seeing two of them stacked above the header: "remove the
+            // 2 banners in the headers and put it inside the settings. So i
+            // will not see them in the tab screen because they are
+            // distracting."
             //
-            // What replaced it is better than what it was: a Sample chip on
-            // each demo ROW, in Accounts and in Activity. A banner is read
-            // once and scrolled past. A chip is present at the moment somebody
-            // looks at the figure, which is where the trap actually springs.
-            if (_current == SalapifyTab.home)
-              _SampleNotice(
-                palette: palette,
-                state: widget.state,
-                onOpen: () async {
-                  await SampleDataSheet.show(context, widget.state);
-                  if (mounted) setState(() {});
-                },
-              ),
+            // Both now live in Settings and nowhere else. I argued once for
+            // keeping a one line storage warning here, the founder said it
+            // again, and that is their call to make: it is their app and the
+            // banner was in front of every screen they use.
+            //
+            // What replaces it is NOT a banner. The gear icon carries a dot
+            // when Settings has something worth opening, which is a pixel in
+            // the header rather than a bar across the screen. Without it, an
+            // app that has silently stopped saving looks exactly like an app
+            // that is fine, and there is no server holding a copy.
             Expanded(child: _bodyFor(_current, palette)),
           ],
         ),
@@ -337,171 +322,6 @@ class _LogPill extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: palette.onAccent,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Says, on every screen, when what you type is NOT being kept.
-///
-/// This is the piece that was missing, and its absence was worse than the bug
-/// that revealed it. `FinancialState` has recorded `loadProblem`, `saveProblem`
-/// and `isSaving` since storage landed, and NOTHING in the app read any of
-/// them. So when the founder's emulator could not reach path_provider, every
-/// save failed silently: the entries went on screen, the file was never
-/// written, and the app said nothing at all.
-///
-/// A banner rather than a dialog, and on every tab rather than one. Somebody
-/// who dismisses a dialog at launch and then spends ten minutes typing in real
-/// figures needs the warning to still be there while they type.
-class _StorageWarning extends StatelessWidget {
-  const _StorageWarning({
-    required this.palette,
-    required this.state,
-    required this.onOpen,
-  });
-
-  final Palette palette;
-  final FinancialState state;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final String? problem = state.saveProblem ?? state.loadProblem;
-    // Saving is on and nothing has failed: the ordinary case, and it gets no
-    // pixels. A permanent "your data is safe" strip is the kind of
-    // reassurance that stops being read by the second day.
-    if (problem == null && state.isSaving) return const SizedBox.shrink();
-    if (problem == null) return const SizedBox.shrink();
-
-    final bool recovered = state.loadStatus == LoadStatus.recovered;
-    final Color tint = recovered ? palette.accent : palette.negative;
-
-    // ONE LINE, and the detail is in Settings.
-    //
-    // Founder direction, 2026-09-19, looking at six lines of this on Home:
-    // "can you remove/hide that warning box on the simulator screen or put
-    // them in the settings?" The detail moved. The LINE did not, and that is
-    // a deliberate reading of the request rather than a partial one: a silent
-    // save failure is the single defect that costs somebody everything they
-    // have typed, on a phone with no server holding a copy. A person who
-    // cannot see that their entries are being thrown away has no reason to go
-    // looking in Settings for the reason.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
-      child: Material(
-        color: tint.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(Radii.tile),
-        child: InkWell(
-          onTap: onOpen,
-          borderRadius: BorderRadius.circular(Radii.tile),
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 44),
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.xs,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Radii.tile),
-              border: Border.all(color: tint.withValues(alpha: 0.45)),
-            ),
-            child: Row(
-              children: <Widget>[
-                Icon(
-                  recovered ? Icons.history : Icons.warning_amber_rounded,
-                  size: 16,
-                  color: tint,
-                ),
-                const SizedBox(width: Spacing.sm),
-                Expanded(
-                  child: Text(
-                    recovered
-                        ? 'We opened your last saved copy. Tap for details.'
-                        : 'Your entries are NOT being saved. Tap for details.',
-                    style: AppType.caption(palette).copyWith(color: tint),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Some of this money is not yours", on every tab until it is cleared.
-///
-/// On EVERY tab, deliberately, and for the same reason _StorageWarning is:
-/// somebody who reads it on Home and then opens Reports is looking at a net
-/// worth built from demo accounts, and a warning they have scrolled past is a
-/// warning that is not there. It removes itself the moment they clear the
-/// sample data, so it cannot become wallpaper.
-class _SampleNotice extends StatelessWidget {
-  const _SampleNotice({
-    required this.palette,
-    required this.state,
-    required this.onOpen,
-  });
-
-  final Palette palette;
-  final FinancialState state;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!state.hasSampleData) return const SizedBox.shrink();
-    final SampleSummary s = state.sampleSummary;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
-      child: Material(
-        color: palette.accentSoft,
-        borderRadius: BorderRadius.circular(Radii.tile),
-        child: InkWell(
-          onTap: onOpen,
-          borderRadius: BorderRadius.circular(Radii.tile),
-          child: Container(
-            width: double.infinity,
-            // 44 minimum because this whole strip is a BUTTON. Shrinking the
-            // padding to make it compact took it to 34dp, under the touch
-            // target floor, and accounts_test caught it. Compact and tappable
-            // is a constraint, not a choice between the two.
-            constraints: const BoxConstraints(minHeight: 44),
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.xs,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Radii.tile),
-              border: Border.all(color: palette.accent.withValues(alpha: 0.45)),
-            ),
-            child: Row(
-              children: <Widget>[
-                Icon(Icons.science_outlined, size: 16, color: palette.accent),
-                const SizedBox(width: Spacing.sm),
-                // ONE LINE, on purpose, and it took a regression to learn it.
-                // The first version carried a three line explanation of why
-                // sample data exists. That is teaching, it belongs behind the
-                // tap, and on a short screen it pushed the top of every list
-                // out of view. The figure and the way out are all that has to
-                // be here.
-                Expanded(
-                  child: Text(
-                    '${formatPeso(s.assets)} here is sample money. Tap to '
-                    'remove it.',
-                    style: AppType.caption(
-                      palette,
-                    ).copyWith(color: palette.accent),
                   ),
                 ),
               ],
