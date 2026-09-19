@@ -45,6 +45,21 @@ abstract class SnapshotStore {
   /// refuse to import when this fails.
   Future<void> writePreImport(String contents);
 
+  /// Deletes EVERY file this store keeps, and says how many it removed.
+  ///
+  /// All of them, not just the live one, and that is the whole point of the
+  /// method existing. Salapify keeps three copies of a ledger: the current
+  /// file, the previous generation, and the copy taken before the last
+  /// restore. The last of those is never overwritten and never expires, so a
+  /// person who restored a backup once is carrying a complete second ledger,
+  /// other people's names included, that no screen in the app mentions.
+  ///
+  /// "Delete everything on this phone" that left any of the three behind
+  /// would be a false promise in the one place a false promise costs the
+  /// most, and it is the promise the privacy policy and Play's data deletion
+  /// question both rest on.
+  Future<int> deleteEverything();
+
   /// Where the file is, for a diagnostics line. Never shown by default.
   String get location;
 }
@@ -93,6 +108,34 @@ class FileSnapshotStore implements SnapshotStore {
     final File f = await _preImportFile();
     if (!await f.exists()) return null;
     return f.readAsString();
+  }
+
+  @override
+  Future<int> deleteEverything() async {
+    int removed = 0;
+    for (final File f in <File>[
+      await _file(),
+      await _previousFile(),
+      await _preImportFile(),
+      // The FX cache. Not a ledger and not secret, but it is a file Salapify
+      // put on this phone, and "everything" has to mean everything or the
+      // sentence is doing work it has not earned.
+      File('${(await _directory()).path}/salapify_fx_cache.json'),
+    ]) {
+      // Each in its own try. One file refusing to go must not leave the
+      // others behind, and the ledger is first in the list on purpose: it is
+      // the one that matters most, so it is the one deleted first.
+      try {
+        if (await f.exists()) {
+          await f.delete();
+          removed++;
+        }
+      } on Object {
+        // Counted as not removed. The caller reports the count rather than
+        // claiming success it cannot verify.
+      }
+    }
+    return removed;
   }
 
   /// Same temp-flush-rename dance as [write], and deliberately NO .prev
@@ -197,6 +240,19 @@ class MemorySnapshotStore implements SnapshotStore {
 
   @override
   Future<String?> readPreImport() async => preImport;
+
+  @override
+  Future<int> deleteEverything() async {
+    int removed = 0;
+    for (final String? held in <String?>[contents, previous, preImport]) {
+      if (held != null) removed++;
+    }
+    contents = null;
+    previous = null;
+    preImport = null;
+    order.add('deleteEverything');
+    return removed;
+  }
 
   @override
   Future<void> writePreImport(String contents) async {

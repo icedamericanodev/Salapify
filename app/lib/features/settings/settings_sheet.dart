@@ -13,7 +13,9 @@ import '../categories/category_manager_sheet.dart';
 import '../shared/sheet_scaffold.dart';
 import '../tax/tax_calculator_sheet.dart';
 import 'import_sheet.dart';
+import 'privacy_sheet.dart';
 import 'sample_data_sheet.dart';
+import 'wipe_sheet.dart';
 
 /// Settings, from `src/components/SettingsModal.tsx`.
 ///
@@ -163,6 +165,51 @@ class _SettingsSheetState extends State<SettingsSheet> {
               title: 'Tax and 13th month calculator',
               subtitle: 'Take-home pay, and the freelancer 8% choice',
               onTap: () => TaxCalculatorSheet.show(context, p),
+            ),
+
+            _Section(palette: p, title: 'Privacy'),
+            _Row(
+              palette: p,
+              icon: Icons.verified_user_outlined,
+              title: 'What stays on this phone',
+              subtitle:
+                  'Every line, including the one request that does leave and '
+                  'the fact that a backup is readable text',
+              onTap: () => PrivacySheet.show(context, p),
+            ),
+            // DELETE IS IN THE PRIVACY SECTION, not under "Your data" beside
+            // Export and Restore. Somebody looking for a way to get their
+            // records off a phone is thinking about privacy, and putting the
+            // one irreversible control next to the two routine ones is how a
+            // wrong tap happens.
+            _Row(
+              palette: p,
+              icon: Icons.delete_forever_outlined,
+              title: 'Delete everything on this phone',
+              subtitle:
+                  'Your ledger, both spare copies and the saved exchange '
+                  'rates. There is no undo.',
+              onTap: () async {
+                await WipeSheet.show(context, state);
+                if (mounted) setState(() {});
+              },
+            ),
+            _Row(
+              palette: p,
+              icon: Icons.gavel_outlined,
+              title: 'Not financial, tax or legal advice',
+              subtitle: 'What Salapify\'s figures are, and what they are not',
+              onTap: () => _DisclaimerSheet.show(context, p),
+            ),
+
+            _Section(palette: p, title: 'About'),
+            _Row(
+              palette: p,
+              icon: Icons.info_outline,
+              title: 'Salapify $appVersion',
+              subtitle:
+                  'Built in the Philippines. Offline by default, and yours.',
+              onTap: null,
             ),
           ],
         ),
@@ -389,6 +436,89 @@ class _Row extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The version, in ONE place, so a bug report has something to name.
+///
+/// There was no version anywhere in the app before this, which made every
+/// future "it did this on mine" unanswerable. It is read from here rather
+/// than from pubspec at runtime deliberately: package_info_plus is another
+/// plugin and another native rebuild for a string that changes when somebody
+/// decides it does.
+const String appVersion = '3.0.0 early access';
+
+/// What the figures are, and what they are not.
+///
+/// Salapify computes take-home pay, tax estimates, payoff dates and
+/// forecasts, all from numbers a person typed in. None of those are official
+/// determinations and none of them are regulated advice, and the app has to
+/// say so somewhere a person can find rather than only in a store listing.
+///
+/// The "does not lend" sentence is doing specific work: the Philippines
+/// removed dozens of lending apps from Google Play, and the route is
+/// classification first and questions later. Salapify has a debt register and
+/// loan calculators, which is exactly the shape a reviewer skims and
+/// mis-files.
+class _DisclaimerSheet extends StatelessWidget {
+  const _DisclaimerSheet({required this.palette});
+
+  final Palette palette;
+
+  static Future<void> show(BuildContext context, Palette palette) {
+    return SheetScaffold.show<void>(
+      context: context,
+      palette: palette,
+      builder: (BuildContext context) => _DisclaimerSheet(palette: palette),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SheetScaffold(
+      palette: palette,
+      icon: Icons.gavel_outlined,
+      title: 'Not financial, tax or legal advice',
+      subtitle: 'What Salapify can and cannot tell you',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            'Salapify works out its figures from the numbers you type in. '
+            'Take-home pay, tax estimates, payoff dates, forecasts and the '
+            'lessons are general information and arithmetic, not regulated '
+            'financial, tax, investment or legal advice, and none of them is '
+            'tailored to your situation.',
+            style: AppType.body(palette),
+          ),
+          const SizedBox(height: Spacing.md),
+          Text(
+            'No figure in this app is an official assessment. The BIR, SSS, '
+            'Pag-IBIG, PhilHealth, your employer and your bank each produce '
+            'their own, and theirs is the one that counts. Check anything '
+            'that matters with them.',
+            style: AppType.body(palette),
+          ),
+          const SizedBox(height: Spacing.md),
+          Text(
+            'Salapify does not lend money. It does not arrange, broker or '
+            'refer loans, it does not handle investments, and it never moves, '
+            'holds or transfers funds. The debt register and the loan '
+            'calculators work on figures you entered about arrangements you '
+            'already have, and no lender or institution ever sees them.',
+            style: AppType.body(palette),
+          ),
+          const SizedBox(height: Spacing.md),
+          Text(
+            'Where a lesson mentions a government programme or a kind of '
+            'account, it is explaining how the thing works. It is not a '
+            'recommendation to use it, and nobody pays Salapify to mention '
+            'anything.',
+            style: AppType.body(palette),
+          ),
+        ],
       ),
     );
   }

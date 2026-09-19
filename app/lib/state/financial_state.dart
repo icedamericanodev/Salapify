@@ -438,6 +438,71 @@ class FinancialState extends ChangeNotifier {
     refreshReminders();
   }
 
+  // -------------------------------------------------------------------------
+  // Erasing everything
+  // -------------------------------------------------------------------------
+
+  /// Deletes every file Salapify keeps and leaves the app genuinely empty.
+  ///
+  /// There is NO undo, by construction: the previous generation and the
+  /// pre-import copy are the two things that would normally allow one, and
+  /// both are part of what this removes. That is the point rather than an
+  /// oversight, and the screen has to say it in those words before anybody
+  /// taps it.
+  ///
+  /// THE SAMPLE DATA DOES NOT COME BACK, and that is a deliberate departure
+  /// from the prototype's own "Reset to Sample Data". Somebody who has just
+  /// asked to erase everything and is then shown eleven demo accounts and a
+  /// sweldo they never earned has not been given what they asked for; they
+  /// have been given a screen that looks exactly like the failure they were
+  /// trying to avoid. Empty means empty.
+  ///
+  /// Returns how many files were actually removed, so the screen reports what
+  /// happened rather than asserting success.
+  Future<int> deleteEverything() async {
+    // Saving goes OFF first. Every mutation below notifies, every notify
+    // schedules a write, and a write landing after the delete would recreate
+    // the file that was just erased.
+    _saveEnabled = false;
+    await _writeChain;
+
+    final int removed = await _store.deleteEverything();
+    await _notifier.cancelAll();
+
+    _transactions = <Transaction>[];
+    _upcoming = <UpcomingItem>[];
+    _debts = <Debt>[];
+    _accounts = <Account>[];
+    _budgets = <Budget>[];
+    _goals = <Goal>[];
+    _incomeStreams = <IncomeStream>[];
+    _installments = <InstallmentPlan>[];
+    _bills = <BillItem>[];
+    _reconciliations = <ReconciliationRecord>[];
+    _notifications = <AppNotification>[];
+    _reminderSettings = ReminderSettings.defaults;
+    _payday = PaydayCycle.unset;
+    _activeProfile = null;
+
+    // Kept in memory, both of them deliberately. Wiping the ledger is not a
+    // reason to throw away keys this build cannot read, and the theme is a
+    // preference rather than data about somebody's money.
+    _sampleRemovedAt = now.toUtc().toIso8601String();
+    _extras = const Extras.empty();
+
+    _loadStatus = LoadStatus.fresh;
+    _loadProblem = null;
+    _saveProblem = null;
+
+    // Back ON, so the very next thing the person types is kept. An app that
+    // erased itself and then silently stopped saving would be the same defect
+    // twice over.
+    _saveEnabled = true;
+    notifyListeners();
+    await flushWrites();
+    return removed;
+  }
+
   /// Turns phone notifications on, asking Android for permission first.
   ///
   /// Returns false when the person said no, and that is not an error: the
