@@ -26,12 +26,17 @@ class ReconciliationView extends StatefulWidget {
 class _ReconciliationViewState extends State<ReconciliationView> {
   final TextEditingController _actual = TextEditingController();
   final TextEditingController _note = TextEditingController();
-  late String _accountId;
+
+  /// Nullable, because "no account selected" is a state that can really
+  /// happen now that the ledger comes off the disk. A restored file with no
+  /// accounts in it used to crash this screen in initState, taking the whole
+  /// Reports tab white, because the seed always happened to have eleven.
+  String? _accountId;
 
   @override
   void initState() {
     super.initState();
-    _accountId = widget.state.accounts.first.id;
+    _accountId = widget.state.accounts.firstOrNull?.id;
   }
 
   @override
@@ -41,13 +46,19 @@ class _ReconciliationViewState extends State<ReconciliationView> {
     super.dispose();
   }
 
-  Account get _account =>
-      widget.state.accounts.firstWhere((Account a) => a.id == _accountId);
+  /// The selected account, or null when there is none, or when the one that
+  /// was selected is no longer there.
+  Account? get _accountOrNull => widget.state.accounts
+      .where((Account a) => a.id == _accountId)
+      .firstOrNull;
 
   @override
   Widget build(BuildContext context) {
     final Palette p = Palette.of(widget.state.theme);
-    final double book = bookBalanceOf(_account);
+    final Account? selected = _accountOrNull;
+    if (selected == null) return _nothingToCheck(p);
+    final Account account = selected;
+    final double book = bookBalanceOf(account);
     final double? typed = double.tryParse(
       _actual.text.trim().replaceAll(',', ''),
     );
@@ -97,7 +108,7 @@ class _ReconciliationViewState extends State<ReconciliationView> {
               palette: p,
               variance: variance,
               note: _note,
-              accountName: _account.name,
+              accountName: account.name,
               onPost: () => _post(typed),
             ),
         ],
@@ -116,20 +127,24 @@ class _ReconciliationViewState extends State<ReconciliationView> {
   }
 
   void _confirm(double book, double actual) {
+    final Account? account = _accountOrNull;
+    if (account == null) return;
     widget.state.recordReconciliation(
-      accountId: _accountId,
+      accountId: account.id,
       bookBalance: book,
       actualBalance: actual,
       notes: 'Checked against the statement and it matched.',
     );
     _actual.clear();
     setState(() {});
-    _say('Recorded. ${_account.name} matched the statement.');
+    _say('Recorded. ${account.name} matched the statement.');
   }
 
   void _post(double actual) {
+    final Account? account = _accountOrNull;
+    if (account == null) return;
     widget.state.postReconciliationAdjustment(
-      accountId: _accountId,
+      accountId: account.id,
       actualBalance: actual,
       note: _note.text,
     );
@@ -138,6 +153,29 @@ class _ReconciliationViewState extends State<ReconciliationView> {
     setState(() {});
     _say('Adjustment posted. It is in your Activity.');
   }
+
+  /// What this screen says when there is nothing on it to check.
+  ///
+  /// Reaching this used to mean a white Reports tab and a crash in initState.
+  /// It is a real state: a brand new ledger has no accounts, and so does one
+  /// restored from a file somebody cleared.
+  Widget _nothingToCheck(Palette p) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      Text('CHECK AN ACCOUNT', style: AppType.kicker(p)),
+      const SizedBox(height: Spacing.sm),
+      Text(
+        'Add an account first.',
+        style: AppType.title(p),
+      ),
+      const SizedBox(height: Spacing.xs),
+      Text(
+        'Checking compares what Salapify thinks an account holds against '
+        'what your bank or e-wallet says. There is nothing to compare yet.',
+        style: AppType.body(p),
+      ),
+    ],
+  );
 
   void _say(String message) {
     final Palette p = Palette.of(widget.state.theme);
@@ -164,7 +202,10 @@ class _AccountPicker extends StatelessWidget {
 
   final Palette palette;
   final List<Account> accounts;
-  final String selected;
+
+  /// Null when nothing is selected, which is the state a ledger with no
+  /// accounts in it leaves this in.
+  final String? selected;
   final ValueChanged<String> onSelect;
 
   @override
@@ -593,8 +634,14 @@ class _History extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
+                        // Never falls back to another account's name. The
+                        // old `orElse: () => accounts.first` printed a real
+                        // but WRONG name for a check recorded against an
+                        // account that is no longer on this phone, on the
+                        // one screen whose whole job is to be trustworthy
+                        // about whether the app and the bank agree.
                         '${r.date}, '
-                        '${state.accounts.firstWhere((Account a) => a.id == r.accountId, orElse: () => state.accounts.first).name}',
+                        '${state.accounts.where((Account a) => a.id == r.accountId).firstOrNull?.name ?? 'account no longer on this phone'}',
                         style: AppType.rowTitle(palette),
                       ),
                       Text(

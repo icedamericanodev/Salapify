@@ -205,13 +205,21 @@ void main() {
       await tester.pumpAndSettle();
       await tapAndSettle(tester, find.text('Save entry'));
 
-      // There is no storage layer in app/ yet. Somebody who logs a real expense
-      // deserves to know it will not survive a restart, at the moment they save
-      // it, rather than discovering it tomorrow.
+      // This used to demand the opposite: a warning that the entry would not
+      // survive a restart, which was the honest thing to say while app/ had
+      // no storage. Storage landed, so the warning became the lie and the
+      // confirmation became the truth. The assertion is kept rather than
+      // deleted, because "does this screen tell the person what really
+      // happened to their money" is the question either way.
+      expect(
+        find.textContaining('Saved to this phone'),
+        findsOneWidget,
+        reason: 'the app must say plainly that the entry was kept',
+      );
       expect(
         find.textContaining('not saved to the phone yet'),
-        findsOneWidget,
-        reason: 'the app must not imply a durability it does not have',
+        findsNothing,
+        reason: 'a stale warning is as misleading as a stale promise',
       );
     },
   );

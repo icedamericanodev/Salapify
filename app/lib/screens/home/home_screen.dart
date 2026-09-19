@@ -148,11 +148,10 @@ class HomeScreen extends StatelessWidget {
       ..showSnackBar(
         SnackBar(
           content: Text(
-            // Says out loud that this does not survive a restart. Storage is a
-            // later step, and somebody who types a real debt deserves to know
-            // it is not saved yet rather than finding out tomorrow.
-            'Added. Debts are not saved to the phone yet, so this clears when '
-            'the app is closed.',
+            // This used to warn that the debt would not survive a restart,
+            // which was true and honest right up until storage landed. Saying
+            // it now would be the same lie in the other direction.
+            'Added and saved to this phone.',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,

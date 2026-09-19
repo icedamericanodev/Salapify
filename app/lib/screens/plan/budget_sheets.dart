@@ -114,11 +114,11 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
               style: AppType.caption(p).copyWith(color: p.negative),
             ),
           ],
-          const SizedBox(height: Spacing.md),
-          Text(
-            'Not saved to the phone yet, so this clears when the app closes.',
-            style: AppType.caption(p),
-          ),
+          // A "not saved yet" caption stood here until storage landed. It is
+          // gone rather than reversed: silence used to mislead, and now that
+          // saving is what actually happens, silence is simply correct. A
+          // line reassuring somebody about the ordinary case is clutter on
+          // every visit after the first.
         ],
       ),
     );

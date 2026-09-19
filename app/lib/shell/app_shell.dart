@@ -131,8 +131,7 @@ class _AppShellState extends State<AppShell> {
       ..showSnackBar(
         SnackBar(
           content: Text(
-            '$whereItWent Entries are not saved to the phone yet, so this '
-            'clears when the app is closed.',
+            '$whereItWent Saved to this phone.',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,

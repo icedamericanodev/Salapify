@@ -729,3 +729,74 @@ The launch screen also stopped being white. It now uses Salapify's own
 background, resolved per theme through `values/colors.xml` and
 `values-night/colors.xml`, so opening the app at night no longer starts with a
 white flash.
+
+---
+
+## Storage: the ledger now survives closing the app
+
+Before this, `app/` held everything in memory. Close it and every account,
+entry, payment and budget was gone. This is the step that makes the rest of
+the migration mean something.
+
+One file, `salapify_data.json`, in the app's own documents directory. The top
+level keys are the prototype's own, from `handleExportData` in
+`src/components/SettingsModal.tsx`, so a file written here opens in the
+prototype and a backup exported from the prototype opens here.
+
+### It carries more than the prototype's backup does
+
+The prototype's own export covers **nine of the thirty four things it stores**.
+It leaves out instalment plans, reconciliation history, bills, income streams,
+investments and all the collaboration data. Worse than dropping them: its
+importer does not clear those keys either, so a restored phone falls back to
+the demo instalment plans and a **demo reconciliation history**, mixed in with
+the user's real restored transactions, with no notice. A reconciliation record
+is a written claim that somebody checked an account on a date.
+
+That is not ported. This file carries everything `app/` holds.
+
+### What happens when it goes wrong
+
+| What happened | What the app does |
+|---|---|
+| No file | Seed data, saving ON, the first entry creates the file |
+| A good file | It replaces the seed, saving ON |
+| The file is torn or half written | Opens the **previous generation**, saving ON, and says the last change is missing |
+| Both generations unreadable | Shows the seed, **saving OFF**, and says so. The file is left exactly as it was |
+| A file from a newer build | Refused, not half read and saved back down |
+| The save itself fails | Says the entry is on screen but not stored, and does not retry in a loop |
+
+The rule the tests exist to hold is the fourth row: **an unreadable file is
+never written over.** There is no server and no second copy, so the difference
+between "we cannot read this today" and "this is gone forever" is entirely
+whether some code decided to save seed data on top of it.
+
+Every save keeps the copy it replaced as `salapify_data.json.prev`. The worst
+case stops being "six months of entries are gone" and becomes "the last change
+is gone".
+
+### Two things that were nearly wrong, and are worth knowing
+
+**The enum spellings.** `src/types.ts` writes `side_hustle`, `i_owe`,
+`owed_to_me`, `weekly_income`. Dart's own names are `sideHustle`, `iOwe` and so
+on, so the obvious `.name` would have written something the prototype does not
+recognise, and a side hustle silently read back as personal is money filed in
+the wrong books. Every enum has an explicit two way map and a test that walks
+all of them.
+
+**Keys this build does not model are kept.** The prototype's `Transaction`
+carries `changeHistory`, `comments`, `approval`, `splitId`, `originalAmount`
+and more, none of which Salapify 3 models. Reading one, dropping them and
+saving would destroy them on a device with no second copy. Every unread key,
+at the record level and the document level, is stashed on load and written back
+on save.
+
+### The Check tab with no accounts on the phone
+
+This state used to crash in `initState` and take the whole Reports tab white.
+It was unreachable while the seed always had eleven accounts, and became real
+the moment a ledger could come off the disk.
+
+| | |
+|---|---|
+| Nothing to check yet | ![check empty](screens/reports-check-empty.png) |

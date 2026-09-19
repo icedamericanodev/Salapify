@@ -29,6 +29,7 @@ import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/shell/app_shell.dart';
+import 'package:salapify/data/store.dart';
 import 'package:salapify/state/financial_state.dart';
 
 /// The screenshot harness.
@@ -1106,6 +1107,58 @@ void main() {
     );
   });
 
+  // The Check tab with NO accounts on the phone.
+  //
+  // Worth its own shot because until storage landed it was unreachable, and
+  // because what it used to do was crash in initState and take the whole
+  // Reports tab white. It is a real state now: a ledger restored from a file
+  // somebody cleared has no accounts in it, and neither will a new install
+  // once the sample data question is settled.
+  testWidgets('reports check with no accounts renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+      store: MemorySnapshotStore(emptyLedgerFile),
+    );
+    await state.restore();
+    expect(
+      state.accounts,
+      isEmpty,
+      reason: 'the fixture has to actually be empty, or this shot proves '
+          'nothing about the empty state',
+    );
+
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull, reason: 'the empty Check crashed');
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/reports_check_empty.png'),
+    );
+  });
+
   // The instalment plans, at both brightnesses, and the two sheets.
   for (final ThemeMode2 mode in ThemeMode2.values) {
     final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
@@ -1211,3 +1264,23 @@ void main() {
     });
   }
 }
+
+/// A saved ledger with nothing in it, for the empty-state shots.
+///
+/// Written as a file rather than by clearing the lists, because that is how
+/// an empty ledger really arrives: off the disk, through the same decoder
+/// everything else goes through.
+const String emptyLedgerFile = '''
+{
+  "schemaVersion": 1,
+  "accounts": [],
+  "transactions": [],
+  "debts": [],
+  "budgets": [],
+  "goals": [],
+  "upcoming": [],
+  "incomeStreams": [],
+  "installments": [],
+  "reconciliations": []
+}
+''';

@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/seed_data.dart';
+import '../data/snapshot.dart';
+import '../data/store.dart';
 import '../design/tokens.dart';
 import '../core/money/debt.dart';
 import '../core/money/installments.dart';
@@ -14,7 +18,20 @@ import '../models/models.dart';
 /// FinancialContext. It holds the ledger and derives everything else, so no
 /// screen ever computes money on its own.
 class FinancialState extends ChangeNotifier {
-  FinancialState({this.clock}) {
+  /// [store] defaults to memory, and that default is chosen ON PURPOSE.
+  ///
+  /// The safe default is the one where forgetting costs nothing. A test or a
+  /// preview that forgets to pass a store gets memory and writes no files on
+  /// a CI runner; production forgetting to pass one would be a bug, and
+  /// `main_wiring_test.dart` is what catches that, by reading main.dart and
+  /// insisting it hands over a real [FileSnapshotStore]. Defaulting the other
+  /// way would put the cost of forgetting on the person's disk.
+  FinancialState({this.clock, SnapshotStore? store})
+    : _store = store ?? MemorySnapshotStore() {
+    _seed();
+  }
+
+  void _seed() {
     _transactions = SeedData.transactions();
     _upcoming = List<UpcomingItem>.of(SeedData.upcoming);
     _debts = List<Debt>.of(SeedData.debts);
@@ -54,6 +71,171 @@ class FinancialState extends ChangeNotifier {
   DecisionScenario _scenario = DecisionScenario.conservative;
   ProfileEntity? _activeProfile;
   MovementFilter _movementFilter = MovementFilter.all;
+
+  // -------------------------------------------------------------------------
+  // Persistence
+  // -------------------------------------------------------------------------
+
+  final SnapshotStore _store;
+
+  /// Keys read from the file that this build does not model. Carried so that
+  /// saving cannot destroy what a newer build, or the prototype, wrote.
+  Extras _extras = const Extras.empty();
+
+  /// OFF until [restore] has decided it is safe. Two states leave it off: the
+  /// app has not loaded yet, and the file could not be read.
+  bool _saveEnabled = false;
+  bool _pendingSave = false;
+  Future<void> _writeChain = Future<void>.value();
+
+  LoadStatus _loadStatus = LoadStatus.fresh;
+  String? _loadProblem;
+  String? _saveProblem;
+
+  /// What happened on the last load. A screen can ask, and the one that does
+  /// is the banner that warns somebody their entries are not being kept.
+  LoadStatus get loadStatus => _loadStatus;
+
+  /// Set when the stored file could not be read. While this is non null,
+  /// NOTHING is written, so the file it could not read is still there.
+  String? get loadProblem => _loadProblem;
+
+  /// Set when a save itself failed, a full disk being the usual reason.
+  String? get saveProblem => _saveProblem;
+
+  /// True when entries made now will still be here tomorrow.
+  bool get isSaving => _saveEnabled;
+
+  /// Reads the stored file and replaces the seed with it.
+  ///
+  /// Call once, before the first frame. Three outcomes:
+  ///   - no file: the seed stays and saving turns ON, so the first entry
+  ///     creates the file;
+  ///   - a file: it replaces the seed and saving turns ON;
+  ///   - a file that cannot be read: the seed stays for something to look at,
+  ///     saving stays OFF, and [loadProblem] says why. That combination is
+  ///     deliberate. Demo accounts on screen are confusing for a minute;
+  ///     demo accounts SAVED OVER a real ledger are permanent, and there is
+  ///     no server holding a copy.
+  Future<void> restore() async {
+    final LoadResult result = await loadSnapshot(_store);
+    _loadStatus = result.status;
+    switch (result.status) {
+      case LoadStatus.fresh:
+        _saveEnabled = true;
+      case LoadStatus.loaded:
+        _apply(result.snapshot!);
+        _saveEnabled = true;
+      case LoadStatus.recovered:
+        // The previous generation opened. Everything is here except whatever
+        // the interrupted save was carrying, so saving turns back ON: the
+        // person's next entry belongs in a file, and continuing to write is
+        // how the good copy becomes the current one again.
+        _apply(result.snapshot!);
+        _loadProblem = result.problem;
+        _saveEnabled = true;
+      case LoadStatus.unreadable:
+        _loadProblem = result.problem;
+        _saveEnabled = false;
+    }
+    super.notifyListeners();
+  }
+
+  void _apply(Snapshot s) {
+    _accounts = List<Account>.of(s.accounts);
+    _transactions = List<Transaction>.of(s.transactions);
+    _debts = List<Debt>.of(s.debts);
+    _budgets = List<Budget>.of(s.budgets);
+    _goals = List<Goal>.of(s.goals);
+    _upcoming = List<UpcomingItem>.of(s.upcoming);
+    _incomeStreams = List<IncomeStream>.of(s.incomeStreams);
+    _installments = List<InstallmentPlan>.of(s.installments);
+    _reconciliations = List<ReconciliationRecord>.of(s.reconciliations);
+    _theme = s.theme;
+    _scenario = s.scenario;
+    _activeProfile = s.activeProfile;
+    _extras = s.extras;
+  }
+
+  /// Everything this store holds, as one document.
+  Snapshot snapshot() => Snapshot(
+    accounts: _accounts,
+    transactions: _transactions,
+    debts: _debts,
+    budgets: _budgets,
+    goals: _goals,
+    upcoming: _upcoming,
+    incomeStreams: _incomeStreams,
+    installments: _installments,
+    reconciliations: _reconciliations,
+    theme: _theme,
+    scenario: _scenario,
+    activeProfile: _activeProfile,
+    extras: _extras,
+  );
+
+  /// Every mutation ends in a notify, so every mutation ends in a save.
+  ///
+  /// Overridden rather than calling a save helper from each of the twenty
+  /// mutating methods, because the twenty first is the one somebody forgets,
+  /// and a silently unsaved write is exactly the defect this whole file
+  /// exists to prevent.
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _scheduleSave();
+  }
+
+  void _scheduleSave() {
+    if (!_saveEnabled || _pendingSave) return;
+    _pendingSave = true;
+    // Coalesce: a single tap can notify several times, and that is one write,
+    // not several. The chain then keeps writes in order, so two saves can
+    // never interleave and produce a file that is half of each.
+    scheduleMicrotask(() {
+      _pendingSave = false;
+      _writeChain = _writeChain.then((_) => _writeNow());
+    });
+  }
+
+  Future<void> _writeNow() async {
+    final String encoded;
+    try {
+      encoded = snapshot().encode(at: now);
+    } on Object catch (e) {
+      _reportSaveProblem('Salapify could not prepare your data to save. $e');
+      return;
+    }
+    try {
+      await _store.write(encoded);
+      if (_saveProblem != null) {
+        _saveProblem = null;
+        super.notifyListeners();
+      }
+    } on Object catch (e) {
+      _reportSaveProblem(
+        'Salapify could not save to this device. Your entries are on screen '
+        'but not stored yet. $e',
+      );
+    }
+  }
+
+  /// Reports through [super.notifyListeners] deliberately. Going through the
+  /// override would schedule another save, which would fail the same way, and
+  /// a disk that is full stays full: that is an endless loop of failing
+  /// writes rather than a message somebody can act on.
+  void _reportSaveProblem(String message) {
+    if (_saveProblem == message) return;
+    _saveProblem = message;
+    super.notifyListeners();
+  }
+
+  /// Waits for any queued write to finish. For tests, and for anywhere that
+  /// has to know the file is on disk before moving on.
+  Future<void> flushWrites() async {
+    await Future<void>.delayed(Duration.zero);
+    await _writeChain;
+  }
 
   ThemeMode2 get theme => _theme;
   DecisionScenario get scenario => _scenario;

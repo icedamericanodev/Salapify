@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
+import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
 
@@ -15,8 +17,24 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 /// answer: does a person actually SEE the right number, on the right screen,
 /// after tapping what they would tap.
 void main() {
+  /// The day the fixture's calendar is written for.
+  ///
+  /// These tests used to run against the real clock, and passed for eleven
+  /// days until midnight on 2026-09-19 turned the seed's "today" coffee into
+  /// yesterday's and the period picker test went red on its own. The dates in
+  /// seed_data.dart are the prototype's, fixed in September 2026, so the only
+  /// honest way to ask "what does TODAY show" is to say which day today is.
+  final DateTime fixtureToday = DateTime(2026, 9, 18, 12);
+
   Future<void> openReports(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await tester.pumpWidget(
+      SalapifyApp(
+        state: FinancialState(
+          clock: fixtureToday,
+          store: MemorySnapshotStore(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.insert_chart_outlined));
     await tester.pumpAndSettle();
