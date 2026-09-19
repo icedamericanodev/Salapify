@@ -33,10 +33,15 @@ class HeroPanel extends StatelessWidget {
 
     // How far along the current cutoff we are. The prototype clamps this
     // between 10 and 100 so the rail is never an invisible sliver.
+    //
+    // An UNSET payday would compute 15 days passed out of 15 and draw a full
+    // rail, which reads as "your cutoff is over" to somebody who has never
+    // told Salapify when they get paid. It sits at the floor instead.
     const int cycleDays = 15;
     final int daysPassed = cycleDays - payday.daysToPayday;
-    final double progress =
-        ((daysPassed / cycleDays) * 100).clamp(10, 100) / 100;
+    final double progress = payday.isSet
+        ? ((daysPassed / cycleDays) * 100).clamp(10, 100) / 100
+        : 0.1;
 
     return Container(
       width: double.infinity,
@@ -85,8 +90,18 @@ class HeroPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday. '
-                  '· Lasts ${analysis.cashRunwayDays} days',
+                  // NO PER-DAY FIGURE WITHOUT A PAYDAY, and this is the most
+                  // important line in the file. The engine divides by
+                  // max(1, daysToPayday), so an unset cycle makes the daily
+                  // figure equal the WHOLE fortnight's. The card would tell
+                  // somebody with 36,125 pesos of room that they may spend
+                  // 36,125 pesos a day, which is not a rounding error, it is
+                  // the opposite of the advice this screen exists to give.
+                  payday.isSet
+                      ? '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday. '
+                            '· Lasts ${analysis.cashRunwayDays} days'
+                      : 'Set your payday to see a daily figure. '
+                            '· Lasts ${analysis.cashRunwayDays} days',
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -112,7 +127,9 @@ class HeroPanel extends StatelessWidget {
                   children: <Widget>[
                     Flexible(
                       child: Text(
-                        '${payday.daysToPayday} days to payday',
+                        payday.isSet
+                            ? '${payday.daysToPayday} days to payday'
+                            : 'Payday not set',
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
@@ -123,7 +140,9 @@ class HeroPanel extends StatelessWidget {
                     ),
                     const SizedBox(width: Spacing.sm),
                     Text(
-                      '${payday.lastPayday} to ${payday.nextPayday.split(',').first}',
+                      payday.isSet
+                          ? '${payday.lastPayday} to ${payday.nextPayday.split(',').first}'
+                          : '',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

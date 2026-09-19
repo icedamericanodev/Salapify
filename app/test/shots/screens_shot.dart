@@ -91,6 +91,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   _cardFaceShots();
+  realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
   // Two surfaces per theme, and both earn their place.
@@ -1544,4 +1545,61 @@ void _cardFaceShots() {
       );
     });
   }
+}
+
+/// Home on a ledger that holds ONLY real money, with no payday set.
+///
+/// This is what every install looks like the moment the sample data is
+/// cleared, and it is the shot that proves two money defects are gone. Before
+/// the fix this screen said Safe to Spend ₱0.00, because ₱41,184 of demo bills
+/// and ₱6,348 of demo instalment plans were reserved against obligations the
+/// person had never entered and could find on no screen; and the line beneath
+/// it offered a per-day figure equal to the whole fortnight, because the
+/// engine divides by max(1, daysToPayday) and nobody had set a payday.
+void realMoneyHomeShot() {
+  testWidgets('home with only real money renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2900);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "real_1", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 50000, "monogram": "GC"}
+  ],
+  "transactions": [], "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+      store: store,
+    );
+    await state.restore();
+
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/home_real_money_only.png'),
+    );
+  });
 }

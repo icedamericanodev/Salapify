@@ -40,6 +40,8 @@ class FinancialState extends ChangeNotifier {
     _goals = List<Goal>.of(SeedData.goals);
     _incomeStreams = List<IncomeStream>.of(SeedData.incomeStreams);
     _installments = List<InstallmentPlan>.of(SeedData.installments);
+    _bills = List<BillItem>.of(SeedData.bills);
+    _payday = SeedData.payday;
   }
 
   /// Injectable clock, so a test can pin "today".
@@ -60,6 +62,19 @@ class FinancialState extends ChangeNotifier {
 
   /// Mutable now that the Installments screen can pay one.
   late List<InstallmentPlan> _installments;
+
+  /// Bills and the payday cycle, both of which used to be read STRAIGHT OFF
+  /// THE SEED by the Safe to Spend engine, and neither of which was stored.
+  ///
+  /// That was a measured money defect, not a missing feature. A brand new user
+  /// holding one real 50,000 peso account saw a Safe to Spend of 0.00, because
+  /// 41,184 pesos of demo bills, times the conservative 1.1 multiplier, plus
+  /// 6,348 of demo instalments, were reserved against obligations they had
+  /// never entered. No screen in the app listed those bills, so the money was
+  /// not merely wrong, it was unaccountable: the Plan tab reads a different
+  /// collection entirely.
+  late List<BillItem> _bills;
+  late PaydayCycle _payday;
 
   /// Reconciliations recorded this session. Starts empty rather than seeded:
   /// the prototype seeds one, and a history row claiming somebody checked an
@@ -151,6 +166,8 @@ class FinancialState extends ChangeNotifier {
     _incomeStreams = List<IncomeStream>.of(s.incomeStreams);
     _installments = List<InstallmentPlan>.of(s.installments);
     _reconciliations = List<ReconciliationRecord>.of(s.reconciliations);
+    _bills = List<BillItem>.of(s.bills);
+    _payday = s.payday;
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
@@ -168,6 +185,8 @@ class FinancialState extends ChangeNotifier {
     incomeStreams: _incomeStreams,
     installments: _installments,
     reconciliations: _reconciliations,
+    bills: _bills,
+    payday: _payday,
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
@@ -262,12 +281,12 @@ class FinancialState extends ChangeNotifier {
   List<CategoryInfo> get categories => SeedData.categories;
   List<Goal> get goals => List<Goal>.unmodifiable(_goals);
   List<UpcomingItem> get upcoming => List<UpcomingItem>.unmodifiable(_upcoming);
-  List<BillItem> get bills => SeedData.bills;
+  List<BillItem> get bills => List<BillItem>.unmodifiable(_bills);
   List<IncomeStream> get incomeStreams =>
       List<IncomeStream>.unmodifiable(_incomeStreams);
   List<InstallmentPlan> get installments =>
       List<InstallmentPlan>.unmodifiable(_installments);
-  PaydayCycle get payday => SeedData.payday;
+  PaydayCycle get payday => _payday;
 
   /// Header badges. Static for now: the notification engine and the
   /// collaboration hub are later migration steps, and a badge that lies is
@@ -776,9 +795,15 @@ class FinancialState extends ChangeNotifier {
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
     accounts: accounts,
     transactions: _transactions,
-    bills: SeedData.bills,
+    // _bills and _installments, NOT the seed. Both read the frozen seed list
+    // until now, and the comment below about incomeStreams describes exactly
+    // this defect while two arguments above it had the same one: a bill or a
+    // plan the user pays off stays reserved forever, and a demo bill they
+    // never entered reserves money on day one. Measured before the fix: one
+    // real 50,000 peso account gave a Safe to Spend of 0.00.
+    bills: _bills,
     debtsIOwe: debtsIOwe,
-    installments: SeedData.installments,
+    installments: _installments,
     // _incomeStreams, NOT the seed. This read the frozen seed list until Plan
     // let somebody add a stream, at which point the new stream would have been
     // stored, listed on Plan, and invisible to the one figure it is supposed

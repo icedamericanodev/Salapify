@@ -38,6 +38,8 @@ class Snapshot {
     required this.incomeStreams,
     required this.installments,
     required this.reconciliations,
+    required this.bills,
+    required this.payday,
     required this.theme,
     required this.scenario,
     this.activeProfile,
@@ -53,6 +55,15 @@ class Snapshot {
   final List<IncomeStream> incomeStreams;
   final List<InstallmentPlan> installments;
   final List<ReconciliationRecord> reconciliations;
+
+  /// The user's own bills. Previously not stored at all: Safe to Spend read
+  /// the SEED list, so a new user's headline figure was reduced by demo bills
+  /// they had never entered and could find on no screen.
+  final List<BillItem> bills;
+
+  /// The payday cycle. Previously a compile time constant, so a fresh install
+  /// said "4 days to payday, Sep 15" and would have said it in December too.
+  final PaydayCycle payday;
 
   final ThemeMode2 theme;
   final DecisionScenario scenario;
@@ -76,6 +87,7 @@ class Snapshot {
   static const String kIncomeStreams = 'incomeStreams';
   static const String kInstallments = 'installments';
   static const String kReconciliations = 'reconciliations';
+  static const String kBills = 'bills';
 
   /// Top level keys this build writes itself. Anything else in a loaded file
   /// is somebody else's and is preserved rather than dropped.
@@ -94,6 +106,8 @@ class Snapshot {
     kIncomeStreams,
     kInstallments,
     kReconciliations,
+    kBills,
+    'payday',
   };
 
   String encode({required DateTime at}) =>
@@ -157,7 +171,26 @@ class Snapshot {
         for (final ReconciliationRecord r in reconciliations)
           merged(kReconciliations, r.id, reconciliationToJson(r)),
       ],
+      kBills: <Map<String, dynamic>>[
+        for (final BillItem b in bills) merged(kBills, b.id, billToJson(b)),
+      ],
+      'payday': merged('payday', 'payday', paydayToJson(payday)),
     };
+  }
+
+  /// The payday object, plus whatever else was inside it.
+  ///
+  /// Kept as a record under its own name so [toJson] can merge it back. The
+  /// id is the same as the collection because there is only ever one of them.
+  static PaydayCycle _readPayday(Object? raw, ExtrasBuilder extras) {
+    if (raw is! Map) return PaydayCycle.unset;
+    final Map<String, dynamic> row = Map<String, dynamic>.from(raw);
+    final Map<String, dynamic> leftover = <String, dynamic>{
+      for (final MapEntry<String, dynamic> e in row.entries)
+        if (!paydayKeys.contains(e.key)) e.key: e.value,
+    };
+    if (leftover.isNotEmpty) extras.put('payday', 'payday', leftover);
+    return paydayFromJson(row);
   }
 
   /// Reads a document, or throws [SnapshotFormatException].
@@ -265,6 +298,22 @@ class Snapshot {
         reconciliationFromJson,
         (ReconciliationRecord r) => r.id,
       ),
+      bills: read<BillItem>(
+        kBills,
+        billKeys,
+        billFromJson,
+        (BillItem b) => b.id,
+      ),
+      // A file written before bills and payday were stored simply has no
+      // 'payday' key. It gets the NEUTRAL cycle rather than the seed's, so an
+      // older file cannot quietly reintroduce "4 days to payday, Sep 15".
+      //
+      // Its unknown SUB-keys are kept too. payday used to be somebody else's
+      // key, preserved whole; now that this build models five of its fields,
+      // anything else inside it would be silently dropped on the next save
+      // unless it is stashed here. Same rule as every record, applied to an
+      // object that is not in a collection.
+      payday: _readPayday(m['payday'], extras),
       theme:
           themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??
           ThemeMode2.gabi,

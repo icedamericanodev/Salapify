@@ -434,6 +434,41 @@ class PaydayCycle {
   final String nextPayday;
   final int daysToPayday;
   final double expectedIncome;
+
+  /// What a ledger with no payday set looks like.
+  ///
+  /// NOT the seed's cycle, and the difference is the whole point. Until this
+  /// existed, the app read a compile time constant, so somebody who installed
+  /// it today was told they had four days to a payday on 15 September and an
+  /// income of 32,500 pesos, none of which was theirs. The empty answer is
+  /// "we do not know yet", and the screens say that rather than filling it in.
+  ///
+  /// expectedIncome of zero matters: the engine only falls back to it when it
+  /// is ABOVE zero, so an unset cycle invents no inflow.
+  static const PaydayCycle unset = PaydayCycle(
+    cycleType: '15_30',
+    lastPayday: '',
+    nextPayday: '',
+    daysToPayday: 0,
+    expectedIncome: 0,
+  );
+
+  /// True when nobody has told Salapify when they get paid.
+  bool get isSet => daysToPayday > 0 && nextPayday.isNotEmpty;
+
+  PaydayCycle copyWith({
+    String? cycleType,
+    String? lastPayday,
+    String? nextPayday,
+    int? daysToPayday,
+    double? expectedIncome,
+  }) => PaydayCycle(
+    cycleType: cycleType ?? this.cycleType,
+    lastPayday: lastPayday ?? this.lastPayday,
+    nextPayday: nextPayday ?? this.nextPayday,
+    daysToPayday: daysToPayday ?? this.daysToPayday,
+    expectedIncome: expectedIncome ?? this.expectedIncome,
+  );
 }
 
 class BillItem {

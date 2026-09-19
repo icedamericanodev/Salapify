@@ -152,7 +152,11 @@ class ComingUpCard extends StatelessWidget {
               const SizedBox(width: Spacing.sm),
               Flexible(
                 child: Text(
-                  'Next Payday: ${state.payday.nextPayday}',
+                  // An unset cycle has no date. "Next Payday: " with nothing
+                  // after the colon reads as a value the app lost.
+                  state.payday.isSet
+                      ? 'Next Payday: ${state.payday.nextPayday}'
+                      : 'Payday not set yet',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -162,27 +166,30 @@ class ComingUpCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: Spacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.sm,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: palette.accentSoft,
-                  borderRadius: BorderRadius.circular(Radii.pill),
-                ),
-                child: Text(
-                  state.payday.daysToPayday == 1
-                      ? '1 day away'
-                      : '${state.payday.daysToPayday} days away',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: palette.accent,
+              if (state.payday.isSet) const SizedBox(width: Spacing.sm),
+              // No badge at all when there is no payday. "0 days away" beside
+              // "Payday not set yet" is a countdown to nothing.
+              if (state.payday.isSet)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.sm,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: palette.accentSoft,
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                  ),
+                  child: Text(
+                    state.payday.daysToPayday == 1
+                        ? '1 day away'
+                        : '${state.payday.daysToPayday} days away',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: palette.accent,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: Spacing.sm),

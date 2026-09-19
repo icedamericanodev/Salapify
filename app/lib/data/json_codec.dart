@@ -743,3 +743,76 @@ ReconciliationRecord reconciliationFromJson(Map<String, dynamic> m) {
     adjustmentTxId: _optStr(m, 'adjustmentTxId'),
   );
 }
+
+/// Bills, which until now were read from the SEED and never from the file.
+///
+/// That was not a missing feature, it was a money defect with a measured cost.
+/// `computeSafeToSpend` took `SeedData.bills` directly, so a brand new user
+/// holding one real ₱50,000 account saw Safe to Spend of ₱0.00: ₱41,184 of
+/// demo bills, times the conservative 1.1 multiplier, were reserved against
+/// obligations they had never entered and which appeared on no screen in the
+/// app. Making these a real stored collection is what lets them be the user's.
+const Set<String> billKeys = <String>{
+  'id',
+  'name',
+  'amount',
+  'dueDate',
+  'isPaid',
+};
+
+Map<String, dynamic> billToJson(BillItem b) => <String, dynamic>{
+  'id': b.id,
+  'name': b.name,
+  'amount': b.amount,
+  'dueDate': b.dueDate,
+  'isPaid': b.isPaid,
+};
+
+BillItem billFromJson(Map<String, dynamic> m) => BillItem(
+  id: _reqStr(m, 'id', 'bill'),
+  name: _reqStr(m, 'name', 'bill'),
+  amount: _reqNum(m, 'amount', 'bill'),
+  dueDate: _reqStr(m, 'dueDate', 'bill'),
+  isPaid: _optBool(m, 'isPaid'),
+);
+
+/// The payday cycle, which was a compile time constant read straight off the
+/// seed. It said "4 days to payday, Sep 15" on a ledger with nothing in it,
+/// and it would have said the same in December, because nothing ever
+/// recomputed or stored it.
+///
+/// `daysToPayday` is the divisor for the per-day figure on Home, so this is
+/// money, not a label.
+const Set<String> paydayKeys = <String>{
+  'cycleType',
+  'lastPayday',
+  'nextPayday',
+  'daysToPayday',
+  'expectedIncome',
+};
+
+Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
+  'cycleType': p.cycleType,
+  'lastPayday': p.lastPayday,
+  'nextPayday': p.nextPayday,
+  'daysToPayday': p.daysToPayday,
+  'expectedIncome': p.expectedIncome,
+};
+
+PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
+  cycleType: _optStr(m, 'cycleType') ?? '15_30',
+  lastPayday: _optStr(m, 'lastPayday') ?? '',
+  nextPayday: _optStr(m, 'nextPayday') ?? '',
+  // EVERY field here is optional, and that is a deliberate departure from the
+  // rule the rest of this file follows. A required field throws, and a throw
+  // makes the whole document unreadable, which stops all saving and shows the
+  // person a red banner. That is the right trade for an account balance. It is
+  // the wrong trade for a payday cycle: a prototype backup carrying a partial
+  // payday object would brick a ledger over a field the app can simply not
+  // know. Unknown payday is a state the app already handles.
+  //
+  // The clamp is not cosmetic. daysToPayday is the divisor for the per-day
+  // figure on Home, and a negative would read as "minus three days to payday".
+  daysToPayday: (_optNum(m, 'daysToPayday') ?? 0).round().clamp(0, 400),
+  expectedIncome: _optNum(m, 'expectedIncome') ?? 0,
+);

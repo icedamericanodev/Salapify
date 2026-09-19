@@ -27,6 +27,8 @@ void main() {
     incomeStreams: SeedData.incomeStreams,
     installments: SeedData.installments,
     reconciliations: const <ReconciliationRecord>[],
+    bills: SeedData.bills,
+    payday: SeedData.payday,
     theme: ThemeMode2.gabi,
     scenario: DecisionScenario.conservative,
   );
@@ -103,6 +105,8 @@ void main() {
           incomeStreams: const <IncomeStream>[],
           installments: const <InstallmentPlan>[],
           reconciliations: const <ReconciliationRecord>[],
+          bills: const <BillItem>[],
+          payday: PaydayCycle.unset,
           theme: ThemeMode2.hapon,
           scenario: DecisionScenario.optimistic,
         ),
@@ -171,6 +175,8 @@ void main() {
           incomeStreams: const <IncomeStream>[],
           installments: const <InstallmentPlan>[plan],
           reconciliations: const <ReconciliationRecord>[],
+          bills: const <BillItem>[],
+          payday: PaydayCycle.unset,
           theme: ThemeMode2.gabi,
           scenario: DecisionScenario.conservative,
         ),
@@ -376,12 +382,23 @@ void main() {
       expect(tx['splitId'], 'split_9');
       expect(tx['comments'], <String>['paid by Kuya']);
 
+      // payday is OURS now, and this assertion changed with it. It used to
+      // read back byte for byte as a foreign key, because the app took its
+      // cycle from a compile time constant and never stored one. It now
+      // models five fields of it, so the object comes back with those five
+      // filled in. What must NOT change is the rest: a key inside payday that
+      // this build does not model is still somebody else's and is still kept.
+      final Map<String, dynamic> savedPayday =
+          saved['payday'] as Map<String, dynamic>;
       expect(
-        saved['payday'],
-        <String, dynamic>{'cycleType': 'semimonthly'},
-        reason:
-            'Salapify 3 reads payday from its seed and does not store one, so '
-            'a stored payday belongs to somebody else and is not ours to drop',
+        savedPayday['cycleType'],
+        'semimonthly',
+        reason: 'the stored cycle type was overwritten by a default',
+      );
+      expect(
+        savedPayday.containsKey('daysToPayday'),
+        isTrue,
+        reason: 'payday is modelled now, so its own fields are written',
       );
       expect(saved['categories'], <String>['Food & Dining']);
     });
@@ -408,6 +425,8 @@ void main() {
         incomeStreams: loaded.incomeStreams,
         installments: loaded.installments,
         reconciliations: loaded.reconciliations,
+        bills: loaded.bills,
+        payday: loaded.payday,
         theme: loaded.theme,
         scenario: loaded.scenario,
         extras: loaded.extras,
