@@ -6,8 +6,6 @@ import '../../state/financial_state.dart';
 import '../categories/category_manager_sheet.dart';
 import '../fx/fx_sheet.dart';
 import '../shared/sheet_scaffold.dart';
-import '../tax/business_tax_sheet.dart';
-import '../tax/tax_calculator_sheet.dart';
 
 /// The Philippine Financial Toolkit, the header's sparkle button.
 ///
@@ -50,28 +48,17 @@ class ToolkitSheet extends StatelessWidget {
               FxSheet.show(context, p);
             },
           ),
-          _tool(
-            context,
-            p,
-            icon: Icons.calculate_outlined,
-            title: 'Tax Calculator',
-            subtitle: 'Take-home pay, 13th month, and the freelancer 8% choice',
-            onTap: () {
-              Navigator.of(context).pop();
-              TaxCalculatorSheet.show(context, p);
-            },
-          ),
-          _tool(
-            context,
-            p,
-            icon: Icons.storefront_outlined,
-            title: 'Business Tax Simulator',
-            subtitle: 'Compare every BIR regime on your own numbers',
-            onTap: () {
-              Navigator.of(context).pop();
-              BusinessTaxSheet.show(context, p);
-            },
-          ),
+          // The Tax Calculator and the Business Tax Simulator used to sit
+          // here. Founder direction, 2026-09-19: "Remove the tax calculator,
+          // business tax simulator in the current build. Its already a
+          // duplicate of those calculator in the Plan tab."
+          //
+          // Checked before removing, because deleting a door is only safe when
+          // another one exists: both sheets are opened from Plan's calculator
+          // library (plan_screen.dart), and the sheets themselves are
+          // untouched. This removes a second entry point, not a feature. The
+          // prototype's own toolkit carries four tabs and neither of these is
+          // among them.
           _tool(
             context,
             p,

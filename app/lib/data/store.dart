@@ -300,8 +300,17 @@ String plainStorageProblem(String raw) {
   // A file that exists and cannot be understood. Deliberately does NOT say
   // "corrupted", which sounds like everything is lost, when the previous
   // generation has usually already been opened instead.
+  // 'not valid JSON' is matched as well as the exception NAMES, and that gap
+  // was real rather than theoretical: loadSnapshot passes SnapshotFormatException's
+  // .message, not its toString(), so the likeliest unreadable-file case in
+  // the whole app arrived here carrying no exception name at all and fell
+  // straight through to the raw text. A translator that misses the common
+  // case and catches the rare ones is worse than none, because it reads as
+  // though the wording was considered.
   if (raw.contains('SnapshotFormatException') ||
-      raw.contains('FormatException')) {
+      raw.contains('FormatException') ||
+      raw.contains('not valid JSON') ||
+      raw.contains('could not read its data file')) {
     return 'Salapify could not make sense of its data file. It has not '
         'overwritten anything while it cannot read it.';
   }

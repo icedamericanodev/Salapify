@@ -6,6 +6,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../features/log/log_sheet.dart';
 import '../features/settings/sample_data_sheet.dart';
+import '../features/settings/settings_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
@@ -41,7 +42,14 @@ class _AppShellState extends State<AppShell> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            _StorageWarning(palette: palette, state: widget.state),
+            _StorageWarning(
+              palette: palette,
+              state: widget.state,
+              onOpen: () async {
+                await SettingsSheet.show(context, widget.state);
+                if (mounted) setState(() {});
+              },
+            ),
             // THE SAMPLE NOTICE IS ON HOME ONLY, and that is a change of mind
             // worth writing down. It was on every tab first, for a good
             // reason: Reports shows a net worth built from demo money. But it
@@ -353,10 +361,15 @@ class _LogPill extends StatelessWidget {
 /// who dismisses a dialog at launch and then spends ten minutes typing in real
 /// figures needs the warning to still be there while they type.
 class _StorageWarning extends StatelessWidget {
-  const _StorageWarning({required this.palette, required this.state});
+  const _StorageWarning({
+    required this.palette,
+    required this.state,
+    required this.onOpen,
+  });
 
   final Palette palette;
   final FinancialState state;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -368,76 +381,58 @@ class _StorageWarning extends StatelessWidget {
     if (problem == null) return const SizedBox.shrink();
 
     final bool recovered = state.loadStatus == LoadStatus.recovered;
+    final Color tint = recovered ? palette.accent : palette.negative;
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: (recovered ? palette.accent : palette.negative).withValues(
-          alpha: 0.14,
-        ),
+    // ONE LINE, and the detail is in Settings.
+    //
+    // Founder direction, 2026-09-19, looking at six lines of this on Home:
+    // "can you remove/hide that warning box on the simulator screen or put
+    // them in the settings?" The detail moved. The LINE did not, and that is
+    // a deliberate reading of the request rather than a partial one: a silent
+    // save failure is the single defect that costs somebody everything they
+    // have typed, on a phone with no server holding a copy. A person who
+    // cannot see that their entries are being thrown away has no reason to go
+    // looking in Settings for the reason.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
+      child: Material(
+        color: tint.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(Radii.tile),
-        border: Border.all(
-          color: (recovered ? palette.accent : palette.negative).withValues(
-            alpha: 0.45,
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(
-            recovered ? Icons.history : Icons.warning_amber_rounded,
-            size: 18,
-            color: recovered ? palette.accent : palette.negative,
-          ),
-          const SizedBox(width: Spacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(Radii.tile),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 44),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.xs,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.tile),
+              border: Border.all(color: tint.withValues(alpha: 0.45)),
+            ),
+            child: Row(
               children: <Widget>[
-                Text(
-                  recovered
-                      ? 'We opened your last saved copy'
-                      : 'Your entries are NOT being saved',
-                  style: AppType.rowTitle(palette).copyWith(
-                    color: recovered ? palette.accent : palette.negative,
+                Icon(
+                  recovered ? Icons.history : Icons.warning_amber_rounded,
+                  size: 16,
+                  color: tint,
+                ),
+                const SizedBox(width: Spacing.sm),
+                Expanded(
+                  child: Text(
+                    recovered
+                        ? 'We opened your last saved copy. Tap for details.'
+                        : 'Your entries are NOT being saved. Tap for details.',
+                    style: AppType.caption(palette).copyWith(color: tint),
                   ),
                 ),
-                const SizedBox(height: 2),
-                // The plain sentence leads. See plainStorageProblem: the raw
-                // failure names a channel and a method and answers none of
-                // the questions somebody holding the phone actually has.
-                Text(
-                  plainStorageProblem(problem),
-                  style: AppType.caption(palette),
-                ),
-                // The raw text still ships, underneath and dimmer, because it
-                // is what makes a screenshot diagnosable. It is kept out of
-                // the headline, not thrown away.
-                if (plainStorageProblem(problem) != problem) ...<Widget>[
-                  const SizedBox(height: Spacing.xs),
-                  Text(
-                    problem,
-                    style: AppType.caption(palette).copyWith(
-                      color: palette.textSecondary.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-                if (!recovered && !state.isSaving) ...<Widget>[
-                  const SizedBox(height: Spacing.xs),
-                  Text(
-                    'Nothing already on this phone has been deleted or '
-                    'written over. Anything you type now will be gone when '
-                    'the app closes.',
-                    style: AppType.caption(palette),
-                  ),
-                ],
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

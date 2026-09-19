@@ -33,6 +33,7 @@ import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/features/fx/fx_sheet.dart';
+import 'package:salapify/features/settings/settings_sheet.dart';
 import 'package:salapify/state/financial_state.dart';
 
 /// The screenshot harness.
@@ -91,6 +92,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   _cardFaceShots();
+  settingsShots();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -1600,6 +1602,47 @@ void realMoneyHomeShot() {
     await expectLater(
       find.byType(AppShell),
       matchesGoldenFile('out/home_real_money_only.png'),
+    );
+  });
+}
+
+/// Settings, and the compact storage strip that now points at it.
+void settingsShots() {
+  testWidgets('settings renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+    );
+    // RESTORED, so the panel shows the healthy state. A store that has never
+    // been restored is neither saving nor failing, and the first version of
+    // this shot rendered that in-between state as an alarm, which is how the
+    // three-way fix in settings_sheet.dart got found.
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: SettingsSheet(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(SettingsSheet),
+      matchesGoldenFile('out/settings.png'),
     );
   });
 }

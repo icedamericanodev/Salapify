@@ -4,7 +4,6 @@ import 'package:salapify/core/money/format.dart';
 import 'package:salapify/features/categories/category_manager_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
-import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/main.dart';
@@ -21,6 +20,25 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 void main() {
   Future<void> pumpHome(WidgetTester tester) async {
     await tester.pumpWidget(const SalapifyApp());
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the tax calculator the way a person now reaches it: Plan, then the
+  /// calculator library, then Income tax.
+  ///
+  /// It used to be one tap from the toolkit. The founder had that entry point
+  /// removed on 2026-09-19 as a duplicate of this one, so the tests that ask
+  /// layout questions about the sheet come through the door that still exists.
+  Future<void> openTaxFromPlan(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.track_changes_outlined).last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Calculators').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calculators').first);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Income tax'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Income tax'));
     await tester.pumpAndSettle();
   }
 
@@ -63,9 +81,13 @@ void main() {
     // on the way through, and re-opening the app inside a single test leaves
     // the previous sheet's route in the way, so a loop tests the first tool
     // and then tests the framework.
+    // The Tax Calculator and the Business Tax Simulator are NOT here any more.
+    // Founder direction, 2026-09-19: they duplicated the Plan tab's calculator
+    // library, and the prototype's own toolkit carries neither. What matters
+    // is that they are still REACHABLE, which the test below this loop proves
+    // from Plan, because removing a second door is only safe while the first
+    // one opens.
     for (final (String label, Type sheet) tool in <(String, Type)>[
-      ('Tax Calculator', TaxCalculatorSheet),
-      ('Business Tax Simulator', BusinessTaxSheet),
       ('Categories', CategoryManagerSheet),
     ]) {
       testWidgets('the toolkit opens ${tool.$1}', (WidgetTester tester) async {
@@ -203,7 +225,13 @@ void main() {
       await tapAndSettle(tester, find.byIcon(Icons.auto_awesome_outlined));
       expect(tester.takeException(), isNull);
 
-      await tapAndSettle(tester, find.text('Tax Calculator'));
+      // Close the toolkit before going anywhere else: it is a modal sheet and
+      // it covers the tab bar underneath.
+      await tapAndSettle(tester, find.byIcon(Icons.close).last);
+
+      // Reached through PLAN now, not the toolkit. Same sheet, same layout
+      // question; only the door changed.
+      await openTaxFromPlan(tester);
       expect(tester.takeException(), isNull);
     });
 
@@ -274,8 +302,7 @@ void main() {
       // a one word label, which is where a target shrinks below the floor
       // without anybody noticing.
       await pumpHome(tester);
-      await tapAndSettle(tester, find.byIcon(Icons.auto_awesome_outlined));
-      await tapAndSettle(tester, find.text('Tax Calculator'));
+      await openTaxFromPlan(tester);
 
       await expectTouchTargets(tester, TaxCalculatorSheet);
     });

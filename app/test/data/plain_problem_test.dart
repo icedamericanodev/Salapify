@@ -53,6 +53,18 @@ void main() {
       );
     });
 
+    test('the real loader message is translated, not just the class name', () {
+      // loadSnapshot passes SnapshotFormatException's .message, not its
+      // toString(), so this is the exact string the app produces for the
+      // likeliest unreadable-file case. It fell straight through untranslated
+      // until a widget test noticed.
+      final String plain = plainStorageProblem(
+        'The file is not valid JSON. Unexpected character (at character 3)',
+      );
+      expect(plain, isNot(contains('Unexpected character')));
+      expect(plain.toLowerCase(), contains('could not make sense'));
+    });
+
     test('an unreadable file avoids the word corrupted', () {
       final String plain = plainStorageProblem(
         'SnapshotFormatException: accounts is not a list',

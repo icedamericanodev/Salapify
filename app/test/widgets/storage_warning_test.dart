@@ -33,15 +33,42 @@ void main() {
     await pump(tester, MemorySnapshotStore('{ not json'));
 
     expect(
-      find.text('Your entries are NOT being saved'),
+      find.textContaining('Your entries are NOT being saved'),
       findsOneWidget,
       reason:
           'THE test. Saving was off, the state knew it, and the app said '
           'nothing for a whole batch.',
     );
+    // The REASSURANCE moved into Settings rather than being deleted, and this
+    // asserts it is there rather than merely gone from Home. A test that only
+    // checked it had left the strip would pass just as happily if the sentence
+    // had been dropped altogether, which is the failure mode of every "tidy
+    // the screen" change.
+    await tester.tap(find.textContaining('Tap for details'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+    // Two now: the strip underneath and the Settings panel over it.
     expect(
-      find.textContaining('Nothing already on this phone'),
+      find.text('Your entries are NOT being saved'),
       findsOneWidget,
+      reason: 'Settings has to say what is wrong, not just that something is',
+    );
+    // This fixture is a half written FILE, not a missing plugin, so the plain
+    // sentence is the one about not being able to read it. Asserting the
+    // plugin wording here would have been a test that passed for the wrong
+    // failure.
+    expect(
+      find.textContaining('could not make sense of its data file'),
+      findsOneWidget,
+      reason: 'the plain explanation went missing on the way to Settings',
+    );
+    expect(
+      find.textContaining('has not overwritten anything'),
+      findsOneWidget,
+      reason:
+          'the sentence that answers "is my money gone" is the one that must '
+          'survive a move into Settings',
     );
   });
 
@@ -59,7 +86,7 @@ void main() {
       await tester.tap(find.byIcon(tab));
       await tester.pumpAndSettle();
       expect(
-        find.text('Your entries are NOT being saved'),
+        find.textContaining('Your entries are NOT being saved'),
         findsOneWidget,
         reason:
             'somebody who saw it once at launch is typing real figures ten '
@@ -73,7 +100,10 @@ void main() {
 
     // The directional companion. A banner that is always there would satisfy
     // every assertion above and be worthless.
-    expect(find.text('Your entries are NOT being saved'), findsNothing);
+    expect(
+      find.textContaining('Your entries are NOT being saved'),
+      findsNothing,
+    );
     expect(
       find.textContaining('being saved'),
       findsNothing,
@@ -94,7 +124,10 @@ void main() {
     await state.restore();
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
-    expect(find.text('Your entries are NOT being saved'), findsNothing);
+    expect(
+      find.textContaining('Your entries are NOT being saved'),
+      findsNothing,
+    );
 
     // The disk fills, or the plugin is missing, on the very first write.
     store.failWriteWith = Exception('No space left on device');
@@ -102,8 +135,15 @@ void main() {
     await state.flushWrites();
     await tester.pumpAndSettle();
 
-    expect(find.text('Your entries are NOT being saved'), findsOneWidget);
-    expect(find.textContaining('not stored yet'), findsOneWidget);
+    expect(
+      find.textContaining('Your entries are NOT being saved'),
+      findsOneWidget,
+    );
+    // The DETAIL moved into Settings on founder direction, 2026-09-19, so it
+    // is no longer on this strip. The strip still says the one thing a person
+    // has to know without tapping anything, which is the half of that request
+    // that was not carried out and is explained in app_shell.dart.
+    expect(find.textContaining('Tap for details'), findsOneWidget);
   });
 
   testWidgets('recovering the previous copy reads as recovery, not disaster', (
@@ -125,9 +165,12 @@ void main() {
 
     await pump(tester, store);
 
-    expect(find.text('We opened your last saved copy'), findsOneWidget);
     expect(
-      find.text('Your entries are NOT being saved'),
+      find.textContaining('We opened your last saved copy'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Your entries are NOT being saved'),
       findsNothing,
       reason:
           'losing the last change is a bad minute. Reporting it in the words '
