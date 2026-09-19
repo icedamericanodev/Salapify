@@ -88,7 +88,7 @@ class _DebtScreenState extends State<DebtScreen> {
               Expanded(
                 child: _Tab(
                   palette: p,
-                  label: 'Work it out',
+                  label: 'Amortization',
                   selected: _section == _Section.calculators,
                   onTap: () => setState(() => _section = _Section.calculators),
                 ),

@@ -38,6 +38,10 @@ dependencies:
   intl: ^0.20.2
   # Finds the app documents directory, where the one data file lives.
   path_provider: ^2.1.5
+  # Hands an exported amortisation statement to the phone's own share sheet,
+  # so a CSV can reach email, Drive or Files without Salapify needing any of
+  # them. No network of its own.
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:

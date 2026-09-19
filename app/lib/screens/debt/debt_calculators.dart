@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/debt_strategy.dart';
+import '../../core/money/amortization_export.dart';
 import '../../core/money/format.dart';
 import '../../core/money/loan.dart';
 import '../../core/money/loan_products.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import 'amortization_table.dart';
 
 /// The nine loan calculators, from src/components/DebtCalculatorsView.tsx.
 ///
@@ -153,6 +155,45 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
     );
   }
 
+  /// The statement card, for any calculator that repays a loan over time.
+  ///
+  /// One helper rather than six copies: every loan type shows the same four
+  /// totals, the same two views and the same export, and six copies is how
+  /// five of them keep a column the sixth quietly loses.
+  Widget _statement(
+    Palette p, {
+    required List<AmortizationRow> schedule,
+    required String title,
+    required String institution,
+    required double principal,
+    required double annualRate,
+    required String termLabel,
+    required double monthlyPayment,
+    required double totalInterest,
+    required double totalPayment,
+    required String footnote,
+    double interestSaved = 0,
+    int monthsSaved = 0,
+    double extraMonthly = 0,
+  }) => AmortizationTable(
+    palette: p,
+    schedule: schedule,
+    meta: LoanStatementMeta(
+      title: title,
+      institution: institution,
+      principal: principal,
+      annualRate: annualRate,
+      termLabel: termLabel,
+      monthlyPayment: monthlyPayment,
+      totalInterest: totalInterest,
+      totalPayment: totalPayment,
+      interestSaved: interestSaved,
+      monthsSaved: monthsSaved,
+      extraMonthly: extraMonthly,
+    ),
+    footnote: footnote,
+  );
+
   // ---------------------------------------------------------------- Pag-IBIG
 
   Widget _pagibig(Palette p) {
@@ -241,6 +282,30 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
             highlight: true,
           ),
       ],
+      schedule: AmortizationTable(
+        palette: p,
+        schedule: r.amortizationSchedule,
+        meta: LoanStatementMeta(
+          title: 'Pag-IBIG Housing Loan Statement',
+          institution: 'Pag-IBIG Fund (HDMF Circular 449/450)',
+          principal: _v('pagibigAmount'),
+          annualRate: pagIbigRate(
+            program: _pagibigProgram,
+            fixingPeriodYears: _pagibigFixing,
+          ),
+          termLabel: '${_i('pagibigYears')} Years',
+          monthlyPayment: r.monthlyPayment,
+          totalInterest: r.totalInterest,
+          totalPayment: r.totalPayment,
+          interestSaved: r.interestSavedWithExtra,
+          monthsSaved: r.monthsSavedWithExtra,
+          extraMonthly: _v('pagibigExtra'),
+        ),
+        footnote:
+            'Pag-IBIG loans use diminishing balance computation. Extra '
+            'payments go straight to the principal, which cuts the interest '
+            'that would have been charged on it for every month after.',
+      ),
     );
   }
 
@@ -326,6 +391,24 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
             warn: true,
           ),
       ],
+      schedule: _statement(
+        p,
+        schedule: r.schedule,
+        title: 'Bank Housing Loan Statement',
+        institution: 'Philippine universal bank, fixed then repriced',
+        principal: r.loanPrincipal,
+        annualRate: _v('bankRate'),
+        termLabel: '${_i('bankYears')} Years',
+        monthlyPayment: r.monthlyPayment,
+        totalInterest: r.totalInterest,
+        totalPayment: r.totalPayment,
+        interestSaved: r.interestSavedWithExtra,
+        extraMonthly: _v('bankExtra'),
+        footnote:
+            'Computed on the diminishing balance at the fixed rate. After the '
+            'fixing period the bank reprices, so the later rows are what you '
+            'pay only if the rate does not move.',
+      ),
     );
   }
 
@@ -414,6 +497,25 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
           value: formatPeso(r.totalInterest),
         ),
       ],
+      schedule: _statement(
+        p,
+        schedule: r.schedule,
+        title: 'Auto Loan Statement',
+        institution: 'Philippine bank auto loan',
+        principal: r.loanPrincipal,
+        annualRate: _v('carRate'),
+        termLabel: '${_i('carMonths')} Months',
+        monthlyPayment: r.monthlyPayment,
+        totalInterest: r.totalInterest,
+        totalPayment: r.totalPayment,
+        footnote: _carRateType == RateType.flatAddon
+            ? 'Add-on rate: the interest is worked out on the WHOLE amount '
+                  'for the whole term, so every row carries the same interest '
+                  'even as the balance falls. That is why it costs more than '
+                  'the same rate on a diminishing balance.'
+            : 'Diminishing balance: the interest each month is charged on '
+                  'what is still owed, so it falls as the loan does.',
+      ),
     );
   }
 
@@ -495,6 +597,27 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
           note: 'Interest and the fee, less any dividend coming back.',
         ),
       ],
+      schedule: _statement(
+        p,
+        schedule: r.schedule,
+        title: 'Salary Loan Statement',
+        institution: switch (_salaryType) {
+          SalaryLoanType.pagibigMpl => 'Pag-IBIG Multi-Purpose Loan',
+          SalaryLoanType.sssSalary => 'SSS Salary Loan',
+          SalaryLoanType.pagibigCalamity => 'Pag-IBIG Calamity Loan',
+          SalaryLoanType.gsisConso => 'GSIS Consolidated Loan',
+        },
+        principal: r.loanAmount,
+        annualRate: r.annualRate,
+        termLabel: '${_i('salaryMonths')} Months',
+        monthlyPayment: r.monthlyPayment,
+        totalInterest: r.totalInterest,
+        totalPayment: r.totalPayment,
+        footnote:
+            'Collected by salary deduction, so the payment leaves before you '
+            'see it. The net proceeds above are what actually reaches you '
+            'after the fee.',
+      ),
     );
   }
 
@@ -564,6 +687,23 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
           value: formatPeso(r.totalPayment),
         ),
       ],
+      schedule: _statement(
+        p,
+        schedule: r.schedule,
+        title: 'Personal Loan Statement',
+        institution: 'Personal or digital lender',
+        principal: r.principal,
+        annualRate: _v('personalRate') * 12,
+        termLabel: '${_i('personalMonths')} Months',
+        monthlyPayment: r.monthlyPayment,
+        totalInterest: r.totalInterest,
+        totalPayment: r.totalPayment,
+        footnote:
+            'Quoted per month, which is the single most misread number in '
+            'Philippine consumer lending. ${_v('personalRate')} percent a '
+            'month is ${(_v('personalRate') * 12).toStringAsFixed(1)} percent '
+            'a year, and the lender does not print that.',
+      ),
     );
   }
 
@@ -732,6 +872,22 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
               : null,
         ),
       ],
+      schedule: _statement(
+        p,
+        schedule: r.schedule,
+        title: 'Consolidation Loan Statement',
+        institution: 'One loan replacing several',
+        principal: r.totalBalance,
+        annualRate: _v('consolRate') * 12,
+        termLabel: '${_i('consolMonths')} Months',
+        monthlyPayment: r.newMonthlyPayment,
+        totalInterest: r.newTotalInterest,
+        totalPayment: r.totalPayment,
+        footnote:
+            'This is the NEW loan only. A lower monthly payment over a longer '
+            'term can still cost more in total than the debts it replaces, '
+            'which is what the comparison above is for.',
+      ),
     );
   }
 
@@ -911,6 +1067,7 @@ class _Card extends StatelessWidget {
     required this.note,
     required this.inputs,
     required this.results,
+    this.schedule,
   });
 
   final Palette palette;
@@ -918,6 +1075,13 @@ class _Card extends StatelessWidget {
   final String note;
   final List<Widget> inputs;
   final List<Widget> results;
+
+  /// The month by month statement, for the calculators that produce one.
+  ///
+  /// Optional because not every calculator has a schedule to show: the
+  /// affordability check and the snowball comparison answer a question rather
+  /// than repay a loan.
+  final Widget? schedule;
 
   @override
   Widget build(BuildContext context) {
@@ -958,6 +1122,7 @@ class _Card extends StatelessWidget {
             children: results,
           ),
         ),
+        ?schedule,
       ],
     );
   }

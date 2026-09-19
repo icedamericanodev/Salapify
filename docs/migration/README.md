@@ -930,3 +930,73 @@ the live refresh whenever the founder wants it.
 
 The rest of that modal, Notes Calc, Mindset and Treats, is still unported and
 stays on the list.
+
+---
+
+## The amortisation statement, and why so much was missing
+
+Founder, 2026-09-19, two things at once: build the schedule and the CSV
+export, and **"Why do there are a lot of missing details from prototype to the
+current build... Know the root cause and apply to solution to all moving
+forward."**
+
+The second question is the important one, so it goes first.
+
+### Root cause: every audit so far measured the wrong thing
+
+Four failures, one mistake underneath all of them.
+
+| What happened | What was measured |
+|---|---|
+| The Academy shipped six invented courses while 32 real ones sat in `src/data/academyData.ts` | The component tree. Nobody opened the data directory |
+| `InstallmentPlan` was "ported" holding 4 of its 22 fields | Record COUNTS, three against three |
+| Plan → Calculators → Debt & Loan opened the add-a-debt form | Nothing. No test walked that route |
+| `BankAmortizationTable.tsx`, 691 lines, was never counted as missing | The screen that renders it was ticked off as done |
+
+Every one of those measured **my** unit of work: files, engines, records,
+plans. None measured **the user's** unit: a thing they can see and tap. And
+"deferred, written down" was allowed to count as a finished state, which is
+how a dozen individually reasonable notes add up to an app that looks half
+built to the person holding it.
+
+### The fix is a tool, not a promise
+
+`app/tool/surface_audit.py` extracts every button, tab, heading and label from
+the prototype's own source and checks whether each one exists anywhere in
+`app/lib`. It cannot be satisfied by a plan or a note.
+
+    python3 tool/surface_audit.py            # per screen
+    python3 tool/surface_audit.py --missing  # every label with no match
+
+The first run said **40%**. That is the honest number, and it should have been
+on the table weeks ago. It is a SIGNAL rather than a gate, because wording
+legitimately differs, but its job is to stop the migration being declared done
+by the person doing it. It runs from now on before any batch is called
+finished.
+
+### The statement itself
+
+"Work it out" is now **Amortization**, and six of the nine calculators carry a
+full statement: Pag-IBIG housing, bank housing, auto, SSS and Pag-IBIG salary,
+personal and digital, and consolidation. The three that answer a question
+rather than repay a loan (the card trap, snowball or avalanche, the
+affordability check) deliberately do not, and a test asserts that too.
+
+Each statement has the prototype's own four totals, the prepayment saving, a
+**Monthly schedule** and **Annual summary** toggle, 24 rows a page with a
+pager, and a footnote naming how that lender computes.
+
+**Export CSV** writes the file and hands it to the phone's own share sheet, so
+it reaches Gmail, Drive or Files without Salapify asking for storage
+permission. **Copy** puts the same CSV on the clipboard. The file is the
+prototype's format column for column, including the cumulative principal and
+interest columns, because the point of a statement is opening it in a
+spreadsheet beside the one the bank sent.
+
+| | |
+|---|---|
+| Pag-IBIG, with its statement | ![amortization](screens/amortization-statement.png) |
+
+Every figure matches the prototype exactly: ₱10,531.25 a month, ₱855,171.14
+interest, ₱2,355,171.14 total, ₱172,329.49 saved by prepaying, 205 months,
+month 1 principal ₱3,343.75.

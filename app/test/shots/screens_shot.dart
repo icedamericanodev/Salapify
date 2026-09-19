@@ -1068,7 +1068,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Work it out'));
+      await tester.tap(find.text('Amortization'));
       await tester.pumpAndSettle();
 
       expect(
@@ -1351,7 +1351,7 @@ void planCalculatorShots() {
   ) async {
     await tester.runAsync(loadRealFonts);
 
-    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.physicalSize = const Size(1170, 8800);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -1376,7 +1376,7 @@ void planCalculatorShots() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Debt and loan'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Work it out'));
+    await tester.tap(find.text('Amortization'));
     await tester.pumpAndSettle();
 
     await expectLater(

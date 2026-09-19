@@ -18,6 +18,31 @@ enum PagIbigProgram { affordableHousing, regularHousing }
 /// Pag-IBIG housing. The rate is set by the FIXING PERIOD, the years before the
 /// rate can be repriced, and affordable housing ignores it entirely at a
 /// subsidised 3%.
+/// The rate on its own, so a screen can NAME it.
+///
+/// Pulled out of [calculatePagIbigHousingLoan] rather than copied, because the
+/// exported statement has to print the rate it was actually computed at. Two
+/// copies of a rate table is how a statement comes to say 5.75% over an
+/// amortisation worked out at 6.25%.
+double pagIbigRate({
+  required PagIbigProgram program,
+  int fixingPeriodYears = 3,
+}) {
+  if (program == PagIbigProgram.affordableHousing) return 3.0;
+  switch (fixingPeriodYears) {
+    case 1:
+      return 5.375;
+    case 3:
+      return 5.75;
+    case 5:
+      return 6.25;
+    case 10:
+      return 7.125;
+    default:
+      return 7.75;
+  }
+}
+
 LoanCalculationResult calculatePagIbigHousingLoan({
   required PagIbigProgram program,
   required double loanAmount,
@@ -25,32 +50,12 @@ LoanCalculationResult calculatePagIbigHousingLoan({
   int fixingPeriodYears = 3,
   double extraMonthlyPayment = 0,
 }) {
-  double annualRate;
-  if (program == PagIbigProgram.affordableHousing) {
-    annualRate = 3.0;
-  } else {
-    switch (fixingPeriodYears) {
-      case 1:
-        annualRate = 5.375;
-        break;
-      case 3:
-        annualRate = 5.75;
-        break;
-      case 5:
-        annualRate = 6.25;
-        break;
-      case 10:
-        annualRate = 7.125;
-        break;
-      default:
-        annualRate = 7.75;
-        break;
-    }
-  }
-
   return calculateAmortization(
     principal: loanAmount,
-    annualInterestRate: annualRate,
+    annualInterestRate: pagIbigRate(
+      program: program,
+      fixingPeriodYears: fixingPeriodYears,
+    ),
     termMonths: termYears * 12,
     extraMonthlyPayment: extraMonthlyPayment,
   );

@@ -75,7 +75,7 @@ void main() {
     // The three the founder named: personal debts, instalments, calculators.
     expect(find.text('Debts'), findsWidgets);
     expect(find.text('Plans'), findsOneWidget);
-    expect(find.text('Work it out'), findsOneWidget);
+    expect(find.text('Amortization'), findsOneWidget);
   });
 
   testWidgets('the nine loan calculators are genuinely reachable from there', (
@@ -83,7 +83,7 @@ void main() {
   ) async {
     await openPlanCalculators(tester);
     await tapAndSettle(tester, find.text('Debt and loan'));
-    await tapAndSettle(tester, find.text('Work it out'));
+    await tapAndSettle(tester, find.text('Amortization'));
 
     expect(find.byType(DebtCalculators), findsOneWidget);
 
@@ -113,7 +113,7 @@ void main() {
   ) async {
     await openPlanCalculators(tester);
     await tapAndSettle(tester, find.text('Debt and loan'));
-    await tapAndSettle(tester, find.text('Work it out'));
+    await tapAndSettle(tester, find.text('Amortization'));
 
     // The directional companion to "the screen is reachable": reaching a
     // screen that shows nothing would satisfy every assertion above.
