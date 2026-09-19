@@ -84,14 +84,14 @@ jobs:
       - name: Build the Flutter web preview
         id: flutterweb
         continue-on-error: true
-        working-directory: flutter
+        working-directory: archive/salapify-2-flutter
         run: flutter build web --base-href /Salapify/flutter/
       - name: Place the Flutter preview under /flutter
         if: steps.flutterweb.outcome == 'success'
         run: |
           mkdir -p _site/flutter
-          cp -r flutter/build/web/. _site/flutter/
-          cp flutter/build/web/index.html _site/flutter/404.html
+          cp -r archive/salapify-2-flutter/build/web/. _site/flutter/
+          cp archive/salapify-2-flutter/build/web/index.html _site/flutter/404.html
       - name: Note a skipped Flutter web build
         if: steps.flutterweb.outcome != 'success'
         run: echo "Flutter web build failed; the previous /flutter stays live."

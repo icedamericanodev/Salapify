@@ -1,892 +1,1805 @@
-// Renders every screen in both skins to real PNGs, so a person can LOOK at
-// them before they are called done.
-//
-// Run:  flutter test test/shots/screens_shot.dart --update-goldens
-// Out:  test/shots/out/*.png   (gitignored; the reviewed ones are copied into
-//                               docs/revamp/mockups/hapon/ and embedded in its
-//                               README, which is the surface GitHub renders)
-//
-// NAMED WITHOUT the `_test` suffix, deliberately and for two reasons.
-// `flutter test` only collects `*_test.dart`, so this can never join an
-// ordinary run and fail there on a missing font, and it lives under test/
-// rather than tool/ because the analyzer only permits test-only APIs here.
-// CI runs it as its own step, with --update-goldens so the step can only fail
-// if the harness genuinely stopped rendering.
-//
-// Three gotchas are handled below and each one cost a round of founder
-// screenshots when it was not:
-//
-//   1. Fonts MUST load inside tester.runAsync. testWidgets uses a fake clock,
-//      so a real file read never completes inside it and the run hangs with no
-//      output at all.
-//   2. The Material icon font ships with the SDK, not with the app. Without
-//      loading it separately every Icon draws as an empty box, and a
-//      screenshot of boxes proves nothing about a screen full of icons.
-//   3. pumpWidget with the same instance is a NO-OP. The first version of a
-//      helper like this produced four identical PNGs and every later drag
-//      silently did nothing. Hence the UniqueKey.
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/app/clock.dart';
-import 'package:salapify/app/ledger_scope.dart';
-import 'package:salapify/app/router.dart';
-import 'package:salapify/core/data/ledger_store.dart';
-import 'package:salapify/design/kit.dart';
+import 'package:salapify/design/app_theme.dart';
+import 'package:salapify/design/scroll_behavior.dart';
 import 'package:salapify/design/tokens.dart';
-import 'package:salapify/design/type.dart';
+import 'package:salapify/features/categories/category_manager_sheet.dart';
+import 'package:salapify/features/info/info_dot.dart';
+import 'package:salapify/features/info/info_sheet.dart';
+import 'package:salapify/features/log/log_sheet.dart';
+import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/pan/pan_sheet.dart';
+import 'package:salapify/features/reminders/reminders_sheet.dart';
+import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
+import 'package:salapify/features/tax/business_tax_sheet.dart';
+import 'package:salapify/features/tax/tax_calculator_sheet.dart';
+import 'package:salapify/features/toolkit/toolkit_sheet.dart';
+import 'package:salapify/features/accounts/account_sheet.dart';
+import 'package:salapify/models/models.dart';
+import 'package:salapify/screens/accounts/accounts_screen.dart';
+import 'package:salapify/screens/accounts/bank_card.dart';
+import 'package:salapify/features/debt/payment_sheet.dart';
+import 'package:salapify/screens/activity/activity_screen.dart';
+import 'package:salapify/features/debt/installment_sheet.dart';
+import 'package:salapify/screens/debt/debt_calculators.dart';
+import 'package:salapify/screens/debt/installments_view.dart';
+import 'package:salapify/screens/debt/debt_screen.dart';
+import 'package:salapify/screens/home/debt_beam_card.dart';
+import 'package:salapify/screens/plan/plan_screen.dart';
+import 'package:salapify/screens/reports/reports_screen.dart';
+import 'package:salapify/screens/home/home_screen.dart';
+import 'package:salapify/shell/app_shell.dart';
+import 'package:salapify/data/fx_service.dart';
+import 'package:salapify/data/store.dart';
+import 'package:salapify/features/fx/fx_sheet.dart';
+import 'package:salapify/features/settings/import_sheet.dart';
+import 'package:salapify/features/settings/privacy_sheet.dart';
+import 'package:salapify/features/settings/settings_sheet.dart';
+import 'package:salapify/state/financial_state.dart';
 
-import '../support/memory_store.dart';
+/// The screenshot harness.
+///
+/// Deliberately NOT named *_test.dart: `flutter test` only collects files with
+/// that suffix, so this can never join a normal run and fail there on fonts.
+/// CI runs it explicitly with --update-goldens, which makes it write-only, so
+/// the only way it can fail is if the app genuinely stopped rendering.
+///
+///   flutter test test/shots/screens_shot.dart --update-goldens
+///
+/// Output lands in test/shots/out, which is gitignored. Reviewed renders get
+/// copied into docs/ so the founder can open them on GitHub.
 
-/// Loads the real shipped faces. Exported because any test that MEASURES
-/// layout has to use it too: Flutter's default test font is wider than Plus
-/// Jakarta Sans, so a wrap-or-not decision comes out one way in the test font
-/// and the other way on the phone.
+/// Loads the real shipped fonts. This MUST happen inside tester.runAsync:
+/// testWidgets runs on a fake clock, so a real file read never completes
+/// inside it and the run hangs with no output at all.
 Future<void> loadRealFonts() async {
-  final loader = FontLoader('Jakarta');
-  for (final f in const [
-    'PlusJakartaSans-Regular.ttf',
-    'PlusJakartaSans-SemiBold.ttf',
-    'PlusJakartaSans-Bold.ttf',
-    'PlusJakartaSans-ExtraBold.ttf',
-  ]) {
-    final bytes = File('assets/fonts/$f').readAsBytesSync();
-    loader.addFont(Future.value(ByteData.sublistView(bytes)));
-  }
+  final FontLoader loader = FontLoader('PlusJakartaSans')
+    ..addFont(rootBundle.load('assets/fonts/PlusJakartaSans.ttf'));
   await loader.load();
 
-  final iconPath = _materialIconFont();
-  if (iconPath == null) {
-    throw StateError(
-      'Material icon font not found. Looked under FLUTTER_ROOT and walked up '
-      'from ${Platform.resolvedExecutable}.',
-    );
-  }
-  final icons = FontLoader('MaterialIcons')
-    ..addFont(
-      Future.value(ByteData.sublistView(File(iconPath).readAsBytesSync())),
-    );
-  await icons.load();
-}
-
-/// Where the Material icon font is, on this machine.
-///
-/// The first version of this hardcoded /opt/flutter, which is where the SDK
-/// sits in a dev sandbox and nowhere near where the CI runner installs it. The
-/// shipped app's harness already solved this properly and this is its
-/// solution: ask the tool, then fall back to walking up from the running Dart
-/// binary, because the exact shape of the SDK layout is not something to
-/// hardcode.
-String? _materialIconFont() {
-  final roots = <String>{
-    ?Platform.environment['FLUTTER_ROOT'],
-    _walkUpToFlutterRoot(Platform.resolvedExecutable) ?? '',
-  }..remove('');
-  for (final root in roots) {
-    final f = File(
-      '$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-    );
-    if (f.existsSync()) return f.path;
-  }
-  return null;
-}
-
-/// `.../<root>/bin/cache/dart-sdk/bin/dart`, walked back up to the root.
-String? _walkUpToFlutterRoot(String exe) {
-  var dir = File(exe).parent;
-  for (var i = 0; i < 8; i++) {
-    if (Directory('${dir.path}/bin/cache/artifacts').existsSync()) {
-      return dir.path;
-    }
-    if (dir.parent.path == dir.path) break;
-    dir = dir.parent;
-  }
-  return null;
-}
-
-/// The real app, both themes wired exactly as main.dart wires them, forced to
-/// one skin. Rendering the actual router rather than a stand-in is the whole
-/// point: a picture of a hand-built copy of the shell proves nothing about the
-/// shell.
-/// The render's "now", pinned.
-///
-/// Friday 11 September 2026, chosen rather than picked at random: the fixture's
-/// payday schedule is the 15th and the 30th, so from here the next payday is
-/// four days out and both recurring bills fall inside the cycle. Home then
-/// renders with a rail part filled and a "Coming up" section that has
-/// something in it, which is the state worth reviewing.
-///
-/// Pinned at all because Home is the first screen whose content depends on the
-/// date. Read the system clock and the committed renders churn every midnight,
-/// so a review picture is never the same twice and a real change hides in the
-/// noise.
-final _renderNow = DateTime(2026, 9, 11, 9, 30);
-
-Widget _app(Skin s, LedgerStore store) => AppClock(
-  now: _renderNow,
-  child: LedgerScope(
-    store: store,
-    child: MaterialApp.router(
-      key: UniqueKey(),
-      debugShowCheckedModeBanner: false,
-      theme: salapifyTheme(hapon),
-      darkTheme: salapifyTheme(gabi),
-      themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
-      routerConfig: buildRouter(),
-    ),
-  ),
-);
-
-/// The lived-in ledger with one account declared not the user's.
-///
-/// Staged rather than tapped, and deliberately so: the tapped route is
-/// rendered two shots earlier for the OTHER flag, and what this picture is for
-/// is the hero sentence, not the switch that produced it.
-Map<String, dynamic> _withNotMine(Map<String, dynamic> data, String id) {
-  for (final a in (data['accounts'] as List)) {
-    if (a is Map && a['id'] == id) a['includeInNetWorth'] = false;
-  }
-  return data;
-}
-
-Future<void> _shoot(WidgetTester tester, String name) async {
-  await expectLater(
-    find.byType(MaterialApp),
-    matchesGoldenFile('out/$name.png'),
+  // The Material icon font, so Salapify's own icons draw as glyphs rather
+  // than as empty boxes in the render.
+  final String sdk = Platform.environment['FLUTTER_ROOT'] ?? '/opt/flutter';
+  final File icons = File(
+    '$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );
+  if (icons.existsSync()) {
+    final FontLoader iconLoader = FontLoader('MaterialIcons')
+      ..addFont(
+        Future<ByteData>.value(ByteData.sublistView(icons.readAsBytesSync())),
+      );
+    await iconLoader.load();
+  }
+}
+
+/// Finishes decoding every Image on screen, then repaints.
+///
+/// WITHOUT THIS THE LOGOS RENDER BLANK, and the first version of the brand
+/// work shipped a review render that proved nothing about them. Image.asset
+/// resolves asynchronously, and testWidgets runs on a fake clock where that
+/// never completes, so the plate draws empty. The dark renders happened to
+/// show the marks only because the light ones ran first and warmed the global
+/// image cache, which is the worst kind of pass: correct by accident, and
+/// silently wrong whenever the order changes.
+Future<void> settleImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final Element e in find.byType(Image).evaluate()) {
+      final Image image = e.widget as Image;
+      await precacheImage(image.image, e);
+    }
+  });
+  await tester.pumpAndSettle();
 }
 
 void main() {
-  // Light and dark render from identical layout code, so the pictures differ
-  // only in colour. Anything else that differs across a pair is a bug.
-  for (final s in allSkins) {
-    testWidgets('screens ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
+  _cardFaceShots();
+  importShots();
+  toolkitShots();
+  settingsShots();
+  realMoneyHomeShot();
+  planCalculatorShots();
+  fxShot();
+  // Two surfaces per theme, and both earn their place.
+  //
+  // The PHONE size is the honest one: it is what the founder holds, and it is
+  // the only one that can show a card being cut off or a control sitting under
+  // the tab bar.
+  //
+  // The FULL one is tall enough to fit the whole scroll in a single image. Home
+  // is now several screens long, so reviewing it phone-sized means sending
+  // three pictures and hoping they are read in order. This is the surface the
+  // founder actually compares against the prototype.
+  const List<({String suffix, Size size})> surfaces =
+      <({String suffix, Size size})>[
+        (suffix: '', size: Size(1170, 2532)),
+        // Tall enough for the whole scroll with very little dead space below
+        // it. Raise it when Home grows; a render that cuts the last card off
+        // is worse than one with a margin.
+        (suffix: '_full', size: Size(1170, 6000)),
+      ];
 
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
 
-      // A LIVED-IN store, and that is the whole point of this line. The
-      // shipped app's harness spent most of its life shooting an EMPTY one, so
-      // sixteen images across two brightnesses were all first-run welcome
-      // screens and not one of them ever contained a peso figure. A
-      // crossed-out peso sign sat on Home through dozens of renders and
-      // reached the founder's phone. Never shrink this fixture for a tidier
-      // picture: a tidy shot of an empty screen is exactly what it replaced.
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-home');
+    for (final ({String suffix, Size size}) surface in surfaces) {
+      final String name = '$theme${surface.suffix}';
 
-      // Walk the bar the way a person does, rather than pushing routes, so
-      // the shot proves navigation works as well as showing the screen.
-      for (var i = 1; i < NavBar.tabs.length; i++) {
-        await tester.tap(find.text(NavBar.tabs[i].$1));
+      testWidgets('home renders in $name', (WidgetTester tester) async {
+        await tester.runAsync(loadRealFonts);
+
+        tester.view.physicalSize = surface.size;
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        // The palette is read during build, so the theme is set BEFORE pumping.
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        // The FULL shell, tab bar and all, not a bare screen.
+        //
+        // This harness used to render HomeScreen on its own, and that is exactly
+        // how it missed a bug that made the app unusable: the tab bar's Column
+        // grew to the whole window, the body was laid out at zero height, and
+        // Home showed nothing at all on a real device. The render looked perfect
+        // the entire time, because the thing at fault was the part it left out.
+        // A harness that renders something the user never sees proves nothing.
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            // Same scrolling feel as the shipped app, so the harness renders
+            // what ships rather than a near miss.
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
         await tester.pumpAndSettle();
-        await _shoot(tester, '${s.key}-${NavBar.tabs[i].$1.toLowerCase()}');
-      }
 
-      // Back to Home, then the Log sheet OVER it, scrim and all, because that
-      // is how it is actually seen and the dimmed screen behind is part of the
-      // design rather than a detail of the screenshot.
-      await tester.tap(find.text('Home'));
-      await tester.pumpAndSettle();
-      // Scoped to the NAV BAR, because Home now has a "Log" quick action too
-      // and a bare find.text would match both. 04-screens.md asks for both on
-      // purpose: the bar's button is always there, the quick action is one of
-      // the four on the screen.
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Log')),
-      );
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-log');
+        // Guard the same defect directly: the body must have real height.
+        expect(
+          tester.getSize(find.byType(HomeScreen)).height,
+          greaterThan(200),
+          reason: 'the shell collapsed the body, so this render shows nothing',
+        );
 
-      // And the sheet MID-TYPE, which is the state the whole feature exists
-      // for. An empty sheet cannot show whether the "Got it" line reads well,
-      // and that line is the app's promise about what it is going to save.
-      await tester.enterText(find.byType(TextField), 'jollibee 250');
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-log-typed');
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/home_$name.png'),
+        );
+      });
+    }
+  }
 
-      // And a word no vocabulary will ever hold, which is the case the sheet
-      // has to handle WELL rather than rarely. No word list covers how
-      // everybody writes, so "the app does not know this one" is a permanent
-      // state of the feature and not an edge of it.
-      await tester.enterText(find.byType(TextField), 'zorbtronic 450');
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-log-unknown');
+  // Activity, the second tab, at both brightnesses. It is reached by TAPPING
+  // the tab rather than by building the screen alone, because the tab bar
+  // collapsing the body to zero height is a defect this harness has already
+  // had to catch once.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
 
-      // And one screen that is NOT a tab: account detail, reached by tapping a
-      // row rather than by pushing the route. Tapping is the point. A pushed
-      // route renders the same picture whether or not the row is actually
-      // wired to it, so the shot would look right with the tap broken.
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Accounts'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('BPI'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-account-detail');
-    });
-
-    testWidgets('entry detail ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      // Reached by TAPPING a Ledger row, not by pushing the route. A pushed
-      // route renders the same picture whether or not the row is wired to it,
-      // so the shot would look right with the tap broken, and an unwired row
-      // is exactly the defect this screen exists to fix.
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Ledger')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jollibee').first);
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-entry-detail');
-    });
-
-    // The two sheets that WRITE the things the app could previously only read.
-    // Neither existed until now: an account could arrive only through a
-    // restored backup, and a monthly limit could not be set at all. Both are
-    // rendered by opening them the way a person does, because a sheet pushed
-    // straight onto the navigator looks identical whether or not the button
-    // that is supposed to open it works.
-    testWidgets('editors ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.text('Accounts'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Add an account'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-account-editor');
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-budget-editor');
-
-      // The help behind the "i". It exists because the founder said the form
-      // was too wordy, so the thing worth looking at is whether the FORM got
-      // quieter, which means rendering both halves and not just this one.
-      await tester.tap(find.byIcon(Icons.info_outline_rounded));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-budget-help');
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-
-      // And the state the founder actually hit: one cap larger than the whole
-      // month. The app used to take it in silence. Rendering it is the only
-      // way to judge whether the note reads as an explanation or as a scold,
-      // which is a thing no test can check.
-      await tester.enterText(find.byType(TextField).first, '20000');
-      await tester.enterText(find.byType(TextField).at(1), '50000');
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-budget-over');
-
-      // Upcoming, reached by tapping its segment. The fixture puts a sweldo on
-      // the 15th and leaves the 30th a bare payday, so one render carries both
-      // shapes: a payday the app can price, and one it cannot.
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Upcoming'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-upcoming');
-
-      // The projection's own help, which is where the founder's "i" question
-      // landed after both expert passes said not to put one on the hero. It
-      // carries the three rules a hero sentence cannot: where the window ends,
-      // what the low point is a minimum of, and why a debt already paid can
-      // still be counted. Rendered because a sheet of teaching copy is exactly
-      // the surface that goes wordy again when nobody looks at it.
-      final help = find.text('How this projection works');
-      await tester.scrollUntilVisible(help, 200);
-      await tester.pumpAndSettle();
-      await tester.tap(help);
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-upcoming-help');
-    });
-
-    testWidgets('debt ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-
-      // Reached the way the founder reaches it: the Debt action on Home, which
-      // pointed at nothing until step 7. Tapping rather than pushing the route
-      // means this render also proves the button is wired.
-      await tester.tap(find.text('Debt'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-debt');
-
-      // The other direction. A segment that is never rendered is a segment
-      // nobody has looked at, and the two sides use different tones.
-      await tester.tap(find.text('Owed to me'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-debt-owed');
-
-      // One debt in full, with its payment history and the two buttons.
-      await tester.tap(find.text('Marco'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-debt-detail');
-    });
-
-    testWidgets('debt payment sheet ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Debt'));
-      await tester.pumpAndSettle();
-
-      // A LOAN, because that is the sheet with the account picker in it, and
-      // the picker is the control that stops a payment being recorded with no
-      // money leaving anywhere. Rendering the receivable sheet instead would
-      // photograph the one case that does not have it.
-      await tester.tap(find.text('Lola'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Record a payment'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-debt-payment');
-
-      // AND THE ACCOUNT AFTERWARDS. The founder paid a loan, opened the
-      // account it came out of, and found nothing: the balance had moved and
-      // its history did not say why. Nothing had ever rendered that screen
-      // after a payment, so nobody had looked at the one place the defect
-      // lived. This walks the whole path and photographs the end of it.
-      await tester.enterText(find.byType(TextField), '1500');
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('BPI').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      var guard = 0;
-      while (find.byIcon(Icons.arrow_back_rounded).evaluate().isNotEmpty) {
-        await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
-        await tester.pumpAndSettle();
-        if (++guard > 4) break;
-      }
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.byIcon(Icons.account_balance_wallet_outlined),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('BPI').first);
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-account-after-debt-payment');
-    });
-
-    // Hiding an account, walked rather than staged.
-    //
-    // Every screen here is reached by tapping, for the reason the debt pass
-    // above gives: a staged ledger with the flag pre-set renders the same
-    // picture whether or not the switch that is supposed to write it works,
-    // and the whole feature is the switch.
-    testWidgets('hidden accounts ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.byIcon(Icons.account_balance_wallet_outlined),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('GCash'));
-      await tester.pumpAndSettle();
-
-      // The sheet, with both switches off. This is the picture that has to
-      // answer whether two toggles and a warning read as a considered choice
-      // or as a settings screen leaking onto an account.
-      await tester.tap(find.text('Options'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-account-options');
-
-      // Hidden, ON, so the sheet can be judged in the state it will actually
-      // be read in: somebody opening it to undo what they did last week.
-      await tester.tap(find.byKey(const ValueKey('Hide from my lists')));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-account-options-hidden');
-
-      Navigator.of(
-        tester.element(find.text('Hide from my lists')),
-        rootNavigator: true,
-      ).pop();
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
-      await tester.pumpAndSettle();
-
-      // The bottom of Accounts, where the hidden row now lives. The thing to
-      // look at is whether the section reads as a place an account went, or as
-      // a second list somebody has to maintain.
-      for (var i = 0; i < 12; i++) {
-        await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-accounts-hidden-section');
-
-      // And the HERO, on a ledger where money has been declared not the
-      // user's. This is the only screen in the app where the big number is
-      // smaller than the rows under it add up to, so the sentence that
-      // explains the gap is the whole point of the picture.
-      await tester.pumpWidget(
-        _app(s, await memoryStore(_withNotMine(livedIn(), 'a_gcash'))),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.byIcon(Icons.account_balance_wallet_outlined),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-accounts-not-mine');
-
-      // AND HOME, which is the screen that silently lost the money. Safe to
-      // spend falls by the hidden account's whole balance, and until this line
-      // existed the only sentence on the screen blamed the bills. The picture
-      // is here so the sentence gets read, not assumed.
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Home')),
-      );
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-home-not-mine');
-    });
-
-    // Goals, roadmap step 8, and the two sheets that write them.
-    testWidgets('goals ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Goals'));
-      await tester.pumpAndSettle();
-
-      // Three goals in three different STATES: one mid-flight, one nearly
-      // there, one reached. A shot of three healthy goals photographs one row
-      // three times and says nothing about the state the screen has to get
-      // right, which is the finished one.
-      await _shoot(tester, '${s.key}-goals');
-
-      await tester.tap(find.text('Emergency fund'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-goal-actions');
-
-      // The funding sheet, where the sentence about NOT moving money lives.
-      // That sentence is the most important copy on the feature: everybody
-      // who has used an envelope app expects this to debit an account.
-      await tester.tap(find.widgetWithText(PillButton, 'Add money'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-goal-funding');
-    });
-
-    // What repeats, and the sheet that records it. Until this existed there
-    // was no way to tell Salapify about the rent, so safe to spend counted it
-    // as money the user could spend.
-    testWidgets('recurring ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(of: find.byType(NavBar), matching: find.text('Plan')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Upcoming'));
-      await tester.pumpAndSettle();
-
-      // The section lives at the BOTTOM of Upcoming, under the day rows, so
-      // the shot has to scroll to it. A picture of the first viewport would
-      // photograph the part that already worked.
-      await tester.scrollUntilVisible(
-        find.text('What repeats'),
-        120,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-recurring');
-
-      await tester.tap(find.widgetWithText(PillButton, 'Add another'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-recurring-editor');
-    });
-
-    // Insights, roadmap step 9. Reached by TAPPING Home's closing sentence,
-    // which 04-screens.md makes the way in ("One insight sentence with a
-    // number, no card. Tap for Insights."). Tapping rather than pushing the
-    // route, for the reason the debt pass gives: a pushed route renders the
-    // same picture whether or not the thing that opens it works, and this
-    // sentence was a bare Text for as long as there was no screen to reach.
-    testWidgets('insights ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('See your insights'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('See your insights'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-insights');
-
-      // AND THE SEGMENT, which is D23 and the discoverable route. The pushed
-      // screen above is for deep links; this is the one a person finds by
-      // tapping a tab. Reached by tapping the segment, because a screenshot of
-      // a state set in code proves nothing about the control that sets it.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(BackBar),
-          matching: find.byIcon(Icons.arrow_back_rounded),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.byIcon(Icons.article_outlined),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-ledger-entries');
-      await tester.tap(find.text('Insights'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-ledger-insights');
-
-      // AND THE BOTTOM OF IT, because the net worth chart is the one with a
-      // custom painter in it and the one most likely to draw nothing at all.
-      // A shot of the first viewport would photograph two charts and miss the
-      // only one that can fail silently.
-      for (var i = 0; i < 8; i++) {
-        await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-insights-bottom');
-    });
-
-    testWidgets('settings ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_app(s, await memoryStore(livedIn())));
-      await tester.pumpAndSettle();
-
-      // Reached the way a person reaches it, from the bottom of Accounts, so
-      // this render also proves the way IN exists. The founder could not find
-      // Save or Restore, and a screenshot of the screen alone would not have
-      // told me whether the screen was wrong or the door was.
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavBar),
-          matching: find.byIcon(Icons.account_balance_wallet_outlined),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('Backup and settings'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Backup and settings'));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-settings');
-    });
-
-    testWidgets('first run ${s.key}', (tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(412 * 2, 915 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
-
-      // An EMPTY store, which is the one thing the lived-in fixture above can
-      // never show, and the first thing every new user sees. It went unrendered
-      // until the founder ran the app on an emulator and hit it, at which point
-      // it was telling people to set their payday on a screen that could not
-      // set a payday. Every test passed and every screenshot looked right,
-      // because all of them ran against data that already had one.
-      await tester.pumpWidget(_app(s, await memoryStore()));
-      await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-first-run');
-    });
-
-    testWidgets('component sheet ${s.key}', (tester) async {
+    testWidgets('activity renders in $theme', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);
 
-      // Taller than a phone on purpose: the whole vocabulary in one picture is
-      // the thing worth reviewing, and four screenshots of a scroll is not.
-      tester.view.physicalSize = const Size(412 * 2, 1400 * 2);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.reset);
+      tester.view.physicalSize = const Size(1170, 4200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
 
       await tester.pumpWidget(
         MaterialApp(
-          key: UniqueKey(),
           debugShowCheckedModeBanner: false,
-          theme: salapifyTheme(hapon),
-          darkTheme: salapifyTheme(gabi),
-          themeMode: s.dark ? ThemeMode.dark : ThemeMode.light,
-          home: const _ComponentSheet(),
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
         ),
       );
       await tester.pumpAndSettle();
-      await _shoot(tester, '${s.key}-components');
+
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(ActivityScreen),
+        findsOneWidget,
+        reason: 'the Activity tab did not open',
+      );
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/activity_$theme.png'),
+      );
+    });
+  }
+
+  // Reports, the third tab. ALL THREE sub-tabs at both brightnesses, because
+  // a sub-tab nobody renders is a screen nobody has looked at: the Position
+  // tab is what opens by default and the other two are one tap away, so
+  // shooting only the default would leave two thirds of the feature unseen.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final String subTab in <String>[
+      'Position',
+      'Performance',
+      'Cash flow',
+      'Check',
+    ]) {
+      final String slug = subTab.toLowerCase().replaceAll(' ', '_');
+
+      testWidgets('reports $slug renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        // Taller than the other tabs on purpose: Performance carries the
+        // category breakdown, which is the longest thing in the app.
+        tester.view.physicalSize = const Size(1170, 6000);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(ReportsScreen),
+          findsOneWidget,
+          reason: 'the Reports tab did not open',
+        );
+
+        await tester.tap(find.text(subTab));
+        await tester.pumpAndSettle();
+
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/reports_${slug}_$theme.png'),
+        );
+      });
+    }
+  }
+
+  // Plan, the fourth tab. The hub plus the four segments with money on them,
+  // in dark. The other three (Calculators, Learn, Trackers) are covered by
+  // the widget tests; these are the ones where a wrong figure would show.
+  for (final ({String label, String slug}) seg
+      in <({String label, String slug})>[
+        (label: '', slug: 'hub'),
+        (label: 'Budgets', slug: 'budgets'),
+        (label: 'Bills and payables', slug: 'bills'),
+        (label: 'Goals', slug: 'goals'),
+        (label: 'Trackers', slug: 'trackers'),
+        (label: 'Academy', slug: 'academy'),
+      ]) {
+    testWidgets('plan ${seg.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.track_changes_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(PlanScreen),
+        findsOneWidget,
+        reason: 'the Plan tab did not open',
+      );
+
+      if (seg.label.isNotEmpty) {
+        await tester.tap(find.text(seg.label).first);
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/plan_${seg.slug}.png'),
+      );
+    });
+  }
+
+  // An explainer, opened by TAPPING its dot on Reports rather than built on
+  // its own. Founder direction moved the teaching off the screens and behind
+  // these dots, and a picture of the emptied screen without a picture of
+  // where the words went only shows half the trade.
+  testWidgets('info sheet renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+
+    // The net worth dot, which is the first on the Position tab and opens the
+    // longest explainer.
+    await tester.tap(find.byType(InfoDot).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(InfoSheet),
+      findsOneWidget,
+      reason: 'the dot did not open an explainer',
+    );
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/info_sheet.png'),
+    );
+  });
+
+  // The Log sheet, mid-entry rather than blank, because an empty form shows
+  // none of the parts that can go wrong: the confirmation sentence, the
+  // selected account pill, and the Save button becoming live.
+  testWidgets('log sheet renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    // The founder's own example, typed into the quick-parse line, so the
+    // render shows the read-back sentence AND the form it fills.
+    await tester.enterText(
+      find.byKey(const Key('log-quick-parse')),
+      'Jollibee 500 gcash',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fill the form with this'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet.png'),
+    );
+  });
+
+  // The read-back when the parser does NOT know the word. This is the state
+  // the founder hit on the emulator: they typed "Electricity" and the sheet
+  // silently selected Food & Dining, because that is the parser's fallback.
+  // The sentence is the whole fix, so it gets looked at rather than assumed.
+  testWidgets('log sheet unknown category renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('log-quick-parse')),
+      'Xylophone lessons 1500',
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet_unknown_category.png'),
+    );
+  });
+
+  // The Log sheet BACKDATED, which is the state worth looking at rather than
+  // the picker dialog (that one is stock Material and only inherits the
+  // theme). Two things have to read clearly here: the When row showing a day
+  // that is not today, and the extra sentence warning that the balance still
+  // moves now. Somebody logging last week's groceries needs to know the money
+  // comes out today, or the account will not match what they expect.
+  testWidgets('log sheet backdated renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    // The keys sit on the SheetField wrapper, not the TextField inside it, so
+    // enterText has to descend to the editable or it has nothing to type into.
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '820',
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-merchant')),
+        matching: find.byType(TextField),
+      ),
+      'Puregold groceries',
+    );
+    await tester.pumpAndSettle();
+
+    // Drive the real picker rather than setting the field, so the render shows
+    // what a person actually gets after using it. The When row sits below the
+    // fold of this viewport, so scroll to it first.
+    await tester.ensureVisible(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('15'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Scroll on to the confirmation itself. ensureVisible stops the moment its
+    // target is on screen, so stopping at the When row leaves the sentence
+    // underneath it half hidden behind the Save bar, and the render would then
+    // show a clipped warning that the real screen does not have.
+    await tester.ensureVisible(find.textContaining('The balance changes now'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/log_sheet_backdated.png'),
+    );
+  });
+
+  // The picker dialog itself. It is stock Material, which is exactly why it
+  // gets looked at: a dialog Salapify did not draw is the easiest place for a
+  // white panel to appear in the middle of a dark app.
+  testWidgets('date picker renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    LogSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/date_picker.png'),
+    );
+  });
+
+  // The transaction detail, opened on the EXCLUDED row, dark only. That row
+  // is chosen deliberately: it is the one carrying the struck-through amount
+  // and the sentence explaining why it is not in the totals, so the render
+  // shows the state most likely to confuse somebody reconciling.
+  testWidgets('transaction detail renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.menu_book_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('EXCLUDED'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('EXCLUDED'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/transaction_detail.png'),
+    );
+  });
+
+  // The sheets, dark only, which is what the founder uses. Each one is opened
+  // through its REAL route rather than pumped on its own, so what gets
+  // rendered is the modal as it actually appears over the app: the same grab
+  // handle, the same 92% height, the same dimmed Home behind it.
+  const List<({String name, String openWith})> sheets =
+      <({String name, String openWith})>[
+        (name: 'toolkit', openWith: 'toolkit'),
+        (name: 'safe_to_spend', openWith: 'safeToSpend'),
+        (name: 'add_debt', openWith: 'addDebt'),
+        (name: 'tax_calculator', openWith: 'tax'),
+        (name: 'business_tax', openWith: 'business'),
+        (name: 'categories', openWith: 'categories'),
+        (name: 'reminders', openWith: 'reminders'),
+        (name: 'reminders_rules', openWith: 'remindersRules'),
+        (name: 'privacy', openWith: 'privacy'),
+        (name: 'pan', openWith: 'pan'),
+      ];
+
+  for (final ({String name, String openWith}) sheet in sheets) {
+    testWidgets('sheet ${sheet.name} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      // Taller than a phone on purpose: a sheet opens to 92% of the screen and
+      // a phone-height render would cut off the part worth reviewing.
+      tester.view.physicalSize = const Size(1170, 3400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final BuildContext context = tester.element(find.byType(AppShell));
+      switch (sheet.openWith) {
+        case 'toolkit':
+          ToolkitSheet.show(context, state);
+        case 'safeToSpend':
+          SafeToSpendSheet.show(context, state);
+        case 'addDebt':
+          AddDebtSheet.show(context, palette);
+        case 'tax':
+          TaxCalculatorSheet.show(context, palette);
+        case 'business':
+          BusinessTaxSheet.show(context, palette);
+        case 'categories':
+          CategoryManagerSheet.show(context, state);
+        case 'reminders':
+        case 'remindersRules':
+          RemindersSheet.show(context, state);
+        case 'privacy':
+          PrivacySheet.show(context, palette);
+        case 'pan':
+          PanSheet.show(context, state);
+      }
+      await tester.pumpAndSettle();
+
+      // The Rules tab is a second shot rather than a second sheet: it is the
+      // half a founder reviews for whether the controls read right, and the
+      // tray above it is the half they review for whether the words do.
+      if (sheet.openWith == 'remindersRules') {
+        await tester.tap(find.text('Rules'));
+        await tester.pumpAndSettle();
+      }
+
+      // Pan renders with a question ALREADY ASKED. An empty chat is a picture
+      // of an opening paragraph and proves nothing about the thing being
+      // reviewed, which is whether an answer about somebody's own money reads
+      // well.
+      if (sheet.openWith == 'pan') {
+        await tester.tap(find.text('What is safe to spend?'));
+        await tester.pumpAndSettle();
+      }
+
+      // MaterialApp, not AppShell: a modal sheet lives in the Overlay ABOVE
+      // the shell, so a render of the shell alone would be a picture of Home
+      // with nothing on it.
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${sheet.name}.png'),
+      );
+    });
+  }
+
+  // Add Debt with the form FILLED IN, because the amortization table only
+  // exists once there is something to amortise. An empty form is a picture of
+  // the half of this sheet that was already easy to get right.
+  testWidgets('sheet add_debt_schedule renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 4600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AddDebtSheet.show(tester.element(find.byType(AppShell)), palette);
+    await tester.pumpAndSettle();
+
+    final Finder fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Home Credit');
+    await tester.enterText(fields.at(1), '85000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Installments'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_add_debt_schedule.png'),
+    );
+  });
+
+  // Accounts, the fifth tab. All four views at both brightnesses, because a
+  // view nobody renders is a screen nobody has looked at.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final ({String label, String slug}) view
+        in <({String label, String slug})>[
+          (label: '', slug: 'all'),
+          (label: 'Own 8', slug: 'assets'),
+          (label: 'Owe 3', slug: 'liabilities'),
+          (label: 'Invested', slug: 'invested'),
+        ]) {
+      testWidgets('accounts ${view.slug} renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        // Tall: the All view is the whole wallet, eleven accounts in eight
+        // groups plus the debt register, and it is the one worth seeing whole.
+        tester.view.physicalSize = const Size(1170, 6400);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byIcon(Icons.account_balance_wallet_outlined).last,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(AccountsScreen),
+          findsOneWidget,
+          reason: 'the Accounts tab did not open',
+        );
+
+        if (view.label.isNotEmpty) {
+          await tester.tap(find.text(view.label));
+          await tester.pumpAndSettle();
+        }
+
+        await settleImages(tester);
+
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/accounts_${view.slug}_$theme.png'),
+        );
+      });
+    }
+  }
+
+  // A FOREIGN balance, which no seeded account has. Without this shot the
+  // conversion path ships having been tested and never once looked at, and
+  // "about ₱88,400.00" under a Singapore dollar figure is exactly the kind of
+  // line that reads wrong at a glance and fine in an assertion.
+  testWidgets('accounts with a foreign balance renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3000);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    state.addAccount(
+      const Account(
+        id: 'acc_sg_shot',
+        name: 'Singapore payroll',
+        kind: AccountKind.bank,
+        institution: 'Other',
+        balance: 2000,
+        monogram: 'SG',
+        currency: CurrencyCode.sgd,
+        profile: ProfileEntity.personal,
+      ),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Own 9'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/accounts_foreign.png'),
+    );
+  });
+
+  // The add sheet, in both of its shapes: the plain one somebody sees first,
+  // and the card one with the limit, the scheme and the due date on it.
+  for (final ({String kind, String slug}) shape
+      in <({String kind, String slug})>[
+        (kind: '', slug: 'plain'),
+        (kind: 'Credit card', slug: 'card'),
+      ]) {
+    testWidgets('sheet add account ${shape.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      AccountSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.kind.isNotEmpty) {
+        await tester.tap(find.text(shape.kind));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_add_account_${shape.slug}.png'),
+      );
+    });
+  }
+
+  // The debt register, both directions, at both brightnesses. It is a pushed
+  // screen rather than a tab, so the harness reaches it the way a person does:
+  // through the beam on Home.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    for (final ({String label, String slug}) side
+        in <({String label, String slug})>[
+          (label: '', slug: 'owe'),
+          (label: 'Owed to you', slug: 'owed'),
+        ]) {
+      testWidgets('debt ${side.slug} renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+
+        tester.view.physicalSize = const Size(1170, 4200);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(
+          find.byType(DebtBeamCard),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(DebtBeamCard),
+            matching: find.text('See all'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(DebtScreen),
+          findsOneWidget,
+          reason: 'the debt beam did not open the register',
+        );
+
+        if (side.label.isNotEmpty) {
+          await tester.tap(find.text(side.label));
+          await tester.pumpAndSettle();
+        }
+
+        await expectLater(
+          find.byType(DebtScreen),
+          matchesGoldenFile('out/debt_${side.slug}_$theme.png'),
+        );
+      });
+    }
+  }
+
+  // The payment sheet, which is where the money actually moves and therefore
+  // the one screen in this batch most worth looking at. Rendered with an
+  // amount typed and an account chosen, so the consequence lines are on it.
+  testWidgets('sheet debt payment renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    PaymentSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette: palette,
+      state: state,
+      debt: state.debts.firstWhere((Debt d) => d.id == 'debt_homecredit'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '2450');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GCash Wallet'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_debt_payment.png'),
+    );
+  });
+
+  // Four of the nine calculators, chosen because each shows a different SHAPE
+  // of answer: a plain amortisation, a rate-type comparison, a trap, and a
+  // ratio with words rather than pesos.
+  for (final ({String label, String slug}) calc
+      in <({String label, String slug})>[
+        (label: '', slug: 'pagibig'),
+        (label: 'Car loan', slug: 'car'),
+        (label: 'Credit card trap', slug: 'card'),
+        (label: 'Snowball or avalanche', slug: 'strategy'),
+      ]) {
+    testWidgets('calculator ${calc.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byType(DebtBeamCard),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DebtBeamCard),
+          matching: find.text('See all'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Amortization'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(DebtCalculators),
+        findsOneWidget,
+        reason: 'the calculators tab did not open',
+      );
+
+      if (calc.label.isNotEmpty) {
+        await tester.ensureVisible(find.text(calc.label));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(calc.label));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(DebtScreen),
+        matchesGoldenFile('out/calculator_${calc.slug}.png'),
+      );
+    });
+  }
+
+  // Reconciliation with a GAP on it, which is the state worth reviewing: the
+  // default shot shows an untouched form, and the whole point of the screen is
+  // what it says when the two numbers disagree.
+  testWidgets('reports check with a gap renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 5200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '1600');
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/reports_check_gap.png'),
+    );
+  });
+
+  // The Check tab with NO accounts on the phone.
+  //
+  // Worth its own shot because until storage landed it was unreachable, and
+  // because what it used to do was crash in initState and take the whole
+  // Reports tab white. It is a real state now: a ledger restored from a file
+  // somebody cleared has no accounts in it, and neither will a new install
+  // once the sample data question is settled.
+  testWidgets('reports check with no accounts renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+      store: MemorySnapshotStore(emptyLedgerFile),
+    );
+    await state.restore();
+    expect(
+      state.accounts,
+      isEmpty,
+      reason:
+          'the fixture has to actually be empty, or this shot proves '
+          'nothing about the empty state',
+    );
+
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull, reason: 'the empty Check crashed');
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/reports_check_empty.png'),
+    );
+  });
+
+  // The instalment plans, at both brightnesses, and the two sheets.
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('installments renders in $theme', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 5200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byType(DebtBeamCard),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DebtBeamCard),
+          matching: find.text('See all'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Plans'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InstallmentsView), findsOneWidget);
+
+      await expectLater(
+        find.byType(DebtScreen),
+        matchesGoldenFile('out/installments_$theme.png'),
+      );
+    });
+  }
+
+  for (final ({bool extra, String slug}) shape in <({bool extra, String slug})>[
+    (extra: false, slug: 'scheduled'),
+    (extra: true, slug: 'extra'),
+  ]) {
+    testWidgets('sheet installment ${shape.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      InstallmentSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+        plan: state.installments.first,
+        extra: shape.extra,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.extra) {
+        await tester.enterText(find.byType(TextField).first, '5000');
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('GCash Wallet'));
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_installment_${shape.slug}.png'),
+      );
     });
   }
 }
 
-/// Every component in the kit, once, in the states it actually ships in.
+/// A saved ledger with nothing in it, for the empty-state shots.
 ///
-/// Test-only on purpose: it is a review surface, not a screen, and putting it
-/// in lib/ would mean shipping a page nobody can reach.
-class _ComponentSheet extends StatelessWidget {
-  const _ComponentSheet();
+/// Written as a file rather than by clearing the lists, because that is how
+/// an empty ledger really arrives: off the disk, through the same decoder
+/// everything else goes through.
+const String emptyLedgerFile = '''
+{
+  "schemaVersion": 1,
+  "accounts": [],
+  "transactions": [],
+  "debts": [],
+  "budgets": [],
+  "goals": [],
+  "upcoming": [],
+  "incomeStreams": [],
+  "installments": [],
+  "reconciliations": []
+}
+''';
 
-  @override
-  Widget build(BuildContext context) {
-    final skin = context.skin;
-    return Scaffold(
-      backgroundColor: skin.bg,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(gutter, 10, gutter, 10),
-          children: [
-            const TopBar(date: 'Saturday, Sep 13'),
-            const SizedBox(height: 16),
-            // `onAction` is now required alongside `action`, and this sheet is
-            // where that rule was first broken: it demoed an accent "Edit"
-            // wired to nothing, which is exactly the dead control the assertion
-            // exists to stop. A component SHEET showing a dead control teaches
-            // every screen that copies from it to ship one.
-            ScreenTitle(
-              title: 'Component sheet',
-              action: 'Edit',
-              onAction: () {},
-              sub: 'Every piece the app is built from, in both skins.',
-            ),
-            const SizedBox(height: 22),
+/// The Plan library, and the register the Debt and loan tile now opens.
+///
+/// Rendered because the founder reported the three debt sections missing and
+/// they were not missing, the TILE was wired to the add-a-debt form. A picture
+/// of the door is the only way to show that the door now works.
+void planCalculatorShots() {
+  testWidgets('plan calculators library renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
 
-            Head(title: 'Rows', action: 'See all', onAction: () {}),
-            const SizedBox(height: 10),
-            // The three tones, an icon row, a two-line row, and a struck
-            // through row: everything a list can be.
-            const Group(
-              children: [
-                ItemRow(
-                  icon: Icons.restaurant_outlined,
-                  title: 'Jollibee',
-                  sub: 'Food, GCash',
-                  amount: '-₱250.00',
-                ),
-                ItemRow(
-                  icon: Icons.payments_outlined,
-                  title: 'Sweldo',
-                  sub: 'Income, BPI',
-                  amount: '+₱18,500.00',
-                  amountSub: '15th',
-                  tone: Tone.good,
-                ),
-                ItemRow(
-                  icon: Icons.handshake_outlined,
-                  title: 'Owed to Ate Rina',
-                  sub: 'Due in 4 days',
-                  amount: '₱3,000.00',
-                  tone: Tone.owe,
-                ),
-                ItemRow(
-                  icon: Icons.check_circle_outline,
-                  title: 'Settled with Kuya Ben',
-                  sub: 'Paid 11 Sep',
-                  amount: '₱0.00',
-                  strike: true,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // inset 0, for a group whose rows carry no icon disc: the rule
-            // runs the full width instead of starting nowhere.
-            const Group(
-              inset: 0,
-              children: [
-                ItemRow(title: 'No icon here', amount: '₱120.00'),
-                ItemRow(title: 'Nor here', amount: '₱80.00'),
-              ],
-            ),
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-            const SizedBox(height: 26),
-            const Head(title: 'Surfaces and bars'),
-            const SizedBox(height: 10),
-            // Each bar carries the RIGHT-HAND FIGURE and the caption it has on
-            // the real screen, and that is a correction rather than a detail.
-            //
-            // The first version stacked two bare bars 14dp apart with generic
-            // labels, which is the only place in the whole product where those
-            // two colours sit adjacent with the words stripped out. The
-            // founder looked at it and reasonably asked whether over budget
-            // was distinguishable. A review surface that hides the cues
-            // carrying the meaning cannot tell anyone whether the meaning
-            // arrives. See D16.
-            Panel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Groceries',
-                          style: TypeScale.rowTitle(skin.text),
-                        ),
-                      ),
-                      Text(
-                        '₱3,600.00 left',
-                        style: TypeScale.rowAmount(skin.text),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const ThinBar(fraction: 0.4),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₱2,400.00 of ₱6,000.00 spent',
-                    style: TypeScale.caption(skin.text3),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Food',
-                          style: TypeScale.rowTitle(skin.text),
-                        ),
-                      ),
-                      // The words flip, not just the colour. "over" is doing
-                      // the work here; the colour only agrees with it.
-                      Text(
-                        '₱740.00 over',
-                        style: TypeScale.rowAmount(skin.bad),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ThinBar(fraction: 1.0, fill: skin.bad),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₱5,740.00 of ₱5,000.00 spent',
-                    style: TypeScale.caption(skin.text3),
-                  ),
-                ],
-              ),
-            ),
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
 
-            const SizedBox(height: 26),
-            const Head(title: 'Controls'),
-            const SizedBox(height: 10),
-            const Segmented(
-              options: ['Expense', 'Income', 'Transfer'],
-              index: 0,
-            ),
-            const SizedBox(height: 12),
-            const Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                PickChip(label: 'Food', on: true),
-                PickChip(label: 'Transport'),
-                PickChip(label: 'Bills'),
-                PickChip(label: 'Groceries'),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Row(
-              children: [
-                Expanded(
-                  child: Field(value: 'Today', leading: Icons.event_outlined),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Field(
-                    value: 'Note',
-                    hint: true,
-                    leading: Icons.notes_outlined,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const PillButton(label: 'Save entry', icon: Icons.check_rounded),
-            const SizedBox(height: 10),
-            const PillButton(label: 'Cancel', secondary: true),
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.track_changes_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calculators'));
+    await tester.pumpAndSettle();
 
-            const SizedBox(height: 26),
-            const Head(title: 'Nothing here yet'),
-            const SizedBox(height: 10),
-            const EmptyState(
-              icon: Icons.pie_chart_outline_rounded,
-              title: 'Nothing logged yet',
-              body:
-                  'Tap Log to record your first expense. This is what a fresh '
-                  'install actually sees.',
-            ),
-          ],
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/plan_calculators.png'),
+    );
+  });
+
+  testWidgets('the debt register reached from Plan renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 8800);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.track_changes_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calculators'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Debt and loan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Amortization'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(DebtScreen),
+      matchesGoldenFile('out/plan_to_debt_calculators.png'),
+    );
+  });
+}
+
+/// The FX converter, on the built-in rates so the shot needs no network.
+void fxShot() {
+  testWidgets('fx converter renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final Palette palette = Palette.of(ThemeMode2.gabi);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, ThemeMode2.gabi),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          // An endpoint that resolves to nothing, so the shot exercises the
+          // OFFLINE path: built-in rates on screen, no spinner, no error.
+          body: FxSheet(
+            palette: palette,
+            service: FxService(endpoint: 'https://127.0.0.1:1/none'),
+          ),
         ),
       ),
     );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(FxSheet),
+      matchesGoldenFile('out/fx_converter.png'),
+    );
+  });
+}
+
+// The two faces of the plastic, which is the whole point of the flip and the
+// one thing no other shot can show. Every other accounts render draws the
+// FRONT, because that is what a card is at rest, so a back that came out
+// mirror-imaged, clipped or the wrong shape would render perfectly in all of
+// them and be wrong on the phone.
+//
+// Three cards, because the finish is the thing most likely to break: a plain
+// issuer skin, a gold one with the sheen, and a bare debit with nothing
+// recorded so the empty back is looked at too and not just asserted.
+void _cardFaceShots() {
+  const Account rewards = Account(
+    id: 'shot_card_visa',
+    name: 'BPI Rewards Card',
+    kind: AccountKind.credit,
+    institution: 'BPI',
+    balance: 12480.5,
+    monogram: 'BP',
+    accountNumber: '**** 8819',
+    creditLimit: 40000,
+    dueDate: 'Oct 3',
+    statementDate: 'Sep 18',
+    interestRate: 3.5,
+    cardNetwork: CardNetwork.visa,
+    profile: ProfileEntity.personal,
+  );
+
+  const Account gold = Account(
+    id: 'shot_card_gold',
+    name: 'Metrobank Gold',
+    kind: AccountKind.credit,
+    institution: 'Metrobank',
+    balance: 6200,
+    monogram: 'MB',
+    accountNumber: '4127 8890 2211 4402',
+    creditLimit: 150000,
+    dueDate: 'Oct 12',
+    statementDate: 'Sep 26',
+    interestRate: 2.0,
+    cardNetwork: CardNetwork.mastercard,
+    cardTier: CardTier.gold,
+    profile: ProfileEntity.personal,
+  );
+
+  const Account bare = Account(
+    id: 'shot_card_bare',
+    name: 'GoTyme Debit',
+    kind: AccountKind.debit,
+    institution: 'GoTyme',
+    balance: 3150,
+    monogram: 'GT',
+  );
+
+  for (final ({String slug, bool flipped}) face
+      in <({String slug, bool flipped})>[
+        (slug: 'front', flipped: false),
+        (slug: 'back', flipped: true),
+      ]) {
+    testWidgets('card ${face.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final Palette palette = Palette.of(ThemeMode2.gabi);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, ThemeMode2.gabi),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  for (final Account a in <Account>[rewards, gold, bare])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Spacing.lg),
+                      child: BankCard(
+                        account: a,
+                        palette: palette,
+                        onTap: () {},
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+
+      if (face.flipped) {
+        for (final Element e in find.byType(BankCard).evaluate()) {
+          await tester.tap(find.byWidget(e.widget));
+        }
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Tap to turn back'),
+          findsNWidgets(3),
+          reason: 'a card did not turn, so this shot is not of the back',
+        );
+      }
+
+      await expectLater(
+        find.byType(Scaffold),
+        matchesGoldenFile('out/card_${face.slug}.png'),
+      );
+    });
+  }
+}
+
+/// Home on a ledger that holds ONLY real money, with no payday set.
+///
+/// This is what every install looks like the moment the sample data is
+/// cleared, and it is the shot that proves two money defects are gone. Before
+/// the fix this screen said Safe to Spend ₱0.00, because ₱41,184 of demo bills
+/// and ₱6,348 of demo instalment plans were reserved against obligations the
+/// person had never entered and could find on no screen; and the line beneath
+/// it offered a per-day figure equal to the whole fortnight, because the
+/// engine divides by max(1, daysToPayday) and nobody had set a payday.
+void realMoneyHomeShot() {
+  testWidgets('home with only real money renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2900);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "real_1", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 50000, "monogram": "GC"}
+  ],
+  "transactions": [], "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+      store: store,
+    );
+    await state.restore();
+
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/home_real_money_only.png'),
+    );
+  });
+}
+
+/// Settings, and the compact storage strip that now points at it.
+void settingsShots() {
+  testWidgets('settings renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+    );
+    // RESTORED, so the panel shows the healthy state. A store that has never
+    // been restored is neither saving nor failing, and the first version of
+    // this shot rendered that in-between state as an alarm, which is how the
+    // three-way fix in settings_sheet.dart got found.
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: SettingsSheet(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(SettingsSheet),
+      matchesGoldenFile('out/settings.png'),
+    );
+  });
+}
+
+/// The toolkit's four tabs, which the founder asked to match the prototype.
+void toolkitShots() {
+  for (final ({int index, String slug}) tab in <({int index, String slug})>[
+    (index: 0, slug: 'notes'),
+    (index: 1, slug: 'mindset'),
+    (index: 2, slug: 'treats'),
+  ]) {
+    testWidgets('toolkit ${tab.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2900);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: ToolkitSheet(state: state),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      if (tab.index > 0) {
+        await tester.tap(
+          find.text(<String>['Notes Calc', 'Mindset', 'Treats'][tab.index]),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      // The mindset tab only shows its verdict after it is asked, and the
+      // verdict is the whole feature, so the shot asks.
+      if (tab.index == 1) {
+        await tester.ensureVisible(find.text('Should I buy it?'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Should I buy it?'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(ToolkitSheet),
+        matchesGoldenFile('out/toolkit_${tab.slug}.png'),
+      );
+    });
+  }
+}
+
+/// The restore screen, and the confirmation in front of the most destructive
+/// action in the app.
+void importShots() {
+  const String backup =
+      '{"schemaVersion":1,'
+      '"accounts":[{"id":"a1","name":"Their BPI","kind":"bank",'
+      '"institution":"BPI","balance":71940,"monogram":"BPI"},'
+      '{"id":"m1","name":"Housing loan","kind":"mortgage",'
+      '"institution":"Pag-IBIG","balance":200300,"monogram":"MTG"}],'
+      '"transactions":[],"debts":[],"budgets":[],"goals":[],'
+      '"upcoming":[],"incomeStreams":[],"installments":[],'
+      '"reconciliations":[],"bills":[],'
+      '"timestamp":"2026-09-12T08:00:00.000Z"}';
+
+  for (final ({String slug, bool confirm}) shot
+      in <({String slug, bool confirm})>[
+        (slug: 'preview', confirm: false),
+        (slug: 'confirm', confirm: true),
+      ]) {
+    testWidgets('import ${shot.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+        store: MemorySnapshotStore(),
+      );
+      await state.restore();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: ImportSheet(state: state),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Paste a backup instead'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), backup);
+      await tester.tap(find.text('Read what I pasted'));
+      await tester.pumpAndSettle();
+
+      if (shot.confirm) {
+        await tester.tap(find.text('Replace everything with this backup'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/import_${shot.slug}.png'),
+      );
+    });
   }
 }

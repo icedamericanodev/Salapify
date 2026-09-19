@@ -1,163 +1,102 @@
-// The currencies the app understands, ported 1:1 from mobile/lib/currencies.js.
-// There are deliberately NO exchange rates stored here. Salapify is offline
-// first, and a cached rate goes stale silently; a finance app must never
-// quietly show a wrong peso figure. When a user logs an expense in another
-// currency they give the rate at that moment and we store the already
-// converted base amount. Formatting matches the RN app to the digit, golden
-// verified.
-
-/// code and symbol, in the same order the RN picker shows.
-const List<Map<String, String>> currencies = [
-  {'code': 'PHP', 'symbol': '₱'},
-  {'code': 'USD', 'symbol': '\$'},
-  {'code': 'EUR', 'symbol': '€'},
-  {'code': 'GBP', 'symbol': '£'},
-  {'code': 'JPY', 'symbol': '¥'},
-  {'code': 'CNY', 'symbol': '¥'},
-  {'code': 'KRW', 'symbol': '₩'},
-  {'code': 'INR', 'symbol': '₹'},
-  {'code': 'IDR', 'symbol': 'Rp'},
-  {'code': 'MYR', 'symbol': 'RM'},
-  {'code': 'SGD', 'symbol': 'S\$'},
-  {'code': 'THB', 'symbol': '฿'},
-  {'code': 'VND', 'symbol': '₫'},
-  {'code': 'HKD', 'symbol': 'HK\$'},
-  {'code': 'AUD', 'symbol': 'A\$'},
-  {'code': 'CAD', 'symbol': 'C\$'},
-  {'code': 'AED', 'symbol': 'AED'},
-  {'code': 'SAR', 'symbol': 'SAR'},
-  {'code': 'CHF', 'symbol': 'CHF'},
-  {'code': 'NZD', 'symbol': 'NZ\$'},
-];
-
-/// The symbol every formatter renders BASE amounts with.
+/// Multi-currency support, ported from src/utils/currencies.ts.
 ///
-/// Resolved from settings once per rebuild in main.dart, the Barako.current
-/// pattern: a settings change notifies the store, the app tree rebuilds, and
-/// every amount on screen reflows at once. Defaults to the peso, so every
-/// existing user and every existing test sees zero change until someone
-/// explicitly picks another currency.
+/// Salapify is a peso app and every account in the fixture is PHP, so this
+/// whole file is a no-op on today's data. It exists because the prototype's
+/// Accounts screen shows a foreign balance in its OWN currency with the peso
+/// equivalent underneath, and an OFW with a Singapore payroll account is
+/// exactly the person that screen was drawn for.
 ///
-/// This is the ONE mutable currency read. The PH calculators (tax, salary,
-/// loan, contributions, thirteenth month) deliberately do not use it: they
-/// compute Philippine payroll and tax law, and the peso is part of that
-/// domain, not a display preference.
-String baseCurrencySymbol = '₱';
+/// The rates are INDICATIVE AND FIXED, copied from the prototype. There is no
+/// network call and there is not going to be one in an offline first app, so
+/// a converted figure is an estimate and the UI has to say so wherever it
+/// shows one. Never use a converted number as the basis of a decision the
+/// user would blame on us.
+library;
 
-/// Read the RN settings keys (currency holds the symbol, currencyCode the
-/// code) into [baseCurrencySymbol]. Symbol wins when both exist, matching
-/// the RN app, and anything malformed falls back to the peso.
-void resolveBaseCurrency(dynamic settings) {
-  if (settings is Map) {
-    final sym = settings['currency'];
-    if (sym is String && sym.isNotEmpty) {
-      baseCurrencySymbol = sym;
-      return;
-    }
-    final code = settings['currencyCode'];
-    if (code is String && code.isNotEmpty) {
-      baseCurrencySymbol = currencySymbol(code);
-      return;
-    }
+import 'package:intl/intl.dart';
+
+/// The five currencies the prototype supports. Adding a sixth means adding it
+/// here, in [currencySymbols], [currencyNames] and [exchangeRatesToPhp]; the
+/// integrity test iterates this enum and reddens if any of the three is short.
+enum CurrencyCode { php, usd, eur, jpy, sgd }
+
+/// The wire spelling, which is what the prototype stores and what a backup
+/// file will have to carry.
+extension CurrencyCodeWire on CurrencyCode {
+  String get wire => switch (this) {
+    CurrencyCode.php => 'PHP',
+    CurrencyCode.usd => 'USD',
+    CurrencyCode.eur => 'EUR',
+    CurrencyCode.jpy => 'JPY',
+    CurrencyCode.sgd => 'SGD',
+  };
+}
+
+CurrencyCode? currencyFromWire(String raw) {
+  for (final CurrencyCode c in CurrencyCode.values) {
+    if (c.wire == raw.toUpperCase()) return c;
   }
-  baseCurrencySymbol = '₱';
+  return null;
 }
 
-/// The sign for a code, falling back to the code itself so an unknown code
-/// never renders blank. Matches RN currencySymbol (null and '' give '').
-String currencySymbol(dynamic code) {
-  for (final c in currencies) {
-    if (c['code'] == code) return c['symbol']!;
-  }
-  return code == null ? '' : code.toString();
+const Map<CurrencyCode, String> currencySymbols = <CurrencyCode, String>{
+  CurrencyCode.php: '₱',
+  CurrencyCode.usd: r'$',
+  CurrencyCode.eur: '€',
+  CurrencyCode.jpy: '¥',
+  CurrencyCode.sgd: r'S$',
+};
+
+const Map<CurrencyCode, String> currencyNames = <CurrencyCode, String>{
+  CurrencyCode.php: 'Philippine Peso (PHP)',
+  CurrencyCode.usd: 'US Dollar (USD)',
+  CurrencyCode.eur: 'Euro (EUR)',
+  CurrencyCode.jpy: 'Japanese Yen (JPY)',
+  CurrencyCode.sgd: 'Singapore Dollar (SGD)',
+};
+
+/// The short name the picker shows, without the code in brackets.
+const Map<CurrencyCode, String> currencyShortNames = <CurrencyCode, String>{
+  CurrencyCode.php: 'Philippine Peso',
+  CurrencyCode.usd: 'US Dollar',
+  CurrencyCode.eur: 'Euro',
+  CurrencyCode.jpy: 'Japanese Yen',
+  CurrencyCode.sgd: 'Singapore Dollar',
+};
+
+/// One unit of the currency, in pesos. Indicative, fixed, and stale by
+/// construction. See the library note above.
+const Map<CurrencyCode, double> exchangeRatesToPhp = <CurrencyCode, double>{
+  CurrencyCode.php: 1.0,
+  CurrencyCode.usd: 58.50,
+  CurrencyCode.eur: 63.80,
+  CurrencyCode.jpy: 0.385,
+  CurrencyCode.sgd: 44.20,
+};
+
+/// Converts an amount in [currency] to pesos at the indicative rate.
+double convertToPhp(double amount, [CurrencyCode currency = CurrencyCode.php]) {
+  final double rate = exchangeRatesToPhp[currency] ?? 1.0;
+  return amount * rate;
 }
 
-/// Currencies normally written with no decimal places, so "¥1,000" not
-/// "¥1,000.00" stays honest to how they are used.
-const Set<String> _zeroDecimal = {'JPY', 'KRW', 'VND', 'IDR'};
+final NumberFormat _twoDp = NumberFormat('#,##0.00');
+final NumberFormat _noDp = NumberFormat('#,##0');
 
-/// Comma-grouped integer part, mirroring JS toLocaleString('en-US') grouping.
-String _group(String digits) {
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
-    buf.write(digits[i]);
-  }
-  return buf.toString();
-}
-
-/// A full converted amount with its symbol and the right decimals, e.g.
-/// "\$12.34", "¥1,300", "₱690.50". Non-finite gives '' like the RN app.
-String formatConverted(dynamic amount, String code) {
-  final n = amount is num ? amount.toDouble() : double.tryParse('$amount');
-  if (n == null || !n.isFinite) return '';
-  final dp = _zeroDecimal.contains(code) ? 0 : 2;
-  return '${currencySymbol(code)}${_fixed(n, dp)}';
-}
-
-/// A short original amount label like "¥1,000" or "\$13", whole numbers only,
-/// shown next to a converted expense. Matches RN formatForeign.
-String formatForeign(dynamic amount, String code) {
-  final n = amount is num ? amount.toDouble() : double.tryParse('$amount');
-  if (n == null || !n.isFinite) return '';
-  return '${currencySymbol(code)}${_fixed(_jsRound(n).toDouble(), 0)}';
-}
-
-/// JS Math.round: half rounds up (toward positive infinity), unlike Dart's
-/// round-half-away-from-zero on negatives.
-double _jsRound(num x) => (x + 0.5).floorToDouble();
-
-/// n rendered with exactly dp decimals, comma grouped, mirroring V8
-/// toLocaleString('en-US', {min/maxFractionDigits: dp}). V8 rounds the SHORTEST
-/// decimal representation half up, not the raw binary double, so 1.005 becomes
-/// "1.01"; a naive multiply-then-floor would wrongly give "1.00". So this
-/// rounds the decimal STRING. The sign follows the input (V8 keeps a minus even
-/// on a value that rounds to zero, e.g. "-0.00"), matching the RN app.
-String _fixed(double n, int dp) {
-  final neg = n < 0;
-  final mag = n.abs();
-  var s = mag.toString();
-  // Only absurd magnitudes (far past any real money value) print in
-  // exponential form; accept a plain binary-rounded expansion there.
-  if (s.contains('e') || s.contains('E')) s = mag.toStringAsFixed(dp);
-  final dot = s.indexOf('.');
-  var intPart = dot == -1 ? s : s.substring(0, dot);
-  var fracPart = dot == -1 ? '' : s.substring(dot + 1);
-  if (fracPart.length > dp) {
-    final roundUp = fracPart.codeUnitAt(dp) - 48 >= 5;
-    var kept = dp == 0 ? '' : fracPart.substring(0, dp);
-    if (roundUp) {
-      final carried = _incDecimal('$intPart$kept');
-      if (dp == 0) {
-        intPart = carried;
-        kept = '';
-      } else {
-        intPart = carried.substring(0, carried.length - dp);
-        kept = carried.substring(carried.length - dp);
-      }
-    }
-    fracPart = kept;
-  } else {
-    fracPart = fracPart.padRight(dp, '0');
-  }
-  intPart = intPart.replaceFirst(RegExp(r'^0+(?=\d)'), '');
-  final grouped = _group(intPart);
-  final sign = neg ? '-' : '';
-  return dp == 0 ? '$sign$grouped' : '$sign$grouped.$fracPart';
-}
-
-/// Add one to the last digit of a decimal digit string, carrying left.
-String _incDecimal(String digits) {
-  final buf = digits.split('');
-  var carry = true;
-  for (var i = buf.length - 1; i >= 0 && carry; i--) {
-    final d = buf[i].codeUnitAt(0) - 48 + 1;
-    if (d == 10) {
-      buf[i] = '0';
-    } else {
-      buf[i] = String.fromCharCode(48 + d);
-      carry = false;
-    }
-  }
-  return carry ? '1${buf.join()}' : buf.join();
+/// Formats an amount with its own currency's symbol.
+///
+/// The SIGN GOES BEFORE THE SYMBOL, so a negative dollar balance reads
+/// "-$2,500.00" and not "$-2,500.00". That is the prototype's shape and it is
+/// also the one people read fastest, because the minus is the first thing on
+/// the line rather than buried after a glyph.
+String formatCurrency(
+  double amount,
+  CurrencyCode currency, {
+  bool includeDecimals = true,
+}) {
+  final String symbol = currencySymbols[currency] ?? '₱';
+  final NumberFormat f = includeDecimals ? _twoDp : _noDp;
+  final String body = f.format(amount.abs());
+  final String sign = amount < 0 ? '-' : '';
+  return '$sign$symbol$body';
 }

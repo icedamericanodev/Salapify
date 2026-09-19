@@ -1,54 +1,27 @@
 #!/usr/bin/env bash
-# Local, earlier copy of the same check .github/scripts/check-stamp-unique.sh
-# runs in CI: refuse a push that would ship a Shorebird patch under a stamp
-# already recorded in docs/delivery-log.md.
+# RETIRED with the Salapify 2 archive, 2026-09-18, on founder direction.
 #
-# CI already catches this every time (session 32 and 33's own
-# docs/lunch-and-learn.md entries, three confirmed collisions, zero reaching
-# main). This hook does not replace that: it is one honest step earlier, so
-# the round trip (push, wait for CI, fix, push again) does not have to
-# happen at all when the mistake is caught locally instead. It is NOT a
-# server-side check. GitHub does not run pre-receive hooks on a standard
-# repository, and this file being present in the repo does nothing on its
-# own: a checkout only runs it after that checkout's own
-#   git config core.hooksPath .githooks
-# has been set, once, in that clone. A commit pushed from any checkout that
-# never ran that command skips this entirely and still relies on CI as the
-# real backstop, exactly as before. See CLAUDE.md's Flutter rebuild section
-# and docs/lunch-and-learn.md session 33 for the incident this responds to.
+# This hook used to refuse a push that would ship a Shorebird patch under a
+# stamp already recorded in docs/delivery-log.md. It only ever mattered because
+# a push touching flutter/ eventually reached main and shipped to the founder's
+# phone. flutter/ now lives at archive/salapify-2-flutter/ and its publisher
+# workflows are disabled, so there is no stamp, no patch and nothing to collide
+# with.
+#
+# It is written out rather than deleted because the check itself was sound and
+# caught three real collisions (docs/lunch-and-learn.md, sessions 32 and 33).
+# The script it called is preserved at
+#   archive/salapify-2-flutter/ci-disabled/scripts/check-stamp-unique.sh
+# and this hook's previous body is in this file's git history. If Salapify 2 is
+# ever un-archived, restore both together; a publisher without this guard is
+# how the collisions happened in the first place.
+#
+# The reason this file still exists at all, saying so out loud, is that the
+# previous version would have gone SILENT rather than absent: its first act was
+#   if [ ! -f flutter/lib/main.dart ]; then exit 0; fi
+# which the archive move satisfies. A guard that exits 0 while its subject has
+# moved reads exactly like a guard that ran and passed. This repository has
+# been bitten by that shape before.
 set -euo pipefail
 
-cd "$(git rev-parse --show-toplevel)"
-
-# Only meaningful when flutter/lib/main.dart exists on this branch at all.
-if [ ! -f flutter/lib/main.dart ]; then
-  exit 0
-fi
-
-BRANCH=$(grep -oE "'f[0-9]+\.[0-9]+" flutter/lib/main.dart | head -1 | tr -d "'" || true)
-
-# Best effort: uses whatever origin/main this clone already has, without
-# fetching (a pre-push hook should not add network latency to every push).
-# A stale local origin/main can only make this hook MISS a real collision,
-# never invent a false one, since it would just compare against an older
-# delivered stamp; CI always re-checks against the true origin/main anyway.
-DELIVERED=$(git show origin/main:docs/delivery-log.md 2>/dev/null \
-  | grep -oE '\| f[0-9]+\.[0-9]+ \|' | tail -1 | tr -d '| ' || true)
-
-BASE=$(git merge-base origin/main HEAD 2>/dev/null || echo "")
-if [ -z "$BASE" ]; then
-  TOUCHES=yes
-elif git diff --name-only "$BASE"...HEAD | grep -qE '^flutter/'; then
-  TOUCHES=yes
-else
-  TOUCHES=no
-fi
-
-bash .github/scripts/check-stamp-unique.sh "$BRANCH" "$DELIVERED" "$TOUCHES"
-
-# Second check, added in Phase B3: app/'s money engine must still be byte for
-# byte the engine on the founder's phone. `dart format lib/` reflows four of
-# those files every time it is run over them, and the formatter cannot be told
-# to skip them, so this catches it here rather than a CI round trip later.
-# Same script app-check.yml runs, so the two can never drift.
-bash .github/scripts/check-engine-identical.sh
+exit 0

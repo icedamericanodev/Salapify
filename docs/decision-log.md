@@ -196,3 +196,78 @@ Two conditions, both required.
    examples do not name releases either. A forced base APK reaches section 42
    only through "irreversible or high-impact changes". Cite it that way, not
    as a section 42 release rule, which is not a thing the document contains.
+
+## 2026-09-18: Pin app/ to Flutter 3.47.4, alone, and say why it differs
+
+### Decision
+
+`.github/workflows/app-check.yml` moves from Flutter 3.44.6 to 3.47.4. The
+committed `app/pubspec.lock` and `app/analysis_options.yaml` are regenerated on
+3.47.4 in the same commit. Every other pin in the repository stays at 3.44.6
+and nothing under `flutter/` is touched, so nothing ships.
+
+This is the only file in the repository whose Flutter version differs, and the
+rule it breaks ("the pin is written in several workflow files and they must all
+agree") is broken on purpose rather than overlooked.
+
+### Reason
+
+The founder runs Flutter 3.47.4, Dart 3.13.3, and `app/` runs nowhere else. CI
+at 3.44.6 was proving the app works on a toolchain nobody uses.
+
+It also cost real time. Merely running the app calls `flutter pub get`, 3.47
+rewrites `pubspec.lock` and writes an `analyzer.exclude` block into
+`analysis_options.yaml`, and `git pull --ff-only` then refuses. `tools/dev-sync.sh`
+sat fetching and declining to pull while the emulator stayed on old code and
+the terminal looked healthy. dev-sync now heals that, but the drift only exists
+because the two SDKs disagree; aligning them removes the cause rather than the
+symptom.
+
+### This does not overturn 2026-08-16
+
+That decision evaluated 3.47.0 and kept every pin at 3.44.6, and it stands. Its
+alternative 2, "raise only the branch check and leave the publisher on 3.44.6",
+was rejected because it would make CI test the app on a toolchain different
+from the one that actually ships.
+
+That objection is about `flutter-check.yml`, which guards the app in `flutter/`
+that Shorebird delivers. `app/` has NO Shorebird publisher, no app id and no
+update stamp, stated in app-check.yml's own header. There is no shipping
+toolchain for this check to split from, so the objection does not reach it.
+Shorebird still sets the number for everything it builds, which is why the
+other four pins do not move.
+
+### Alternatives considered
+
+1. Leave CI at 3.44.6 and rely on dev-sync putting the generated files back.
+   Rejected by the founder: it heals the symptom every pull and leaves CI
+   verifying a Flutter they do not run.
+2. Have the founder install 3.44.6 alongside 3.47.4 and run the app on it.
+   Rejected: two SDKs to manage on a beginner's machine, for no benefit while
+   `app/` has no Shorebird.
+3. Raise every pin to 3.47.4. Not considered seriously. Shorebird cannot build
+   it, so the preview publisher would fail on the next merge to main.
+
+### Evidence
+
+Checked 2026-09-18 with 3.47.4 installed at /opt/f3474.
+
+- `flutter --version` on the founder's Mac: Flutter 3.47.4, Dart 3.13.3.
+- Against 3.47.4, `flutter analyze` reports no issues and the full suite
+  passes, 29 tests, and the screenshot harness still renders all four surfaces.
+- `flutter pub get` on 3.47.4 changed four SDK-pinned packages in
+  `pubspec.lock` and added the `analyzer.exclude` block to
+  `analysis_options.yaml`. Both are committed here, so the committed files are
+  now the 3.47.4 resolution and app-check's "pub get leaves the tree clean"
+  step is checking something true.
+
+### Impact
+
+- No delivery impact. `flutter/` is untouched, so the preview publisher does
+  not trigger and no update stamp applies.
+- `app-check.yml` now disagrees with the other four pins by design. Anyone
+  changing a pin must read app-check.yml's header before assuming they should
+  all match again.
+- Reversing this at Phase D is not optional. When `app/` gains a Shorebird
+  publisher, this pin must come back down to a version Shorebird supports, with
+  both generated files regenerated on that SDK in the same commit.

@@ -1,0 +1,170 @@
+{
+  "expo": {
+    "name": "Salapify",
+    "slug": "salapify-v2",
+    "owner": "icedamericanodev",
+    "version": "1.4.1",
+    "orientation": "portrait",
+    "scheme": "salapify",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "updates": {
+      "url": "https://u.expo.dev/8bc5a127-b145-41c3-a4f4-790afd91c9f2"
+    },
+    "runtimeVersion": "1.4.0",
+    "experiments": {
+      "baseUrl": "/Salapify/app"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Salapify uses the camera so you can photograph receipts for your entries.",
+          "photosPermission": "Salapify opens your photos so you can attach receipts to your entries.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "BudgetWidget",
+              "label": "Salapify Budget",
+              "description": "How much you have left to spend this month",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "NetWorthWidget",
+              "label": "Salapify Net Worth",
+              "description": "Your net worth at a glance",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "SpentMonthWidget",
+              "label": "Salapify Spent This Month",
+              "description": "Spending so far this month vs last month",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "SweldoWidget",
+              "label": "Salapify Next Sweldo",
+              "description": "Days until your next payday",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "OwedToYouWidget",
+              "label": "Salapify Owed To You",
+              "description": "Utang other people owe you",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "YouOweWidget",
+              "label": "Salapify You Owe",
+              "description": "Total debt you still owe",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "SavedMonthWidget",
+              "label": "Salapify Saved This Month",
+              "description": "Money kept this month and your savings rate",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "TopCategoryWidget",
+              "label": "Salapify Top Spending",
+              "description": "Your biggest spending category this month",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "GoalWidget",
+              "label": "Salapify Goal Progress",
+              "description": "Your savings goal closest to done",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "StreakWidget",
+              "label": "Salapify Logging Streak",
+              "description": "Your daily logging streak",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A130E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.icedamericanodev.salapify"
+    },
+    "android": {
+      "package": "com.icedamericanodev.salapify",
+      "allowBackup": false,
+      "versionCode": 7,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#FF8A3D"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8bc5a127-b145-41c3-a4f4-790afd91c9f2"
+      }
+    }
+  }
+}
