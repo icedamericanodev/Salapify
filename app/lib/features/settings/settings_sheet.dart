@@ -12,6 +12,7 @@ import '../../state/financial_state.dart';
 import '../categories/category_manager_sheet.dart';
 import '../shared/sheet_scaffold.dart';
 import '../tax/tax_calculator_sheet.dart';
+import 'import_sheet.dart';
 import 'sample_data_sheet.dart';
 
 /// Settings, from `src/components/SettingsModal.tsx`.
@@ -118,6 +119,22 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   : 'One file holding everything on this phone. Keep it '
                         'somewhere you trust.',
               onTap: _busy || cannotExport ? null : _export,
+            ),
+            _Row(
+              palette: p,
+              icon: Icons.settings_backup_restore_outlined,
+              title: 'Restore from a backup',
+              subtitle: cannotExport
+                  ? 'Not available. Salapify cannot read your data file, so it '
+                        'will not write over it.'
+                  : 'Replaces everything on this phone with a backup file. '
+                        'Salapify keeps a copy of what is here now.',
+              onTap: cannotExport
+                  ? null
+                  : () async {
+                      await ImportSheet.show(context, state);
+                      if (mounted) setState(() {});
+                    },
             ),
             _Row(
               palette: p,

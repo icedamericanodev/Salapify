@@ -42,6 +42,10 @@ dependencies:
   # so a CSV can reach email, Drive or Files without Salapify needing any of
   # them. No network of its own.
   share_plus: ^10.1.4
+  # Picks a backup file to restore from, through Android's Storage Access
+  # Framework, so Salapify needs no storage permission and no manifest change.
+  # It IS a new plugin, so it needs a new base APK and one manual install.
+  file_selector: ^1.0.3
 
 dev_dependencies:
   flutter_test:

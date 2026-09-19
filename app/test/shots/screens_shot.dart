@@ -33,6 +33,7 @@ import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/features/fx/fx_sheet.dart';
+import 'package:salapify/features/settings/import_sheet.dart';
 import 'package:salapify/features/settings/settings_sheet.dart';
 import 'package:salapify/state/financial_state.dart';
 
@@ -92,6 +93,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   _cardFaceShots();
+  importShots();
   toolkitShots();
   settingsShots();
   realMoneyHomeShot();
@@ -1700,6 +1702,72 @@ void toolkitShots() {
       await expectLater(
         find.byType(ToolkitSheet),
         matchesGoldenFile('out/toolkit_${tab.slug}.png'),
+      );
+    });
+  }
+}
+
+/// The restore screen, and the confirmation in front of the most destructive
+/// action in the app.
+void importShots() {
+  const String backup =
+      '{"schemaVersion":1,'
+      '"accounts":[{"id":"a1","name":"Their BPI","kind":"bank",'
+      '"institution":"BPI","balance":71940,"monogram":"BPI"},'
+      '{"id":"m1","name":"Housing loan","kind":"mortgage",'
+      '"institution":"Pag-IBIG","balance":200300,"monogram":"MTG"}],'
+      '"transactions":[],"debts":[],"budgets":[],"goals":[],'
+      '"upcoming":[],"incomeStreams":[],"installments":[],'
+      '"reconciliations":[],"bills":[],'
+      '"timestamp":"2026-09-12T08:00:00.000Z"}';
+
+  for (final ({String slug, bool confirm}) shot
+      in <({String slug, bool confirm})>[
+        (slug: 'preview', confirm: false),
+        (slug: 'confirm', confirm: true),
+      ]) {
+    testWidgets('import ${shot.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+        store: MemorySnapshotStore(),
+      );
+      await state.restore();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: ImportSheet(state: state),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Paste a backup instead'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), backup);
+      await tester.tap(find.text('Read what I pasted'));
+      await tester.pumpAndSettle();
+
+      if (shot.confirm) {
+        await tester.tap(find.text('Replace everything with this backup'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/import_${shot.slug}.png'),
       );
     });
   }

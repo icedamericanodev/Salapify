@@ -27,6 +27,24 @@ abstract class SnapshotStore {
 
   Future<void> write(String contents);
 
+  /// The ledger as it was immediately BEFORE the last import, or null.
+  ///
+  /// A copy of its own, and not the .prev generation, for a reason worth
+  /// stating because reusing .prev looks obviously right: write() demotes the
+  /// live file on EVERY write, and every notification is a write, because
+  /// notifyListeners is overridden to schedule a save. Tapping a filter chip
+  /// is a write. So .prev would hold the pre-import ledger for exactly one
+  /// user action, and the next tap would destroy the only copy of somebody's
+  /// real records. That is a coincidence, not a recovery mechanism.
+  Future<String?> readPreImport();
+
+  /// Keeps [contents] as the pre-import copy, replacing any earlier one.
+  ///
+  /// Must be durable before it returns. The confirmation promises the person
+  /// can put their ledger back, and the only way to keep that promise is to
+  /// refuse to import when this fails.
+  Future<void> writePreImport(String contents);
+
   /// Where the file is, for a diagnostics line. Never shown by default.
   String get location;
 }
@@ -53,6 +71,9 @@ class FileSnapshotStore implements SnapshotStore {
   Future<File> _previousFile() async =>
       File('${(await _directory()).path}/$fileName.prev');
 
+  Future<File> _preImportFile() async =>
+      File('${(await _directory()).path}/$fileName.preimport');
+
   @override
   Future<String?> read() async {
     final File f = await _file();
@@ -65,6 +86,29 @@ class FileSnapshotStore implements SnapshotStore {
     final File f = await _previousFile();
     if (!await f.exists()) return null;
     return f.readAsString();
+  }
+
+  @override
+  Future<String?> readPreImport() async {
+    final File f = await _preImportFile();
+    if (!await f.exists()) return null;
+    return f.readAsString();
+  }
+
+  /// Same temp-flush-rename dance as [write], and deliberately NO .prev
+  /// demotion: this path has one generation and nothing else touches it.
+  @override
+  Future<void> writePreImport(String contents) async {
+    final File target = await _preImportFile();
+    final File temp = File('${target.path}.${_writeCounter++}.tmp');
+    final RandomAccessFile handle = await temp.open(mode: FileMode.writeOnly);
+    try {
+      await handle.writeString(contents);
+      await handle.flush();
+    } finally {
+      await handle.close();
+    }
+    await temp.rename(target.path);
   }
 
   /// Write to a temp file of its own, fsync it, keep the outgoing copy as the
@@ -130,6 +174,15 @@ class MemorySnapshotStore implements SnapshotStore {
   /// Set to make reading the live file fail, standing in for a bad sector.
   Object? failReadWith;
 
+  /// The pre-import copy, and the switch that makes keeping it fail.
+  String? preImport;
+  Object? failPreImportWith;
+
+  /// Which write happened first. The ORDER is the safety property: the copy
+  /// has to land before the new ledger does, so a phone that dies in between
+  /// leaves the old ledger plus a copy of it, which is a harmless no-op.
+  final List<String> order = <String>[];
+
   @override
   String get location => 'memory';
 
@@ -143,11 +196,22 @@ class MemorySnapshotStore implements SnapshotStore {
   Future<String?> readPrevious() async => previous;
 
   @override
+  Future<String?> readPreImport() async => preImport;
+
+  @override
+  Future<void> writePreImport(String contents) async {
+    if (failPreImportWith != null) throw failPreImportWith!;
+    preImport = contents;
+    order.add('preimport');
+  }
+
+  @override
   Future<void> write(String next) async {
     if (failWriteWith != null) throw failWriteWith!;
     if (contents != null) previous = contents;
     contents = next;
     writes++;
+    order.add('write');
   }
 }
 

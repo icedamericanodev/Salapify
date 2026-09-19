@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../data/import.dart';
 import '../data/seed_data.dart';
 import '../data/snapshot.dart';
 import '../data/store.dart';
@@ -836,6 +837,114 @@ class FinancialState extends ChangeNotifier {
         (Transaction a, Transaction b) => b.createdAt.compareTo(a.createdAt),
       );
     return sorted;
+  }
+
+  // -------------------------------------------------------------------------
+  // Import and undo
+  // -------------------------------------------------------------------------
+
+  /// Replaces the WHOLE ledger with [incoming], keeping a copy of what is here.
+  ///
+  /// Returns false and changes nothing when it cannot keep that copy. That
+  /// refusal is the design rather than caution: the confirmation promises the
+  /// person can put their ledger back, and the only way to keep a promise like
+  /// that is to decline the import when it cannot be kept.
+  ///
+  /// THE ORDERING IS THE SAFETY PROPERTY. The copy lands first, then the new
+  /// ledger is applied and saved. A phone that dies in between leaves the old
+  /// ledger plus a copy of the old ledger, which is a harmless no-op. There is
+  /// no interleaving that produces a new ledger with no way back.
+  Future<bool> importSnapshot(Snapshot incoming) async {
+    // Never import over a file we could not read. In that state _apply never
+    // ran, so what we would "preserve" is the SEED, and the person's real
+    // unreadable file is still on disk waiting to be written over.
+    if (!_saveEnabled) return false;
+
+    // Land any queued write first, so the copy is of what is actually saved
+    // rather than of a state one notification behind it.
+    await flushWrites();
+
+    try {
+      await _store.writePreImport(snapshot().encode(at: now));
+    } on Object catch (e) {
+      _reportSaveProblem(
+        'Salapify could not keep a copy of your current ledger, so it did not '
+        'restore the backup. Nothing has changed. $e',
+      );
+      return false;
+    }
+
+    // The whole document: extras, the sample flags, the removal marker,
+    // payday, theme, scenario and profile all come from the FILE. Carrying
+    // any of them across would attach this phone's state to somebody else's
+    // ledger, and the sample marker is the dangerous one: kept locally, it
+    // would offer to inject demo money into a real book.
+    _apply(incoming);
+
+    // The recovered-load banner is not true of what is on screen any more.
+    _loadStatus = LoadStatus.loaded;
+    _loadProblem = null;
+
+    notifyListeners();
+    await flushWrites();
+    return true;
+  }
+
+  /// What the ledger held before the last import, or null when there is none
+  /// this build can put back.
+  ///
+  /// Reads the file every time. There is deliberately NO flag: a flag can go
+  /// stale, and one stored in the ledger itself would travel inside an
+  /// exported backup and point at a file that does not exist on the phone
+  /// that receives it.
+  Future<LedgerSummary?> previousLedger() async {
+    try {
+      final String? raw = await _store.readPreImport();
+      if (raw == null) return null;
+      final ImportCheck check = checkImportFile(raw);
+      return check is ImportReady ? check.summary : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Puts back the ledger from before the last import, and keeps the current
+  /// one as the new pre-import copy.
+  ///
+  /// A SWAP, not a restore, so nobody is trapped in the other direction: undo
+  /// the undo and you are back where you started. And a permanent Settings
+  /// row rather than a snackbar, for the reason restoreSampleData already
+  /// records: every mutation here persists immediately, so a snackbar undo
+  /// would be a second write racing the first, and an app killed in the gap
+  /// would leave a half swapped ledger with no way back. A file has no race
+  /// and no window.
+  Future<bool> undoLastImport() async {
+    if (!_saveEnabled) return false;
+
+    final String? raw = await _store.readPreImport();
+    if (raw == null) return false;
+
+    final ImportCheck check = checkImportFile(raw);
+    if (check is! ImportReady) return false;
+
+    await flushWrites();
+
+    try {
+      await _store.writePreImport(snapshot().encode(at: now));
+    } on Object catch (e) {
+      _reportSaveProblem(
+        'Salapify could not keep a copy of what is here now, so it did not '
+        'put the earlier ledger back. Nothing has changed. $e',
+      );
+      return false;
+    }
+
+    _apply(check.incoming);
+    _loadStatus = LoadStatus.loaded;
+    _loadProblem = null;
+    notifyListeners();
+    await flushWrites();
+    return true;
   }
 
   // -------------------------------------------------------------------------
