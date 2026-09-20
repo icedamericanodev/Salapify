@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/info/info_sheet.dart';
+import '../../features/pan/pan_hero_card.dart';
 import '../../features/pan/pan_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
 import '../../features/settings/privacy_sheet.dart';
@@ -105,6 +106,17 @@ class HomeScreen extends StatelessWidget {
               onDebt: () => _addDebt(context, palette),
               onBills: () => _soon(context, palette, 'Bills'),
               onMove: () => _soon(context, palette, 'Move'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            PanHeroCard(
+              palette: palette,
+              facts: state.panFacts,
+              onAsk: (String? question) => PanSheet.show(
+                context,
+                state,
+                openWith: question,
+                onAction: (String id) => _panAction(context, palette, id),
+              ),
             ),
             const SizedBox(height: Spacing.lg),
             RemindersBanner(

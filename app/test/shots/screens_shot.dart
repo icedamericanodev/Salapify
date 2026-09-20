@@ -731,7 +731,10 @@ void main() {
       // reviewed, which is whether an answer about somebody's own money reads
       // well.
       if (sheet.openWith == 'pan') {
-        await tester.tap(find.text('What is safe to spend?'));
+        // .last, because the Home card behind the sheet now offers the same
+        // question as a chip. Without it this finds two and throws, which is
+        // the render harness catching a real ambiguity rather than a flake.
+        await tester.tap(find.text('What is safe to spend?').last);
         await tester.pumpAndSettle();
       }
 

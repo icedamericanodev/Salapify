@@ -165,9 +165,15 @@ class _ActionButton extends StatelessWidget {
           // 44 high, which is the smallest a finger reliably hits. A chat
           // bubble invites fast tapping and a 32dp target in a wall of text
           // is the one people miss.
-          constraints: const BoxConstraints(minHeight: 44),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+          // Padding rather than an alignment plus a minHeight. The pair
+          // makes a Container fill its whole offered width, which turned two
+          // side by side buttons into two stacked bars. 13 top and bottom on
+          // an 18 point line is 44, the smallest a finger reliably hits, and
+          // it scales up with the system font instead of clipping.
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: 13,
+          ),
           decoration: BoxDecoration(
             color: palette.surface,
             borderRadius: BorderRadius.circular(Radii.pill),

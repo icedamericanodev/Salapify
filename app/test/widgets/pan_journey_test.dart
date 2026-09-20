@@ -273,4 +273,106 @@ void main() {
       }
     });
   });
+
+  group('the card on Home', () {
+    testWidgets('a chip lands on the ANSWER, not on an empty chat', (
+      WidgetTester tester,
+    ) async {
+      // The whole reason the card carries questions. Tapping one and
+      // arriving at Pan's introduction, with the question still to type,
+      // would be worse than no chip: it costs a tap and delivers nothing.
+      final FinancialState state = await ready();
+      await pump(tester, state);
+
+      final Finder chip = find.text('How am I doing?').first;
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Your own figures, worked out on this phone'),
+        findsOneWidget,
+        reason: 'the chip did not open Pan at all',
+      );
+      expect(
+        find.textContaining('out of 100'),
+        findsWidgets,
+        reason: 'Pan opened without the question being asked',
+      );
+    });
+
+    testWidgets('the card says something true about THIS ledger', (
+      WidgetTester tester,
+    ) async {
+      // A card that prints the same sentence whatever the ledger holds is
+      // decoration. This one reads the store, so the assertion is that a
+      // figure from the store reaches the screen.
+      final FinancialState state = await ready();
+      await pump(tester, state);
+
+      expect(find.text('Ask Pan'), findsWidgets);
+      expect(
+        find.textContaining(RegExp(r'₱[0-9,]+')),
+        findsWidgets,
+        reason: 'the card showed no figure from the ledger',
+      );
+    });
+  });
+
+  group('a pill is a pill, not a bar', () {
+    // The sixth and seventh occurrence of the same defect in this app: a
+    // Container with an alignment and no width fills every pixel it is
+    // offered. Three chips became three full width bars stacked down the
+    // Home card, and two action buttons became two stacked bars in a chat
+    // bubble. It is invisible to find.text, which hugs the content, so it
+    // has to be MEASURED against the thing around it.
+
+    testWidgets('the chips on the Home card sit side by side', (
+      WidgetTester tester,
+    ) async {
+      await pump(tester, await ready());
+
+      final Finder chip = find.ancestor(
+        of: find.text('How am I doing?'),
+        matching: find.byType(Container),
+      );
+      await tester.ensureVisible(find.text('How am I doing?'));
+      await tester.pumpAndSettle();
+
+      final double chipWidth = tester.getSize(chip.first).width;
+      final double screen =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+
+      expect(
+        chipWidth,
+        lessThan(screen * 0.7),
+        reason:
+            'the chip is $chipWidth wide on a $screen screen, so it is a bar '
+            'rather than a pill',
+      );
+    });
+
+    testWidgets('an action button in a bubble does not fill the bubble', (
+      WidgetTester tester,
+    ) async {
+      final FinancialState state = await ready();
+      await pump(tester, state);
+      await openPan(tester);
+
+      await tester.enterText(find.byType(TextField), 'can i afford 500');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final Finder button = find.ancestor(
+        of: find.text('Log it as an expense'),
+        matching: find.byType(Container),
+      );
+      await tester.ensureVisible(find.text('Log it as an expense'));
+      await tester.pumpAndSettle();
+
+      final double screen =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      expect(tester.getSize(button.first).width, lessThan(screen * 0.7));
+    });
+  });
 }

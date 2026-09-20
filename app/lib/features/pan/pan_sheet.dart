@@ -24,9 +24,22 @@ import 'pan_message_bubble.dart';
 ///  - Pan's own first message, rebuilt every time the sheet opens rather than
 ///    shown once ever, saying what it is and what it is not.
 class PanSheet extends StatefulWidget {
-  const PanSheet({super.key, required this.state, required this.onAction});
+  const PanSheet({
+    super.key,
+    required this.state,
+    required this.onAction,
+    this.openWith,
+  });
 
   final FinancialState state;
+
+  /// A question to ask the moment the sheet opens.
+  ///
+  /// The Home card offers three of them, and tapping one has to arrive at
+  /// the answer rather than at an empty chat somebody then has to retype
+  /// into. Null opens on Pan's introduction, which is what the floating
+  /// button does.
+  final String? openWith;
 
   /// Handles one of `panActionIds`, AFTER this sheet has closed.
   ///
@@ -41,12 +54,13 @@ class PanSheet extends StatefulWidget {
     BuildContext context,
     FinancialState state, {
     required ValueChanged<String> onAction,
+    String? openWith,
   }) {
     return SheetScaffold.show<void>(
       context: context,
       palette: Palette.of(state.theme),
       builder: (BuildContext context) =>
-          PanSheet(state: state, onAction: onAction),
+          PanSheet(state: state, onAction: onAction, openWith: openWith),
     );
   }
 
@@ -78,6 +92,14 @@ class _PanSheetState extends State<PanSheet> {
   void initState() {
     super.initState();
     _messages.add(const PanMessage.pan(_opening));
+    final String? first = widget.openWith;
+    if (first != null && first.trim().isNotEmpty) {
+      // Straight into the list rather than through _ask, which schedules a
+      // scroll against a frame that has not been built yet. The opening
+      // answer is at the top of a short list and needs no scrolling to.
+      _messages.add(PanMessage.you(first));
+      _messages.add(PanMessage.answer(askPan(first, widget.state.panFacts)));
+    }
   }
 
   @override
