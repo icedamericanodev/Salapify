@@ -65,7 +65,10 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
       // kind of wrong that makes a person distrust the number above it. The
       // TRAIN schedule from 2023 onward has not changed; saying so is true
       // now and stays true, where a pair of years goes stale by sitting still.
-      subtitle: 'BIR TRAIN law rates, the schedule in force from 2023 onward',
+      // TWO schedules, named separately, because they move independently.
+      // One line covering both goes stale the moment either one steps, and
+      // SSS has a legislated escalator built into RA 11199.
+      subtitle: 'BIR TRAIN income tax, 2023 onward. Contributions as of 2025.',
       tabs: const <String>['Take-home Pay', '13th Month', 'Freelance'],
       selectedTab: _tab,
       onSelectTab: (int i) => setState(() => _tab = i),
@@ -342,7 +345,12 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
     );
     final FreelanceTaxCalculation chosen =
         _option == FreelanceTaxOption.eightPercentGit ? git : graduated;
-    final bool gitWins = git.estimatedTaxDue <= graduated.estimatedTaxDue;
+    // totalTaxDue, not estimatedTaxDue. The graduated route also owes the
+    // 3 percent percentage tax, and comparing one tax against two is what
+    // overstated the saving from electing 8 percent by about 2.7 times.
+    final bool gitWins =
+        graduated.eightPercentAvailable &&
+        git.totalTaxDue <= graduated.totalTaxDue;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,15 +386,25 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                gitWins ? 'The 8% option is cheaper' : 'Graduated is cheaper',
+                // NOT "The 8% option is cheaper", stated as a conclusion.
+                // This screen triggers an election that cannot be reversed
+                // for twelve months, so it reports what these figures say
+                // rather than naming a winner.
+                !graduated.eightPercentAvailable
+                    ? 'The 8% option is not open to you'
+                    : gitWins
+                    ? 'On these figures, the 8% option costs less'
+                    : 'On these figures, graduated costs less',
                 style: AppType.section(p).copyWith(color: p.positive),
               ),
               const SizedBox(height: Spacing.xs),
               Text(
-                gross <= 0
+                !graduated.eightPercentAvailable
+                    ? graduated.unavailableReason!
+                    : gross <= 0
                     ? 'Enter your yearly gross to compare the two.'
-                    : 'You would save ${formatPeso((git.estimatedTaxDue - graduated.estimatedTaxDue).abs())} '
-                          'a year by choosing it.',
+                    : 'The difference is ${formatPeso((git.totalTaxDue - graduated.totalTaxDue).abs())} '
+                          'a year.',
                 style: AppType.body(p),
               ),
             ],
@@ -413,9 +431,20 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
         _card(p, 'Your choice, in detail', <Widget>[
           BreakdownRow(
             palette: p,
-            label: 'Allowable deduction',
-            value: formatPeso(chosen.allowableDeduction),
+            // NOT "Allowable deduction". Under the 8% regime no deductions
+            // are allowed at all, and calling this one is what produced the
+            // bug beside it: a mixed income earner was given it twice.
+            label: chosen.taxOption == FreelanceTaxOption.eightPercentGit
+                ? 'Not taxed'
+                : 'Standard deduction, 40%',
+            value: formatPeso(chosen.taxFreeAllowance),
           ),
+          if (chosen.percentageTax > 0)
+            BreakdownRow(
+              palette: p,
+              label: 'Percentage tax, 3%',
+              value: formatPeso(chosen.percentageTax),
+            ),
           BreakdownRow(
             palette: p,
             label: 'Taxable base',
@@ -447,9 +476,17 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
         const SizedBox(height: Spacing.md),
         _note(
           p,
-          'The 8% option replaces both income tax and percentage tax, and is '
-          'only open to you if your gross stays under the VAT threshold. '
-          'Confirm with the BIR before you elect it.',
+          'The 8% option replaces both income tax and percentage tax. It is '
+          'open only if your gross stays under the VAT threshold AND you are '
+          'not registered for VAT.\n\n'
+          'You elect it on your first quarter return, due 15 May, or when '
+          'you register. Miss that and the graduated rates apply for the '
+          'whole year. Once elected it cannot be changed until the next '
+          'year.\n\n'
+          'If your gross passes the threshold during the year you move onto '
+          'the graduated rates for that year and become VAT liable. VAT is '
+          'not computed here at all.\n\n'
+          'Confirm with the BIR before you elect.',
         ),
       ],
     );

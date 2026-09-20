@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/business_tax.dart';
+import 'package:salapify/core/money/ph_tax.dart' show annualGraduatedTax;
 
 /// Golden vectors for the business tax port, produced by running
 /// src/utils/businessTaxes.ts under bun over the full 2 x 2 x 4 matrix of
@@ -238,6 +239,72 @@ void main() {
       );
       expect(res.totalTax, 0);
       expect(res.effectiveTaxRate, 0);
+    });
+  });
+
+  group('the 8 percent election is gated, not just offered', () {
+    BusinessTaxResult run(double revenue, VatStatus vat) =>
+        calculateBusinessTax(
+          entity: EntityType.soleProp,
+          financials: BusinessFinancials(revenue: revenue, cogs: 0, opex: 0),
+          vatStatus: vat,
+          regime: TaxRegime.eightPercent,
+        );
+
+    test('a VAT registered sole prop cannot be on the 8 percent regime', () {
+      // The sharpest defect in this file. The old code took the request at
+      // face value, so percentage tax came out zero BECAUSE the 8% replaces
+      // it, and income tax came out at 8%, which this taxpayer may not
+      // elect at all. Wrong twice, in the same result.
+      final BusinessTaxResult r = run(1000000, VatStatus.vat);
+      expect(
+        r.incomeTax,
+        isNot(48000),
+        reason: 'it still applied 8% of (1,000,000 - 250,000)',
+      );
+      // Falls back to graduated on the 40% OSD: 600,000 taxable.
+      expect(r.netTaxableIncome, 600000);
+      expect(r.incomeTax, annualGraduatedTax(600000));
+    });
+
+    test('above the VAT threshold the 8 percent is not applied', () {
+      final BusinessTaxResult r = run(4000000, VatStatus.nonVat);
+      expect(
+        r.incomeTax,
+        isNot(300000),
+        reason: 'it still applied 8% of (4,000,000 - 250,000)',
+      );
+      expect(r.netTaxableIncome, 2400000);
+      expect(r.incomeTax, annualGraduatedTax(2400000));
+    });
+
+    test('the percentage tax comes BACK when the 8 percent is refused', () {
+      // The half that is easy to miss. Falling back to graduated without
+      // restoring the 3% would leave the taxpayer owing a tax the result
+      // does not show, because the regime that replaced it is gone.
+      final BusinessTaxResult r = run(4000000, VatStatus.nonVat);
+      expect(r.businessTax, 120000, reason: '3% of 4,000,000');
+    });
+
+    test('at EXACTLY the threshold the election still stands', () {
+      // Strict greater-than. At 3,000,000 the taxpayer is eligible, and this
+      // vector is the one that catches a >= typo.
+      final BusinessTaxResult r = run(3000000, VatStatus.nonVat);
+      expect(r.netTaxableIncome, 2750000);
+      expect(r.incomeTax, 220000);
+      expect(r.businessTax, 0);
+    });
+
+    test('a refused election files a 2551Q, because it owes one', () {
+      final BusinessTaxResult r = run(4000000, VatStatus.nonVat);
+      expect(
+        r.complianceForms.map((ComplianceForm f) => f.form),
+        contains('BIR Form 2551Q'),
+        reason:
+            'the form list still read the REQUESTED regime, so it told '
+            'somebody they had no percentage tax return to file while the '
+            'same result charged them percentage tax',
+      );
     });
   });
 }

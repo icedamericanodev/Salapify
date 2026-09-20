@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'ph_tax.dart' show annualGraduatedTax;
+import 'ph_tax.dart' show annualGraduatedTax, vatThreshold;
 
 /// Business tax for a sole proprietorship or a partnership, ported from
 /// src/utils/businessTaxes.ts.
@@ -89,23 +89,43 @@ BusinessTaxResult calculateBusinessTax({
 
   final double grossProfit = math.max(0, revenue - cogs);
 
-  // 1. Percentage tax, 3% of gross sales, for a non-VAT business that is not
-  //    on the 8% regime. The 8% rate already replaces it.
-  double businessTax = 0;
-  if (vatStatus == VatStatus.nonVat && regime != TaxRegime.eightPercent) {
-    businessTax = revenue * 0.03;
-  }
+  // WHETHER THE 8% IS EVEN AVAILABLE, checked before it is applied.
+  //
+  // The old code let a VAT-registered sole prop sit on the 8% regime, and
+  // got two things wrong at once: percentage tax came out as zero because
+  // the regime replaces it, and income tax came out at 8%, which that
+  // taxpayer may not elect at all. It also quoted 8% to anyone above the
+  // VAT threshold, for whom it is not a worse option, it is not a lawful
+  // one. Strict >, because at exactly the threshold the election is still
+  // open.
+  final bool mayElectEightPercent =
+      vatStatus == VatStatus.nonVat && revenue <= vatThreshold;
+  final TaxRegime effectiveRegime =
+      regime == TaxRegime.eightPercent && !mayElectEightPercent
+      ? TaxRegime.graduatedOsd
+      : regime;
+
+  // Percentage tax, 3% of gross sales, for a non-VAT business not on the 8%
+  // regime. Read off the EFFECTIVE regime, never the requested one: a
+  // regime the taxpayer may not elect must not switch off the tax it would
+  // have replaced. That is exactly what the old code did, so a VAT
+  // registered sole prop on 8% came out owing zero percentage tax AND an
+  // 8% income tax they cannot elect. Wrong twice, in the same result.
+  final double businessTax =
+      vatStatus == VatStatus.nonVat && effectiveRegime != TaxRegime.eightPercent
+      ? revenue * 0.03
+      : 0;
 
   double netTaxableIncome = 0;
   double incomeTax = 0;
 
   if (entity == EntityType.soleProp) {
-    if (regime == TaxRegime.eightPercent) {
+    if (effectiveRegime == TaxRegime.eightPercent) {
       // 8% on gross sales above 250,000, replacing income AND percentage tax.
       netTaxableIncome = math.max(0, revenue - 250000);
       incomeTax = netTaxableIncome * 0.08;
     } else {
-      if (regime == TaxRegime.graduatedOsd) {
+      if (effectiveRegime == TaxRegime.graduatedOsd) {
         // Optional standard deduction, 40% of GROSS SALES for an individual.
         netTaxableIncome = revenue - (revenue * 0.40);
       } else {
@@ -115,7 +135,7 @@ BusinessTaxResult calculateBusinessTax({
       incomeTax = annualGraduatedTax(netTaxableIncome);
     }
   } else {
-    if (regime == TaxRegime.graduatedOsd) {
+    if (effectiveRegime == TaxRegime.graduatedOsd) {
       // OSD for a partnership is 40% of GROSS INCOME, which is gross profit,
       // not of gross sales. The base differs from the sole prop case above and
       // that is deliberate in the prototype.
@@ -136,7 +156,7 @@ BusinessTaxResult calculateBusinessTax({
     totalTax: totalTax,
     netIncome: revenue - cogs - opex - totalTax,
     effectiveTaxRate: revenue > 0 ? (totalTax / revenue) * 100 : 0,
-    complianceForms: _forms(entity, vatStatus, regime),
+    complianceForms: _forms(entity, vatStatus, effectiveRegime),
   );
 }
 

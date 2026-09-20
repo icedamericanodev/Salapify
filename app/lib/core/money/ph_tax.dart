@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'format.dart';
 import 'js_round.dart';
 
 /// Philippine payroll and income tax, ported from src/utils/philippineFinances.ts.
@@ -165,11 +166,41 @@ EmployeeTaxCalculation calculateEmployeeTaxDeductions({
     );
   }
 
-  // 1. SSS. Employee share is 4.5% of the monthly salary credit, which is
-  //    floored at 4,000 and capped at 30,000 (regular plus WISP).
-  final double sssMsc = math.min(30000, math.max(4000, monthlyBaseSalary));
-  final double sss = jsRound(sssMsc * 0.045).toDouble();
-  final double sssEmployer = jsRound(sssMsc * 0.095).toDouble();
+  // 1. SSS. Employee share is 5% of the MONTHLY SALARY CREDIT, employer 10%,
+  //    for a total of 15% under the RA 11199 schedule that reached its final
+  //    step in January 2025.
+  //
+  //    THIS WAS 4.5 AND 9.5 ON AN MSC OF 4,000 TO 30,000, which is the 2023
+  //    to 2024 step of the same schedule, and it was wrong in two ways at
+  //    once. The rates were a step behind, and the MSC was taken as raw
+  //    basic pay with no bracketing at all.
+  //
+  //    Both errors pushed the same way: the app showed MORE take-home than
+  //    the payslip, by about 106 pesos a month at a 25,000 salary and 320 at
+  //    40,000. That is the worst direction for a figure somebody checks
+  //    against their real sweldo, because the app is the optimistic one.
+  //
+  //    Contributions are charged on the BRACKET, not on the exact salary.
+  //    Brackets are 500-peso steps across the range, each centred on its
+  //    MSC, so the compensation range for MSC M is M-250 to M+249.99. That
+  //    makes the rule a half-up round to the nearest 500, then a clamp.
+  //    jsRound is (v + 0.5).floor(), which IS half-up; Dart's own .round()
+  //    is not, and the difference shows up at every bracket edge.
+  //
+  //    The 15% splits internally between regular SSS and WISP above an MSC
+  //    of 20,000, and the member's own share stays a flat 5% of the whole
+  //    MSC either way. It is one number to the employee and is modelled as
+  //    one number here.
+  //
+  //    EC is deliberately absent. It is employer-borne under PD 626 and
+  //    never appears on a payslip as a deduction, so it has no place in a
+  //    take-home figure.
+  final double sssMsc = math.min(
+    35000,
+    math.max(5000, jsRound(monthlyBaseSalary / 500) * 500),
+  );
+  final double sss = jsRound(sssMsc * 0.05).toDouble();
+  final double sssEmployer = jsRound(sssMsc * 0.10).toDouble();
 
   // 2. PhilHealth. 5% premium split evenly, so 2.5% each, on a base floored at
   //    10,000 and capped at 100,000.
@@ -379,23 +410,58 @@ ThirteenthMonthPlan calculate13thMonthPay({
 
 enum FreelanceTaxOption { eightPercentGit, graduatedRates }
 
+/// The gross above which the 8% option is not available.
+///
+/// One named constant rather than a literal in two files, because it carries
+/// a statutory inflation-adjustment clause and will move one day. Verified
+/// still 3,000,000 on 2026-09-20.
+const double vatThreshold = 3000000;
+
 class FreelanceTaxCalculation {
   const FreelanceTaxCalculation({
     required this.grossIncome,
     required this.taxOption,
-    required this.allowableDeduction,
+    required this.taxFreeAllowance,
     required this.taxableBase,
     required this.estimatedTaxDue,
     required this.effectiveTaxRate,
     required this.monthlyTaxProvision,
     required this.leanMonthsBufferRecommended,
+    this.percentageTax = 0,
+    this.eightPercentAvailable = true,
+    this.unavailableReason,
   });
 
   final double grossIncome;
   final FreelanceTaxOption taxOption;
-  final double allowableDeduction;
+
+  /// The 250,000 that is not taxed under the 8% route.
+  ///
+  /// RENAMED from allowableDeduction, because it is not a deduction and
+  /// calling it one is what produced the bug beside it. Under the 8% regime
+  /// NO deductions are allowed: no itemised, no OSD, nothing. This figure
+  /// stands in for the zero bracket of the graduated table, which is exactly
+  /// why a mixed-income earner does not get it: their salary already used it.
+  final double taxFreeAllowance;
+
   final double taxableBase;
   final double estimatedTaxDue;
+
+  /// The 3% percentage tax, which only the GRADUATED route pays.
+  ///
+  /// It belongs in the comparison because the 8% is in lieu of income tax
+  /// AND percentage tax. Leaving it out compared one tax against two, and
+  /// was most of why the saving was overstated.
+  final double percentageTax;
+
+  /// Whether this taxpayer may elect the 8% at all.
+  final bool eightPercentAvailable;
+
+  /// Why not, in words a person can act on. Null when it is available.
+  final String? unavailableReason;
+
+  /// Everything owed on this income under the chosen route.
+  double get totalTaxDue => estimatedTaxDue + percentageTax;
 
   /// A percentage, 0 to 100, not a fraction.
   final double effectiveTaxRate;
@@ -415,25 +481,68 @@ double annualGraduatedTax(double taxableBase) {
 
 /// The 8% gross income tax against the graduated brackets.
 ///
-/// The two options differ in more than the rate, and the differences are the
-/// prototype's: only the 8% route gets the 250,000 standard deduction, and the
-/// recommended lean-month buffer is three months on 8% and four on graduated.
+/// ## Three defects fixed here, and one of them drives an irrevocable choice
+///
+/// The 8% election is IRREVOCABLE for the taxable year. A person reads this
+/// comparison, elects on their first quarter return, and is locked in until
+/// December. That makes a wrong comparison here worse than a wrong figure
+/// almost anywhere else in the app, because there is no correcting it later.
+///
+/// 1. NO ELIGIBILITY GATE. The 8% is available only below the VAT threshold
+///    and only to somebody not VAT-registered. The old version quoted it to
+///    a 5,000,000 freelancer, for whom it is not a worse choice, it is not a
+///    lawful one.
+///
+/// 2. NO MIXED-INCOME CASE. Somebody with a job AND freelance work pays 8%
+///    on their whole business gross with NO 250,000 reduction, because the
+///    zero bracket on their salary already used it. Granting it twice
+///    understated their tax by a flat 20,000.
+///
+/// 3. THE GRADUATED ARM HAD NO DEDUCTIONS AND NO PERCENTAGE TAX. It ran the
+///    table on the full gross, which no filer does, and omitted the 3%
+///    percentage tax that only that route pays. At 1,200,000 gross the app
+///    advertised a 126,500 saving from electing 8%. The honest figure is
+///    about 46,500. Overstating a tax saving by 2.7x, on the screen that
+///    triggers a twelve-month commitment, was the worst number in this file.
+///
+/// The 250,000 itself was NOT the bug and is not removed: for a purely
+/// self-employed person it is exactly right.
 FreelanceTaxCalculation calculateFreelanceTax({
   required double annualGrossIncome,
   FreelanceTaxOption taxOption = FreelanceTaxOption.eightPercentGit,
-}) {
-  const double standardDeduction = 250000;
 
-  if (taxOption == FreelanceTaxOption.eightPercentGit) {
-    final double taxableBase = math.max(
-      0,
-      annualGrossIncome - standardDeduction,
-    );
+  /// Salary income taxed separately under the graduated table. Above zero
+  /// means MIXED INCOME, which changes both routes.
+  double compensationIncome = 0,
+
+  /// A VAT-registered person may not elect the 8% at any income level, even
+  /// one who registered voluntarily while earning far below the threshold.
+  bool vatRegistered = false,
+}) {
+  final bool mixed = compensationIncome > 0;
+
+  // The test is strict: at exactly the threshold the taxpayer is still
+  // eligible, so this is > and never >=.
+  final String? blocked = vatRegistered
+      ? 'The 8% option is not open to anyone registered for VAT, whatever '
+            'they earn.'
+      : annualGrossIncome > vatThreshold
+      ? 'The 8% option is not open above ${formatPeso(vatThreshold)} of '
+            'gross. Above that you are VAT registrable and the graduated '
+            'rates apply.'
+      : null;
+
+  final bool available = blocked == null;
+
+  if (taxOption == FreelanceTaxOption.eightPercentGit && available) {
+    // Mixed income gets NO reduction. See defect 2 above.
+    final double allowance = mixed ? 0 : 250000;
+    final double taxableBase = math.max(0, annualGrossIncome - allowance);
     final double estimatedTaxDue = taxableBase * 0.08;
     return FreelanceTaxCalculation(
       grossIncome: annualGrossIncome,
       taxOption: taxOption,
-      allowableDeduction: standardDeduction,
+      taxFreeAllowance: allowance,
       taxableBase: taxableBase,
       estimatedTaxDue: estimatedTaxDue,
       effectiveTaxRate: annualGrossIncome > 0
@@ -444,17 +553,33 @@ FreelanceTaxCalculation calculateFreelanceTax({
     );
   }
 
-  final double tax = annualGraduatedTax(annualGrossIncome);
+  // GRADUATED, with the two things it actually carries.
+  //
+  // The 40% Optional Standard Deduction is on GROSS SALES, not on gross
+  // income, and is what an individual filer without itemised receipts
+  // claims. The 3% percentage tax is separate and is the tax the 8% option
+  // substitutes for along with income tax.
+  final double osd = annualGrossIncome * 0.40;
+  final double businessNet = math.max(0, annualGrossIncome - osd);
+
+  // Mixed income stacks ONE combined base through the table. Never two
+  // passes, which would give the 250,000 zero bracket twice.
+  final double tax = annualGraduatedTax(businessNet + compensationIncome);
+  final double percentageTax = annualGrossIncome * 0.03;
+
   return FreelanceTaxCalculation(
     grossIncome: annualGrossIncome,
-    taxOption: taxOption,
-    allowableDeduction: 0,
-    taxableBase: annualGrossIncome,
+    taxOption: FreelanceTaxOption.graduatedRates,
+    taxFreeAllowance: osd,
+    taxableBase: businessNet + compensationIncome,
     estimatedTaxDue: tax,
+    percentageTax: percentageTax,
     effectiveTaxRate: annualGrossIncome > 0
-        ? (tax / annualGrossIncome) * 100
+        ? ((tax + percentageTax) / annualGrossIncome) * 100
         : 0,
-    monthlyTaxProvision: tax / 12,
+    monthlyTaxProvision: (tax + percentageTax) / 12,
     leanMonthsBufferRecommended: (annualGrossIncome / 12) * 4,
+    eightPercentAvailable: available,
+    unavailableReason: blocked,
   );
 }

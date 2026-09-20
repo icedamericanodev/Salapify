@@ -16,21 +16,21 @@ void main() {
       final EmployeeTaxCalculation r = calculateEmployeeTaxDeductions(
         inputSalary: 30000,
       );
-      expect(r.sss, 1350);
+      expect(r.sss, 1500);
       expect(r.philhealth, 750);
       expect(r.pagibig, 200);
-      expect(r.totalContributions, 2300);
+      expect(r.totalContributions, 2450);
     });
 
-    test('SSS caps at a 30,000 salary credit, so it stops growing', () {
+    test('SSS caps at a 35,000 salary credit, so it stops growing', () {
       final EmployeeTaxCalculation mid = calculateEmployeeTaxDeductions(
         inputSalary: 65000,
       );
       final EmployeeTaxCalculation high = calculateEmployeeTaxDeductions(
         inputSalary: 700000,
       );
-      expect(mid.sss, 1350);
-      expect(high.sss, 1350);
+      expect(mid.sss, 1750);
+      expect(high.sss, 1750);
     });
 
     test('PhilHealth caps at 2,500 and Pag-IBIG at 200', () {
@@ -45,10 +45,69 @@ void main() {
       final EmployeeTaxCalculation r = calculateEmployeeTaxDeductions(
         inputSalary: 12000,
       );
-      expect(r.sss, 540);
+      expect(r.sss, 600);
       expect(r.philhealth, 300);
       expect(r.pagibig, 200);
-      expect(r.totalContributions, 1040);
+      expect(r.totalContributions, 1100);
+    });
+
+    test('and the SSS floor is actually reached, which 12,000 never was', () {
+      // The test above is named for the floor and does not touch it: at
+      // 12,000 the salary credit is 12,000, well clear of both the old
+      // 4,000 floor and the new 5,000 one. It has passed for months while
+      // testing nothing about flooring.
+      final EmployeeTaxCalculation r = calculateEmployeeTaxDeductions(
+        inputSalary: 4000,
+      );
+      expect(r.sss, 250, reason: 'the MSC should be floored at 5,000');
+      expect(r.philhealth, 250);
+      expect(r.pagibig, 80);
+      expect(r.totalContributions, 580);
+    });
+
+    test('contributions are charged on the BRACKET, not the exact salary', () {
+      // The 500-peso steps, at the two edges where a half-rounding mistake
+      // shows up. Each bracket is centred on its MSC, so the range for MSC M
+      // is M-250 to M+249.99, and the rule is a half-UP round. Dart's own
+      // .round() is not half-up, and the gap is 12.50 a month forever.
+      for (final ({double salary, double sss}) v
+          in <({double salary, double sss})>[
+            (salary: 5249.99, sss: 250),
+            (salary: 5250, sss: 275),
+            (salary: 12249, sss: 600),
+            (salary: 12250, sss: 625),
+            (salary: 34749, sss: 1725),
+            (salary: 34750, sss: 1750),
+          ]) {
+        expect(
+          calculateEmployeeTaxDeductions(inputSalary: v.salary).sss,
+          v.sss,
+          reason: 'a salary of ${v.salary} landed in the wrong bracket',
+        );
+      }
+    });
+
+    test('a 25,000 and a 40,000 salary, end to end', () {
+      // The two the founder was shown when this defect was reported. Before
+      // the fix the app said 22,717.50 and 34,751.67, both higher than the
+      // payslip, which is the direction that costs trust.
+      final EmployeeTaxCalculation low = calculateEmployeeTaxDeductions(
+        inputSalary: 25000,
+      );
+      expect(low.sss, 1250);
+      expect(low.totalContributions, 2075);
+      expect(low.taxableIncome, 22925);
+      expect(low.withholdingTax, closeTo(313.7505, 1e-6));
+      expect(low.netTakeHome, 22611);
+
+      final EmployeeTaxCalculation high = calculateEmployeeTaxDeductions(
+        inputSalary: 40000,
+      );
+      expect(high.sss, 1750, reason: 'the MSC should cap at 35,000');
+      expect(high.totalContributions, 2950);
+      expect(high.taxableIncome, 37050);
+      expect(high.withholdingTax, closeTo(2618.334, 1e-6));
+      expect(high.netTakeHome, 34432);
     });
   });
 
@@ -70,23 +129,29 @@ void main() {
       });
     }
 
-    check('15 percent band, 30,000', 30000, 27700, 1030.0004999999996, 26670);
-    check('20 percent band, 65,000', 65000, 61825, 7573.334, 54252);
+    // EVERY FIGURE IN THIS GROUP MOVED when SSS went to the 2025 schedule,
+    // and every one moved the same way: a bigger contribution means a
+    // smaller taxable income, a smaller tax, and a smaller take-home. The
+    // tax falls and the net falls with it, because the contribution rose by
+    // more than the tax fell. That is the correct direction and it will look
+    // like a regression to anybody who does not know why.
+    check('15 percent band, 30,000', 30000, 27550, 1007.5004999999996, 26542);
+    check('20 percent band, 65,000', 65000, 61425, 7493.334, 53932);
     check(
       '25 percent band, 200,000',
       200000,
-      195950,
-      42326.668999999994,
-      153623,
+      195550,
+      42206.668999999994,
+      153343,
     );
-    check('35 percent band, 700,000', 700000, 695950, 193790.8355, 502159);
+    check('35 percent band, 700,000', 700000, 695550, 193650.8355, 501899);
 
     test('below the 20,833.33 threshold nothing is withheld', () {
       final EmployeeTaxCalculation r = calculateEmployeeTaxDeductions(
         inputSalary: 12000,
       );
       expect(r.withholdingTax, 0);
-      expect(r.netTakeHome, 10960);
+      expect(r.netTakeHome, 10900);
     });
   });
 
@@ -109,11 +174,11 @@ void main() {
         expect(fortnight.monthlySalary, closeTo(32500, eps));
         expect(semi.philhealth, 813);
         expect(fortnight.philhealth, 813);
-        expect(semi.taxableIncome, closeTo(30137, eps));
-        expect(fortnight.taxableIncome, closeTo(30137, eps));
-        expect(semi.withholdingTax, closeTo(1395.5504999999996, eps));
-        expect(semi.netTakeHome, 28741);
-        expect(semi.semiMonthlyTakeHome, 14371);
+        expect(semi.taxableIncome, closeTo(29862, eps));
+        expect(fortnight.taxableIncome, closeTo(29862, eps));
+        expect(semi.withholdingTax, closeTo(1354.3004999999996, eps));
+        expect(semi.netTakeHome, 28508);
+        expect(semi.semiMonthlyTakeHome, 14254);
       },
     );
 
@@ -142,13 +207,13 @@ void main() {
         monthsWorked: 8,
       );
       expect(r.monthlySalary, 45000);
-      expect(r.taxableIncome, closeTo(51825, eps));
-      expect(r.withholdingTax, closeTo(5573.334, eps));
-      expect(r.netTakeHome, 48252);
+      expect(r.taxableIncome, closeTo(51425, eps));
+      expect(r.withholdingTax, closeTo(5493.334, eps));
+      expect(r.netTakeHome, 47932);
 
       // Contributions read the BASE salary only, never the extras.
       expect(r.philhealth, 1125);
-      expect(r.totalContributions, 2675);
+      expect(r.totalContributions, 3075);
 
       // The non-taxable 2,000 is in gross but not in taxable income.
       expect(
@@ -255,22 +320,97 @@ void main() {
       final FreelanceTaxCalculation r = calculateFreelanceTax(
         annualGrossIncome: 1200000,
       );
-      expect(r.allowableDeduction, 250000);
+      expect(r.taxFreeAllowance, 250000);
       expect(r.taxableBase, 950000);
       expect(r.estimatedTaxDue, 76000);
       expect(r.effectiveTaxRate, closeTo(6.333333333333334, eps));
       expect(r.monthlyTaxProvision, closeTo(6333.333333333333, eps));
     });
 
-    test('the graduated route taxes the whole gross', () {
+    test('the graduated route carries its OSD and its percentage tax', () {
+      // IT USED TO TAX THE WHOLE GROSS with no deductions and no percentage
+      // tax, which no filer does either way round. The 40% Optional Standard
+      // Deduction is what an individual without itemised receipts claims,
+      // and the 3% percentage tax is the OTHER tax the 8% option replaces.
+      // Omitting it compared one tax against two and overstated the saving
+      // from electing 8% by about 2.7x, on the screen that triggers a
+      // choice that cannot be reversed for twelve months.
       final FreelanceTaxCalculation r = calculateFreelanceTax(
         annualGrossIncome: 1200000,
         taxOption: FreelanceTaxOption.graduatedRates,
       );
-      expect(r.allowableDeduction, 0);
-      expect(r.taxableBase, 1200000);
-      expect(r.estimatedTaxDue, 202500);
-      expect(r.effectiveTaxRate, closeTo(16.875, eps));
+      expect(r.taxFreeAllowance, 480000, reason: '40% of 1,200,000');
+      expect(r.taxableBase, 720000);
+      expect(r.estimatedTaxDue, 86500);
+      expect(r.percentageTax, 36000);
+      expect(r.totalTaxDue, 122500);
+    });
+
+    test('the advertised saving is the honest one', () {
+      // 122,500 against 76,000 is 46,500. The app used to say 126,500.
+      final FreelanceTaxCalculation git = calculateFreelanceTax(
+        annualGrossIncome: 1200000,
+      );
+      final FreelanceTaxCalculation grad = calculateFreelanceTax(
+        annualGrossIncome: 1200000,
+        taxOption: FreelanceTaxOption.graduatedRates,
+      );
+      expect(grad.totalTaxDue - git.totalTaxDue, 46500);
+    });
+
+    test(
+      'MIXED income gets no 250,000, because the salary already used it',
+      () {
+        // The zero bracket of the graduated table is applied to the
+        // compensation side. Granting it again on the business side is a flat
+        // 20,000 understatement, every year, for anybody with a job and a
+        // sideline.
+        final FreelanceTaxCalculation mixed = calculateFreelanceTax(
+          annualGrossIncome: 600000,
+          compensationIncome: 500000,
+        );
+        expect(mixed.taxFreeAllowance, 0);
+        expect(mixed.taxableBase, 600000);
+        expect(mixed.estimatedTaxDue, 48000);
+
+        final FreelanceTaxCalculation pure = calculateFreelanceTax(
+          annualGrossIncome: 600000,
+        );
+        expect(pure.estimatedTaxDue, 28000);
+        expect(
+          mixed.estimatedTaxDue - pure.estimatedTaxDue,
+          20000,
+          reason: 'the gap should be exactly 250,000 x 8%',
+        );
+      },
+    );
+
+    test('above the VAT threshold the 8 percent is REFUSED, not compared', () {
+      // Not a worse choice. Not a lawful one. Offering it with a warning is
+      // offering an unlawful filing position with a caveat attached, and
+      // caveats get skipped.
+      final FreelanceTaxCalculation r = calculateFreelanceTax(
+        annualGrossIncome: 3000001,
+      );
+      expect(r.eightPercentAvailable, isFalse);
+      expect(r.taxOption, FreelanceTaxOption.graduatedRates);
+      expect(r.unavailableReason, isNotNull);
+
+      // And at EXACTLY the threshold it is still available. The test is
+      // strict, so this is > and never >=.
+      expect(
+        calculateFreelanceTax(annualGrossIncome: 3000000).eightPercentAvailable,
+        isTrue,
+      );
+    });
+
+    test('a VAT registered person is refused at any income', () {
+      final FreelanceTaxCalculation r = calculateFreelanceTax(
+        annualGrossIncome: 500000,
+        vatRegistered: true,
+      );
+      expect(r.eightPercentAvailable, isFalse);
+      expect(r.taxOption, FreelanceTaxOption.graduatedRates);
     });
 
     test('every graduated bracket edge', () {
@@ -296,11 +436,11 @@ void main() {
       () {
         final double git = calculateFreelanceTax(
           annualGrossIncome: 1200000,
-        ).estimatedTaxDue;
+        ).totalTaxDue;
         final double graduated = calculateFreelanceTax(
           annualGrossIncome: 1200000,
           taxOption: FreelanceTaxOption.graduatedRates,
-        ).estimatedTaxDue;
+        ).totalTaxDue;
         expect(git, lessThan(graduated));
       },
     );
