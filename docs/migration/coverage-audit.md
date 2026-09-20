@@ -320,6 +320,53 @@ This is not a list of things to fix quietly while porting. Several are
 founder calls about what the app is willing to claim, so Health Check waits
 on that rather than on effort.
 
+### The 2026-09-20 prototype sync, triaged
+
+The founder synced `2f055a2` and asked for these to cross over. What each one
+turned out to be:
+
+**Card cutoff advisory (`AccountsScreen.tsx`), DONE, and corrected on the
+way.** Shipped in this branch as `card_cycle.dart` plus the statement date
+editor. The prototype's `getCardCutoffAdvice` invents a cutoff in three
+separate ways and none of them survived: it defaults `cutoffDay = 15` when
+nothing is recorded; it derives a cutoff from the due date with
+`d > 20 ? d - 20 : d + 10`; and it derives a due date back from the cutoff
+with `cutoffDay + 21`, so it can compute both figures from neither. It then
+does the arithmetic on 30 day months twice (`if (daysUntilCutoff < 0)
+daysUntilCutoff += 30`), and prints "3% finance charge", which is not the
+reader's rate. Salapify's version reads only the two dates the person typed,
+says nothing when it cannot read them, and counts real calendar days.
+
+**Transaction tax fields (`types.ts`), DONE.** Storage only, see the commit.
+
+**Pasted receipt reader (`smsParser.ts`), DONE earlier in this branch.**
+
+**13th month allocator (`PlanScreen.tsx`), FOUNDER CALL.** Its TRAIN ceiling
+of 90,000 is correct and its tax split is sound. The blocker is not accuracy,
+it is that it proposes 50 emergency / 30 debt / 20 treats while Salapify
+already ships a 35 / 25 / 20 / 10 / 10 split for the same money. Two
+different answers to one question is worse than either, so somebody has to
+pick.
+
+**Split bill QR and payment request (`SplitBillModal.tsx`), MOSTLY PORTABLE,
+one defect.** `useState('0917-888-2345')` ships a hardcoded mobile number as
+the default payment destination. Whoever owns that number in real life did
+not agree to it, and a person who does not notice the prefilled value sends
+their friends to a stranger. It has to start empty.
+
+**Digital bank yield card (`DigitalBankYieldCard.tsx`), DO NOT PORT AS IS.**
+Covered above and by the securities review: invented balance, named
+providers, quoted rates.
+
+**Receipt OCR (`ScanReceiptModal.tsx`, `receiptOcrParser.ts`), FOUNDER
+CALL.** It does no OCR. It reads the FILE NAME, picks from six canned
+samples, and defaults to Jollibee, so it would write a stranger's TIN into a
+row the tax fields above mark as claimable. Real scanning needs a native
+plugin and one manual install.
+
+**Petsa de Peligro card (`PetsaDePeligroCard.tsx`), FOUNDER CALL.** Four
+constants with no source (0.22, 0.7, a 150 to 450 clamp, a 550 threshold).
+
 ## What this audit does NOT claim
 
 It checked presence and content, not correctness. A row marked ported means the
