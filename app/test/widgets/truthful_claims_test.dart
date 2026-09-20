@@ -69,6 +69,61 @@ void main() {
     );
   });
 
+  test('no screen claims a regulator blessed the figure', () {
+    // A rule of thumb is not an official determination. The BSP publishes no
+    // view on an individual's debt ratio, and naming a regulator beside a
+    // number turns arithmetic into a blessing the app cannot give. Same for
+    // the BIR: this app computes estimates, it does not assess anybody.
+    final List<String> offenders = <String>[];
+    for (final FileSystemEntity f in Directory(
+      'lib',
+    ).listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) continue;
+      final String text = f
+          .readAsLinesSync()
+          .where((String line) => !line.trimLeft().startsWith('//'))
+          .join('\n');
+      for (final String claim in <String>[
+        'BSP safety threshold',
+        'BSP threshold',
+        'BSP approved',
+        'BIR approved',
+        'official BIR computation',
+        'government guaranteed',
+      ]) {
+        if (text.contains(claim)) offenders.add('${f.path}: $claim');
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'a figure worked out from what somebody typed is presented as an '
+          'official determination by an agency that has made none',
+    );
+  });
+
+  test('a tax figure is never dated in a way that rots', () {
+    // "current for 2024 and 2025" told somebody in 2026 that the rates
+    // expired last year. The schedule had not changed; the sentence had just
+    // sat still. A year pair in copy goes stale by doing nothing.
+    // Comments stripped, the same as the sweeps above, and for the same
+    // reason: this file's own comment records the banned phrase in order to
+    // ban it. The first version of this test failed on that comment, which is
+    // the guard working on the wrong input.
+    final String tax = File('lib/features/tax/tax_calculator_sheet.dart')
+        .readAsLinesSync()
+        .where((String l) => !l.trimLeft().startsWith('//'))
+        .join('\n');
+    expect(
+      RegExp(r'current for \d{4}').hasMatch(tax),
+      isFalse,
+      reason:
+          'the tax sheet pins itself to named years, so it starts telling '
+          'people the figures are out of date without anything changing',
+    );
+  });
+
   test('no source file promises an encrypted backup', () {
     // The prototype's knowledge base tells people they "can export an
     // encrypted JSON backup file". The export is JsonEncoder.withIndent, which

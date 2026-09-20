@@ -1041,6 +1041,23 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
           },
           warn: r.status == AffordabilityStatus.stretched,
         ),
+        // ON THE SCREEN, not behind the info dot, and this is the exception
+        // the screen rule names rather than a breach of it.
+        //
+        // This tab shows a ratio against thresholds, in the language lenders
+        // use, inside an app with a debt register and nine loan calculators.
+        // That is exactly the shape a Play reviewer skims and mis-files as a
+        // lending app, in a market where dozens have been pulled and the
+        // route is classification first and questions later. Somebody reading
+        // it could also reasonably wonder whether anything was submitted
+        // anywhere. Silence would mislead on both counts.
+        _Note(
+          palette: p,
+          text:
+              'This is your own check on your own numbers. Salapify does not '
+              'lend money and does not arrange or refer loans. Nothing here '
+              'is sent to any lender.',
+        ),
       ],
     );
   }

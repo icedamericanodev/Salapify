@@ -60,15 +60,41 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
       palette: p,
       icon: Icons.calculate_outlined,
       title: 'Tax Calculator',
-      subtitle: 'BIR TRAIN law rates, current for 2024 and 2025',
+      // NOT "current for 2024 and 2025". It is 2026, so that sentence told
+      // somebody the figures expired last year, which is both wrong and the
+      // kind of wrong that makes a person distrust the number above it. The
+      // TRAIN schedule from 2023 onward has not changed; saying so is true
+      // now and stays true, where a pair of years goes stale by sitting still.
+      subtitle: 'BIR TRAIN law rates, the schedule in force from 2023 onward',
       tabs: const <String>['Take-home Pay', '13th Month', 'Freelance'],
       selectedTab: _tab,
       onSelectTab: (int i) => setState(() => _tab = i),
-      child: switch (_tab) {
-        0 => _employee(p),
-        1 => _thirteenth(p),
-        _ => _freelance(p),
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          switch (_tab) {
+            0 => _employee(p),
+            1 => _thirteenth(p),
+            _ => _freelance(p),
+          },
+          const SizedBox(height: Spacing.md),
+          // ON EVERY TAB, because all three produce a figure somebody might
+          // budget a month around.
+          //
+          // There was one narrow note about the 8% option and nothing
+          // anywhere saying what these numbers ARE. Take-home pay, 13th month
+          // and the freelance options are estimates from what was typed in,
+          // and the gap between one of them and the payslip is exactly where
+          // somebody loses trust in the whole app. The Academy and the FX
+          // sheet already say this; the tax sheet was the one that did not.
+          _note(
+            p,
+            'An estimate from what you typed. Not an official BIR figure and '
+            'not tax advice. Your employer\'s or the BIR\'s own computation '
+            'is the one that counts.',
+          ),
+        ],
+      ),
     );
   }
 

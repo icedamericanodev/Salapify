@@ -233,7 +233,11 @@ DsrResult calculateDsr({
 
   AffordabilityStatus status = AffordabilityStatus.healthy;
   String advice =
-      'Your debt commitments are well within the 30% BSP safety threshold.';
+      // NOT "the 30% BSP safety threshold". The BSP publishes no such
+      // determination about an individual's ratio, and naming a regulator
+      // turns a rule of thumb into an official blessing the app cannot give.
+      'Your debt commitments are inside the 30 percent level lenders '
+      'commonly treat as comfortable.';
   if (dsr > 40) {
     status = AffordabilityStatus.stretched;
     advice =
