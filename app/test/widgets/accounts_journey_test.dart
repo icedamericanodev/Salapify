@@ -150,25 +150,69 @@ void main() {
     );
   });
 
-  testWidgets('the sheet says plainly that nothing is saved to the phone yet', (
+  testWidgets('the sheet no longer claims that nothing is saved', (
     WidgetTester tester,
   ) async {
+    // THIS TEST USED TO ASSERT THE OPPOSITE, and it was right to, for as
+    // long as it was true. The sheet carried "Nothing is saved to your phone
+    // yet, so this lasts until you close the app", with a comment beside it
+    // saying it came out the day storage landed.
+    //
+    // Storage landed. main.dart builds the app with a FileSnapshotStore and
+    // every edit made on that sheet is written to disk. The sentence, and
+    // this test defending it, had become a promise of data loss that does
+    // not happen, which on a finance app is the expensive direction to be
+    // wrong in: the reasonable response to reading it is to stop bothering
+    // to enter anything.
     await pumpApp(tester);
     await openTab(tester, Icons.account_balance_wallet_outlined);
     await tapAndSettle(tester, find.text('Add'));
 
     expect(find.byType(AccountSheet), findsOneWidget);
-    await reach(
-      tester,
-      find.textContaining('Nothing is saved to your phone yet'),
-    );
     expect(
       find.textContaining('Nothing is saved to your phone yet'),
-      findsOneWidget,
-      reason:
-          'Every other write in app/ says this. An account that silently '
-          'vanishes on the next cold start, with no warning, is how somebody '
-          'loses an evening of setting the app up.',
+      findsNothing,
+      reason: 'the sheet told somebody their account would vanish',
+    );
+  });
+
+  testWidgets('a card keeps its closing day, which had no input at all', (
+    WidgetTester tester,
+  ) async {
+    // Account.statementDate has round tripped through the model, the codec
+    // and the backup file since the first build, and NO screen could set it.
+    // The only record that ever carried one was the sample card, because the
+    // seed writes it directly.
+    //
+    // The read-back is the directional half. A field that is drawn and then
+    // discarded on save looks identical on screen to one that is kept, so
+    // every earlier test of this sheet would have passed either way.
+    await pumpApp(tester);
+    await openTab(tester, Icons.account_balance_wallet_outlined);
+    await tapAndSettle(tester, find.text('Add'));
+
+    await tapAndSettle(tester, find.text('Credit card'));
+    await tester.enterText(find.byType(TextField).first, 'Test Card');
+    await tester.pumpAndSettle();
+
+    // Found by its own hint rather than by counting fields, so adding
+    // another box above this one cannot quietly move the test onto the
+    // wrong box and leave it green.
+    final Finder closing = find.widgetWithText(TextField, 'The 10th');
+    await reach(tester, closing);
+    await tester.enterText(closing, '23rd');
+    await tester.pumpAndSettle();
+
+    await tapAndSettle(tester, find.text('Add account'));
+
+    final FinancialState state = storeOf(tester);
+    final dynamic saved = state.accounts.firstWhere(
+      (dynamic a) => a.name == 'Test Card',
+    );
+    expect(
+      saved.statementDate,
+      '23rd',
+      reason: 'the closing day was accepted on screen and thrown away',
     );
   });
 }

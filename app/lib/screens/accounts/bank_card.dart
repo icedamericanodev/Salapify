@@ -3,9 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/money/accounts.dart';
+import '../../core/money/card_cycle.dart';
 import '../../core/money/currencies.dart';
 import '../../core/money/format.dart';
 import '../../design/institution_brand.dart';
+import '../../features/info/info_dot.dart';
+import '../../features/info/info_sheet.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -45,10 +48,20 @@ class BankCard extends StatefulWidget {
     required this.account,
     required this.palette,
     this.onTap,
+    this.now,
   });
 
   final Account account;
   final Palette palette;
+
+  /// The clock the billing cycle is read against, for tests and the render
+  /// harness. Null means the real one.
+  ///
+  /// It is here rather than inside the strip because a widget that reads
+  /// DateTime.now() in build cannot be tested and cannot be rendered into a
+  /// stable picture: every shot would say a different number of days and no
+  /// two runs could be compared.
+  final DateTime? now;
 
   /// Opens the edit sheet. Reached from the BACK of the card now rather than
   /// from the card itself, because tapping the card turns it over.
@@ -243,6 +256,8 @@ class _BankCardState extends State<BankCard>
             // it inside would cost the card its proportions, which are the
             // thing that makes it read as a card at all.
             if (isCredit) _Utilisation(account: account, palette: palette),
+            if (isCredit)
+              _Cycle(account: account, palette: palette, now: widget.now),
           ],
         ),
       ),
@@ -638,6 +653,120 @@ class _Utilisation extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Where this card is in its billing cycle, as two counted days.
+///
+/// FIGURES ON THE SCREEN, THE LESSON BEHIND THE DOT. The founder's rule from
+/// 2026-09-18, applied literally: "in 4 days" and "in 18 days" are figures
+/// and stay; what a closing day IS, and why spending after one gives you
+/// longer to pay, is a lesson, read once and then skipped forever, so it
+/// lives in [InfoTopic.cardCycle].
+///
+/// It draws NOTHING when neither date can be read, rather than a row of
+/// dashes. A card whose dates are free text somebody wrote as "last working
+/// day" is not a broken card, and a strip that only ever says it does not
+/// know is the kind of furniture that teaches people to stop reading.
+class _Cycle extends StatelessWidget {
+  const _Cycle({required this.account, required this.palette, this.now});
+
+  final Account account;
+  final Palette palette;
+  final DateTime? now;
+
+  @override
+  Widget build(BuildContext context) {
+    final CardCycle cycle = cardCycleFor(account, now ?? DateTime.now());
+    if (!cycle.isKnown) return const SizedBox.shrink();
+
+    // The dot rides on the FIRST row rather than on a line of its own. A
+    // render of this card showed 'What these dates mean' taking a whole row
+    // under a block that already had five, on a screen the founder had just
+    // asked to make less wordy. A dot next to the heading is the pattern
+    // every other card here uses and it costs no line at all.
+    final Widget dot = InfoDot(
+      color: palette.textMuted,
+      semanticLabel: 'What the two dates on a credit card mean',
+      onTap: () => InfoSheet.show(context, palette, InfoTopic.cardCycle),
+    );
+
+    return Padding(
+      // A gap ABOVE, because this sits directly under the utilisation bar and
+      // its limit line. Without it the five lines read as one list and none
+      // of them is about the same thing as the one above it.
+      padding: const EdgeInsets.only(top: Spacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (cycle.knowsCutoff)
+            _row(
+              'Bill closes',
+              inDaysPhrase(cycle.daysToCutoff!),
+              trailing: dot,
+              // Deliberately never coloured. A closing day is not good or bad
+              // news, it is just a day, and colouring it would put a second
+              // alarm on a card that already has one for utilisation.
+              alarming: false,
+            ),
+          if (cycle.knowsDue)
+            _row(
+              // The dot goes here INSTEAD when there is no closing day to
+              // hang it on, so the explanation is never unreachable.
+              trailing: cycle.knowsCutoff ? null : dot,
+              // 'Due', not 'Payment due', because the BACK of this same card
+              // already carries a 'Payment due' row showing the raw date the
+              // person typed. Two rows with one label, one saying 'Oct 3' and
+              // the other 'in 18 days', is the kind of near-duplicate that
+              // makes somebody check which one is the real one.
+              'Due',
+              inDaysPhrase(cycle.daysToDue!),
+              // The word AND the colour, never colour alone: roughly one man
+              // in twelve cannot separate this red from the text beside it,
+              // and "in 18 days" versus "3 days ago" already says it.
+              alarming: cycle.isLate,
+            ),
+          if (cycle.paymentOutstanding)
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.xs),
+              child: Text(
+                // The one line that stops a wrong conclusion, which is the
+                // exception the founder's rule allows for. Without it, two
+                // dates in this order read as "pay this, then the bill
+                // closes", and somebody assumes today's spending is covered
+                // by the payment they are about to make. It is not.
+                'That payment is last month’s bill. What you spend today '
+                'is on the next one.',
+                style: AppType.caption(palette),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(
+    String label,
+    String value, {
+    required bool alarming,
+    Widget? trailing,
+  }) {
+    return Row(
+      children: <Widget>[
+        Text(label, style: AppType.caption(palette)),
+        // The dot sits against the LABEL, not out at the edge, so it reads as
+        // belonging to these two rows rather than to the whole card.
+        ?trailing,
+        const Spacer(),
+        Text(
+          value,
+          style: AppType.caption(palette).copyWith(
+            fontWeight: FontWeight.w800,
+            color: alarming ? palette.negative : palette.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 }

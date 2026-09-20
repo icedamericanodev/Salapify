@@ -58,6 +58,7 @@ class _AccountSheetState extends State<AccountSheet> {
   late final TextEditingController _rate;
   late final TextEditingController _number;
   late final TextEditingController _due;
+  late final TextEditingController _statement;
 
   late AccountKind _kind;
   late String _institution;
@@ -117,6 +118,7 @@ class _AccountSheetState extends State<AccountSheet> {
     );
     _number = TextEditingController(text: e?.accountNumber ?? '');
     _due = TextEditingController(text: e?.dueDate ?? '');
+    _statement = TextEditingController(text: e?.statementDate ?? '');
     _kind = e?.kind ?? AccountKind.cash;
     _institution = institutions.contains(e?.institution)
         ? e!.institution
@@ -142,6 +144,7 @@ class _AccountSheetState extends State<AccountSheet> {
     _rate.dispose();
     _number.dispose();
     _due.dispose();
+    _statement.dispose();
     super.dispose();
   }
 
@@ -322,6 +325,34 @@ class _AccountSheetState extends State<AccountSheet> {
               keyboardType: TextInputType.text,
             ),
           ],
+          // THE STATEMENT DATE, which until now no screen in the app could
+          // set. The field has round tripped through the model, the codec and
+          // the backup file since the first build, and the only record that
+          // ever had one was the sample card, because the seed writes it
+          // directly. A person could not.
+          //
+          // It is asked for only on a credit card. A loan and a mortgage have
+          // a due date and no statement, so offering the box there would
+          // invite somebody to fill in a cycle that does not exist.
+          if (_kind == AccountKind.credit) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            SheetField(
+              palette: p,
+              label: 'When the bill closes each month',
+              controller: _statement,
+              hint: 'The 10th',
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: Spacing.xs),
+            Text(
+              // Two figures, and the one line needed to read them. What the
+              // cutoff MEANS is behind the "i" on the card itself.
+              'Your bank closes the month on this day and works out what you '
+              'owe. It is printed on your statement, usually near the due '
+              'date.',
+              style: AppType.caption(p),
+            ),
+          ],
           const SizedBox(height: Spacing.lg),
           SheetField(
             palette: p,
@@ -329,14 +360,16 @@ class _AccountSheetState extends State<AccountSheet> {
             controller: _rate,
             hint: '6.0',
           ),
-          const SizedBox(height: Spacing.lg),
-          Text(
-            // The honest state of the app, said plainly. It is removed the
-            // day storage lands, and not a day before.
-            'Nothing is saved to your phone yet, so this lasts until you '
-            'close the app.',
-            style: AppType.caption(p),
-          ),
+          // A LINE THAT USED TO BE HERE IS GONE, and its own comment is why:
+          // "It is removed the day storage lands, and not a day before."
+          //
+          // It read "Nothing is saved to your phone yet, so this lasts until
+          // you close the app." Storage landed. `main.dart` builds the app
+          // with a FileSnapshotStore and every edit on this sheet is written
+          // to disk, so the sentence had become false in the one direction a
+          // finance app cannot afford: it tells somebody their records are
+          // about to vanish when they are not, and the reasonable response
+          // to reading it is to stop bothering to enter anything.
         ],
       ),
     );
@@ -371,7 +404,9 @@ class _AccountSheetState extends State<AccountSheet> {
       // otherwise be written back in full on the next save.
       accountNumber: cardTailForStorage(_number.text),
       dueDate: _due.text.trim().isEmpty ? null : _due.text.trim(),
-      statementDate: widget.existing?.statementDate,
+      statementDate: _statement.text.trim().isEmpty
+          ? null
+          : _statement.text.trim(),
       cardNetwork: _isCard ? _network : CardNetwork.none,
       cardTier: _isCard ? _tier : CardTier.regular,
       notes: widget.existing?.notes,

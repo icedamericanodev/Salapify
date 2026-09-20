@@ -155,6 +155,7 @@ enum InfoTopic {
   trackers,
   academy,
   reminders,
+  cardCycle,
 }
 
 class InfoPoint {
@@ -724,6 +725,48 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
         body:
             'Clear one and it can come back, because the bill underneath it '
             'is still there. Nothing here changes your money.',
+      ),
+    ],
+  ),
+  InfoTopic.cardCycle: InfoContent(
+    title: 'The two dates on a credit card',
+    subtitle: 'What closes the bill, and what pays it',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.event_busy,
+        title: 'The closing day is not the payment day',
+        body:
+            'Your bank closes the month on one day and works out what you '
+            'owe. That total is then payable on a different day, usually two '
+            'or three weeks later. Most people only ever learn the second '
+            'one, which is why the first one is on the card now.',
+      ),
+      InfoPoint(
+        icon: Icons.schedule,
+        title: 'Which bill today lands on',
+        body:
+            'Anything you spend before the closing day goes on the bill about '
+            'to be handed to you. Anything after it waits for next month, so '
+            'you get longer before you have to pay for it. Nothing here is '
+            'free money, it is only later money.',
+      ),
+      InfoPoint(
+        icon: Icons.verified_outlined,
+        title: 'Paying the FULL amount is the part that matters',
+        body:
+            'Pay everything the statement says by the due date and the card '
+            'costs you nothing. Pay the minimum and you are on time and still '
+            'charged interest, on the whole balance, not just the bit you '
+            'left. That is the most expensive misunderstanding a card holder '
+            'can have.',
+      ),
+      InfoPoint(
+        icon: Icons.edit_calendar_outlined,
+        title: 'These are the dates YOU typed',
+        body:
+            'Salapify has no connection to your bank. Both dates come from '
+            'the account you set up, so if a count looks wrong, edit the '
+            'account and check them against your statement.',
       ),
     ],
   ),

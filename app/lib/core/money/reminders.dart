@@ -191,15 +191,25 @@ int? _daysUntil(String? dueDate, DateTime now) {
     return target.difference(today).inDays;
   }
 
+  // A DAY OF THE MONTH, however somebody wrote it down.
+  //
+  // The bare "15" and "15th" were always read. The phrasings around them
+  // were not, and one of them is in Salapify's own sample data: the sample
+  // credit card's statement date reads "10th of the month", which this
+  // returned null for, so the app shipped a fixture its own parser could not
+  // read. A card cutoff IS a repeating day, so "every 10th" and "10th of
+  // each month" are the natural way to write one and all of them mean the
+  // same thing.
   final RegExpMatch? dayMatch = RegExp(
-    r'^(\d{1,2})(?:st|nd|rd|th)?$',
+    r'^(?:every\s+|the\s+)?(\d{1,2})(?:st|nd|rd|th)?'
+    r'(?:\s+of\s+(?:the|each|every)\s+month)?$',
     caseSensitive: false,
   ).firstMatch(raw);
   if (dayMatch != null) {
     final int day = int.parse(dayMatch.group(1)!);
-    DateTime target = DateTime(now.year, now.month, day);
+    DateTime target = _onDayOf(now.year, now.month, day);
     if (target.isBefore(today)) {
-      target = DateTime(now.year, now.month + 1, day);
+      target = _onDayOf(now.year, now.month + 1, day);
     }
     return target.difference(today).inDays;
   }
@@ -261,6 +271,23 @@ int? _daysUntil(String? dueDate, DateTime now) {
   }
 
   return null;
+}
+
+/// A given day of a month, CLAMPED to the last day that month actually has.
+///
+/// `DateTime(2026, 2, 31)` is quietly the 3rd of March, and `DateTime(2026,
+/// 9, 31)` is the 1st of October. Nothing throws and nothing warns. So a
+/// card or a bill recorded as falling on the 31st reported the wrong day in
+/// the seven months of the year that do not have one, always LATE, which on
+/// a payment reminder is the one direction that costs money.
+///
+/// Clamping is what the banks themselves do: a month is closed on the last
+/// day it has, because nothing can fall due on a day that does not exist.
+DateTime _onDayOf(int year, int month, int day) {
+  // Day zero of the FOLLOWING month is the last day of this one, and it
+  // carries correctly from December into January.
+  final int lastDay = DateTime(year, month + 1, 0).day;
+  return DateTime(year, month, day.clamp(1, lastDay));
 }
 
 /// How far a stored date may be from today before it is treated as unreadable.
@@ -365,13 +392,26 @@ ReminderResult evaluateReminders({
       );
     }
 
-    // 2b. Credit cards carrying a balance with a statement date.
+    // 2b. Credit cards carrying a balance with a due date.
     //
-    // `balance < 0` is the prototype's own test and is not a style choice: a
-    // credit account stores what is OWED as a negative number, so a card at
-    // zero or in credit has nothing to pay and must stay quiet.
+    // THE SIGN IS POSITIVE HERE, and the version of this loop that said
+    // `a.balance >= 0` could never raise a single reminder.
+    //
+    // It was ported straight from the prototype, where a credit account does
+    // store what is owed as a negative number. Salapify does the opposite,
+    // everywhere, and always has: `summarize` computes net worth as assets
+    // MINUS liabilities from a plain sum of balances, so a positive credit
+    // balance is what gets subtracted; `creditUtilization` divides that same
+    // positive balance by the limit, which is why 12,000 against a 40,000
+    // limit is 30 percent; and the sample card carries 4,200. Under the old
+    // test every one of those is skipped, and the only card that could ever
+    // have reminded was one in credit, which by definition owes nothing.
+    //
+    // So this was not a sign that was merely arguable. It was a feature that
+    // was fully built, covered by a passing test, and silent on every card a
+    // person could actually record.
     for (final Account a in accounts) {
-      if (a.kind != AccountKind.credit || a.balance >= 0) continue;
+      if (a.kind != AccountKind.credit || a.balance <= 0) continue;
       final int? days = daysUntil(a.dueDate, now);
       if (days == null || days > settings.paymentDueDaysBefore) continue;
 
@@ -379,9 +419,21 @@ ReminderResult evaluateReminders({
         'card-due-${a.id}-${a.dueDate}-$today',
         ReminderKind.paymentDue,
         'Credit card due: ${a.name}',
-        '${formatPeso(a.balance.abs())} on ${a.name} '
-            '${_whenPhrase(days, a.dueDate ?? '')}. Paying before the cutoff '
-            'is what keeps the interest off it.',
+        // "Before the cutoff" was wrong, and wrong about the one thing this
+        // sentence exists to say. The cutoff is when the bank CLOSES the
+        // bill; the due date is when it has to be paid, and they are
+        // different days. Somebody who read that line and paid by the cutoff
+        // would have paid early every month for no reason, and somebody who
+        // read it the other way round could believe a payment made after the
+        // cutoff was already late.
+        //
+        // The full amount, not the minimum, is the other half of it. Paying
+        // the minimum is paying on time and still being charged interest on
+        // everything left, which is the single most expensive
+        // misunderstanding a card holder can have.
+        '${formatPeso(a.balance)} on ${a.name} '
+            '${_whenPhrase(days, a.dueDate ?? '')}. Paying the full amount by '
+            'the due date is what keeps the interest off it.',
         daysAway: days,
       );
     }

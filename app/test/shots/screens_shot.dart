@@ -970,6 +970,19 @@ void main() {
       if (shape.kind.isNotEmpty) {
         await tester.tap(find.text(shape.kind));
         await tester.pumpAndSettle();
+
+        // SCROLLED TO THE BOTTOM for the card shape, because that is where
+        // the fields this shot exists to show now live. The picture used to
+        // stop at the currency dropdown, which meant the credit limit, the
+        // due date and the closing day, every field that only a card has,
+        // were outside the only render anybody reviews. A shot of a sheet
+        // that never reaches the part the sheet is being shot FOR proves
+        // nothing.
+        await tester.drag(
+          find.byType(SingleChildScrollView).last,
+          const Offset(0, -1800),
+        );
+        await tester.pumpAndSettle();
       }
 
       await expectLater(
@@ -1555,7 +1568,12 @@ void _cardFaceShots() {
     testWidgets('card ${face.slug} renders', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);
 
-      tester.view.physicalSize = const Size(1170, 2600);
+      // TALLER than it was, because each credit card now carries a billing
+      // cycle strip under its utilisation bar and three of them stopped
+      // fitting. The Column here is fixed height on purpose, so it reddens
+      // loudly rather than clipping a card out of a picture somebody is
+      // reviewing; this is that alarm being answered, not silenced.
+      tester.view.physicalSize = const Size(1170, 3200);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -1581,6 +1599,12 @@ void _cardFaceShots() {
                         account: a,
                         palette: palette,
                         onTap: () {},
+                        // A FIXED CLOCK, so the cycle strip says the same
+                        // thing tomorrow. Without it every rerun of this
+                        // shot differs from the last by a day in two places
+                        // and nobody can tell a real change from the
+                        // calendar moving.
+                        now: DateTime(2026, 9, 20, 12),
                       ),
                     ),
                 ],
