@@ -222,6 +222,10 @@ class Transaction {
     this.status = TransactionStatus.confirmed,
     this.profile,
     this.isSample = false,
+    this.isTaxDeductible = false,
+    this.taxTinOrRef,
+    this.attachmentPath,
+    this.attachmentName,
   });
 
   /// True for a record Salapify put there itself, so the screens are not blank
@@ -263,6 +267,59 @@ class Transaction {
   /// from the name, the way the prototype does; see FinancialState.profileOf.
   final ProfileEntity? profile;
 
+  /// Marked by the person as a business or freelance expense they intend to
+  /// claim against income tax.
+  ///
+  /// A LABEL, AND ONLY A LABEL. Nothing in Salapify's arithmetic reads it:
+  /// it does not reduce taxable income anywhere, it does not feed the tax
+  /// calculator, and it changes no total on any screen. It exists so that
+  /// somebody keeping books can find these rows again at filing time, which
+  /// is the job they are actually doing.
+  ///
+  /// That restraint is deliberate rather than unfinished. Whether a given
+  /// peso is deductible turns on the taxpayer's regime, on substantiation,
+  /// and on rules this app does not model, so an app that quietly subtracted
+  /// these from a tax figure would be filing somebody's return for them. The
+  /// 8 percent election alone makes that dangerous: under it there are no
+  /// itemised deductions at all, so every row marked here would be
+  /// deductible in Salapify and not deductible at the BIR.
+  final bool isTaxDeductible;
+
+  /// The official receipt or sales invoice number, or the supplier's TIN.
+  ///
+  /// Free text, because that is what is printed on the paper: an OR number,
+  /// an SI number, a TIN with or without its branch code. Validating a shape
+  /// here would reject real receipts, and a receipt Salapify refuses to
+  /// record is worse than one it records untidily.
+  final String? taxTinOrRef;
+
+  /// Where the receipt image lives ON THIS PHONE, relative to the app's own
+  /// documents directory. Never a URL.
+  ///
+  /// NAMED `attachmentPath`, NOT `attachmentUrl`, and the rename is load
+  /// bearing rather than a style preference. The prototype's field is a URL
+  /// and its seed data fills it with `https://images.unsplash.com/...`, so
+  /// three sample rows would have the app fetching images off the internet.
+  /// Salapify's header badge says "On this phone" and its privacy receipt
+  /// names the single outbound request the app makes by name. A field typed
+  /// as a URL invites the next person to put one in it, and the guard here
+  /// is the name: a path is not a URL, so the wrong thing no longer fits.
+  /// `transaction_attachment_test.dart` fails the build on a stored value
+  /// that looks like one.
+  ///
+  /// A PATH, NOT BASE64, which is the other half. The prototype stores the
+  /// whole image inline as a data URL. Salapify keeps its ledger in ONE file
+  /// written atomically with a previous generation kept, so inlining photos
+  /// would rewrite every megabyte of every receipt on every save, twice, and
+  /// a person with twenty receipts would be writing well over a hundred
+  /// megabytes each time they logged a coffee.
+  final String? attachmentPath;
+
+  /// What the file was called when it was attached, for showing in a list.
+  final String? attachmentName;
+
+  bool get hasAttachment => attachmentPath != null;
+
   /// Left out of the in and out totals. The two states that mean "this is not
   /// really money that moved".
   bool get countsTowardTotals =>
@@ -295,6 +352,78 @@ class Transaction {
     // Preserved: marking a sample entry excluded from a reconciliation is
     // housekeeping on Salapify's own demo row, not the person adopting it.
     isSample: isSample,
+    isTaxDeductible: isTaxDeductible,
+    taxTinOrRef: taxTinOrRef,
+    attachmentPath: attachmentPath,
+    attachmentName: attachmentName,
+  );
+
+  /// The same entry with its tax marking and receipt changed, and NOTHING
+  /// else.
+  ///
+  /// A SECOND NARROW COPIER RATHER THAN A GENERAL `copyWith`, for the reason
+  /// `withStatus` above already gives: a general one invites a caller to
+  /// quietly change an amount, which is the single thing a ledger must never
+  /// allow without a trace. Two narrow methods cost a few lines each and
+  /// make the dangerous edit impossible to write by accident.
+  ///
+  /// Every parameter is a sentinel-free nullable, so passing nothing keeps
+  /// what is there. Clearing a receipt is [withoutAttachment], because
+  /// `attachmentPath: null` is indistinguishable from "leave it alone" and a
+  /// person who taps Remove has to be able to actually remove it.
+  Transaction withTaxDetails({
+    bool? isTaxDeductible,
+    String? taxTinOrRef,
+    String? attachmentPath,
+    String? attachmentName,
+  }) => Transaction(
+    id: id,
+    type: type,
+    amount: amount,
+    category: category,
+    accountId: accountId,
+    date: date,
+    createdAt: createdAt,
+    subcategory: subcategory,
+    toAccountId: toAccountId,
+    merchant: merchant,
+    note: note,
+    person: person,
+    tags: tags,
+    status: status,
+    profile: profile,
+    isSample: isSample,
+    isTaxDeductible: isTaxDeductible ?? this.isTaxDeductible,
+    taxTinOrRef: taxTinOrRef ?? this.taxTinOrRef,
+    attachmentPath: attachmentPath ?? this.attachmentPath,
+    attachmentName: attachmentName ?? this.attachmentName,
+  );
+
+  /// The same entry with its receipt removed.
+  ///
+  /// Separate from [withTaxDetails] because null cannot mean two things at
+  /// once. It does NOT clear the tax marking or the reference: somebody who
+  /// deletes a blurry photo has not stopped claiming the expense, and
+  /// silently unticking it would lose a deliberate decision they made.
+  Transaction withoutAttachment() => Transaction(
+    id: id,
+    type: type,
+    amount: amount,
+    category: category,
+    accountId: accountId,
+    date: date,
+    createdAt: createdAt,
+    subcategory: subcategory,
+    toAccountId: toAccountId,
+    merchant: merchant,
+    note: note,
+    person: person,
+    tags: tags,
+    status: status,
+    profile: profile,
+    isSample: isSample,
+    isTaxDeductible: isTaxDeductible,
+    taxTinOrRef: taxTinOrRef,
   );
 }
 

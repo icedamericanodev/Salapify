@@ -361,6 +361,16 @@ const Set<String> transactionKeys = <String>{
   'status',
   'profile',
   'isSample',
+  'isTaxDeductible',
+  'taxTinOrRef',
+  // `attachmentUrl` on the wire, `attachmentPath` in Dart, which is the same
+  // kind of rename `scheduleType` already carries on Debt. The prototype
+  // named it a URL and the backup format is its format, so the key keeps the
+  // old spelling for compatibility both ways while the Dart side is typed as
+  // what Salapify will actually put in it. See the field's own comment for
+  // why a URL must never end up there.
+  'attachmentUrl',
+  'attachmentName',
 };
 
 Map<String, dynamic> transactionToJson(Transaction t) => <String, dynamic>{
@@ -380,6 +390,12 @@ Map<String, dynamic> transactionToJson(Transaction t) => <String, dynamic>{
   'status': transactionStatusWire.encode(t.status),
   if (t.profile != null) 'profile': profileWire.encode(t.profile!),
   if (t.isSample) 'isSample': true,
+  // Written only when set, the way every other optional here is, so a ledger
+  // where nobody has touched the tax fields is byte for byte what it was.
+  if (t.isTaxDeductible) 'isTaxDeductible': true,
+  if (t.taxTinOrRef != null) 'taxTinOrRef': t.taxTinOrRef,
+  if (t.attachmentPath != null) 'attachmentUrl': t.attachmentPath,
+  if (t.attachmentName != null) 'attachmentName': t.attachmentName,
 };
 
 Transaction transactionFromJson(Map<String, dynamic> m) {
@@ -405,7 +421,41 @@ Transaction transactionFromJson(Map<String, dynamic> m) {
         TransactionStatus.confirmed,
     profile: profileWire.decodeOptional(m, 'profile', what),
     isSample: _optBool(m, 'isSample'),
+    isTaxDeductible: _optBool(m, 'isTaxDeductible'),
+    taxTinOrRef: _optStr(m, 'taxTinOrRef'),
+    // READ, BUT NOT TRUSTED. A backup is a file a person can edit, and one
+    // exported from the prototype genuinely does carry remote URLs here: its
+    // own seed data puts three images.unsplash.com links in this key. Taking
+    // that at face value would put Salapify on the network the first time
+    // one of those rows was drawn, which its header badge and privacy
+    // receipt both say it is not.
+    //
+    // Dropped rather than rejected, because an import that refuses the whole
+    // file over a receipt photo loses somebody their entire ledger to save
+    // them an image.
+    attachmentPath: _localPathOnly(_optStr(m, 'attachmentUrl')),
+    attachmentName: _optStr(m, 'attachmentName'),
   );
+}
+
+/// A stored attachment location, or null when it is not one Salapify will
+/// open.
+///
+/// Anything with a scheme is discarded: `http:`, `https:`, `data:`, `file:`
+/// and anything else. What survives is a plain relative path, which is the
+/// only shape the app ever writes.
+String? _localPathOnly(String? raw) {
+  if (raw == null) return null;
+  final String v = raw.trim();
+  if (v.isEmpty) return null;
+  if (RegExp(r'^[A-Za-z][A-Za-z0-9+.-]*:').hasMatch(v)) return null;
+  // An absolute path is not something this app wrote either: attachments are
+  // stored relative to its own documents directory, so a leading slash means
+  // the value came from somewhere else and points outside.
+  if (v.startsWith('/') || v.startsWith(r'\')) return null;
+  // `..` would climb out of the attachments directory.
+  if (v.split(RegExp(r'[/\\]')).contains('..')) return null;
+  return v;
 }
 
 // ---------------------------------------------------------------------------
