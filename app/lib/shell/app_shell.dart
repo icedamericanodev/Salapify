@@ -154,17 +154,63 @@ class _AppShellState extends State<AppShell> {
         : 'Logged under ${formatDateLabel(logged.date, now: widget.state.now)},'
               ' further down the list.';
 
+    // AN UNDO, for five seconds.
+    //
+    // Founder spec, 2026-09-20. This store rejected a snackbar undo twice
+    // already, in `undoLastImport` and `restoreSampleData`, and both were
+    // right to: those REPLACE the whole ledger and depend on a second file
+    // staying in step, so an app killed mid-swap leaves half of one ledger
+    // and half of another. This is one row inside a single snapshot written
+    // atomically, so the worst case is one extra entry somebody can see and
+    // correct. `undoLoggedTransaction` carries the full argument.
+    //
+    // Five seconds rather than four, because the undo has to be read and
+    // then reached for, and the entry it undoes has just landed on a screen
+    // the person is still taking in.
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(
-            '$whereItWent Saved to this phone.',
+            // "SAVED TO THIS PHONE" STAYS, and the amount is added in front
+            // of it rather than in place of it. An earlier version of this
+            // line dropped the reassurance for the spec's "₱X at Y" wording
+            // and log_journey_test.dart caught it: that sentence replaced a
+            // stale warning about entries not surviving a restart, and it is
+            // the one thing a person needs to hear about money they have
+            // just typed into a phone.
+            '$whereItWent ${formatPeso(logged.amount)}'
+            '${logged.merchant == null ? '' : ' at ${logged.merchant}'}. '
+            'Saved to this phone.',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: palette.onAccent,
+            onPressed: () {
+              widget.state.undoLoggedTransaction(logged);
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    // CONFIRMED, rather than silently vanishing. An entry
+                    // that disappears with no word is indistinguishable from
+                    // one that failed to save, and the person has no way to
+                    // tell which happened to their money.
+                    content: Text(
+                      'Taken back out. Your balance is where it was.',
+                      style: TextStyle(color: palette.onAccent),
+                    ),
+                    backgroundColor: palette.accent,
+                    duration: const Duration(seconds: 3),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+            },
+          ),
         ),
       );
   }

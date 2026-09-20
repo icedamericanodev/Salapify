@@ -274,6 +274,39 @@ List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
   }).toList();
 }
 
+/// Takes a transaction's effect back OFF the balances.
+///
+/// The exact inverse of [applyToBalances], and the word exact is the point:
+/// this is how an undo gives somebody their money back, so a sign wrong here
+/// is a balance wrong forever, silently, on a screen that looks fine.
+///
+/// It is written as a mirror rather than derived from the original, because
+/// the obvious derivation, applying a transaction with a negated amount, is
+/// wrong in two ways at once: `countsTowardTotals` and the transfer's second
+/// leg both read fields that negation does not touch. A mirror can drift from
+/// its original, so `ledger_golden_test.dart` pins the ROUND TRIP instead of
+/// the arithmetic: apply then reverse must return the balances untouched, for
+/// every transaction shape. That property cannot pass if either function
+/// changes without the other.
+List<Account> reverseFromBalances(List<Account> accounts, Transaction tx) {
+  if (!tx.countsTowardTotals) return accounts;
+
+  return accounts.map((Account a) {
+    if (a.id == tx.accountId) {
+      final double delta = switch (tx.type) {
+        TransactionType.income => -tx.amount,
+        TransactionType.expense => tx.amount,
+        TransactionType.transfer => tx.amount,
+      };
+      return a.copyWith(balance: a.balance + delta);
+    }
+    if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
+      return a.copyWith(balance: a.balance - tx.amount);
+    }
+    return a;
+  }).toList();
+}
+
 /// Splits the Log sheet's tag field the way the prototype does: on commas,
 /// trimmed, empties dropped, and every tag forced to start with a hash so the
 /// stored shape cannot depend on whether somebody typed one.

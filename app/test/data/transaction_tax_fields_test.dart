@@ -257,6 +257,10 @@ void main() {
         // than the defect.
         'lib/core/money/bir_claims.dart',
         'lib/screens/reports/bir_claims_card.dart',
+        // The scan sheet, added the same day. It SHOWS the flag as a toggle
+        // the person can turn off before saving, and carries their answer
+        // onto the entry. Nothing is computed from it here either.
+        'lib/features/log/scan_receipt_sheet.dart',
       ];
       final List<String> offenders = <String>[];
       final List<FileSystemEntity> files = Directory('lib')

@@ -18,6 +18,7 @@ import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
+import 'package:salapify/features/log/scan_receipt_sheet.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
@@ -342,6 +343,53 @@ void main() {
       );
     });
   }
+
+  // The receipt scanner, with a sample read into it.
+  //
+  // Empty it is a paste box and six chips, which proves nothing. The whole
+  // feature is the form it fills and the caution it puts above it, so the
+  // shot taps a sample the way a person would.
+  testWidgets('sheet scan receipt renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    ScanReceiptSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette,
+      state,
+    );
+    await tester.pumpAndSettle();
+
+    // Jollibee, because it is the official receipt: it is the one sample
+    // that fills the TIN, ticks the claimable toggle and lists items, so a
+    // smaller one would render a picture with the careful half missing.
+    await tester.tap(find.text('Jollibee'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_scan_receipt.png'),
+    );
+  });
 
   // The bonus allocator WITH A FIGURE IN IT.
   //

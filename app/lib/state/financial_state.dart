@@ -1007,13 +1007,60 @@ class FinancialState extends ChangeNotifier {
   /// Newest first, matching the prototype, and matching what the Activity
   /// screen shows: somebody who has just logged something looks at the top.
   ///
-  /// In memory only, like every other write on this store today. There is no
-  /// storage layer in app/ yet, so this is gone on the next cold start, and
-  /// the sheet says so when it saves rather than letting somebody find out
-  /// tomorrow.
+  /// IT PERSISTS. This comment used to say "in memory only, there is no
+  /// storage layer in app/ yet, so this is gone on the next cold start", and
+  /// that stopped being true when storage landed: `notifyListeners` is
+  /// overridden on this store and writes the whole snapshot. The shell's own
+  /// confirmation already said "Saved to this phone", so the code and the
+  /// comment had been disagreeing about the single most reassuring fact in
+  /// the app.
+  ///
+  /// It matters beyond tidiness, because the save is what makes
+  /// [undoLoggedTransaction] a second write rather than a memory edit, and
+  /// that is the whole question the undo had to answer.
   void logTransaction(Transaction tx) {
     _transactions = <Transaction>[tx, ..._transactions];
     _accounts = applyToBalances(_accounts, tx);
+    notifyListeners();
+  }
+
+  /// Takes a just-logged entry straight back out again.
+  ///
+  /// FOR THE SNACKBAR UNDO ON A FRESH ENTRY, AND NOTHING ELSE. It removes the
+  /// row and reverses its effect on the balances, which is the exact inverse
+  /// of [logTransaction].
+  ///
+  /// ## Why a snackbar undo is allowed here when it was refused twice above
+  ///
+  /// `undoLastImport` and `restoreSampleData` both say, in their own words,
+  /// that a snackbar undo would be a second write racing the first and would
+  /// leave a half swapped ledger if the app died in the gap. That reasoning
+  /// is right and it does not reach this case, for two reasons worth writing
+  /// down rather than rediscovering.
+  ///
+  /// First, those two REPLACE the whole ledger and depend on a second file,
+  /// the pre-import copy, being swapped in step with it. Two files can
+  /// disagree. This touches one row and the balances it moved, inside the
+  /// single snapshot that is written atomically with a previous generation
+  /// kept, so there is no intermediate state to be caught in: either the save
+  /// with the row landed or the save without it did.
+  ///
+  /// Second, the failure is benign in a way theirs is not. The worst outcome
+  /// here is one extra entry somebody can see on Activity and correct. Theirs
+  /// is a ledger half in one shape and half in another with no way back.
+  ///
+  /// It is still deliberately narrow: it takes the whole transaction rather
+  /// than an id, so a caller cannot ask to remove something it has not got in
+  /// front of it, and it does nothing at all when the row has already gone.
+  void undoLoggedTransaction(Transaction tx) {
+    final int before = _transactions.length;
+    _transactions = _transactions
+        .where((Transaction t) => t.id != tx.id)
+        .toList();
+    // Nothing removed means nothing to reverse. Without this, tapping Undo
+    // twice would credit the money back twice.
+    if (_transactions.length == before) return;
+    _accounts = reverseFromBalances(_accounts, tx);
     notifyListeners();
   }
 

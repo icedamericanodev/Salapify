@@ -662,4 +662,124 @@ void _writeTests() {
       );
     });
   });
+
+  group('taking a transaction back off the balances', () {
+    // This is how an undo gives somebody their money back, so a sign wrong
+    // here is a balance wrong forever, silently, on a screen that looks
+    // fine. The ROUND TRIP is what is pinned rather than the arithmetic:
+    // reverseFromBalances mirrors applyToBalances by hand, and a mirror can
+    // drift, but it cannot drift and still return the balances untouched.
+
+    List<Account> accounts() => <Account>[
+      const Account(
+        id: 'a',
+        name: 'BPI',
+        kind: AccountKind.bank,
+        institution: 'BPI',
+        balance: 50000,
+        monogram: 'BP',
+      ),
+      const Account(
+        id: 'b',
+        name: 'GCash',
+        kind: AccountKind.gcash,
+        institution: 'GCash',
+        balance: 3000,
+        monogram: 'GC',
+      ),
+      const Account(
+        id: 'c',
+        name: 'Card',
+        kind: AccountKind.credit,
+        institution: 'BPI',
+        balance: 4200,
+        monogram: 'BP',
+      ),
+    ];
+
+    Transaction shape({
+      required TransactionType type,
+      double amount = 1500,
+      String account = 'a',
+      String? to,
+      TransactionStatus status = TransactionStatus.confirmed,
+    }) => Transaction(
+      id: 'tx',
+      type: type,
+      amount: amount,
+      category: 'Food & Dining',
+      accountId: account,
+      toAccountId: to,
+      date: '2026-09-20',
+      createdAt: 1758326400000,
+      status: status,
+    );
+
+    void roundTrips(String label, Transaction tx) {
+      test(label, () {
+        final List<Account> before = accounts();
+        final List<Account> after = reverseFromBalances(
+          applyToBalances(before, tx),
+          tx,
+        );
+        for (int i = 0; i < before.length; i++) {
+          expect(
+            after[i].balance,
+            closeTo(before[i].balance, 0.0001),
+            reason: '${before[i].name} did not come back to where it started',
+          );
+        }
+      });
+    }
+
+    roundTrips('an expense', shape(type: TransactionType.expense));
+    roundTrips('an income', shape(type: TransactionType.income));
+    roundTrips(
+      'a transfer, both legs',
+      shape(type: TransactionType.transfer, to: 'b'),
+    );
+    roundTrips(
+      'a payment onto a card',
+      shape(type: TransactionType.expense, account: 'c'),
+    );
+    roundTrips(
+      'an excluded entry, which moved nothing either way',
+      shape(type: TransactionType.expense, status: TransactionStatus.excluded),
+    );
+    roundTrips(
+      'a duplicate, likewise',
+      shape(type: TransactionType.expense, status: TransactionStatus.duplicate),
+    );
+    roundTrips('a zero', shape(type: TransactionType.expense, amount: 0));
+    roundTrips(
+      'an amount with centavos',
+      shape(type: TransactionType.expense, amount: 1234.56),
+    );
+
+    test('reversing actually MOVES the balance, it is not a no-op', () {
+      // The other half of the alarm, and the one that matters. A reversal
+      // that did nothing would pass every round trip above, because apply
+      // then nothing would fail instead. This checks the apply half moved
+      // and the reverse half moved it back.
+      final List<Account> before = accounts();
+      final Transaction tx = shape(type: TransactionType.expense);
+      final List<Account> applied = applyToBalances(before, tx);
+      expect(applied.first.balance, 48500, reason: 'the expense did nothing');
+
+      final List<Account> undone = reverseFromBalances(applied, tx);
+      expect(undone.first.balance, 50000);
+    });
+
+    test('a transfer moves BOTH accounts, and puts both back', () {
+      final List<Account> before = accounts();
+      final Transaction tx = shape(type: TransactionType.transfer, to: 'b');
+      final List<Account> applied = applyToBalances(before, tx);
+      expect(applied[0].balance, 48500);
+      expect(applied[1].balance, 4500);
+
+      final List<Account> undone = reverseFromBalances(applied, tx);
+      expect(undone[0].balance, 50000);
+      expect(undone[1].balance, 3000);
+    });
+  });
 }

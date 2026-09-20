@@ -9,6 +9,7 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'scan_receipt_sheet.dart';
 
 /// Log an entry, from src/components/LogSheet.tsx.
 ///
@@ -327,6 +328,37 @@ class _LogSheetState extends State<LogSheet> {
             preview: _preview,
             onChanged: (_) => setState(() {}),
             onApply: _applyQuick,
+          ),
+          const SizedBox(height: Spacing.sm),
+
+          // SCAN LIVES HERE, not on Home's quick actions.
+          //
+          // The prototype puts it in that row, which on this app would be a
+          // fifth Expanded label across a 320dp phone beside Log, Debt, Bills
+          // and Move. This sheet is already the one place a person comes to
+          // record spending, and the box directly above it reads a pasted
+          // receipt too, so the two ways of doing the same thing sit
+          // together rather than in different rooms.
+          _ScanRow(
+            palette: p,
+            onTap: () async {
+              // The navigator is captured BEFORE the await, the same rule the
+              // shell already writes down for its messenger: the scan sheet
+              // can be dismissed long after this context is gone, and
+              // reaching for Navigator.of on the far side of an await is the
+              // usual way that becomes a crash.
+              final NavigatorState nav = Navigator.of(context);
+              final Transaction? scanned = await ScanReceiptSheet.show(
+                context,
+                p,
+                widget.state,
+              );
+              // Straight back out through this sheet, so the shell's single
+              // handler records it, lands on Activity and offers the undo.
+              // A second save path would be a second set of those lessons to
+              // remember.
+              if (scanned != null && mounted) nav.pop(scanned);
+            },
           ),
           const SizedBox(height: Spacing.lg),
 
@@ -979,5 +1011,56 @@ class _QuickParseField extends StatelessWidget {
     if (r.person != null) b.write(', with ${r.person}');
     b.write('.');
     return b.toString();
+  }
+}
+
+/// The way into the receipt scanner, from the sheet somebody is already in.
+class _ScanRow extends StatelessWidget {
+  const _ScanRow({required this.palette, required this.onTap});
+
+  final Palette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Scan a receipt instead',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surfaceAlt,
+            borderRadius: BorderRadius.circular(Radii.control),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.document_scanner_outlined,
+                size: 18,
+                color: palette.accent,
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: Text(
+                  'Scan a receipt instead',
+                  style: AppType.body(
+                    palette,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: palette.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
