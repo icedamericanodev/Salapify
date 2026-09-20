@@ -156,6 +156,7 @@ enum InfoTopic {
   academy,
   reminders,
   cardCycle,
+  claimableExpenses,
 }
 
 class InfoPoint {
@@ -767,6 +768,50 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Salapify has no connection to your bank. Both dates come from '
             'the account you set up, so if a count looks wrong, edit the '
             'account and check them against your statement.',
+      ),
+    ],
+  ),
+  InfoTopic.claimableExpenses: InfoContent(
+    title: 'Claimable expenses',
+    subtitle: 'What Salapify counts, and what the BIR would',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.check_box_outlined,
+        title: 'Three ways an expense lands here',
+        body:
+            'You ticked it as tax deductible when you logged it, or you '
+            'filed it under Business & Freelance Ops, or you tagged it. '
+            'Scanning a receipt that carries a TIN ticks it for you, and you '
+            'can always untick it.',
+      ),
+      InfoPoint(
+        icon: Icons.receipt_long,
+        title: 'A tick is not a receipt',
+        body:
+            'The BIR can disallow a deduction with no adequate record behind '
+            'it, which in practice means the official receipt or sales '
+            'invoice with the supplier TIN on it. That is why this card '
+            'splits what you have marked from what you could actually show, '
+            'and the second number is the one that matters.',
+      ),
+      InfoPoint(
+        icon: Icons.calculate_outlined,
+        title: 'Whether it saves you anything depends on how you file',
+        body:
+            'On the 8% election there are no itemised deductions at all, so '
+            'these receipts change nothing. On the 40% standard deduction '
+            'the amount is fixed whatever you spent. Only graduated rates '
+            'with itemised deductions turn a receipt into a smaller tax '
+            'bill, and how much depends on your income band.',
+      ),
+      InfoPoint(
+        icon: Icons.info_outline,
+        title: 'Salapify does not file anything',
+        body:
+            'Nothing here is sent anywhere and none of it is a tax return. '
+            'It is your own records, sorted so you can find them, and it is '
+            'general information rather than tax advice. Your accountant '
+            'decides what is claimable.',
       ),
     ],
   ),

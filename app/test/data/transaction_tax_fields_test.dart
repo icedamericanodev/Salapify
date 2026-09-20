@@ -245,6 +245,18 @@ void main() {
         // a field on a new entry and the person can untick it before saving,
         // which is the opposite of a figure computed behind their back.
         'lib/core/money/receipt_ocr.dart',
+        // Added the same day, when this test caught feature 4 too.
+        //
+        // The claims hub is the one place the flag is MEANT to be read. It
+        // filters and it totals, which is arithmetic on the person's own
+        // amounts and says nothing about tax. The dangerous step, turning a
+        // total into a tax saving, cannot happen without a rate the caller
+        // names, and `bir_claims_no_default_rate_test.dart` is what holds
+        // that line now. This list was the wrong instrument for it: it
+        // banned reading the field at all, which stops the feature rather
+        // than the defect.
+        'lib/core/money/bir_claims.dart',
+        'lib/screens/reports/bir_claims_card.dart',
       ];
       final List<String> offenders = <String>[];
       final List<FileSystemEntity> files = Directory('lib')

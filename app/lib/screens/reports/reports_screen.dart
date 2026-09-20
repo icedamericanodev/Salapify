@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/bir_claims.dart';
 import '../../core/money/format.dart';
 import '../../core/money/reports.dart';
 import '../../design/tokens.dart';
@@ -9,6 +10,7 @@ import '../../features/info/info_sheet.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+import 'bir_claims_card.dart';
 import 'category_bar.dart';
 import 'reconciliation_view.dart';
 
@@ -473,7 +475,7 @@ class _PositionView extends StatelessWidget {
   }
 }
 
-class _PerformanceView extends StatelessWidget {
+class _PerformanceView extends StatefulWidget {
   const _PerformanceView({
     required this.palette,
     required this.report,
@@ -485,7 +487,23 @@ class _PerformanceView extends StatelessWidget {
   final ReportPeriod period;
 
   @override
+  State<_PerformanceView> createState() => _PerformanceViewState();
+}
+
+class _PerformanceViewState extends State<_PerformanceView> {
+  /// Whether the breakdown below is narrowed to claimable receipts.
+  ///
+  /// Off every time the tab is built, deliberately. A filter that survives
+  /// out of sight is how somebody comes back tomorrow, reads "Where it went"
+  /// as their whole month, and is short by everything that was not a
+  /// business expense. The heading changes with it for the same reason.
+  bool _claimableOnly = false;
+
+  @override
   Widget build(BuildContext context) {
+    final Palette palette = widget.palette;
+    final ReportSet report = widget.report;
+    final ReportPeriod period = widget.period;
     final FinancialPerformance f = report.performance;
     final bool positive = f.netSurplus >= 0;
 
@@ -639,11 +657,31 @@ class _PerformanceView extends StatelessWidget {
           ),
         ],
         const SizedBox(height: Spacing.md),
+        BirClaimsCard(
+          palette: palette,
+          transactions: report.transactions,
+          filterOn: _claimableOnly,
+          onFilterChanged: (bool v) => setState(() => _claimableOnly = v),
+        ),
+        const SizedBox(height: Spacing.md),
         _BreakdownSection(
           palette: palette,
-          title: 'Where it went',
-          emptyNote: 'Nothing spent in this period.',
-          rows: report.expenseByCategory,
+          // The title CHANGES with the filter, rather than the rows quietly
+          // shrinking under a heading that still says "Where it went". A
+          // filtered total under an unfiltered title is a figure somebody
+          // reads as their whole month.
+          title: _claimableOnly
+              ? 'Where it went, claimable only'
+              : 'Where it went',
+          emptyNote: _claimableOnly
+              ? 'Nothing marked as claimable in this period.'
+              : 'Nothing spent in this period.',
+          rows: _claimableOnly
+              ? computeCategoryBreakdown(
+                  report.transactions.where(isClaimable).toList(),
+                  TransactionType.expense,
+                )
+              : report.expenseByCategory,
           barColor: palette.negative,
         ),
         const SizedBox(height: Spacing.md),
