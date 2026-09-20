@@ -53,6 +53,13 @@ still be missing half of what it says.
 
 ## 1. The five tabs
 
+**Sections 1 to 4 are a snapshot taken on 2026-09-18 and are now out of date
+in places.** They are left as written, because the point of the audit was to
+record what was true when it was run, and quietly editing a finding into
+agreement with today is how an audit stops being one. The current state is in
+"Progress against that order" below, which is dated and supersedes anything
+above it. Where a row here says something is missing, check there first.
+
 | # | Tab | Prototype | Flutter | Verdict |
 |---|-----|-----------|---------|---------|
 | 1 | Home | `Header`, `HeroPanel`, `BudgetPulseCard`, `QuickActions`, `DebtBeamCard`, `ComingUpCard`, `LatestTransactions` | `lib/screens/home/` | Cards all present. Four of its buttons open a "coming soon" note (see 4) |
@@ -257,20 +264,61 @@ sized to be one batch with its own render and its own tests.
 Steps 1 to 5 are the ones that finish the product as the prototype defines it.
 Steps 6 onward are the ones that make it a real app somebody else can install.
 
-### Progress against that order, 2026-09-18
+### Progress against that order, 2026-09-20
 
-Steps 1, 2 and 3 are done. Accounts and its write paths, the debt register with
-its payment path, all nine loan calculators, and instalment plans. Every tab in
-the prototype now has a real screen, and the Debt screen carries all three of
-the prototype's own sections.
+Steps 1 to 6 and step 8 are done, and the two sentences that used to stand
+here saying otherwise were three days out of date. Accounts and its write
+paths, the debt register with its payment path, all nine loan calculators,
+instalment plans, Reports' Reconciliation tab with Activity's correction
+path, bills, instalments and reminders, storage, and Pan.
 
-**Step 4 is next**: Reports' Reconciliation tab, together with Activity's
-correction path, because both write the same adjustment.
+**Storage is built**, which the previous version of this note said was
+waiting on a founder decision. One file on the device in the prototype's own
+backup format, written atomically with a previous generation kept.
 
-**Step 6, storage, is the one waiting on a founder decision**, and it has got
-more urgent with every batch: there is now a great deal somebody can enter
-(accounts, debts, payments, instalments, budgets, goals) and all of it is gone
-when the app closes.
+**Step 7, onboarding and starter packs, is the largest unbuilt piece**, and
+CLAUDE.md's reading of D19 puts it in the public readiness phase that lands
+after the screens rather than before them. Starter packs additionally need
+the founder first, because the prototype's version REPLACES every budget
+limit with no confirmation.
+
+**Step 9 is what is left otherwise**: Health Check, Philippine features, the
+three Academy guides. Collaboration is deliberately not being built and the
+reason is recorded in `home_header.dart`.
+
+#### Health Check, and why it is not a simple port
+
+Its engine (`src/utils/healthCheckEngine.ts`, 505 lines, 12 insights) cannot
+cross over in its current shape, and the reasons are worth writing down
+rather than rediscovering:
+
+- **Four of the twelve are computed off an invented spending rate.** Line 61
+  reads `Math.max(10000, totalExpenses30d > 5000 ? totalExpenses30d : 28000)`,
+  so anybody who has spent under 5,000 in the last thirty days, which is
+  every new install, gets a 28,000 a month burn they never had. It feeds cash
+  runway, the emergency fund gap, the savings rate and the payday crunch.
+- **A salary is invented too.** Line 131, `(payday.expectedIncome || 32500) * 2`,
+  produces a 65,000 monthly income for somebody who has set no payday. D19
+  says no payday set is the ordinary state of a new user, not an edge case.
+- **One insight is entirely hardcoded.** `forecast_reliability` reports "89%
+  Accuracy" and "your predictions are 89% accurate based on your past payment
+  history" with nothing computed at all, on an empty ledger included.
+- **Two more constants have no source**: an 8 percent minimum payment on
+  every debt (line 130), and "half your liquid cash is an emergency fund"
+  when no emergency goal exists (line 176).
+- **The advice names products and quotes returns.** Insight 12 tells the
+  reader to move their emergency cash to named digital banks "at 4.5% to 5%
+  p.a." and prices the gap at `traditionalCash * 0.045`. That is the same
+  content four Pan tests already fail the build over, and it would arrive on
+  a different screen where `pan_bans.dart` does not reach. That filter is
+  scoped to Pan's output, which is a guard until the content moves.
+- **Every insight carries a confidence percentage** between 86 and 96, mostly
+  hardcoded. A "94% confident" label beside an invented figure is worse than
+  the figure on its own.
+
+This is not a list of things to fix quietly while porting. Several are
+founder calls about what the app is willing to claim, so Health Check waits
+on that rather than on effort.
 
 ## What this audit does NOT claim
 
