@@ -237,6 +237,14 @@ void main() {
       const List<String> allowed = <String>[
         'lib/models/models.dart',
         'lib/data/json_codec.dart',
+        // Added 2026-09-20, deliberately, when this test caught it.
+        //
+        // The receipt reader SUGGESTS the flag from what is printed on the
+        // paper: a TIN, or the words that make a document an official
+        // receipt. That is reading, not arithmetic. It proposes a value for
+        // a field on a new entry and the person can untick it before saving,
+        // which is the opposite of a figure computed behind their back.
+        'lib/core/money/receipt_ocr.dart',
       ];
       final List<String> offenders = <String>[];
       final List<FileSystemEntity> files = Directory('lib')
