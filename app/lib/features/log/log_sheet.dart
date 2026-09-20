@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/fast_log.dart';
+import '../../core/money/receipt_paste.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
 import '../../design/tokens.dart';
@@ -87,7 +88,18 @@ class _LogSheetState extends State<LogSheet> {
   /// What the quick line currently means, or null when it means nothing yet.
   FastLogResult? get _preview {
     if (_quick.text.trim().isEmpty) return null;
-    final FastLogResult r = parseFastLog(_quick.text);
+    // ONE BOX, two shapes of text. A pasted bank or e-wallet receipt is
+    // recognised by its own length and markers and read by the receipt
+    // parser; anything else is a typed line. The prototype puts the paste
+    // behind a second collapsible panel with its own button, which is a
+    // second place to look for a thing the person already has in their
+    // clipboard.
+    //
+    // Nothing here touches an inbox. It reads text somebody pasted, which is
+    // why it needs no Android permission at all.
+    final FastLogResult r = looksLikePastedReceipt(_quick.text)
+        ? parsePastedReceipt(_quick.text)
+        : parseFastLog(_quick.text);
     return r.isValid ? r : null;
   }
 

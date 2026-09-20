@@ -730,4 +730,78 @@ void main() {
       );
     });
   });
+
+  group('a pasted bank or e-wallet receipt', () {
+    // The same box, a different shape of text. The prototype puts this
+    // behind a second collapsible panel with its own button, which is a
+    // second place to look for something already in the clipboard.
+    //
+    // Nothing here reads a message. The person pastes one, which is why the
+    // feature needs no Android permission and could ship today.
+
+    testWidgets('a GCash receipt fills the form and saves correctly', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double before = balanceOf(state, 'acc_gcash');
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'You have sent PHP 450.00 of GCash to JOLLIBEE 09171234567 on '
+        '09-20-26 12:30. Ref. No. 100234567891. Your new balance is PHP '
+        '2,150.75.',
+      );
+      await tester.pumpAndSettle();
+
+      // It reads back what it understood BEFORE filling anything in, the
+      // same as a typed line does. 450, not 09171234567 and not the closing
+      // balance of 2,150.75.
+      expect(
+        find.textContaining('Spent ₱450.00 at Jollibee'),
+        findsOneWidget,
+        reason: 'it read the wrong number out of a message full of numbers',
+      );
+
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      // BOTH HALVES. The money moved, and it moved out of the account the
+      // message named rather than whichever one was first in the list.
+      expect(
+        balanceOf(state, 'acc_gcash'),
+        closeTo(before - 450, 0.001),
+        reason: 'the 450 did not leave the GCash account',
+      );
+    });
+
+    testWidgets('money RECEIVED is saved as income, not as spending', (
+      WidgetTester tester,
+    ) async {
+      // The prototype files every message as an expense, so this would take
+      // 5,000 OUT of an account that just gained it. Wrong in both
+      // directions at once, and the kind of wrong somebody finds a week
+      // later when nothing reconciles.
+      await pumpApp(tester);
+      final FinancialState state = storeOf(tester);
+      final double before = balanceOf(state, 'acc_gcash');
+
+      await tapAndSettle(tester, logButton);
+      await tester.enterText(
+        find.byKey(const Key('log-quick-parse')),
+        'You have received PHP 5,000.00 from JUAN DELA CRUZ via GCash on '
+        '09-20-26. Ref. No. 900112233445.',
+      );
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Fill the form with this'));
+      await tapAndSettle(tester, find.text('Save entry'));
+
+      expect(
+        balanceOf(state, 'acc_gcash'),
+        closeTo(before + 5000, 0.001),
+        reason: 'a received amount was logged as money leaving',
+      );
+    });
+  });
 }
