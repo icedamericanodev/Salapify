@@ -7,6 +7,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'pan_message_bubble.dart';
 
 /// Ask Pan.
 ///
@@ -23,15 +24,29 @@ import '../shared/sheet_scaffold.dart';
 ///  - Pan's own first message, rebuilt every time the sheet opens rather than
 ///    shown once ever, saying what it is and what it is not.
 class PanSheet extends StatefulWidget {
-  const PanSheet({super.key, required this.state});
+  const PanSheet({super.key, required this.state, required this.onAction});
 
   final FinancialState state;
 
-  static Future<void> show(BuildContext context, FinancialState state) {
+  /// Handles one of `panActionIds`, AFTER this sheet has closed.
+  ///
+  /// Required rather than optional, and that is deliberate. An optional
+  /// callback defaulting to nothing means a button that renders, invites a
+  /// tap, and does nothing, which is worse than no button: somebody taps it
+  /// twice and concludes the app is broken. Making it required means a new
+  /// call site has to decide.
+  final ValueChanged<String> onAction;
+
+  static Future<void> show(
+    BuildContext context,
+    FinancialState state, {
+    required ValueChanged<String> onAction,
+  }) {
     return SheetScaffold.show<void>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) => PanSheet(state: state),
+      builder: (BuildContext context) =>
+          PanSheet(state: state, onAction: onAction),
     );
   }
 
@@ -57,12 +72,12 @@ class _PanSheetState extends State<PanSheet> {
   /// about their own money is not something Salapify needs to keep, and
   /// keeping it would put a list of sentences like "should I put my 200k
   /// inheritance somewhere" on the phone forever.
-  final List<_Msg> _messages = <_Msg>[];
+  final List<PanMessage> _messages = <PanMessage>[];
 
   @override
   void initState() {
     super.initState();
-    _messages.add(const _Msg.pan(_opening));
+    _messages.add(const PanMessage.pan(_opening));
   }
 
   @override
@@ -88,8 +103,8 @@ class _PanSheetState extends State<PanSheet> {
     final PanFacts facts = widget.state.panFacts;
     final PanAnswer answer = askPan(q, facts);
     setState(() {
-      _messages.add(_Msg.you(q));
-      _messages.add(_Msg.answer(answer));
+      _messages.add(PanMessage.you(q));
+      _messages.add(PanMessage.answer(answer));
       _input.clear();
     });
     // After the frame, so the new message exists and has a height.
@@ -103,6 +118,19 @@ class _PanSheetState extends State<PanSheet> {
         alignment: 0.1,
       );
     });
+  }
+
+  /// Closes the sheet FIRST, then does the thing.
+  ///
+  /// The order is the whole method. Every destination is either a tab under
+  /// this sheet or another sheet, so leaving Pan open would either hide the
+  /// screen somebody just asked to see or stack a second sheet on a first.
+  /// The callback is read off the widget before the pop, because this
+  /// State's context is gone on the far side of it.
+  void _runAction(String id) {
+    final ValueChanged<String> handler = widget.onAction;
+    Navigator.of(context).pop();
+    handler(id);
   }
 
   @override
@@ -129,7 +157,11 @@ class _PanSheetState extends State<PanSheet> {
             Padding(
               key: i == _messages.length - 1 ? _newest : null,
               padding: const EdgeInsets.only(bottom: Spacing.md),
-              child: _Bubble(palette: p, message: _messages[i]),
+              child: PanMessageBubble(
+                palette: p,
+                message: _messages[i],
+                onAction: _runAction,
+              ),
             ),
         ],
       ),
@@ -176,71 +208,6 @@ class _Pill extends StatelessWidget {
             style: AppType.caption(palette).copyWith(color: palette.accent),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Msg {
-  const _Msg.you(this.text) : fromPan = false, answer = null;
-  const _Msg.pan(this.text) : fromPan = true, answer = null;
-  _Msg.answer(PanAnswer a) : fromPan = true, answer = a, text = a.display;
-
-  final String text;
-  final bool fromPan;
-  final PanAnswer? answer;
-}
-
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.palette, required this.message});
-
-  final Palette palette;
-  final _Msg message;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool pan = message.fromPan;
-    return Align(
-      alignment: pan ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.82,
-        ),
-        padding: const EdgeInsets.all(Spacing.md),
-        decoration: BoxDecoration(
-          color: pan ? palette.surfaceAlt : palette.accent,
-          borderRadius: BorderRadius.circular(Radii.tile),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              message.text,
-              style: pan
-                  ? AppType.body(palette).copyWith(color: palette.textPrimary)
-                  : AppType.body(palette).copyWith(color: palette.onAccent),
-            ),
-            // The figures again, as rows. A number inside a paragraph is read;
-            // a number in a row is seen, and these are the point of the
-            // answer.
-            if (message.answer != null &&
-                message.answer!.figures.isNotEmpty) ...<Widget>[
-              const SizedBox(height: Spacing.sm),
-              for (final PanFigure f in message.answer!.figures)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(f.label, style: AppType.rowMeta(palette)),
-                      ),
-                      Text(f.value, style: AppType.amountSmall(palette)),
-                    ],
-                  ),
-                ),
-            ],
-          ],
-        ),
       ),
     );
   }

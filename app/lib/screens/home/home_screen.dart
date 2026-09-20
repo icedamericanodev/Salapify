@@ -32,9 +32,17 @@ class HomeScreen extends StatelessWidget {
     required this.state,
     this.onOpenLog,
     this.onOpenDebt,
+    this.onOpenTab,
   });
 
   final FinancialState state;
+
+  /// Switches the bottom tab, by its index in `SalapifyTab`.
+  ///
+  /// An int rather than the enum, so Home does not have to import the shell
+  /// that builds it. The shell owns which tab is showing; Home only knows
+  /// that an answer pointed at Reports.
+  final ValueChanged<int>? onOpenTab;
 
   /// Opening the debt register belongs to the shell too: it is a whole screen
   /// pushed over the tabs rather than a sheet, so the thing that owns the
@@ -131,11 +139,45 @@ class HomeScreen extends StatelessWidget {
           bottom: Spacing.lg,
           child: AskPanButton(
             palette: palette,
-            onTap: () => PanSheet.show(context, state),
+            onTap: () => PanSheet.show(
+              context,
+              state,
+              onAction: (String id) => _panAction(context, palette, id),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  /// Takes an answer's action somewhere real.
+  ///
+  /// Every id in `panActionIds` has a case, and the default does NOTHING on
+  /// purpose. A button whose id nobody recognised is a bug in the engine, and
+  /// the right behaviour on a chat screen is to be inert rather than to throw
+  /// in front of somebody who was asking about their electricity bill.
+  /// `pan_journey_test.dart` walks every id so an inert one cannot ship
+  /// quietly.
+  void _panAction(BuildContext context, Palette palette, String id) {
+    switch (id) {
+      case 'log':
+        onOpenLog?.call();
+      case 'safeToSpend':
+        SafeToSpendSheet.show(context, state);
+      case 'debts':
+        onOpenDebt?.call();
+      case 'privacy':
+        PrivacySheet.show(context, palette);
+      case 'reminders':
+        RemindersSheet.show(context, state);
+      case 'reports':
+        onOpenTab?.call(2);
+      case 'accounts':
+        onOpenTab?.call(4);
+      case 'bills':
+      case 'academy':
+        onOpenTab?.call(3);
+    }
   }
 
   /// Opens the Add Debt sheet and records what comes back.

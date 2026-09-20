@@ -37,6 +37,18 @@ void main() {
     reads('show me the 15th', null);
   });
 
+  group('a year modifies a noun, an amount ends the sentence', () {
+    // Both directions are wrong answers and both are confident. Refusing
+    // "can I afford 2000" because the digits fall in a year range is as bad
+    // as reading "the 2026 trip" as a purchase, and nothing else in the
+    // sentence separates them.
+    reads('can i afford 2000', 2000);
+    reads('can i afford 2026', 2026);
+    reads('can i afford the 2026 trip', null);
+    reads('can i afford a 1995 car', null);
+    reads('can i afford 2000 pesos', 2000);
+  });
+
   group('the thousands shortcut wins over the digits inside it', () {
     // "10k" contains "10". Reading the 10 and answering a question about ten
     // pesos is the failure this ordering exists to stop.

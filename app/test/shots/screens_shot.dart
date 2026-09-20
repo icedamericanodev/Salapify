@@ -661,6 +661,8 @@ void main() {
         (name: 'privacy', openWith: 'privacy'),
         (name: 'pan', openWith: 'pan'),
         (name: 'pan_lesson', openWith: 'panLesson'),
+        (name: 'pan_afford', openWith: 'panAfford'),
+        (name: 'pan_health', openWith: 'panHealth'),
       ];
 
   for (final ({String name, String openWith}) sheet in sheets) {
@@ -710,7 +712,9 @@ void main() {
           PrivacySheet.show(context, palette);
         case 'pan':
         case 'panLesson':
-          PanSheet.show(context, state);
+        case 'panAfford':
+        case 'panHealth':
+          PanSheet.show(context, state, onAction: (String _) {});
       }
       await tester.pumpAndSettle();
 
@@ -736,8 +740,18 @@ void main() {
       // thing the founder actually reported: that asking what MP2 is came
       // back with "Pan did not recognise that one" while the course shipped
       // in the same build.
-      if (sheet.openWith == 'panLesson') {
-        await tester.enterText(find.byType(TextField), 'what is MP2');
+      const Map<String, String> panTyped = <String, String>{
+        'panLesson': 'what is MP2',
+        // The two answers that carry a badge, stat rows AND buttons, which is
+        // the whole of the new bubble in one picture.
+        'panAfford': 'can i afford 2,500',
+        'panHealth': 'how am i doing',
+      };
+      if (panTyped.containsKey(sheet.openWith)) {
+        await tester.enterText(
+          find.byType(TextField),
+          panTyped[sheet.openWith]!,
+        );
         await tester.testTextInput.receiveAction(TextInputAction.done);
         await tester.pumpAndSettle();
       }

@@ -6,8 +6,11 @@ import 'pan_knowledge.dart';
 import '../../../models/academy.dart';
 import '../../../models/models.dart';
 import '../format.dart';
+import 'pan_affordability.dart';
+import 'pan_amounts.dart';
 import 'pan_bans.dart';
 import 'pan_context.dart';
+import 'pan_health.dart';
 import 'pan_matchers.dart';
 
 /// Pan, the money assistant, ported in intent from `src/utils/panAiEngine.ts`
@@ -70,10 +73,21 @@ class PanAnswer {
   const PanAnswer({
     required this.topic,
     required this.text,
+    this.badge,
     this.figures = const <PanFigure>[],
+    this.actions = const <PanAction>[],
     this.followUps = const <String>[],
     this.aboutMoney = false,
   });
+
+  /// A short label above the answer, saying what KIND of answer it is.
+  ///
+  /// Ported from the prototype's badges, with the two that could not come
+  /// across left behind. Its "Financial Coach" and "CPA & Tax Advisory" claim
+  /// a professional standing Salapify has not got, which is the fourth of the
+  /// four bans and is also a registration question in the Philippines. A
+  /// badge here says what the answer IS, never who is speaking.
+  final String? badge;
 
   /// Which rule matched, for tests and for the screen's own label.
   final String topic;
@@ -83,6 +97,16 @@ class PanAnswer {
   /// Figures pulled out of the sentence so the screen can show them large.
   /// A number in a paragraph is read; a number in a row is seen.
   final List<PanFigure> figures;
+
+  /// Places in the app this answer leads to.
+  ///
+  /// The engine names a DESTINATION and never a Flutter route, because
+  /// pan.dart has no import from lib/screens and adding one would let a
+  /// money rule reach for a widget. The sheet maps an id to a screen; if it
+  /// does not recognise one, nothing is shown, which is why a stale id can
+  /// never crash a chat. `pan_journey_test.dart` walks every id to make sure
+  /// none is quietly dead.
+  final List<PanAction> actions;
 
   /// Questions that follow naturally from this answer.
   final List<String> followUps;
@@ -106,6 +130,34 @@ class PanFigure {
   final String label;
   final String value;
 }
+
+/// Somewhere to go next, named by intent rather than by route.
+class PanAction {
+  const PanAction({required this.label, required this.id});
+  final String label;
+
+  /// One of the ids in `panActionIds`, which is the list the sheet switches
+  /// on and the test iterates.
+  final String id;
+}
+
+/// Every destination Pan is allowed to offer.
+///
+/// A typed list rather than free strings, so a test can walk all of them and
+/// a typo cannot ship as a button that does nothing. The prototype has
+/// seventeen action ids and no list, and three of them point at screens that
+/// were never built.
+const List<String> panActionIds = <String>[
+  'log',
+  'safeToSpend',
+  'reports',
+  'accounts',
+  'debts',
+  'bills',
+  'academy',
+  'privacy',
+  'reminders',
+];
 
 /// Strips a question down to something matchable.
 String normalise(String raw) => raw
@@ -133,6 +185,35 @@ PanAnswer askPan(String question, PanFacts facts) {
   // would be a confident non-answer to a question about what to do. Checking
   // it first is what makes the boundary a boundary rather than a fallback.
   if (_looksLikeAdviceRequest(q)) return _boundary(q, facts);
+
+  // 1b. CAN I AFFORD THIS, which is the most useful question a person can
+  //     ask a budget app and the one it exists to answer.
+  //
+  //     Checked here, above the account rule, because the amount is the
+  //     subject: "can I afford 2,500" with an account called Cash must not
+  //     become a balance lookup. It needs BOTH an asking phrase and a
+  //     readable figure, so "can I afford it" with no amount falls through to
+  //     Safe to Spend, which is the honest answer to a question with no
+  //     number in it.
+  if (_has(q, affordTriggers)) {
+    // The RAW question, not the normalised one. normalise turns every
+    // non-word character into a space, so "₱2,500" reaches it as "₱2 500"
+    // and the currency match takes the 2. A confidently formatted answer
+    // about a two peso purchase is exactly the failure this whole feature
+    // must not have.
+    final double? amount = extractAmount(question);
+    if (amount != null) return _afford(amount, facts);
+
+    // "Can I afford it" names no figure, so there is nothing to judge. Safe
+    // to Spend is the honest answer to that question and it is the same
+    // arithmetic without the purchase, so it goes here rather than falling
+    // through to "Pan did not recognise that one" on a question Pan
+    // understood perfectly well.
+    return _safeToSpend(facts);
+  }
+
+  // 1c. HOW AM I DOING, the whole picture rather than one figure.
+  if (_has(q, healthTriggers)) return _health(facts);
 
   // 2. A named account, because it is the most specific thing a person can
   //    ask about and the answer is simply their own figure.
@@ -1148,9 +1229,161 @@ PanAnswer _lesson(CourseModule course, List<LessonSection> ranked) {
     // use one.
     aboutMoney: true,
     text: b.toString(),
+    // The way to the lesson itself, and it matters most in the case where
+    // nothing could be quoted. Telling somebody what Pan will not read out,
+    // with no way to go and read it, is a dead end dressed as an answer.
+    actions: const <PanAction>[
+      PanAction(label: 'Open the course', id: 'academy'),
+    ],
     followUps: <String>[
       'What is safe to spend?',
       'How much do I have right now?',
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Can I afford it, and how am I doing
+// ---------------------------------------------------------------------------
+
+/// What a purchase does to the rest of the cycle.
+///
+/// The prototype's version of this ends "Recommend holding off until next
+/// payday". That is an instruction about somebody's money, and it is also
+/// unnecessary: a person who reads that the purchase leaves them 1,400 short
+/// has been told everything they need and can decide for themselves. So this
+/// one states the arithmetic and stops, which is both the safer answer and
+/// the more respectful one.
+PanAnswer _afford(double amount, PanFacts facts) {
+  final AffordVerdict v = judgeAffordability(amount, facts);
+  final StringBuffer b = StringBuffer();
+
+  if (!v.paydayKnown) {
+    b.write(
+      'You have ${formatPeso(v.safeToSpendNow)} safe to spend. Spending '
+      '${formatPeso(amount)} would leave ${formatPeso(v.safeToSpendAfter)}.'
+      '\n\nThere is no payday set yet, so there is no daily pace to compare '
+      'it against. Setting one on the Plan tab is what turns this into a '
+      'figure per day.',
+    );
+  } else {
+    switch (v.status) {
+      case Afford.overBuffer:
+        b.write(
+          'Spending ${formatPeso(amount)} is ${formatPeso(-v.safeToSpendAfter)} '
+          'more than you have safe to spend. Safe to Spend has already set '
+          'aside what your bills and debts need, so this would come out of '
+          'that reserve.',
+        );
+      case Afford.tight:
+        b.write(
+          'It fits, and it is tight. ${formatPeso(amount)} leaves '
+          '${formatPeso(v.safeToSpendAfter)} for the ${v.daysToPayday} days '
+          'to payday, which is ${formatPeso(v.dailyPaceAfter)} a day, down '
+          'from ${formatPeso(v.dailyPaceNow)}.',
+        );
+      case Afford.comfortable:
+        b.write(
+          'It fits. ${formatPeso(amount)} leaves '
+          '${formatPeso(v.safeToSpendAfter)} for the ${v.daysToPayday} days '
+          'to payday, which is ${formatPeso(v.dailyPaceAfter)} a day, down '
+          'from ${formatPeso(v.dailyPaceNow)}.',
+        );
+    }
+
+    // The bills line is the reason this answer is worth more than the
+    // prototype's. Safe to Spend has already reserved for them, so a person
+    // can pass the check and still be surprised on Friday. Naming what is
+    // coming is the difference between a number and an answer.
+    if (v.billsDueBeforePayday.isNotEmpty) {
+      b.write(
+        '\n\nBefore that payday you have '
+        '${formatPeso(v.billsBeforePayday)} of bills due: '
+        '${v.billsDueBeforePayday.map((BillItem x) => x.name).join(', ')}. '
+        'That is already held back inside the figure above.',
+      );
+    }
+  }
+
+  return PanAnswer(
+    topic: 'afford',
+    badge: switch (v.status) {
+      Afford.comfortable => 'It fits',
+      Afford.tight => 'Tight',
+      Afford.overBuffer => 'Over your buffer',
+    },
+    text: b.toString(),
+    figures: <PanFigure>[
+      PanFigure(label: 'This purchase', value: formatPeso(amount)),
+      PanFigure(
+        label: 'Left after',
+        value: formatPesoWithSign(v.safeToSpendAfter),
+      ),
+      if (v.paydayKnown)
+        PanFigure(label: 'A day, after', value: formatPeso(v.dailyPaceAfter)),
+    ],
+    actions: const <PanAction>[
+      PanAction(label: 'Log it as an expense', id: 'log'),
+      PanAction(label: 'Inspect Safe to Spend', id: 'safeToSpend'),
+    ],
+    followUps: const <String>[
+      'What bills are due?',
+      'How am I doing?',
+      'What is safe to spend?',
+    ],
+  );
+}
+
+/// The whole picture, scored over what could actually be measured.
+PanAnswer _health(PanFacts facts) {
+  final HealthCheck h = runHealthCheck(facts);
+
+  if (!h.measurable) {
+    return _nothingYet('how you are doing');
+  }
+
+  final StringBuffer b = StringBuffer(
+    '${h.score} out of 100, on ${h.parts.length} '
+    '${h.parts.length == 1 ? 'part' : 'parts'} of your money Salapify can '
+    'see. ${h.reading}.',
+  );
+
+  for (final HealthPart p in h.parts) {
+    b.write('\n\n${p.name}: ${p.reading}. ${p.points} of ${p.outOf}.');
+    if (p.note != null) b.write(' ${p.note}');
+  }
+
+  // WHAT WAS NOT MEASURED IS SHOWN, never quietly dropped. A score over three
+  // parts that reads like a score over four is the prototype's habit of
+  // filling a gap with an invented number, arriving by a different door.
+  if (h.unmeasured.isNotEmpty) {
+    b.write('\n\nNot counted, because there is nothing to count yet:');
+    for (final ({String name, String missing}) u in h.unmeasured) {
+      b.write('\n  ${u.name}, ${u.missing}');
+    }
+  }
+
+  for (final String o in h.observations) {
+    b.write('\n\n$o');
+  }
+
+  return PanAnswer(
+    topic: 'health',
+    badge: h.reading,
+    text: b.toString(),
+    figures: <PanFigure>[
+      PanFigure(label: 'Out of 100', value: '${h.score}'),
+      for (final HealthPart p in h.parts)
+        PanFigure(label: p.name, value: '${p.points}/${p.outOf}'),
+    ],
+    actions: const <PanAction>[
+      PanAction(label: 'See Reports', id: 'reports'),
+      PanAction(label: 'Inspect Safe to Spend', id: 'safeToSpend'),
+    ],
+    followUps: const <String>[
+      'What is safe to spend?',
+      'What do I owe?',
+      'Where did my money go?',
     ],
   );
 }

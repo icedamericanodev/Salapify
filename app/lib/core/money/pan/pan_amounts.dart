@@ -75,10 +75,21 @@ double? extractAmount(String raw) {
   final double? v = double.tryParse(bare.group(1)!);
   if (v == null || v <= 0 || v >= 100000000) return null;
 
-  // A YEAR IS NOT A PRICE. "Can I afford the 2026 trip" is a question about
-  // a trip, and answering it as a 2,026 peso purchase is a confident wrong
-  // number, which is the worst kind this app can produce.
-  if (v >= 1990 && v <= 2099 && v == v.roundToDouble()) return null;
+  // A YEAR IS NOT A PRICE, and the difference is what comes AFTER it.
+  //
+  // "Can I afford the 2026 trip" is a question about a trip, and answering it
+  // as a 2,026 peso purchase is a confident wrong number. But "can I afford
+  // 2000" is a two thousand peso question, and refusing it because the digits
+  // happen to fall in a year range is just as wrong in the other direction.
+  //
+  // A year MODIFIES something, so a noun follows it. An amount is usually the
+  // last thing said. So the guard only fires when the figure is followed by
+  // more words, which is the only signal in the sentence that separates them.
+  final bool inYearRange = v >= 1990 && v <= 2099 && v == v.roundToDouble();
+  if (inYearRange) {
+    final String after = clean.substring(bare.end).trim();
+    if (after.isNotEmpty) return null;
+  }
 
   return v;
 }

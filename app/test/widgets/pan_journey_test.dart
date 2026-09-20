@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/pan/pan_engine.dart';
@@ -212,6 +214,62 @@ void main() {
             );
           }
         }
+      }
+    });
+  });
+
+  group('an answer can be acted on', () {
+    // The prototype's chat carries deep link buttons, and three of its
+    // seventeen action ids point at screens that were never built. A button
+    // that renders, invites a tap and does nothing is worse than no button:
+    // somebody taps it twice and decides the app is broken. So every id Pan
+    // can emit is walked here.
+
+    testWidgets('an affordability answer offers buttons that go somewhere', (
+      WidgetTester tester,
+    ) async {
+      final FinancialState state = await ready();
+      await pump(tester, state);
+      await openPan(tester);
+
+      await tester.enterText(find.byType(TextField), 'can i afford 500');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final Finder button = find.text('Inspect Safe to Spend');
+      expect(button, findsOneWidget, reason: 'the answer carried no way on');
+
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      // Pan is gone, and the screen it pointed at is here. Both halves
+      // matter: leaving Pan open would stack a sheet on a sheet, and the
+      // destination arriving is the thing the button promised.
+      // NOT find.text('Ask Pan'): that is also the floating button's own
+      // label on Home, which never leaves, so asserting on it would pass with
+      // the sheet still open. The subtitle belongs to the sheet alone.
+      expect(
+        find.text('Your own figures, worked out on this phone'),
+        findsNothing,
+        reason: 'Pan stayed open under the screen it pointed at',
+      );
+      expect(find.textContaining('Safe to Spend'), findsWidgets);
+    });
+
+    test('every id the engine can emit has a case in the handler', () {
+      // Read from the source rather than asserted by hand, so an id added to
+      // the engine without a destination reddens here instead of shipping as
+      // a dead button.
+      final String home = File(
+        'lib/screens/home/home_screen.dart',
+      ).readAsStringSync();
+      for (final String id in panActionIds) {
+        expect(
+          home.contains("case '$id':"),
+          isTrue,
+          reason: 'Pan can offer "$id" and Home does not know where it goes',
+        );
       }
     });
   });

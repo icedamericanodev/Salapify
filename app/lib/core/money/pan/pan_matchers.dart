@@ -212,3 +212,49 @@ final List<RegExp> adviceShapes = <RegExp>[
   RegExp(r'\bpinakamaganda(ng)?\b'),
   RegExp(r'\bmas maganda ba\b'),
 ];
+
+/// Asking whether a purchase fits.
+///
+/// Taglish throughout, because this is the question people ask out loud and
+/// they do not switch to English to ask it. "Afford ko ba to" and "kaya ko ba
+/// to" are the same sentence.
+const List<String> affordTriggers = <String>[
+  'afford',
+  'kaya ko ba',
+  'kaya ba',
+  'pwede ba bilhin',
+  'pede ba bilhin',
+  'pwede bumili',
+  'pwede ba bumili',
+  'can i buy',
+  'can i spend',
+  'what if i spend',
+  'what if i buy',
+  'bibilhin ko',
+  'bibili ako',
+  'gusto ko bumili',
+  'magkano pa matitira',
+];
+
+/// Asking for the whole picture rather than one figure.
+const List<String> healthTriggers = <String>[
+  'audit my finance',
+  'audit my money',
+  'audit me',
+  'financial health',
+  'health check',
+  'health score',
+  'how am i doing',
+  'am i doing okay',
+  'am i doing ok',
+  'am i doing well',
+  'rate my budget',
+  'rate my finances',
+  'check up',
+  'checkup',
+  'kumusta pera ko',
+  'kumusta ang pera ko',
+  'ayos ba pera ko',
+  'how is my money',
+  'how are my finances',
+];

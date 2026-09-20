@@ -80,6 +80,8 @@ class _AppShellState extends State<AppShell> {
           state: widget.state,
           onOpenLog: () => _openLog(context, palette),
           onOpenDebt: () => _openDebt(context, palette),
+          onOpenTab: (int index) =>
+              setState(() => _current = SalapifyTab.values[index]),
         );
       case SalapifyTab.activity:
         return ActivityScreen(state: widget.state);
