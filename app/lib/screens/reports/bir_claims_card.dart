@@ -292,16 +292,21 @@ class _BandChip extends StatelessWidget {
         // with an alignment and no width fills everything it is offered, and
         // that has turned a row of chips into a stack of full width bars
         // seven times in this repository.
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.md,
-          vertical: 13,
-        ),
+        // A MINIMUM HEIGHT, for the 44dp floor. The same padding-only version
+        // of this measured 42.0 on the Plan card and was caught there; it is
+        // the same chip and would have been the same two pixels short here,
+        // on a screen whose own test did not happen to measure it.
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         decoration: BoxDecoration(
           color: palette.surfaceAlt,
           borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(color: palette.border),
         ),
-        child: Text(label, style: AppType.caption(palette)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[Text(label, style: AppType.caption(palette))],
+        ),
       ),
     );
   }

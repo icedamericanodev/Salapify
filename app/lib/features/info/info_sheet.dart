@@ -157,6 +157,7 @@ enum InfoTopic {
   reminders,
   cardCycle,
   claimableExpenses,
+  bonusSplit,
 }
 
 class InfoPoint {
@@ -812,6 +813,56 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'It is your own records, sorted so you can find them, and it is '
             'general information rather than tax advice. Your accountant '
             'decides what is claimable.',
+      ),
+    ],
+  ),
+  InfoTopic.bonusSplit: InfoContent(
+    title: 'Your 13th month',
+    subtitle: 'What is taxed, and a way to divide the rest',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.card_giftcard,
+        title: 'The first ₱90,000 of benefits is tax free',
+        body:
+            'Under the TRAIN law your 13th month pay and other benefits are '
+            'exempt from income tax up to ₱90,000. Only what goes over that '
+            'is taxed, and only the excess, not the whole amount.',
+      ),
+      InfoPoint(
+        icon: Icons.calendar_today_outlined,
+        title: 'That ₱90,000 is for the whole YEAR',
+        body:
+            'It covers your 13th month and any other benefits added '
+            'together, not each payment separately. A performance bonus in '
+            'June has already used part of it, so the room left in December '
+            'may be smaller than it looks.',
+      ),
+      InfoPoint(
+        icon: Icons.percent,
+        title: 'The tax shown here is rough',
+        body:
+            'Salapify uses 20% on the excess. What is actually withheld '
+            'depends on the band the excess lands in, so treat the figure as '
+            'close rather than exact, and check your payslip.',
+      ),
+      InfoPoint(
+        icon: Icons.pie_chart_outline,
+        title: 'Half, a third, and the rest',
+        body:
+            'Fifty percent to a cushion, thirty to whatever debt costs you '
+            'most, twenty to Christmas. The last share is not an indulgence: '
+            'a plan with nothing in it for Pamasko is the plan people give '
+            'up on in the first week of December, and then the whole bonus '
+            'goes.',
+      ),
+      InfoPoint(
+        icon: Icons.pan_tool_outlined,
+        title: 'Salapify does not tell you where to put it',
+        body:
+            'Each share says what the money is for and stops there. Which '
+            'bank, fund or app you use is your decision, and an app that '
+            'named one would be recommending a product rather than helping '
+            'you plan.',
       ),
     ],
   ),

@@ -310,6 +310,17 @@ other beyond all being about the future.
 |---|---|
 | ![Plan hub](screens/plan-hub.png) | ![Budgets](screens/plan-budgets.png) |
 
+The hub carries the 13th month and bonus allocator, shown above in the state
+somebody first meets: an empty box and five quick amounts. Everything the
+feature actually does only appears once a figure is in it, so the second
+picture is the one to review. It uses 120,000 deliberately, because that is
+the one quick amount that goes OVER the 90,000 TRAIN ceiling and therefore
+draws the tax rows and the caution about them being approximate.
+
+| The allocator, with a figure in it |
+|---|
+| ![Bonus allocator](screens/plan-bonus-filled.png) |
+
 | Goals | Bills and payables |
 |---|---|
 | ![Goals](screens/plan-goals.png) | ![Bills](screens/plan-bills.png) |

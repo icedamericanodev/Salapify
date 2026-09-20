@@ -343,6 +343,55 @@ void main() {
     });
   }
 
+  // The bonus allocator WITH A FIGURE IN IT.
+  //
+  // The hub shot above shows it empty, which is the right first impression
+  // and proves nothing about the feature: the split, the tax line and the
+  // allowance bar only exist once an amount is entered. A picture of the
+  // state nobody is reviewing is the same mistake as rendering every tab
+  // against an empty store, which put a crossed-out peso sign on Home
+  // through dozens of renders.
+  testWidgets('plan bonus allocator filled renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.track_changes_outlined));
+    await tester.pumpAndSettle();
+
+    // 120,000, deliberately, because it is the one quick amount that goes
+    // OVER the 90,000 ceiling. The tax rows and the "rough 20%" caution only
+    // draw in that case, so any smaller figure would render a picture with
+    // the careful half of the feature missing from it.
+    await tester.tap(find.text('₱120,000.00'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/plan_bonus_filled.png'),
+    );
+  });
+
   // An explainer, opened by TAPPING its dot on Reports rather than built on
   // its own. Founder direction moved the teaching off the screens and behind
   // these dots, and a picture of the emptied screen without a picture of

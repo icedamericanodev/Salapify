@@ -11,6 +11,7 @@ import '../../features/tax/business_tax_sheet.dart';
 import '../../features/tax/tax_calculator_sheet.dart';
 import '../../state/financial_state.dart';
 import 'academy_segment.dart';
+import 'bonus_allocator_card.dart';
 import 'plan_segments.dart';
 
 /// Plan, the prototype's fourth tab, from src/components/PlanScreen.tsx.
@@ -212,6 +213,14 @@ class _Overview extends StatelessWidget {
           totals: totals,
           onTap: () => onOpen(PlanSegment.budgets),
         ),
+        const SizedBox(height: Spacing.md),
+
+        // ALWAYS VISIBLE, not only in November, and that is a deliberate
+        // choice rather than an unfinished one. Showing it seasonally would
+        // hide the feature for ten months of the year, including from the
+        // founder reviewing it, and somebody told their bonus figure in
+        // September has the same question as somebody told it in December.
+        BonusAllocatorCard(palette: palette),
         const SizedBox(height: Spacing.md),
 
         // Two per row. Three is too narrow for these labels on a 320dp phone,
