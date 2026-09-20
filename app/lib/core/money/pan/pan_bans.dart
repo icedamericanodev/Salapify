@@ -36,19 +36,73 @@ library;
 /// A percentage is not banned on its own, deliberately. "A 10% to 20% final
 /// withholding tax" is a fact about tax and a person is better off knowing
 /// it; "4% to 6% per annum" is a forecast of what their money would earn.
-const List<String> _returnWords = <String>[
+/// Phrases that only ever introduce a quoted rate.
+const List<String> _returnPhrases = <String>[
   'per annum',
   'p.a.',
   'apy',
+  'dividend yield',
+  'dividend yields',
+  'annual return',
+  'annual returns',
+  'returns of',
+  'rate of return',
+  // NOT bare 'averaging'. The prototype writes "dividends averaging 6.5% to
+  // 7%", which is the thing being banned, and the percentage-near-a-noun
+  // rule below catches it on the figure. Banning the word itself also bans
+  // cost averaging, which is the name of a technique and has no rate in it.
+  'dividends averaging',
+  'returns averaging',
+];
+
+/// Words that make a nearby PERCENTAGE a claim about what money earns.
+///
+/// The bare nouns used to be banned outright, and that was too blunt in a way
+/// that cost the founder a round. "MP2 pays a dividend, and the rate is
+/// declared once a year out of the Fund's net income, so it is not fixed when
+/// you join" is education, it is the single most useful sentence about how
+/// MP2 works, and the old rule made it unsayable. Meanwhile the thing the ban
+/// exists for is a FIGURE: "often 5.5% to 7.5%".
+///
+/// So the noun is free and the number is not. A percentage within reach of
+/// one of these is a quoted return; a percentage next to the word tax is a
+/// fact about tax, and a person is better off knowing it.
+const List<String> _returnNouns = <String>[
   'dividend',
   'dividends',
   'yield',
   'yields',
-  'annual return',
-  'returns of',
-  'rate of return',
-  'interest earned',
+  'return',
+  'returns',
+  'earning',
+  'earns',
+  'interest rate',
+  'grows',
+  'growth',
 ];
+
+/// How close a percentage has to sit to one of [_returnNouns] to be reading
+/// as a quoted return rather than as an unrelated figure in the same
+/// paragraph.
+const int _nearby = 60;
+
+/// A percentage presented as what money earns, or null.
+String? _quotedReturn(String t) {
+  for (final String phrase in _returnPhrases) {
+    if (t.contains(phrase)) return phrase;
+  }
+
+  final RegExp percent = RegExp(r'\d+(?:\.\d+)?\s*(?:%|percent\b)');
+  for (final RegExpMatch m in percent.allMatches(t)) {
+    final int from = (m.start - _nearby).clamp(0, t.length);
+    final int to = (m.end + _nearby).clamp(0, t.length);
+    final String around = t.substring(from, to);
+    for (final String noun in _returnNouns) {
+      if (around.contains(noun)) return '${m.group(0)} near "$noun"';
+    }
+  }
+  return null;
+}
 
 /// Private companies. Salapify never names one as somewhere to put money.
 ///
@@ -188,9 +242,8 @@ String? bannedPhraseIn(String text, {bool asCitation = false}) {
   }
   if (asCitation) return null;
 
-  for (final String w in _returnWords) {
-    if (t.contains(w)) return w;
-  }
+  final String? rate = _quotedReturn(t);
+  if (rate != null) return rate;
   for (final String w in _productClasses) {
     if (t.contains(w)) return w;
   }

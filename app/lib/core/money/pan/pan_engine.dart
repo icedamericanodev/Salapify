@@ -10,6 +10,7 @@ import 'pan_affordability.dart';
 import 'pan_amounts.dart';
 import 'pan_bans.dart';
 import 'pan_context.dart';
+import 'pan_explainers.dart';
 import 'pan_health.dart';
 import 'pan_matchers.dart';
 
@@ -231,6 +232,28 @@ PanAnswer askPan(String question, PanFacts facts) {
   //     "what is cash flow" teaches while "what is safe to spend" still
   //     answers with the figure. Any my, me or I sends it back to the
   //     figures, because "what is my net worth" is about their money.
+  // 2a. SALAPIFY'S OWN ANSWER, before the curriculum and before the topics.
+  //
+  //     Founder direction, 2026-09-20: "what if the user has no time to
+  //     navigate to the academy and they need answer in 2 sec". An explainer
+  //     is written for this surface, so it needs no filtering and cannot end
+  //     in "Pan does not read that lesson out here".
+  //
+  //     It sits under the advice boundary and the account name, and above
+  //     everything else, including the figure topics: somebody typing "what
+  //     is cash flow" wants the idea, and `_wantsTheConcept` decides whether
+  //     they meant theirs.
+  //     GATED BY THE SAME POSSESSIVE TEST as the curriculum below it, and
+  //     that gate is why this is not simply first. "What is net worth" wants
+  //     the idea and "what is MY net worth" wants a peso figure, and there is
+  //     an explainer called Net worth that would have taken both. Questions
+  //     with no opener, like "how does credit card interest work", are caught
+  //     further down instead, after the figure topics have had their turn.
+  if (_wantsTheConcept(q)) {
+    final PanExplainer? plain = _explainerFor(q);
+    if (plain != null) return _explain(plain);
+  }
+
   if (_wantsTheConcept(q)) {
     final ({
       CourseModule? course,
@@ -362,12 +385,20 @@ PanAnswer askPan(String question, PanFacts facts) {
   })
   a = _academyFor(q);
 
+  // Salapify's own explanation again, for the questions with no opener that
+  // the figure topics above did not claim. "How does credit card interest
+  // work" arrives here, and it is a better answer than any passage of the
+  // curriculum Pan is allowed to read out.
+  final PanExplainer? plain = _explainerFor(q);
+
   if (_has(q, appOwnWords)) {
     if (f.feature != null) return _feature(f.feature!);
+    if (plain != null) return _explain(plain);
     if (a.course != null) return _lesson(a.course!, a.sections);
     return _dontKnow(facts);
   }
 
+  if (plain != null) return _explain(plain);
   if (a.course != null) return _lesson(a.course!, a.sections);
   if (f.feature != null) return _feature(f.feature!);
 
@@ -1237,6 +1268,77 @@ PanAnswer _lesson(CourseModule course, List<LessonSection> ranked) {
     ],
     followUps: <String>[
       'What is safe to spend?',
+      'How much do I have right now?',
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Salapify's own explanation
+// ---------------------------------------------------------------------------
+
+/// The explainer a question is asking for, by LONGEST matching phrase.
+///
+/// Longest, not first, and the difference is real: "13th month" and "month"
+/// would both match a question about thirteenth month pay, and first-match
+/// ordering makes the answer depend on the order somebody happened to type
+/// the list in.
+///
+/// An ask is matched as a WHOLE phrase inside the question, so 'mp2' hits
+/// "what is mp2" and "how does mp2 work" without needing either written down.
+PanExplainer? _explainerFor(String q) {
+  PanExplainer? best;
+  int longest = 0;
+  for (final PanExplainer e in panExplainers) {
+    for (final String ask in e.asks) {
+      if (q.contains(ask) && ask.length > longest) {
+        longest = ask.length;
+        best = e;
+      }
+    }
+  }
+
+  // A one or two letter coincidence is not a question about a subject. The
+  // floor is here rather than in the data so a short real term like 'sss' or
+  // 'dca' cannot be excluded by somebody tidying the list.
+  if (longest < 3) return null;
+  return best;
+}
+
+PanAnswer _explain(PanExplainer e) {
+  final StringBuffer b = StringBuffer(e.body);
+
+  if (e.salapifyCanDo != null) {
+    // What the app can DO about it, which is the half a general explanation
+    // usually leaves out. The person is already holding the tool.
+    b.write('\n\nIn Salapify: ${e.salapifyCanDo}');
+  }
+
+  final CourseModule? course = e.courseId == null
+      ? null
+      : academyCourses
+            .where((CourseModule c) => c.id == e.courseId)
+            .firstOrNull;
+
+  if (course != null) {
+    b.write(
+      '\n\nThere is more in the Academy course "${course.title}", on the '
+      'Plan tab, about ${course.durationMinutes} minutes.',
+    );
+  }
+
+  return PanAnswer(
+    topic: 'explain:${e.id}',
+    badge: e.title,
+    // Every one of these touches money, so every one carries the trailer.
+    aboutMoney: true,
+    text: b.toString(),
+    actions: course == null
+        ? const <PanAction>[]
+        : const <PanAction>[PanAction(label: 'Open the course', id: 'academy')],
+    followUps: const <String>[
+      'What is safe to spend?',
+      'How am I doing?',
       'How much do I have right now?',
     ],
   );

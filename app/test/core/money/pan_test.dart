@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/pan/pan_engine.dart';
+import 'package:salapify/core/money/pan/pan_explainers.dart';
 import 'package:salapify/core/money/pan/pan_bans.dart';
 import 'package:salapify/core/money/pan/pan_context.dart';
 import 'package:salapify/data/academy_data.dart';
@@ -516,16 +517,22 @@ void main() {
     // "PAG-IBIG MP2: The Wealth Engine" sat in the same build, unreachable.
     // Pan had the ledger and the feature list and never had the curriculum.
 
-    test('what is MP2 teaches, and says which course it came from', () {
+    test('what is MP2 teaches, and says which course goes deeper', () {
+      // This began as an assertion that Pan QUOTED the MP2 lesson. It does
+      // not any more, and the change came from the founder: the lesson
+      // quotes a dividend range Salapify may not repeat, so quoting meant
+      // refusing, and refusing produced "Pan does not read that lesson out
+      // here", which is the original complaint wearing better manners.
+      // Salapify writes its own answer now, and still names the course.
       final PanAnswer a = askPan('what is mp2', facts());
-      expect(a.topic, 'academy:pagibig-mp2');
+      expect(a.topic, 'explain:mp2');
       expect(a.text, contains('Pag-IBIG'));
       expect(
         a.text,
         contains('PAG-IBIG MP2: The Wealth Engine'),
         reason:
-            'an answer lifted from a lesson must name the lesson, or Pan is '
-            'speaking curriculum prose in its own voice',
+            'an answer on a subject the Academy covers must say where the '
+            'longer version is',
       );
       expect(
         a.aboutMoney,
@@ -544,9 +551,13 @@ void main() {
       final List<String> unreachable = <String>[];
       for (final CourseModule c in academyCourses) {
         final PanAnswer a = askPan('what is ${c.title}', facts());
-        if (a.topic != 'academy:${c.id}') {
-          unreachable.add('${c.title} -> ${a.topic}');
-        }
+        // EITHER prefix counts, and that is the point rather than a
+        // loosening. A course whose subject Salapify explains in its own
+        // words is answered better by the explainer, and the explainer names
+        // the course. What must never happen is the honest miss.
+        final bool taught =
+            a.topic.startsWith('academy:') || a.topic.startsWith('explain:');
+        if (!taught) unreachable.add('${c.title} -> ${a.topic}');
       }
       expect(
         unreachable,
@@ -588,9 +599,9 @@ void main() {
       // "What is net worth" wants the idea. "What is MY net worth" wants a
       // peso figure. Salapify holds both and the only thing telling them
       // apart is the word my.
-      expect(askPan('what is net worth', facts()).topic, 'academy:net-worth');
+      expect(askPan('what is net worth', facts()).topic, 'explain:networth');
       expect(askPan('what is my net worth', facts()).topic, 'netWorth');
-      expect(askPan('what is cash flow', facts()).topic, 'academy:cash-flow');
+      expect(askPan('what is cash flow', facts()).topic, 'explain:cashflow');
       expect(askPan('what is my cash flow', facts()).topic, 'cash');
     });
 
@@ -617,8 +628,12 @@ void main() {
       // No paluwagan course ships, so Pan says so rather than reaching for
       // whichever lesson happens to share a word. A confident wrong lesson is
       // worse than an honest miss.
-      expect(askPan('what is a paluwagan', facts()).topic, 'unknown');
+      // Paluwagan USED to be the example here, because no course covered it.
+      // Salapify explains it itself now, which is the right outcome and
+      // meant this test needed a subject the app genuinely has nothing on.
+      expect(askPan('what is a paluwagan', facts()).topic, 'explain:paluwagan');
       expect(askPan('what is the weather', facts()).topic, 'unknown');
+      expect(askPan('who won the game last night', facts()).topic, 'unknown');
     });
   });
 
@@ -684,6 +699,84 @@ void main() {
             'Pan put a named provider, a quoted return, an instruction about '
             'the reader\'s money, or a professional title on the screen',
       );
+    });
+
+    test('EVERY explainer Salapify writes is safe to say', () {
+      // Derived from the collection, not from a list of questions, and that
+      // difference was a real gap for one round. The sweep above asks a fixed
+      // set of questions, so an explainer nobody thought to ask about was
+      // never checked. A derived set is a rule; a typed corpus is a promise,
+      // and this one was already half broken when it was written.
+      final List<String> offenders = <String>[];
+      for (final PanExplainer e in panExplainers) {
+        for (final ({String what, String text}) part
+            in <({String what, String text})>[
+              (what: 'title', text: e.title),
+              (what: 'body', text: e.body),
+              if (e.salapifyCanDo != null)
+                (what: 'in Salapify', text: e.salapifyCanDo!),
+            ]) {
+          final String? bad = bannedPhraseIn(part.text);
+          if (bad != null) offenders.add('${e.id} ${part.what}: "$bad"');
+        }
+      }
+      expect(offenders, isEmpty);
+    });
+
+    test('an explainer never quotes what money earns', () {
+      // The specific thing these exist to avoid. A rate in an app with no
+      // network is stale the day it ships and the reader has no way to know,
+      // which is worse than no figure at all.
+      for (final PanExplainer e in panExplainers) {
+        expect(
+          RegExp(r'\d+(\.\d+)?\s*%').hasMatch(e.body),
+          isFalse,
+          reason: '${e.id} states a percentage, which rots offline',
+        );
+      }
+    });
+
+    test('an explainer actually explains, rather than deferring', () {
+      // The founder's whole complaint in one assertion: "what if the user has
+      // no time to navigate to the academy and they need answer in 2 sec".
+      final PanAnswer a = askPan('what is mp2', facts());
+      expect(a.topic, 'explain:mp2');
+      expect(
+        a.text,
+        isNot(contains('does not read that lesson out here')),
+        reason: 'Pan deferred instead of answering',
+      );
+      expect(a.text, contains('Pag-IBIG Fund'));
+      expect(a.text, contains('five years'));
+      expect(
+        a.text.length,
+        greaterThan(400),
+        reason: 'a two sentence answer is a brush-off with better manners',
+      );
+    });
+
+    test('every explainer body is long enough to be an answer', () {
+      for (final PanExplainer e in panExplainers) {
+        expect(
+          e.body.length,
+          greaterThan(300),
+          reason: '${e.id} is too short to have said anything',
+        );
+      }
+    });
+
+    test('a course an explainer points at actually exists', () {
+      // A courseId typo ships as a paragraph that promises a lesson and a
+      // button that opens nothing.
+      for (final PanExplainer e in panExplainers) {
+        if (e.courseId == null) continue;
+        expect(
+          academyCourses.any((CourseModule c) => c.id == e.courseId),
+          isTrue,
+          reason:
+              '${e.id} points at a course "${e.courseId}" that is not there',
+        );
+      }
     });
 
     test('no course is NAMED after a company', () {
