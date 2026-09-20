@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import 'json_codec.dart';
+import '../features/pan/pan_history.dart' show panHistoryFileName;
 import 'snapshot.dart';
 
 /// Where the one file lives, and how it is written.
@@ -177,6 +178,12 @@ class FileSnapshotStore implements SnapshotStore {
       // put on this phone, and "everything" has to mean everything or the
       // sentence is doing work it has not earned.
       File('${dir.path}/salapify_fx_cache.json'),
+      // The Pan conversation. The MOST sensitive of the non-ledger files,
+      // despite being the least important: it holds sentences somebody typed
+      // in their own words, which is a different kind of private from a
+      // balance. Somebody wiping before handing the phone over is wiping
+      // this above all.
+      File('${dir.path}/$panHistoryFileName'),
       live,
     ];
   }

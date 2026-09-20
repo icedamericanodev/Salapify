@@ -7,6 +7,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'pan_history.dart';
 import 'pan_message_bubble.dart';
 
 /// Ask Pan.
@@ -29,6 +30,7 @@ class PanSheet extends StatefulWidget {
     required this.state,
     required this.onAction,
     this.openWith,
+    this.history,
   });
 
   final FinancialState state;
@@ -40,6 +42,14 @@ class PanSheet extends StatefulWidget {
   /// into. Null opens on Pan's introduction, which is what the floating
   /// button does.
   final String? openWith;
+
+  /// Where the conversation is kept between openings.
+  ///
+  /// Null means do not keep one, which is what every test and every render
+  /// gets unless it says otherwise. A screenshot harness writing a chat file
+  /// into somebody's documents directory would be a surprise, and a test
+  /// that depends on what a previous test typed is not a test.
+  final PanHistoryStore? history;
 
   /// Handles one of `panActionIds`, AFTER this sheet has closed.
   ///
@@ -55,12 +65,17 @@ class PanSheet extends StatefulWidget {
     FinancialState state, {
     required ValueChanged<String> onAction,
     String? openWith,
+    PanHistoryStore? history,
   }) {
     return SheetScaffold.show<void>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) =>
-          PanSheet(state: state, onAction: onAction, openWith: openWith),
+      builder: (BuildContext context) => PanSheet(
+        state: state,
+        onAction: onAction,
+        openWith: openWith,
+        history: history,
+      ),
     );
   }
 
@@ -82,16 +97,27 @@ class _PanSheetState extends State<PanSheet> {
   /// all and cannot be wired to the wrong scroll view.
   final GlobalKey _newest = GlobalKey();
 
-  /// The conversation, oldest first. Not stored: a question somebody typed
-  /// about their own money is not something Salapify needs to keep, and
-  /// keeping it would put a list of sentences like "should I put my 200k
-  /// inheritance somewhere" on the phone forever.
+  /// The conversation, oldest first.
+  ///
+  /// This comment used to say it was never stored, and gave a good reason:
+  /// a list of sentences like "should I put my 200k inheritance somewhere"
+  /// sitting on a phone forever. The founder asked for it to survive an app
+  /// restart so an audit is not lost, which is their call, and the reason
+  /// above is answered rather than ignored: the last two dozen messages
+  /// only, in their OWN file so a bad entry cannot take the ledger down, and
+  /// the wipe deletes that file along with everything else.
   final List<PanMessage> _messages = <PanMessage>[];
+
+  /// True once an earlier conversation has been put back on screen, so the
+  /// screen can say so. Restored text appearing with no explanation reads as
+  /// the app having answered something nobody just asked.
+  bool _restored = false;
 
   @override
   void initState() {
     super.initState();
     _messages.add(const PanMessage.pan(_opening));
+    _loadHistory();
     final String? first = widget.openWith;
     if (first != null && first.trim().isNotEmpty) {
       // Straight into the list rather than through _ask, which schedules a
@@ -129,6 +155,7 @@ class _PanSheetState extends State<PanSheet> {
       _messages.add(PanMessage.answer(answer));
       _input.clear();
     });
+    _remember();
     // After the frame, so the new message exists and has a height.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final BuildContext? target = _newest.currentContext;
@@ -139,6 +166,57 @@ class _PanSheetState extends State<PanSheet> {
         curve: Curves.easeOut,
         alignment: 0.1,
       );
+    });
+  }
+
+  /// Puts the last conversation back, under a line saying what it is.
+  ///
+  /// Inserted BELOW the opening message and ABOVE anything asked this time,
+  /// which is the only order that reads correctly: Pan introduces itself,
+  /// then the earlier conversation, then today.
+  Future<void> _loadHistory() async {
+    final PanHistoryStore? store = widget.history;
+    if (store == null) return;
+    final List<PanStoredMessage> saved = await store.load();
+    if (saved.isEmpty || !mounted) return;
+    setState(() {
+      _restored = true;
+      _messages.insertAll(1, <PanMessage>[
+        for (final PanStoredMessage m in saved)
+          m.fromPan
+              ? PanMessage.pan(m.text, badge: m.badge)
+              : PanMessage.you(m.text),
+      ]);
+    });
+  }
+
+  /// Keeps what was said, minus Pan's opening, which is rebuilt every time.
+  void _remember() {
+    final PanHistoryStore? store = widget.history;
+    if (store == null) return;
+    store.save(<PanStoredMessage>[
+      for (final PanMessage m in _messages.skip(1))
+        PanStoredMessage(
+          fromPan: m.fromPan,
+          text: m.text,
+          badge: m.answer?.badge ?? m.badge,
+        ),
+    ]);
+  }
+
+  /// Clears the conversation, on screen and on disk.
+  ///
+  /// No confirmation, deliberately. The recovery rule in this repository is
+  /// about work somebody would be upset to lose, and a chat log is not that.
+  /// Asking twice about it would train people to tap through the dialog that
+  /// guards Delete everything, which is the one that matters.
+  void _startFresh() {
+    widget.history?.clear();
+    setState(() {
+      _messages
+        ..clear()
+        ..add(const PanMessage.pan(_opening));
+      _restored = false;
     });
   }
 
@@ -175,6 +253,11 @@ class _PanSheetState extends State<PanSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          // Only when there IS an earlier conversation. Restored text with
+          // no explanation reads as the app having answered something nobody
+          // just asked, and a Start fresh control with nothing to clear is a
+          // button that does nothing.
+          if (_restored) _RestoredMark(palette: p, onClear: _startFresh),
           for (int i = 0; i < _messages.length; i++)
             Padding(
               key: i == _messages.length - 1 ? _newest : null,
@@ -185,6 +268,40 @@ class _PanSheetState extends State<PanSheet> {
                 onAction: _runAction,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Says where the messages above came from, and offers to drop them.
+class _RestoredMark extends StatelessWidget {
+  const _RestoredMark({required this.palette, required this.onClear});
+
+  final Palette palette;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.md),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              'Earlier conversation, kept on this phone',
+              style: AppType.rowMeta(palette),
+            ),
+          ),
+          TextButton(
+            onPressed: onClear,
+            child: Text(
+              'Start fresh',
+              style: AppType.rowMeta(
+                palette,
+              ).copyWith(color: palette.accent, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );

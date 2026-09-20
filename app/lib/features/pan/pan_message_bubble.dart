@@ -16,13 +16,26 @@ import '../../design/type.dart';
 /// who is speaking, because a professional title Salapify has not got changes
 /// how much weight a reader gives everything under it.
 class PanMessage {
-  const PanMessage.you(this.text) : fromPan = false, answer = null;
-  const PanMessage.pan(this.text) : fromPan = true, answer = null;
-  PanMessage.answer(PanAnswer a) : fromPan = true, answer = a, text = a.display;
+  const PanMessage.you(this.text)
+    : fromPan = false,
+      answer = null,
+      badge = null;
+  const PanMessage.pan(this.text, {this.badge}) : fromPan = true, answer = null;
+  PanMessage.answer(PanAnswer a)
+    : fromPan = true,
+      answer = a,
+      badge = a.badge,
+      text = a.display;
 
   final String text;
   final bool fromPan;
   final PanAnswer? answer;
+
+  /// Kept apart from [answer] so a RESTORED message can still carry its
+  /// label. A conversation put back from disk has no PanAnswer behind it,
+  /// deliberately: recomputing yesterday's figures today would print a stale
+  /// peso amount that looks exactly like a current one.
+  final String? badge;
 }
 
 class PanMessageBubble extends StatelessWidget {
@@ -60,8 +73,8 @@ class PanMessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            if (a?.badge != null) ...<Widget>[
-              _Badge(palette: palette, label: a!.badge!),
+            if (message.badge != null) ...<Widget>[
+              _Badge(palette: palette, label: message.badge!),
               const SizedBox(height: Spacing.sm),
             ],
             Text(

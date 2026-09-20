@@ -4,6 +4,7 @@ import '../../design/tokens.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/pan/pan_hero_card.dart';
+import '../../features/pan/pan_history.dart';
 import '../../features/pan/pan_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
 import '../../features/settings/privacy_sheet.dart';
@@ -116,6 +117,7 @@ class HomeScreen extends StatelessWidget {
                 state,
                 openWith: question,
                 onAction: (String id) => _panAction(context, palette, id),
+                history: FilePanHistoryStore(),
               ),
             ),
             const SizedBox(height: Spacing.lg),
@@ -155,6 +157,7 @@ class HomeScreen extends StatelessWidget {
               context,
               state,
               onAction: (String id) => _panAction(context, palette, id),
+              history: FilePanHistoryStore(),
             ),
           ),
         ),

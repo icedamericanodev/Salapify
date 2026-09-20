@@ -64,6 +64,22 @@ class PrivacySheet extends StatelessWidget {
                 'private storage on this phone. Android does not let other '
                 'apps read that folder.',
           ),
+          // ADDED when Pan started keeping a conversation, 2026-09-20. A
+          // receipt that lists six files and not the seventh is not a
+          // receipt, and this is the one holding sentences somebody typed in
+          // their own words, which is a different kind of private from a
+          // balance.
+          _Line(
+            palette: palette,
+            icon: Icons.chat_bubble_outline,
+            title: 'What you ask Pan is kept, in its own file',
+            body:
+                'Your last two dozen messages with Pan stay on this phone so '
+                'the conversation is still there next time you open it. They '
+                'are in a separate file from your figures, so a problem with '
+                'one can never affect the other. Start fresh, at the top of '
+                'the chat, deletes them, and so does Delete everything.',
+          ),
           _Line(
             palette: palette,
             icon: Icons.analytics_outlined,
