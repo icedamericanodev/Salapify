@@ -18,6 +18,21 @@
 /// fuller picture than three out of four, and the answer says which is which
 /// rather than quietly filling the gap.
 ///
+/// That heading was FALSE for one component until 2026-09-20, and the way it
+/// was false is worth keeping written down. Cover does not compute its own
+/// runway, it reads `cashRunwayMonths` from the Safe to Spend engine, and
+/// that engine stands 28,000 a month in when under 5,000 has been logged in
+/// thirty days. So the rule held for every number this file worked out and
+/// broke on the one it borrowed, in the component carrying the most weight.
+/// Nothing here was wrong when it was written; the borrowed figure simply
+/// carried no way to ask where it came from. It does now
+/// (`runwayFromLoggedSpending`), and Cover checks it.
+///
+/// The general lesson, which is the same one the content bans learned: a
+/// promise made about a file holds only over what the file computes. The
+/// moment it takes a number from somewhere else, the promise has to travel
+/// with the number or it is not a promise, it is a comment.
+///
 /// ## It reports, it does not prescribe
 ///
 /// The prototype's advice list says to grow savings in named digital banks,
@@ -151,6 +166,28 @@ void _cover(
 ) {
   if (facts.accounts.isEmpty) {
     missing.add((name: 'Cover', missing: 'no accounts recorded yet'));
+    return;
+  }
+
+  // THE SECOND GUARD, and its absence made this file's own heading false.
+  //
+  // Cover is months of SPENDING held in cash, so it needs two measurements
+  // and this only ever checked one. The runway is borrowed from the Safe to
+  // Spend engine, which stands 28,000 a month in when under 5,000 has been
+  // logged in thirty days. So somebody who added one account and logged
+  // nothing got a scored Cover part, worth 30 of the 100 points and the
+  // largest single weight here, computed against a figure they never
+  // entered. That is the same defect this file's heading criticises the
+  // prototype for, arriving through a number it did not compute itself.
+  //
+  // Excluded, not defaulted, which is the rule the rest of the file already
+  // follows: a component that cannot be measured is named as missing and the
+  // score is expressed over what could be measured.
+  if (!facts.runwayFromLoggedSpending) {
+    missing.add((
+      name: 'Cover',
+      missing: 'not enough logged spending yet to know what a month costs you',
+    ));
     return;
   }
 

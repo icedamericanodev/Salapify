@@ -150,8 +150,22 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
                 style: AppType.amount(p).copyWith(color: p.textPrimary),
               ),
               Text(
-                'About ${a.cashRunwayMonths} months at your recent burn rate, '
-                'if nothing came in at all.',
+                // "YOUR RECENT BURN RATE" WAS NOT ALWAYS YOURS.
+                //
+                // Under 5,000 logged in thirty days and the engine measures
+                // nothing: it stands 28,000 a month in, deliberately, because
+                // that is what the prototype does and a golden vector locks
+                // it. The number is not the defect. Calling it "your recent
+                // burn rate" to somebody who has logged nothing is, and it is
+                // the first screen a new install can reach that puts a figure
+                // in front of them.
+                a.runwayFromLoggedSpending
+                    ? 'About ${a.cashRunwayMonths} months at your recent '
+                          'spending, if nothing came in at all.'
+                    : 'About ${a.cashRunwayMonths} months at a typical '
+                          'month of spending, if nothing came in at all. '
+                          'Log a few weeks and this switches to your own '
+                          'pace.',
                 style: AppType.body(p),
               ),
             ],

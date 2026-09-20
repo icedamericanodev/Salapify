@@ -31,6 +31,7 @@ class PanFacts {
     required this.safeToSpendPerDay,
     required this.amountReserved,
     required this.cashRunwayMonths,
+    this.runwayFromLoggedSpending = true,
     required this.monthIn,
     required this.monthOut,
     required this.spendingByCategory,
@@ -66,6 +67,15 @@ class PanFacts {
   final double safeToSpendPerDay;
   final double amountReserved;
   final double cashRunwayMonths;
+
+  /// Whether [cashRunwayMonths] came from spending the person logged, or from
+  /// the Safe to Spend engine's 28,000 a month stand-in.
+  ///
+  /// Carried here so the health check can keep the promise its own file
+  /// makes. It reads this figure from `SafeToSpendAnalysis`, so "never
+  /// invents a number to score against" was true of everything the health
+  /// check computed itself and false of the one number it borrowed.
+  final bool runwayFromLoggedSpending;
 
   /// This calendar month, from the person's own entries.
   final double monthIn;

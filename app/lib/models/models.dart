@@ -775,6 +775,7 @@ class SafeToSpendAnalysis {
     required this.totalLiquidCash,
     required this.totalExpectedInflow,
     required this.daysToPayday,
+    this.runwayFromLoggedSpending = true,
   });
 
   final DecisionScenario scenario;
@@ -791,6 +792,29 @@ class SafeToSpendAnalysis {
   final double totalLiquidCash;
   final double totalExpectedInflow;
   final int daysToPayday;
+
+  /// Whether [cashRunwayDays] was measured from spending the person actually
+  /// logged, or computed against the engine's 28,000 a month stand-in.
+  ///
+  /// THE FLAG IS NEW, THE BEHAVIOUR IS NOT. The stand-in is the prototype's
+  /// own and is locked by golden vectors, so the figure it produces is not
+  /// being corrected here. What was wrong is that nothing downstream could
+  /// tell the two apart, and two places then presented the stand-in as the
+  /// person's own: the Decision sheet said "at your recent burn rate" to
+  /// somebody who had logged no spending at all, and Pan's health check
+  /// scored a Cover component out of 30 against it while the file doing the
+  /// scoring carried a heading reading "It never invents a number to score
+  /// against".
+  ///
+  /// So this is the seam CLAUDE.md asks for by name: where the prototype
+  /// does something odd, the engine reproduces it and a vector locks it, and
+  /// the defence lives in the UI rather than in a quietly corrected number.
+  /// Every existing figure is untouched and every golden vector still holds.
+  ///
+  /// It defaults to true so that no test or caller constructing this by hand
+  /// silently claims a measurement it did not make. The engine is the only
+  /// thing that knows, and the engine always sets it.
+  final bool runwayFromLoggedSpending;
 }
 
 /// How often a subscription bills. The two the prototype's data uses.

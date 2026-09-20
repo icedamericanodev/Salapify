@@ -22,6 +22,7 @@ void main() {
     double liabilities = 0,
     double owedToMe = 0,
     double runway = 2.1,
+    bool runwayMeasured = true,
   }) => PanFacts(
     now: DateTime(2026, 9, 19, 12),
     accounts:
@@ -61,6 +62,7 @@ void main() {
     safeToSpendPerDay: perDay,
     amountReserved: 11400,
     cashRunwayMonths: runway,
+    runwayFromLoggedSpending: runwayMeasured,
     monthIn: 32500,
     monthOut: 18200,
     spendingByCategory: const <({String category, double amount})>[],
@@ -353,6 +355,64 @@ void main() {
           expect(panActionIds, contains(a.id), reason: '$q offered "${a.id}"');
         }
       }
+    });
+  });
+
+  group('Cover is not scored against a burn rate nobody logged', () {
+    // The file's own heading says "It never invents a number to score
+    // against", and for one component that was false. Cover does not compute
+    // its own runway; it reads cashRunwayMonths from the Safe to Spend
+    // engine, which stands 28,000 a month in when under 5,000 has been
+    // logged in thirty days. The old guard only checked for no accounts, so
+    // somebody with one account and an empty ledger got a scored Cover part
+    // worth 30 of 100, the largest single weight here, computed from a
+    // figure they never entered.
+
+    test(
+      'an unmeasured burn puts Cover in the missing list, not the score',
+      () {
+        final HealthCheck h = runHealthCheck(facts(runwayMeasured: false));
+        expect(
+          h.parts.map((HealthPart p) => p.name),
+          isNot(contains('Cover')),
+          reason: 'Cover was scored against the 28,000 stand-in',
+        );
+        expect(
+          h.unmeasured.map((({String name, String missing}) m) => m.name),
+          contains('Cover'),
+        );
+      },
+    );
+
+    test('and a measured one is still scored, exactly as before', () {
+      // The other half. A guard that dropped Cover always would pass the
+      // test above and would delete a working component for everybody.
+      final HealthCheck h = runHealthCheck(facts());
+      expect(h.parts.map((HealthPart p) => p.name), contains('Cover'));
+      expect(
+        h.unmeasured.map((({String name, String missing}) m) => m.name),
+        isNot(contains('Cover')),
+      );
+    });
+
+    test('the missing note names the input, and it is the user\'s to give', () {
+      final HealthCheck h = runHealthCheck(facts(runwayMeasured: false));
+      final String missing = h.unmeasured
+          .firstWhere((({String name, String missing}) m) => m.name == 'Cover')
+          .missing;
+      expect(missing, contains('logged spending'));
+    });
+
+    test('no accounts still wins, because it is the earlier question', () {
+      // Somebody with nothing recorded should be told they have no accounts,
+      // not lectured about logging spending they have nowhere to log against.
+      final HealthCheck h = runHealthCheck(
+        facts(accounts: const <Account>[], runwayMeasured: false),
+      );
+      final String missing = h.unmeasured
+          .firstWhere((({String name, String missing}) m) => m.name == 'Cover')
+          .missing;
+      expect(missing, contains('no accounts'));
     });
   });
 }

@@ -163,6 +163,72 @@ void main() {
       expect(c.safeToSpendUntilPayday, 38414);
       expect(c.amountReserved, 65528);
     });
+
+    test('and the answer SAYS it measured them', () {
+      expect(c.runwayFromLoggedSpending, isTrue);
+    });
+  });
+
+  group('whether the runway was measured or stood in for', () {
+    // The 28,000 default is the prototype's, is deliberate, and is locked by
+    // the vectors above, so none of this changes a figure. What it pins is
+    // that the answer now carries WHICH of the two it used, because without
+    // that a screen cannot tell a measurement from a placeholder and two of
+    // them called the placeholder "your recent burn rate".
+
+    test('no logged spending at all is NOT a measurement', () {
+      final SafeToSpendAnalysis a = run(
+        scenario: DecisionScenario.conservative,
+      );
+      expect(
+        a.runwayFromLoggedSpending,
+        isFalse,
+        reason: 'an empty ledger claimed to have measured a burn rate',
+      );
+      // And the figure itself is untouched, which is the whole point of
+      // fixing this in the UI rather than in the engine.
+      expect(a.cashRunwayDays, 119);
+    });
+
+    test('a very quiet month is not one either', () {
+      // Under the prototype's own 5,000 threshold, so the stand-in applies.
+      final SafeToSpendAnalysis a = run(
+        scenario: DecisionScenario.conservative,
+        transactions: <Transaction>[
+          Transaction(
+            id: 'tx_small',
+            type: TransactionType.expense,
+            amount: 400,
+            category: 'Food & Dining',
+            accountId: 'acc_bpi',
+            date: '2026-09-17',
+            createdAt: pinnedNow
+                .subtract(const Duration(days: 1))
+                .millisecondsSinceEpoch,
+          ),
+        ],
+      );
+      expect(a.runwayFromLoggedSpending, isFalse);
+    });
+
+    test('an explicit override IS a measurement, because a person set it', () {
+      // The other half of the alarm. A rule that called everything
+      // unmeasured would pass both tests above and be useless: it would hide
+      // the runway from somebody who had told the app what they spend.
+      final SafeToSpendAnalysis a = computeSafeToSpend(
+        accounts: SeedData.accounts,
+        transactions: const <Transaction>[],
+        bills: SeedData.bills,
+        debtsIOwe: debtsIOwe(),
+        installments: SeedData.installments,
+        incomeStreams: SeedData.incomeStreams,
+        payday: SeedData.payday,
+        scenario: DecisionScenario.conservative,
+        now: pinnedNow,
+        monthlyLivingExpenseOverride: 18000,
+      );
+      expect(a.runwayFromLoggedSpending, isTrue);
+    });
   });
 
   group('the split between spending and saving', () {

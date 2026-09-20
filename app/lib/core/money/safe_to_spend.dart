@@ -111,6 +111,16 @@ SafeToSpendAnalysis computeSafeToSpend({
       )
       .fold<double>(0, (double sum, Transaction t) => sum + t.amount);
 
+  // Whether the figure below is the person's own spending or the stand-in.
+  //
+  // The 5,000 test and the 28,000 default are the prototype's, reproduced
+  // deliberately and locked by golden vectors, so neither moves here. What
+  // moves is that the ANSWER now says which of the two it used. Without
+  // that, a screen cannot tell a measurement from a placeholder, and two of
+  // them called the placeholder "your recent burn rate".
+  final bool measuredBurn =
+      recentExpenses > 5000 || monthlyLivingExpenseOverride != null;
+
   final double baselineMonthlyExpense = recentExpenses > 5000
       ? recentExpenses
       : (monthlyLivingExpenseOverride ?? 28000);
@@ -127,6 +137,7 @@ SafeToSpendAnalysis computeSafeToSpend({
     amountReserved: amountReserved,
     cashRunwayDays: cashRunwayDays,
     cashRunwayMonths: cashRunwayMonths,
+    runwayFromLoggedSpending: measuredBurn,
     reservedBills: jsRound(reservedBills).toDouble(),
     reservedDebtMinimums: jsRound(reservedDebt).toDouble(),
     reservedInstallments: jsRound(reservedInstallments).toDouble(),

@@ -499,6 +499,7 @@ class FinancialState extends ChangeNotifier {
       safeToSpendPerDay: s.safeToSpendToday,
       amountReserved: s.amountReserved,
       cashRunwayMonths: s.cashRunwayMonths,
+      runwayFromLoggedSpending: s.runwayFromLoggedSpending,
       monthIn: totals.totalIn,
       monthOut: totals.totalOut,
       spendingByCategory: categorySpending(thisMonth),
