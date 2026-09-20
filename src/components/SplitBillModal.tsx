@@ -12,6 +12,9 @@ import {
   Briefcase,
   Home,
   UserCheck,
+  QrCode,
+  Share2,
+  Copy,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
@@ -45,6 +48,11 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, onClose 
   const [logMyExpense, setLogMyExpense] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || '');
   const [successSaved, setSuccessSaved] = useState(false);
+
+  // QR Ph and Payment Request State
+  const [gcashNumber, setGcashNumber] = useState('0917-888-2345');
+  const [showQrCard, setShowQrCard] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
 
   if (!isOpen) return null;
 
@@ -450,6 +458,72 @@ export const SplitBillModal: React.FC<SplitBillModalProps> = ({ isOpen, onClose 
             <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
               Auto-syncs to Debt Both Ways &amp; Shared Collaboration Ledger
             </div>
+          </div>
+
+          {/* QR Ph & Payment Request Generator */}
+          <div className="p-3 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F3DFCD] dark:border-[#383029] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowQrCard(!showQrCard)}
+                className="flex items-center gap-1.5 text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+              >
+                <QrCode size={15} />
+                <span>{showQrCard ? 'Hide QR Ph Request' : '📱 Generate QR Ph & GCash/Maya Request'}</span>
+              </button>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#FFEEDF] dark:bg-[#2B221B] text-[#B03C09] dark:text-[#FF9A52]">
+                Instant KKB Request
+              </span>
+            </div>
+
+            {showQrCard && (
+              <div className="p-3 rounded-xl bg-[#FFEEDF]/40 dark:bg-[#15110E] border border-[#F3DFCD] dark:border-[#383029] space-y-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-[#6B6156] dark:text-[#AC9E92] shrink-0">
+                    Your GCash/Maya No.:
+                  </span>
+                  <input
+                    type="text"
+                    value={gcashNumber}
+                    onChange={(e) => setGcashNumber(e.target.value)}
+                    placeholder="0917-xxx-xxxx"
+                    className="flex-1 py-1 px-2 text-xs font-bold rounded-lg bg-white dark:bg-[#251E18] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8]"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-white dark:bg-[#201A15] border border-[#F3DFCD] dark:border-[#383029] flex items-center justify-between gap-2">
+                  <div className="text-[11px] text-[#15120F] dark:text-[#F6EFE8] leading-tight">
+                    <span className="font-bold text-[#B03C09] dark:text-[#FF9A52] block">
+                      Sample Message to send:
+                    </span>
+                    "Hi! Share for {description} is ₱
+                    {formatPeso(
+                      calculatedShares.find((p) => p.name !== 'You')?.shareAmount || 0,
+                      false
+                    )}
+                    . Send via GCash to {gcashNumber}!"
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const shareAmt = formatPeso(
+                        calculatedShares.find((p) => p.name !== 'You')?.shareAmount || 0,
+                        false
+                      );
+                      const text = `Hi! Your share for ${description} is ₱${shareAmt}. Send via GCash/Maya to ${gcashNumber}. Salamat!`;
+                      navigator.clipboard?.writeText(text);
+                      setCopiedMessage(true);
+                      setTimeout(() => setCopiedMessage(false), 2500);
+                    }}
+                    className="p-1.5 rounded-lg bg-[#FFEEDF] dark:bg-[#2E241D] text-[#8C430B] dark:text-[#FFB076] hover:bg-[#F4DCC7] cursor-pointer flex items-center gap-1 text-[10px] font-bold shrink-0"
+                  >
+                    <Copy size={12} />
+                    <span>{copiedMessage ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Expense logging option */}

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Plus, HandCoins, Receipt, ArrowRightLeft } from 'lucide-react';
+import { Plus, Camera, HandCoins, Receipt, ArrowRightLeft } from 'lucide-react';
 
 interface QuickActionsProps {
   onOpenLog: () => void;
+  onOpenScan: () => void;
   onOpenDebt: () => void;
   onOpenBills: () => void;
   onOpenMove: () => void;
@@ -10,6 +11,7 @@ interface QuickActionsProps {
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onOpenLog,
+  onOpenScan,
   onOpenDebt,
   onOpenBills,
   onOpenMove,
@@ -21,6 +23,12 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       icon: Plus,
       onClick: onOpenLog,
       highlight: true,
+    },
+    {
+      id: 'scan',
+      label: 'Scan',
+      icon: Camera,
+      onClick: onOpenScan,
     },
     {
       id: 'debt',
@@ -43,7 +51,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-1.5 sm:gap-2 my-1 px-0.5 sm:px-1 w-full">
+    <div className="grid grid-cols-5 gap-1 sm:gap-1.5 my-1 px-0.5 sm:px-1 w-full">
       {actions.map((act) => {
         const Icon = act.icon;
         return (

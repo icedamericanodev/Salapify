@@ -13,9 +13,13 @@ import {
   Coins,
   Calculator,
   Wallet,
+  Smartphone,
+  Copy,
+  Camera,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { parseFastLog } from '../utils/fastlog';
+import { parsePhilippineSmsReceipt } from '../utils/smsParser';
 import {
   TransactionType,
   ProfileEntity,
@@ -37,12 +41,14 @@ interface LogSheetProps {
   isOpen: boolean;
   onClose: () => void;
   initialType?: TransactionType;
+  onOpenScan?: () => void;
 }
 
 export const LogSheet: React.FC<LogSheetProps> = ({
   isOpen,
   onClose,
   initialType = 'expense',
+  onOpenScan,
 }) => {
   const {
     accounts,
@@ -95,6 +101,27 @@ export const LogSheet: React.FC<LogSheetProps> = ({
     p20: 0,
     coins: 0,
   });
+
+  // SMS / E-Wallet Quick-Catcher State
+  const [showSmsCatcher, setShowSmsCatcher] = useState(false);
+  const [smsInput, setSmsInput] = useState('');
+  const [smsSuccessMessage, setSmsSuccessMessage] = useState<string | null>(null);
+
+  const handleProcessSms = (textToParse: string) => {
+    const res = parsePhilippineSmsReceipt(textToParse, accounts);
+    if (res) {
+      setType('expense');
+      setAmountStr(res.amount.toString());
+      setMerchant(res.merchant);
+      setSelectedCategory(res.category);
+      if (res.subcategory) setSelectedSubcategory(res.subcategory);
+      if (res.suggestedAccountId) setSelectedAccountId(res.suggestedAccountId);
+      if (res.refNumber) setNote(`Ref: ${res.refNumber}`);
+      setSmsSuccessMessage(`✨ Auto-caught ${res.sourceType.toUpperCase()}: ₱${res.amount.toLocaleString()} at ${res.merchant}!`);
+      setTimeout(() => setSmsSuccessMessage(null), 4000);
+      setShowSmsCatcher(false);
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -328,6 +355,103 @@ export const LogSheet: React.FC<LogSheetProps> = ({
 
         {/* Scrollable form content */}
         <form onSubmit={handleSave} className="overflow-y-auto p-5 space-y-4">
+          {/* SMS / E-Wallet Receipt Catcher Banner & Controls */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSmsCatcher(!showSmsCatcher)}
+                className="flex items-center gap-1.5 text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer"
+              >
+                <Smartphone size={14} />
+                <span>{showSmsCatcher ? 'Hide SMS Catcher' : '⚡ Paste SMS'}</span>
+              </button>
+
+              {onOpenScan && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenScan();
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#16643F] dark:text-[#5FCB8E] hover:underline cursor-pointer"
+                >
+                  <Camera size={14} />
+                  <span>📸 Scan Receipt / OCR</span>
+                </button>
+              )}
+
+              <span className="text-[10px] font-semibold text-[#6B6156] dark:text-[#AC9E92]">
+                Instant Auto-fill
+              </span>
+            </div>
+
+            {smsSuccessMessage && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300 animate-in fade-in">
+                {smsSuccessMessage}
+              </div>
+            )}
+
+            {showSmsCatcher && (
+              <div className="p-3 rounded-2xl bg-[#FFEEDF]/60 dark:bg-[#1C1713] border border-[#F3DFCD] dark:border-[#383029] space-y-2 animate-in fade-in slide-in-from-top-2">
+                <textarea
+                  rows={2}
+                  value={smsInput}
+                  onChange={(e) => setSmsInput(e.target.value)}
+                  placeholder="Paste your bank or e-wallet SMS here (e.g. 'You sent PHP 450.00 of GCash to JOLLIBEE on 09-20-26...')"
+                  className="w-full p-2 text-xs rounded-xl bg-white dark:bg-[#251E18] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] focus:outline-none focus:border-[#B03C09]"
+                />
+
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleProcessSms(
+                          'You have sent PHP 450.00 of GCash to JOLLIBEE 09171234567 on 09-20-26 12:30. Ref. No. 100234567891.'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEEDF] dark:bg-[#2E241D] text-[#8C430B] dark:text-[#FFB076] hover:bg-[#F4DCC7] cursor-pointer"
+                    >
+                      Sample: GCash ₱450
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleProcessSms(
+                          'You paid PHP 350.00 to Grab Philippines using your Maya card ending in 1234 on Sep 20. Ref: 987654.'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEEDF] dark:bg-[#2E241D] text-[#8C430B] dark:text-[#FFB076] hover:bg-[#F4DCC7] cursor-pointer"
+                    >
+                      Sample: Maya ₱350
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleProcessSms(
+                          'Thank you for using your BPI Card ending in 5678 for PHP 850.00 at STARBUCKS BGC on 20-Sep-26.'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFEEDF] dark:bg-[#2E241D] text-[#8C430B] dark:text-[#FFB076] hover:bg-[#F4DCC7] cursor-pointer"
+                    >
+                      Sample: BPI ₱850
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleProcessSms(smsInput)}
+                    disabled={!smsInput.trim()}
+                    className="px-3 py-1 rounded-xl text-xs font-bold bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1A0E04] disabled:opacity-40 cursor-pointer shrink-0"
+                  >
+                    Parse SMS
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 1. Fast-log natural input field */}
           <div className="flex flex-col gap-1.5">
             <div className="relative">

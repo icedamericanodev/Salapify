@@ -396,7 +396,7 @@ groceries 1850 + 450`
                             {item.label} {item.expr ? <span className="text-[#7A6E63] font-normal">({item.expr})</span> : ''}
                           </span>
                           <span className="font-black text-[#B03C09] dark:text-[#FF9A52] shrink-0">
-                            {item.isValid ? formatPeso(item.value) : '—'}
+                            {item.isValid ? formatPeso(item.value) : '-'}
                           </span>
                         </div>
                       ))}

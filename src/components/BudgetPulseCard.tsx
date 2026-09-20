@@ -40,7 +40,7 @@ export const BudgetPulseCard: React.FC<BudgetPulseCardProps> = ({ onSeeAll }) =>
   return (
     <div
       onClick={onSeeAll}
-      className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-3xl p-4 shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
+      className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
