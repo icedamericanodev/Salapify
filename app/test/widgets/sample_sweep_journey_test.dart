@@ -143,4 +143,63 @@ void main() {
           'moved is now unexplainable',
     );
   });
+
+  testWidgets('the sweep takes the demo INCOME with it', (
+    WidgetTester tester,
+  ) async {
+    // Found by rendering Health Check's empty state, not by any test. Every
+    // other collection in removeSampleData is filtered on `isSample`, and
+    // IncomeStream carries the same flag, and this one was missing.
+    //
+    // It was not harmless. Safe to Spend reads the income streams, so after
+    // a sweep the most prominent figure on Home was still computed from demo
+    // salary on an app with no accounts, no transactions and no payday: the
+    // render showed "Nothing recorded yet" in Health Check directly under a
+    // Home card reading ₱38,414.00 safe to spend.
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+    );
+    expect(
+      state.incomeStreams,
+      isNotEmpty,
+      reason:
+          'the fixture has to start with demo income or this proves '
+          'nothing',
+    );
+
+    state.removeSampleData();
+
+    expect(
+      state.incomeStreams.where((IncomeStream s) => s.isSample),
+      isEmpty,
+      reason: 'demo salary survived the sweep and still feeds Safe to Spend',
+    );
+  });
+
+  testWidgets('but a stream the person added SURVIVES it', (
+    WidgetTester tester,
+  ) async {
+    // The other half, and the one that matters more: this sweep removes only
+    // what Salapify put there itself. A filter that emptied the list would
+    // pass the test above and would delete somebody's own recorded income.
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+    );
+    state.addIncomeStream(
+      const IncomeStream(
+        id: 'mine',
+        name: 'My freelance client',
+        type: IncomeStreamType.freelance,
+        expectedAmount: 20000,
+      ),
+    );
+
+    state.removeSampleData();
+
+    expect(
+      state.incomeStreams.map((IncomeStream s) => s.id),
+      contains('mine'),
+      reason: 'the sweep deleted income the person entered themselves',
+    );
+  });
 }

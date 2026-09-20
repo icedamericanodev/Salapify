@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
+import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
+import '../../features/health/health_check_sheet.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/pan/pan_hero_card.dart';
 import '../../features/pan/pan_history.dart';
@@ -87,7 +89,12 @@ class HomeScreen extends StatelessWidget {
             HeroPanel(
               state: state,
               onOpenDetails: () => SafeToSpendSheet.show(context, state),
-              onOpenHealthCheck: () => _soon(context, palette, 'Health Check'),
+              onOpenHealthCheck: () => HealthCheckSheet.show(
+                context,
+                palette,
+                state,
+                onAct: (HealthNeed need) => _healthAction(context, need),
+              ),
               // Both the Details button and the small info glyph open the same
               // sheet. The prototype does the same: the explainer IS the
               // breakdown, and a second lighter screen saying "this is your
@@ -191,6 +198,33 @@ class HomeScreen extends StatelessWidget {
         onOpenTab?.call(4);
       case 'bills':
       case 'academy':
+        onOpenTab?.call(3);
+    }
+  }
+
+  /// Takes an unmeasured Health Check indicator to the thing that would fix
+  /// it.
+  ///
+  /// EVERY ONE GOES SOMEWHERE REAL. An indicator that names a missing input
+  /// and then offers a button doing nothing is worse than one that offers no
+  /// button, because the first time somebody taps it they learn the screen
+  /// is decorative. `health_check_journey_test.dart` taps all of them.
+  ///
+  /// The sheet is popped first, so the destination is not buried underneath
+  /// it: a person who lands on Plan with Health Check still covering it
+  /// concludes the tap did nothing.
+  void _healthAction(BuildContext context, HealthNeed need) {
+    Navigator.of(context).pop();
+    switch (need) {
+      case HealthNeed.logSpending:
+        onOpenLog?.call();
+      case HealthNeed.setPayday:
+      case HealthNeed.addBill:
+      case HealthNeed.startCushion:
+      case HealthNeed.setBudget:
+        // Plan owns all four: the payday and budgets live in its Budgets
+        // segment, bills in Bills, and a goal in Goals. One destination
+        // beats four half-wired ones, and the hub is one tap from each.
         onOpenTab?.call(3);
     }
   }

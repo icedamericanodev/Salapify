@@ -28,8 +28,32 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   SalapifyTab _current = SalapifyTab.home;
 
+  /// The shell redraws itself whenever the store changes.
+  ///
+  /// This used to be wired ONLY in main.dart, whose `_onStateChanged` calls
+  /// setState on the whole app. That works on a phone and is invisibly wrong
+  /// everywhere else: the render harness and every journey test pump
+  /// `AppShell(state: state)` directly, with nothing listening, so a screen
+  /// stayed frozen on the frame before the change.
+  ///
+  /// It was not theoretical. The sweep's own shot rendered Health Check
+  /// reading "Nothing recorded yet" over a Home card still showing
+  /// ₱38,414.00 safe to spend, which was a picture of a contradiction the
+  /// app does not actually have. A harness that cannot show the change is a
+  /// harness that cannot show a defect in the change.
+  ///
+  /// Listening here costs nothing on the phone, because the two rebuilds
+  /// land in the same frame, and it makes the widget true on its own rather
+  /// than true because of how one caller happens to wire it.
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.state,
+      builder: (BuildContext context, Widget? _) => _buildShell(context),
+    );
+  }
+
+  Widget _buildShell(BuildContext context) {
     final Palette palette = Palette.of(widget.state.theme);
 
     return Scaffold(

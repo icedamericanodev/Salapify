@@ -10,6 +10,7 @@ import '../data/store.dart';
 import '../design/tokens.dart';
 import '../core/money/accounts.dart';
 import '../core/money/debt.dart';
+import '../core/money/health_check.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
 import '../core/money/pan/pan_context.dart';
@@ -1252,6 +1253,22 @@ class FinancialState extends ChangeNotifier {
       .where((Account a) => a.isLiquid)
       .fold<double>(0, (double sum, Account a) => sum + a.balance);
 
+  /// The five-question health check, from one place.
+  ///
+  /// Both the sheet and the dot on Home read THIS, rather than each running
+  /// the engine with its own idea of the inputs. A marker on a screen that
+  /// disagrees with the screen it opens is worse than no marker.
+  HealthReport get healthReport => runHealthCheck(
+    transactions: _transactions,
+    accounts: accounts,
+    budgets: _budgets,
+    goals: _goals,
+    bills: _bills,
+    installments: _installments,
+    payday: payday,
+    now: now,
+  );
+
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
     accounts: accounts,
     transactions: _transactions,
@@ -1518,6 +1535,25 @@ class FinancialState extends ChangeNotifier {
 
     // The seed's payday is Salapify's, not theirs.
     _payday = PaydayCycle.unset;
+
+    // AND SO IS THE SEED'S EXPECTED INCOME, which this sweep used to leave
+    // behind. Every other collection here is filtered on `isSample`,
+    // IncomeStream carries the same flag, and this one line was missing.
+    //
+    // It was not harmless. Safe to Spend reads the income streams, so after
+    // a sweep the most prominent figure on Home was still being computed
+    // from demo salary on an app with no accounts, no transactions and no
+    // payday: the render of Health Check's empty state showed "Nothing
+    // recorded yet" directly under a Home card reading ₱38,414.00 safe to
+    // spend. One of those two was wrong and it was not the empty state.
+    //
+    // This is the mirror of a defect already recorded on _bills and
+    // _payday: demo obligations nobody entered reaching a real figure. It
+    // removes only rows Salapify put there itself, which is the same rule
+    // every line above follows, so a stream the person added survives.
+    _incomeStreams = _incomeStreams
+        .where((IncomeStream s) => !s.isSample)
+        .toList();
 
     // And so is anything the tray was reminding them about. Every message in
     // it was raised from a record that has just been deleted, so leaving it

@@ -1117,3 +1117,62 @@ It is never called AI, because there is no model and nothing leaves the phone.
 Asking it what to DO with money gets the boundary: the answerable part in full,
 the line named once, why in terms of what Pan cannot see, and something to do
 at the end rather than a refusal.
+
+## Health Check, five questions with an honest dot (2026-09-20)
+
+The HEALTH CHECK button on the hero card opened a "coming soon" note. It now
+runs a five question diagnostic against what the person has actually recorded,
+in one fixed order, each with a reading, a supporting figure and a tone.
+
+| Lived in | Ten seconds after installing |
+|---|---|
+| ![health check](screens/health-check.png) | ![health check empty](screens/health-check-empty.png) |
+
+The five, in the order they are asked: **will I make it to payday**, **how
+much of my pay is already promised**, **do I have a cushion**, **am I keeping
+any of it**, **am I inside the limits I set**. The banner at the top is the
+tightest one, in priority order rather than merely the worst, because two
+indicators at Tight means the liquidity one is the answer: it is the one
+happening soonest.
+
+### It refuses to answer what it cannot measure
+
+An indicator with no inputs says what is missing and offers the tap that fixes
+it, rather than printing a zero. A daily pace needs five separate DAYS of
+logged spending before it is a measurement rather than a guess, because a pace
+is a rate over a period and five receipts from one Saturday say nothing about
+a month.
+
+Two thresholds are deliberately proportional rather than peso figures. The
+buffer is comfortable at three days of the person's own spending, not the
+prototype's flat 5,000, which cannot mean the same thing on an 18,000 salary
+and an 80,000 one. And the debt share brackets say whose rule of thumb they
+are: no regulator fixes a debt service ratio for individuals, and the
+prototype presents one as "safe banking guidelines".
+
+### Three defects the empty render found, that no test could
+
+The right hand picture is the reason the working rules say to look at the
+screen. All three were invisible to a green suite.
+
+**The sweep left the demo salary behind.** `removeSampleData` filters every
+collection on `isSample`, and `IncomeStream` carries the same flag and was
+simply missing from the list. Safe to Spend reads the income streams, so an
+app with no accounts, no transactions and no payday still showed a
+five figure safe to spend.
+
+**The screen was not redrawing at all.** The rebuild on a store change was
+wired only in `main.dart`, so the app on a phone was always right and the
+render harness and every journey test, which pump `AppShell` themselves, sat
+frozen on the frame before the change. Every shot taken after a store write
+had this flaw. The shell listens to its own store now, and
+`test/widgets/shell_redraw_test.dart` fails if that is ever unwired.
+
+**The dot was an alarm that was always on.** It was a hardcoded dark red with
+a comment admitting it, so a brand new install showed a warning over a sheet
+that opens on "Nothing recorded yet". It is the health check's own verdict
+now: red for Tight, amber for Watch, and nothing at all when everything is
+fine OR when nothing is known. Those last two look the same on purpose, since
+a dot means go and look and there is nothing to look at. It carries a label as
+well as a colour, because eight pixels of red says nothing to a screen reader
+and red against amber says nothing to somebody who cannot separate them.

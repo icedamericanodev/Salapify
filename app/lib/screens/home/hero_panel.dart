@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
+import '../../core/money/health_check.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+
+/// Lets a test find the attention marker beside HEALTH CHECK, or prove there
+/// is none. An absent dot is the interesting case and nothing else on the
+/// card changes shape when it goes, so without a handle on it a guard would
+/// have to assert about a colour.
+const Key healthDotKey = ValueKey<String>('health-dot');
 
 /// The Safe to Spend hero, ported from src/components/HeroPanel.tsx.
 ///
@@ -252,17 +259,17 @@ class HeroPanel extends StatelessWidget {
           icon: Icons.monitor_heart_outlined,
           label: 'HEALTH CHECK',
           onTap: onOpenHealthCheck,
-          // The dot is the diagnostic's own verdict. Until the health engine
-          // is migrated it stays a single neutral-to-warning marker rather
-          // than a green light nobody computed.
-          trailing: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB91C1C),
-              shape: BoxShape.circle,
-            ),
-          ),
+          // The dot is the diagnostic's OWN verdict now that the engine is
+          // migrated. It used to be a hardcoded dark red, with a comment
+          // saying so, which meant a brand new install showed an alarm over
+          // a sheet that opens on "Nothing recorded yet". That is the cry
+          // wolf failure: a marker that is always on is a marker nobody
+          // reads on the day it means something.
+          //
+          // No dot when nothing is wrong, and no dot when nothing is known.
+          // Green would be a third thing to learn and would claim a verdict
+          // on an app with no figures in it.
+          trailing: _healthDot(state.healthReport),
         ),
         const SizedBox(width: Spacing.md),
         _HeroTool(
@@ -271,6 +278,48 @@ class HeroPanel extends StatelessWidget {
           onTap: onOpenDetails,
         ),
       ],
+    );
+  }
+
+  /// The marker beside HEALTH CHECK, or nothing at all.
+  ///
+  /// Three states, and only two of them draw anything:
+  ///   tight  a red dot, something is over or short right now
+  ///   watch  an amber dot, something is heading that way
+  ///   otherwise nothing, which covers BOTH "all five are fine" and
+  ///          "nothing is recorded yet"
+  ///
+  /// Those last two look identical on purpose. A dot means go and look, and
+  /// on an app with nothing in it there is nothing to look at: the sheet
+  /// itself says so and offers the two taps that start it off.
+  ///
+  /// The colours are the hero card's own inks, not the palette's. Everything
+  /// on this gradient is drawn in a brown that works over it in both
+  /// themes, and an accent-red pulled from Gabi disappears against it.
+  Widget? _healthDot(HealthReport report) {
+    final HealthIndicator? worst = report.needsAttention;
+    if (worst == null) return null;
+
+    final bool tight = worst.tone == HealthTone.tight;
+
+    // A LABEL, not only a colour. Eight pixels of red says nothing to
+    // somebody using a screen reader, and red against amber says nothing to
+    // the large share of men who cannot tell them apart. The word is the
+    // signal and the colour is the shortcut.
+    return Semantics(
+      key: healthDotKey,
+      container: true,
+      label: tight
+          ? 'Health check, something needs attention'
+          : 'Health check, something to watch',
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: tight ? const Color(0xFFB91C1C) : const Color(0xFF92400E),
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 }

@@ -18,6 +18,8 @@ import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
+import 'package:salapify/core/money/health_check.dart';
+import 'package:salapify/features/health/health_check_sheet.dart';
 import 'package:salapify/features/log/scan_receipt_sheet.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
@@ -390,6 +392,59 @@ void main() {
       matchesGoldenFile('out/sheet_tax_13th_month.png'),
     );
   });
+
+  // Health Check, in BOTH the states it has.
+  //
+  // The lived-in one is what most people see. The empty one is the whole
+  // design argument, because it is the person D19 names and the state the
+  // prototype answers with invented figures, so a picture of only the first
+  // would prove the least interesting half.
+  for (final ({String slug, bool sweep}) shape in <({String slug, bool sweep})>[
+    (slug: 'health_check', sweep: false),
+    (slug: 'health_check_empty', sweep: true),
+  ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.sweep) {
+        state.removeSampleData();
+        await tester.pumpAndSettle();
+      }
+
+      HealthCheckSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette,
+        state,
+        onAct: (HealthNeed _) {},
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
 
   // The receipt scanner, with a sample read into it.
   //
