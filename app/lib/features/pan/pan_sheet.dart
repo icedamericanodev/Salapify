@@ -184,7 +184,7 @@ class _PanSheetState extends State<PanSheet> {
       _messages.insertAll(1, <PanMessage>[
         for (final PanStoredMessage m in saved)
           m.fromPan
-              ? PanMessage.pan(m.text, badge: m.badge)
+              ? PanMessage.pan(m.text, badge: m.badge, points: m.points)
               : PanMessage.you(m.text),
       ]);
     });
@@ -199,6 +199,7 @@ class _PanSheetState extends State<PanSheet> {
         PanStoredMessage(
           fromPan: m.fromPan,
           text: m.text,
+          points: m.answer?.points ?? m.points,
           badge: m.answer?.badge ?? m.badge,
         ),
     ]);

@@ -528,7 +528,7 @@ void main() {
       expect(a.topic, 'explain:mp2');
       expect(a.text, contains('Pag-IBIG'));
       expect(
-        a.text,
+        a.display,
         contains('PAG-IBIG MP2: The Wealth Engine'),
         reason:
             'an answer on a subject the Academy covers must say where the '
@@ -712,7 +712,9 @@ void main() {
         for (final ({String what, String text}) part
             in <({String what, String text})>[
               (what: 'title', text: e.title),
-              (what: 'body', text: e.body),
+              (what: 'lead', text: e.lead),
+              for (final String pt in e.points) (what: 'point', text: pt),
+              if (e.more != null) (what: 'more', text: e.more!),
               if (e.salapifyCanDo != null)
                 (what: 'in Salapify', text: e.salapifyCanDo!),
             ]) {
@@ -729,7 +731,9 @@ void main() {
       // which is worse than no figure at all.
       for (final PanExplainer e in panExplainers) {
         expect(
-          RegExp(r'\d+(\.\d+)?\s*%').hasMatch(e.body),
+          RegExp(
+            r'\d+(\.\d+)?\s*%',
+          ).hasMatch(<String>[e.lead, ...e.points, ?e.more].join(' ')),
           isFalse,
           reason: '${e.id} states a percentage, which rots offline',
         );
@@ -748,20 +752,47 @@ void main() {
       );
       expect(a.text, contains('Pag-IBIG Fund'));
       expect(a.text, contains('five years'));
+
+      // The LEAD is short and the ANSWER is not. Those are different
+      // measurements and conflating them is what produced the wall of prose
+      // the founder rejected: the old version of this test demanded 400
+      // characters of opening paragraph and got exactly that.
       expect(
         a.text.length,
-        greaterThan(400),
+        lessThan(200),
+        reason: 'the answer opens with a paragraph instead of an answer',
+      );
+      expect(
+        a.points.length,
+        greaterThanOrEqualTo(4),
         reason: 'a two sentence answer is a brush-off with better manners',
       );
+      expect(a.display.length, greaterThan(400));
     });
 
     test('every explainer body is long enough to be an answer', () {
       for (final PanExplainer e in panExplainers) {
+        // The LEAD is capped, not floored, and that inversion is the
+        // founder's correction: "too wordy compare to the google ai studio
+        // prototype". An answer that opens with a paragraph has buried its
+        // own answer. One sentence, then the detail.
         expect(
-          e.body.length,
-          greaterThan(300),
-          reason: '${e.id} is too short to have said anything',
+          e.lead.length,
+          lessThan(200),
+          reason: '${e.id} opens with a paragraph instead of an answer',
         );
+        expect(
+          e.points.length,
+          greaterThanOrEqualTo(3),
+          reason: '${e.id} has too little to say to be worth asking',
+        );
+        for (final String pt in e.points) {
+          expect(
+            pt.length,
+            lessThan(170),
+            reason: '${e.id} has a bullet that is a paragraph: "$pt"',
+          );
+        }
       }
     });
 
@@ -810,10 +841,16 @@ void main() {
     });
 
     test('the frame is read BEFORE the lesson, not after it', () {
-      final PanAnswer a = askPan('what is an emergency fund', facts());
+      // A question with no explainer behind it, so it still reaches the
+      // curriculum path. "What is an emergency fund" used to be the example
+      // and no longer is: Salapify writes that answer itself now, in its own
+      // words, and a frame saying "here is how the Academy explains it"
+      // would be false on top of unnecessary.
+      final PanAnswer a = askPan('what is a trademark', facts());
+      expect(a.topic, startsWith('academy:'));
       expect(
         a.text.indexOf('General knowledge'),
-        lessThan(a.text.indexOf('emergency')),
+        lessThan(a.text.indexOf('rademark')),
         reason:
             'a notice under a passage records that we knew, it does not '
             'change what the reader read first',

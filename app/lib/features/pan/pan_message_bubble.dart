@@ -19,17 +19,31 @@ class PanMessage {
   const PanMessage.you(this.text)
     : fromPan = false,
       answer = null,
-      badge = null;
-  const PanMessage.pan(this.text, {this.badge}) : fromPan = true, answer = null;
+      badge = null,
+      points = const <String>[];
+  const PanMessage.pan(this.text, {this.badge, this.points = const <String>[]})
+    : fromPan = true,
+      answer = null;
   PanMessage.answer(PanAnswer a)
     : fromPan = true,
       answer = a,
       badge = a.badge,
-      text = a.display;
+      points = a.points,
+      // The LEAD, not the display. display concatenates the lead, the
+      // bullets, the More text and the trailer into one string for the
+      // content guards to scan, and using it here printed every one of them
+      // twice: once as a paragraph and again as the parts. A render caught
+      // that in a second; no test could, because both halves were correct.
+      text = a.text;
 
   final String text;
   final bool fromPan;
   final PanAnswer? answer;
+
+  /// The short lines, carried on the message rather than read off [answer],
+  /// so a RESTORED message shows them too. A restored one has no PanAnswer
+  /// behind it by design.
+  final List<String> points;
 
   /// Kept apart from [answer] so a RESTORED message can still carry its
   /// label. A conversation put back from disk has no PanAnswer behind it,
@@ -38,7 +52,7 @@ class PanMessage {
   final String? badge;
 }
 
-class PanMessageBubble extends StatelessWidget {
+class PanMessageBubble extends StatefulWidget {
   const PanMessageBubble({
     super.key,
     required this.palette,
@@ -55,7 +69,19 @@ class PanMessageBubble extends StatelessWidget {
   final ValueChanged<String> onAction;
 
   @override
+  State<PanMessageBubble> createState() => _PanMessageBubbleState();
+}
+
+class _PanMessageBubbleState extends State<PanMessageBubble> {
+  /// Collapsed on arrival, always. The whole point of the split is that the
+  /// part somebody reads once is not in front of them on every visit after
+  /// the first.
+  bool _open = false;
+
+  @override
   Widget build(BuildContext context) {
+    final Palette palette = widget.palette;
+    final PanMessage message = widget.message;
     final bool pan = message.fromPan;
     final PanAnswer? a = message.answer;
 
@@ -83,6 +109,54 @@ class PanMessageBubble extends StatelessWidget {
                   ? AppType.body(palette).copyWith(color: palette.textPrimary)
                   : AppType.body(palette).copyWith(color: palette.onAccent),
             ),
+            // SHORT LINES, one idea each, instead of paragraphs. Prose on a
+            // phone is skipped; a list is scanned. The dot is a character
+            // rather than a bullet widget because a Row per line would
+            // stop the text wrapping under itself.
+            if (message.points.isNotEmpty) ...<Widget>[
+              const SizedBox(height: Spacing.sm),
+              for (final String point in message.points)
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        '•  ',
+                        style: AppType.body(
+                          palette,
+                        ).copyWith(color: palette.accent),
+                      ),
+                      Expanded(
+                        child: Text(
+                          point,
+                          style: AppType.body(
+                            palette,
+                          ).copyWith(color: palette.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            if (a?.more != null) ...<Widget>[
+              const SizedBox(height: Spacing.sm),
+              _MoreToggle(
+                palette: palette,
+                open: _open,
+                onTap: () => setState(() => _open = !_open),
+              ),
+              if (_open)
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.sm),
+                  child: Text(
+                    a!.more!,
+                    style: AppType.body(
+                      palette,
+                    ).copyWith(color: palette.textSecondary),
+                  ),
+                ),
+            ],
             if (a != null && a.figures.isNotEmpty) ...<Widget>[
               const SizedBox(height: Spacing.sm),
               for (final PanFigure f in a.figures)
@@ -98,6 +172,12 @@ class PanMessageBubble extends StatelessWidget {
                   ),
                 ),
             ],
+            // The trailer, small and last, rather than another paragraph in
+            // the body. It has to be on screen and it is not the answer.
+            if (a != null && a.aboutMoney) ...<Widget>[
+              const SizedBox(height: Spacing.md),
+              Text(PanAnswer.trailer, style: AppType.caption(palette)),
+            ],
             if (a != null && a.actions.isNotEmpty) ...<Widget>[
               const SizedBox(height: Spacing.md),
               // Wrap, not Row. Two buttons at 320dp with a long label is the
@@ -111,7 +191,7 @@ class PanMessageBubble extends StatelessWidget {
                     _ActionButton(
                       palette: palette,
                       label: act.label,
-                      onTap: () => onAction(act.id),
+                      onTap: () => widget.onAction(act.id),
                     ),
                 ],
               ),
@@ -197,6 +277,53 @@ class _ActionButton extends StatelessWidget {
             style: AppType.rowMeta(
               palette,
             ).copyWith(color: palette.accent, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the part that is read once and then skipped forever.
+class _MoreToggle extends StatelessWidget {
+  const _MoreToggle({
+    required this.palette,
+    required this.open,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.pill),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  open ? 'Less' : 'More',
+                  style: AppType.rowMeta(palette).copyWith(
+                    color: palette.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Icon(
+                  open ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: palette.accent,
+                ),
+              ],
+            ),
           ),
         ),
       ),

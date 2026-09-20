@@ -239,7 +239,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
         id: 's3',
         title: 'Where to Store Emergency Money',
         content:
-            'Never invest your emergency fund in volatile stocks, crypto, or locked 5-year bonds. Store it in high-yield digital savings accounts (like MariBank, GoTyme, or Maya) where it earns 4% to 6% per annum, stays protected by PDIC insurance up to ₱500,000, and remains accessible via InstaPay within seconds.',
+            'Never invest your emergency fund in volatile stocks, crypto, or locked 5-year bonds. Store it in high-yield digital savings accounts (like MariBank, GoTyme, or Maya) where it earns 4% to 6% per annum, stays protected by PDIC insurance up to ₱1,000,000, and remains accessible via InstaPay within seconds.',
       ),
     ],
     knowledgeCheck: KnowledgeCheck(
@@ -467,7 +467,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
     durationMinutes: 6,
     objectives: <String>[
       'Understand how BSP-licensed digital banks (MariBank, GoTyme, Maya, CIMB, Tonik) operate.',
-      'Verify PDIC insurance coverage up to ₱500,000 per depositor per bank.',
+      'Verify PDIC insurance coverage up to ₱1,000,000 per depositor per bank.',
       'Optimize daily compounding interest for emergency funds and short-term goals.',
     ],
     sections: <LessonSection>[
@@ -487,12 +487,12 @@ const List<CourseModule> academyCourses = <CourseModule>[
         id: 's3',
         title: 'Safety and PDIC Regulations',
         content:
-            'Legitimate digital banks are regulated by the Bangko Sentral ng Pilipinas (BSP) and covered by the Philippine Deposit Insurance Corporation (PDIC) up to ₱500,000 per depositor. To keep 100% insured coverage on larger cash reserves, distribute amounts exceeding ₱500,000 across multiple licensed institutions.',
+            'Legitimate digital banks are regulated by the Bangko Sentral ng Pilipinas (BSP) and covered by the Philippine Deposit Insurance Corporation (PDIC) up to ₱1,000,000 per depositor. To keep 100% insured coverage on larger cash reserves, distribute amounts exceeding ₱1,000,000 across multiple licensed institutions.',
       ),
     ],
     knowledgeCheck: KnowledgeCheck(
       question:
-          'What Philippine government agency insures bank deposits up to ₱500,000 per depositor per bank?',
+          'What Philippine government agency insures bank deposits up to ₱1,000,000 per depositor per bank?',
       options: <String>[
         'BIR (Bureau of Internal Revenue)',
         'PDIC (Philippine Deposit Insurance Corporation)',
@@ -501,12 +501,12 @@ const List<CourseModule> academyCourses = <CourseModule>[
       ],
       correctAnswerIndex: 1,
       explanation:
-          'The PDIC insures deposit accounts in BSP-supervised banks (including licensed digital banks) up to ₱500,000 per depositor.',
+          'The PDIC insures deposit accounts in BSP-supervised banks (including licensed digital banks) up to ₱1,000,000 per depositor.',
     ),
     keyTakeaways: <String>[
       'Keep spending money in your regular account, and park savings in high-yield digital banks.',
       'Confirm that any digital bank you use is officially licensed and supervised by the BSP.',
-      'Spread balances over ₱500,000 across different banks to maintain full PDIC insurance.',
+      'Spread balances over ₱1,000,000 across different banks to maintain full PDIC insurance.',
     ],
   ),
   CourseModule(
@@ -793,7 +793,12 @@ const List<CourseModule> academyCourses = <CourseModule>[
     knowledgeCheck: KnowledgeCheck(
       question:
           'Under the TRAIN Law, what is the annual taxable income threshold below which personal compensation is taxed at 0%?',
-      options: <String>['₱100,000', '₱250,000', '₱500,000', '₱1,000,000'],
+      // NOT touched by the PDIC correction, despite holding the same figures.
+      // A blanket replace of 500,000 turned two of these four options into
+      // the same answer, which is a quiz nobody can get wrong. This question
+      // is about the TRAIN Law threshold and has nothing to do with deposit
+      // insurance; the collision was a coincidence of numbers.
+      options: <String>['₱100,000', '₱250,000', '₱500,000', '₱800,000'],
       correctAnswerIndex: 1,
       explanation:
           'The TRAIN Law exempts the first ₱250,000 of annual taxable compensation income from Philippine personal income tax.',

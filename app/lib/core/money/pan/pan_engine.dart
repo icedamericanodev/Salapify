@@ -75,11 +75,34 @@ class PanAnswer {
     required this.topic,
     required this.text,
     this.badge,
+    this.points = const <String>[],
+    this.more,
     this.figures = const <PanFigure>[],
     this.actions = const <PanAction>[],
     this.followUps = const <String>[],
     this.aboutMoney = false,
   });
+
+  /// Short lines under the answer, one idea each.
+  ///
+  /// Founder direction, 2026-09-20: "Im still not satisfied on how pan answer
+  /// the question it is too wordy compare to the google ai studio
+  /// prototype". They were right, and the fix is structural rather than a
+  /// word count. The MP2 answer was four paragraphs of prose, and the
+  /// prototype's equivalent is a headline followed by short labelled lines.
+  /// Prose on a phone is skipped; a list is scanned.
+  ///
+  /// This is the same rule the screens already follow, arriving in the chat:
+  /// a figure and the one line needed to read it stay in front of somebody,
+  /// and anything that TEACHES goes one tap away, in [more].
+  final List<String> points;
+
+  /// The part that is read once and then never again.
+  ///
+  /// Behind a tap, for exactly the reason the founder gave about the screens:
+  /// a lesson is read once and then skipped forever while still taking up
+  /// room on every visit after the first.
+  final String? more;
 
   /// A short label above the answer, saying what KIND of answer it is.
   ///
@@ -122,8 +145,18 @@ class PanAnswer {
   static const String trailer =
       'This is general information, not advice about your own money.';
 
-  /// The body as it is shown, trailer included where it belongs.
-  String get display => aboutMoney ? '$text\n\n$trailer' : text;
+  /// EVERY word this answer can put in front of somebody, in one string.
+  ///
+  /// Used by the content guards, and that is why it includes [more] even
+  /// though the screen keeps it behind a tap. A ban that reads only what is
+  /// visible on arrival is a ban with a door in it, and this repository has
+  /// already shipped one guard that was scoped to the wrong thing.
+  String get display => <String>[
+    text,
+    for (final String p in points) p,
+    ?more,
+    if (aboutMoney) trailer,
+  ].join('\n\n');
 }
 
 class PanFigure {
@@ -1306,33 +1339,37 @@ PanExplainer? _explainerFor(String q) {
 }
 
 PanAnswer _explain(PanExplainer e) {
-  final StringBuffer b = StringBuffer(e.body);
-
-  if (e.salapifyCanDo != null) {
-    // What the app can DO about it, which is the half a general explanation
-    // usually leaves out. The person is already holding the tool.
-    b.write('\n\nIn Salapify: ${e.salapifyCanDo}');
-  }
-
   final CourseModule? course = e.courseId == null
       ? null
       : academyCourses
             .where((CourseModule c) => c.id == e.courseId)
             .firstOrNull;
 
-  if (course != null) {
-    b.write(
-      '\n\nThere is more in the Academy course "${course.title}", on the '
-      'Plan tab, about ${course.durationMinutes} minutes.',
-    );
-  }
+  final List<String> deeper = <String>[
+    if (e.more != null) e.more!,
+    if (course != null)
+      'The Academy course "${course.title}" goes further, on the Plan tab, '
+          'in about ${course.durationMinutes} minutes.',
+  ];
 
+  // The lead is the whole answer, and everything else supports it. This used
+  // to be one string with four paragraphs concatenated into it, which is
+  // what the founder called too wordy next to the prototype. The parts are
+  // separate now so the screen can decide what to show on arrival and what
+  // to keep one tap away.
   return PanAnswer(
     topic: 'explain:${e.id}',
     badge: e.title,
     // Every one of these touches money, so every one carries the trailer.
     aboutMoney: true,
-    text: b.toString(),
+    text: e.lead,
+    points: <String>[
+      ...e.points,
+      // What the app can DO about it, last, because it is the line somebody
+      // acts on and the others are the ones they read.
+      if (e.salapifyCanDo != null) 'In Salapify: ${e.salapifyCanDo}',
+    ],
+    more: deeper.isEmpty ? null : deeper.join('\n\n'),
     actions: course == null
         ? const <PanAction>[]
         : const <PanAction>[PanAction(label: 'Open the course', id: 'academy')],
@@ -1444,35 +1481,39 @@ PanAnswer _health(PanFacts facts) {
     return _nothingYet('how you are doing');
   }
 
-  final StringBuffer b = StringBuffer(
-    '${h.score} out of 100, on ${h.parts.length} '
-    '${h.parts.length == 1 ? 'part' : 'parts'} of your money Salapify can '
-    'see. ${h.reading}.',
-  );
+  // LEAD, then one line per part. This was five paragraphs, and it is the
+  // answer the founder was reading when they said Pan is too wordy next to
+  // the prototype. The marks are already in the figure rows below, so the
+  // lines carry the READING rather than repeating the score.
+  final String lead =
+      '${h.score} out of 100, on ${h.parts.length} '
+      '${h.parts.length == 1 ? 'part' : 'parts'} of your money Salapify can '
+      'see. ${h.reading}.';
 
-  for (final HealthPart p in h.parts) {
-    b.write('\n\n${p.name}: ${p.reading}. ${p.points} of ${p.outOf}.');
-    if (p.note != null) b.write(' ${p.note}');
-  }
+  final List<String> lines = <String>[
+    for (final HealthPart p in h.parts)
+      '${p.name}: ${p.reading}.${p.note == null ? '' : ' ${p.note}'}',
+  ];
 
-  // WHAT WAS NOT MEASURED IS SHOWN, never quietly dropped. A score over three
-  // parts that reads like a score over four is the prototype's habit of
-  // filling a gap with an invented number, arriving by a different door.
+  // WHAT WAS NOT MEASURED IS SHOWN, never quietly dropped, and it stays in
+  // the visible half rather than behind the tap. A score over three parts
+  // that reads like a score over four is the prototype's habit of filling a
+  // gap with an invented number, arriving by a different door.
   if (h.unmeasured.isNotEmpty) {
-    b.write('\n\nNot counted, because there is nothing to count yet:');
-    for (final ({String name, String missing}) u in h.unmeasured) {
-      b.write('\n  ${u.name}, ${u.missing}');
-    }
-  }
-
-  for (final String o in h.observations) {
-    b.write('\n\n$o');
+    final String missing = h.unmeasured
+        .map((({String name, String missing}) u) => u.name.toLowerCase())
+        .join(', ');
+    lines.add('Not counted yet: $missing. Nothing recorded to count.');
   }
 
   return PanAnswer(
     topic: 'health',
     badge: h.reading,
-    text: b.toString(),
+    text: lead,
+    points: lines,
+    // The observations TEACH, so they go one tap away. That is the founder's
+    // own rule about the screens, arriving in the chat.
+    more: h.observations.isEmpty ? null : h.observations.join('\n\n'),
     figures: <PanFigure>[
       PanFigure(label: 'Out of 100', value: '${h.score}'),
       for (final HealthPart p in h.parts)

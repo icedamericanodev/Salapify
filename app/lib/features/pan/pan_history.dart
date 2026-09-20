@@ -49,16 +49,24 @@ class PanStoredMessage {
   const PanStoredMessage({
     required this.fromPan,
     required this.text,
+    this.points = const <String>[],
     this.badge,
   });
 
   final bool fromPan;
   final String text;
+
+  /// The short lines under the lead. Kept, so a restored message looks like
+  /// the one that was there before the app closed rather than a headline
+  /// with its answer missing.
+  final List<String> points;
+
   final String? badge;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'fromPan': fromPan,
     'text': text,
+    if (points.isNotEmpty) 'points': points,
     if (badge != null) 'badge': badge,
   };
 
@@ -69,6 +77,13 @@ class PanStoredMessage {
     return PanStoredMessage(
       fromPan: raw['fromPan'] == true,
       text: text,
+      points: <String>[
+        for (final Object? p
+            in raw['points'] is List
+                ? raw['points'] as List
+                : const <Object?>[])
+          if (p is String) p,
+      ],
       badge: raw['badge'] is String ? raw['badge'] as String : null,
     );
   }

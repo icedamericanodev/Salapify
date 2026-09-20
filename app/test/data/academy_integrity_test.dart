@@ -150,4 +150,54 @@ void main() {
       reason: 'two courses share an id, so completion marks the wrong one',
     );
   });
+
+  test('a knowledge check never offers the same answer twice', () {
+    // Written straight after nearly shipping one. PDIC raised the deposit
+    // insurance cap from 500,000 to 1,000,000 in March 2025, the Academy
+    // stated the old figure in six places, and a blanket replace of the
+    // number turned a TRAIN Law question into
+    // ['100,000', '250,000', '1,000,000', '1,000,000'] because that quiz
+    // happened to use 500,000 as a distractor. A quiz nobody can get wrong
+    // teaches nothing and reads as a bug.
+    for (final CourseModule c in academyCourses) {
+      final KnowledgeCheck? k = c.knowledgeCheck;
+      if (k == null) continue;
+      expect(
+        k.options.toSet().length,
+        k.options.length,
+        reason: '${c.title} offers the same option twice: ${k.options}',
+      );
+      expect(
+        k.correctAnswerIndex,
+        inInclusiveRange(0, k.options.length - 1),
+        reason: '${c.title} marks an answer that is not on the list',
+      );
+    }
+  });
+
+  test('the PDIC figure is the one in force, not the one it replaced', () {
+    // A wrong government guarantee figure is worse than no figure: it tells
+    // somebody their deposits are covered for half what they are, and the
+    // course then tells them to split balances they did not need to split.
+    // Raised to 1,000,000 per depositor per bank, effective 15 March 2025.
+    final String all = academyCourses
+        .map(
+          (CourseModule c) => <String>[
+            c.description,
+            ...c.objectives,
+            ...c.keyTakeaways,
+            for (final LessonSection s in c.sections) s.content,
+            ?c.knowledgeCheck?.explanation,
+          ].join(' '),
+        )
+        .join(' ');
+
+    expect(
+      all.contains('PDIC insurance up to ₱500,000') ||
+          all.contains('PDIC) up to ₱500,000') ||
+          all.contains('PDIC insurance coverage up to ₱500,000'),
+      isFalse,
+      reason: 'the Academy states a superseded deposit insurance cap',
+    );
+  });
 }
