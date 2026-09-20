@@ -6,6 +6,7 @@ import '../../features/debt/add_debt_sheet.dart';
 import '../../features/health/health_check_sheet.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/pan/pan_hero_card.dart';
+import '../../features/payday/payday_sheet.dart';
 import '../../features/pan/pan_history.dart';
 import '../../features/pan/pan_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
@@ -89,6 +90,7 @@ class HomeScreen extends StatelessWidget {
             HeroPanel(
               state: state,
               onOpenDetails: () => SafeToSpendSheet.show(context, state),
+              onSetPayday: () => PaydaySheet.show(context, state),
               onOpenHealthCheck: () => HealthCheckSheet.show(
                 context,
                 palette,
@@ -219,12 +221,19 @@ class HomeScreen extends StatelessWidget {
       case HealthNeed.logSpending:
         onOpenLog?.call();
       case HealthNeed.setPayday:
+        // Its own sheet now. This case used to fall through to Plan with a
+        // comment claiming "the payday lives in its Budgets segment", and it
+        // did not: Plan's "Payday and income" is a read-only caption on a
+        // figure, and nothing anywhere in the app could set a payday at all.
+        // So the offer to tell Salapify when you get paid led to a tab that
+        // could not accept the answer.
+        PaydaySheet.show(context, state);
       case HealthNeed.addBill:
       case HealthNeed.startCushion:
       case HealthNeed.setBudget:
-        // Plan owns all four: the payday and budgets live in its Budgets
-        // segment, bills in Bills, and a goal in Goals. One destination
-        // beats four half-wired ones, and the hub is one tap from each.
+        // Plan owns these three: budgets live in its Budgets segment, bills
+        // in Bills, and a goal in Goals. One destination beats three
+        // half-wired ones, and the hub is one tap from each.
         onOpenTab?.call(3);
     }
   }

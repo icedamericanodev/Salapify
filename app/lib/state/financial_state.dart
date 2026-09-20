@@ -11,6 +11,7 @@ import '../design/tokens.dart';
 import '../core/money/accounts.dart';
 import '../core/money/debt.dart';
 import '../core/money/health_check.dart';
+import '../core/money/payday_schedule.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
 import '../core/money/pan/pan_context.dart';
@@ -222,7 +223,7 @@ class FinancialState extends ChangeNotifier {
     bills: _bills,
     notifications: _notifications,
     reminderSettings: _reminderSettings,
-    payday: _payday,
+    payday: payday,
     sampleDataRemovedAt: _sampleRemovedAt,
     theme: _theme,
     scenario: _scenario,
@@ -341,7 +342,68 @@ class FinancialState extends ChangeNotifier {
       List<IncomeStream>.unmodifiable(_incomeStreams);
   List<InstallmentPlan> get installments =>
       List<InstallmentPlan>.unmodifiable(_installments);
-  PaydayCycle get payday => _payday;
+
+  /// The pay cycle, with its countdown worked out against TODAY.
+  ///
+  /// `_payday` stores a rule and a snapshot of a moment. The rule keeps; the
+  /// snapshot does not. Before this getter existed, `daysToPayday` was
+  /// whatever had been written once and was never touched again, which
+  /// `json_codec.dart` recorded as a defect years in the making: a cycle
+  /// "would have said the same in December, because nothing ever recomputed
+  /// or stored it". Since that number is the DIVISOR for the per-day figure
+  /// on Home, a stale one is a wrong daily allowance, not a wrong label.
+  ///
+  /// Derived HERE, above the money engine and not inside it, on purpose.
+  /// `computeSafeToSpend` still divides by whatever cycle it is handed and
+  /// its golden vectors still hand it one directly, so the locked arithmetic
+  /// is untouched by any of this.
+  ///
+  /// A cycle with no rule is returned exactly as stored. That covers every
+  /// backup written before the editor existed and every prototype import:
+  /// they keep whatever they had rather than having a rule guessed for them.
+  PaydayCycle get payday {
+    if (!_payday.hasRule) return _payday;
+
+    final PaydayPoints? points = PaydaySchedule(
+      _payday.paydayDays,
+    ).pointsFrom(now);
+    if (points == null) return _payday;
+
+    return _payday.copyWith(
+      daysToPayday: points.daysToNext,
+      nextPayday: formatPaydayLabel(points.next),
+      lastPayday: formatPaydayLabel(points.last),
+    );
+  }
+
+  /// Records when the person gets paid, and optionally what they expect.
+  ///
+  /// Only the RULE and the expected amount are the person's to give. The
+  /// countdown and the two date labels are derived by the getter above, so
+  /// they are deliberately not parameters here: a caller that could set them
+  /// could write a countdown that stops counting, which is the whole defect
+  /// this replaces.
+  ///
+  /// An empty [daysOfMonth] CLEARS the cycle back to unset rather than
+  /// storing an unusable rule. Somebody who set a payday by mistake needs a
+  /// way back out, and leaving a half-built rule behind would show the
+  /// screens a cycle that `isSet` calls true and the schedule cannot use.
+  void setPaydayRule({required List<int> daysOfMonth, double? expectedIncome}) {
+    final PaydaySchedule schedule = PaydaySchedule(daysOfMonth);
+
+    if (!schedule.isUsable) {
+      _payday = PaydayCycle.unset;
+      notifyListeners();
+      return;
+    }
+
+    _payday = _payday.copyWith(
+      paydayDays: schedule.daysOfMonth,
+      cycleType: schedule.daysOfMonth.length > 1 ? 'semi_monthly' : 'monthly',
+      expectedIncome: expectedIncome ?? 0,
+    );
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------------------
   // Reminders
@@ -490,7 +552,7 @@ class FinancialState extends ChangeNotifier {
       bills: bills,
       installments: installments,
       upcoming: upcoming,
-      payday: _payday,
+      payday: payday,
       liquidCash: totalLiquidCash,
       assets: accountsTotalPhp(assetsOf(_accounts)),
       liabilities: accountsTotalPhp(liabilitiesOf(_accounts)),

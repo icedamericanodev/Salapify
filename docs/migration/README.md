@@ -1246,3 +1246,68 @@ per-day figure it gates can never be earned by anybody who clears the sample
 data. That is a feature rather than a wording fix, so it is written down here
 rather than built inside a caption change. The test fixture for a one day
 cutoff has to arrive through a saved ledger file for exactly this reason.
+
+## The payday editor, and a countdown that actually counts (2026-09-20)
+
+Three screens asked for a payday and nothing in the app could set one. The
+hero card said "Set your payday to see a daily figure", Health Check offered
+"Tell Salapify when you get paid", and the Safe to Spend sheet said "Payday
+not set". Every one was a dead end, and the per-day figure they all gate
+could not be earned by anybody who cleared the sample data.
+
+| Nothing recorded | The founder's other example, the 10th and the 25th |
+|---|---|
+| ![payday empty](screens/payday-empty.png) | ![payday set](screens/payday-set.png) |
+
+### It records a RULE, because a countdown goes stale
+
+`PaydayCycle` stored `daysToPayday`, `nextPayday` and `lastPayday`, and
+nothing ever recomputed them. `json_codec.dart` had already written the
+defect down: the cycle "would have said the same in December, because nothing
+ever recomputed or stored it". Since that number is the DIVISOR for the
+per-day figure on Home, a frozen one is a wrong daily allowance and not a
+wrong label.
+
+So the person records which days of the month they are paid, and the
+countdown is worked out from that rule and today, every time it is read.
+Founder direction, 2026-09-20, on why the days are a choice: "give them
+options since it differs per company. Sometime 15th and 30th, sometimes 10th
+and 25th."
+
+The derivation lives in `FinancialState.payday`, ABOVE the money engine.
+`computeSafeToSpend` still divides by whatever cycle it is handed and its
+golden vectors still hand it one directly, so the locked arithmetic is
+untouched by any of this.
+
+### Take-home pay is optional, and says why
+
+Founder decision on the same day. Blank means Salapify assumes nothing is
+coming in, which keeps Safe to Spend cautious, and the field says so under
+itself. It is the one control in this sheet that moves a money figure, so the
+warning sits beside it rather than behind a dot.
+
+### The date traps, each one pinned
+
+`DateTime(2026, 2, 31)` does not throw and is not 31 February, it is 3 March.
+A person paid at the end of the month would have had their February payday
+land in the wrong month every year, and a person paid on the 31st would have
+lost it in four months out of twelve. Paydays clamp to the last day of a
+short month, which is what payroll does anyway. The caution line in the sheet
+appears only when a chosen day is past the 28th, so a cycle of the 10th and
+the 25th is not told about a rule that cannot affect it.
+
+On payday itself the countdown points at the NEXT payday rather than at
+today. That is not only wording: `PaydayCycle.isSet` is `daysToPayday > 0`,
+so a zero would make an app with a perfectly good rule announce "Payday not
+set" on the one day the person is most likely to open it.
+`payday_schedule_test.dart` sweeps every day of a year rather than three hand
+picked dates, because a single bad day is exactly the kind that survives hand
+picked cases.
+
+### A cycle from before this feature is left exactly alone
+
+Every backup written before the editor existed, and every prototype import,
+carries a countdown and two labels and no rule. Those keep showing exactly
+what they stored. Guessing a rule for them would quietly rewrite somebody's
+cycle into one they never chose, and breaking that guard on purpose rewrote
+the seed's own 4 days into 12.

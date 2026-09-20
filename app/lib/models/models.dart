@@ -646,6 +646,7 @@ class PaydayCycle {
     required this.nextPayday,
     required this.daysToPayday,
     required this.expectedIncome,
+    this.paydayDays = const <int>[],
   });
 
   final String cycleType;
@@ -653,6 +654,30 @@ class PaydayCycle {
   final String nextPayday;
   final int daysToPayday;
   final double expectedIncome;
+
+  /// The RULE: which days of the month the money lands on.
+  ///
+  /// This is the only field here that does not go stale, and it is why it
+  /// was added. Every other one is a snapshot of a moment: `daysToPayday` is
+  /// a countdown, and `nextPayday` and `lastPayday` are labels for two dates
+  /// that move. Stored on their own they were frozen the instant they were
+  /// written, which `json_codec.dart` already recorded as a defect: the
+  /// cycle "would have said the same in December, because nothing ever
+  /// recomputed or stored it".
+  ///
+  /// `[15, 30]` is the usual Philippine sweldo and `[10, 25]` is just as
+  /// real. Founder direction, 2026-09-20: "give them options since it
+  /// differs per company." One entry means paid once a month.
+  ///
+  /// EMPTY IS NOT A DEFAULT, it is a different state: a cycle from before
+  /// this field existed, or one restored from an older backup. Those keep
+  /// showing exactly what they stored, frozen as they always were, rather
+  /// than being guessed at. `FinancialState.payday` refreshes the countdown
+  /// only when there is a rule here to refresh it from.
+  final List<int> paydayDays;
+
+  /// True when the countdown can be worked out fresh rather than recalled.
+  bool get hasRule => paydayDays.isNotEmpty;
 
   /// What a ledger with no payday set looks like.
   ///
@@ -681,12 +706,14 @@ class PaydayCycle {
     String? nextPayday,
     int? daysToPayday,
     double? expectedIncome,
+    List<int>? paydayDays,
   }) => PaydayCycle(
     cycleType: cycleType ?? this.cycleType,
     lastPayday: lastPayday ?? this.lastPayday,
     nextPayday: nextPayday ?? this.nextPayday,
     daysToPayday: daysToPayday ?? this.daysToPayday,
     expectedIncome: expectedIncome ?? this.expectedIncome,
+    paydayDays: paydayDays ?? this.paydayDays,
   );
 }
 

@@ -88,6 +88,23 @@ List<String> _optStrList(Map<String, dynamic> m, String key) {
   return v.whereType<String>().toList(growable: false);
 }
 
+/// Whole numbers out of a stored list, forgiving everything else.
+///
+/// Tolerant on purpose, like `_optStrList` beside it and for the same reason
+/// the payday decoder gives below: a throw here makes a whole ledger
+/// unreadable. JSON has one number type, so a day written by another tool
+/// can arrive as 15.0 rather than 15, and a hand edited backup can carry a
+/// string or a null. None of that is worth a red banner over a payday rule.
+/// Out of range values are the schedule's business, not this file's.
+List<int> _optIntList(Map<String, dynamic> m, String key) {
+  final Object? v = m[key];
+  if (v is! List) return const <int>[];
+  return <int>[
+    for (final Object? e in v)
+      if (e is num) e.round(),
+  ];
+}
+
 List<Map<String, dynamic>> readList(Object? raw, String what) {
   if (raw == null) return const <Map<String, dynamic>>[];
   if (raw is! List) {
@@ -871,6 +888,7 @@ const Set<String> paydayKeys = <String>{
   'nextPayday',
   'daysToPayday',
   'expectedIncome',
+  'paydayDays',
 };
 
 Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
@@ -879,6 +897,13 @@ Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
   'nextPayday': p.nextPayday,
   'daysToPayday': p.daysToPayday,
   'expectedIncome': p.expectedIncome,
+  // The rule, and the only one of these six that is still true tomorrow.
+  //
+  // The countdown and the two labels above are written as well, and stay
+  // written, so a backup opened by anything that does not know about this
+  // key still reads a complete and sensible cycle. They are simply no
+  // longer the source of truth when this list has something in it.
+  'paydayDays': p.paydayDays,
 };
 
 PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
@@ -897,6 +922,11 @@ PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
   // figure on Home, and a negative would read as "minus three days to payday".
   daysToPayday: (_optNum(m, 'daysToPayday') ?? 0).round().clamp(0, 400),
   expectedIncome: _optNum(m, 'expectedIncome') ?? 0,
+  // Absent in every backup written before the payday editor existed, and in
+  // every prototype export. Empty then means "no rule recorded", which the
+  // state reads as leave the stored countdown alone, so an old file keeps
+  // behaving exactly as it did.
+  paydayDays: _optIntList(m, 'paydayDays'),
 );
 
 // ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ import 'package:salapify/features/accounts/account_sheet.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/features/health/health_check_sheet.dart';
 import 'package:salapify/features/log/scan_receipt_sheet.dart';
+import 'package:salapify/features/payday/payday_sheet.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
@@ -451,6 +452,55 @@ void main() {
   // Empty it is a paste box and six chips, which proves nothing. The whole
   // feature is the form it fills and the caution it puts above it, so the
   // shot taps a sample the way a person would.
+  // The payday editor, on the phone that needed it: swept, so there is no
+  // cycle recorded and the sheet is doing the job it was built for.
+  //
+  // Both states, because they are different screens. Empty opens on 15 and
+  // 30 as a starting point with no caution line and no way back out. Set
+  // shows the founder's other example, the 10th and the 25th, with the
+  // preview counting real days and the remove control present.
+  for (final ({String slug, List<int> days}) shape
+      in <({String slug, List<int> days})>[
+        (slug: 'payday', days: <int>[]),
+        (slug: 'payday_set', days: <int>[10, 25]),
+      ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+      state.removeSampleData();
+      if (shape.days.isNotEmpty) {
+        state.setPaydayRule(daysOfMonth: shape.days, expectedIncome: 20000);
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      PaydaySheet.show(tester.element(find.byType(AppShell)), state);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
+
   testWidgets('sheet scan receipt renders', (WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
 

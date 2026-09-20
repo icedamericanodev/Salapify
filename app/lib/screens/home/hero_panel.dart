@@ -24,12 +24,21 @@ class HeroPanel extends StatelessWidget {
     required this.state,
     this.onOpenDetails,
     this.onOpenHealthCheck,
+    this.onSetPayday,
     this.onInfo,
   });
 
   final FinancialState state;
   final VoidCallback? onOpenDetails;
   final VoidCallback? onOpenHealthCheck;
+
+  /// Opens the payday editor.
+  ///
+  /// This card has asked for a payday since it was built, in the sentence
+  /// under the big figure, and until now there was nowhere to answer it. The
+  /// prompt is the control now rather than a suggestion about some other
+  /// screen the person is meant to find.
+  final VoidCallback? onSetPayday;
   final VoidCallback? onInfo;
 
   @override
@@ -121,16 +130,45 @@ class HeroPanel extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
+                    // TAPPABLE, and the unset case is the reason.
+                    //
+                    // "Payday not set" was a statement with nowhere to go,
+                    // under a sentence asking for one. It is the way in now.
+                    // A set cycle opens the same editor, because the only
+                    // other way to correct a wrong day would be to find the
+                    // sheet somewhere else.
                     Flexible(
-                      child: Text(
-                        payday.isSet
-                            ? '${payday.daysToPayday} days to payday'
-                            : 'Payday not set',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: HeroColors.ink,
+                      child: Semantics(
+                        button: onSetPayday != null,
+                        label: payday.isSet
+                            ? 'Change your payday'
+                            : 'Set your payday',
+                        child: InkWell(
+                          onTap: onSetPayday,
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                          child: Container(
+                            // The floor, met by growing the tap target rather
+                            // than the text: this row sits under a progress
+                            // rail and pushing it taller would unbalance the
+                            // card.
+                            constraints: const BoxConstraints(minHeight: 44),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              payday.isSet
+                                  ? '${payday.daysToPayday} days to payday'
+                                  : 'Payday not set',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: HeroColors.ink,
+                                decoration: payday.isSet || onSetPayday == null
+                                    ? null
+                                    : TextDecoration.underline,
+                                decorationColor: HeroColors.ink,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
