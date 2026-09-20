@@ -97,18 +97,7 @@ class HeroPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  // NO PER-DAY FIGURE WITHOUT A PAYDAY, and this is the most
-                  // important line in the file. The engine divides by
-                  // max(1, daysToPayday), so an unset cycle makes the daily
-                  // figure equal the WHOLE fortnight's. The card would tell
-                  // somebody with 36,125 pesos of room that they may spend
-                  // 36,125 pesos a day, which is not a rounding error, it is
-                  // the opposite of the advice this screen exists to give.
-                  payday.isSet
-                      ? '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday. '
-                            '· Lasts ${analysis.cashRunwayDays} days'
-                      : 'Set your payday to see a daily figure. '
-                            '· Lasts ${analysis.cashRunwayDays} days',
+                  _subtitle(analysis),
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -164,6 +153,37 @@ class HeroPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// The line under the big figure. Two clauses, each earned separately.
+  ///
+  /// NO PER-DAY FIGURE WITHOUT A PAYDAY, and this is the most important rule
+  /// in the file. The engine divides by max(1, daysToPayday), so an unset
+  /// cycle makes the daily figure equal the WHOLE fortnight's. The card would
+  /// tell somebody with 36,125 pesos of room that they may spend 36,125 pesos
+  /// a day, which is not a rounding error, it is the opposite of the advice
+  /// this screen exists to give.
+  ///
+  /// AND NO RUNWAY WITHOUT A MEASURED PACE, which is the same rule applied to
+  /// the second clause. The runway is liquid cash divided by a daily burn,
+  /// and under 5,000 logged in thirty days that burn is a stand-in of 28,000
+  /// a month that nobody recorded. On a phone ten seconds old it divided zero
+  /// by an invented figure and printed "Lasts 0 days" beside a zero balance,
+  /// which reads as a verdict on the person rather than as what it is: two
+  /// placeholders, and nothing recorded to say anything about.
+  ///
+  /// The number itself is not touched. It is locked by golden vectors and
+  /// the Safe to Spend sheet still shows it, captioned with which of the two
+  /// burn rates it used. What changes is only whether the hero states it
+  /// flatly, with no room for the caption that makes it honest.
+  String _subtitle(SafeToSpendAnalysis analysis) {
+    final String pace = state.payday.isSet
+        ? '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday.'
+        : 'Set your payday to see a daily figure.';
+
+    if (!analysis.runwayFromLoggedSpending) return pace;
+
+    return '$pace · Lasts ${analysis.cashRunwayDays} days';
   }
 
   Widget _kickerRow() {

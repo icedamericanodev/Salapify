@@ -145,8 +145,24 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              // NOTHING OVER NOTHING IS NOT ZERO DAYS.
+              //
+              // The runway is liquid cash divided by a daily burn rate. On a
+              // phone with no accounts recorded and nothing logged, BOTH
+              // sides are placeholders: the top is zero because nothing has
+              // been entered, and the bottom is a 28,000 a month stand-in
+              // that nobody recorded. "0 days" in the size this card uses
+              // then reads as a verdict on the person, on the first screen a
+              // new install can reach.
+              //
+              // A zero with a MEASURED pace behind it is a different thing
+              // entirely, and it still shows: somebody who logs their
+              // spending and has run their accounts down has earned that
+              // sentence and needs to see it.
               Text(
-                '${a.cashRunwayDays} days',
+                _runwayUnknown(a)
+                    ? 'Not enough recorded yet'
+                    : '${a.cashRunwayDays} days',
                 style: AppType.amount(p).copyWith(color: p.textPrimary),
               ),
               Text(
@@ -159,7 +175,11 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
                 // burn rate" to somebody who has logged nothing is, and it is
                 // the first screen a new install can reach that puts a figure
                 // in front of them.
-                a.runwayFromLoggedSpending
+                _runwayUnknown(a)
+                    ? 'Add what is in your accounts, and log a few weeks of '
+                          'spending, and this will say how long your money '
+                          'lasts.'
+                    : a.runwayFromLoggedSpending
                     ? 'About ${a.cashRunwayMonths} months at your recent '
                           'spending, if nothing came in at all.'
                     : 'About ${a.cashRunwayMonths} months at a typical '
@@ -463,6 +483,17 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
       ),
     );
   }
+
+  /// True when neither side of the runway division came from the person.
+  ///
+  /// BOTH halves are required, and that is the whole care in this function. A
+  /// zero with a measured pace behind it is a real and urgent statement, so
+  /// silencing on the cash alone would take the sentence away from exactly
+  /// the person who needs it. An invented pace with real cash still divides
+  /// into something, and the caption below already names it as typical
+  /// rather than theirs.
+  bool _runwayUnknown(SafeToSpendAnalysis a) =>
+      !a.runwayFromLoggedSpending && a.totalLiquidCash <= 0;
 
   Widget _card(Palette p, {required String title, required Widget child}) {
     return Container(

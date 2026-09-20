@@ -1176,3 +1176,40 @@ fine OR when nothing is known. Those last two look the same on purpose, since
 a dot means go and look and there is nothing to look at. It carries a label as
 well as a colour, because eight pixels of red says nothing to a screen reader
 and red against amber says nothing to somebody who cannot separate them.
+
+### "Lasts 0 days" is not a measurement (2026-09-20)
+
+Founder, on the Health Check empty render: fix the Lasts 0 days wording.
+
+The cash runway is liquid cash divided by a daily burn rate. Under 5,000
+logged in thirty days the engine measures nothing and stands in 28,000 a
+month, which the prototype does and a golden vector locks. So on a phone ten
+seconds old the hero card divided zero by an invented figure and stated
+**Lasts 0 days** under a zero balance. Both sides of that division were
+placeholders, and the sentence reads as a verdict on the person.
+
+**The engine is untouched.** `cashRunwayDays` still returns exactly what its
+vectors say. What changed is which surfaces are willing to state it flatly.
+
+| Home, nothing recorded | The same figure's detail screen |
+|---|---|
+| ![home empty](screens/health-check-empty.png) | ![safe to spend empty](screens/safe-to-spend-empty.png) |
+
+The hero card now earns its two clauses separately. No per-day figure without
+a payday, which was already the rule, and now no runway clause without a
+measured pace. A lived-in phone is unchanged and still reads "₱9,604 a day
+until payday. · Lasts 116 days".
+
+The Safe to Spend sheet is the second reader of the same number, and it is
+where the figure is allowed to appear, because it carries the caption naming
+which of the two burn rates produced it. One case survived that caption: no
+measured pace AND no cash recorded, where "0 days" is set in the card's
+largest type and there is genuinely nothing to divide. That reads **Not
+enough recorded yet**.
+
+Both halves of the condition are load-bearing, and the second is the one worth
+guarding. A measured zero, somebody who logs their spending and has actually
+run their accounts down, still says **0 days** out loud. Silencing on the cash
+alone would have taken the most important sentence in the app away from the
+one person it is for. `test/widgets/runway_sheet_test.dart` fails if that
+happens.

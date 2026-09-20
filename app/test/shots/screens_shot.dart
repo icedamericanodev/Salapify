@@ -968,6 +968,47 @@ void main() {
     });
   }
 
+  // Safe to Spend on a SWEPT phone, which is the second reader of the cash
+  // runway figure. The hero card stopped stating a runway it worked out from
+  // an invented burn rate, and this sheet is where the same figure is shown
+  // WITH the caption that says which burn rate it used. That caption is the
+  // whole reason the number is allowed here and not there, so it needs a
+  // picture somebody can check rather than a comment claiming it.
+  testWidgets('sheet safe_to_spend_empty renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    state.removeSampleData();
+    await tester.pumpAndSettle();
+
+    SafeToSpendSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_safe_to_spend_empty.png'),
+    );
+  });
+
   // Add Debt with the form FILLED IN, because the amortization table only
   // exists once there is something to amortise. An empty form is a picture of
   // the half of this sheet that was already easy to get right.
