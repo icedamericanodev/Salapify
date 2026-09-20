@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/pan.dart';
 import 'package:salapify/core/money/pan_facts.dart';
+import 'package:salapify/data/academy_data.dart';
 import 'package:salapify/data/pan_knowledge.dart';
+import 'package:salapify/models/academy.dart';
 import 'package:salapify/models/models.dart';
 
 /// Pan: what it answers, and what it may never say.
@@ -503,6 +505,119 @@ void main() {
             'which makes it useless rather than careful',
       );
       expect(a.text, contains('41,000'));
+    });
+  });
+
+  group('it teaches from the Academy the app already ships', () {
+    // Founder finding, 2026-09-20: "why Pan cannot answer the questions I fed
+    // into it, in the prototype Pan knows about the courses and academy".
+    // Asking "what is MP2" returned the honest miss while a course called
+    // "PAG-IBIG MP2: The Wealth Engine" sat in the same build, unreachable.
+    // Pan had the ledger and the feature list and never had the curriculum.
+
+    test('what is MP2 teaches, and says which course it came from', () {
+      final PanAnswer a = askPan('what is mp2', facts());
+      expect(a.topic, 'academy:pagibig-mp2');
+      expect(a.text, contains('Pag-IBIG'));
+      expect(
+        a.text,
+        contains('PAG-IBIG MP2: The Wealth Engine'),
+        reason:
+            'an answer lifted from a lesson must name the lesson, or Pan is '
+            'speaking curriculum prose in its own voice',
+      );
+      expect(
+        a.aboutMoney,
+        isTrue,
+        reason:
+            'a lesson about a savings programme is exactly the answer that '
+            'needs the trailer saying this is not a nudge to use one',
+      );
+    });
+
+    test('EVERY course is reachable by its own name', () {
+      // Derived from the registry rather than a typed list of examples, so a
+      // course added to academy_data.dart is covered the day it lands. A
+      // typed set of favourites would have passed while thirty of them
+      // stayed unreachable, which is the bug this group exists for.
+      final List<String> unreachable = <String>[];
+      for (final CourseModule c in academyCourses) {
+        final PanAnswer a = askPan('what is ${c.title}', facts());
+        if (a.topic != 'academy:${c.id}') {
+          unreachable.add('${c.title} -> ${a.topic}');
+        }
+      }
+      expect(
+        unreachable,
+        isEmpty,
+        reason:
+            'a course nobody can ask Pan about is a course Pan does not have',
+      );
+    });
+
+    test('a question about the APP still gets the app answer', () {
+      // The curriculum is large and its words are ordinary, so it out-scored
+      // the feature list on its first build: "is my data private" reached a
+      // course on startup data privacy compliance, which is a true answer to
+      // a question nobody asked.
+      expect(askPan('is my data private', facts()).topic, 'feature:privacy');
+      expect(
+        askPan('how do i back up my data', facts()).topic,
+        'feature:backup',
+      );
+      expect(
+        askPan('what happens when i log an expense', facts()).topic,
+        'feature:flow',
+      );
+      expect(
+        askPan('how do reminders work', facts()).topic,
+        'feature:reminders',
+      );
+    });
+
+    test('a question about THEIR figures still gets the figure', () {
+      expect(askPan('what is my net worth', facts()).topic, 'netWorth');
+      expect(askPan('how much do i have', facts()).topic, 'cash');
+      expect(askPan('what is my budget', facts()).topic, 'budgets');
+      expect(askPan('what is safe to spend', facts()).topic, 'safeToSpend');
+      expect(askPan('what is my biggest expense', facts()).topic, 'spending');
+    });
+
+    test('the possessive is what separates the idea from the amount', () {
+      // "What is net worth" wants the idea. "What is MY net worth" wants a
+      // peso figure. Salapify holds both and the only thing telling them
+      // apart is the word my.
+      expect(askPan('what is net worth', facts()).topic, 'academy:net-worth');
+      expect(askPan('what is my net worth', facts()).topic, 'netWorth');
+      expect(askPan('what is cash flow', facts()).topic, 'academy:cash-flow');
+      expect(askPan('what is my cash flow', facts()).topic, 'cash');
+    });
+
+    test('the advice boundary still comes first, even on a course subject', () {
+      // The dangerous case. MP2 is now something Pan will happily explain,
+      // and "should I put my money in MP2" is still a question about what to
+      // do with somebody's savings, which Pan does not answer.
+      for (final String q in <String>[
+        'should i invest in mp2',
+        'should i put my money in mp2',
+        'is mp2 a good idea',
+        'what should i invest in',
+        'which is better mp2 or a time deposit',
+      ]) {
+        expect(
+          askPan(q, facts()).topic,
+          'boundary',
+          reason: '"$q" asks what to DO with money and got taught instead',
+        );
+      }
+    });
+
+    test('a question the curriculum cannot answer still misses honestly', () {
+      // No paluwagan course ships, so Pan says so rather than reaching for
+      // whichever lesson happens to share a word. A confident wrong lesson is
+      // worse than an honest miss.
+      expect(askPan('what is a paluwagan', facts()).topic, 'unknown');
+      expect(askPan('what is the weather', facts()).topic, 'unknown');
     });
   });
 }

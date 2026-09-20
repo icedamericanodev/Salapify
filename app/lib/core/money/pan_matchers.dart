@@ -23,30 +23,51 @@ library;
 /// Checked before every other rule. "Where should I put my savings" contains
 /// "savings", and answering it with a savings summary would be a confident
 /// non-answer to the question actually being asked.
+/// PHRASES THAT ASK FOR A DECISION, not nouns.
+///
+/// This list used to hold bare product words: uitf, crypto, stocks,
+/// insurance. That was too blunt, and the founder found the cost of it. "What
+/// is MP2" is a question about what a thing IS, and deflecting it taught
+/// somebody that the app will not explain anything, while a whole Academy
+/// course on exactly that sat unreachable in the same build.
+///
+/// The line is not the topic, it is the ask. Pan explains any of these
+/// freely, from the curriculum, and stops at the point where somebody wants
+/// to be told what to do with their own money.
 const List<String> adviceTriggers = <String>[
   'should i invest',
   'should i put',
+  'should i save',
   'where should i put',
   'where do i put',
   'where should i save',
+  'where should i keep',
   'best place',
   'best bank',
   'best fund',
+  'best investment',
   'which bank',
   'which fund',
+  'which is better',
   'is it worth buying',
   'should i buy',
   'should i borrow',
   'should i get a loan',
+  'should i open',
   'what should i do with',
+  'what should i invest',
   'recommend',
-  'advice',
-  'invest in',
-  'crypto',
-  'stocks',
-  'mutual fund',
-  'uitf',
-  'insurance',
+  'is it a good idea',
+  // Not 'is it a good idea' but 'a good idea', because the thing being asked
+  // about goes in the middle: "is MP2 a good idea" slipped straight past the
+  // boundary and got taught, which is the one shape that matters now that
+  // Pan will explain a savings programme on request.
+  'good idea',
+  'worth it',
+  'bad idea',
+  'would you invest',
+  'help me choose',
+  'help me decide',
 ];
 
 /// Which flavour of boundary answer to open with.
@@ -58,6 +79,46 @@ const List<String> investingWords = <String>[
 ];
 
 const List<String> borrowingWords = <String>['borrow', 'loan'];
+
+/// Words that mean SALAPIFY when somebody types them, not a money concept.
+///
+/// Same shape of problem as [reservedWords] below, one level up. The Academy
+/// ships a course called "Digital Startups: NPC Data Privacy, NTC & Sectoral
+/// Licenses", so "is my data private" scored higher against the curriculum
+/// than against the privacy answer, and Pan replied to a question about this
+/// phone with a lecture on startup compliance.
+///
+/// A question containing one of these is about the app, so the feature
+/// answer is tried first and the curriculum second. Concepts are unaffected:
+/// "what is an emergency fund" contains none of these and still teaches.
+const List<String> appOwnWords = <String>[
+  'salapify',
+  'this app',
+  'the app',
+  'privacy',
+  'private',
+  'data',
+  'backup',
+  'back up',
+  'restore',
+  'export',
+  'import',
+  'offline',
+  'sync',
+  'screen',
+  'tab',
+  'notification',
+  'reminder',
+  'log an',
+  'log a',
+  'logging',
+  'entry',
+  'entries',
+  'undo',
+  'delete',
+  'wipe',
+  'sample data',
+];
 
 /// Single words that belong to a QUESTION, not to an account.
 ///

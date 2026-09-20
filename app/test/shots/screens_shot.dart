@@ -660,6 +660,7 @@ void main() {
         (name: 'reminders_rules', openWith: 'remindersRules'),
         (name: 'privacy', openWith: 'privacy'),
         (name: 'pan', openWith: 'pan'),
+        (name: 'pan_lesson', openWith: 'panLesson'),
       ];
 
   for (final ({String name, String openWith}) sheet in sheets) {
@@ -708,6 +709,7 @@ void main() {
         case 'privacy':
           PrivacySheet.show(context, palette);
         case 'pan':
+        case 'panLesson':
           PanSheet.show(context, state);
       }
       await tester.pumpAndSettle();
@@ -726,6 +728,17 @@ void main() {
       // well.
       if (sheet.openWith == 'pan') {
         await tester.tap(find.text('What is safe to spend?'));
+        await tester.pumpAndSettle();
+      }
+
+      // The SECOND Pan shot is a curriculum answer, and it is here because a
+      // picture of Pan answering a balance question proved nothing about the
+      // thing the founder actually reported: that asking what MP2 is came
+      // back with "Pan did not recognise that one" while the course shipped
+      // in the same build.
+      if (sheet.openWith == 'panLesson') {
+        await tester.enterText(find.byType(TextField), 'what is MP2');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
         await tester.pumpAndSettle();
       }
 

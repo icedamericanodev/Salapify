@@ -1,7 +1,9 @@
 /// Pan, the money assistant. See the class docs below for the full contract.
 library;
 
+import '../../data/academy_data.dart';
 import '../../data/pan_knowledge.dart';
+import '../../models/academy.dart';
 import '../../models/models.dart';
 import 'format.dart';
 import 'pan_facts.dart';
@@ -126,6 +128,30 @@ PanAnswer askPan(String question, PanFacts facts) {
   final Account? named = _accountNamed(q, facts);
   if (named != null) return _oneAccount(named, facts);
 
+  // 2b. "What is a budget" is a different question from "what is MY budget",
+  //     and the topic rules below cannot tell them apart: both contain the
+  //     word budget, so both used to come back as a list of the person's own
+  //     limits. That is a confident non-answer to somebody who wanted to be
+  //     taught, and the course teaching it ships in the same app.
+  //
+  //     Two conditions, and both are needed. The question has to ASK to be
+  //     taught, and a course title has to carry every word of it, so
+  //     "what is cash flow" teaches while "what is safe to spend" still
+  //     answers with the figure. Any my, me or I sends it back to the
+  //     figures, because "what is my net worth" is about their money.
+  if (_wantsTheConcept(q)) {
+    final ({
+      CourseModule? course,
+      LessonSection? section,
+      int score,
+      bool titleCovered,
+    })
+    lesson = _academyFor(q);
+    if (lesson.course != null && lesson.titleCovered) {
+      return _lesson(lesson.course!, lesson.section);
+    }
+  }
+
   if (_has(q, <String>[
     'safe to spend',
     'can i spend',
@@ -216,10 +242,42 @@ PanAnswer askPan(String question, PanFacts facts) {
     return _payday(facts);
   }
 
-  // 3. The app itself. Last, so a question about the person's own money is
-  //    never answered with a description of a screen.
-  final PanFeature? feature = _featureFor(q);
-  if (feature != null) return _feature(feature);
+  // 3. The app itself, and the ACADEMY, scored against each other.
+  //
+  // The Academy is 32 courses the app already ships, and Pan could not reach
+  // one of them. "What is MP2" returned "Pan did not recognise that one"
+  // while a whole course called "PAG-IBIG MP2: The Wealth Engine" sat in the
+  // same build. That is the gap the founder found, and it was mine: I gave
+  // Pan the ledger and the feature list and never gave it the curriculum.
+  //
+  // Which of the two is asked FIRST is decided by the words, not by a score.
+  // Comparing the two numbers directly does not work and the attempt is worth
+  // recording: a feature match is a handful of authored keywords and scores 1
+  // to 3, while a course is scored over a title, a category, objectives and
+  // every section, so it reached 9 on "what happens when I log an expense"
+  // and buried the answer that was actually right.
+  //
+  // So the rule is a word list, the same shape as reservedWords one level
+  // down. A question carrying an app word is about Salapify and tries the
+  // feature answer first. Everything else tries the curriculum first, which
+  // is what makes "what is MP2" teach.
+  final ({PanFeature? feature, int score}) f = _featureFor(q);
+  final ({
+    CourseModule? course,
+    LessonSection? section,
+    int score,
+    bool titleCovered,
+  })
+  a = _academyFor(q);
+
+  if (_has(q, appOwnWords)) {
+    if (f.feature != null) return _feature(f.feature!);
+    if (a.course != null) return _lesson(a.course!, a.section);
+    return _dontKnow(facts);
+  }
+
+  if (a.course != null) return _lesson(a.course!, a.section);
+  if (f.feature != null) return _feature(f.feature!);
 
   return _dontKnow(facts);
 }
@@ -700,7 +758,7 @@ PanAnswer _payday(PanFacts facts) {
 // The app itself
 // ---------------------------------------------------------------------------
 
-PanFeature? _featureFor(String q) {
+({PanFeature? feature, int score}) _featureFor(String q) {
   PanFeature? best;
   int bestScore = 0;
   for (final PanFeature f in panFeatures) {
@@ -713,7 +771,261 @@ PanFeature? _featureFor(String q) {
       best = f;
     }
   }
-  return best;
+  return (feature: best, score: bestScore);
+}
+
+/// Words too common to identify a lesson on their own.
+///
+/// Without this, "how much money do i have" matches half the curriculum on
+/// the word "money" and Pan answers a balance question with a lecture.
+const Set<String> _tooCommon = <String>{
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'of',
+  'to',
+  'in',
+  'is',
+  'it',
+  'my',
+  'me',
+  'i',
+  'you',
+  'your',
+  'what',
+  'how',
+  'why',
+  'do',
+  'does',
+  'can',
+  'about',
+  'for',
+  'money',
+  'peso',
+  'pesos',
+  'much',
+  'get',
+  'have',
+  'this',
+  'that',
+  'tell',
+  'explain',
+  'mean',
+  'means',
+  'work',
+  'works',
+  // Ordinary English that happens to appear in a lesson heading. "Explain
+  // the 50 30 20 rule" reduced to the single word "rule", which matched two
+  // headings in the credit card course and taught utilisation to somebody
+  // asking about budgeting. A word that could head any chapter identifies
+  // none of them.
+  'rule',
+  'rules',
+  'time',
+  'way',
+  'ways',
+  'thing',
+  'things',
+  'good',
+  'bad',
+  'best',
+  'real',
+  'right',
+  'need',
+  'needs',
+  'use',
+  'using',
+  'one',
+  'when',
+  'where',
+  'who',
+  'which',
+  'should',
+  'would',
+  'like',
+  'want',
+  'know',
+  'make',
+  'makes',
+  'more',
+  'from',
+  'with',
+  'are',
+  'was',
+  'not',
+  'but',
+  'over',
+  'out',
+  'into',
+  'per',
+};
+
+/// Whether the question is asking what a thing IS, rather than what theirs is.
+///
+/// The possessive is the whole test. "What is net worth" wants the idea and
+/// "what is my net worth" wants a peso figure, and Salapify holds both.
+bool _wantsTheConcept(String q) {
+  const List<String> openers = <String>[
+    'what is',
+    'what are',
+    'whats',
+    'what s',
+    'explain',
+    'tell me about',
+    'define',
+    'ano ang',
+    'ano ba ang',
+  ];
+  if (!openers.any(q.startsWith)) return false;
+  for (final String mine in <String>[' my ', ' me ', ' i ', ' ko ', ' akin']) {
+    if (' $q '.contains(mine)) return false;
+  }
+  return true;
+}
+
+/// Whether a course's own words contain the word somebody asked about.
+///
+/// A short word has to be the WHOLE word, a long one may sit inside a longer
+/// one. Both halves were paid for. "How do I pay my taxes" landed on a course
+/// about global app revenue because "pay" is inside "Payouts", and a person
+/// asking about compound interest should still reach a section headed
+/// "Compounding vs. Annual Payout". Five letters is where a fragment stops
+/// being an accident: mp2, sss, dti and bnpl are all short and all have to
+/// match exactly.
+bool _mentions(String field, String w) {
+  if (w.length >= 5) return field.contains(w);
+  for (final String fw in field.split(' ')) {
+    if (fw == w) return true;
+  }
+  return false;
+}
+
+/// The Academy course a question is about, and the section that answers it.
+///
+/// Matched on the curriculum's own words, so it needs no keyword list to
+/// maintain: adding a course to academy_data.dart makes Pan able to teach it
+/// with no further work, which is the only way this stays true of 32 courses.
+({CourseModule? course, LessonSection? section, int score, bool titleCovered})
+_academyFor(String q) {
+  final List<String> asked = q
+      .split(' ')
+      .where((String w) => w.length > 2 && !_tooCommon.contains(w))
+      .toList();
+  if (asked.isEmpty) {
+    return (course: null, section: null, score: 0, titleCovered: false);
+  }
+
+  CourseModule? best;
+  LessonSection? bestSection;
+  int bestScore = 0;
+  bool bestCovered = false;
+
+  for (final CourseModule c in academyCourses) {
+    final String title = normalise(c.title);
+    final String category = normalise(c.category);
+
+    // NAME fields only. A course NAMES its subject in its title, its
+    // category, its objectives and its section headings; its body merely
+    // mentions things. Scoring the body is what made a question about
+    // compound interest land on whichever lesson happened to use the word
+    // most often, so the body decides nothing here and only picks which
+    // section to quote, below.
+    int nameScore = 0;
+    int inTitle = 0;
+    for (final String w in asked) {
+      if (_mentions(title, w)) {
+        nameScore += 6;
+        inTitle++;
+      }
+      if (_mentions(category, w)) nameScore += 2;
+      for (final String o in c.objectives) {
+        if (_mentions(normalise(o), w)) nameScore += 2;
+      }
+      for (final LessonSection s in c.sections) {
+        if (_mentions(normalise(s.title), w)) nameScore += 3;
+      }
+    }
+    // A title carrying EVERY word asked is the course, not a candidate.
+    // "Taming Lifestyle Inflation" and "Inflation: The Silent Wealth Killer"
+    // both answer to "inflation"; only one of them answers to "lifestyle
+    // inflation".
+    final bool covered = inTitle == asked.length;
+    if (covered) nameScore += 8;
+    if (nameScore == 0) continue;
+
+    // The section that best answers the question, so the reply is the
+    // paragraph somebody asked for rather than the whole course. The body
+    // counts HERE, where the course is already decided.
+    LessonSection? section;
+    int sectionScore = 0;
+    for (final LessonSection s in c.sections) {
+      int ss = 0;
+      for (final String w in asked) {
+        if (normalise(s.title).contains(w)) ss += 3;
+        if (normalise(s.content).contains(w)) ss += 1;
+      }
+      if (ss > sectionScore) {
+        sectionScore = ss;
+        section = s;
+      }
+    }
+
+    if (nameScore > bestScore) {
+      bestScore = nameScore;
+      best = c;
+      bestSection = section;
+      bestCovered = covered;
+    }
+  }
+
+  // A single glancing mention is not a match. Two is the floor because one
+  // objective hit is the weakest thing that still counts as the course
+  // naming its own subject.
+  if (bestScore < 2) {
+    return (course: null, section: null, score: 0, titleCovered: false);
+  }
+  return (
+    course: best,
+    section: bestSection,
+    score: bestScore,
+    titleCovered: bestCovered,
+  );
+}
+
+/// Teaches from the curriculum the app already ships, in its own words.
+PanAnswer _lesson(CourseModule course, LessonSection? section) {
+  final StringBuffer b = StringBuffer();
+  if (section != null) {
+    b.write(section.content);
+  } else {
+    b.write(course.description);
+  }
+  if (course.keyTakeaways.isNotEmpty) {
+    b.write('\n\nWorth remembering:');
+    for (final String t in course.keyTakeaways.take(3)) {
+      b.write('\n  $t');
+    }
+  }
+  b.write(
+    '\n\nThis is from the Salapify Academy course "${course.title}", on the '
+    'Plan tab. It runs about ${course.durationMinutes} minutes.',
+  );
+
+  return PanAnswer(
+    topic: 'academy:${course.id}',
+    // Every lesson touches money, so every one carries the trailer. That is
+    // not wallpaper here: a person reading an explanation of a government
+    // savings programme is exactly who needs to know it is not a nudge to
+    // use one.
+    aboutMoney: true,
+    text: b.toString(),
+    followUps: <String>[
+      'What is safe to spend?',
+      'How much do I have right now?',
+    ],
+  );
 }
 
 PanAnswer _feature(PanFeature f) => PanAnswer(

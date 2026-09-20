@@ -224,7 +224,10 @@ const List<PanFeature> panFeatures = <PanFeature>[
       'ipon',
       'target',
       'save for',
-      'emergency fund',
+      // 'emergency fund' used to be here and was removed on purpose. The
+      // Academy ships a whole course on what one is and how big it should
+      // be, and mapping the phrase to the Goals screen answered "what is an
+      // emergency fund" with a description of a text field.
     ],
   ),
   PanFeature(
@@ -359,6 +362,10 @@ const List<PanFeature> panFeatures = <PanFeature>[
         'the names in your debt records.',
     keywords: <String>[
       'backup',
+      // Two words, because "how do I back up my data" contains no single
+      // word this feature owns and was answered by the privacy card instead,
+      // which is a true sentence about the wrong thing.
+      'back up',
       'restore',
       'export',
       'import',
