@@ -324,9 +324,18 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
         _note(
           p,
-          'The tax on the excess is estimated at 20%, which is what the '
-          'prototype does. Your payroll may withhold at your real bracket '
-          'instead.',
+          // "WHICH IS WHAT THE PROTOTYPE DOES" was on this screen, in front
+          // of users. The prototype is a development artefact nobody outside
+          // this repository has heard of, and citing it as the reason for a
+          // tax figure tells a person nothing except that the number came
+          // from somewhere they cannot check.
+          //
+          // The replacement says the same thing in terms of their own
+          // situation: it is an approximation, the real one depends on their
+          // band, and the payslip is what settles it.
+          'The tax on the excess is estimated at a flat 20%. What is '
+          'actually withheld depends on the band the excess lands in, so '
+          'your payslip is the figure that counts.',
         ),
       ],
     );

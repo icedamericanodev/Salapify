@@ -344,6 +344,53 @@ void main() {
     });
   }
 
+  // The 13th month split, which lives behind a TAB.
+  //
+  // `sheet tax_calculator` opens on Take-home Pay and never reaches it, so
+  // the allocation copy was rendered zero times in the life of this harness
+  // while carrying a named product and a return claim on screen. A shot that
+  // stops at the first tab of a three tab sheet is a shot of one third of it.
+  testWidgets('sheet tax 13th month renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    TaxCalculatorSheet.show(tester.element(find.byType(AppShell)), palette);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('13th Month'));
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_tax_13th_month.png'),
+    );
+  });
+
   // The receipt scanner, with a sample read into it.
   //
   // Empty it is a paste box and six chips, which proves nothing. The whole

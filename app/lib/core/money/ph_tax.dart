@@ -364,29 +364,56 @@ ThirteenthMonthPlan calculate13thMonthPay({
     estimatedWithholdingTax: estimatedWithholdingTax,
     net13thMonthPay: net,
     allocations: <ThirteenthMonthAllocation>[
+      // THESE ARE LABELS, not ledger categories, and nothing files a
+      // transaction from them. Four of the five happen to match a real
+      // category name and the first one never did, which is harmless while
+      // this only prints them and would be the vanishing-money defect the
+      // moment somebody wired it to a write. Said here so that change is
+      // made on purpose.
       ThirteenthMonthAllocation(
         id: 'alloc-1',
-        category: 'Ipon & Pag-IBIG MP2',
-        name: 'Pag-IBIG MP2 / High-Yield Savings Boost',
+        // WAS 'Ipon & Pag-IBIG MP2', with the name 'Pag-IBIG MP2 /
+        // High-Yield Savings Boost' and the note 'Compounding wealth builder
+        // for long-term goals'. All three were shipped and on screen.
+        //
+        // Three separate problems in one row. It named a specific product as
+        // the place to put money, which is the thing an investment adviser
+        // is registered to do. It used "high-yield", which pan_bans.dart
+        // fails the build over everywhere Pan can reach. And "compounding
+        // wealth builder" is a return claim about an instrument whose
+        // dividend is declared annually out of the fund's net income and is
+        // not guaranteed at all.
+        //
+        // A bucket says what the money is FOR. Where it goes is the
+        // person's, and `ph_tax_content_test.dart` now holds that line.
+        category: 'Savings and emergency fund',
+        name: 'Long-term savings',
         percentage: 35,
         targetAmount: jsRound(net * 0.35).toDouble(),
-        note: 'Compounding wealth builder for long-term goals',
+        note:
+            'Money set aside and left alone. Where you keep it is yours '
+            'to choose.',
       ),
       ThirteenthMonthAllocation(
         id: 'alloc-2',
         category: 'Debt & Loan Servicing',
-        name: 'Debt & Installment Accelerator (Utang clearance)',
+        name: 'Debt and instalment clearance',
         percentage: 25,
         targetAmount: jsRound(net * 0.25).toDouble(),
-        note: 'Knock down high-interest credit or gadget balances',
+        // "high-interest credit or gadget balances" described the person's
+        // OWN debts, which is fair, but it guessed at what they are. This
+        // says the rule instead, which is true whatever they owe.
+        note: 'Whatever you owe that costs the most to carry.',
       ),
       ThirteenthMonthAllocation(
         id: 'alloc-3',
         category: 'Family Support & Remittance',
-        name: 'Family Pamasko & Sweldo Padala',
+        name: 'Family Pamasko and padala',
         percentage: 20,
         targetAmount: jsRound(net * 0.20).toDouble(),
-        note: 'Gifts and support for parents & relatives in the province',
+        // "relatives in the province" assumed a household shape. Plenty of
+        // people send money across a city, or to nobody at all.
+        note: 'Gifts and support for family.',
       ),
       ThirteenthMonthAllocation(
         id: 'alloc-4',

@@ -717,9 +717,15 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
         icon: Icons.warning_amber_outlined,
         title: 'Something late keeps being mentioned',
         body:
-            'A bill you missed goes on reminding you and says how late it is, '
-            'until it is paid or removed. The prototype went silent the day '
-            'after a due date, which is the moment it matters most.',
+            // "The prototype went silent the day after a due date" was
+            // here, in an explainer a user opens. The prototype is a
+            // development artefact nobody outside this repository has heard
+            // of, and a reader learns nothing from being told what some
+            // other program did. The BEHAVIOUR it was contrasting with is
+            // worth keeping, so it is stated as what Salapify does.
+            'A bill you missed goes on reminding you and says how late it '
+            'is, until it is paid or removed. Being overdue is the moment a '
+            'reminder matters most, so that is not when it stops.',
       ),
       InfoPoint(
         icon: Icons.delete_outline,

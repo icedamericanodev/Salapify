@@ -175,4 +175,48 @@ void main() {
           'plain readable JSON.',
     );
   });
+
+  test('no screen mentions "the prototype" to a user', () {
+    // Two of them did, and both were caught by looking at a render rather
+    // than by any test:
+    //
+    //   "The tax on the excess is estimated at 20%, which is what the
+    //    prototype does."
+    //   "The prototype went silent the day after a due date."
+    //
+    // The prototype is a development artefact. Nobody outside this
+    // repository has heard of it, cannot check it, and learns nothing from
+    // being told what it did. Citing it as the REASON for a tax figure is
+    // the worse of the two: it tells a person the number came from
+    // somewhere they have no access to.
+    //
+    // This scans string LITERALS only, so the many comments explaining what
+    // was and was not ported are untouched. Those are for whoever reads the
+    // code, which is the right audience for them.
+    final List<String> offenders = <String>[];
+    final RegExp literal = RegExp(r"'[^']*'");
+    for (final FileSystemEntity f
+        in Directory('lib')
+            .listSync(recursive: true)
+            .where((FileSystemEntity f) => f.path.endsWith('.dart'))) {
+      for (final String line in File(f.path).readAsLinesSync()) {
+        // A comment line is not user-facing copy.
+        if (line.trimLeft().startsWith('//')) continue;
+        if (line.trimLeft().startsWith('///')) continue;
+        for (final RegExpMatch m in literal.allMatches(line)) {
+          if (m.group(0)!.toLowerCase().contains('prototype')) {
+            offenders.add('${f.path}: ${m.group(0)}');
+          }
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'a string a user can read names the prototype. Say what Salapify '
+          'does instead; what some other program did is not something they '
+          'can act on.',
+    );
+  });
 }
