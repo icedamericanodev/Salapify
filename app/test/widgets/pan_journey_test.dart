@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/core/money/pan.dart';
-import 'package:salapify/core/money/pan_facts.dart';
-import 'package:salapify/data/pan_knowledge.dart';
+import 'package:salapify/core/money/pan/pan_engine.dart';
+import 'package:salapify/core/money/pan/pan_context.dart';
+import 'package:salapify/core/money/pan/pan_knowledge.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/state/financial_state.dart';

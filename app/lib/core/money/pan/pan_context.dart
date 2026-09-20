@@ -1,4 +1,4 @@
-import '../../models/models.dart';
+import '../../../models/models.dart';
 
 /// Everything Pan is allowed to know, gathered once, with no live objects.
 ///

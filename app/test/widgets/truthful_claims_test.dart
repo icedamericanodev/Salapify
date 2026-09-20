@@ -79,6 +79,14 @@ void main() {
       'lib',
     ).listSync(recursive: true)) {
       if (f is! File || !f.path.endsWith('.dart')) continue;
+      // pan_bans.dart is the file that LISTS forbidden phrases so Pan can
+      // refuse to say them, so every phrase in it is a string literal that
+      // exists in order to be blocked. Stripping comments is not enough
+      // there, and sweeping it means the only way to add a ban is to trip a
+      // different guard. Same carve-out, same reason, as the comment
+      // stripping below: a rule that forbids naming the thing it forbids
+      // gets deleted by whoever trips over it next.
+      if (f.path.endsWith('pan_bans.dart')) continue;
       final String text = f
           .readAsLinesSync()
           .where((String line) => !line.trimLeft().startsWith('//'))

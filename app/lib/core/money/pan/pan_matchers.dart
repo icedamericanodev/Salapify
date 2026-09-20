@@ -159,3 +159,56 @@ const List<String> reservedWords = <String>[
   'pay',
   'spend',
 ];
+
+/// Questions where the SUBJECT sits in the middle, so no fixed phrase can
+/// hold them.
+///
+/// A securities review of Pan's curriculum access produced this list, and
+/// every pattern here is a question it confirmed reached a lesson when it
+/// should have reached the boundary. "Is MP2 safe" is the shape: the phrase
+/// list can hold "is it a good idea" and can never hold `is ANYTHING safe`.
+///
+/// Two families matter most, and neither is a phrasing nit:
+///
+///   TRANSACTION INTENT. "Where do I open an MP2 account" is somebody who
+///   has already decided, asking how to execute. That is the closest thing
+///   in this file to solicitation, and it was being answered with product
+///   detail.
+///
+///   RETURN PROJECTION. "How much can I earn in MP2" asks Salapify to
+///   forecast what their money would do. It got a yield range.
+///
+/// The Tagalog set is not a translation exercise either. Pan understands
+/// Tagalog input everywhere else, so "saan ko ilalagay ang ipon ko" reached
+/// the goals branch and came back with a list of the person's savings
+/// targets, which is exactly the confident non-answer the boundary exists to
+/// prevent, arriving in the other language.
+final List<RegExp> adviceShapes = <RegExp>[
+  // is <thing> safe / legit / worth it / a good X / better
+  RegExp(r'\bis .{1,30}\b(safe|legit|legitimate|reliable|trustworthy)\b'),
+  RegExp(r'\bis .{1,30}\ba good\b'),
+  RegExp(r'\bis .{1,30}\bbetter than\b'),
+  RegExp(r'\bbetter than\b'),
+
+  // how much will this make me
+  RegExp(r'\bhow much (can|will|would) i (earn|make|get|gain)\b'),
+  RegExp(r'\bhow much (interest|profit) (will|would|can) i\b'),
+
+  // already decided, asking how to execute
+  RegExp(r'\b(where|how) (do|can|should) i (open|buy|start|invest|put)\b'),
+  RegExp(r'\bhow to (invest|buy stocks|start investing)\b'),
+
+  // pick a winner for me
+  RegExp(r'\b\w+ or (stocks|crypto|bonds|mp2|a time deposit|savings)\b'),
+  RegExp(r'\bis now a good time\b'),
+  RegExp(r'\bbest way to (invest|save|grow|use)\b'),
+
+  // Tagalog decisions
+  RegExp(r'\bsaan ko (ilalagay|ilagay|dapat)\b'),
+  RegExp(r'\bsaan (maganda|mas maganda|pinakamaganda)\b'),
+  RegExp(r'\bdapat ba (ako|akong|kong)\b'),
+  RegExp(r'\bdapat ko bang\b'),
+  RegExp(r'\b(sulit|okay lang|ok lang) ba\b'),
+  RegExp(r'\bpinakamaganda(ng)?\b'),
+  RegExp(r'\bmas maganda ba\b'),
+];

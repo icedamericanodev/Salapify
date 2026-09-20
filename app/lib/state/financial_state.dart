@@ -12,7 +12,7 @@ import '../core/money/accounts.dart';
 import '../core/money/debt.dart';
 import '../core/money/installments.dart';
 import '../core/money/ledger.dart';
-import '../core/money/pan_facts.dart';
+import '../core/money/pan/pan_context.dart';
 import '../core/money/plan.dart';
 import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';

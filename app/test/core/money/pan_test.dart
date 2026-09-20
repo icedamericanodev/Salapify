@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/core/money/pan.dart';
-import 'package:salapify/core/money/pan_facts.dart';
+import 'package:salapify/core/money/pan/pan_engine.dart';
+import 'package:salapify/core/money/pan/pan_bans.dart';
+import 'package:salapify/core/money/pan/pan_context.dart';
 import 'package:salapify/data/academy_data.dart';
-import 'package:salapify/data/pan_knowledge.dart';
+import 'package:salapify/core/money/pan/pan_knowledge.dart';
 import 'package:salapify/models/academy.dart';
 import 'package:salapify/models/models.dart';
 
@@ -341,8 +342,8 @@ void main() {
     List<String> panSource() {
       final List<String> out = <String>[];
       for (final String path in <String>[
-        'lib/core/money/pan.dart',
-        'lib/data/pan_knowledge.dart',
+        'lib/core/money/pan/pan_engine.dart',
+        'lib/core/money/pan/pan_knowledge.dart',
       ]) {
         out.add(
           File(path)
@@ -618,6 +619,161 @@ void main() {
       // worse than an honest miss.
       expect(askPan('what is a paluwagan', facts()).topic, 'unknown');
       expect(askPan('what is the weather', facts()).topic, 'unknown');
+    });
+  });
+
+  group('the bans follow what Pan SAYS, not which file it was typed in', () {
+    // This group exists because the four content bans went green while
+    // broken, for a whole batch. They read two source files, which was the
+    // same thing as reading Pan's output right up until Pan could quote the
+    // Academy. Then "what is an emergency fund" came back naming three banks
+    // and quoting four to six percent per annum, and every ban still
+    // reported PASS, because none of those words had been typed into either
+    // file. A guard scoped to a location stops being a guard the moment the
+    // content moves.
+    //
+    // A securities review found it. No test could have, in that shape.
+
+    test('no answer to any question names a bank or quotes a return', () {
+      // Deliberately includes the questions the review traced by hand, and
+      // every course title, so a course added later is swept too.
+      final List<String> corpus = <String>[
+        'what is an emergency fund',
+        'what is wealth',
+        'what is inflation',
+        'what is compound interest',
+        'what is a digital bank',
+        'what is a time deposit',
+        'do i need life insurance',
+        'how do i get out of debt',
+        'what is bnpl',
+        'how do i send money home as an ofw',
+        'what is diversification',
+        'how do i pay my taxes',
+        'what is budgeting',
+        'what is cash flow',
+        'what is retirement',
+        'how much do i have',
+        'what is safe to spend',
+        'who owes me money',
+        'where should i put my savings',
+        for (final CourseModule c in academyCourses) 'what is ${c.title}',
+      ];
+
+      // Quoted spans are stripped, and this is the one carve-out in the
+      // guard, so it is written down rather than buried. What sits in quotes
+      // in a Pan answer is the NAME of the course the answer came from, and
+      // one course is called "High-Yield Digital Banking". Refusing to say
+      // that would stop Pan naming its own source, which is the thing
+      // keeping the answer on the education side. A citation is a name and
+      // asserts nothing; the sentence around it is checked in full. Course
+      // titles get their own, stricter check in the test below.
+      final RegExp citation = RegExp('"[^"]*"');
+
+      final List<String> offenders = <String>[];
+      for (final String q in corpus) {
+        final String said = askPan(q, facts()).display.replaceAll(citation, '');
+        final String? bad = bannedPhraseIn(said);
+        if (bad != null) offenders.add('"$q" said "$bad"');
+      }
+
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'Pan put a named provider, a quoted return, an instruction about '
+            'the reader\'s money, or a professional title on the screen',
+      );
+    });
+
+    test('no course is NAMED after a company', () {
+      // The strict half of the carve-out above. A course may be called
+      // "High-Yield Digital Banking", because that describes a kind of
+      // account. None may be called after a particular company, because
+      // Pan quotes titles verbatim and that would put an endorsement in its
+      // mouth through the one door left open.
+      for (final CourseModule c in academyCourses) {
+        expect(
+          safeToCite(c.title),
+          isTrue,
+          reason: '"${c.title}" names a company, and Pan quotes titles',
+        );
+      }
+    });
+
+    test('a passage Pan may not read is pointed at, not swallowed', () {
+      // The other half. A filter that answers nothing is not safer, it is
+      // just useless, and the founder's original complaint was Pan having
+      // nothing to say. So when the whole course is unquotable, the answer
+      // still has to name the course and say where it is.
+      final PanAnswer a = askPan('what is wealth', facts());
+      expect(a.topic, startsWith('academy:'));
+      expect(a.text, contains('on the Plan tab'));
+      expect(
+        a.text,
+        contains('does not read that lesson out here'),
+        reason: 'Pan went quiet instead of pointing somewhere useful',
+      );
+    });
+
+    test('the frame is read BEFORE the lesson, not after it', () {
+      final PanAnswer a = askPan('what is an emergency fund', facts());
+      expect(
+        a.text.indexOf('General knowledge'),
+        lessThan(a.text.indexOf('emergency')),
+        reason:
+            'a notice under a passage records that we knew, it does not '
+            'change what the reader read first',
+      );
+    });
+
+    test('questions that ask Pan to vouch for a product get the boundary', () {
+      // Every one of these reached a lesson before the review. The subject
+      // sits in the MIDDLE of the sentence, which is why a list of fixed
+      // phrases could never hold them and adviceShapes exists.
+      for (final String q in <String>[
+        'is mp2 safe',
+        'is mp2 legit',
+        'how much can i earn in mp2',
+        'where do i open an mp2 account',
+        'how do i start investing',
+        'is mp2 better than a bank',
+        'mp2 or stocks',
+        'is now a good time to invest',
+        'what is the best way to invest my money',
+        // Tagalog. Pan understands it everywhere else, so the boundary has
+        // to as well, or it holds in one language only.
+        'saan ko ilalagay ang ipon ko',
+        'saan maganda maglagay ng pera',
+        'dapat ba akong mag invest',
+      ]) {
+        expect(
+          askPan(q, facts()).topic,
+          'boundary',
+          reason: '"$q" asks Salapify to vouch for or pick a product',
+        );
+      }
+    });
+
+    test('a lesson answer never carries the reader\'s own figures', () {
+      // The single thing keeping curriculum text on the education side is
+      // that it is never mixed with this person's balances. General
+      // information is education; the same information shaped around
+      // somebody's own money starts to look like a recommendation for them.
+      for (final CourseModule c in academyCourses) {
+        final PanAnswer a = askPan('what is ${c.title}', facts());
+        if (!a.topic.startsWith('academy:')) continue;
+        expect(
+          a.figures,
+          isEmpty,
+          reason: '${c.title} returned a lesson carrying the reader\'s money',
+        );
+        expect(
+          a.text,
+          isNot(contains('23,400')),
+          reason: '${c.title} read the reader\'s balance into a lesson',
+        );
+      }
     });
   });
 }

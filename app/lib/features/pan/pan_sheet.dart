@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/money/pan.dart';
-import '../../core/money/pan_facts.dart';
-import '../../data/pan_knowledge.dart';
+import '../../core/money/pan/pan_engine.dart';
+import '../../core/money/pan/pan_context.dart';
+import '../../core/money/pan/pan_knowledge.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';

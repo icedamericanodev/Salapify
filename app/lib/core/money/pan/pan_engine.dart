@@ -1,12 +1,13 @@
 /// Pan, the money assistant. See the class docs below for the full contract.
 library;
 
-import '../../data/academy_data.dart';
-import '../../data/pan_knowledge.dart';
-import '../../models/academy.dart';
-import '../../models/models.dart';
-import 'format.dart';
-import 'pan_facts.dart';
+import '../../../data/academy_data.dart';
+import 'pan_knowledge.dart';
+import '../../../models/academy.dart';
+import '../../../models/models.dart';
+import '../format.dart';
+import 'pan_bans.dart';
+import 'pan_context.dart';
 import 'pan_matchers.dart';
 
 /// Pan, the money assistant, ported in intent from `src/utils/panAiEngine.ts`
@@ -38,8 +39,18 @@ import 'pan_matchers.dart';
 /// them to a stated general rule of thumb, and name the CONSEQUENCE. It may
 /// not tell them what to do about it.
 ///
-/// Concretely, and enforced by `pan_content_test.dart` over every literal in
-/// this file and in pan_knowledge.dart:
+/// Concretely, and enforced by `pan_bans.dart` at RUNTIME over every passage
+/// before it is emitted, and by pan_test.dart over Pan's OUTPUT:
+///
+/// THIS USED TO SAY the bans were enforced over the literals in this file and
+/// in pan_knowledge.dart, and that sentence was true when written and false
+/// by the time Pan could quote the Academy. The words were still not in
+/// either file, so all four bans reported green while "what is an emergency
+/// fund" came back naming three banks and quoting four to six percent per
+/// annum. A guard scoped to a location is a guard until the content moves. A
+/// rule about what a person sees has to be checked where the person sees it.
+///
+/// The four rules themselves are unchanged:
 ///
 ///   - no bank, e-wallet, fund or product named in Salapify's own words. A
 ///     name that came from the user's own account list is fine and necessary,
@@ -142,13 +153,13 @@ PanAnswer askPan(String question, PanFacts facts) {
   if (_wantsTheConcept(q)) {
     final ({
       CourseModule? course,
-      LessonSection? section,
+      List<LessonSection> sections,
       int score,
       bool titleCovered,
     })
     lesson = _academyFor(q);
     if (lesson.course != null && lesson.titleCovered) {
-      return _lesson(lesson.course!, lesson.section);
+      return _lesson(lesson.course!, lesson.sections);
     }
   }
 
@@ -264,7 +275,7 @@ PanAnswer askPan(String question, PanFacts facts) {
   final ({PanFeature? feature, int score}) f = _featureFor(q);
   final ({
     CourseModule? course,
-    LessonSection? section,
+    List<LessonSection> sections,
     int score,
     bool titleCovered,
   })
@@ -272,11 +283,11 @@ PanAnswer askPan(String question, PanFacts facts) {
 
   if (_has(q, appOwnWords)) {
     if (f.feature != null) return _feature(f.feature!);
-    if (a.course != null) return _lesson(a.course!, a.section);
+    if (a.course != null) return _lesson(a.course!, a.sections);
     return _dontKnow(facts);
   }
 
-  if (a.course != null) return _lesson(a.course!, a.section);
+  if (a.course != null) return _lesson(a.course!, a.sections);
   if (f.feature != null) return _feature(f.feature!);
 
   return _dontKnow(facts);
@@ -292,7 +303,23 @@ PanAnswer askPan(String question, PanFacts facts) {
 /// was only ever used to RECOGNISE a question. Pan has to know the word to
 /// spot the question and must never use it in an answer, so the two sets of
 /// words live in two files and only this one is rendered.
-bool _looksLikeAdviceRequest(String q) => _has(q, adviceTriggers);
+/// Two passes, because a list of exact phrases cannot hold this line alone.
+///
+/// A securities review walked through the questions somebody actually types
+/// once Pan will talk about a savings programme at all, and found a dozen
+/// that sailed straight past twenty five phrases. "Is MP2 safe" is the
+/// shape: the thing being asked about sits in the MIDDLE, so no fixed phrase
+/// can contain it. [adviceShapes] holds those as patterns.
+///
+/// The phrase list stays, and stays first, because it is readable and most
+/// questions are in it. This is the second net under it, not a replacement.
+bool _looksLikeAdviceRequest(String q) {
+  if (_has(q, adviceTriggers)) return true;
+  for (final RegExp r in adviceShapes) {
+    if (r.hasMatch(q)) return true;
+  }
+  return false;
+}
 
 /// Answers the answerable part, names the line once, says WHY in terms of what
 /// Pan cannot see, and ends on something to do rather than on a no.
@@ -907,18 +934,28 @@ bool _mentions(String field, String w) {
 /// Matched on the curriculum's own words, so it needs no keyword list to
 /// maintain: adding a course to academy_data.dart makes Pan able to teach it
 /// with no further work, which is the only way this stays true of 32 courses.
-({CourseModule? course, LessonSection? section, int score, bool titleCovered})
+({
+  CourseModule? course,
+  List<LessonSection> sections,
+  int score,
+  bool titleCovered,
+})
 _academyFor(String q) {
   final List<String> asked = q
       .split(' ')
       .where((String w) => w.length > 2 && !_tooCommon.contains(w))
       .toList();
   if (asked.isEmpty) {
-    return (course: null, section: null, score: 0, titleCovered: false);
+    return (
+      course: null,
+      sections: const <LessonSection>[],
+      score: 0,
+      titleCovered: false,
+    );
   }
 
   CourseModule? best;
-  LessonSection? bestSection;
+  List<LessonSection> bestSections = const <LessonSection>[];
   int bestScore = 0;
   bool bestCovered = false;
 
@@ -955,27 +992,33 @@ _academyFor(String q) {
     if (covered) nameScore += 8;
     if (nameScore == 0) continue;
 
-    // The section that best answers the question, so the reply is the
-    // paragraph somebody asked for rather than the whole course. The body
-    // counts HERE, where the course is already decided.
-    LessonSection? section;
-    int sectionScore = 0;
+    // Sections RANKED, not just the winner, because the best answer to the
+    // question is not always one Pan is allowed to read out. The best-scoring
+    // section for "what is an emergency fund" is the one headed "Where to
+    // Store Emergency Money", which names three banks and quotes a rate; the
+    // next one down teaches what an emergency is and is perfectly safe. A
+    // single winner leaves no second choice and throws the answer away.
+    final List<({LessonSection s, int score})> ranked =
+        <({LessonSection s, int score})>[];
     for (final LessonSection s in c.sections) {
       int ss = 0;
       for (final String w in asked) {
         if (normalise(s.title).contains(w)) ss += 3;
         if (normalise(s.content).contains(w)) ss += 1;
       }
-      if (ss > sectionScore) {
-        sectionScore = ss;
-        section = s;
-      }
+      ranked.add((s: s, score: ss));
     }
+    ranked.sort(
+      (({LessonSection s, int score}) x, ({LessonSection s, int score}) y) =>
+          y.score.compareTo(x.score),
+    );
 
     if (nameScore > bestScore) {
       bestScore = nameScore;
       best = c;
-      bestSection = section;
+      bestSections = ranked
+          .map((({LessonSection s, int score}) r) => r.s)
+          .toList();
       bestCovered = covered;
     }
   }
@@ -984,34 +1027,118 @@ _academyFor(String q) {
   // objective hit is the weakest thing that still counts as the course
   // naming its own subject.
   if (bestScore < 2) {
-    return (course: null, section: null, score: 0, titleCovered: false);
+    return (
+      course: null,
+      sections: const <LessonSection>[],
+      score: 0,
+      titleCovered: false,
+    );
   }
   return (
     course: best,
-    section: bestSection,
+    sections: bestSections,
     score: bestScore,
     titleCovered: bestCovered,
   );
 }
 
 /// Teaches from the curriculum the app already ships, in its own words.
-PanAnswer _lesson(CourseModule course, LessonSection? section) {
-  final StringBuffer b = StringBuffer();
-  if (section != null) {
-    b.write(section.content);
-  } else {
-    b.write(course.description);
-  }
-  if (course.keyTakeaways.isNotEmpty) {
-    b.write('\n\nWorth remembering:');
-    for (final String t in course.keyTakeaways.take(3)) {
-      b.write('\n  $t');
+/// Teaches from the curriculum, through the filter, with the frame first.
+///
+/// ## Every passage is checked before it is said, and most of this is why
+///
+/// The first version of this function wrote `section.content` straight into
+/// the bubble. A securities review asked what came back for "what is an
+/// emergency fund" and the answer was three named banks, four to six percent
+/// per annum, and an instruction to store money there. Every word of it had
+/// shipped on the Academy screen for weeks, where it sits under a permanent
+/// educational notice, inside a course somebody opened on purpose, as chapter
+/// three of three. In a chat bubble it arrives alone, chosen by Salapify,
+/// because of what this person asked one second earlier. Same words, and the
+/// selection is what changes them.
+///
+/// So each of the three things this can emit goes through [safeForPan]
+/// separately, because they are three separate paths and a filter on one
+/// leaves the others open:
+///
+///   - the SECTION, and if the best one fails, the next best that passes.
+///     That is why the caller hands over a ranked list: the passage that
+///     best answers the question is often the one naming products, and the
+///     one below it usually teaches the concept perfectly well;
+///   - each TAKEAWAY on its own, since a takeaway is written as a one-line
+///     instruction by design and reads as a command with no lesson behind it;
+///   - the DESCRIPTION, which is dropped entirely rather than filtered.
+///     Course descriptions are written to sell a course. "One of the safest,
+///     highest-yielding government-backed savings programs" is not something
+///     Salapify gets to say about anything.
+///
+/// ## The frame goes FIRST
+///
+/// A disclaimer under a recommendation does not turn it into education, it
+/// only records that we knew. So the line naming this as general knowledge
+/// sits above the quoted passage, where it is read before the content and
+/// not after it.
+///
+/// ## It never reads their figures, and that is deliberate
+///
+/// This function takes no PanFacts and returns no PanFigure. General
+/// information about a subject is education; the same information mixed with
+/// somebody's own balances starts to look like a recommendation shaped to
+/// their situation, which is the thing Salapify is not licensed to give.
+/// Keep it that way: no facts parameter, ever.
+PanAnswer _lesson(CourseModule course, List<LessonSection> ranked) {
+  const String frame =
+      'Here is how the Salapify Academy explains it. General knowledge, not '
+      'regulated tax, legal or investment advice.';
+
+  final LessonSection? usable = ranked
+      .where((LessonSection s) => safeForPan(s.content))
+      .firstOrNull;
+
+  final List<String> takeaways = course.keyTakeaways
+      .where(safeForPan)
+      .take(3)
+      .toList();
+
+  final StringBuffer b = StringBuffer(frame);
+
+  if (usable != null) {
+    b.write('\n\n${usable.content}');
+    if (takeaways.isNotEmpty) {
+      b.write('\n\nWorth remembering:');
+      for (final String t in takeaways) {
+        b.write('\n  $t');
+      }
     }
+    b.write(
+      '\n\nThat is from the course "${course.title}", on the Plan tab. It '
+      'runs about ${course.durationMinutes} minutes.',
+    );
+  } else {
+    // Nothing in the course can be read out. Point at it rather than go
+    // quiet: the course still answers the question, in a place where the
+    // reader gets the whole chapter and the notice above it.
+    b.write(
+      '\n\nThe Academy covers this in "${course.title}", on the Plan tab, in '
+      'about ${course.durationMinutes} minutes.',
+    );
+    final List<String> aims = course.objectives
+        .where(safeForPan)
+        .take(2)
+        .toList();
+    if (aims.isNotEmpty) {
+      b.write('\n\nWhat it sets out to do:');
+      for (final String o in aims) {
+        b.write('\n  $o');
+      }
+    }
+    b.write(
+      '\n\nPan does not read that lesson out here, because parts of it name '
+      'particular places to put money and quote rates of return. Those '
+      'belong in the lesson, with the rest of the chapter around them, not '
+      'in a one line answer.',
+    );
   }
-  b.write(
-    '\n\nThis is from the Salapify Academy course "${course.title}", on the '
-    'Plan tab. It runs about ${course.durationMinutes} minutes.',
-  );
 
   return PanAnswer(
     topic: 'academy:${course.id}',
