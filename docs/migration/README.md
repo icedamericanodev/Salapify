@@ -1213,3 +1213,36 @@ run their accounts down, still says **0 days** out loud. Silencing on the cash
 alone would have taken the most important sentence in the app away from the
 one person it is for. `test/widgets/runway_sheet_test.dart` fails if that
 happens.
+
+### "1 days left in cutoff" was a divisor wearing a caption (2026-09-20)
+
+Two separate faults in one short string, both visible in the render above.
+
+`SafeToSpendAnalysis.daysToPayday` is `math.max(1, payday.daysToPayday)`. The
+clamp exists so the per-day figure cannot divide by zero, and it is correct
+arithmetic and wrong English. Printed as a caption on a phone with no payday
+set it read **1 days left in cutoff**: it invented a cutoff nobody had
+entered, and it disagreed with the hero card directly above it, which says
+"Payday not set". The plural was wrong as well, on the one day of the cycle
+anybody would ever see it.
+
+The cycle knows whether a cutoff exists; the divisor does not. The caption
+reads the cycle now, and says **Payday not set** when there is none, which is
+the same words the card above uses. The Audit tab keeps the clamped figure,
+because that tab is showing the arithmetic and one is genuinely what it
+divided by, but it no longer calls it a cutoff: it says the division was by
+one day because no payday is set.
+
+### Found while fixing it, and NOT fixed: nothing can set a payday
+
+Three screens ask for it. The hero card says "Set your payday to see a daily
+figure", Health Check offers "Tell Salapify when you get paid", and the
+Safe to Spend sheet now says "Payday not set". Nothing in `lib/` writes
+`_payday` except the seed, a restore and the sample sweep. Plan's "Payday and
+income" is a read-only caption on a figure.
+
+So the payday is a dead end on the first screen a new install sees, and the
+per-day figure it gates can never be earned by anybody who clears the sample
+data. That is a feature rather than a wording fix, so it is written down here
+rather than built inside a caption change. The test fixture for a one day
+cutoff has to arrive through a saved ledger file for exactly this reason.

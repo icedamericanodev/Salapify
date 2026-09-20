@@ -118,7 +118,18 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
             palette: p,
             label: 'Until Next Payday',
             value: formatPeso(a.safeToSpendUntilPayday),
-            caption: '${a.daysToPayday} days left in cutoff',
+            // NOT a.daysToPayday, which is a DIVISOR and not a fact.
+            //
+            // The engine clamps it with max(1, ...) so the per-day figure
+            // cannot divide by zero. That clamp is correct arithmetic and
+            // wrong English: on a phone with no payday set it printed
+            // "1 days left in cutoff", inventing a cutoff nobody entered and
+            // disagreeing with the hero card directly above, which says
+            // "Payday not set". The cycle itself is what knows whether there
+            // is a cutoff at all.
+            caption: widget.state.payday.isSet
+                ? '${_days(a.daysToPayday)} left in cutoff'
+                : 'Payday not set',
           ),
         ),
         const SizedBox(height: Spacing.md),
@@ -422,7 +433,13 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           p,
           '8',
           'Divide by days to payday',
-          '${a.daysToPayday} days left, so this is the daily figure.',
+          // Here the clamped figure IS the right one, because this tab is
+          // showing the arithmetic and that is genuinely what was divided
+          // by. What it must not do is call it a cutoff when there is none.
+          widget.state.payday.isSet
+              ? '${_days(a.daysToPayday)} left, so this is the daily figure.'
+              : 'No payday set, so this divides by one day and the daily '
+                    'figure is the whole amount.',
           formatPeso(a.safeToSpendToday),
         ),
       ],
@@ -483,6 +500,14 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
       ),
     );
   }
+
+  /// "1 day", "2 days". One place, because the app got it wrong in one.
+  ///
+  /// Worth a function rather than an inline ternary each time: a plural that
+  /// disagrees is invisible to every test that asserts on a number, and it
+  /// only ever shows up on the single day it is wrong, which is not a day
+  /// anybody is likely to be looking at a screenshot.
+  String _days(int n) => n == 1 ? '1 day' : '$n days';
 
   /// True when neither side of the runway division came from the person.
   ///
