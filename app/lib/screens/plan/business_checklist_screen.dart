@@ -484,9 +484,17 @@ class _ConfirmBeforeFiling extends StatelessWidget {
                   ),
                 ),
                 Text(
+                  // The DATE earns its place here and is not decoration.
+                  // Everything on this screen is live-law content that rots,
+                  // and the 2026-09-22 review found one line already stale
+                  // from a 2024 Act. Without a date a reader in 2028 has no
+                  // way to tell how old any of it is, and the rest of this
+                  // sentence would be reassuring them about a list nobody had
+                  // looked at in two years.
                   'Fees, forms and requirements change, and differ by city and '
-                  'by industry. Use this to know what to ask about, then check '
-                  'with the agency or an accountant.',
+                  'by industry. Checked against BIR and agency rules in '
+                  'September 2026. Use this to know what to ask about, then '
+                  'check with the agency or an accountant.',
                   style: AppType.caption(palette),
                 ),
               ],

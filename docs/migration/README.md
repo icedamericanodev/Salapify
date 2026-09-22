@@ -1607,3 +1607,100 @@ the checklist only, rather than claiming the whole guide arrived.
 | Dark | Dark, four ticked | Light |
 | --- | --- | --- |
 | ![checklist dark](screens/business-checklist-gabi.png) | ![checklist ticked](screens/business-checklist-ticked.png) | ![checklist light](screens/business-checklist-hapon.png) |
+
+## The factual review of the checklist (2026-09-22)
+
+Founder direction, after the checklist shipped and before any more of the
+guide was ported: "run the factual review first". It found fourteen
+corrections in twenty three live steps, one of them a defect that would have
+put a reader past a legal deadline they could no longer meet.
+
+### How it was run, and why three reviewers rather than one
+
+A tax professional, a compliance counsel and an independent verifier, in
+parallel, with deliberately overlapping scope. The overlap was the point: a
+confident wrong answer from one gets contradicted by another, and that is
+exactly what happened twice.
+
+It also exposed something worth writing down about this environment. The tax
+reviewer had NO network access and said so plainly in its first paragraph,
+so every one of its findings was professional memory. The other two could
+search. Treating all three reports as equally sourced would have been the
+whole failure this review existed to prevent, so every material finding was
+re-checked here before anything was changed.
+
+### The two corrections that came from disagreement
+
+**The COR display question was never settled, and the wording now survives
+either answer.** The tax reviewer said RA 11976 removed the duty to display
+the Certificate of Registration. An independent search returned several
+sources saying it stands. Neither could open the regulation. So the sentence
+no longer asserts either position, and instead carries the thing that IS
+settled and was missing: the Notice to Issue Receipt/Invoice, which every
+registered business must display and which the prototype never mentioned.
+
+**A correction I made was itself wrong, and a later reviewer caught it.** On
+the Internet Transactions Act I wrote "file your details with the DTI
+E-Commerce Bureau" inside a step marked Mandatory. The third reviewer flagged
+it, DTI's own newsroom confirmed it: the E-Commerce Philippine Trustmark was
+voluntary in July 2025, mandatory that September, reverted weeks later, and
+is now voluntary until 31 December 2026. The Act's own duties are live and
+mandatory; registration is not. Those are two obligations and the prototype,
+and then briefly this port, ran them together.
+
+### The worst one
+
+`chk_dole` said DOLE Rule 1020 registration was due "within 30 days of
+opening". Rule 1020 says thirty days BEFORE operation. The sentence was not
+stale, it was INVERTED: it promised a month of grace after opening for a duty
+that had already matured before the first day of trading. Confirmed against
+the OSHS text independently rather than taken on one reviewer's word.
+
+### Everything changed
+
+| Step | Was | Now |
+| --- | --- | --- |
+| `chk_dole` | "within 30 days of opening" | before you operate, within the 30 days prior |
+| `chk_zero_vat_invoice` | Mandatory, implied income from abroad is untaxed | Conditional, only if VAT-registered, and says the income is not tax free |
+| `chk_google_play` | 20 testers | 12 testers, changed December 2024 |
+| `chk_mor_billing` | Mandatory, "integrate Lemon Squeezy or Paddle" | Conditional, and says platform billing usually applies inside an app |
+| `chk_ecommerce` | "register with the online business registry" | duties live since 20 June 2025, Trustmark voluntary to end 2026 |
+| `chk_apple_org` | Mandatory, implied it is how you get 15% | Conditional, and the 15% programme is separate |
+| `chk_account_delete` | Mandatory, Apple only | Conditional, and names Play's web-link requirement |
+| `chk_duns` | Mandatory | Conditional |
+| `chk_bir_cor` | "Display publicly at place of business" | post the NIRI |
+| `chk_atp_invoice` | "Official Invoices" | "Sales Invoices", plus the POS and accounting-system route |
+| `chk_dti_sec` | "via eSPARC" for both routes | BNRS for sole props, eSPARC for the rest |
+| `chk_npc` | implied NPC registration always applies | says registration is threshold based |
+| `chk_ntc` | "License" | "Certificate of Registration" |
+| `chk_books` | "Register & Stamp" | "Register" |
+| `chk_brgy` | office, co-working space, facility | includes a home address |
+| `chk_philhealth` | ER1 for everything | ER1 for the employer number, ER2 or PMRF for staff |
+
+### Three claims that SURVIVED, recorded so nobody re-opens them
+
+The Authority to Print still exists; EOPT removed its fee, not the authority.
+Displaying Form 2303 was not confirmed as removed. The Google Play
+organisation exemption from closed testing is real. All three were doubted
+during this review and all three held.
+
+### Deferred, with reasons
+
+**RMC 38-2026, the BIR Registration Seal Badge.** Reported as replacing the
+online display of a full COR for online sellers, on privacy grounds, four
+months old. The reviewer that found it could not open the circular and said
+not to ship its scope on search results alone. A one line checklist step
+cannot carry a rule nobody has read.
+
+**RMC 4-2026, ORUS books registration.** Same reason: the deadline could not
+be read.
+
+**A date on every claim.** The disclaimer now says September 2026, which
+covers the screen. Per-step citations (Rule 1020, NPC Circular 2022-04, BSP
+Circular 1049, RA 11967, Apple 5.1.1(v)) were recommended and are not built.
+
+### The screens, with the corrections and the on-screen warning
+
+| Dark | Dark, four ticked | Light |
+| --- | --- | --- |
+| ![checklist dark](screens/business-checklist-gabi.png) | ![checklist ticked](screens/business-checklist-ticked.png) | ![checklist light](screens/business-checklist-hapon.png) |
