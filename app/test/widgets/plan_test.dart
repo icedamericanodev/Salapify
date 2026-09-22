@@ -495,7 +495,7 @@ void main() {
       expect(find.text('0 / 32 done'), findsNothing);
     });
 
-    testWidgets('the startup guide is named rather than being a dead button', (
+    testWidgets('the startup guide card opens something real now', (
       WidgetTester tester,
     ) async {
       await openSegment(tester, 'Academy');
@@ -503,10 +503,24 @@ void main() {
         find.text('Building a business or startup in the Philippines?'),
         findsOneWidget,
       );
+
+      // This used to assert the opposite, and deliberately: while nothing was
+      // behind the card it read "Being ported next, with the two guides
+      // behind it", because a button that opens nothing is worse than a line
+      // that says when. The checklist arrived on 2026-09-22, so the line had
+      // to go, and the assertion changes with it rather than being deleted.
+      //
+      // It still asserts the same underlying rule, pointed the other way: the
+      // card must never go back to being a dead button.
       expect(
         find.textContaining('Being ported next'),
+        findsNothing,
+        reason: 'the checklist is behind this card now, so the wait is over',
+      );
+      expect(
+        find.textContaining('step checklist'),
         findsOneWidget,
-        reason: 'a button that opens nothing is worse than a line saying when',
+        reason: 'the card promises a guide and has to offer a way in',
       );
     });
 

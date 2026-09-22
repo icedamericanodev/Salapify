@@ -47,6 +47,7 @@ class Snapshot {
     required this.theme,
     required this.scenario,
     this.activeProfile,
+    this.guideSteps = const <String>{},
     this.extras = const Extras.empty(),
   });
 
@@ -92,6 +93,31 @@ class Snapshot {
   final ThemeMode2 theme;
   final DecisionScenario scenario;
   final ProfileEntity? activeProfile;
+
+  /// Steps the person has ticked off in a guide, by step id.
+  ///
+  /// The first thing in Salapify 3 that remembers PROGRESS rather than money,
+  /// and it is stored on founder direction, 2026-09-22, when the business
+  /// startup guide was ported: the checklist is thirty government steps that
+  /// take weeks of real life to work through, so a tick that does not survive
+  /// closing the app is worse than no tick at all.
+  ///
+  /// It is deliberately a flat set of ids rather than a structure per guide.
+  /// The ids are namespaced by their own content (the prototype's are
+  /// `chk_dti_sec`, `chk_brgy` and the like), so the Academy's lessons can
+  /// use the same set later without a migration. The Academy currently tells
+  /// people "progress is not saved to the phone yet", and this is the
+  /// mechanism that sentence is waiting on; wiring the lessons up is NOT part
+  /// of this change.
+  ///
+  /// NOT a ledger collection, so it is deliberately absent from
+  /// [collectionKeys]: a file holding nothing but ticked checkboxes is not a
+  /// Salapify document and must not restore as an empty book.
+  ///
+  /// An unknown id is KEPT, not dropped. A step this build has never heard of
+  /// belongs to a newer build or a guide that has been reworded, and silently
+  /// discarding it would untick somebody's checklist on the next save.
+  final Set<String> guideSteps;
 
   /// Everything in the file this build did not understand, kept verbatim.
   final Extras extras;
@@ -156,7 +182,12 @@ class Snapshot {
     'reminderSettings',
     'payday',
     'sampleDataRemovedAt',
+    kGuideSteps,
   };
+
+  /// The ticked guide steps. Not a collection, so it is named here rather
+  /// than beside the ledger keys above.
+  static const String kGuideSteps = 'guideSteps';
 
   String encode({required DateTime at}) =>
       const JsonEncoder.withIndent('  ').convert(toJson(at: at));
@@ -234,6 +265,35 @@ class Snapshot {
       'payday': merged('payday', 'payday', paydayToJson(payday)),
       if (sampleDataRemovedAt != null)
         'sampleDataRemovedAt': sampleDataRemovedAt,
+      // SORTED, so that ticking the same two boxes always produces the same
+      // bytes. A Set's iteration order is its insertion order, which would
+      // make two identical checklists encode differently and every diff of a
+      // backup file noisy for no reason.
+      //
+      // Omitted entirely when empty rather than written as [], so a person
+      // who has never opened a guide gets no key at all and their file stays
+      // exactly as small as it was before this feature existed.
+      if (guideSteps.isNotEmpty) kGuideSteps: (guideSteps.toList()..sort()),
+    };
+  }
+
+  /// The ticked guide steps, read LENIENTLY.
+  ///
+  /// Same argument the notification tray and reminderSettings already make in
+  /// this file, and it applies harder here. These are checkboxes. A malformed
+  /// or missing key must never stop a ledger from loading, because a file
+  /// left unopened can still be recovered while a person locked out of their
+  /// accounts over a tickbox has lost the use of the app.
+  ///
+  /// So: not a list, no ticks. A non-string entry, skipped. Neither throws.
+  /// Unknown ids ARE kept, because a step this build does not recognise
+  /// belongs to a newer build or a reworded guide, and dropping it would
+  /// silently untick somebody's checklist the next time the file is saved.
+  static Set<String> _readGuideSteps(Object? raw) {
+    if (raw is! List) return const <String>{};
+    return <String>{
+      for (final Object? e in raw)
+        if (e is String && e.isNotEmpty) e,
     };
   }
 
@@ -457,6 +517,7 @@ class Snapshot {
           scenarioWire.decodeOptional(m, 'scenario', 'snapshot') ??
           DecisionScenario.conservative,
       activeProfile: profileWire.decodeOptional(m, 'activeProfile', 'snapshot'),
+      guideSteps: _readGuideSteps(m[kGuideSteps]),
       extras: extras.build(),
     );
   }

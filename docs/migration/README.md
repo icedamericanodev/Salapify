@@ -1514,3 +1514,96 @@ truncating or this one truncating at 390 still reddens the build.
 These are new to the render harness. Every other shot in it uses the default
 font size, so a defect that only appears when somebody turns text up was
 invisible to the whole harness, which is how the net worth break survived.
+
+## Registering a business: the checklist (2026-09-22)
+
+Founder direction, on seeing the Academy card that had been promising this:
+"port this next". It is the first of the two guides that card names, and the
+first thing Salapify 3 stores that is not money.
+
+### Two founder decisions were needed before any of it
+
+Both were put up front rather than discovered halfway through, because both
+are in the categories these working rules stop for.
+
+**Where the ticks live.** Chosen: saved, and included in the backup. The
+alternatives were device-only (no change to the stored shape, but ticks lost
+on a new phone) and not saving at all (a read-only reference). Twenty three
+government steps take weeks of real life, so a tick that does not survive
+closing the app is worse than a printed list, which at least keeps a pencil
+mark.
+
+**The tax calculators.** Chosen: guides first, calculators in their own pass
+with a tax-professional review and golden vectors. The prototype's
+`businessTaxes.ts` carries its author's own doubt in its comments ("Simplified",
+"Let's set businessTax to 0", "Realistically, OPEX also has input VAT") and
+hardcodes percentage tax at 3%, which was 1% for three years under CREATE.
+None of that is ported here. This batch contains no money math at all.
+
+### What the storage looks like
+
+A flat set of step ids under a new top level key, `guideSteps`. Not a schema
+bump: an older build reading a newer file keeps the key verbatim through
+`Extras`, so nothing is lost either way.
+
+Four decisions in it worth keeping:
+
+- **Absent when empty.** Somebody who never opens a guide gets no key, so
+  their file is exactly the size it was before this feature existed.
+- **Sorted on write.** A Set iterates in insertion order, so without the sort
+  the same two ticks would encode two different ways and every diff of a
+  backup would be noisy forever.
+- **An unknown id is KEPT.** A step id this build does not recognise belongs
+  to a newer build or a reworded guide. Dropping it would untick a real
+  person's checklist on the very next save and nothing would ever say so.
+- **Read leniently.** A malformed key gives no ticks rather than throwing.
+  These are checkboxes; they must never be able to lock somebody out of their
+  accounts. Same argument `reminderSettings` and the notification tray already
+  make in `snapshot.dart`.
+
+A wipe clears them. The wipe screen says "Salapify is empty", and a checklist
+still reading 14 of 23 done would make that sentence false on exactly the
+phone somebody is handing to somebody else.
+
+### The content is the prototype's, word for word
+
+Twenty three steps, not thirty; the earlier count came from grepping `id:`,
+which also matched tab ids. Nothing was rewritten, improved or brought up to
+date during the port, deliberately, because content that is edited in transit
+cannot be checked against its source. Factual review is its own pass.
+
+One thing was NOT carried across. Five text nodes in the prototype contain a
+literal backslash (`Mayor\'s Permit`, `Treasurer\'s Affidavit`), which inside
+JSX renders the backslash on screen. That is a real display bug in the source,
+found by the extraction, verified by reading the lines, and it stops here.
+
+### Three defects this port found in its own work
+
+1. **The filter chips ran down the screen as a column.** A `Container` given
+   an `alignment` and no width expands to fill. `_CategoryChip` in
+   `academy_segment.dart` carries a comment saying exactly this, about the
+   Reports pills doing it once already; the comment was read during the port
+   and the alignment added anyway. No test calls a column of chips a failure,
+   because nothing overflows and nothing truncates. The RENDER caught it.
+2. **A journey that tapped nothing.** On a real 844dp phone the Academy tile
+   is below the fold, and `tester.tap` on an off-screen finder does not fail,
+   it warns and lands nowhere. Every assertion then failed for a reason
+   unrelated to the feature. `ensureVisible` first, both times.
+3. **A flaky guard, written the same hour as a rule about flaky guards.** The
+   ordering test compared two entire encoded snapshots to prove a property
+   about one key. It passed alone and failed in the full suite, because this
+   file mints several ids from `DateTime.now().microsecondsSinceEpoch`. It now
+   asserts the key.
+
+### What is still to come
+
+The roadmap, the entity comparison and quiz, the expert pitfalls and the
+software guide are extracted and waiting in `startup-guide-extract.md`, with
+fourteen suspect items flagged for the factual pass. The Academy card names
+the checklist only, rather than claiming the whole guide arrived.
+
+### The screens, dark first
+
+| Dark | Dark, four ticked | Light |
+| --- | --- | --- |
+| ![checklist dark](screens/business-checklist-gabi.png) | ![checklist ticked](screens/business-checklist-ticked.png) | ![checklist light](screens/business-checklist-hapon.png) |

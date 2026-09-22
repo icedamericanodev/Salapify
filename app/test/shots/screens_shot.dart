@@ -42,6 +42,7 @@ import 'package:salapify/features/fx/fx_sheet.dart';
 import 'package:salapify/features/settings/import_sheet.dart';
 import 'package:salapify/features/settings/privacy_sheet.dart';
 import 'package:salapify/features/settings/settings_sheet.dart';
+import 'package:salapify/screens/plan/business_checklist_screen.dart';
 import 'package:salapify/state/financial_state.dart';
 
 /// The screenshot harness.
@@ -101,6 +102,7 @@ Future<void> settleImages(WidgetTester tester) async {
 void main() {
   _cardFaceShots();
   largeTextShots();
+  businessChecklistShots();
   importShots();
   toolkitShots();
   settingsShots();
@@ -2210,5 +2212,75 @@ void largeTextShots() {
         matchesGoldenFile('out/large_text_${tab.slug}.png'),
       );
     });
+  }
+}
+
+/// The Philippine business registration checklist, ported 2026-09-22.
+///
+/// Both brightnesses, and a second dark shot with some steps already ticked,
+/// because a checklist nobody has touched cannot show what a ticked row looks
+/// like next to an unticked one, which is the only thing worth looking at.
+///
+/// It renders the screen inside a Scaffold rather than through the shell, and
+/// that is the one compromise here: reaching it for real means tapping Plan,
+/// then Academy, then scrolling to a card, and a render harness that has to
+/// drive three taps before it can draw anything is a harness that breaks
+/// whenever any of the three moves. The JOURNEY test does the tapping and
+/// asserts the door is reachable; this only has to show the room.
+void businessChecklistShots() {
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+    for (final bool ticked in <bool>[false, true]) {
+      // Only one ticked variant, in dark, which is what the founder uses.
+      if (ticked && mode == ThemeMode2.hapon) continue;
+      final String name = ticked ? '${theme}_ticked' : theme;
+
+      testWidgets('business checklist renders in $name', (
+        WidgetTester tester,
+      ) async {
+        await tester.runAsync(loadRealFonts);
+        tester.view.physicalSize = const Size(1170, 4600);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 22),
+        );
+        if (state.theme != mode) state.toggleTheme();
+        if (ticked) {
+          for (final String id in <String>[
+            'chk_dti_sec',
+            'chk_trademark',
+            'chk_brgy',
+            'chk_locational',
+          ]) {
+            state.toggleGuideStep(id);
+          }
+        }
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: Scaffold(
+              backgroundColor: palette.background,
+              body: SafeArea(
+                bottom: false,
+                child: BusinessChecklistScreen(state: state, onBack: () {}),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await expectLater(
+          find.byType(BusinessChecklistScreen),
+          matchesGoldenFile('out/business_checklist_$name.png'),
+        );
+      });
+    }
   }
 }

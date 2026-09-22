@@ -158,6 +158,7 @@ enum InfoTopic {
   cardCycle,
   claimableExpenses,
   bonusSplit,
+  businessChecklist,
 }
 
 class InfoPoint {
@@ -682,6 +683,36 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Together they are about three thousand lines of written guidance '
             'and they deserve a proper pass rather than being rushed in '
             'beside everything else on this tab.',
+      ),
+    ],
+  ),
+  InfoTopic.businessChecklist: InfoContent(
+    title: 'This checklist',
+    subtitle: 'Where it came from and what it is not',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.checklist,
+        title: 'Your ticks are saved on this phone',
+        body:
+            'They survive closing the app and they travel in your backup, so '
+            'a phone you restore onto picks up where you left off. Nothing '
+            'leaves the device.',
+      ),
+      InfoPoint(
+        icon: Icons.sort,
+        title: 'The order is roughly the order you do them',
+        body:
+            'Several steps will not accept you without the paper from an '
+            'earlier one, which is why filtering narrows the list instead of '
+            'rearranging it.',
+      ),
+      InfoPoint(
+        icon: Icons.gavel_outlined,
+        title: 'It is a map, not advice',
+        body:
+            'Requirements differ by city, by industry and over time, and fees '
+            'change. Treat this as what to ask about, then confirm with the '
+            'agency or an accountant before you file anything.',
       ),
     ],
   ),

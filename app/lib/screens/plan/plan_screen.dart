@@ -108,7 +108,10 @@ class _PlanScreenState extends State<PlanScreen> {
                   onOpenSafeToSpend: () =>
                       SafeToSpendSheet.show(context, widget.state),
                 ),
-                PlanSegment.academy => AcademySegment(palette: p),
+                PlanSegment.academy => AcademySegment(
+                  palette: p,
+                  state: widget.state,
+                ),
               },
             ],
           ),

@@ -124,6 +124,10 @@ class FinancialState extends ChangeNotifier {
   /// saving cannot destroy what a newer build, or the prototype, wrote.
   Extras _extras = const Extras.empty();
 
+  /// Guide steps the person has ticked off, by step id. See
+  /// [Snapshot.guideSteps] for why this is stored and why it is a flat set.
+  Set<String> _guideSteps = <String>{};
+
   /// OFF until [restore] has decided it is safe. Two states leave it off: the
   /// app has not loaded yet, and the file could not be read.
   bool _saveEnabled = false;
@@ -206,6 +210,7 @@ class FinancialState extends ChangeNotifier {
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
+    _guideSteps = Set<String>.of(s.guideSteps);
     _extras = s.extras;
   }
 
@@ -228,8 +233,29 @@ class FinancialState extends ChangeNotifier {
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
+    guideSteps: _guideSteps,
     extras: _extras,
   );
+
+  /// Has this guide step been ticked off?
+  bool isGuideStepDone(String id) => _guideSteps.contains(id);
+
+  /// Every ticked step, read only. Callers count it; nobody mutates it.
+  Set<String> get guideSteps => Set<String>.unmodifiable(_guideSteps);
+
+  /// How many of [ids] are ticked. The caller passes the guide's own list, so
+  /// a step that was removed from a guide since it was ticked cannot inflate
+  /// that guide's progress. The tick itself is kept, per [Snapshot.guideSteps];
+  /// it simply does not count towards a list it is no longer on.
+  int guideStepsDoneAmong(Iterable<String> ids) =>
+      ids.where(_guideSteps.contains).length;
+
+  /// Tick a step, or untick it. Ends in a notify, so it ends in a save.
+  void toggleGuideStep(String id) {
+    if (id.isEmpty) return;
+    if (!_guideSteps.remove(id)) _guideSteps.add(id);
+    notifyListeners();
+  }
 
   /// Every mutation ends in a notify, so every mutation ends in a save.
   ///
@@ -639,6 +665,13 @@ class FinancialState extends ChangeNotifier {
     // through a wipe would write a piece of their data straight back into the
     // supposedly empty file.
     _extras = const Extras.empty();
+
+    // So are the ticked guide steps, for the same reason. They are the
+    // person's own record of how far into registering a business they had
+    // got, which is exactly the kind of thing somebody handing a phone on
+    // means to erase. The wipe screen promises "Salapify is empty"; a
+    // checklist still showing 14 of 30 done would make that sentence false.
+    _guideSteps = <String>{};
 
     _loadStatus = LoadStatus.fresh;
     _loadProblem = null;

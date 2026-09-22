@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/academy_data.dart';
+import '../../data/business_guide_data.dart';
 import '../../design/salapify_icon.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -8,6 +9,8 @@ import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/academy.dart';
+import '../../state/financial_state.dart';
+import 'business_checklist_screen.dart';
 
 /// Salapify Academy, from src/components/AcademyView.tsx.
 ///
@@ -22,9 +25,14 @@ import '../../models/academy.dart';
 /// which is exactly the failure the "src/ is the source of truth" rule
 /// exists to prevent. The generator is app/tool/gen_academy_dart.py.
 class AcademySegment extends StatefulWidget {
-  const AcademySegment({super.key, required this.palette});
+  const AcademySegment({super.key, required this.palette, required this.state});
 
   final Palette palette;
+
+  /// Needed since 2026-09-22 only because the startup checklist REMEMBERS
+  /// which steps are ticked, and that lives in the store like everything else
+  /// the app keeps. The courses above it still hold no progress at all.
+  final FinancialState state;
 
   @override
   State<AcademySegment> createState() => _AcademySegmentState();
@@ -32,6 +40,32 @@ class AcademySegment extends StatefulWidget {
 
 class _AcademySegmentState extends State<AcademySegment> {
   final TextEditingController _search = TextEditingController();
+
+  /// Pushes the registration checklist over the tabs.
+  ///
+  /// A pushed screen rather than a sheet, matching DebtScreen: it is a list
+  /// of twenty three items somebody scrolls and works through, and a sheet
+  /// that tall is a screen wearing a handle.
+  ///
+  /// setState on return because the ticks made in there change the count on
+  /// the card here, and this segment is not rebuilt by coming back on its own.
+  Future<void> _openChecklist(Palette palette) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext ctx) => Scaffold(
+          backgroundColor: palette.background,
+          body: SafeArea(
+            bottom: false,
+            child: BusinessChecklistScreen(
+              state: widget.state,
+              onBack: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
 
   String _category = 'All';
   CourseModule? _open;
@@ -97,7 +131,12 @@ class _AcademySegmentState extends State<AcademySegment> {
         const SizedBox(height: Spacing.md),
         _Disclaimer(palette: p),
         const SizedBox(height: Spacing.md),
-        _StartupGuideCard(palette: p),
+        _StartupGuideCard(
+          palette: p,
+          done: widget.state.guideStepsDoneAmong(businessChecklistIds),
+          total: businessChecklist.length,
+          onOpen: () => _openChecklist(p),
+        ),
         const SizedBox(height: Spacing.md),
 
         SheetField(
@@ -276,7 +315,16 @@ class _Disclaimer extends StatelessWidget {
 }
 
 class _StartupGuideCard extends StatelessWidget {
-  const _StartupGuideCard({required this.palette});
+  const _StartupGuideCard({
+    required this.palette,
+    required this.done,
+    required this.total,
+    required this.onOpen,
+  });
+
+  final int done;
+  final int total;
+  final VoidCallback onOpen;
 
   final Palette palette;
 
@@ -320,31 +368,55 @@ class _StartupGuideCard extends StatelessWidget {
             style: AppType.caption(palette),
           ),
           const SizedBox(height: Spacing.sm),
-          // Honest rather than a dead button. The guide is about 3,200 lines
-          // of written content across three files in the prototype, and a
-          // button that opens nothing is worse than a line that says when.
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: palette.surfaceAlt,
+          // A REAL DOOR now, 2026-09-22. This used to be a grey line reading
+          // "Being ported next, with the two guides behind it", which was the
+          // honest thing to show while nothing was behind it. The checklist
+          // is behind it now, so the line goes: a promise kept quietly is
+          // still a promise nobody can find.
+          //
+          // The two written guides it also mentions, the roadmap and the
+          // software one, are still to come. The card says twenty three
+          // steps rather than claiming the whole guide arrived.
+          Semantics(
+            button: true,
+            label: 'Open the registration checklist, $done of $total done',
+            child: InkWell(
+              onTap: onOpen,
               borderRadius: BorderRadius.circular(Radii.control),
-              border: Border.all(color: palette.border),
-            ),
-            child: Row(
-              children: <Widget>[
-                Icon(Icons.schedule, size: 15, color: palette.textMuted),
-                const SizedBox(width: Spacing.xs),
-                Expanded(
-                  child: Text(
-                    'Being ported next, with the two guides behind it',
-                    style: AppType.caption(palette),
-                  ),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.sm,
                 ),
-              ],
+                decoration: BoxDecoration(
+                  color: palette.accentSoft,
+                  borderRadius: BorderRadius.circular(Radii.control),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(Icons.checklist, size: 15, color: palette.accent),
+                    const SizedBox(width: Spacing.xs),
+                    Expanded(
+                      child: Text(
+                        done == 0
+                            ? 'Open the $total step checklist'
+                            : 'Checklist · $done of $total done',
+                        style: AppType.caption(
+                          palette,
+                        ).copyWith(color: palette.textPrimary),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: palette.textMuted,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
