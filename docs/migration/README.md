@@ -1841,3 +1841,28 @@ they did not.
 ### The screen
 
 ![traps](screens/business-guide-traps.png)
+
+### MCIT, the last open item from the review (2026-09-22)
+
+Founder direction: "add the MCIT line". The minimum corporate income tax is
+absent from the prototype entirely, and the reviewer flagged the gap for a
+specific reason rather than for completeness: somebody comparing "sole prop at
+8%" against "corporation at 20%" reads the corporation row as saying a
+loss-making company pays nothing. From its fourth year it does not.
+
+Confirmed before adding: 2% of gross income, from the fourth taxable year,
+applying when there is a net loss or when the regular tax comes out lower.
+CREATE cut it to 1% for a window that ended on 30 June 2023 and it reverted.
+
+It is on BOTH corporation cards, not one. They sit next to each other, so a
+caveat on only one of them reads as a difference between the two rather than
+as a fact about corporations. The guard checks both, and deleting the row from
+one names it:
+
+    Bad state: Regular Stock Corporation never mentions MCIT
+
+It is deliberately NOT on the sole proprietorship card, and that is asserted
+too: MCIT is a corporate tax, and putting it there would swap one wrong
+conclusion for another.
+
+This closes every finding from the factual review.

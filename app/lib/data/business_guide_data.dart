@@ -930,6 +930,17 @@ const List<EntityCard> businessEntities = <EntityCard>[
         '20% if income is 5M or less AND assets 100M or less, else 25%',
         EntityTone.plain,
       ),
+      // MCIT, added on the 2026-09-22 review and absent from the prototype
+      // entirely. The wrong conclusion it prevents is specific: somebody
+      // comparing "sole prop at 8%" with "corporation at 20%" reads the
+      // corporation row as meaning a loss-making company pays nothing. From
+      // its fourth year it does not. Confirmed at 2% of gross income, which
+      // CREATE cut to 1% for a window ending 30 June 2023 and which reverted.
+      (
+        'If you make a loss',
+        'From year 4 a minimum 2% of gross income still applies',
+        EntityTone.warn,
+      ),
       ('Governance', 'No board or by-laws required', EntityTone.plain),
       ('Investors', 'Must convert to add owners', EntityTone.plain),
     ],
@@ -951,6 +962,17 @@ const List<EntityCard> businessEntities = <EntityCard>[
         '20% if income is 5M or less AND assets 100M or less, '
             'not counting the land, else 25%',
         EntityTone.plain,
+      ),
+      // Same MCIT row as the OPC card, and on purpose. These two cards sit
+      // next to each other and a caveat on one of them reads as a difference
+      // between them rather than as a fact about corporations.
+      // Same MCIT row as the OPC card, and on purpose. These two cards sit
+      // next to each other and a caveat on one of them reads as a difference
+      // between them rather than as a fact about corporations.
+      (
+        'If you make a loss',
+        'From year 4 a minimum 2% of gross income still applies',
+        EntityTone.warn,
       ),
       ('Reporting', 'Annual GIS and audited statements', EntityTone.plain),
       ('Investors', 'Highest, what angels and VCs expect', EntityTone.good),

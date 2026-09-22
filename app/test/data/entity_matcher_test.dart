@@ -15,6 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/business_guide_data.dart';
 
 void main() {
+  _mcit();
+
   group('nothing is recommended until question one is answered', () {
     test('no owners answer gives no match at all', () {
       expect(matchEntity(), isNull);
@@ -173,6 +175,67 @@ void main() {
       );
       expect(rate, contains('5M'));
       expect(rate, contains('100M'));
+    });
+  });
+}
+
+/// MCIT, which the prototype never mentions.
+///
+/// Added on the 2026-09-22 review for one reason: somebody comparing "sole
+/// prop at 8%" with "corporation at 20%" reads the corporation row as saying
+/// a loss-making company pays nothing. From its fourth year it does not.
+///
+/// Pinned on BOTH corporation cards rather than one, because they sit next to
+/// each other and a caveat on only one reads as a difference between them
+/// rather than as a fact about corporations.
+void _mcit() {
+  group('a loss-making corporation is not shown as paying nothing', () {
+    List<EntityCard> corporations() => businessEntities
+        .where(
+          (EntityCard c) =>
+              c.title.contains('Corporation') || c.title.contains('OPC'),
+        )
+        .toList(growable: false);
+
+    test('both corporation cards exist to be checked', () {
+      // Guards the filter above. If a rename made this list empty, every
+      // assertion below would pass over nothing.
+      expect(corporations().length, 2);
+    });
+
+    test('each names the minimum tax, at the right rate and year', () {
+      for (final EntityCard c in corporations()) {
+        final Iterable<String> values = c.rows.map((EntityRow r) => r.$2);
+        final String mcit = values.firstWhere(
+          (String v) => v.contains('minimum'),
+          orElse: () => throw StateError('${c.title} never mentions MCIT'),
+        );
+        expect(
+          mcit,
+          contains('2%'),
+          reason:
+              '${c.title}: CREATE cut it to 1% '
+              'for a window that ended on 30 June 2023, and it reverted',
+        );
+        expect(
+          mcit,
+          contains('year 4'),
+          reason:
+              '${c.title}: it does not '
+              'apply from day one, and saying so would be its own wrong idea',
+        );
+      }
+    });
+
+    test('the sole proprietorship card does NOT carry it', () {
+      // MCIT is a corporate tax. Putting it on the sole prop card would swap
+      // one wrong conclusion for another.
+      final EntityCard sole = businessEntities.firstWhere(
+        (EntityCard c) => c.title == 'Sole Proprietorship',
+      );
+      for (final EntityRow r in sole.rows) {
+        expect(r.$2.toLowerCase(), isNot(contains('minimum 2%')));
+      }
     });
   });
 }
