@@ -1365,10 +1365,11 @@ nobody can check.
 ### Why there is a second button
 
 Choosing an image is not a convenience. An Android emulator's back camera
-renders a synthetic room, so a photo taken on the founder's emulator can
-never contain a receipt, and the library is the only path this feature can be
-tried on anything but a real phone. It is also the better path for the GCash
-and Maya receipts that arrive as screenshots rather than paper.
+renders a synthetic room by default, so a photo taken there can never contain
+a receipt, and the library was the only path this feature could be tried on
+until the emulator's rear camera was pointed at a real webcam (see below). It
+is also the better path for the GCash and Maya receipts that arrive as
+screenshots rather than paper.
 
 ### What the tests can and cannot reach
 
@@ -1382,3 +1383,36 @@ confirms it.
 The native half cannot be verified here at all: this sandbox has no Android
 SDK, so `flutter build apk` only runs on CI, which is exactly what the
 Android build job exists for.
+
+### Confirmed end to end on a real Android build (2026-09-22)
+
+The reader itself had never executed. Not on a phone, not in a test, not
+once anywhere, and that was said plainly at the time rather than rounded up
+to "done": every journey in `scan_camera_journey_test.dart` hands
+`ScanReceiptSheet` a fake `ReceiptTextSource`, because no plugin runs in a
+widget test. Those seven journeys prove the handover, the two failure
+messages, and the rule that a scan writes nothing until somebody confirms
+it. They prove nothing whatsoever about ML Kit, which is the one piece they
+replace.
+
+A test that fakes a boundary proves nothing about the boundary. So the
+feature stayed unfinished while the suite was green.
+
+It is finished now. The founder set the emulator's rear camera to `Webcam0`
+in Device Manager, cold booted so the change survived the snapshot, held a
+paper receipt up to the laptop, and shot it. **Where it was** and **How much**
+filled themselves in. That is bundled ML Kit reading real text off a real
+photograph through the real plugin on a real Android build, which is the
+only evidence that ever counted here.
+
+Two details worth keeping, because both cost time:
+
+- **`Webcam0` does not take effect on a warm start.** The emulator restores a
+  snapshot, and the snapshot still holds the old camera. The Device Manager
+  row says "Changes will apply on restart" and means a COLD boot, the `⋮`
+  menu's Cold Boot Now, not the window being closed and reopened. Setting
+  Default boot to Cold in the same dialog removes the trap permanently.
+- **The synthetic-room camera is a default, not a fact about emulators.**
+  The note above said an emulator "can never contain a receipt", which was
+  true of the emulator as configured and false of the emulator as
+  configurable. It is corrected above rather than quietly dropped.

@@ -184,6 +184,16 @@ arrives. That is the hole the founder fell into.
   selected. The ML Kit half is unproven by test and unproven on a device at
   the same time, which is the weakest position in the feature.
 
+  RESOLVED 2026-09-22, and left here in full rather than edited away, because
+  the finding was correct when written and the shape of it is the lesson. The
+  founder set the emulator's rear camera to `Webcam0`, cold booted so the
+  snapshot could not restore the old setting, photographed a paper receipt,
+  and both parsed fields filled in. That is ML Kit's first execution anywhere.
+  What made the gap survive a green suite was not carelessness: every journey
+  in the batch passed, and every one of them substituted a fake for the exact
+  boundary in question. A test that fakes a boundary proves nothing about the
+  boundary, and the only thing that closes it is running the real one.
+
 - `.githooks/pre-push` was retired with the archive and its body is now
   `exit 0`, with a good finding preserved above it: "A guard that exits 0
   while its subject has moved reads exactly like a guard that ran and passed."
