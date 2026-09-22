@@ -21,6 +21,24 @@ abstract class ReceiptTextSource {
   /// Null means the person backed out, which is not an error and must not
   /// produce a message.
   Future<ReceiptRead?> read(ReceiptImageSource from);
+
+  /// Picks up a photo Android threw away when it killed the app mid-pick.
+  ///
+  /// NOT an optimisation, and leaving it out was a real omission. The
+  /// image_picker README states it plainly: "When under high memory pressure
+  /// the Android system may kill the MainActivity of the application using
+  /// the image_picker... Since the data is never returned to the original
+  /// call use the `ImagePicker.retrieveLostData()` method to retrieve the
+  /// lost data. This check should always be run at startup."
+  ///
+  /// The picker's intent puts Salapify in the background, which is precisely
+  /// when a memory-constrained device, an emulator above all, is entitled to
+  /// kill it. The `await` in [read] then never completes, so the person
+  /// returns to an app that took their photograph and behaves as though
+  /// nothing happened at all.
+  ///
+  /// Null means there was nothing lost, which is the ordinary case.
+  Future<ReceiptRead?> recoverLost();
 }
 
 /// Where the picture comes from.
@@ -109,6 +127,38 @@ class DeviceReceiptTextSource implements ReceiptTextSource {
     // Backed out of the camera. Not a failure, and must not say anything.
     if (file == null) return null;
 
+    return _readFile(file);
+  }
+
+  @override
+  Future<ReceiptRead?> recoverLost() async {
+    final LostDataResponse lost;
+    try {
+      lost = await _picker.retrieveLostData();
+    } on Object {
+      // Not Android, or the platform refused. Either way there is nothing to
+      // recover and nothing worth saying about it.
+      return null;
+    }
+
+    if (lost.isEmpty) return null;
+
+    final XFile? file = lost.file;
+    if (file == null) {
+      // The pick itself failed before the app died. `lost.exception` says
+      // why, and none of its reasons are ones a person can act on beyond
+      // trying again, so it takes the same sentence as any other refusal.
+      return const ReceiptRead.failed(ReceiptReadFailure.unavailable);
+    }
+
+    return _readFile(file);
+  }
+
+  /// Reads one image and then deletes it, whatever happened.
+  ///
+  /// Shared by the ordinary path and the recovery path, so a photo that came
+  /// back from the dead is cleaned up exactly like one that did not.
+  Future<ReceiptRead> _readFile(XFile file) async {
     try {
       final RecognizedText result = await _recognizer.processImage(
         InputImage.fromFilePath(file.path),

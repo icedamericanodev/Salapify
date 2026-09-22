@@ -127,6 +127,32 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
   void initState() {
     super.initState();
     _date = widget.state.now;
+    _recoverLostPhoto();
+  }
+
+  /// Picks up a photo Android threw away while Salapify was in the background.
+  ///
+  /// The picker's intent backgrounds this app, which is exactly when a
+  /// memory-constrained device is entitled to kill it, and an emulator is the
+  /// worst offender. When that happens the `await` in the scan never
+  /// completes: the person photographed a receipt and came back to an app
+  /// behaving as though nothing had happened, with no error and no result.
+  ///
+  /// image_picker documents this and says the check "should always be run at
+  /// startup". It runs HERE rather than in main.dart because this is the only
+  /// screen that can do anything with the answer, and a recovered receipt
+  /// appearing over the Accounts tab would be baffling.
+  Future<void> _recoverLostPhoto() async {
+    final ReceiptRead? lost = await _camera.recoverLost();
+    if (!mounted || lost == null) return;
+
+    if (!lost.ok) {
+      setState(() => _readFailure = lost.failure);
+      return;
+    }
+
+    _paste.text = lost.text;
+    _apply(parseReceiptText(lost.text));
   }
 
   @override

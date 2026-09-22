@@ -32,10 +32,24 @@ class _FakeCamera implements ReceiptTextSource {
   /// and one that looks completely correct on screen.
   final List<ReceiptImageSource> asked = <ReceiptImageSource>[];
 
+  /// What a lost-data recovery returns. Nothing lost, by default.
+  ReceiptRead? lost;
+
+  /// How many times recovery was asked for, so a test can prove the sheet
+  /// checks at all. Android throws a photo away only under memory pressure,
+  /// so a missing check looks perfect until the day it does not.
+  int recoverCalls = 0;
+
   @override
   Future<ReceiptRead?> read(ReceiptImageSource from) async {
     asked.add(from);
     return _answer(from);
+  }
+
+  @override
+  Future<ReceiptRead?> recoverLost() async {
+    recoverCalls++;
+    return lost;
   }
 }
 
@@ -240,5 +254,45 @@ TOTAL              147.00
 
     expect(find.textContaining('Read on your phone'), findsOneWidget);
     expect(find.textContaining('not saved or sent anywhere'), findsOneWidget);
+  });
+
+  testWidgets('a photo Android threw away is picked back up', (
+    WidgetTester tester,
+  ) async {
+    // THE FAILURE THAT LOOKS LIKE NOTHING HAPPENING. The picker's intent
+    // backgrounds Salapify, which is exactly when a memory-constrained
+    // device may kill it. The await in the scan then never completes, so
+    // somebody photographs a receipt and comes back to an app showing no
+    // result and no error at all. image_picker documents the recovery and
+    // says the check should always run at startup; it was missing.
+    final _FakeCamera camera = _FakeCamera((_) => null)
+      ..lost = const ReceiptRead.text(jollibee);
+
+    await openSheet(tester, fresh(), camera);
+
+    expect(
+      camera.recoverCalls,
+      1,
+      reason:
+          'the sheet never asks whether a photo was lost, so one taken just '
+          'before Android killed the app is gone with no trace',
+    );
+    expect(find.text('147.00'), findsWidgets);
+    expect(find.textContaining('CHICKENJOY'), findsWidgets);
+  });
+
+  testWidgets('nothing lost means nothing is said', (
+    WidgetTester tester,
+  ) async {
+    // The ordinary case, every single time the sheet opens. A recovery that
+    // announced itself when there was nothing to recover would put a warning
+    // in front of somebody who had done nothing at all.
+    final _FakeCamera camera = _FakeCamera((_) => null);
+    await openSheet(tester, fresh(), camera);
+
+    expect(camera.recoverCalls, 1);
+    expect(find.textContaining('could not be opened'), findsNothing);
+    expect(find.textContaining('No words could be read'), findsNothing);
+    expect(find.text('147.00'), findsNothing);
   });
 }
