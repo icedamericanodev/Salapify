@@ -72,6 +72,8 @@ class _BusinessChecklistScreenState extends State<BusinessChecklistScreen> {
               Spacing.xxl,
             ),
             children: <Widget>[
+              const _ConfirmBeforeFiling(),
+              const SizedBox(height: Spacing.md),
               _Filters(
                 palette: p,
                 current: _filter,
@@ -415,6 +417,82 @@ class _ImportanceTag extends StatelessWidget {
         style: AppType.rowMeta(
           palette,
         ).copyWith(color: tint, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+/// ON THE SCREEN, not behind the dot, and that is the founder's own rule
+/// applied rather than bent.
+///
+/// The rule says a figure and the one line needed to READ it stay on screen,
+/// and everything that TEACHES goes behind the dot. It has one exception:
+/// anything somebody needs in order to avoid a WRONG CONCLUSION stays put,
+/// however long, because the test is not length, it is whether silence would
+/// mislead.
+///
+/// This is that exception. Twenty three steps written in confident, specific
+/// language, naming forms and agencies, read as a definitive list of what the
+/// law requires today. Some of it WILL be out of date, the prototype's own
+/// header said so ("Laws, municipal ordinances, BIR tax regulations ... and
+/// agency filing procedures change frequently"), and the cost of a reader
+/// believing a stale requirement is a rejected filing or a penalty, which is
+/// not a cost a tap can undo.
+///
+/// The first version of this port put exactly this warning behind the info
+/// dot, which is where it does the least good: a dot is read once by the
+/// curious and never by the person in a hurry with a form in front of them.
+class _ConfirmBeforeFiling extends StatelessWidget {
+  const _ConfirmBeforeFiling();
+
+  @override
+  Widget build(BuildContext context) {
+    // Reads the palette rather than taking it, so the banner cannot be pasted
+    // somewhere that hands it the wrong theme.
+    final Palette palette = Palette.of(
+      Theme.of(context).brightness == Brightness.dark
+          ? ThemeMode2.gabi
+          : ThemeMode2.hapon,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.surfaceAlt,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.error_outline, size: 16, color: palette.warning),
+          const SizedBox(width: Spacing.sm),
+          // Two plain Texts rather than one RichText, the same reason
+          // _Disclaimer in academy_segment.dart gives: a RichText is not
+          // findable by find.text, so a notice built that way cannot be
+          // asserted, and a notice nothing can assert can quietly vanish.
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Confirm before you file',
+                  style: AppType.caption(palette).copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: palette.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Fees, forms and requirements change, and differ by city and '
+                  'by industry. Use this to know what to ask about, then check '
+                  'with the agency or an accountant.',
+                  style: AppType.caption(palette),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

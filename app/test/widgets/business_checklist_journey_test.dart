@@ -172,6 +172,25 @@ void main() {
     expect(find.textContaining('of 23 done'), findsOneWidget);
   });
 
+  testWidgets('the confirm-before-filing notice is ON the screen', (
+    WidgetTester tester,
+  ) async {
+    // The exception to the dot rule, asserted rather than trusted. Twenty
+    // three steps naming forms, agencies and deadlines read as a definitive
+    // statement of what the law requires today, and some of it will go out of
+    // date. Silence there misleads, so the warning does not live behind the
+    // dot, and this is what stops it drifting back there.
+    //
+    // The first version of this port DID put it behind the dot.
+    await openChecklist(tester);
+
+    expect(find.text('Confirm before you file'), findsOneWidget);
+    expect(
+      find.textContaining('check with the agency or an accountant'),
+      findsOneWidget,
+    );
+  });
+
   _readabilityChecks();
 
   testWidgets('every step id in the data file is unique', (
