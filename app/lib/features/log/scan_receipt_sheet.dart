@@ -123,6 +123,18 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
   /// What to say when a read came back with nothing.
   ReceiptReadFailure? _readFailure;
 
+  /// WHICH button produced that failure.
+  ///
+  /// Founder screenshot, 2026-09-22: tapping Choose an image produced "The
+  /// camera could not be opened on this phone. Choose an image instead."
+  /// Two falsehoods in one card. It named a control they had not touched,
+  /// and then sent them to the one they had just tried, which is a loop with
+  /// no way out of it.
+  ///
+  /// The failure and its source are set together and cleared together, so a
+  /// message can never again describe the wrong half of this sheet.
+  ReceiptImageSource? _failedSource;
+
   @override
   void initState() {
     super.initState();
@@ -147,7 +159,12 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
     if (!mounted || lost == null) return;
 
     if (!lost.ok) {
-      setState(() => _readFailure = lost.failure);
+      setState(() {
+        _readFailure = lost.failure;
+        // A recovered photo is always one the CAMERA took: nothing else
+        // backgrounds the app long enough for Android to kill it mid-pick.
+        _failedSource = ReceiptImageSource.camera;
+      });
       return;
     }
 
@@ -178,6 +195,7 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
     setState(() {
       _reading = true;
       _readFailure = null;
+      _failedSource = null;
     });
 
     final ReceiptRead? read = await _camera.read(from);
@@ -192,7 +210,10 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
     if (read == null) return;
 
     if (!read.ok) {
-      setState(() => _readFailure = read.failure);
+      setState(() {
+        _readFailure = read.failure;
+        _failedSource = from;
+      });
       return;
     }
 
@@ -352,7 +373,11 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
           ),
           if (_readFailure != null) ...<Widget>[
             const SizedBox(height: Spacing.sm),
-            _ReadFailed(palette: p, failure: _readFailure!),
+            _ReadFailed(
+              palette: p,
+              failure: _readFailure!,
+              from: _failedSource ?? ReceiptImageSource.camera,
+            ),
           ],
           const SizedBox(height: Spacing.lg),
           Text('SAMPLES', style: AppType.kicker(p)),
@@ -762,10 +787,19 @@ class _ScanButton extends StatelessWidget {
 /// would not start is not, and telling them to try again in better light
 /// would send them round a loop that cannot end.
 class _ReadFailed extends StatelessWidget {
-  const _ReadFailed({required this.palette, required this.failure});
+  const _ReadFailed({
+    required this.palette,
+    required this.failure,
+    required this.from,
+  });
 
   final Palette palette;
   final ReceiptReadFailure failure;
+
+  /// Which of the two buttons produced this. Four sentences rather than two,
+  /// because a message that names the wrong one is worse than a vague one:
+  /// it tells somebody their camera is broken when they never touched it.
+  final ReceiptImageSource from;
 
   @override
   Widget build(BuildContext context) {
@@ -777,20 +811,32 @@ class _ReadFailed extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.control),
         border: Border.all(color: palette.warning),
       ),
-      child: Text(switch (failure) {
-        ReceiptReadFailure.noText =>
-          'No words could be read from that picture. A flatter angle and '
-              'more light usually fixes it, or type the amount in below.',
-        ReceiptReadFailure.unavailable =>
-          // NAMES THE BUTTON SITTING RIGHT ABOVE IT. Founder screenshot,
-          // 2026-09-22, from an emulator: this sentence sent them to the
-          // paste box and never mentioned Choose an image, which needs no
-          // camera and reads through the very same reader. On an emulator
-          // that is the ordinary case rather than a rare one, so the message
-          // was steering people away from the one thing that would work.
+      // FOUR SENTENCES, because two were wrong half the time.
+      //
+      // Founder screenshot, 2026-09-22: tapping Choose an image produced
+      // "The camera could not be opened on this phone. Choose an image
+      // instead." It blamed a control they had not touched and then offered
+      // them the one that had just failed, which is a loop. A person told
+      // their camera is broken when they never opened it learns that this
+      // app's messages are not worth reading.
+      //
+      // Neither sentence now offers the path that just failed, so there is
+      // always somewhere left to go.
+      child: Text(switch ((failure, from)) {
+        (ReceiptReadFailure.noText, ReceiptImageSource.camera) =>
+          'No words could be read from that photo. A flatter angle and more '
+              'light usually fixes it. You can also choose an image, or '
+              'type the amount in below.',
+        (ReceiptReadFailure.noText, ReceiptImageSource.library) =>
+          'No words could be read from that image. A sharper or less '
+              'cropped one usually works, or type the amount in below.',
+        (ReceiptReadFailure.unavailable, ReceiptImageSource.camera) =>
           'The camera could not be opened on this phone. Choose an image '
               'instead, or paste the receipt text below. Both read exactly '
               'the same way.',
+        (ReceiptReadFailure.unavailable, ReceiptImageSource.library) =>
+          'Your photos could not be opened on this phone. Paste the receipt '
+              'text below instead, which reads exactly the same way.',
       }, style: AppType.body(palette)),
     );
   }

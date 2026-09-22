@@ -215,6 +215,65 @@ TOTAL              147.00
     expect(find.textContaining('more light'), findsNothing);
   });
 
+  testWidgets('a library failure never blames the camera', (
+    WidgetTester tester,
+  ) async {
+    // STRAIGHT FROM A FOUNDER SCREENSHOT, 2026-09-22. Tapping Choose an
+    // image produced "The camera could not be opened on this phone. Choose
+    // an image instead." Two falsehoods in one card: it blamed a control
+    // they had never touched, then offered them the one that had just
+    // failed, which is a loop with no way out.
+    //
+    // Somebody told their camera is broken when they never opened it learns
+    // that this app's messages are not worth reading, and that is spent on
+    // every message after it.
+    final _FakeCamera camera = _FakeCamera(
+      (_) => const ReceiptRead.failed(ReceiptReadFailure.unavailable),
+    );
+    await openSheet(tester, fresh(), camera);
+
+    await tester.tap(find.text('Choose an image'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('camera'),
+      findsNothing,
+      reason:
+          'a photo library failure is blaming the camera, which the person '
+          'never touched',
+    );
+    expect(
+      find.textContaining('Choose an image instead'),
+      findsNothing,
+      reason:
+          'the message offers the button that just failed, so the only way '
+          'it suggests is the one that cannot work',
+    );
+
+    // And it still leaves somewhere to go.
+    expect(find.textContaining('Paste the receipt text below'), findsOneWidget);
+  });
+
+  testWidgets('an unreadable image is not told to stand somewhere else', (
+    WidgetTester tester,
+  ) async {
+    // Advice about the angle and the light belongs to somebody holding a
+    // camera. To somebody who picked a screenshot out of their gallery it is
+    // nonsense, and nonsense advice is how a person concludes the app does
+    // not know what it is talking about.
+    final _FakeCamera camera = _FakeCamera(
+      (_) => const ReceiptRead.failed(ReceiptReadFailure.noText),
+    );
+    await openSheet(tester, fresh(), camera);
+
+    await tester.tap(find.text('Choose an image'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No words could be read'), findsOneWidget);
+    expect(find.textContaining('more light'), findsNothing);
+    expect(find.textContaining('type the amount in below'), findsOneWidget);
+  });
+
   testWidgets('a scan on its own writes nothing to the ledger', (
     WidgetTester tester,
   ) async {
