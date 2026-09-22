@@ -8,17 +8,19 @@
 # Both modes hot restart the running app for you. You do not type anything
 # after starting it. Stop with Ctrl-C, which stops the app too.
 #
-# WHEN A NEW PLUGIN ARRIVES, STOP THIS AND START IT AGAIN. The rebuild guard
-# further down is real and it does work, and it can only compare against a
-# fingerprint it RECORDED, which happens when `flutter run` starts. A session
-# already running when the plugin change lands is covered. A session that
-# starts afterwards, on an emulator still holding the older build, records the
-# new fingerprint and sees nothing to compare it against.
+# WHEN A NEW PLUGIN ARRIVES, STOP THIS AND START IT AGAIN.
 #
-# On 2026-09-22 the guard did not fire and an hour went into the wrong
-# question. Exactly which path produced that was never established, so this
-# is a warning about a hole rather than a diagnosis of one: the cure below is
-# cheap, and it is certain in a way that reasoning about it is not.
+# This used to say the cause was never established. It has been, and it was
+# worse than a hole: the check that called itself authoritative had NEVER
+# FIRED ONCE, in either mode, since the day it was written. It compared
+# against a variable the parent set after forking the watcher, so inside the
+# watcher it was always the empty string and the comparison was always false.
+# See LAUNCHED_FILE below, where it is now a file and works.
+#
+# Keep stopping and starting anyway when a plugin arrives. The fixed check
+# helps a session that is already running, and a session that STARTS on an
+# emulator holding an older build still has nothing to compare against: the
+# fingerprint it records at launch is the one it just built with.
 #
 # What that looks like is the confusing part, and it is why it is written at
 # the top rather than buried: the new screens APPEAR, because screens are
@@ -157,7 +159,32 @@ plugin_fingerprint() {
 
 # The fingerprint the CURRENTLY RUNNING app was launched with. Recorded when
 # `flutter run` starts, compared on every check after that.
-LAUNCHED_PLUGINS=""
+#
+# A FILE, for exactly the reason REBUILD_FLAG is a file, and it was a variable
+# until 2026-09-22. The watcher runs in a background subshell forked before
+# `flutter run`, and a subshell gets a COPY of the shell's variables at the
+# moment it is created. The parent recorded the real fingerprint after that
+# fork, so inside the watcher this stayed the empty string for the whole run.
+# Both comparisons are guarded by `[ -n "$LAUNCHED_PLUGINS" ]`, so both were
+# false forever and the branch that prints "The running app is missing a
+# plugin this checkout needs" could never be reached in either mode.
+#
+# The check that called itself authoritative had therefore never fired once.
+# The only live rebuild trigger was the pubspec EVENT path, which requires the
+# script to be watching at the moment the change arrives, and that is the hole
+# the founder fell into when the camera plugins landed: new buttons on screen,
+# nothing behind them, and no warning.
+#
+# The script already stated this rule thirty lines above, about REBUILD_FLAG
+# going the other way across the same fork. The fingerprint went the other
+# direction and broke the same way.
+LAUNCHED_FILE="/tmp/salapify-launched.$$"
+
+# Reads it back, and prints nothing when there is none yet.
+launched_fingerprint() {
+  [ -f "$LAUNCHED_FILE" ] || return 0
+  cat "$LAUNCHED_FILE"
+}
 
 # A belt-and-braces guard for the class of failure above: never hand an empty
 # path to `flutter run --pid-file`, whatever went wrong upstream.
@@ -168,7 +195,7 @@ fi
 
 # A previous run that was killed rather than stopped can leave these behind,
 # and a stale pid file makes the watcher signal a process that is long gone.
-rm -f "$PIDFILE" "$STAMP" "$REBUILD_FLAG"
+rm -f "$PIDFILE" "$STAMP" "$REBUILD_FLAG" "$LAUNCHED_FILE"
 
 if [ "$MODE" = "local" ]; then
   echo "Watching your own files in $APP_DIR/, checking every ${LOCAL_INTERVAL}s."
@@ -194,7 +221,7 @@ cleanup() {
     kill "$(cat "$PIDFILE")" 2>/dev/null
     rm -f "$PIDFILE"
   fi
-  rm -f "$STAMP" "$REBUILD_FLAG"
+  rm -f "$STAMP" "$REBUILD_FLAG" "$LAUNCHED_FILE"
   [ -n "${WATCH_PID:-}" ] && kill "$WATCH_PID" 2>/dev/null
 }
 trap cleanup EXIT
@@ -263,8 +290,9 @@ trap 'cleanup; exit 0' INT TERM
       # WITNESSED the change. If the plugins on disk are not the plugins the
       # running app was built with, no number of hot restarts will help.
       NOW_PLUGINS="$(plugin_fingerprint)"
-      if [ -n "$NOW_PLUGINS" ] && [ -n "$LAUNCHED_PLUGINS" ] &&
-        [ "$NOW_PLUGINS" != "$LAUNCHED_PLUGINS" ]; then
+      LAUNCHED="$(launched_fingerprint)"
+      if [ -n "$NOW_PLUGINS" ] && [ -n "$LAUNCHED" ] &&
+        [ "$NOW_PLUGINS" != "$LAUNCHED" ]; then
         echo "  The running app is missing a plugin this checkout needs."
         NEEDS_REBUILD=1
       fi
@@ -381,8 +409,9 @@ trap 'cleanup; exit 0' INT TERM
     # The authoritative check. See plugin_fingerprint: a pull is an event, and
     # an app that was ALREADY stale when this script started never produced one.
     NOW_PLUGINS="$(plugin_fingerprint)"
-    if [ -n "$NOW_PLUGINS" ] && [ -n "$LAUNCHED_PLUGINS" ] &&
-      [ "$NOW_PLUGINS" != "$LAUNCHED_PLUGINS" ]; then
+    LAUNCHED="$(launched_fingerprint)"
+    if [ -n "$NOW_PLUGINS" ] && [ -n "$LAUNCHED" ] &&
+      [ "$NOW_PLUGINS" != "$LAUNCHED" ]; then
       echo "  The running app is missing a plugin this checkout needs."
       NEEDS_REBUILD=1
     fi
@@ -439,7 +468,7 @@ while true; do
   # comparison later is against this, not against whatever pub get last wrote,
   # so it answers "is the app on the emulator current" rather than "did a file
   # change recently".
-  LAUNCHED_PLUGINS="$(plugin_fingerprint)"
+  plugin_fingerprint >"$LAUNCHED_FILE"
 
   flutter run --pid-file "$PIDFILE"
   [ "$STOPPING" = "1" ] && break

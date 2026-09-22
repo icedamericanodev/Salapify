@@ -10,6 +10,187 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-09-22, session 43: the camera was never broken, seven journey tests faked the one boundary the bug lived on, and dev-sync's authoritative rebuild guard turned out to have never fired once
+
+**What we believed / What was true.**
+
+There is no delivery-log row to read this time, and saying why matters more
+than skipping it. `docs/delivery-log.md` still ends at the last Salapify 2
+patch, f4.72, and `app/` has no publisher, no Shorebird app id and no stamp.
+The ground truth this session audits is therefore not a stamp on a phone, it
+is what the founder saw on their emulator through `tools/dev-sync.sh`, and the
+belief being audited is a sentence said in chat rather than a row in a file.
+
+What we believed: "You most likely need to do nothing but watch dev-sync and
+be patient through one slow Gradle build." That was said after pushing
+`4035272`, which adds two plugins with a native side, `image_picker` and
+`google_mlkit_text_recognition`. It was reasoned from `tools/dev-sync.sh`,
+whose rebuild guard fingerprints `.flutter-plugins-dependencies` and forces a
+full native rebuild when the plugin list changes.
+
+What was true: the two new buttons appeared on the founder's emulator, because
+buttons are Dart and a hot restart delivers Dart, and every call behind them
+threw `MissingPluginException`, because the plugins were not in the installed
+binary. Salapify reported that as "The camera could not be opened on this
+phone." The founder went and checked their emulator, confirmed it had Play
+Store, a working Camera app and Photos, and came back. An hour went into a
+question about hardware that was working perfectly.
+
+We also believed the failure paths were tested. Seven journey tests covered
+the camera at `4035272`, including one called `'a phone with no camera is told
+something different'`. Every one handed `ScanReceiptSheet` a FAKE
+`ReceiptTextSource` that returned a `ReceiptReadFailure` value directly. They
+proved the right sentence is shown for each failure and proved nothing at all
+about which failure a real exception BECOMES. That translation had no test,
+and that is exactly where the defect lived.
+
+**Timeline, with evidence.**
+
+- `4035272` "Scan a receipt with the camera". Its own message names the risk in
+  capitals: "THIS IS A NATIVE CHANGE. Two plugins, so the APK must be rebuilt
+  and installed by hand ONCE." CI's Android build job passed.
+- The chat sentence, same moment. This is the divergence point, and it is not
+  the moment anybody noticed. From here on we believed the founder's emulator
+  would heal itself while it could not, and the founder believed it too.
+- `0c33d6e` a copy fix from a founder screenshot: the camera failure never
+  mentioned Choose an image sitting directly above it.
+- `ecd7d4b` `ImagePicker.retrieveLostData`. This is the part of the timeline
+  most likely to be misremembered as the fix. It was a REAL omission,
+  image_picker's README calls the check required, and it was NOT this
+  incident's cause: a lost pick comes back null and silent, and the founder's
+  came back as an exception. A correct fix for the wrong reason.
+- `e093076` "A failure message that names the button the person actually
+  pressed". Founder screenshot: tapping Choose an image produced "The camera
+  could not be opened on this phone. Choose an image instead." Two falsehoods
+  in one card. It blamed a control they had never touched, then offered the
+  control that had just failed, which is a loop with no way out.
+- `30ed6d9` "A missing plugin says so, instead of blaming a working camera".
+  The founder's confirmation that their emulator had Play Store, a Camera app
+  and Photos killed the "no app to handle the intent" reading and left the one
+  explanation that also accounts for the buttons being visible at all.
+- The founder stopped dev-sync and started it again, which forced the Gradle
+  rebuild, and the picker opened.
+
+**Root cause.**
+
+Two, stacked. Neither is "Claude did not check", because the fix for that is
+"check harder", which fails the moment anyone is busy.
+
+The first is a boundary that no test ever crossed. `DeviceReceiptTextSource`
+is the only place in Salapify where a platform exception becomes a
+`ReceiptReadFailure`, and it had no test at all. Seven journey tests sat one
+layer above it, each handing the sheet a fake source, so the suite was green
+on a sentence that was being shown for a reason that sentence did not
+describe. The test named `'a phone with no camera is told something
+different'` was passing the entire time the founder's phone, which HAD a
+camera, was being told exactly that.
+
+The second is the finding worth more than the incident. `tools/dev-sync.sh`
+has two rebuild triggers. One is an EVENT: `pubspec.yaml` appears in the
+pulled diff. The other is written to be STATE-based and its own comment called
+it "The authoritative check... an app that was ALREADY stale when this script
+started never produced one."
+
+That authoritative check could never fire, in either mode, since the day it
+was written. `LAUNCHED_PLUGINS` was declared empty, the watcher was forked
+into a background subshell, and the parent assigned the real fingerprint
+AFTER that fork, immediately before `flutter run`. A subshell receives a copy
+of the shell's variables when it is created and never sees a later assignment
+in the parent, so inside the watcher the value stayed empty for the life of
+the run. Both comparisons were guarded by `[ -n "$LAUNCHED_PLUGINS" ]`, so
+both were false forever.
+
+The script already stated this exact rule thirty lines earlier, about
+`REBUILD_FLAG` crossing the same fork in the other direction: "A file rather
+than a variable, because the watcher runs in a background subshell and a
+variable set there never reaches the run loop." The fingerprint went the other
+way and broke the same way.
+
+So the only live rebuild trigger dev-sync has ever had is the pubspec event
+path, which requires the script to be watching at the exact moment the change
+arrives. That is the hole the founder fell into.
+
+**Lessons, each with its guard and its strength.**
+
+- A test that fakes a boundary proves nothing about the boundary. Guard:
+  `app/test/features/receipt_camera_test.dart` drives the REAL
+  `DeviceReceiptTextSource` with a picker that raises the actual exception.
+  Proven by reproducing the founder's bug before the fix:
+
+      Expected: ReceiptReadFailure:<ReceiptReadFailure.notInThisBuild>
+        Actual: ReceiptReadFailure:<ReceiptReadFailure.unavailable>
+      a plugin missing from the build is being reported as a device problem,
+      which sends the person to check hardware that works
+
+  Both other directions are held by its companions: a genuine
+  `PlatformException` is still `unavailable`, and a cancel is still `null`.
+  Strength: STRONG, automated, proven to bite. Honest scope, stated in the
+  file itself: only `pickImage` is exercised. The ML Kit half has no test,
+  because a native recogniser cannot be built in a widget test, and faking it
+  would be this lesson all over again.
+
+- A broad `on Object` catch that maps every exception to one sentence erases
+  the difference between "your phone cannot do this" and "this build cannot do
+  this", and the person then goes and checks their phone. Guard: the ordered
+  catch, `MissingPluginException` first, held in place by the test above.
+  Strength: STRONG. The transferable half: a catch-all is fine, but only
+  underneath the named exceptions whose ANSWER to the person is different.
+
+- A failure message must name the control the person actually pressed, and
+  must never offer the path that has just failed. Guard: an exhaustive Dart
+  `switch` on the pair `(failure, source)`, so a new failure value will not
+  compile until somebody writes its sentence. Strength: STRONG, and the
+  durable half is the compiler, which works while nobody is watching.
+
+- A guard that has never fired looks exactly like a guard that keeps passing.
+  Guard: dev-sync's fingerprint is now written to a FILE at launch and read
+  from that file in the watcher, the same shape `REBUILD_FLAG` already used.
+  Proven both ways in a reduced harness rather than by reading the code and
+  believing it: with the file it fires when the plugin set changes and stays
+  silent when it does not, and with the old variable it stays silent even when
+  a plugin arrives. Strength: STRONG for a session already running. A session
+  that STARTS on a stale emulator is still not covered, because the
+  fingerprint it records at launch is the one it just built with, so the
+  warning at the top of the script stays.
+
+- A correct fix for the wrong reason is a hazard to a diagnosis, not a bonus.
+  `retrieveLostData` was a real omission worth keeping, and it also moved the
+  symptom while the cause sat untouched, which is how a wrong theory survives.
+  The feature is guarded STRONG by a journey pair, the alarm firing and the
+  alarm staying silent. The diagnostic lesson is guarded WEAK, and saying so
+  is the point: when a candidate fix does not explain every symptom, here an
+  exception rather than the silence `retrieveLostData` addresses, it is not
+  the cause however much it improves. No machine here can hold that.
+
+**Open lessons carried forward.**
+
+- CLAUDE.md names four paths that no longer exist, all stale in the same
+  direction, the 2026-09-18 archive move. The `cd flutter` render command; the
+  journeys file; `flutter/lib/widgets/salapify_icon.dart`, now
+  `app/lib/design/salapify_icon.dart`; and the consequential one,
+  `palette_contrast_test.dart` and `screen_readability_test.dart`, which
+  CLAUDE.md says "run on the branch check with everything else" and which
+  exist ONLY under `archive/salapify-2-flutter/test/`. Two machine guards are
+  described as live for the current app and are absent from it. Verified by
+  find, not by reading. A test that extracts every file path CLAUDE.md names
+  and reddens when one does not exist would have caught all four and none of
+  the claims that DID hold. Not built, and CLAUDE.md is the founder's to
+  change, so this is raised rather than acted on.
+
+- SCAN-TO-LOG IS NOT CONFIRMED WORKING END TO END, and nobody should write
+  that it is. The picker opening proves `image_picker` registered.
+  `google_mlkit_text_recognition` is a separate native plugin and has still
+  never executed, because it only runs once an image has actually been
+  selected. The ML Kit half is unproven by test and unproven on a device at
+  the same time, which is the weakest position in the feature.
+
+- `.githooks/pre-push` was retired with the archive and its body is now
+  `exit 0`, with a good finding preserved above it: "A guard that exits 0
+  while its subject has moved reads exactly like a guard that ran and passed."
+  There is currently no local pre-push guard of any kind for `app/`.
+
+---
+
 ## 2026-08-20, session 42: f4.53 delivered clean over the air (Accounts dashboard redesign), and three real in-session lessons turned into two proven tests and one hard-won test-font rule
 
 **What we believed / What was true.**
