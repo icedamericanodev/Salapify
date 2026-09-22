@@ -1704,3 +1704,81 @@ Circular 1049, RA 11967, Apple 5.1.1(v)) were recommended and are not built.
 | Dark | Dark, four ticked | Light |
 | --- | --- | --- |
 | ![checklist dark](screens/business-checklist-gabi.png) | ![checklist ticked](screens/business-checklist-ticked.png) | ![checklist light](screens/business-checklist-hapon.png) |
+
+## The roadmap and the structure matcher (2026-09-22)
+
+Founder direction, after the factual review: "go ahead with the roadmap and
+entity quiz". Both are ported with the review's corrections applied ON THE WAY
+IN rather than as a follow-up, which is the cheaper order and was the reason
+for running the review first.
+
+The screen is now three segments, `Checklist / Order / Structure`, and it is
+renamed from `BusinessChecklistScreen` to `BusinessGuideScreen` because a
+screen called Checklist that shows a roadmap is a lie in the file tree.
+
+### Structure is LAST, which reverses the prototype's tab order
+
+Choosing a structure is the first decision in real life and it is not the
+first thing somebody opens this for. They open it asking what they have to
+DO, the checklist answers that in one screen, and the other two are there for
+when the checklist raises a question a row cannot answer.
+
+### Corrections applied during the port
+
+| Where | Prototype said | Now |
+| --- | --- | --- |
+| Phase 5, DOLE | "within 30 days of commercial operations" | BEFORE you operate, within the 30 days prior |
+| Sole prop reason | "8% gross income tax if revenue under 3M" | 8% on GROSS SALES above 250,000, non-VAT only, elected on the first quarter return, locked for the year |
+| OPC card | "CIT 20%/25%" with no condition | both CREATE tests, income and assets |
+| Corporation card | "20% if taxable income <= 5M" | both tests, and the land exclusion |
+| Phase 4 | "register and file at any authorised RDO" | filing anywhere yes, registration still your own RDO |
+| Phase 4 | "Permit to Use (PTU) or Computerized Accounting System (CAS)" | a computerised system needs its own clearance, a POS machine needs a Permit to Use |
+| Phase 6 | online business registry "is mandated" | Trustmark voluntary until the end of 2026 |
+| Phase 2, DAU | "within 3 years and 5 years" | the first is due within three years, and there are more later |
+| Five text nodes | `Mayor\'s Permit`, a literal backslash on screen | correct apostrophes |
+
+The 8% one is the expensive one and it is pinned where somebody reads it
+rather than only in a document. `entity_matcher_test.dart` asserts the
+recommendation says gross SALES, names the 250,000, says you must be non-VAT,
+and says the election has a deadline and locks for the year. Putting the
+prototype's original sentence back turns all four red:
+
+    Expected: contains 'gross sales'
+      Actual: 'Pass-through taxation: eligible for simplified 8% gross income
+               tax under TRAIN law if revenue is under 3M.'
+
+### The quiz has three questions, not four
+
+The prototype's state carries a fourth key, `compliance`, that no control ever
+sets and the recommendation never reads. It is dead and is not ported: a
+question that answers nothing is a step invented for somebody to fill in.
+
+Both fallback branches are reachable with questions two and three left blank,
+which is the prototype's behaviour and is kept, because somebody who has said
+"just me" and nothing else should see the simplest structure rather than
+nothing. Those two branches are pinned by name in the matcher test, since a
+reader reaches them with one tap and a scroll.
+
+### A defect this port introduced, caught by the render
+
+The roadmap's caution blocks were built with caption text on the warning
+panel. That pair measures **4.29 to 1 in Gabi and 3.15 in Hapon**, against the
+4.5 floor for body text, and `palette_contrast_test.dart` could not catch it
+because nothing in the app had ever drawn it: the sweep lists pairs the app
+really draws, by rule. Tinted blocks now use the primary ink, which measures
+10.3 and 11.18, and the near miss is written into that file so the next tinted
+panel does not repeat it.
+
+### Deferred, still
+
+The Experts tab's six traps, whose penalty figures the review found wrong
+(Section 258 is 5,000 to 20,000, and not issuing an invoice is a separate
+offence under Section 264). MCIT is also absent from the corporation cards,
+so a founder comparing "sole prop at 8%" with "corporation at 20%" may assume
+a loss-making corporation pays nothing.
+
+### The screens, dark
+
+| Order | Structure | Matched |
+| --- | --- | --- |
+| ![roadmap](screens/business-guide-roadmap.png) | ![structure](screens/business-guide-structure.png) | ![matched](screens/business-guide-matched.png) |

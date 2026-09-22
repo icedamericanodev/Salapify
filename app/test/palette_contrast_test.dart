@@ -114,6 +114,15 @@ const List<Pair> _pairs = <Pair>[
   ('accent on accentSoft', _accent, _accentSoft, 4.5),
 
   // Ordinary text inside a tinted panel.
+  //
+  // textMuted on warningSoft is deliberately NOT in this list, and the reason
+  // is the rule at the top of the file rather than an exemption: the app does
+  // not draw it. It nearly did. The business roadmap's caution blocks were
+  // built with caption text on the warning panel, which measures 4.29 to 1 in
+  // Gabi and 3.15 in Hapon, and the render is what caught it. Those blocks
+  // now use textPrimary, which is the pair below, so the failing combination
+  // exists nowhere in lib/ and listing it here would be testing a colour
+  // nobody sees.
   ('textPrimary on accentSoft', _textPrimary, _accentSoft, 4.5),
   ('textPrimary on positiveSoft', _textPrimary, _positiveSoft, 4.5),
   ('textPrimary on negativeSoft', _textPrimary, _negativeSoft, 4.5),

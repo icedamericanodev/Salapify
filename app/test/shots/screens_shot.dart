@@ -42,7 +42,7 @@ import 'package:salapify/features/fx/fx_sheet.dart';
 import 'package:salapify/features/settings/import_sheet.dart';
 import 'package:salapify/features/settings/privacy_sheet.dart';
 import 'package:salapify/features/settings/settings_sheet.dart';
-import 'package:salapify/screens/plan/business_checklist_screen.dart';
+import 'package:salapify/screens/plan/business_guide_screen.dart';
 import 'package:salapify/state/financial_state.dart';
 
 /// The screenshot harness.
@@ -103,6 +103,7 @@ void main() {
   _cardFaceShots();
   largeTextShots();
   businessChecklistShots();
+  businessGuideViewShots();
   importShots();
   toolkitShots();
   settingsShots();
@@ -2269,7 +2270,7 @@ void businessChecklistShots() {
               backgroundColor: palette.background,
               body: SafeArea(
                 bottom: false,
-                child: BusinessChecklistScreen(state: state, onBack: () {}),
+                child: BusinessGuideScreen(state: state, onBack: () {}),
               ),
             ),
           ),
@@ -2277,10 +2278,72 @@ void businessChecklistShots() {
         await tester.pumpAndSettle();
 
         await expectLater(
-          find.byType(BusinessChecklistScreen),
+          find.byType(BusinessGuideScreen),
           matchesGoldenFile('out/business_checklist_$name.png'),
         );
       });
     }
+  }
+}
+
+/// The roadmap and the structure matcher, added 2026-09-22.
+///
+/// Dark only, which is what the founder reviews. The checklist shots above
+/// already cover both brightnesses for this screen's chrome, and what is
+/// being looked at here is layout: six collapsible phases and a three
+/// question matcher are the two things in this guide most likely to come out
+/// as a wall.
+void businessGuideViewShots() {
+  for (final ({String slug, String segment, bool answer}) shot
+      in <({String slug, String segment, bool answer})>[
+        (slug: 'roadmap', segment: 'Order', answer: false),
+        (slug: 'structure', segment: 'Structure', answer: false),
+        (slug: 'structure_matched', segment: 'Structure', answer: true),
+      ]) {
+    testWidgets('business guide ${shot.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 5200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 22),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: SafeArea(
+              bottom: false,
+              child: BusinessGuideScreen(state: state, onBack: () {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(shot.segment));
+      await tester.pumpAndSettle();
+
+      if (shot.answer) {
+        // One tap is enough to produce a recommendation, which is the
+        // behaviour worth looking at: the card appears from a single answer.
+        await tester.tap(find.text('Just me'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(BusinessGuideScreen),
+        matchesGoldenFile('out/business_guide_${shot.slug}.png'),
+      );
+    });
   }
 }

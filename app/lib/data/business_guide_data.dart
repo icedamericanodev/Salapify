@@ -488,3 +488,646 @@ const List<BusinessStep> businessChecklist = <BusinessStep>[
 List<String> get businessChecklistIds => <String>[
   for (final BusinessStep s in businessChecklist) s.id,
 ];
+
+// ===========================================================================
+// THE ROADMAP: the order these things have to happen in.
+// ===========================================================================
+//
+// Ported 2026-09-22 from the prototype's `roadmap` tab, which is hand written
+// JSX rather than data, so the content was extracted into
+// docs/migration/startup-guide-extract.md first and this file is built from
+// that. The extraction is faithful; the CORRECTIONS below are not, and each
+// one is named where it applies.
+//
+// Unlike the checklist, the order here is the point. Several steps will not
+// accept you without the paper from an earlier one, which is why this is a
+// sequence of phases rather than a second filterable list.
+
+/// How a block of a phase should read.
+enum BlockTone {
+  /// Ordinary body copy.
+  plain,
+
+  /// Worth knowing, tinted in the accent.
+  tip,
+
+  /// A deadline or a penalty. Tinted in the warning colour.
+  caution,
+}
+
+/// One block inside a phase: an optional heading, an optional paragraph, and
+/// any number of bullets. Deliberately one shape rather than a hierarchy of
+/// panels, cards, tiles and callouts: the prototype draws six different
+/// containers that all say "here is a heading and some lines under it", and
+/// porting the containers rather than the content would have carried a web
+/// layout into a phone for no reader benefit.
+class PhaseBlock {
+  const PhaseBlock({
+    this.heading,
+    this.body,
+    this.bullets = const <String>[],
+    this.tone = BlockTone.plain,
+  });
+
+  final String? heading;
+  final String? body;
+  final List<String> bullets;
+  final BlockTone tone;
+}
+
+/// One phase of getting registered.
+class RoadmapPhase {
+  const RoadmapPhase({
+    required this.number,
+    required this.kicker,
+    required this.agency,
+    required this.title,
+    required this.blocks,
+  });
+
+  final int number;
+
+  /// The small uppercase label, for instance "Initial Formation".
+  final String kicker;
+
+  /// Who this phase deals with.
+  final String agency;
+  final String title;
+  final List<PhaseBlock> blocks;
+}
+
+const List<RoadmapPhase> businessRoadmap = <RoadmapPhase>[
+  RoadmapPhase(
+    number: 1,
+    kicker: 'Initial Formation',
+    agency: 'DTI or SEC',
+    title: 'Register the name and the entity',
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        heading: 'Sole proprietor: DTI BNRS',
+        body:
+            'Register your trade name at bnrs.dti.gov.ph and pick how wide a '
+            'territory you want it protected in. Each fee adds a P30 '
+            'documentary stamp.',
+        bullets: <String>[
+          'Barangay, P200',
+          'City or municipality, P500',
+          'Regional, P1,000',
+          'National, P2,000',
+        ],
+      ),
+      PhaseBlock(
+        heading: 'Corporation, OPC or partnership: SEC eSPARC',
+        body:
+            'File online at esparc.sec.gov.ph. Fees are based on your '
+            'authorised capital stock.',
+        bullets: <String>[
+          'Name verification slip',
+          "Articles of Incorporation and By-Laws, or OPC Articles",
+          "Treasurer's Affidavit",
+          'Nominee and Alternate Nominee acceptance, OPC only',
+        ],
+      ),
+      PhaseBlock(
+        tone: BlockTone.caution,
+        heading: 'A DTI or SEC name is not a trademark',
+        body:
+            'Registering the business name does not give you ownership of the '
+            'brand or the logo. Somebody else can still register your name '
+            'with IPOPHL if you have not. A DTI certificate also does not let '
+            'you trade on its own: the LGU and BIR steps are still required.',
+      ),
+    ],
+  ),
+  RoadmapPhase(
+    number: 2,
+    kicker: 'Intellectual property',
+    agency: 'IPOPHL',
+    title: 'Protect the brand',
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        body:
+            'Under RA 8293 trademarks go to whoever FILES first, not whoever '
+            'used the name first in business.',
+      ),
+      PhaseBlock(
+        heading: 'Search first',
+        body:
+            'Check IPOPHL e-Search and the WIPO Global Brand Database, and '
+            'work out your Nice classes. Class 9 covers software, 35 retail, '
+            '42 SaaS.',
+      ),
+      PhaseBlock(
+        heading: 'File and wait',
+        body:
+            'Apply through IPOPHL eTMfile. Examination takes three to six '
+            'months, then it is published for a 30 day opposition period.',
+      ),
+      PhaseBlock(
+        heading: 'Registration and the DAU',
+        // The prototype said "within 3 years and 5 years", which the review
+        // flagged as ambiguous: it reads as one deadline spanning both, or as
+        // two filings, and elsewhere the same component named only the three
+        // year one. Neither reviewer could open the rule, so this names the
+        // first deadline (which is the one that cancels a mark if missed) and
+        // says there are more, rather than printing a number nobody checked.
+        body:
+            'The certificate runs ten years. You must file a Declaration of '
+            'Actual Use with proof you are really using the mark, the first '
+            'within three years of filing, and again later to keep it. Miss '
+            'the first and the mark is cancelled.',
+      ),
+      PhaseBlock(
+        tone: BlockTone.tip,
+        heading: 'File before you launch',
+        body:
+            'If you are building an app or a consumer brand, file on day one. '
+            'Somebody watching your early traction can register your name and '
+            'leave you rebranding or buying it back.',
+      ),
+    ],
+  ),
+  RoadmapPhase(
+    number: 3,
+    kicker: 'Local government',
+    agency: 'Barangay and City Hall',
+    title: "Clearances and the Mayor's Permit",
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        body:
+            "You cannot legally operate without a Mayor's Permit from the "
+            'city or municipality your business address is in, including a '
+            'home address.',
+      ),
+      PhaseBlock(
+        heading: 'A. Barangay business clearance',
+        body:
+            'From the barangay hall of your address. Bring your DTI or SEC '
+            'certificate, your lease, and proof of address. Roughly P300 to '
+            'P1,500.',
+      ),
+      PhaseBlock(
+        heading: 'B. Locational or zoning clearance',
+        body:
+            'Confirms your activity is allowed where you are. A purely '
+            'residential zone may not permit customers coming to the address.',
+      ),
+      PhaseBlock(
+        heading: 'C. Fire safety and sanitary',
+        body:
+            'The Bureau of Fire Protection checks extinguishers, exits and '
+            'wiring. The health office issues sanitary permits and staff '
+            'health cards.',
+      ),
+      PhaseBlock(
+        heading: 'D. BPLO assessment',
+        body:
+            'Hand in every clearance. The Business Permit and Licensing '
+            "Office works out your local business tax, then releases the "
+            'permit and your business plate.',
+      ),
+      PhaseBlock(
+        tone: BlockTone.caution,
+        heading: 'Renew every January',
+        body:
+            'Between 1 and 20 January. After that it is a 25% surcharge plus '
+            '2% a month.',
+      ),
+    ],
+  ),
+  RoadmapPhase(
+    number: 4,
+    kicker: 'National taxation',
+    agency: 'BIR',
+    title: 'Registration, books and invoices',
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        tone: BlockTone.tip,
+        heading: 'What the Ease of Paying Taxes Act changed',
+        bullets: <String>[
+          'The P500 annual registration fee is gone for good.',
+          'The Invoice is now the main document for goods AND services. '
+              'Official Receipts are supplementary.',
+          // CORRECTED. The prototype said you can now "register and file at
+          // any authorised RDO". Only the FILING half is true: the wrong
+          // venue surcharge was deleted. Registration still goes to the RDO
+          // covering your address, online through ORUS.
+          'You can file and pay anywhere with no wrong venue penalty. '
+              'Registering still goes to the RDO for your address.',
+        ],
+      ),
+      PhaseBlock(
+        heading: 'The form you file',
+        bullets: <String>[
+          'Form 1901 for a sole proprietor or professional',
+          'Form 1903 for a corporation or partnership',
+        ],
+      ),
+      PhaseBlock(
+        heading: 'Form 2303, your Certificate of Registration',
+        body:
+            'It lists every return you are now required to file, for example '
+            '2551Q percentage tax or 2550Q VAT, 1701Q or 1702Q income tax, '
+            'and 1601C withholding on wages.',
+      ),
+      PhaseBlock(
+        heading: 'Books of accounts',
+        body: 'Every business registers its official books before using them.',
+        bullets: <String>[
+          'General Journal',
+          'General Ledger',
+          'Cash Receipts',
+          'Cash Disbursements',
+        ],
+      ),
+      PhaseBlock(
+        // CORRECTED. The prototype offered "Permit to Use (PTU) or
+        // Computerized Accounting System (CAS)" as if they were two
+        // alternatives. They are not: CAS is the system, and the paper it
+        // needs stopped being a PTU in 2021. A point of sale or cash register
+        // machine is the thing that still takes a Permit to Use.
+        heading: 'Printing invoices',
+        body:
+            'File Form 1906 for an Authority to Print and use a BIR '
+            'accredited printer. A computerised accounting system needs its '
+            'own clearance instead, and a point of sale machine needs a '
+            'Permit to Use.',
+      ),
+    ],
+  ),
+  RoadmapPhase(
+    number: 5,
+    kicker: 'Hiring anyone',
+    agency: 'SSS, PhilHealth, Pag-IBIG, DOLE',
+    title: 'Employer registrations',
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        body:
+            'The moment you hire your first employee you are an employer in '
+            'law, and all four of these apply.',
+      ),
+      PhaseBlock(
+        heading: 'SSS',
+        body:
+            'Form R-1 to register as an employer and R-1A to report who you '
+            'have hired. Covers retirement, sickness, maternity, disability '
+            'and death benefits.',
+      ),
+      PhaseBlock(
+        heading: 'PhilHealth',
+        body:
+            'Form ER1 gets your Employer Number. Report staff separately with '
+            'ER2 or a PMRF each, then remit monthly.',
+      ),
+      PhaseBlock(
+        heading: 'Pag-IBIG',
+        body:
+            'Form HQP-PFF-002. Gives employees the housing loan facility and '
+            'the savings fund.',
+      ),
+      PhaseBlock(
+        // THE SAME INVERSION the checklist carried, and it is corrected the
+        // same way. The prototype said "within 30 days of commercial
+        // operations". Rule 1020 says thirty days BEFORE operating.
+        tone: BlockTone.caution,
+        heading: 'DOLE Rule 1020',
+        body:
+            'File the establishment notice with your DOLE Regional Office '
+            'BEFORE you start operating, within the 30 days beforehand. It is '
+            'free, and it is a workplace safety requirement rather than a tax '
+            'one.',
+      ),
+    ],
+  ),
+  RoadmapPhase(
+    number: 6,
+    kicker: 'Digital and online',
+    agency: 'NPC, NTC, DTI, BSP',
+    title: 'If you sell software or sell online',
+    blocks: <PhaseBlock>[
+      PhaseBlock(
+        body:
+            'Apps, websites, SaaS and online shops pick up a second set of '
+            'requirements on top of everything above.',
+      ),
+      PhaseBlock(
+        tone: BlockTone.caution,
+        heading: 'Data privacy, RA 10173',
+        body:
+            'Applies the moment you collect emails, passwords, phone numbers, '
+            'addresses or financial records.',
+        bullets: <String>[
+          'Name a Data Protection Officer.',
+          'Publish a clear privacy notice, and ask for consent where you '
+              'need it.',
+          'Register with the NPC only above the thresholds, for example '
+              'sensitive data on 1,000 people or 250 staff.',
+          'Report a data breach to the NPC within 72 hours.',
+        ],
+      ),
+      PhaseBlock(
+        heading: 'Telecoms, NTC',
+        body:
+            'Messaging, SMS gateways, VoIP, premium content or anything '
+            'routed through a telecom needs an NTC Certificate of '
+            'Registration before you go live.',
+      ),
+      PhaseBlock(
+        // CORRECTED, and this is the claim with the shortest shelf life on
+        // the screen. The prototype said registration with the online
+        // business registry "is mandated". The E-Commerce Philippine
+        // Trustmark was voluntary in July 2025, mandatory that September,
+        // reverted weeks later, and DTI has extended the voluntary phase to
+        // the end of 2026. The Act's own duties are live; registering is not.
+        heading: 'Selling online, RA 11967',
+        body:
+            'The Internet Transactions Act has been enforceable since 20 June '
+            '2025.',
+        bullets: <String>[
+          'Show your registered business name, your DTI or SEC number, your '
+              'address and a real way to contact you.',
+          'A platform shares liability with a merchant if it knowingly '
+              'allows illegal or counterfeit goods.',
+          'The DTI Trustmark is separate and stays voluntary until the end '
+              'of 2026.',
+        ],
+      ),
+      PhaseBlock(
+        heading: 'If you touch money, lending or health',
+        bullets: <String>[
+          'Payments: BSP Operator of Payment System registration for '
+              'aggregators, escrow wallets and remitters.',
+          'Lending or buy now pay later: an SEC Certificate of Authority, '
+              'and it is strictly enforced.',
+          'Cosmetics or anything ingestible: an FDA Licence to Operate and '
+              'product registration before you list it.',
+        ],
+      ),
+    ],
+  ),
+];
+
+// ===========================================================================
+// WHICH STRUCTURE: the comparison, and the three question matcher.
+// ===========================================================================
+
+/// What an attribute row is saying about an entity, so the screen can colour
+/// it. The prototype colours these and the colour carries meaning: red on
+/// "unlimited liability" is the single most consequential word on the screen.
+enum EntityTone { plain, good, bad, warn, muted }
+
+/// One label and value on a comparison card.
+typedef EntityRow = (String label, String value, EntityTone tone);
+
+/// One way of structuring a business.
+class EntityCard {
+  const EntityCard({
+    required this.title,
+    required this.registrar,
+    required this.description,
+    required this.rows,
+  });
+
+  final String title;
+
+  /// "Registered via DTI" or "Registered via SEC".
+  final String registrar;
+  final String description;
+  final List<EntityRow> rows;
+}
+
+const List<EntityCard> businessEntities = <EntityCard>[
+  EntityCard(
+    title: 'Sole Proprietorship',
+    registrar: 'Registered via DTI',
+    description:
+        'Owned entirely by one person. You and the business are the same '
+        'legal person.',
+    rows: <EntityRow>[
+      ('Liability', 'Unlimited, your own assets are at risk', EntityTone.bad),
+      ('Capital needed', 'No minimum', EntityTone.plain),
+      // "Pass-through (8% flat or graduated)" in the prototype. "Flat" is the
+      // wrong word for an election you have to make on time and cannot undo.
+      ('Tax', '8% option or the graduated rates', EntityTone.plain),
+      ('Setup', 'Fastest, one to three days at DTI', EntityTone.plain),
+      ('Investors', 'Cannot sell shares', EntityTone.muted),
+    ],
+  ),
+  EntityCard(
+    title: 'One Person Corporation (OPC)',
+    registrar: 'Registered via SEC',
+    description:
+        'Created under RA 11232 for solo founders who want limited liability '
+        'without needing a board.',
+    rows: <EntityRow>[
+      ('Liability', 'Limited to what the company owns', EntityTone.good),
+      ('Officers needed', 'Nominee and Alternate Nominee', EntityTone.plain),
+      // CORRECTED. The prototype gave "20%/25%" here and never said what
+      // picks between them, while the corporation card two cards down gave
+      // one of the two conditions. Both cards now carry the same full test.
+      (
+        'Tax',
+        '20% if income is 5M or less AND assets 100M or less, else 25%',
+        EntityTone.plain,
+      ),
+      ('Governance', 'No board or by-laws required', EntityTone.plain),
+      ('Investors', 'Must convert to add owners', EntityTone.plain),
+    ],
+  ),
+  EntityCard(
+    title: 'Regular Stock Corporation',
+    registrar: 'Registered via SEC',
+    description:
+        'Two to fifteen incorporators, issuing shares, run by an elected '
+        'board.',
+    rows: <EntityRow>[
+      ('Liability', 'Limited to subscribed capital', EntityTone.good),
+      ('Governance', 'Board, President, CorpSec, Treasurer', EntityTone.plain),
+      // CORRECTED. The prototype gave only the 5M income test. The asset test
+      // is conjunctive and the land exclusion is in the statute, so a company
+      // that owns its office is not knocked out of the lower rate by it.
+      (
+        'Tax',
+        '20% if income is 5M or less AND assets 100M or less, '
+            'not counting the land, else 25%',
+        EntityTone.plain,
+      ),
+      ('Reporting', 'Annual GIS and audited statements', EntityTone.plain),
+      ('Investors', 'Highest, what angels and VCs expect', EntityTone.good),
+    ],
+  ),
+  EntityCard(
+    title: 'Partnership',
+    registrar: 'Registered via SEC',
+    description:
+        'Two or more people putting in money, property or work toward a '
+        'common fund, and splitting the profit.',
+    rows: <EntityRow>[
+      ('Liability', 'Joint and several for general partners', EntityTone.warn),
+      ('Formation', 'Articles of Partnership', EntityTone.plain),
+      (
+        'Professional partnership',
+        'The firm is exempt, the partners are taxed',
+        EntityTone.plain,
+      ),
+      ('Commercial partnership', 'Taxed like a corporation', EntityTone.plain),
+      ('Continuity', 'Dissolves if a partner dies or leaves', EntityTone.muted),
+    ],
+  ),
+];
+
+/// One question in the matcher.
+class EntityQuestion {
+  const EntityQuestion({
+    required this.key,
+    required this.label,
+    required this.options,
+  });
+
+  /// `owners`, `liability` or `funding`.
+  final String key;
+  final String label;
+
+  /// Each option is what it says and what it sets.
+  final List<(String label, String value)> options;
+}
+
+/// THREE questions, not four.
+///
+/// The prototype's state carries a fourth key, `compliance`, which no control
+/// ever sets and the recommendation never reads. It is dead, so it is not
+/// ported: carrying a question across that answers nothing would be inventing
+/// a step for somebody to fill in.
+const List<EntityQuestion> entityQuestions = <EntityQuestion>[
+  EntityQuestion(
+    key: 'owners',
+    label: 'How many of you are starting this?',
+    options: <(String, String)>[
+      ('Just me', 'single'),
+      ('Two or more of us', 'multiple'),
+    ],
+  ),
+  EntityQuestion(
+    key: 'liability',
+    label: 'If the business owed money it could not pay, what then?',
+    options: <(String, String)>[
+      ('My own house and savings must be safe', 'protected'),
+      ('Low risk business, keep it simple', 'low_risk'),
+    ],
+  ),
+  EntityQuestion(
+    key: 'funding',
+    label: 'Will you raise money from outside investors?',
+    options: <(String, String)>[
+      ('Yes, I will issue shares', 'investors'),
+      ('No, my own money or what customers pay', 'bootstrapped'),
+    ],
+  ),
+];
+
+/// What the matcher recommends.
+class EntityMatch {
+  const EntityMatch({
+    required this.title,
+    required this.summary,
+    required this.reasons,
+  });
+
+  final String title;
+  final String summary;
+  final List<String> reasons;
+}
+
+/// The prototype's own decision tree, branch for branch.
+///
+/// Four reachable outcomes and one null guard, and the null guard matters:
+/// with question one unanswered there is no recommendation at all, rather
+/// than a default that somebody might act on.
+///
+/// The two fallback branches are reachable with questions two and three left
+/// blank, which is the prototype's behaviour and is kept. It is defensible:
+/// somebody who has said "just me" and answered nothing else is being shown
+/// the simplest structure, which is the right default to show and the wrong
+/// one to hide.
+EntityMatch? matchEntity({String? owners, String? liability, String? funding}) {
+  if (owners == null || owners.isEmpty) return null;
+
+  final bool wantsShield = liability == 'protected';
+  final bool wantsInvestors = funding == 'investors';
+
+  if (owners == 'single') {
+    if (wantsShield || wantsInvestors) {
+      return const EntityMatch(
+        title: 'One Person Corporation (OPC)',
+        summary:
+            'For a solo founder who wants to stay in sole control but keep '
+            'their own assets out of reach of business debts.',
+        reasons: <String>[
+          'Only one stockholder needed, under RA 11232.',
+          'Your home and family savings are shielded from company debt.',
+          'No minimum capital, unless you are in a regulated industry.',
+          'You must name a Nominee and an Alternate Nominee.',
+        ],
+      );
+    }
+    return const EntityMatch(
+      title: 'Sole Proprietorship',
+      summary:
+          'For a freelancer, a home based trader or a small shop that wants '
+          'to be registered quickly and cheaply.',
+      reasons: <String>[
+        'Registered at DTI, with no bylaws or board meetings.',
+        'Cheapest to form, P200 to P2,000 at DTI plus the documentary stamp.',
+        // THE MOST EXPENSIVE CORRECTION IN THIS PORT.
+        //
+        // The prototype said "eligible for simplified 8% gross income tax
+        // under TRAIN law if revenue is under P3M". Three things wrong, and
+        // the first costs money.
+        //
+        // The 8% is on GROSS SALES, not gross income. Gross income in the Tax
+        // Code is sales less cost of sales, so a reader applying 8% the way
+        // that sentence describes underpays, and on 2,000,000 of sales with
+        // 1,200,000 of costs the gap is roughly 96,000 plus surcharge and
+        // interest.
+        //
+        // It also omitted that you must be non-VAT to elect it, and that the
+        // election has a deadline and cannot be undone for the year. A missed
+        // deadline is as expensive as a wrong rate.
+        'If you are non-VAT and sales are 3M or less you may elect 8% on '
+            'gross sales above 250,000, instead of the graduated rates and '
+            'percentage tax. Elect it on your first quarter return; it is '
+            'locked for the year.',
+        'The trade off: unlimited personal liability for business debts.',
+      ],
+    );
+  }
+
+  if (wantsInvestors || wantsShield) {
+    return const EntityMatch(
+      title: 'Regular Stock Corporation',
+      summary:
+          'The usual choice for a startup with several founders that plans to '
+          'raise money.',
+      reasons: <String>[
+        'Two to fifteen incorporators under the Revised Corporation Code.',
+        'Can issue different classes of share to angels and funds.',
+        'Limited liability for every shareholder, up to what they subscribed.',
+        'Corporate income tax of 20% where taxable income is 5M or less and '
+            'assets are 100M or less, otherwise 25%.',
+      ],
+    );
+  }
+
+  return const EntityMatch(
+    title: 'General or Limited Partnership',
+    summary:
+        'For two or more professionals, consultants or designers running '
+        'something together under an agreement.',
+    reasons: <String>[
+      'Registered with SEC through Articles of Partnership.',
+      'The agreement sets out how profit and loss are split.',
+      'The trade off: in a general partnership each partner is personally '
+          'liable for the whole debt.',
+    ],
+  );
+}

@@ -10,7 +10,7 @@ import '../../features/info/info_sheet.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/academy.dart';
 import '../../state/financial_state.dart';
-import 'business_checklist_screen.dart';
+import 'business_guide_screen.dart';
 
 /// Salapify Academy, from src/components/AcademyView.tsx.
 ///
@@ -56,7 +56,7 @@ class _AcademySegmentState extends State<AcademySegment> {
           backgroundColor: palette.background,
           body: SafeArea(
             bottom: false,
-            child: BusinessChecklistScreen(
+            child: BusinessGuideScreen(
               state: widget.state,
               onBack: () => Navigator.of(ctx).pop(),
             ),
