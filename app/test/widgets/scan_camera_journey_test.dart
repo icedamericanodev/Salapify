@@ -188,7 +188,16 @@ TOTAL              147.00
     await tester.pumpAndSettle();
 
     expect(find.textContaining('could not be opened'), findsOneWidget);
-    expect(find.textContaining('Pasting the receipt text'), findsOneWidget);
+    expect(
+      find.textContaining('Choose an image instead'),
+      findsOneWidget,
+      reason:
+          'the message does not name the button directly above it, which '
+          'needs no camera and reads the same way. On an emulator this is '
+          'the ordinary case, so it steers people away from the one path '
+          'that would have worked.',
+    );
+    expect(find.textContaining('paste the receipt text below'), findsOneWidget);
     expect(find.textContaining('more light'), findsNothing);
   });
 

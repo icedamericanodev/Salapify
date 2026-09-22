@@ -756,8 +756,15 @@ class _ReadFailed extends StatelessWidget {
           'No words could be read from that picture. A flatter angle and '
               'more light usually fixes it, or type the amount in below.',
         ReceiptReadFailure.unavailable =>
-          'The camera could not be opened on this phone. Pasting the '
-              'receipt text below works just as well.',
+          // NAMES THE BUTTON SITTING RIGHT ABOVE IT. Founder screenshot,
+          // 2026-09-22, from an emulator: this sentence sent them to the
+          // paste box and never mentioned Choose an image, which needs no
+          // camera and reads through the very same reader. On an emulator
+          // that is the ordinary case rather than a rare one, so the message
+          // was steering people away from the one thing that would work.
+          'The camera could not be opened on this phone. Choose an image '
+              'instead, or paste the receipt text below. Both read exactly '
+              'the same way.',
       }, style: AppType.body(palette)),
     );
   }
