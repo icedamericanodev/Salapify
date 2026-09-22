@@ -141,7 +141,23 @@ If I changed something in `pubspec.yaml`, which is the list of libraries the
 app uses, run `flutter pub get` before the reload. I will say so when that
 happens; it is rare.
 
-## Two things worth knowing before they confuse you
+## Three things worth knowing before they confuse you
+
+**A new plugin needs a full stop and start, not a restart.** When Claude adds
+something that touches the phone itself, a camera, notifications, file
+storage, the app has to be REBUILT, and a hot restart cannot do that. The
+confusing part is what it looks like when it has not happened: the new screens
+appear perfectly, because screens are Dart and a hot restart delivers Dart,
+and then every button on them fails. On 2026-09-22 the Scan a receipt sheet
+showed both of its new buttons and neither could open anything, and an hour
+went into checking an emulator that was working the whole time.
+
+Press **Ctrl-C** in the dev-sync terminal and run `bash tools/dev-sync.sh`
+again. It costs one slow Gradle build, several minutes with long silences,
+and it is the only thing that rebuilds the native side. Claude will say when
+a change needs this.
+
+
 
 **It installs beside your live app, not over it.** Salapify 3's application id
 is `dev.icedamericano.salapify3`, deliberately different from the app you use

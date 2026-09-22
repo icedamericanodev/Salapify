@@ -8,6 +8,27 @@
 # Both modes hot restart the running app for you. You do not type anything
 # after starting it. Stop with Ctrl-C, which stops the app too.
 #
+# WHEN A NEW PLUGIN ARRIVES, STOP THIS AND START IT AGAIN. The rebuild guard
+# further down is real and it does work, and it can only compare against a
+# fingerprint it RECORDED, which happens when `flutter run` starts. A session
+# already running when the plugin change lands is covered. A session that
+# starts afterwards, on an emulator still holding the older build, records the
+# new fingerprint and sees nothing to compare it against.
+#
+# On 2026-09-22 the guard did not fire and an hour went into the wrong
+# question. Exactly which path produced that was never established, so this
+# is a warning about a hole rather than a diagnosis of one: the cure below is
+# cheap, and it is certain in a way that reasoning about it is not.
+#
+# What that looks like is the confusing part, and it is why it is written at
+# the top rather than buried: the new screens APPEAR, because screens are
+# Dart and a hot restart delivers Dart. Everything native behind them throws
+# MissingPluginException. Scan a receipt showed both of its new buttons and
+# neither one could open anything.
+#
+# Ctrl-C and `bash tools/dev-sync.sh` again is the whole fix. It costs one
+# slow Gradle build and it is the only way the native side gets rebuilt.
+#
 # WHICH MODE YOU WANT depends on where Claude is running, and picking the wrong
 # one looks exactly like "my changes are not showing up".
 #
