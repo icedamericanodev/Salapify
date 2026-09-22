@@ -78,7 +78,17 @@ class Palette {
     borderStrong: Color(0xFFF0D5C0),
     textPrimary: Color(0xFF15120F),
     textSecondary: Color(0xFF5A5148),
-    textMuted: Color(0xFF7A6E63),
+    // Four points darker than the prototype's #7A6E63, on 2026-09-22, and
+    // the only reason is measurement. This is caption text, and at the
+    // prototype's value it failed WCAG AA on the two surfaces it is most
+    // often drawn on: 4.39 to 1 on the page and 4.38 on the soft accent
+    // banners, where 4.5 is the floor. It now reads 4.66 and 4.64.
+    //
+    // It is a shift nobody can see and it was invisible for another reason
+    // too: both failures are in HAPON, the light theme, which is reviewed by
+    // eye almost never. palette_contrast_test.dart found all of it in
+    // arithmetic on its first run.
+    textMuted: Color(0xFF766A5F),
     accent: Color(0xFFB03C09),
     onAccent: Color(0xFFFFFFFF),
     accentSoft: Color(0xFFFFEEDF),
@@ -86,7 +96,11 @@ class Palette {
     positiveSoft: Color(0xFFD9F2E4),
     negative: Color(0xFFB03C09),
     negativeSoft: Color(0xFFFCE3DE),
-    warning: Color(0xFF92400E),
+    // Six points darker than the prototype's #92400E, same date and same
+    // reason. This is the PENDING pill's text on the amber chip in Activity
+    // (day_group.dart), which measured 4.25 to 1 and now reads 4.62. Its
+    // other two surfaces had plenty of room and gained a little as well.
+    warning: Color(0xFF8C3A08),
     warningSoft: Color(0xFFFBBF24),
     iconTile: Color(0xFFFFEEDF),
     trackSoft: Color(0xFFFFEEDF),

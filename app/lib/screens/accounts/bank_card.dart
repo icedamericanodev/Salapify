@@ -197,68 +197,90 @@ class _BankCardState extends State<BankCard>
 
     final InstitutionBrand? brand = brandFor(account.institution);
 
-    return Semantics(
-      button: true,
-      label:
-          '${account.name}, ${account.institution}, '
-          '${isCredit ? 'outstanding' : 'available'} $balance. '
-          'Tap to turn the card over.',
-      child: InkWell(
-        onTap: _turn,
-        borderRadius: BorderRadius.circular(Radii.card),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // The turn. A rotation about Y with a little perspective, so the
-            // card reads as a physical object turning rather than a picture
-            // being squashed and swapped. The back is pre-rotated by pi so it
-            // is not mirror-imaged when it comes round.
-            AnimatedBuilder(
-              animation: _flip,
-              builder: (BuildContext context, _) {
-                final double t = Curves.easeInOut.transform(_flip.value);
-                final double angle = t * math.pi;
-                return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.0012)
-                    ..rotateY(angle),
-                  child: t <= 0.5
-                      ? _plastic(
-                          from,
-                          to,
-                          ink,
-                          inkSoft,
-                          metallic,
-                          paleCard,
-                          brand,
-                          isCredit,
-                          balance,
-                        )
-                      : Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()..rotateY(math.pi),
-                          child: _CardBack(
-                            account: account,
-                            palette: palette,
-                            from: from,
-                            to: to,
-                            ink: ink,
-                            inkSoft: inkSoft,
-                            onEdit: onTap,
+    // THE SYSTEM FONT DOES NOT SCALE THIS ONE, and it is the only place in
+    // Salapify that says so.
+    //
+    // A bank card is a fixed shape, and every size inside it is derived from
+    // that shape: the number, the labels and the balance are all fractions of
+    // the card's own height. That is what makes it read as a card rather than
+    // as a list row. So there is nowhere for 1.5x text to go, and at that
+    // setting it did what fixed geometry always does: overflowed twelve
+    // pixels out of the bottom and drew the yellow and black barber pole
+    // across somebody's account.
+    //
+    // Found by screen_readability_test.dart on its first run, on a screen
+    // that has been rendered dozens of times this month, because no render
+    // was ever taken at a large font.
+    //
+    // Nothing is lost by pinning it. The card is a PICTURE of an account, and
+    // every figure on it appears again as ordinary scalable text in the row
+    // beneath it and on the account's own screen. The alternative, letting
+    // the card grow with the font, is not a more accessible card, it is a
+    // different component.
+    return MediaQuery.withNoTextScaling(
+      child: Semantics(
+        button: true,
+        label:
+            '${account.name}, ${account.institution}, '
+            '${isCredit ? 'outstanding' : 'available'} $balance. '
+            'Tap to turn the card over.',
+        child: InkWell(
+          onTap: _turn,
+          borderRadius: BorderRadius.circular(Radii.card),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // The turn. A rotation about Y with a little perspective, so the
+              // card reads as a physical object turning rather than a picture
+              // being squashed and swapped. The back is pre-rotated by pi so it
+              // is not mirror-imaged when it comes round.
+              AnimatedBuilder(
+                animation: _flip,
+                builder: (BuildContext context, _) {
+                  final double t = Curves.easeInOut.transform(_flip.value);
+                  final double angle = t * math.pi;
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..rotateY(angle),
+                    child: t <= 0.5
+                        ? _plastic(
+                            from,
+                            to,
+                            ink,
+                            inkSoft,
+                            metallic,
+                            paleCard,
+                            brand,
+                            isCredit,
+                            balance,
+                          )
+                        : Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()..rotateY(math.pi),
+                            child: _CardBack(
+                              account: account,
+                              palette: palette,
+                              from: from,
+                              to: to,
+                              ink: ink,
+                              inkSoft: inkSoft,
+                              onEdit: onTap,
+                            ),
                           ),
-                        ),
-                );
-              },
-            ),
-            // Utilisation sits BELOW the plastic rather than on it. Real cards
-            // do not print how much of the limit you have spent, and squeezing
-            // it inside would cost the card its proportions, which are the
-            // thing that makes it read as a card at all.
-            if (isCredit) _Utilisation(account: account, palette: palette),
-            if (isCredit)
-              _Cycle(account: account, palette: palette, now: widget.now),
-          ],
+                  );
+                },
+              ),
+              // Utilisation sits BELOW the plastic rather than on it. Real cards
+              // do not print how much of the limit you have spent, and squeezing
+              // it inside would cost the card its proportions, which are the
+              // thing that makes it read as a card at all.
+              if (isCredit) _Utilisation(account: account, palette: palette),
+              if (isCredit)
+                _Cycle(account: account, palette: palette, now: widget.now),
+            ],
+          ),
         ),
       ),
     );

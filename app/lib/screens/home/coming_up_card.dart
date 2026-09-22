@@ -85,7 +85,16 @@ class ComingUpCard extends StatelessWidget {
               ),
               Text(
                 'Expected bills & income before next payday',
-                maxLines: 1,
+                // TWO LINES, because one was never enough for this sentence.
+                // It did not fit at the ordinary font size, so every phone
+                // has been showing "Expected bills & income before next
+                // pay..." since the card was written. A row title cut short
+                // is a deliberate pattern; Salapify's own explanation of what
+                // a card means is just a sentence the layout lost.
+                //
+                // Found by screen_readability_test.dart on its first run,
+                // and it was the only finding at 1.0x on any tab.
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11, color: palette.textMuted),
               ),
