@@ -254,6 +254,45 @@ TOTAL              147.00
     expect(find.textContaining('Paste the receipt text below'), findsOneWidget);
   });
 
+  testWidgets('a build without the plugins says so, and blames no phone', (
+    WidgetTester tester,
+  ) async {
+    // THE HOUR THIS COST, 2026-09-22. Both buttons failed on the founder's
+    // emulator, and the message told them the camera could not be opened,
+    // so they went and checked their emulator. It had Play Store, a Camera
+    // app and Photos, all working.
+    //
+    // The real cause was a hot restart putting new Dart code on top of an
+    // older native build. The buttons are Dart and appeared; the plugins
+    // behind them were not in the installed binary, so every call threw
+    // MissingPluginException, which was being swallowed into "the camera
+    // could not be opened". tools/dev-sync.sh documents this exact trap,
+    // having been caught by it once already with path_provider.
+    //
+    // A message that names the phone's hardware sends somebody to check the
+    // one thing that is definitely fine.
+    final _FakeCamera camera = _FakeCamera(
+      (_) => const ReceiptRead.failed(ReceiptReadFailure.notInThisBuild),
+    );
+    await openSheet(tester, fresh(), camera);
+
+    await tester.tap(find.text('Choose an image'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('reinstalling the app'), findsOneWidget);
+    expect(
+      find.textContaining('could not be opened'),
+      findsNothing,
+      reason:
+          'a missing plugin is being reported as a broken camera or photo '
+          'library, which sends the person to check hardware that works',
+    );
+    expect(find.textContaining('camera'), findsNothing);
+
+    // And there is still something they can do this minute.
+    expect(find.textContaining('Pasting the receipt text below'), findsWidgets);
+  });
+
   testWidgets('an unreadable image is not told to stand somewhere else', (
     WidgetTester tester,
   ) async {

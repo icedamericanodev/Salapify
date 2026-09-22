@@ -837,6 +837,16 @@ class _ReadFailed extends StatelessWidget {
         (ReceiptReadFailure.unavailable, ReceiptImageSource.library) =>
           'Your photos could not be opened on this phone. Paste the receipt '
               'text below instead, which reads exactly the same way.',
+
+        // THE SAME SENTENCE FOR BOTH SOURCES, because this one has nothing
+        // to do with which button was pressed. The reader is simply not in
+        // the installed app, so naming the camera or the photo library would
+        // send somebody to check hardware that is working perfectly. It cost
+        // an hour that way once.
+        (ReceiptReadFailure.notInThisBuild, _) =>
+          'The receipt reader is not part of the version of Salapify that is '
+              'installed, so reinstalling the app is what fixes this. '
+              'Pasting the receipt text below works right now.',
       }, style: AppType.body(palette)),
     );
   }

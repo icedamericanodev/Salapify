@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -78,6 +79,27 @@ enum ReceiptReadFailure {
   /// with no camera app, a revoked gallery permission, a reader that failed
   /// to initialise.
   unavailable,
+
+  /// THE INSTALLED APP DOES NOT CONTAIN THESE PLUGINS.
+  ///
+  /// Its own distinct case because it is not a fault of the phone, and
+  /// telling somebody their camera will not open when their camera is
+  /// perfectly fine sends them to check the wrong thing entirely. That is
+  /// not hypothetical: it cost an hour on 2026-09-22, with the founder
+  /// confirming their emulator had Play Store, a Camera app and Photos while
+  /// every call failed anyway.
+  ///
+  /// The cause is a hot restart delivering new Dart code onto a build whose
+  /// NATIVE side is older. The buttons appear, because they are Dart; the
+  /// plugin behind them is not in the installed binary, so the method
+  /// channel has nobody at the other end and throws
+  /// `MissingPluginException`. `tools/dev-sync.sh` documents this exact
+  /// trap, having already been caught by it once with `path_provider`.
+  ///
+  /// A released build can never be in this state, since its plugins are
+  /// compiled in. It is a development-time answer, and the message says the
+  /// one thing that fixes it rather than pretending to be about hardware.
+  notInThisBuild,
 }
 
 /// The real one: the phone's camera app, then ML Kit, then delete the file.
@@ -116,11 +138,18 @@ class DeviceReceiptTextSource implements ReceiptTextSource {
         maxWidth: 2000,
         imageQuality: 88,
       );
+    } on MissingPluginException {
+      // CAUGHT BEFORE the broad catch below, because it is the one failure
+      // here that is not about the phone at all. Swallowing it into
+      // "the camera could not be opened" is what sent the founder checking
+      // their emulator's camera app while the real answer was that the
+      // running build predated the plugin.
+      return const ReceiptRead.failed(ReceiptReadFailure.notInThisBuild);
     } on Object {
-      // Deliberately broad. Every failure here is somebody else's plugin
-      // saying no on a device Salapify cannot inspect, and the answer to all
-      // of them is the same sentence on screen. A crash instead would take
-      // down the sheet somebody had just started filling in.
+      // Deliberately broad. Every other failure here is somebody else's
+      // plugin saying no on a device Salapify cannot inspect, and the answer
+      // to all of them is the same sentence on screen. A crash instead would
+      // take down the sheet somebody had just started filling in.
       return const ReceiptRead.failed(ReceiptReadFailure.unavailable);
     }
 
@@ -167,6 +196,10 @@ class DeviceReceiptTextSource implements ReceiptTextSource {
       return text.isEmpty
           ? const ReceiptRead.failed(ReceiptReadFailure.noText)
           : ReceiptRead.text(text);
+    } on MissingPluginException {
+      // The reader has the same trap as the picker: ML Kit is native too, so
+      // a build without it answers a perfectly good photo with silence.
+      return const ReceiptRead.failed(ReceiptReadFailure.notInThisBuild);
     } on Object {
       return const ReceiptRead.failed(ReceiptReadFailure.unavailable);
     } finally {
