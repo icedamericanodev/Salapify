@@ -1,363 +1,1066 @@
-// The Log sheet. Principle 1: logging is the heartbeat, under three seconds
-// from thumb to saved. So it slides up OVER the screen you were on rather than
-// being its own page, because that is how it is actually used and the dimmed
-// screen behind it is part of the design, not a detail of the screenshot.
-//
-// The layout is the one the founder approved on 2026-09-13 (24 renders,
-// docs/revamp/mockups/hapon/). What changed in C1 is that it is now real: the
-// field takes input, the "Got it" line reads what was typed, the chips select,
-// and Save writes a transaction that moves an account balance.
 import 'package:flutter/material.dart';
 
-import '../../app/ledger_scope.dart';
+import '../../core/money/fast_log.dart';
+import '../../core/money/receipt_paste.dart';
 import '../../core/money/format.dart';
-import '../../design/kit.dart';
+import '../../core/money/ledger.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
-import 'log_view_model.dart';
+import '../../models/models.dart';
+import '../../state/financial_state.dart';
+import '../shared/sheet_scaffold.dart';
+import 'scan_receipt_sheet.dart';
 
-/// The scrim plus the sheet, pushed as a route over the shell.
+/// Log an entry, from src/components/LogSheet.tsx.
+///
+/// SCOPE, named rather than implied. The prototype's sheet also carries a
+/// fast-log text parser, a foreign currency converter, a cash denomination
+/// counter, receipt attachment, and quick-add for categories and
+/// sub-categories. Each of those needs something app/ does not have yet (a
+/// parser, an FX rate source, a camera, a writable category store), and a
+/// control that cannot do its job is worse than no control. They migrate with
+/// the features behind them.
+///
+/// What IS here is the whole money path: type, amount, account, category,
+/// date, and for a transfer a destination. Everything the ledger needs to be
+/// correct.
 class LogSheet extends StatefulWidget {
-  const LogSheet({super.key});
+  const LogSheet({super.key, required this.state});
+
+  final FinancialState state;
+
+  static Future<Transaction?> show(BuildContext context, FinancialState state) {
+    return SheetScaffold.show<Transaction>(
+      context: context,
+      palette: Palette.of(state.theme),
+      builder: (BuildContext context) => LogSheet(state: state),
+    );
+  }
 
   @override
   State<LogSheet> createState() => _LogSheetState();
 }
 
 class _LogSheetState extends State<LogSheet> {
-  LogViewModel? _vm;
-  final _field = TextEditingController();
-  final _focus = FocusNode();
+  final TextEditingController _amount = TextEditingController();
+  final TextEditingController _merchant = TextEditingController();
+  final TextEditingController _note = TextEditingController();
+  final TextEditingController _tags = TextEditingController();
+  final TextEditingController _person = TextEditingController();
+  final TextEditingController _quick = TextEditingController();
+
+  TransactionType _type = TransactionType.expense;
+  late String _accountId;
+  late String _toAccountId;
+  String _category = 'Food & Dining';
+  bool _showMore = false;
+
+  /// Defaults to today and is set from the picker. Late because it reads the
+  /// store's clock, which a test pins.
+  late DateTime _date;
+
+  List<Account> get _spendable =>
+      widget.state.accounts.where((Account a) => a.isLiquid).toList();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Built here rather than in initState because it needs the store from the
-    // tree. Guarded so a rebuild does not throw away a half-typed entry.
-    _vm ??= LogViewModel(LedgerScope.read(context))..addListener(_onChanged);
+  void initState() {
+    super.initState();
+    final List<Account> usable = _spendable;
+    _date = widget.state.now;
+    _accountId = usable.isNotEmpty ? usable.first.id : '';
+    // The destination defaults to a DIFFERENT account. A transfer from an
+    // account to itself moves nothing and reads as a bug to whoever logged it.
+    _toAccountId = usable.length > 1 ? usable[1].id : _accountId;
   }
-
-  void _onChanged() => setState(() {});
 
   @override
   void dispose() {
-    _vm?.removeListener(_onChanged);
-    _vm?.dispose();
-    _field.dispose();
-    _focus.dispose();
+    _amount.dispose();
+    _merchant.dispose();
+    _note.dispose();
+    _tags.dispose();
+    _person.dispose();
+    _quick.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
-    final vm = _vm!;
-    if (!vm.canSave) return;
-    final nav = Navigator.of(context);
-    await vm.save();
-    // Only after the write has actually landed. LedgerStore persists before it
-    // notifies, so a sheet that closed first would be telling the founder their
-    // money is saved while the write was still in flight.
-    if (nav.mounted) nav.maybePop();
+  double? get _amountValue => parseLoggedAmount(_amount.text);
+
+  /// What the quick line currently means, or null when it means nothing yet.
+  FastLogResult? get _preview {
+    if (_quick.text.trim().isEmpty) return null;
+    // ONE BOX, two shapes of text. A pasted bank or e-wallet receipt is
+    // recognised by its own length and markers and read by the receipt
+    // parser; anything else is a typed line. The prototype puts the paste
+    // behind a second collapsible panel with its own button, which is a
+    // second place to look for a thing the person already has in their
+    // clipboard.
+    //
+    // Nothing here touches an inbox. It reads text somebody pasted, which is
+    // why it needs no Android permission at all.
+    final FastLogResult r = looksLikePastedReceipt(_quick.text)
+        ? parsePastedReceipt(_quick.text)
+        : parseFastLog(_quick.text);
+    return r.isValid ? r : null;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // The Material is not decoration. Text with no Material ancestor gets
-    // Flutter's yellow double underline, and the first render of this screen
-    // had it on every single label. Caught by looking at the picture,
-    // invisible to analyze and to every test.
-    return Material(
-      color: Colors.transparent,
-      child: Stack(
-        children: [
-          // The scrim. Dark in both skins: it is a shadow, not a surface, so
-          // it does not flip with the palette.
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).maybePop(),
-              child: ColoredBox(color: context.skin.scrim),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SingleChildScrollView(
-              child: _Sheet(
-                vm: _vm!,
-                field: _field,
-                focus: _focus,
-                onSave: _save,
-              ),
-            ),
-          ),
-        ],
+  /// Fills the form from one typed line.
+  ///
+  /// It fills the FORM rather than saving, deliberately. The parser is a good
+  /// guess and a guess about money should be visible before it is committed:
+  /// everything it worked out lands in the controls below, where it can be
+  /// corrected, and Save is the same button it always was.
+  void _applyQuick() {
+    final FastLogResult? r = _preview;
+    if (r == null) return;
+
+    setState(() {
+      _type = r.type;
+      _amount.text = r.amount == r.amount.roundToDouble()
+          ? r.amount.toStringAsFixed(0)
+          : r.amount.toStringAsFixed(2);
+      _merchant.text = r.merchant;
+      if (r.person != null) _person.text = r.person!;
+
+      // The account hint is a KIND, not an account. Match the first real one
+      // of that kind and ignore the hint when nothing fits, rather than
+      // silently leaving the wrong account selected.
+      if (r.accountKind != null) {
+        for (final Account a in _spendable) {
+          if (a.kind == r.accountKind) {
+            _accountId = a.id;
+            break;
+          }
+        }
+      }
+
+      // The category is applied ONLY when the line actually named one, and
+      // only when it belongs to the chosen type.
+      //
+      // The first half of that is the founder's "Electricity" report. The
+      // parser's fallback category is 'Food & Dining', so a word it does not
+      // know produces a confident wrong answer rather than no answer, and
+      // applying it would overwrite a correct selection with a guess. Now an
+      // unrecognised line leaves the picker exactly where it was and the
+      // read-back says so.
+      //
+      // The second half: "mp2 2000" parses as an expense in Investment &
+      // Passive Income, an income category, and the picker below filters by
+      // type, so applying it would select something the person cannot see and
+      // cannot change.
+      if (r.categoryMatched && r.type != TransactionType.transfer) {
+        final bool usable = widget.state.categories.any(
+          (CategoryInfo c) =>
+              c.name == r.category &&
+              (c.kind == CategoryKind.both ||
+                  (r.type == TransactionType.income
+                      ? c.kind == CategoryKind.income
+                      : c.kind == CategoryKind.expense)),
+        );
+        if (usable) _category = r.category;
+      }
+
+      // Keep a transfer from pointing at its own source after a type change.
+      if (_type == TransactionType.transfer && _toAccountId == _accountId) {
+        for (final Account a in _spendable) {
+          if (a.id != _accountId) {
+            _toAccountId = a.id;
+            break;
+          }
+        }
+      }
+
+      _quick.clear();
+    });
+  }
+
+  /// Changes the type AND reconciles the category to it.
+  ///
+  /// The category picker filters by type, so switching to Received while
+  /// "Food & Dining" was selected left NOTHING highlighted and saved the
+  /// income under an expense category anyway, because Save never looked at
+  /// the category. The mirror case is worse: a spend filed under Salary is
+  /// invisible to every category total and budget. The prototype does this
+  /// same reconciliation in a useEffect on type.
+  void _setType(TransactionType next) {
+    setState(() {
+      _type = next;
+      if (next == TransactionType.transfer) return;
+
+      final List<CategoryInfo> usable = _categoriesFor(next);
+      final bool stillValid = usable.any(
+        (CategoryInfo c) => c.name == _category,
+      );
+      if (!stillValid && usable.isNotEmpty) _category = usable.first.name;
+
+      if (_toAccountId == _accountId) {
+        for (final Account a in _spendable) {
+          if (a.id != _accountId) {
+            _toAccountId = a.id;
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  /// The categories that belong to one side of the ledger. One definition,
+  /// used by the picker AND by the reconciliation above, so they cannot
+  /// disagree about what is selectable.
+  List<CategoryInfo> _categoriesFor(TransactionType type) {
+    return widget.state.categories.where((CategoryInfo c) {
+      // Transfer is a TYPE, not a category somebody picks.
+      if (c.name == 'Transfer') return false;
+      if (c.kind == CategoryKind.both) return true;
+      return type == TransactionType.income
+          ? c.kind == CategoryKind.income
+          : c.kind == CategoryKind.expense;
+    }).toList();
+  }
+
+  bool get _canSave {
+    if (_amountValue == null) return false;
+    if (_accountId.isEmpty) return false;
+    // The quirk guard. applyToBalances reproduces the prototype faithfully,
+    // and the prototype DESTROYS money on a transfer whose destination does
+    // not exist: it debits the source and credits nobody. The engine keeps
+    // that behaviour; this makes it unreachable from the app.
+    if (_type == TransactionType.transfer) {
+      if (_toAccountId.isEmpty) return false;
+      if (_toAccountId == _accountId) return false;
+      if (!_spendable.any((Account a) => a.id == _toAccountId)) return false;
+    }
+    return true;
+  }
+
+  void _save() {
+    final double? amount = _amountValue;
+    if (amount == null || !_canSave) return;
+
+    final bool isTransfer = _type == TransactionType.transfer;
+    Navigator.of(context).pop(
+      Transaction(
+        id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
+        type: _type,
+        amount: amount,
+        // A transfer is not spending and not income, so it carries the one
+        // category that says exactly that, and no sub-category.
+        category: isTransfer ? 'Transfer' : _category,
+        accountId: _accountId,
+        toAccountId: isTransfer ? _toAccountId : null,
+        date: _iso(_date),
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        merchant: _merchant.text.trim().isEmpty ? null : _merchant.text.trim(),
+        note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        person: _person.text.trim().isEmpty ? null : _person.text.trim(),
+        tags: parseTags(_tags.text),
+        // STAMPED, never left null. The prototype stores the active profile on
+        // every entry and falls back to personal when the "All" tab is
+        // selected. Leaving it null here meant the ledger had to guess, and an
+        // entry logged while a profile tab was active vanished from the very
+        // screen the app navigated to after saving it.
+        profile: widget.state.activeProfile ?? ProfileEntity.personal,
+
+        // STAMPED, never left null. The prototype stores the active profile on
+        // every entry and falls back to personal when the "All" tab is
+        // selected. Leaving it null here meant the ledger had to guess, and
+        // an entry logged while a profile tab was active vanished from the
+        // very screen the app navigated to after saving it.
       ),
     );
   }
-}
 
-class _Sheet extends StatelessWidget {
-  const _Sheet({
-    required this.vm,
-    required this.field,
-    required this.focus,
-    required this.onSave,
-  });
+  String _iso(DateTime d) {
+    final String m = d.month.toString().padLeft(2, '0');
+    final String day = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$m-$day';
+  }
 
-  final LogViewModel vm;
-  final TextEditingController field;
-  final FocusNode focus;
-  final VoidCallback onSave;
+  /// Opens the date picker.
+  ///
+  /// BOUNDS, and why they are a decision rather than a copy. The prototype is
+  /// a bare <input type="date"> with no min and no max, so it accepts any date
+  /// in either direction. Flutter's showDatePicker REQUIRES a first and last
+  /// date, so something has to be chosen either way.
+  ///
+  /// The past is open, five years, which is more than anybody will backfill on
+  /// a phone. The future is NOT, and that is the deliberate half: logging an
+  /// entry moves the account balance immediately, so a future-dated expense
+  /// would take the money out today and then file the entry under a day that
+  /// has not happened. The balance and the ledger would disagree until that
+  /// date arrived. Scheduling a payment is a real need and it belongs to the
+  /// Upcoming feature, which already exists to say what has not happened yet.
+  Future<void> _pickDate() async {
+    final DateTime today = widget.state.now;
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(today.year - 5, today.month, today.day),
+      lastDate: DateTime(today.year, today.month, today.day),
+      helpText: 'When did this happen',
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final skin = context.skin;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        gutter,
-        12,
-        gutter,
-        // Clear of the keyboard, which is up the whole time this sheet is.
-        30 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      decoration: BoxDecoration(
-        color: skin.bg,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(skin.radius + 6),
-        ),
+    final Palette p = Palette.of(widget.state.theme);
+    final bool isTransfer = _type == TransactionType.transfer;
+    final double amount = _amountValue ?? 0;
+
+    return SheetScaffold(
+      palette: p,
+      icon: Icons.add,
+      title: 'Log an entry',
+      subtitle: 'What moved, out of which account',
+      footer: PrimaryButton(
+        palette: p,
+        label: 'Save entry',
+        icon: Icons.check,
+        onTap: _canSave ? _save : null,
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: skin.line,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
+        children: <Widget>[
+          _QuickParseField(
+            palette: p,
+            controller: _quick,
+            preview: _preview,
+            onChanged: (_) => setState(() {}),
+            onApply: _applyQuick,
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Text('Log', style: TypeScale.sheetTitle(skin.text)),
-              ),
-              GestureDetector(
-                onTap: () => Navigator.of(context).maybePop(),
-                child: Text('Cancel', style: TypeScale.quiet(skin.text3)),
-              ),
+          const SizedBox(height: Spacing.sm),
+
+          // SCAN LIVES HERE, not on Home's quick actions.
+          //
+          // The prototype puts it in that row, which on this app would be a
+          // fifth Expanded label across a 320dp phone beside Log, Debt, Bills
+          // and Move. This sheet is already the one place a person comes to
+          // record spending, and the box directly above it reads a pasted
+          // receipt too, so the two ways of doing the same thing sit
+          // together rather than in different rooms.
+          _ScanRow(
+            palette: p,
+            onTap: () async {
+              // The navigator is captured BEFORE the await, the same rule the
+              // shell already writes down for its messenger: the scan sheet
+              // can be dismissed long after this context is gone, and
+              // reaching for Navigator.of on the far side of an await is the
+              // usual way that becomes a crash.
+              final NavigatorState nav = Navigator.of(context);
+              final Transaction? scanned = await ScanReceiptSheet.show(
+                context,
+                p,
+                widget.state,
+              );
+              // Straight back out through this sheet, so the shell's single
+              // handler records it, lands on Activity and offers the undo.
+              // A second save path would be a second set of those lessons to
+              // remember.
+              if (scanned != null && mounted) nav.pop(scanned);
+            },
+          ),
+          const SizedBox(height: Spacing.lg),
+
+          Text('What kind', style: AppType.label(p)),
+          const SizedBox(height: Spacing.xs),
+          SegmentedChoice<TransactionType>(
+            palette: p,
+            selected: _type,
+            options: const <(TransactionType, String)>[
+              (TransactionType.expense, 'Spent'),
+              (TransactionType.income, 'Received'),
+              (TransactionType.transfer, 'Moved'),
             ],
+            onSelect: _setType,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.md),
 
-          // The fast log field. One typed line becomes a saved expense with a
-          // category, and the app says out loud what it understood BEFORE the
-          // user commits, so a wrong guess is caught in the same glance.
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: skin.card,
-              borderRadius: BorderRadius.circular(14),
+          SheetField(
+            // Keyed so a test names THIS field rather than "the first one".
+            // Adding the quick-parse line above it silently turned four tests
+            // into tests of a different field.
+            key: const Key('log-amount'),
+            palette: p,
+            label: 'Amount',
+            controller: _amount,
+            hint: '0.00',
+            prefix: '₱ ',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: Spacing.md),
+
+          _AccountPicker(
+            // Keyed because both pickers list account names, so a test (or a
+            // screen reader) otherwise has two identical "BPI Preferred
+            // Payroll" controls with nothing to tell them apart.
+            key: const Key('log-source-picker'),
+            palette: p,
+            label: isTransfer ? 'From which account' : 'Which account',
+            accounts: _spendable,
+            selectedId: _accountId,
+            onSelect: (String id) => setState(() {
+              _accountId = id;
+              // Keep a transfer from pointing at itself the moment the source
+              // changes, rather than waiting for Save to refuse.
+              if (_toAccountId == id) {
+                final Account? other = _spendable.cast<Account?>().firstWhere(
+                  (Account? a) => a!.id != id,
+                  orElse: () => null,
+                );
+                if (other != null) _toAccountId = other.id;
+              }
+            }),
+          ),
+
+          if (isTransfer) ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            _AccountPicker(
+              key: const Key('log-destination-picker'),
+              palette: p,
+              label: 'To which account',
+              accounts: _spendable
+                  .where((Account a) => a.id != _accountId)
+                  .toList(),
+              selectedId: _toAccountId,
+              onSelect: (String id) => setState(() => _toAccountId = id),
             ),
-            child: TextField(
-              controller: field,
-              focusNode: focus,
-              autofocus: true,
-              onChanged: vm.setLine,
-              onSubmitted: (_) => onSave(),
-              textInputAction: TextInputAction.done,
-              style: TypeScale.input(skin.text),
-              cursorColor: skin.accent,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                hintText: 'jollibee 250',
-                hintStyle: TypeScale.input(skin.text3),
-              ),
+          ] else ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            _CategoryPicker(
+              // Keyed so a test can name a category in THIS control. Category
+              // names also appear in the read-back sentence above it.
+              key: const Key('log-category-picker'),
+              palette: p,
+              categories: _categoriesFor(_type),
+              selected: _category,
+              onSelect: (String c) => setState(() => _category = c),
             ),
-          ),
-          const SizedBox(height: 10),
-          _GotIt(vm: vm),
-          const SizedBox(height: 20),
+          ],
 
-          // TWO OPTIONS, NOT THREE, AND TRANSFER IS NOT COMING BACK HERE.
-          //
-          // This sheet offered Transfer and it DESTROYED MONEY. A transfer
-          // needs two accounts and this sheet has one picker, so tapping it
-          // wrote `type: 'transfer'` with a single accountId and no `flow`.
-          // `balanceSign` reads anything that is not income and has no flow as
-          // -1, so the money left the account the user picked and arrived
-          // nowhere. Then `sanitizeData` stripped the accountId, because a
-          // flowless transfer is not a one-sided row, and after that
-          // `removeTransaction` had nothing to reverse against: deleting the
-          // entry could not give the balance back either.
-          //
-          // One tap, no error, no way back. Measured at 5,000 in and 0 out in
-          // test/features/transfer_loss_test.dart, which fails if this ever
-          // returns.
-          //
-          // A real transfer belongs on its own sheet with a FROM and a TO,
-          // calling the golden locked `applyTransfer`, which moves both sides
-          // and refuses an overdraft. Until that exists, the honest thing is
-          // not to offer the word.
-          Segmented(
-            options: const ['Expense', 'Income'],
-            index: vm.type == 'income' ? 1 : 0,
-            onPick: (i) => vm.pickType(const ['expense', 'income'][i]),
+          const SizedBox(height: Spacing.md),
+          SheetField(
+            key: const Key('log-merchant'),
+            palette: p,
+            label: isTransfer ? 'What for (optional)' : 'Where (optional)',
+            controller: _merchant,
+            hint: isTransfer ? 'e.g. Top up GCash' : 'e.g. Jollibee, Meralco',
+            keyboardType: TextInputType.text,
           ),
-          const SizedBox(height: 22),
 
-          // Categories are an expense-side idea, so the whole block goes away
-          // rather than sitting there greyed out and unexplained.
-          if (vm.type == 'expense' && vm.categories.isNotEmpty) ...[
-            // When the parser did NOT recognise the word, the label says so and
-            // asks. The chips were always here and always tappable, but eight
-            // identical unselected chips under a silent "Category" heading read
-            // as decoration rather than as a question, so an untagged entry got
-            // saved untagged. The founder hit exactly that typing "kain 120".
-            //
-            // This is the better answer than chasing the vocabulary forever. No
-            // word list can cover how everybody writes; a list that admits what
-            // it does not know, in the one second before saving, can.
+          const SizedBox(height: Spacing.md),
+          _DateField(
+            palette: p,
+            date: _date,
+            now: widget.state.now,
+            onTap: _pickDate,
+          ),
+
+          const SizedBox(height: Spacing.md),
+          _MoreToggle(
+            palette: p,
+            open: _showMore,
+            onTap: () => setState(() => _showMore = !_showMore),
+          ),
+          if (_showMore) ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            SheetField(
+              palette: p,
+              label: 'Person (optional)',
+              controller: _person,
+              hint: 'e.g. Nanay, Kuya Mark, a client',
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: Spacing.md),
+            SheetField(
+              palette: p,
+              label: 'Tags (optional)',
+              controller: _tags,
+              hint: 'weekly, groceries',
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: Spacing.md),
+            SheetField(
+              palette: p,
+              label: 'Note (optional)',
+              controller: _note,
+              hint: 'Anything you want to remember about this',
+              keyboardType: TextInputType.text,
+            ),
+          ],
+
+          if (amount > 0) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            _Confirmation(
+              palette: p,
+              type: _type,
+              amount: amount,
+              from: _named(_accountId),
+              to: isTransfer ? _named(_toAccountId) : null,
+              backdated: _iso(_date) != _iso(widget.state.now),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _named(String id) {
+    for (final Account a in widget.state.accounts) {
+      if (a.id == id) return a.name;
+    }
+    return 'that account';
+  }
+}
+
+/// Says in one sentence what Save is about to do, before it happens.
+class _Confirmation extends StatelessWidget {
+  const _Confirmation({
+    required this.palette,
+    required this.type,
+    required this.amount,
+    required this.from,
+    required this.backdated,
+    this.to,
+  });
+
+  final Palette palette;
+  final TransactionType type;
+  final double amount;
+  final String from;
+  final String? to;
+
+  /// Whether the entry is dated before today. It changes what this card has to
+  /// say, not how it looks.
+  final bool backdated;
+
+  @override
+  Widget build(BuildContext context) {
+    final String sentence = switch (type) {
+      TransactionType.expense => '${formatPeso(amount)} leaves $from.',
+      TransactionType.income => '${formatPeso(amount)} goes into $from.',
+      TransactionType.transfer =>
+        '${formatPeso(amount)} moves from $from to ${to ?? "another account"}. '
+            'Your net worth does not change.',
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.accentSoft,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            sentence,
+            style: AppType.body(palette).copyWith(color: palette.accent),
+          ),
+          if (backdated) ...<Widget>[
+            const SizedBox(height: Spacing.xs),
             Text(
-              vm.categoryId == null ? 'Category, tap one' : 'Category',
-              style: TypeScale.fieldLabel(
-                vm.categoryId == null ? skin.text2 : skin.text3,
-              ),
+              // The balance moves NOW even for an entry dated last week. That
+              // is correct for a ledger catching up on a receipt, and it is
+              // surprising enough to say out loud rather than let somebody
+              // discover it by watching a figure change.
+              'The balance changes now, even though the entry is dated '
+              'earlier.',
+              style: AppType.caption(palette),
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final c in vm.categories)
-                  PickChip(
-                    label: (c['name'] ?? '').toString(),
-                    on: c['id'] == vm.categoryId,
-                    onTap: () => vm.pickCategory(c['id'] as String?),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 18),
           ],
-
-          if (vm.accounts.isNotEmpty) ...[
-            Text('Account', style: TypeScale.fieldLabel(skin.text3)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final a in vm.accounts)
-                  PickChip(
-                    label: (a['name'] ?? '').toString(),
-                    on: a['id'] == vm.accountId,
-                    onTap: () => vm.pickAccount(a['id'] as String?),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          const Row(
-            children: [
-              Expanded(
-                child: Field(value: 'Today', leading: Icons.event_outlined),
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Field(
-                  value: 'Note',
-                  hint: true,
-                  leading: Icons.notes_outlined,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Opacity(
-            // Dimmed rather than hidden: a button that appears when you finish
-            // typing is a button you did not know was coming.
-            opacity: vm.canSave ? 1 : 0.45,
-            child: PillButton(
-              label: 'Save entry',
-              onTap: vm.canSave ? onSave : null,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-/// What the app understood, said out loud before anything is written.
-///
-/// It only claims what it actually parsed. No amount yet means no line at all,
-/// rather than a confident reading of nothing, and an unguessed category is
-/// simply absent rather than shown as a shrug.
-class _GotIt extends StatelessWidget {
-  const _GotIt({required this.vm});
-  final LogViewModel vm;
+/// When it happened. Tapping it opens the date picker.
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.palette,
+    required this.date,
+    required this.now,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final DateTime date;
+  final DateTime now;
+  final VoidCallback onTap;
+
+  String _iso(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
-    final skin = context.skin;
-    final p = vm.parsed;
+    final String iso = _iso(date);
+    final bool isToday = iso == _iso(now);
 
-    // Says why Save is dead, rather than leaving a button that does nothing.
-    // The parser still recognises "transfer" and it is golden locked, so the
-    // word can reach this sheet even with the segment gone. See the note on
-    // LogViewModel.isTransfer for what writing one used to do to the money.
-    if (vm.isTransfer) {
-      return Text(
-        'Moving money between your own accounts is not built yet. Log it as '
-        'an expense on one side if you need it recorded today.',
-        style: TypeScale.hint(skin.accent),
-      );
-    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('When', style: AppType.label(palette)),
+        const SizedBox(height: Spacing.xs),
+        Semantics(
+          button: true,
+          label: 'Change the date, currently ${formatDateLabel(iso, now: now)}',
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.control),
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md,
+                vertical: Spacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: palette.card,
+                borderRadius: BorderRadius.circular(Radii.control),
+                border: Border.all(
+                  // Highlighted when it is NOT today, because a date somebody
+                  // deliberately changed is the one worth noticing on the way
+                  // back down to Save.
+                  color: isToday ? palette.border : palette.accent,
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.event_outlined,
+                    size: 18,
+                    color: isToday ? palette.textMuted : palette.accent,
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          formatDateLabel(iso, now: now),
+                          style: AppType.rowTitle(palette),
+                        ),
+                        // The stored date as well, for the same reason the
+                        // transaction detail shows it: "Yesterday" is useless
+                        // beside a bank statement.
+                        Text(iso, style: AppType.caption(palette)),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'Change',
+                    style: AppType.button(palette, color: palette.accent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-    if (!p.understood) {
-      return Text(
-        'Type what you spent, like "jollibee 250".',
-        style: TypeScale.hint(skin.text3),
-      );
-    }
+class _AccountPicker extends StatelessWidget {
+  const _AccountPicker({
+    super.key,
+    required this.palette,
+    required this.label,
+    required this.accounts,
+    required this.selectedId,
+    required this.onSelect,
+  });
 
-    final parts = <String>[
-      switch (vm.type) {
-        'income' => 'Income',
-        'transfer' => 'Transfer',
-        _ => 'Expense',
-      },
-      if (p.amount != null) formatMoney(p.amount!),
-      if (p.label.isNotEmpty) p.label,
-      ?_categoryName(vm),
-    ];
+  final Palette palette;
+  final String label;
+  final List<Account> accounts;
+  final String selectedId;
+  final ValueChanged<String> onSelect;
 
-    return Text.rich(
-      TextSpan(
-        style: TypeScale.hint(skin.text3),
-        children: [
-          const TextSpan(text: 'Got it: '),
-          for (var i = 0; i < parts.length; i++) ...[
-            if (i > 0) const TextSpan(text: ' · '),
-            TextSpan(text: parts[i], style: TypeScale.hintStrong(skin.accent)),
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(label, style: AppType.label(palette)),
+        const SizedBox(height: Spacing.xs),
+        Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: <Widget>[
+            for (final Account a in accounts)
+              _Pill(
+                palette: palette,
+                label: a.name,
+                caption: formatPeso(a.balance),
+                selected: a.id == selectedId,
+                onTap: () => onSelect(a.id),
+              ),
           ],
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryPicker extends StatelessWidget {
+  const _CategoryPicker({
+    super.key,
+    required this.palette,
+    required this.categories,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final Palette palette;
+
+  /// Already narrowed to the chosen type by _categoriesFor, so this widget
+  /// cannot disagree with the reconciliation that keeps the selection valid.
+  final List<CategoryInfo> categories;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('Category', style: AppType.label(palette)),
+        const SizedBox(height: Spacing.xs),
+        Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: <Widget>[
+            for (final CategoryInfo c in categories)
+              _Pill(
+                palette: palette,
+                label: c.name,
+                selected: c.name == selected,
+                onTap: () => onSelect(c.name),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.palette,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.caption,
+  });
+
+  final Palette palette;
+  final String label;
+  final String? caption;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? palette.accent : palette.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(
+                color: selected ? palette.accent : palette.border,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? palette.onAccent : palette.textSecondary,
+                  ),
+                ),
+                if (caption != null)
+                  Text(
+                    caption!,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: selected
+                          ? palette.onAccent.withValues(alpha: 0.8)
+                          : palette.textMuted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+}
 
-  String? _categoryName(LogViewModel vm) {
-    final id = vm.categoryId;
-    if (id == null) return null;
-    for (final c in vm.categories) {
-      if (c['id'] == id) return (c['name'] ?? '').toString();
+class _MoreToggle extends StatelessWidget {
+  const _MoreToggle({
+    required this.palette,
+    required this.open,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                open ? Icons.expand_less : Icons.expand_more,
+                size: 18,
+                color: palette.accent,
+              ),
+              const SizedBox(width: Spacing.sm),
+              Text(
+                open ? 'Fewer details' : 'Add a person, tags or a note',
+                style: AppType.button(palette, color: palette.accent),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The one line that fills the form.
+///
+/// It sits at the TOP of the sheet and it is optional. Somebody who does not
+/// want to type a sentence scrolls past it to the ordinary controls, and
+/// somebody who does gets the whole form filled from "Jollibee 500".
+class _QuickParseField extends StatelessWidget {
+  const _QuickParseField({
+    required this.palette,
+    required this.controller,
+    required this.preview,
+    required this.onChanged,
+    required this.onApply,
+  });
+
+  final Palette palette;
+  final TextEditingController controller;
+  final FastLogResult? preview;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final FastLogResult? r = preview;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(Icons.bolt, size: 16, color: palette.accent),
+            const SizedBox(width: Spacing.xs),
+            Text('Type it in one line', style: AppType.label(palette)),
+          ],
+        ),
+        const SizedBox(height: Spacing.xs),
+        TextField(
+          key: const Key('log-quick-parse'),
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: (_) => onApply(),
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.done,
+          style: AppType.rowTitle(palette).copyWith(fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Jollibee 500 gcash',
+            hintStyle: AppType.body(palette).copyWith(color: palette.textMuted),
+            filled: true,
+            fillColor: palette.card,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Radii.control),
+              borderSide: BorderSide(color: palette.accent, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.xs),
+        if (r == null)
+          Text(
+            'An amount plus a word or two. Try "grab 420" or '
+            '"padala kay nanay 8000".',
+            style: AppType.caption(palette),
+          )
+        else
+          // Shows WHAT IT UNDERSTOOD before anything is filled in, because a
+          // parser that guesses silently is a parser nobody should trust with
+          // money. Reading it back is what makes a wrong guess obvious.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Spacing.md),
+            decoration: BoxDecoration(
+              color: palette.accentSoft,
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(color: palette.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _readBack(r),
+                  style: AppType.body(palette).copyWith(color: palette.accent),
+                ),
+                const SizedBox(height: Spacing.sm),
+                Semantics(
+                  button: true,
+                  child: InkWell(
+                    onTap: onApply,
+                    borderRadius: BorderRadius.circular(Radii.control),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.arrow_downward,
+                            size: 16,
+                            color: palette.accent,
+                          ),
+                          const SizedBox(width: Spacing.sm),
+                          Text(
+                            'Fill the form with this',
+                            style: AppType.button(
+                              palette,
+                              color: palette.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _readBack(FastLogResult r) {
+    final String verb = switch (r.type) {
+      TransactionType.expense => 'Spent',
+      TransactionType.income => 'Received',
+      TransactionType.transfer => 'Moved',
+    };
+    final StringBuffer b = StringBuffer()
+      ..write('$verb ${formatPeso(r.amount)}')
+      ..write(' at ${r.merchant}');
+
+    // Says "I do not know" instead of naming the fallback category. The
+    // fallback is 'Food & Dining', so the old sentence read "filed under Food
+    // & Dining" for a word the parser had never seen, which is the most
+    // confident possible way to be wrong. The founder typed "Electricity" and
+    // this sentence told them it was food.
+    if (r.categoryMatched) {
+      b.write(', filed under ${r.category}');
+    } else {
+      b.write(', category not recognized, so pick one below');
     }
-    return null;
+    if (r.person != null) b.write(', with ${r.person}');
+    b.write('.');
+    return b.toString();
+  }
+}
+
+/// The way into the receipt scanner, from the sheet somebody is already in.
+class _ScanRow extends StatelessWidget {
+  const _ScanRow({required this.palette, required this.onTap});
+
+  final Palette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Scan a receipt instead',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surfaceAlt,
+            borderRadius: BorderRadius.circular(Radii.control),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.document_scanner_outlined,
+                size: 18,
+                color: palette.accent,
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: Text(
+                  'Scan a receipt instead',
+                  style: AppType.body(
+                    palette,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: palette.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

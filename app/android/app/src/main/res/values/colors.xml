@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch screen colours, taken from lib/design/tokens.dart so the very
+     first frame the OS draws is already Salapify rather than a white flash. -->
+<resources>
+    <!-- Hapon, the daylight theme's background. -->
+    <color name="salapify_launch_background">#FDEFE2</color>
+</resources>

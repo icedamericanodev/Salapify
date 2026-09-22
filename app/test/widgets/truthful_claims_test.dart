@@ -1,0 +1,222 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/main.dart';
+
+/// Claims the app makes about itself, checked against what it actually does.
+///
+/// This file exists because "Offline Only" sat beside the wordmark, under a
+/// shield, for weeks after `fx_service.dart` started asking a public rate
+/// service for today's rates. Nothing could see it: 723 tests passed, the
+/// renders looked right, and the sentence was simply false. A claim is not
+/// code, so no ordinary test reaches it, and the only thing that can is a test
+/// written about the claim itself.
+///
+/// Founder direction, 2026-09-19: change the badge, keep the converter.
+void main() {
+  testWidgets('the header claims what is true, and nothing absolute', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const SalapifyApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('On this phone'), findsOneWidget);
+
+    // The other half, and the half that matters. An absolute claim is false
+    // the moment ONE request exists, and one does.
+    for (final String banned in <String>[
+      'Offline Only',
+      'Offline only',
+      '100% Offline',
+      '100% offline',
+      'No internet',
+      'Zero network',
+    ]) {
+      expect(
+        find.text(banned),
+        findsNothing,
+        reason:
+            '"$banned" is an absolute claim, and fx_service.dart makes a '
+            'request. Play\'s deceptive behavior policy and PH consumer law '
+            'both bite on a false claim about what a product does.',
+      );
+    }
+  });
+
+  testWidgets('the badge opens the receipt that backs it up', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const SalapifyApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('On this phone'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What stays on this phone'), findsOneWidget);
+    expect(
+      find.textContaining('One thing does leave this phone'),
+      findsOneWidget,
+      reason:
+          'the receipt omits the exchange rate request, which is the one line '
+          'item a receipt exists to disclose',
+    );
+    expect(
+      find.textContaining('not encrypted'),
+      findsOneWidget,
+      reason:
+          'a person emailing themselves a backup they believe is protected is '
+          'the harm a false security claim causes',
+    );
+  });
+
+  test('no screen claims a regulator blessed the figure', () {
+    // A rule of thumb is not an official determination. The BSP publishes no
+    // view on an individual's debt ratio, and naming a regulator beside a
+    // number turns arithmetic into a blessing the app cannot give. Same for
+    // the BIR: this app computes estimates, it does not assess anybody.
+    final List<String> offenders = <String>[];
+    for (final FileSystemEntity f in Directory(
+      'lib',
+    ).listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) continue;
+      // pan_bans.dart is the file that LISTS forbidden phrases so Pan can
+      // refuse to say them, so every phrase in it is a string literal that
+      // exists in order to be blocked. Stripping comments is not enough
+      // there, and sweeping it means the only way to add a ban is to trip a
+      // different guard. Same carve-out, same reason, as the comment
+      // stripping below: a rule that forbids naming the thing it forbids
+      // gets deleted by whoever trips over it next.
+      if (f.path.endsWith('pan_bans.dart')) continue;
+      final String text = f
+          .readAsLinesSync()
+          .where((String line) => !line.trimLeft().startsWith('//'))
+          .join('\n');
+      for (final String claim in <String>[
+        'BSP safety threshold',
+        'BSP threshold',
+        'BSP approved',
+        'BIR approved',
+        'official BIR computation',
+        'government guaranteed',
+      ]) {
+        if (text.contains(claim)) offenders.add('${f.path}: $claim');
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'a figure worked out from what somebody typed is presented as an '
+          'official determination by an agency that has made none',
+    );
+  });
+
+  test('a tax figure is never dated in a way that rots', () {
+    // "current for 2024 and 2025" told somebody in 2026 that the rates
+    // expired last year. The schedule had not changed; the sentence had just
+    // sat still. A year pair in copy goes stale by doing nothing.
+    // Comments stripped, the same as the sweeps above, and for the same
+    // reason: this file's own comment records the banned phrase in order to
+    // ban it. The first version of this test failed on that comment, which is
+    // the guard working on the wrong input.
+    final String tax = File('lib/features/tax/tax_calculator_sheet.dart')
+        .readAsLinesSync()
+        .where((String l) => !l.trimLeft().startsWith('//'))
+        .join('\n');
+    expect(
+      RegExp(r'current for \d{4}').hasMatch(tax),
+      isFalse,
+      reason:
+          'the tax sheet pins itself to named years, so it starts telling '
+          'people the figures are out of date without anything changing',
+    );
+  });
+
+  test('no source file promises an encrypted backup', () {
+    // The prototype's knowledge base tells people they "can export an
+    // encrypted JSON backup file". The export is JsonEncoder.withIndent, which
+    // is plain readable text. This is the guard against that string being
+    // carried over with Pan, which is the next thing to port.
+    //
+    // COMMENTS ARE STRIPPED FIRST, and that is not a loophole, it is the only
+    // way the rule can be written down. The first version of this test failed
+    // on privacy_sheet.dart, whose doc comment lists these exact phrases as
+    // the ones that may never ship. A guard that forbids naming the thing it
+    // guards against gets deleted by the next person who trips over it, and
+    // then it is not there for the real string. What ships to a person is a
+    // string literal, so that is what is checked.
+    final List<String> offenders = <String>[];
+    for (final FileSystemEntity f in Directory(
+      'lib',
+    ).listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) continue;
+      final String text = f
+          .readAsLinesSync()
+          .where((String line) => !line.trimLeft().startsWith('//'))
+          .join('\n');
+      for (final String claim in <String>[
+        'encrypted backup',
+        'encrypted JSON',
+        'bank grade',
+        'bank-grade',
+        'military grade',
+        'military-grade',
+      ]) {
+        if (text.toLowerCase().contains(claim.toLowerCase())) {
+          offenders.add('${f.path}: $claim');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'Salapify claims a protection it does not have. The backup is '
+          'plain readable JSON.',
+    );
+  });
+
+  test('no screen mentions "the prototype" to a user', () {
+    // Two of them did, and both were caught by looking at a render rather
+    // than by any test:
+    //
+    //   "The tax on the excess is estimated at 20%, which is what the
+    //    prototype does."
+    //   "The prototype went silent the day after a due date."
+    //
+    // The prototype is a development artefact. Nobody outside this
+    // repository has heard of it, cannot check it, and learns nothing from
+    // being told what it did. Citing it as the REASON for a tax figure is
+    // the worse of the two: it tells a person the number came from
+    // somewhere they have no access to.
+    //
+    // This scans string LITERALS only, so the many comments explaining what
+    // was and was not ported are untouched. Those are for whoever reads the
+    // code, which is the right audience for them.
+    final List<String> offenders = <String>[];
+    final RegExp literal = RegExp(r"'[^']*'");
+    for (final FileSystemEntity f
+        in Directory('lib')
+            .listSync(recursive: true)
+            .where((FileSystemEntity f) => f.path.endsWith('.dart'))) {
+      for (final String line in File(f.path).readAsLinesSync()) {
+        // A comment line is not user-facing copy.
+        if (line.trimLeft().startsWith('//')) continue;
+        if (line.trimLeft().startsWith('///')) continue;
+        for (final RegExpMatch m in literal.allMatches(line)) {
+          if (m.group(0)!.toLowerCase().contains('prototype')) {
+            offenders.add('${f.path}: ${m.group(0)}');
+          }
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'a string a user can read names the prototype. Say what Salapify '
+          'does instead; what some other program did is not something they '
+          'can act on.',
+    );
+  });
+}

@@ -1,0 +1,289 @@
+import 'package:flutter/material.dart';
+
+import '../../design/tokens.dart';
+import '../../core/money/health_check.dart';
+import '../../features/debt/add_debt_sheet.dart';
+import '../../features/health/health_check_sheet.dart';
+import '../../features/info/info_sheet.dart';
+import '../../features/pan/pan_hero_card.dart';
+import '../../features/payday/payday_sheet.dart';
+import '../../features/pan/pan_history.dart';
+import '../../features/pan/pan_sheet.dart';
+import '../../features/reminders/reminders_sheet.dart';
+import '../../features/settings/privacy_sheet.dart';
+import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
+import '../../features/toolkit/toolkit_sheet.dart';
+import '../../models/models.dart';
+import '../../features/settings/settings_sheet.dart';
+import '../../state/financial_state.dart';
+import 'ask_pan_button.dart';
+import 'budget_pulse_card.dart';
+import 'coming_up_card.dart';
+import 'debt_beam_card.dart';
+import 'hero_panel.dart';
+import 'home_header.dart';
+import 'latest_transactions.dart';
+import 'quick_actions.dart';
+import 'reminders_banner.dart';
+
+/// Home, the prototype's first tab.
+///
+/// The card order is App.tsx's, not a preference: hero, budget pulse, quick
+/// actions, reminders, debts, coming up, latest. An earlier pass reordered it
+/// by guesswork and the founder spotted it against the real screens.
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({
+    super.key,
+    required this.state,
+    this.onOpenLog,
+    this.onOpenDebt,
+    this.onOpenTab,
+  });
+
+  final FinancialState state;
+
+  /// Switches the bottom tab, by its index in `SalapifyTab`.
+  ///
+  /// An int rather than the enum, so Home does not have to import the shell
+  /// that builds it. The shell owns which tab is showing; Home only knows
+  /// that an answer pointed at Reports.
+  final ValueChanged<int>? onOpenTab;
+
+  /// Opening the debt register belongs to the shell too: it is a whole screen
+  /// pushed over the tabs rather than a sheet, so the thing that owns the
+  /// navigator has to own the push.
+  final VoidCallback? onOpenDebt;
+
+  /// Opening the Log sheet belongs to the shell, not to Home: the shell owns
+  /// the store write AND the tab switch that lands somebody on the entry they
+  /// just made. Home only needs to say the button was pressed.
+  final VoidCallback? onOpenLog;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette palette = Palette.of(state.theme);
+
+    return Stack(
+      children: <Widget>[
+        ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            // Clears the floating Ask Pan button, so the last card is never
+            // stuck underneath it.
+            88,
+          ),
+          children: <Widget>[
+            HomeHeader(
+              state: state,
+              onOpenToolkit: () => ToolkitSheet.show(context, state),
+              onOpenReminders: () => RemindersSheet.show(context, state),
+              // The one real destination behind this button so far. The
+              // sample data control lives here because that is where somebody
+              // goes looking for it, and because the header already calls this
+              // "Settings and backup".
+              onOpenSettings: () => SettingsSheet.show(context, state),
+              onOpenPrivacy: () => PrivacySheet.show(context, palette),
+            ),
+            const SizedBox(height: Spacing.md),
+            HeroPanel(
+              state: state,
+              onOpenDetails: () => SafeToSpendSheet.show(context, state),
+              onSetPayday: () => PaydaySheet.show(context, state),
+              onOpenHealthCheck: () => HealthCheckSheet.show(
+                context,
+                palette,
+                state,
+                onAct: (HealthNeed need) => _healthAction(context, need),
+              ),
+              // Both the Details button and the small info glyph open the same
+              // sheet. The prototype does the same: the explainer IS the
+              // breakdown, and a second lighter screen saying "this is your
+              // safe amount" would only delay the numbers that answer it.
+              onInfo: () => SafeToSpendSheet.show(context, state),
+            ),
+            const SizedBox(height: Spacing.md),
+            BudgetPulseCard(
+              state: state,
+              onSeeAll: () => _soon(context, palette, 'The Plan tab'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            QuickActions(
+              palette: palette,
+              onLog:
+                  onOpenLog ?? () => _soon(context, palette, 'The Log sheet'),
+              onDebt: () => _addDebt(context, palette),
+              onBills: () => _soon(context, palette, 'Bills'),
+              onMove: () => _soon(context, palette, 'Move'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            PanHeroCard(
+              palette: palette,
+              facts: state.panFacts,
+              onAsk: (String? question) => PanSheet.show(
+                context,
+                state,
+                openWith: question,
+                onAction: (String id) => _panAction(context, palette, id),
+                history: FilePanHistoryStore(),
+              ),
+            ),
+            const SizedBox(height: Spacing.lg),
+            RemindersBanner(
+              state: state,
+              onOpen: () => RemindersSheet.show(context, state),
+            ),
+            const SizedBox(height: Spacing.lg),
+            DebtBeamCard(
+              state: state,
+              onSeeAll: onOpenDebt,
+              onInfo: () =>
+                  InfoSheet.show(context, palette, InfoTopic.debtBothWays),
+            ),
+            const SizedBox(height: Spacing.lg),
+            ComingUpCard(
+              state: state,
+              onManage: () => _soon(context, palette, 'Bills'),
+              onInfo: () =>
+                  InfoSheet.show(context, palette, InfoTopic.comingUp),
+              onAddItem: () =>
+                  _soon(context, palette, 'Adding an upcoming item'),
+            ),
+            const SizedBox(height: Spacing.lg),
+            LatestTransactions(
+              state: state,
+              onSeeAll: () => _soon(context, palette, 'The Activity tab'),
+            ),
+          ],
+        ),
+        Positioned(
+          right: Spacing.lg,
+          bottom: Spacing.lg,
+          child: AskPanButton(
+            palette: palette,
+            onTap: () => PanSheet.show(
+              context,
+              state,
+              onAction: (String id) => _panAction(context, palette, id),
+              history: FilePanHistoryStore(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Takes an answer's action somewhere real.
+  ///
+  /// Every id in `panActionIds` has a case, and the default does NOTHING on
+  /// purpose. A button whose id nobody recognised is a bug in the engine, and
+  /// the right behaviour on a chat screen is to be inert rather than to throw
+  /// in front of somebody who was asking about their electricity bill.
+  /// `pan_journey_test.dart` walks every id so an inert one cannot ship
+  /// quietly.
+  void _panAction(BuildContext context, Palette palette, String id) {
+    switch (id) {
+      case 'log':
+        onOpenLog?.call();
+      case 'safeToSpend':
+        SafeToSpendSheet.show(context, state);
+      case 'debts':
+        onOpenDebt?.call();
+      case 'privacy':
+        PrivacySheet.show(context, palette);
+      case 'reminders':
+        RemindersSheet.show(context, state);
+      case 'reports':
+        onOpenTab?.call(2);
+      case 'accounts':
+        onOpenTab?.call(4);
+      case 'bills':
+      case 'academy':
+        onOpenTab?.call(3);
+    }
+  }
+
+  /// Takes an unmeasured Health Check indicator to the thing that would fix
+  /// it.
+  ///
+  /// EVERY ONE GOES SOMEWHERE REAL. An indicator that names a missing input
+  /// and then offers a button doing nothing is worse than one that offers no
+  /// button, because the first time somebody taps it they learn the screen
+  /// is decorative. `health_check_journey_test.dart` taps all of them.
+  ///
+  /// The sheet is popped first, so the destination is not buried underneath
+  /// it: a person who lands on Plan with Health Check still covering it
+  /// concludes the tap did nothing.
+  void _healthAction(BuildContext context, HealthNeed need) {
+    Navigator.of(context).pop();
+    switch (need) {
+      case HealthNeed.logSpending:
+        onOpenLog?.call();
+      case HealthNeed.setPayday:
+        // Its own sheet now. This case used to fall through to Plan with a
+        // comment claiming "the payday lives in its Budgets segment", and it
+        // did not: Plan's "Payday and income" is a read-only caption on a
+        // figure, and nothing anywhere in the app could set a payday at all.
+        // So the offer to tell Salapify when you get paid led to a tab that
+        // could not accept the answer.
+        PaydaySheet.show(context, state);
+      case HealthNeed.addBill:
+      case HealthNeed.startCushion:
+      case HealthNeed.setBudget:
+        // Plan owns these three: budgets live in its Budgets segment, bills
+        // in Bills, and a goal in Goals. One destination beats three
+        // half-wired ones, and the hub is one tap from each.
+        onOpenTab?.call(3);
+    }
+  }
+
+  /// Opens the Add Debt sheet and records what comes back.
+  ///
+  /// The messenger is captured BEFORE the await. The sheet can be dismissed
+  /// long after this context is gone, and reaching for ScaffoldMessenger.of
+  /// on the far side of an await is the usual way that turns into a crash.
+  Future<void> _addDebt(BuildContext context, Palette palette) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final Debt? saved = await AddDebtSheet.show(context, palette);
+    if (saved == null) {
+      return;
+    }
+    state.addDebt(saved);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            // This used to warn that the debt would not survive a restart,
+            // which was true and honest right up until storage landed. Saying
+            // it now would be the same lie in the other direction.
+            'Added and saved to this phone.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  /// Every control on this screen is real and reachable. The destinations
+  /// behind most of them are later migration steps, so a tap says so rather
+  /// than doing nothing: a dead button is indistinguishable from a bug.
+  void _soon(BuildContext context, Palette palette, String what) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '$what is not migrated yet.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+}
