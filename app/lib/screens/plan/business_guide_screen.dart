@@ -38,15 +38,19 @@ class BusinessGuideScreen extends StatefulWidget {
   State<BusinessGuideScreen> createState() => _BusinessGuideScreenState();
 }
 
-/// The three things this guide holds, in the order somebody needs them.
+/// The four things this guide holds, in the order somebody needs them.
 ///
-/// Structure LAST, which is the opposite of the prototype's tab order, and it
-/// is deliberate. Choosing a structure is the first decision in real life,
-/// but it is not the first thing somebody opens this for: they open it asking
-/// what they have to DO. The checklist answers that in one screen, so it is
-/// the door, and the other two are there when the checklist raises a question
-/// it cannot answer on a row.
-enum _GuideView { checklist, roadmap, structure }
+/// Structure is not first, which is the opposite of the prototype's tab
+/// order, and it is deliberate. Choosing a structure is the first decision in
+/// real life, but it is not the first thing somebody opens this for: they
+/// open it asking what they have to DO. The checklist answers that in one
+/// screen, so it is the door, and the rest are there when the checklist
+/// raises a question it cannot answer on a row.
+///
+/// Traps is LAST because it is the only view that is not a list of things to
+/// do. It is six ways of getting it wrong, and it reads best once somebody
+/// has seen what the right version looks like.
+enum _GuideView { checklist, roadmap, structure, traps }
 
 class _BusinessGuideScreenState extends State<BusinessGuideScreen> {
   _GuideView _view = _GuideView.checklist;
@@ -100,6 +104,7 @@ class _BusinessGuideScreenState extends State<BusinessGuideScreen> {
               (_GuideView.checklist, 'Checklist'),
               (_GuideView.roadmap, 'Order'),
               (_GuideView.structure, 'Structure'),
+              (_GuideView.traps, 'Traps'),
             ],
           ),
         ),
@@ -127,6 +132,7 @@ class _BusinessGuideScreenState extends State<BusinessGuideScreen> {
                 _GuideView.checklist => _checklist(p),
                 _GuideView.roadmap => _roadmap(p),
                 _GuideView.structure => _structure(p),
+                _GuideView.traps => _traps(p),
               },
             ],
           ),
@@ -189,6 +195,19 @@ class _BusinessGuideScreenState extends State<BusinessGuideScreen> {
           () => _openPhase = _openPhase == phase.number ? 0 : phase.number,
         ),
       ),
+      const SizedBox(height: Spacing.sm),
+    ],
+  ];
+
+  List<Widget> _traps(Palette p) => <Widget>[
+    Text(
+      'Six things people get wrong often enough that an accountant will '
+      'mention them unprompted.',
+      style: AppType.caption(p),
+    ),
+    const SizedBox(height: Spacing.md),
+    for (final StartupTrap trap in startupTraps) ...<Widget>[
+      _TrapCard(palette: p, trap: trap),
       const SizedBox(height: Spacing.sm),
     ],
   ];
@@ -1045,6 +1064,56 @@ class _EntityPanel extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One trap.
+///
+/// Flat cards rather than a collapsible list, unlike the roadmap. Six short
+/// warnings are worth reading straight through; putting them behind taps
+/// would hide the one somebody needed behind the five they did not.
+class _TrapCard extends StatelessWidget {
+  const _TrapCard({required this.palette, required this.trap});
+
+  final Palette palette;
+  final StartupTrap trap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.report_problem_outlined,
+                size: 14,
+                color: palette.warning,
+              ),
+              const SizedBox(width: Spacing.xs),
+              Expanded(
+                child: Text(
+                  trap.expert.toUpperCase(),
+                  style: AppType.kicker(palette),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          Text(trap.title, style: AppType.rowTitle(palette)),
+          const SizedBox(height: Spacing.xs),
+          Text(trap.body, style: AppType.caption(palette)),
         ],
       ),
     );

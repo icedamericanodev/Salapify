@@ -2299,6 +2299,7 @@ void businessGuideViewShots() {
         (slug: 'roadmap', segment: 'Order', answer: false),
         (slug: 'structure', segment: 'Structure', answer: false),
         (slug: 'structure_matched', segment: 'Structure', answer: true),
+        (slug: 'traps', segment: 'Traps', answer: false),
       ]) {
     testWidgets('business guide ${shot.slug} renders', (
       WidgetTester tester,

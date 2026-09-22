@@ -198,6 +198,8 @@ void main() {
 
   _roadmapAndStructure();
 
+  _traps();
+
   _readabilityChecks();
 
   testWidgets('every step id in the data file is unique', (
@@ -431,5 +433,32 @@ void _roadmapAndStructure() {
       findsNothing,
       reason: 'a tick count over a roadmap implies the roadmap has ticks',
     );
+  });
+}
+
+/// The Traps segment, added 2026-09-22.
+void _traps() {
+  testWidgets('the Traps segment shows all six', (WidgetTester tester) async {
+    await openChecklistFor(tester);
+    await revealAndTap(tester, find.text('Traps'));
+
+    expect(
+      find.text('Thinking a DTI registration is enough to start selling'),
+      findsOneWidget,
+    );
+    await reveal(tester, find.textContaining('global sales tax trap'));
+  });
+
+  testWidgets('the corrected penalty is on the screen', (
+    WidgetTester tester,
+  ) async {
+    // startup_traps_test.dart pins the data. This pins that somebody reading
+    // the app sees the right figure, which is the half that matters when the
+    // number is one they might repeat to a business partner.
+    await openChecklistFor(tester);
+    await revealAndTap(tester, find.text('Traps'));
+    await reveal(tester, find.textContaining('5,000 to 20,000'));
+
+    expect(find.textContaining('10,000 to 50,000'), findsNothing);
   });
 }

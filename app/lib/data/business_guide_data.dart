@@ -1131,3 +1131,140 @@ EntityMatch? matchEntity({String? owners, String? liability, String? funding}) {
     ],
   );
 }
+
+// ===========================================================================
+// THE TRAPS: what people get wrong, from the prototype's Experts tab.
+// ===========================================================================
+//
+// Ported 2026-09-22. The prototype's tab bar calls this "Expert Pitfalls &
+// Q&A" and there are no questions, no answers and no tips anywhere in it,
+// only six warnings. The name is not ported with the emptiness: this is
+// called Traps, which is what it contains.
+//
+// Five of the six needed a correction, and they are the reason the factual
+// review ran before this tab was built rather than after.
+
+/// One thing people get wrong, and what it costs.
+class StartupTrap {
+  const StartupTrap({
+    required this.expert,
+    required this.title,
+    required this.body,
+  });
+
+  /// Whose warning it is, as a small kicker.
+  final String expert;
+  final String title;
+  final String body;
+}
+
+const List<StartupTrap> startupTraps = <StartupTrap>[
+  StartupTrap(
+    expert: 'BIR compliance',
+    title: 'Thinking a DTI registration is enough to start selling',
+    // CORRECTED, and the numbers were wrong in both directions.
+    //
+    // The prototype said "heavy fines (P10,000 to P50,000+)". Section 258 is
+    // a fine of 5,000 to 20,000 plus six months to two years. The 30,000 to
+    // 50,000 band in that section exists, but it applies to businesses
+    // distilling, rectifying, repacking, compounding or manufacturing
+    // articles subject to excise tax, which no reader of this app is. So the
+    // prototype took a band that does not apply and raised the floor as well.
+    //
+    // It also merged two offences under one citation: not issuing an invoice
+    // is Section 264, not 258. Verified against the Tax Code text here, not
+    // taken on a reviewer's word, because a penalty figure is exactly the
+    // sort of number somebody repeats to a business partner.
+    body:
+        'Plenty of people register with DTI, open a shop and start trading '
+        'without ever going to the BIR. Trading without a Certificate of '
+        'Registration is a criminal offence under Section 258: a fine of '
+        '5,000 to 20,000 and six months to two years. Not issuing an invoice '
+        'is a separate offence under Section 264. The BIR can also close the '
+        'business under Oplan Kandado.',
+  ),
+  StartupTrap(
+    expert: 'CPA and tax accountant',
+    title: 'Forgetting to file zero-income returns',
+    // The substance survived the review. What is added is the 8% point: an
+    // elector no longer files 2551Q at all, so "the returns on your 2303" is
+    // not a fixed list and somebody filing a return they do not owe is as
+    // confused as somebody missing one.
+    body:
+        'Once you are registered you must file every return listed on your '
+        'Form 2303, even in a quarter where you earned nothing. A nil return '
+        'is free. Not filing one is a compromise penalty from 1,000 per '
+        'return, and they stack quietly into open cases. The list is not '
+        'fixed: electing the 8% means you stop filing percentage tax '
+        'returns.',
+  ),
+  StartupTrap(
+    expert: 'E-commerce',
+    title: 'The withholding tax on marketplace sellers',
+    // The mechanic survived, and the review confirmed the arithmetic the
+    // extraction had flagged as looking self-contradictory: 1% of one half
+    // really is how RR 16-2023 is drafted, and it really is 0.5% of gross.
+    //
+    // Two changes. The e-wallets are no longer named, because whether a given
+    // wallet is acting as a covered operator depends on the transaction, and
+    // the marketplaces are not in doubt. And the last sentence is new: people
+    // routinely read a creditable withholding as money burned.
+    body:
+        'Marketplace operators like Shopee, Lazada and TikTok Shop withhold '
+        '1% on half of what they remit you, so 0.5% of the gross, once your '
+        'remittances pass 500,000 in a year. It is CREDITABLE against your '
+        'income tax rather than an extra tax, so claim it. You also have to '
+        'be BIR-registered to keep selling on them.',
+  ),
+  StartupTrap(
+    expert: 'Legal and IP',
+    title: 'Missing the three year Declaration of Actual Use',
+    body:
+        'Filing the trademark application is only the start. You must file a '
+        'Declaration of Actual Use with real proof you are using the mark, '
+        'receipts, website screenshots, product photos, within three years of '
+        'filing. Miss it and the mark is refused or cancelled automatically.',
+  ),
+  StartupTrap(
+    expert: 'App stores',
+    title: 'Assuming you can bill however you like inside an app',
+    // CORRECTED. The prototype said linking to an external web checkout
+    // "will cause an immediate rejection", full stop. That was true when it
+    // was written and is no longer true everywhere: a US court injunction in
+    // 2025 changed what Apple permits on the US storefront, and Google began
+    // opening billing choice in 2026, starting with the US, EEA and UK.
+    //
+    // The correction is deliberately NOT a list of which storefront allows
+    // what this month, because that list would be wrong again by the time
+    // anybody reads it. It says the rule is the platform's, varies by
+    // country, and is the thing to check. Naming the account deletion
+    // requirement stays, and Google's web link half is added.
+    body:
+        'Selling digital things inside an iOS or Android app usually means '
+        "using the store's own billing, not your own checkout. What is "
+        'allowed has been moving and differs by country, so check the current '
+        'rule for your storefront rather than assuming. Separately, if your '
+        'app lets people create an account, Apple requires in-app deletion '
+        'and Google also wants a web link that works without reinstalling.',
+  ),
+  StartupTrap(
+    expert: 'SaaS and tax',
+    title: 'The global sales tax trap',
+    // CORRECTED, and it is the same defect as the checklist's zero-rated
+    // invoice step: the prototype promised "one clean, zero-rated B2B invoice
+    // per month" with no mention that zero rating needs VAT registration. A
+    // bootstrapped Philippine company under the threshold is non-VAT, issues
+    // an ordinary invoice, and still owes percentage tax on those receipts.
+    //
+    // Lemon Squeezy is also no longer named. It was acquired in 2024 and is
+    // migrating into its acquirer's own product, so pointing a beginner at it
+    // by name is pointing them at something mid-move.
+    body:
+        'Selling SaaS to customers in Europe, the UK or the US with a plain '
+        'payment gateway makes your Philippine company responsible for '
+        'registering and remitting sales tax across dozens of places. A '
+        'merchant of record takes that on instead and bills you once. Just '
+        'note that a single invoice is not a zero-rated one unless you are '
+        'VAT-registered, and it is never tax free.',
+  ),
+];

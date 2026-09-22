@@ -1782,3 +1782,62 @@ a loss-making corporation pays nothing.
 | Order | Structure | Matched |
 | --- | --- | --- |
 | ![roadmap](screens/business-guide-roadmap.png) | ![structure](screens/business-guide-structure.png) | ![matched](screens/business-guide-matched.png) |
+
+## The Traps tab (2026-09-22)
+
+Founder direction: "go ahead with the experts tab". It is the last of the four
+views in the business guide, and the one the factual review found most wrong:
+five of its six warnings needed a correction.
+
+It is called **Traps**, not "Expert Pitfalls & Q&A". The prototype's tab bar
+uses that name and the tab contains no questions, no answers and no tips, only
+six warnings. The name is not ported along with the emptiness.
+
+### Why this tab needed the review most
+
+It is the only place in the guide that quotes PENALTIES, which is the kind of
+number somebody repeats to a business partner.
+
+| Trap | Prototype said | Now |
+| --- | --- | --- |
+| Section 258 | "heavy fines (P10,000 to P50,000+)" | a fine of 5,000 to 20,000 and six months to two years |
+| Section 258 | merged with not issuing an invoice | Section 264 named as the separate offence it is |
+| Nil returns | a fixed list of returns on your 2303 | plus: electing the 8% means you stop filing percentage tax |
+| Marketplace withholding | the mechanic only | plus: it is CREDITABLE, not an extra tax |
+| App stores | an external checkout "will cause an immediate rejection" | the rule is the platform's, has been moving, and differs by country |
+| App stores | Apple only | plus Google's web-link deletion requirement |
+| Global sales tax | "one clean, zero-rated B2B invoice per month" | zero rating needs VAT registration, and it is never tax free |
+
+The Section 258 figures were wrong in BOTH directions. The 30,000 to 50,000
+band in that section is real, but it applies to businesses distilling,
+rectifying, repacking, compounding or manufacturing articles subject to excise
+tax. No reader of this app is one, so the prototype quoted a band that does not
+apply and raised the floor as well. Verified against the Tax Code text during
+the port rather than taken on a reviewer's word, because the reviewer that
+flagged it had no network access and said so.
+
+Putting the prototype's sentence back turns three assertions red:
+
+    Expected: contains '5,000 to 20,000'
+      Actual: '... a criminal tax offense under Section 258 carrying heavy
+               fines (10,000 to 50,000+) ...'
+
+### The app store trap is deliberately not a list
+
+The prototype froze one moment in time: linking to an external checkout "will
+cause an immediate rejection", full stop. A 2025 US injunction and Google's
+2026 billing changes made that false in some places. The correction does NOT
+replace it with a list of which storefront allows what this month, because
+that list would be wrong again before anybody read it. It says the rule is the
+platform's, that it has been moving, that it differs by country, and that the
+current one is the thing to check.
+
+### Flat cards, not a collapsible list
+
+Unlike the roadmap. Six short warnings are worth reading straight through, and
+putting them behind taps would hide the one somebody needed behind the five
+they did not.
+
+### The screen
+
+![traps](screens/business-guide-traps.png)
