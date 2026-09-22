@@ -100,6 +100,7 @@ Future<void> settleImages(WidgetTester tester) async {
 
 void main() {
   _cardFaceShots();
+  largeTextShots();
   importShots();
   toolkitShots();
   settingsShots();
@@ -2143,6 +2144,70 @@ void importShots() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/import_${shot.slug}.png'),
+      );
+    });
+  }
+}
+
+/// THE SAME SCREENS WITH LARGE TEXT ON.
+///
+/// Added 2026-09-22, and the reason it did not exist before is the reason it
+/// exists now. Every other shot in this file renders at the default font
+/// size, so a defect that only appears when somebody turns text up was
+/// invisible to the whole harness. `screen_readability_test.dart` found a
+/// dozen of them by measurement, and measurement is the right gate, but a
+/// measurement cannot answer the question the founder actually asks of a
+/// picture: does it still look like the app.
+///
+/// 1.5x is the middle of Android's own Font size slider, not an extreme.
+/// Dark first, because that is what the founder uses.
+void largeTextShots() {
+  for (final ({String slug, IconData? icon}) tab
+      in <({String slug, IconData? icon})>[
+        (slug: 'home', icon: null),
+        (slug: 'reports', icon: Icons.insert_chart_outlined),
+        (slug: 'accounts', icon: Icons.account_balance_wallet_outlined),
+      ]) {
+    testWidgets('${tab.slug} renders at 1.5x text', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      // Taller than the phone, because large text makes every screen longer
+      // and a render that cuts the last card off is worse than one with a
+      // margin.
+      tester.view.physicalSize = const Size(1170, 5400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      // Gabi is the dark theme and the default, so nothing is toggled here.
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      if (tab.icon != null) {
+        await tester.tap(find.byIcon(tab.icon!));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/large_text_${tab.slug}.png'),
       );
     });
   }

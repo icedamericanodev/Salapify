@@ -29,16 +29,23 @@
 // All five at the ORDINARY font size, scrolling the whole screen rather than
 // only what the first frame happened to lay out.
 //
-// At 1.5x only two of them, checks 1 and 2, and the reason is written where
-// the tests are rather than claimed here. The short version: at that size the
-// sweep finds a dozen more real things, and fixing them is a design decision
-// about dynamic type rather than a bug fix, so they are listed in full beside
-// the 1.5x tests instead of being asserted or quietly baselined away.
+// All five at 1.5x as well, since 2026-09-22. That was not true when this
+// file was ported: the large-font pass asserted only checks 1 and 2, because
+// a dozen things were cut off at that size and fixing them was judged a
+// design decision rather than a bug fix. The founder read the list and said
+// fix them, so eleven were fixed, one turned out to be a bug in check 3
+// rather than in the app, and the exemption is gone. The detail is beside
+// the 1.5x tests.
 //
 // This paragraph said "all of it at 1.0x AND 1.5x" while that was false, for
 // about an hour, which is the same defect this repository keeps finding in
-// its own documents. When a comment describes what a test does, read the
-// test.
+// its own documents. It is true now, and it is true because the code moved
+// to meet it rather than because the sentence was left alone long enough to
+// come good. When a comment describes what a test does, read the test.
+//
+// Narrow phones are NOT covered here. Everything in this file renders 390dp,
+// so a truncation that only happens on a 320 is invisible to it, and one was:
+// see test/widgets/nav_bar_scaling_test.dart.
 //
 // What this deliberately does NOT do is compare pixels. That is why
 // screens_shot.dart is kept out of `flutter test` in the first place: it is
@@ -216,9 +223,21 @@ List<String> _offTheSide(WidgetTester tester) {
     if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
     if (_insideHorizontalScroll(e)) continue;
 
-    final Offset topLeft = ro.localToGlobal(Offset.zero);
-    final double left = topLeft.dx;
-    final double right = left + ro.size.width;
+    // BOTH corners go through localToGlobal, and the second one is the whole
+    // point. `left + size.width` measures the text in its OWN coordinates,
+    // which is the width it would have drawn at had nothing scaled it. A
+    // FittedBox(scaleDown) is exactly such a scale, and Salapify puts one
+    // around every large peso figure precisely so it can shrink instead of
+    // running off the page. Measuring the unscaled width therefore reported
+    // the figure as 28 pixels off a 390 wide phone while the phone was in
+    // fact drawing it comfortably inside the card.
+    //
+    // Transforming the far corner instead reads what was actually painted,
+    // and it is general: it covers Transform.scale and anything else that
+    // puts a matrix between the paragraph and the screen, not just the one
+    // case that was caught.
+    final double left = ro.localToGlobal(Offset.zero).dx;
+    final double right = ro.localToGlobal(Offset(ro.size.width, 0)).dx;
     // A pixel of slack, because a rounded layout can land a hair over an
     // edge it is flush against without anything being wrong.
     if (left < -1 || right > screenWidth + 1) {
@@ -371,43 +390,49 @@ void main() {
     });
   }
 
-  // LARGE FONT, and this one is deliberately narrower. Read the list below
-  // before widening it.
+  // LARGE FONT, held to the SAME bar as the ordinary one since 2026-09-22.
   //
-  // At 1.5x the sweep finds twelve more things, and every one of them is
-  // real: the Accounts and Reports TAB LABELS are cut off, so is Reports'
-  // Performance segment, so are the Remaining, Reserved and Income stat
-  // labels, and the masked card number and a six figure total are painted
-  // past the edge of the phone.
+  // This used to assert only two of the five checks here, and the comment it
+  // replaces explained why at length: twelve things were cut off at 1.5x and
+  // fixing them was called a design decision rather than a bug fix, so they
+  // were written down and left. The founder read the list and said fix them,
+  // which is what made them ordinary work.
   //
-  // They are NOT baselined away here and they are NOT asserted here, because
-  // fixing them is a design decision rather than a bug fix. A five tab bar at
-  // 1.5x has to give something up, and whether that is the label, the icon,
-  // the font size or the row height is the founder's call, not a test's. The
-  // list is written down in this comment so it cannot be quietly forgotten,
-  // and docs/lunch-and-learn.md carries it as an open item.
+  // Eleven were real and are fixed, each in the place it belonged:
+  //   the Reports and Accounts TAB LABELS      a scale cap, app_shell.dart
+  //   Reports' Performance segment             two lines
+  //   Income, Reserved and Remaining           two lines
+  //   "Expected bills & income before..."      no line limit at all
+  //   "Next Payday: Sep 15"                    two lines
+  //   the Activity search hint                 hintMaxLines
+  //   an account's Sample / Loan / Due line    three lines
   //
-  // What IS asserted at 1.5x is the pair that can never be a design choice.
-  // An overflow is the yellow and black barber pole, which is never intended
-  // at any font size, and a blank tab is the loudest failure there is. Both
-  // pass today, and this is what stops a dynamic type regression from taking
-  // a whole screen down while the argument about tab labels goes on.
+  // The twelfth was not real, and that is the more useful half of the story.
+  // A six figure total was reported as painted 28 pixels off the side of the
+  // phone, and the phone was drawing it correctly the whole time: the check
+  // measured the paragraph's own width, which is the width it would have had
+  // if nothing had scaled it, while a FittedBox was scaling it down to fit.
+  // See _offTheSide, which now transforms both corners. A guard that reports
+  // a defect that is not there spends exactly the attention that the next
+  // real one needs.
+  //
+  // What is deliberately NOT here: narrow phones. This sweep renders 390dp
+  // only, and the nav bar turned out to truncate at 320dp at the ORDINARY
+  // font size, which no run of this file could ever have found. That is
+  // measured in test/widgets/nav_bar_scaling_test.dart, across three widths
+  // and three scales, and it is where the remaining known truncation is
+  // named.
   for (final String tab in _tabs) {
     testWidgets('$tab does not break at 1.5x font', (
       WidgetTester tester,
     ) async {
       final List<String> problems = await sweep(tester, tab, 1.5);
-      final List<String> severe = problems
-          .where(
-            (String p) => p.contains('overflowed') || p.contains('drew almost'),
-          )
-          .toList();
       expect(
-        severe,
+        problems,
         isEmpty,
         reason:
             'a screen came apart at a font size a person can set in Android '
-            'settings:\n${severe.join('\n')}',
+            'settings:\n${problems.join('\n')}',
       );
     });
   }

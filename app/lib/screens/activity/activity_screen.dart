@@ -160,6 +160,12 @@ class _SearchField extends StatelessWidget {
           style: AppType.rowTitle(palette).copyWith(fontSize: 15),
           decoration: InputDecoration(
             hintText: 'Search a merchant, category or amount',
+            // The hint is allowed two lines, which InputDecoration will not
+            // do on its own. It names the three things this box can search,
+            // and at 1.5x it was cut to "Search a merchant, categor..." on a
+            // field whose whole job is telling somebody what to type.
+            // Shortening the copy was the other option and it costs a fact.
+            hintMaxLines: 2,
             hintStyle: AppType.body(palette).copyWith(color: palette.textMuted),
             prefixIcon: Icon(Icons.search, size: 18, color: palette.textMuted),
             suffixIcon: searching

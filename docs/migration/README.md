@@ -1416,3 +1416,101 @@ Two details worth keeping, because both cost time:
   The note above said an emulator "can never contain a receipt", which was
   true of the emulator as configured and false of the emulator as
   configurable. It is corrected above rather than quietly dropped.
+
+## Large text: the twelve findings, and what they were really made of (2026-09-22)
+
+Founder direction: fix the twelve things `screen_readability_test.dart` found
+at 1.5x, the middle of Android's own Font size slider. They had been written
+down and deliberately left, because fixing a five tab bar at 1.5x reads like a
+design decision rather than a bug fix. The founder read the list and called it.
+
+Eleven were real. The twelfth was not, and that one is the most useful part of
+this entry.
+
+### The eleven
+
+| What | Where | Fix |
+| --- | --- | --- |
+| "Reports" and "Accounts" cut off in the bottom bar | `shell/app_shell.dart` | a 1.3 scale cap |
+| "Performance" cut off in the Reports segments | `screens/reports/reports_screen.dart` | a 1.1 scale cap |
+| "Income", "Reserved", "Remaining" cut off | `screens/home/coming_up_card.dart` | two lines |
+| "Expected bills & income before next payday" cut off | same file | no line limit at all |
+| "Next Payday: Sep 15" cut off | same file | two lines |
+| The Activity search hint cut off | `screens/activity/activity_screen.dart` | `hintMaxLines: 2` |
+| "Sample · Loan · BPI · Due Sep 25" cut off | `screens/accounts/accounts_screen.dart` | three lines |
+
+Two of those needed a CAP rather than a wrap, and the reason is a fact about
+the words rather than a preference. "Accounts", "Reports" and "Performance"
+are single words with no space in them, so there is no line break opportunity
+inside them: asking for two lines does not wrap them, it makes Flutter break
+between characters, and the Reports segment rendered "Performa" over "nce"
+before this was understood. That looks like a rendering fault rather than a
+label.
+
+1.3 is not a number somebody liked. It is `_kMaxLabelTextScaleFactor` from
+Flutter's own Material `NavigationBar`, which caps its destination labels for
+exactly this reason; the older `BottomNavigationBar` is harsher still and caps
+at 1.0. 1.1 on the Reports segments is measured: "Performance" needs 85.9dp
+and a quarter of a 390dp phone gives it 97.5, so 1.13 is the ceiling.
+
+Capping a scale is a real cost and it is worth naming. It is defensible for
+the nav bar for one specific reason, which was checked rather than assumed:
+every destination repeats its own name, unclamped, as the screen's own title.
+The label in the bar is a second copy, so nothing is lost. That reasoning does
+NOT travel, and the cap must never reach body copy, a money figure, a form
+label or an error.
+
+### The twelfth was a bug in the check
+
+A six figure total was reported as painted 28 pixels off the side of the
+phone. The phone had been drawing it correctly the entire time. `_offTheSide`
+measured the paragraph's own width, which is the width it would have had if
+nothing had scaled it, while a `FittedBox` was scaling it down to fit. It now
+transforms both corners, so it reads what was actually painted.
+
+Proving that was a two step story worth keeping. The obvious deliberate break,
+removing the `FittedBox` so the figure really would overflow, produced no
+failure at all: a plain `Text` in a bounded column WRAPS, it does not paint off
+the side, so that branch was unreachable that way. The repo's own rule says a
+break that does not fail means the test is wrong rather than the code being
+unusually good, and here it meant the BREAK was wrong. Translating the text
+sideways instead reached the branch, and the check fired, reporting a width of
+147 where the old arithmetic said 204.5. 147 is the scaled width, which is what
+the phone draws, and it fits.
+
+### Two things only the eye could find
+
+`test/widgets/nav_bar_scaling_test.dart` is new, and it renders three widths
+rather than one. The readability sweep only ever renders 390dp, and the nav bar
+turned out to truncate "Accounts" at 320dp at the ORDINARY font size. That had
+been true since the bar was written and no run of any test could have found it.
+It is fixed by the same padding levers that bought room for the cap.
+
+The other came from looking at the picture. On Accounts at 1.5x the net worth
+figure broke after its minus sign, leaving a lone dash on one line and
+"P217,229.5" on the next. No measurement in the suite calls that a defect,
+because it wraps rather than truncating, and wrapping is usually right. It is
+not right here: the sign on that figure is drawn rather than implied by colour
+precisely so a debt cannot be read as savings, and a line break undoes that on
+the screen where the figure is largest. It is now one line that shrinks.
+
+### What is still broken, and why it is not fixed here
+
+"Accounts" still truncates on a phone narrower than 390dp with large text on,
+and "Reports" does at 320dp. The arithmetic is not close: at the capped size
+"Accounts" needs 61.5dp, a 360dp phone can give it 56.9 and a 320dp phone 48.9,
+after both padding levers are already spent. Closing that needs a material
+change, dropping the word "Log" from the pill or shortening a destination name,
+which is a product decision rather than an engineering one. It is a typed
+exemption in the new test, naming one label at two widths, so a second label
+truncating or this one truncating at 390 still reddens the build.
+
+### The screens, dark, at 1.5x
+
+| Home | Reports | Accounts |
+| --- | --- | --- |
+| ![home at 1.5x](screens/large-text-home.png) | ![reports at 1.5x](screens/large-text-reports.png) | ![accounts at 1.5x](screens/large-text-accounts.png) |
+
+These are new to the render harness. Every other shot in it uses the default
+font size, so a defect that only appears when somebody turns text up was
+invisible to the whole harness, which is how the net worth break survived.

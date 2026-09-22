@@ -221,15 +221,40 @@ class _TabBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    child: Text(
-                      e.value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.button(
-                        palette,
-                        color: current == e.key
-                            ? palette.accent
-                            : palette.textMuted,
+                    // A CAP, and a small one, for the same reason the tab bar
+                    // has one: four segments share the width of the phone and
+                    // the longest of them is a single eleven letter word, so
+                    // at 1.5x "Performance" was cut to "Performa...".
+                    //
+                    // Two lines was tried first and was worse. "Performance"
+                    // has no space in it, so there is no line break
+                    // opportunity inside it, and Flutter fell back to
+                    // breaking between characters: the segment read
+                    // "Performa" over "nce", which looks like a rendering
+                    // fault rather than a label.
+                    //
+                    // 1.1 is measured, not chosen. "Performance" needs 85.9dp
+                    // and a quarter of a 390dp phone gives it 97.5, so 1.13
+                    // is the ceiling and 1.1 is the round number under it.
+                    // That is barely any growth and it is said plainly rather
+                    // than dressed up: the honest gain here is that the whole
+                    // word survives at every font size, not that it gets
+                    // bigger. Growing this properly means a scrolling
+                    // segmented control or a shorter word, both of which
+                    // change the product rather than fix a defect.
+                    child: MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.1,
+                      child: Text(
+                        e.value,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.button(
+                          palette,
+                          color: current == e.key
+                              ? palette.accent
+                              : palette.textMuted,
+                        ),
                       ),
                     ),
                   ),

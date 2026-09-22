@@ -94,8 +94,15 @@ class ComingUpCard extends StatelessWidget {
                 //
                 // Found by screen_readability_test.dart on its first run,
                 // and it was the only finding at 1.0x on any tab.
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                //
+                // NO LIMIT AT ALL now, 2026-09-22, because two lines is the
+                // same mistake one line was, moved by one. Two fitted at the
+                // ordinary size and lost the last word again at 1.5x, the
+                // font scale an Android user picks in Settings, and the next
+                // fix would have been three. A caption is a sentence the app
+                // chose to say; it has a bounded length, it sits in a column
+                // that scrolls, and there is no size at which cutting it in
+                // half is better than it being one line taller.
                 style: TextStyle(fontSize: 11, color: palette.textMuted),
               ),
             ],
@@ -166,7 +173,11 @@ class ComingUpCard extends StatelessWidget {
                   state.payday.isSet
                       ? 'Next Payday: ${state.payday.nextPayday}'
                       : 'Payday not set yet',
-                  maxLines: 1,
+                  // Two lines, because the date is the point. At 1.5x this
+                  // row has an icon on one side and a countdown badge on the
+                  // other, and one line ellipsised to "Next Payday: Sep..."
+                  // throws away the only part somebody reads it for.
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
@@ -551,7 +562,14 @@ class _StatBox extends StatelessWidget {
                   Flexible(
                     child: Text(
                       label,
-                      maxLines: 1,
+                      // Two lines. These three boxes split the width of the
+                      // phone between them, so at 1.5x "Remaining" and
+                      // "Reserved" both lost their tails to an ellipsis and
+                      // the row read "Income / Reserv... / Remaini...".
+                      // Wrapping costs one line of height on a card that is
+                      // already free to grow; the alternative was three
+                      // labels nobody can tell apart.
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 11,

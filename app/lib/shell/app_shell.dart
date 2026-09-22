@@ -278,7 +278,7 @@ class _SalapifyTabBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.sm,
+            horizontal: Spacing.xs,
             vertical: Spacing.sm,
           ),
           child: Row(
@@ -345,14 +345,51 @@ class _TabButton extends StatelessWidget {
             children: <Widget>[
               Icon(icon, size: 20, color: color),
               const SizedBox(height: 2),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              // CHROME ONLY, capped at 1.3. Five destinations plus the Log
+              // pill cannot fit unbounded labels on a 390dp bar, and at the
+              // 1.5x an Android user can pick in Settings, "Reports" and
+              // "Accounts" were both ellipsised on every screen.
+              //
+              // 1.3 is not a number somebody liked the look of. It is
+              // _kMaxLabelTextScaleFactor from Flutter's own Material
+              // NavigationBar (navigation_bar.dart:31 in the pinned SDK),
+              // applied to its destination labels for this exact reason. The
+              // legacy BottomNavigationBar is harsher still and clamps at
+              // 1.0, so its labels do not grow at all. Had Salapify used the
+              // stock bar it would have had this behaviour for free and
+              // never seen the defect.
+              //
+              // Wrapping is not an option here and that is a fact about the
+              // words, not a preference: "Accounts" and "Reports" are single
+              // words with no break opportunity inside them, so maxLines: 2
+              // buys the bar's height back and still ellipsises.
+              //
+              // Capping a scale is a real cost and it is worth naming. It is
+              // defensible in THIS place for one specific reason: every
+              // destination repeats its own name, unclamped, as the screen's
+              // own title (reports_screen.dart:167,
+              // accounts_screen.dart:167). The label here is a second copy,
+              // so no content and no function is lost at large text, which
+              // is the substance WCAG 1.4.4 protects. That reasoning does
+              // NOT travel: never clamp body copy, a money figure, a form
+              // label or an error.
+              //
+              // MediaQuery is not a semantics boundary, so TalkBack reads
+              // the whole word either way. This was already true of the
+              // ellipsis, which is why this is a low-vision defect and not a
+              // screen-reader one.
+              MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -382,21 +419,28 @@ class _LogPill extends StatelessWidget {
           borderRadius: BorderRadius.circular(Radii.pill),
           child: Container(
             constraints: const BoxConstraints(minHeight: 44),
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(Icons.add, size: 16, color: palette.onAccent),
-                const SizedBox(width: 2),
-                Text(
-                  'Log',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: palette.onAccent,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+            // The pill is clamped to the same 1.3 as the tab labels beside
+            // it, and leaving it out would have half-fixed the bar: the pill
+            // does not sit in an Expanded, so at 1.5x its own text grows and
+            // takes back most of the width the five tabs just gained.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.add, size: 16, color: palette.onAccent),
+                  const SizedBox(width: 2),
+                  Text(
+                    'Log',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: palette.onAccent,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

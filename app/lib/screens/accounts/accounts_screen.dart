@@ -240,13 +240,32 @@ class _NetWorthCard extends StatelessWidget {
             style: AppType.kicker(palette),
           ),
           const SizedBox(height: Spacing.xs),
-          Text(
-            // The sign is drawn, never left to colour. formatPeso returns the
-            // absolute value on purpose, so a debt of 217,229.50 would
-            // otherwise render character for character like savings of the
-            // same amount.
-            net < 0 ? '-${formatPeso(net)}' : formatPeso(net),
-            style: AppType.hero(palette),
+          // ONE LINE, always, shrinking rather than wrapping.
+          //
+          // Found by eye in the 1.5x render on 2026-09-22, and by eye is the
+          // only way it could have been: no measurement in the suite calls
+          // this a defect, because the text wraps rather than truncating and
+          // wrapping is usually the correct answer. Here it is not.
+          //
+          // At 1.5x "-P217,229.50" broke after the minus sign, so the card
+          // read as a lone dash on one line, then "P217,229.5", then a "0" on
+          // a third. A minus sign separated from its figure is not a cosmetic
+          // problem in an app about money: the comment below explains that
+          // the sign is drawn rather than implied by colour precisely so a
+          // debt cannot be mistaken for savings, and a line break undoes that
+          // on the one screen where the figure is largest.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              // The sign is drawn, never left to colour. formatPeso returns
+              // the absolute value on purpose, so a debt of 217,229.50 would
+              // otherwise render character for character like savings of the
+              // same amount.
+              net < 0 ? '-${formatPeso(net)}' : formatPeso(net),
+              maxLines: 1,
+              style: AppType.hero(palette),
+            ),
           ),
           const SizedBox(height: Spacing.sm),
           Wrap(
@@ -684,7 +703,14 @@ class _AccountRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       meta.join(' · '),
-                      maxLines: 2,
+                      // Three, raised from two on 2026-09-22. This line is
+                      // built by joining up to five facts, and the first of
+                      // them is the word "Sample", which exists to stop
+                      // somebody mistaking demonstration data for their own
+                      // money. At 1.5x "Sample · Loan · BPI · Due Sep 25"
+                      // lost its tail, and a warning that only fits at the
+                      // default font size is not a warning.
+                      maxLines: 3,
                       style: AppType.rowMeta(palette),
                     ),
                   ],
