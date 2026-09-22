@@ -53,6 +53,28 @@ dependencies:
   # zonedSchedule needs a real timezone, not the device offset: Manila has no
   # daylight saving but the plugin's API is written for places that do.
   timezone: ^0.11.1
+  # Takes the photo, or picks one already on the phone, for Scan a receipt.
+  #
+  # NO CAMERA PERMISSION IS DECLARED, and that is deliberate rather than an
+  # oversight. This plugin fires ACTION_IMAGE_CAPTURE, which hands over to the
+  # phone's own camera app. Android's rule is the opposite way round from the
+  # obvious guess: an app that DECLARES android.permission.CAMERA and has not
+  # been granted it gets a SecurityException from that intent, while an app
+  # that never declares it works with no permission and no dialog at all. So
+  # declaring it would add a runtime prompt, a Play data safety entry and a
+  # new way to fail, in exchange for nothing.
+  image_picker: ^1.2.3
+  # Reads the text off that photo, on the device.
+  #
+  # The BUNDLED model (com.google.mlkit:text-recognition), which ships inside
+  # the APK and is never fetched. The unbundled variant
+  # (com.google.android.gms:play-services-mlkit-text-recognition) is 260KB
+  # instead of about 4MB per architecture, and downloads its model from Play
+  # Services on first use. That trade is not available to Salapify: the app
+  # makes exactly ONE network request, to open.er-api.com for exchange rates,
+  # and the privacy receipt names it. A second request, fetching a model the
+  # moment somebody photographs a receipt, would make that receipt false.
+  google_mlkit_text_recognition: ^0.17.1
 
 dev_dependencies:
   flutter_test:

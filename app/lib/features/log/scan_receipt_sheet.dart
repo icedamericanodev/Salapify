@@ -9,21 +9,42 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'receipt_camera.dart';
 
 /// Scan-to-Log: read a receipt, check what it says, log it.
 ///
 /// Founder spec, 2026-09-20, feature 1, part B.
 ///
-/// ## The camera is not here yet, and the sheet says so
+/// ## The camera reads it, on the phone, and keeps nothing
 ///
-/// Turning a photograph into text needs `google_mlkit_text_recognition`, a
-/// native plugin, which means a new APK and one manual install. Everything
-/// else works today: the six labelled samples, and pasting the text of a
-/// receipt or an e-wallet screenshot straight in.
+/// Founder direction, 2026-09-22: build the camera plugin. Three things make
+/// that safe to say out loud on the sheet itself.
 ///
-/// The button is ABSENT rather than present and disabled. A greyed out camera
-/// invites somebody to keep tapping it, and an app that looks broken is worse
-/// than one that is honest about what it does not do yet.
+/// The model is BUNDLED into the APK (`com.google.mlkit:text-recognition`),
+/// not fetched from Play Services, so photographing a receipt makes no
+/// network request. Salapify makes exactly one, for exchange rates, and the
+/// privacy receipt names it; a model downloaded the instant somebody
+/// photographs a shop receipt would have made that receipt false.
+///
+/// NO CAMERA PERMISSION IS DECLARED. `image_picker` fires
+/// ACTION_IMAGE_CAPTURE and the phone's own camera app takes the picture.
+/// Android's rule runs the opposite way to the obvious guess: declaring
+/// `android.permission.CAMERA` without it being granted makes that intent
+/// throw, while never declaring it works with no permission and no dialog.
+///
+/// And the photo is DELETED as soon as the words are out of it, in a
+/// `finally` so a failed read cannot leave one behind. See
+/// `receipt_camera.dart`.
+///
+/// Pasting stays exactly as it was, and is still the only path for a receipt
+/// that arrived as a GCash or Maya message rather than on paper.
+///
+/// ## Both paths go through one parser
+///
+/// A photographed receipt and a pasted one are handed to the same
+/// `parseReceiptText`, so they cannot disagree about what a receipt means,
+/// and the vectors that lock that parser cover the camera without knowing it
+/// exists.
 ///
 /// ## Nothing it reads is trusted without being shown
 ///
@@ -36,22 +57,31 @@ class ScanReceiptSheet extends StatefulWidget {
     super.key,
     required this.palette,
     required this.state,
+    this.camera,
   });
 
   final Palette palette;
   final FinancialState state;
 
+  /// Where a photographed receipt's words come from.
+  ///
+  /// Injected so a test can drive the whole sheet without a camera, a photo
+  /// library or the ML Kit reader, none of which exist in a widget test. The
+  /// default is the real device path, so nothing at a call site changes.
+  final ReceiptTextSource? camera;
+
   /// Returns the transaction to log, or null if nothing was confirmed.
   static Future<Transaction?> show(
     BuildContext context,
     Palette palette,
-    FinancialState state,
-  ) {
+    FinancialState state, {
+    ReceiptTextSource? camera,
+  }) {
     return SheetScaffold.show<Transaction>(
       context: context,
       palette: palette,
       builder: (BuildContext ctx) =>
-          ScanReceiptSheet(palette: palette, state: state),
+          ScanReceiptSheet(palette: palette, state: state, camera: camera),
     );
   }
 
@@ -74,6 +104,25 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
   DateTime _date = DateTime.now();
   bool _deductible = false;
 
+  /// Built once, and only if this sheet was not handed one.
+  ///
+  /// Late and lazy because constructing it constructs an ML Kit recogniser,
+  /// which is a native object. A sheet somebody opens to paste a GCash
+  /// message should not spin one up.
+  late final ReceiptTextSource _camera =
+      widget.camera ?? (_owned = DeviceReceiptTextSource());
+  DeviceReceiptTextSource? _owned;
+
+  /// True while the camera or the reader is working.
+  ///
+  /// ML Kit takes a noticeable moment on a real receipt, and a screen that
+  /// looks identical to a screen that is doing nothing is how somebody taps
+  /// the button a second time.
+  bool _reading = false;
+
+  /// What to say when a read came back with nothing.
+  ReceiptReadFailure? _readFailure;
+
   @override
   void initState() {
     super.initState();
@@ -86,7 +135,46 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
     _merchant.dispose();
     _amount.dispose();
     _ref.dispose();
+    // Only the one this sheet made. A source passed in belongs to whoever
+    // passed it, and closing somebody else's recogniser is how the second
+    // opening of a sheet fails.
+    _owned?.dispose();
     super.dispose();
+  }
+
+  /// Photograph or choose a receipt, read it, and fill the form in.
+  ///
+  /// The text goes through `parseReceiptText`, the SAME function the paste
+  /// box and the samples use. A photographed receipt and a pasted one cannot
+  /// disagree about what a receipt means, and the golden vectors that lock
+  /// that parser cover this path without knowing it exists.
+  Future<void> _scan(ReceiptImageSource from) async {
+    setState(() {
+      _reading = true;
+      _readFailure = null;
+    });
+
+    final ReceiptRead? read = await _camera.read(from);
+
+    // The sheet can be closed while the camera is open, which on a phone is
+    // the ordinary case rather than a rare one.
+    if (!mounted) return;
+
+    setState(() => _reading = false);
+
+    // Backed out. Says nothing, because nothing happened.
+    if (read == null) return;
+
+    if (!read.ok) {
+      setState(() => _readFailure = read.failure);
+      return;
+    }
+
+    // The words go in the paste box as well as through the parser, so what
+    // the reader saw is visible and correctable. A scan that silently fills
+    // four fields from text nobody can see is a scan nobody can check.
+    _paste.text = read.text;
+    _apply(parseReceiptText(read.text));
   }
 
   List<CategoryInfo> get _expenseCategories => SeedData.categories
@@ -191,7 +279,7 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
       palette: p,
       icon: Icons.document_scanner_outlined,
       title: 'Scan a receipt',
-      subtitle: 'Paste the text, or try one of the samples.',
+      subtitle: 'Photograph it, or paste the text.',
       footer: PrimaryButton(
         palette: p,
         label: 'Confirm and log',
@@ -201,6 +289,46 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          // The camera first, because it is what somebody holding a receipt
+          // reaches for. Pasting stays underneath, unchanged, and is still
+          // the only path for a receipt that arrived as a message.
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _ScanButton(
+                  palette: p,
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Take a photo',
+                  busy: _reading,
+                  onTap: () => _scan(ReceiptImageSource.camera),
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: _ScanButton(
+                  palette: p,
+                  icon: Icons.image_outlined,
+                  label: 'Choose an image',
+                  busy: _reading,
+                  onTap: () => _scan(ReceiptImageSource.library),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          Text(
+            // THE CLAIM THIS APP HAS TO KEEP, said where the photo is taken
+            // rather than only in the privacy receipt. Reading happens on the
+            // phone, with a model that shipped inside the app, and the
+            // picture is deleted the moment the words are out of it.
+            'Read on your phone. The photo is not saved or sent anywhere.',
+            style: AppType.caption(p),
+          ),
+          if (_readFailure != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _ReadFailed(palette: p, failure: _readFailure!),
+          ],
+          const SizedBox(height: Spacing.lg),
           Text('SAMPLES', style: AppType.kicker(p)),
           const SizedBox(height: Spacing.xs),
           Text(
@@ -524,6 +652,114 @@ class _DateRow extends StatelessWidget {
       'Dec',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+}
+
+/// Take a photo, or choose an image.
+///
+/// Both go grey together while a read is running: the camera and the library
+/// share one reader, and a second tap on the other button while the first is
+/// working is the ordinary way somebody ends up with two pickers open.
+class _ScanButton extends StatelessWidget {
+  const _ScanButton({
+    required this.palette,
+    required this.icon,
+    required this.label,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final IconData icon;
+  final String label;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: !busy,
+      label: label,
+      child: Material(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: InkWell(
+          onTap: busy ? null : onTap,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: Container(
+            // Comfortably past the 44 floor, and equal to the fields below.
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                if (busy)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(palette.accent),
+                    ),
+                  )
+                else
+                  Icon(icon, size: 18, color: palette.accent),
+                const SizedBox(width: Spacing.xs),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.rowTitle(
+                      palette,
+                    ).copyWith(fontSize: 14, color: palette.textPrimary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A read that came back with nothing, and what to do about it.
+///
+/// Two failures, two different sentences, because they need two different
+/// things from the person. A blurry photo is theirs to retake; a reader that
+/// would not start is not, and telling them to try again in better light
+/// would send them round a loop that cannot end.
+class _ReadFailed extends StatelessWidget {
+  const _ReadFailed({required this.palette, required this.failure});
+
+  final Palette palette;
+  final ReceiptReadFailure failure;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: palette.warning),
+      ),
+      child: Text(switch (failure) {
+        ReceiptReadFailure.noText =>
+          'No words could be read from that picture. A flatter angle and '
+              'more light usually fixes it, or type the amount in below.',
+        ReceiptReadFailure.unavailable =>
+          'The camera could not be opened on this phone. Pasting the '
+              'receipt text below works just as well.',
+      }, style: AppType.body(palette)),
+    );
   }
 }
 

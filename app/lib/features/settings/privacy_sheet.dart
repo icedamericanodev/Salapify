@@ -80,6 +80,23 @@ class PrivacySheet extends StatelessWidget {
                 'one can never affect the other. Start fresh, at the top of '
                 'the chat, deletes them, and so does Delete everything.',
           ),
+          // ADDED with the camera, 2026-09-22. A receipt photo is a picture
+          // of somebody's shopping, often with the last four digits of their
+          // card on it, so an app that asks to point a camera at one owes
+          // three specific answers rather than a reassuring adjective.
+          _Line(
+            palette: palette,
+            icon: Icons.photo_camera_outlined,
+            title: 'A receipt you photograph is read here and then deleted',
+            body:
+                'The reading happens on this phone, using a reader built into '
+                'the app itself. Nothing is uploaded and no picture is sent '
+                'anywhere. Salapify keeps only the words it found, which you '
+                'can see and correct before anything is saved, and the photo '
+                'is deleted as soon as it has them. Salapify also never asks '
+                'for camera permission: your own camera app takes the '
+                'picture and hands it over.',
+          ),
           _Line(
             palette: palette,
             icon: Icons.analytics_outlined,

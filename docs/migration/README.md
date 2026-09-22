@@ -1311,3 +1311,74 @@ carries a countdown and two labels and no rule. Those keep showing exactly
 what they stored. Guessing a rule for them would quietly rewrite somebody's
 cycle into one they never chose, and breaking that guard on purpose rewrote
 the seed's own 4 days into 12.
+
+## Scan a receipt, with the camera (2026-09-22)
+
+Founder direction: build the camera plugin. The sheet already parsed pasted
+text and six labelled samples; it now photographs a receipt, or takes one
+already on the phone, and reads it.
+
+![scan a receipt](screens/scan-receipt-camera.png)
+
+**This is a NATIVE change.** Two plugins, so the founder must rebuild and
+install the APK by hand ONCE. After that single install everything is
+ordinary code again.
+
+### Three decisions that let the sheet make its claim out loud
+
+The line under the buttons reads "Read on your phone. The photo is not saved
+or sent anywhere." Each clause is a decision rather than a reassurance.
+
+**The model is bundled, not downloaded.** The plugin pulls
+`com.google.mlkit:text-recognition`, which ships the model inside the APK at
+roughly 4MB per architecture. The unbundled variant
+(`com.google.android.gms:play-services-mlkit-text-recognition`) is 260KB and
+fetches its model from Play Services on first use. That trade was not
+available: Salapify makes exactly ONE network request, to open.er-api.com for
+exchange rates, and the privacy receipt names it. A second request, fired the
+moment somebody photographs a shop receipt, would have made that receipt
+false.
+
+**No camera permission is declared, on purpose.** `image_picker` fires
+`ACTION_IMAGE_CAPTURE` and the phone's own camera app takes the picture.
+Android's rule runs opposite to the obvious guess: an app that DECLARES
+`android.permission.CAMERA` and has not been granted it gets a
+SecurityException from that intent, while an app that never declares it works
+with no permission and no dialog at all. Declaring it would have bought a
+runtime prompt, a Play data safety entry and a new way to fail, in exchange
+for nothing. `AndroidManifest.xml` is unchanged by this feature.
+
+**The photo is deleted as soon as the words are out of it**, in a `finally`
+so a failed read cannot leave one behind. The picker writes into Salapify's
+cache directory, where a picture of somebody's shopping, often carrying the
+last four digits of their card, would otherwise sit indefinitely.
+
+### Both paths go through one parser
+
+A photographed receipt and a pasted one are handed to the same
+`parseReceiptText`, so they cannot disagree about what a receipt means, and
+the vectors already locking that parser cover the camera without knowing it
+exists. The words the reader saw also go into the paste box, visible and
+editable: a scan that fills four fields from text nobody can see is a scan
+nobody can check.
+
+### Why there is a second button
+
+Choosing an image is not a convenience. An Android emulator's back camera
+renders a synthetic room, so a photo taken on the founder's emulator can
+never contain a receipt, and the library is the only path this feature can be
+tried on anything but a real phone. It is also the better path for the GCash
+and Maya receipts that arrive as screenshots rather than paper.
+
+### What the tests can and cannot reach
+
+None of the three plugins run in a widget test, so `ScanReceiptSheet` takes a
+`ReceiptTextSource` and a fake stands in. Seven journeys cover the handover:
+both buttons reaching the right source, a good read filling the form, the two
+failures saying two different things, backing out saying nothing at all, and
+the rule that a scan on its own writes NOTHING to the ledger until somebody
+confirms it.
+
+The native half cannot be verified here at all: this sandbox has no Android
+SDK, so `flutter build apk` only runs on CI, which is exactly what the
+Android build job exists for.
