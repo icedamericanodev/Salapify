@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Salapify's scrolling feel.
@@ -36,4 +37,32 @@ class SalapifyScrollBehavior extends MaterialScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) =>
       const ClampingScrollPhysics();
+
+  /// A MOUSE MAY DRAG, which Flutter refuses by default.
+  ///
+  /// `ScrollBehavior.dragDevices` ships as touch, stylus, inverted stylus,
+  /// trackpad and unknown. Mouse is deliberately left out upstream, because on
+  /// a desktop a click and drag usually means select text rather than scroll.
+  ///
+  /// Salapify is a phone app, so on a real device this changes NOTHING: a
+  /// finger reports as touch and already scrolled everything. It exists for the
+  /// Android EMULATOR, where the founder reviews every screen with a mouse.
+  ///
+  /// The symptom it fixes is worse than it sounds, because it is silent and it
+  /// is asymmetric. A mouse WHEEL scrolls a vertical list, and a wheel is not a
+  /// drag, so vertical lists work. A mouse has no sideways wheel, so every
+  /// HORIZONTAL strip in the app reads as frozen. The founder hit this on the
+  /// Activity filter strip, where the account chips sit past the fold: the
+  /// chips they needed were on screen-edge and unreachable, and nothing
+  /// distinguishes "there is nothing more here" from "I cannot reach it".
+  /// Reviewing an app from that position is how a missing feature gets
+  /// reported and a present one gets missed.
+  ///
+  /// Shift plus the wheel already worked, via `pointerAxisModifiers`, but a
+  /// workaround nobody knows is not a route.
+  @override
+  Set<PointerDeviceKind> get dragDevices => <PointerDeviceKind>{
+    ...super.dragDevices,
+    PointerDeviceKind.mouse,
+  };
 }
