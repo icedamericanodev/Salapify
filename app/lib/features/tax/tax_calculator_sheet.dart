@@ -39,6 +39,12 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
   final TextEditingController _months = TextEditingController(text: '12');
 
   final TextEditingController _gross = TextEditingController(text: '1200000');
+
+  /// Salary earned ALONGSIDE the freelancing, which makes somebody a mixed
+  /// income taxpayer. Zero by default, so a pure freelancer is unaffected.
+  final TextEditingController _salaryBesideFreelance = TextEditingController();
+
+  bool _vatRegistered = false;
   FreelanceTaxOption _option = FreelanceTaxOption.eightPercentGit;
 
   @override
@@ -345,12 +351,33 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
 
   Widget _freelance(Palette p) {
     final double gross = _num(_gross);
+    // P1.4, money copy error 1 in the October expert review:
+    // calculateFreelanceTax was called with NEITHER compensationIncome nor
+    // vatRegistered, so every person using this screen was treated as a pure
+    // freelancer who had never registered for VAT.
+    //
+    // The engine has always handled both. It was the sheet that never asked,
+    // and the two defaults it fell back to are the two expensive ones to be
+    // wrong about:
+    //
+    //   compensationIncome 0  gives the 250,000 zero-rated allowance on the
+    //   8% route to somebody with a salary, who is not entitled to it. On a
+    //   250,000 sideline that understates the tax by 20,000 a year, and the
+    //   8% election cannot be undone for twelve months.
+    //
+    //   vatRegistered false   offers the 8% option to somebody who may not
+    //   elect it at all, at any income.
+    final double sideSalary = _num(_salaryBesideFreelance);
     final FreelanceTaxCalculation git = calculateFreelanceTax(
       annualGrossIncome: gross,
+      compensationIncome: sideSalary,
+      vatRegistered: _vatRegistered,
     );
     final FreelanceTaxCalculation graduated = calculateFreelanceTax(
       annualGrossIncome: gross,
       taxOption: FreelanceTaxOption.graduatedRates,
+      compensationIncome: sideSalary,
+      vatRegistered: _vatRegistered,
     );
     final FreelanceTaxCalculation chosen =
         _option == FreelanceTaxOption.eightPercentGit ? git : graduated;
@@ -370,6 +397,37 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           controller: _gross,
           prefix: '₱ ',
           onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.md),
+        // MIXED INCOME. Left at zero this changes nothing, so a pure
+        // freelancer sees the same figures as before; filled in, it removes
+        // the 250,000 allowance from the 8% route and stacks one combined
+        // base through the graduated table.
+        SheetField(
+          palette: p,
+          label: 'Salary from a job, if you also have one',
+          controller: _salaryBesideFreelance,
+          prefix: '₱ ',
+          hint: '0',
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.sm),
+        Text(
+          sideSalary > 0
+              ? 'Mixed income. The 250,000 tax free allowance on the 8% '
+                    'option does not apply to you.'
+              : 'Leave this at zero if freelancing is your only income.',
+          style: AppType.caption(p),
+        ),
+        const SizedBox(height: Spacing.md),
+        _Toggle(
+          palette: p,
+          label: 'I am registered for VAT',
+          caption:
+              'The 8% option is closed to VAT registered taxpayers at '
+              'any income.',
+          value: _vatRegistered,
+          onChanged: (bool v) => setState(() => _vatRegistered = v),
         ),
         const SizedBox(height: Spacing.md),
         SegmentedChoice<FreelanceTaxOption>(
@@ -537,6 +595,59 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           const SizedBox(width: Spacing.sm),
           Expanded(child: Text(text, style: AppType.caption(p))),
         ],
+      ),
+    );
+  }
+}
+
+/// A yes or no that changes a tax figure, with the reason beside it.
+///
+/// The caption is not decoration. "I am registered for VAT" closes the 8%
+/// option entirely, and somebody who ticks it and watches their cheaper
+/// option vanish deserves to be told why on the same screen rather than
+/// wondering whether the app broke.
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.palette,
+    required this.label,
+    required this.caption,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final Palette palette;
+  final String label;
+  final String caption;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      toggled: value,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(label, style: AppType.rowTitle(palette)),
+                    const SizedBox(height: 2),
+                    Text(caption, style: AppType.caption(palette)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -26,7 +26,7 @@ this branch point, so the review is slightly out of date where it says:
 
 ### Phase 1, in progress
 
-Shipped so far: P1.1, P1.2, P1.3.
+Shipped so far: P1.1, P1.2, P1.3, P1.4.
 
 ---
 
@@ -37,7 +37,7 @@ Shipped so far: P1.1, P1.2, P1.3.
 | P1.1 | Wire the Home dead ends | DONE | see below |
 | P1.2 | Duplicate status balance bug (F10) | DONE | see below |
 | P1.3 | Remove always-on sample Netflix data | DONE | see below |
-| P1.4 | Tax sheet mixed income | todo | |
+| P1.4 | Tax sheet mixed income | DONE | see below |
 | P1.5 | Freelancer comparison consistency | todo | |
 | P1.6 | Small BIR fixes | todo | |
 | P1.7 | One debt-to-income rule (F8), one health check (F9) | todo | |
@@ -119,6 +119,35 @@ Ignoring the gate fails the screen test with the defect itself:
 
     Expected: no matching candidates
       Actual: Found 1 widget with text containing Netflix
+
+### P1.4 notes
+
+Money copy error 1, confirmed in code. `calculateFreelanceTax` was called with
+NEITHER `compensationIncome` nor `vatRegistered`, so everybody using the sheet
+was treated as a pure freelancer who had never registered for VAT.
+
+**The engine was right the whole time.** It has always handled both. The sheet
+never asked, and the two defaults it fell back to are the expensive ones:
+`compensationIncome: 0` hands the 250,000 zero-rated allowance to somebody with
+a salary who is not entitled to it, and `vatRegistered: false` offers an
+election a VAT-registered taxpayer may not make at any income.
+
+Two inputs added: a salary field, and a VAT toggle whose caption says what
+ticking it does, because somebody who watches their cheaper option vanish
+deserves to be told why on the same screen.
+
+**A hollow test of my own, caught by the deliberate break.** The first version
+asserted the words "Mixed income" appeared. Dropping the two parameters from
+the engine call PASSED it, because that caption is driven by the widget reading
+its own text field: it was right while the tax underneath it was wrong. Rewritten
+onto the peso figures, the same break fails:
+
+    Expected: at least one matching candidate
+      Actual: Found 0 widgets with text "₱0.00"
+
+The figures, on the sheet's default 1,200,000 gross: no salary gives a 250,000
+allowance and 76,000 of tax; a 600,000 salary gives no allowance and 96,000,
+which is the 20,000 a year the review measured.
 
 ## Phase 2 to 7
 
