@@ -34,15 +34,21 @@ import 'money.dart';
 List<Debt> applyDebtPayment(
   List<Debt> debts,
   String debtId,
-  double amount, {
+  Money amount, {
   required DateTime today,
 }) {
-  if (amount <= 0) return debts;
+  if (!amount.isPositive) return debts;
 
   return debts.map((Debt d) {
     if (d.id != debtId) return d;
 
-    final double newPaid = d.paidAmount + amount;
+    // IN WHOLE CENTAVOS, which is what makes the comparison below mean what
+    // it says. On doubles, a debt of 78,510.57 paid with 70,662.84 and then
+    // 7,847.73 accumulated to 78,510.56999999999, so `>=` was false and the
+    // card read "0.00 remaining" and "not settled" at the same time. Two
+    // ordinary typed figures, and for somebody keeping books a row that
+    // contradicts itself discredits every other figure on the screen.
+    final Money newPaid = d.paidAmount + amount;
     final bool settled = newPaid >= d.totalAmount;
 
     return d.copyWith(
@@ -62,9 +68,33 @@ int _min(int a, int b) => a < b ? a : b;
 ///
 /// Settling FILLS the paid amount to the total, which is what makes the
 /// button honest: "settled" and "still owes 7,350" cannot both be true on one
-/// row. Un-settling leaves the paid amount where it is rather than winding it
-/// back, because the money really was paid and inventing a smaller figure
-/// would be worse than the wrong flag.
+/// row.
+///
+/// UN-SETTLING PUTS THE REAL FIGURE BACK when the fill is what put it there,
+/// and leaves it alone otherwise. That distinction is the whole of this
+/// function's difficulty, and getting it wrong destroyed money data.
+///
+/// The old rule was "un-settling never winds the paid amount back", and its
+/// reasoning was sound for the case it was written for: a debt settled by
+/// real payments really was paid, so inventing a smaller figure would be
+/// worse than a wrong flag. But the same function also served a debt settled
+/// BY THE BUTTON, where the fill was invented. Two taps, neither confirmed:
+///
+///     start        : paid 7,350.00 of 12,000.00
+///     Mark settled : paid 12,000.00
+///     Not settled  : paid 12,000.00, and 7,350.00 is gone for good
+///
+/// 4,650.00 nobody paid, recorded as paid, with no way back: a debt keeps no
+/// payment history and there is no edit or delete for one. "Not settled after
+/// all" is exactly the button somebody taps believing it is the way back.
+///
+/// [Debt.paidBeforeSettle] is what separates the two cases, and null is a
+/// meaningful value rather than a missing one. It is set only by the fill
+/// here, so a debt settled by payments, or stored before this field existed,
+/// reads null and keeps the old behaviour, which is right for it.
+///
+/// Founder direction, 2026-10-01, choosing this over signposting it with a
+/// warning: put the real figure back.
 List<Debt> toggleDebtSettled(
   List<Debt> debts,
   String debtId, {
@@ -73,11 +103,25 @@ List<Debt> toggleDebtSettled(
   return debts.map((Debt d) {
     if (d.id != debtId) return d;
     final bool next = !d.isSettled;
+
+    if (next) {
+      return d.copyWith(
+        isSettled: true,
+        paidAmount: d.totalAmount,
+        settledDate: isoDate(today),
+        // Remembered BEFORE the fill overwrites it. Nothing else in the app
+        // records what this debt had actually been paid.
+        paidBeforeSettle: d.paidAmount,
+      );
+    }
+
     return d.copyWith(
-      isSettled: next,
-      paidAmount: next ? d.totalAmount : d.paidAmount,
-      settledDate: next ? isoDate(today) : null,
-      clearSettledDate: !next,
+      isSettled: false,
+      paidAmount: d.paidBeforeSettle ?? d.paidAmount,
+      clearSettledDate: true,
+      // Spent. Leaving it would let a later un-settle wind back to a figure
+      // from a settle that has already been undone.
+      clearPaidBeforeSettle: true,
     );
   }).toList();
 }
@@ -134,9 +178,11 @@ Transaction? paymentEntry({
 }
 
 /// What is still outstanding in one direction, settled debts excluded.
-double outstanding(List<Debt> debts, DebtDirection direction) => debts
-    .where((Debt d) => !d.isSettled && d.direction == direction)
-    .fold<double>(0, (double s, Debt d) => s + d.remaining);
+Money outstanding(List<Debt> debts, DebtDirection direction) => sumMoney(
+  debts
+      .where((Debt d) => !d.isSettled && d.direction == direction)
+      .map((Debt d) => d.remaining),
+);
 
 /// The two halves of the beam on Home and on the Debt screen.
 ///
@@ -145,11 +191,13 @@ double outstanding(List<Debt> debts, DebtDirection direction) => debts
 /// an ILLUSTRATION and not a measurement, and the figures beside it are what a
 /// person should read.
 ({double owedToMe, double youOwe}) beamSplit(List<Debt> debts) {
-  final double mine = outstanding(debts, DebtDirection.owedToMe);
-  final double theirs = outstanding(debts, DebtDirection.iOwe);
-  final double total = mine + theirs;
-  if (total <= 0) return (owedToMe: 50, youOwe: 50);
-  final double raw = mine / total * 100;
+  final Money mine = outstanding(debts, DebtDirection.owedToMe);
+  final Money theirs = outstanding(debts, DebtDirection.iOwe);
+  final Money total = mine + theirs;
+  if (!total.isPositive) return (owedToMe: 50, youOwe: 50);
+  // A proportion, so it divides centavos by centavos and stays a double.
+  // The beam is an illustration; the figures beside it are the measurement.
+  final double raw = mine.centavos / total.centavos * 100;
   final double clamped = raw.clamp(10.0, 90.0);
   return (owedToMe: clamped, youOwe: 100 - clamped);
 }

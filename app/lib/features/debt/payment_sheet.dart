@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
@@ -59,7 +60,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
     // Pre-filled with what is actually left, because paying a debt off is the
     // commonest thing anybody does on this sheet and retyping 7,350 from the
     // row above it is work the app can do.
-    _amount.text = _plain(widget.debt.remaining);
+    _amount.text = _plain(widget.debt.remaining.pesos);
     _accountId = widget.state.accounts
         .where((Account a) => a.isLiquid)
         .firstOrNull
@@ -182,8 +183,8 @@ class _Standing extends StatelessWidget {
               children: <Widget>[
                 Text(debt.person, style: AppType.rowTitle(palette)),
                 Text(
-                  '${formatPeso(debt.paidAmount)} of '
-                  '${formatPeso(debt.totalAmount)} so far',
+                  '${formatPeso(debt.paidAmount.pesos)} of '
+                  '${formatPeso(debt.totalAmount.pesos)} so far',
                   style: AppType.caption(palette),
                 ),
               ],
@@ -193,7 +194,7 @@ class _Standing extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Text(
-                formatPeso(debt.remaining),
+                formatPeso(debt.remaining.pesos),
                 style: AppType.amountSmall(palette),
               ),
               Text('still to go', style: AppType.caption(palette)),
@@ -322,16 +323,19 @@ class _WhatWillHappen extends StatelessWidget {
     }
 
     final bool owing = debt.direction == DebtDirection.iOwe;
-    final double left = (debt.remaining - amount!).clamp(0, double.infinity);
-    final bool clears = debt.paidAmount + amount! >= debt.totalAmount;
-    final double over = debt.paidAmount + amount! - debt.totalAmount;
+    // Quantised ONCE, here, so the three figures below cannot disagree
+    // with each other or with what the write path actually records.
+    final Money paying = Money.fromDouble(amount!);
+    final Money left = maxMoney(Money.zero, debt.remaining - paying);
+    final bool clears = debt.paidAmount + paying >= debt.totalAmount;
+    final Money over = debt.paidAmount + paying - debt.totalAmount;
 
     final List<String> lines = <String>[
       clears
           ? '${debt.person} will be marked cleared.'
-          : '${formatPeso(left)} will still be owed.',
-      if (clears && over > 0)
-        'That is ${formatPeso(over)} more than the debt, and Salapify records '
+          : '${formatPeso(left.pesos)} will still be owed.',
+      if (clears && over > Money.pesos(0))
+        'That is ${formatPeso(over.pesos)} more than the debt, and Salapify records '
             'it rather than rounding it away.',
       if (accountName != null)
         owing

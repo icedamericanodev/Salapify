@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,5 +68,70 @@ void main() {
       greaterThan(before),
       reason: 'removing the overscroll indicator must not stop scrolling',
     );
+  });
+
+  /// A MOUSE can drag, which Flutter refuses by default.
+  ///
+  /// This is not about the shipped phone, where a finger reports as
+  /// `PointerDeviceKind.touch` and always worked. It is about the Android
+  /// EMULATOR, which is the only place the founder ever sees this app.
+  ///
+  /// The failure it guards is silent and asymmetric, which is why it went
+  /// unnoticed. A mouse WHEEL scrolls a vertical list and a wheel is not a
+  /// drag, so vertical scrolling worked and nothing looked wrong. A mouse has
+  /// no sideways wheel, so every HORIZONTAL strip read as frozen. The founder
+  /// hit it on Activity's filter strip, where the per-account chips sit past
+  /// the fold: they could see a chip edge at the screen border and could not
+  /// reach it, and nothing on screen distinguishes "there is no more here"
+  /// from "I cannot get to it".
+  testWidgets('a MOUSE can drag a list, not just a finger', (
+    WidgetTester tester,
+  ) async {
+    await pumpSalapify(tester);
+    await tester.pumpAndSettle();
+
+    final ScrollableState scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    final double before = scrollable.position.pixels;
+
+    // The whole point: kind is mouse, not the default touch.
+    await tester.drag(
+      find.byType(ListView).first,
+      const Offset(0, -300),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      scrollable.position.pixels,
+      greaterThan(before),
+      reason:
+          'a mouse drag moved nothing, so every horizontal strip in the app '
+          'is unreachable on the emulator the founder reviews with',
+    );
+  });
+
+  testWidgets('and a finger still can, which is what actually ships', (
+    WidgetTester tester,
+  ) async {
+    // The directional half. Adding a device kind must not disturb the one
+    // that was already working, and touch is the only kind a phone sends.
+    await pumpSalapify(tester);
+    await tester.pumpAndSettle();
+
+    final ScrollableState scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    final double before = scrollable.position.pixels;
+
+    await tester.drag(
+      find.byType(ListView).first,
+      const Offset(0, -300),
+      kind: PointerDeviceKind.touch,
+    );
+    await tester.pumpAndSettle();
+
+    expect(scrollable.position.pixels, greaterThan(before));
   });
 }

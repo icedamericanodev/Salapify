@@ -161,7 +161,7 @@ class DebtBeamCard extends StatelessWidget {
                     ),
                     const SizedBox(width: Spacing.sm),
                     Text(
-                      '${formatPeso(nextDue.remaining)} left',
+                      '${formatPeso(nextDue.remaining.pesos)} left',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

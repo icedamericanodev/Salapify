@@ -19,11 +19,11 @@ void main() {
 
   double debtsIOwe() => SeedData.debts(testToday)
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe)
-      .fold<double>(0, (double s, Debt d) => s + d.remaining);
+      .fold<double>(0, (double s, Debt d) => s + d.remaining.pesos);
 
   double debtsOwedToMe() => SeedData.debts(testToday)
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.owedToMe)
-      .fold<double>(0, (double s, Debt d) => s + d.remaining);
+      .fold<double>(0, (double s, Debt d) => s + d.remaining.pesos);
 
   SafeToSpendAnalysis run({
     required DecisionScenario scenario,

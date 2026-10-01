@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/accounts.dart';
@@ -826,13 +827,11 @@ class _DebtRegisterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double outstanding(DebtDirection d) => state.debts
-        .where((Debt x) => !x.isSettled && x.direction == d)
-        .fold<double>(
-          0,
-          (double s, Debt x) =>
-              s + (x.totalAmount - x.paidAmount).clamp(0, double.infinity),
-        );
+    double outstanding(DebtDirection d) => sumMoney(
+      state.debts
+          .where((Debt x) => !x.isSettled && x.direction == d)
+          .map((Debt x) => maxMoney(Money.zero, x.totalAmount - x.paidAmount)),
+    ).pesos;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

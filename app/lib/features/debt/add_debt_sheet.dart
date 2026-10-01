@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
@@ -71,8 +72,8 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
         id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
         person: _person.text.trim(),
         direction: _direction,
-        totalAmount: _amountValue,
-        paidAmount: 0,
+        totalAmount: Money.fromDouble(_amountValue),
+        paidAmount: Money.pesos(0),
         isSettled: false,
         dueDate: _dueDate.text.trim().isEmpty ? null : _dueDate.text.trim(),
       ),

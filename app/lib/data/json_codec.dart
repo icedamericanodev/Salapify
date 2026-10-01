@@ -67,6 +67,18 @@ double? _optNum(Map<String, dynamic> m, String key) {
   return v is num ? v.toDouble() : null;
 }
 
+/// An optional money figure, in pesos on the wire and centavos in Dart.
+///
+/// Absent stays absent rather than becoming zero, because for every field
+/// that uses this the two mean different things: a missing
+/// `paidBeforeSettle` says "the Mark settled fill is not what put paidAmount
+/// where it is", and a zero would say the debt had been paid nothing before
+/// it was filled, which would wind a real figure back to zero on un-settle.
+Money? _optMoney(Map<String, dynamic> m, String key) {
+  final double? v = _optNum(m, key);
+  return v == null ? null : Money.fromDouble(v);
+}
+
 int _reqInt(Map<String, dynamic> m, String key, String what) {
   final Object? v = m[key];
   if (v is num) return v.toInt();
@@ -500,8 +512,8 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   'id': d.id,
   'person': d.person,
   'direction': debtDirectionWire.encode(d.direction),
-  'totalAmount': d.totalAmount,
-  'paidAmount': d.paidAmount,
+  'totalAmount': d.totalAmount.pesos,
+  'paidAmount': d.paidAmount.pesos,
   'isSettled': d.isSettled,
   if (d.dueDate != null) 'dueDate': d.dueDate,
   // `scheduleType` on the wire, `schedule` in Dart. See the header.
@@ -511,6 +523,10 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   if (d.settledDate != null) 'settledDate': d.settledDate,
   if (d.notes != null) 'notes': d.notes,
   if (d.isSample) 'isSample': true,
+  // Written only when the "Mark settled" fill is actually in place, so an
+  // ordinary debt's row is byte for byte what it always was, and an older
+  // build reading this file simply ignores a key it does not know.
+  if (d.paidBeforeSettle != null) 'paidBeforeSettle': d.paidBeforeSettle!.pesos,
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -519,8 +535,8 @@ Debt debtFromJson(Map<String, dynamic> m) {
     id: _reqStr(m, 'id', what),
     person: _reqStr(m, 'person', what),
     direction: debtDirectionWire.decodeRequired(m, 'direction', what),
-    totalAmount: _reqNum(m, 'totalAmount', what),
-    paidAmount: _reqNum(m, 'paidAmount', what),
+    totalAmount: Money.fromDouble(_reqNum(m, 'totalAmount', what)),
+    paidAmount: Money.fromDouble(_reqNum(m, 'paidAmount', what)),
     isSettled: _optBool(m, 'isSettled'),
     dueDate: _optStr(m, 'dueDate'),
     schedule:
@@ -531,6 +547,10 @@ Debt debtFromJson(Map<String, dynamic> m) {
     settledDate: _optStr(m, 'settledDate'),
     notes: _optStr(m, 'notes'),
     isSample: _optBool(m, 'isSample'),
+    // Absent means "the button's fill is not what put paidAmount where it
+    // is", which is the right answer for every debt written before this key
+    // existed as well as for one settled by real payments.
+    paidBeforeSettle: _optMoney(m, 'paidBeforeSettle'),
   );
 }
 

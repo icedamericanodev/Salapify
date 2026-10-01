@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
@@ -108,7 +109,7 @@ void main() {
     );
     expect(
       store.debts.firstWhere((Debt d) => d.id == 'debt_homecredit').paidAmount,
-      9800,
+      const Money.pesos(9800),
     );
     expect(
       store.transactions.length,
@@ -203,7 +204,7 @@ void main() {
 
     expect(
       store.debts.firstWhere((Debt d) => d.id == 'debt_homecredit').paidAmount,
-      8350,
+      const Money.pesos(8350),
       reason: 'the debt still moved, which is the point of the option',
     );
     expect(
@@ -229,13 +230,26 @@ void main() {
 
     await tapAndSettle(tester, find.text('Mark settled').first);
 
+    // IT ASKS FIRST NOW, and the question names the figure it is about to
+    // write. The button fills the rest of the debt in as paid, which is a
+    // number appearing out of nothing, and all a person previously saw was a
+    // progress bar reaching the end.
+    expect(
+      find.textContaining('will record the remaining'),
+      findsOneWidget,
+      reason:
+          'Mark settled went straight through again, so a figure gets '
+          'invented on one unconfirmed tap',
+    );
+    await tapAndSettle(tester, find.text('Mark it settled'));
+
     final Debt d = store.debts.firstWhere(
       (Debt x) => x.id == 'debt_homecredit',
     );
     expect(d.isSettled, isTrue);
     expect(
       d.paidAmount,
-      14700,
+      const Money.pesos(14700),
       reason: '"settled" and "still owes 7,350" cannot both be true on one row',
     );
     expect(

@@ -815,7 +815,7 @@ PanAnswer _owed(PanFacts facts) {
     '${mine.length == 1 ? 'debt' : 'debts'}:',
   );
   for (final Debt d in mine.take(5)) {
-    b.write('\n  ${d.person}: ${formatPeso(d.remaining)}');
+    b.write('\n  ${d.person}: ${formatPeso(d.remaining.pesos)}');
   }
   if (mine.length > 5) b.write('\n  and ${mine.length - 5} more.');
   b.write(
@@ -848,7 +848,7 @@ PanAnswer _owedToMe(PanFacts facts) {
     '${theirs.length == 1 ? 'person' : 'people'}:',
   );
   for (final Debt d in theirs.take(5)) {
-    b.write('\n  ${d.person}: ${formatPeso(d.remaining)}');
+    b.write('\n  ${d.person}: ${formatPeso(d.remaining.pesos)}');
   }
   b.write(
     '\n\nSalapify keeps this as a record for you. It never contacts anybody '

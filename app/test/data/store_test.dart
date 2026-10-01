@@ -121,7 +121,7 @@ void main() {
       await first.restore();
 
       final Debt target = first.debts.firstWhere((Debt d) => !d.isSettled);
-      final double paidBefore = target.paidAmount;
+      final Money paidBefore = target.paidAmount;
       final int entriesBefore = first.transactions.length;
 
       first.recordDebtPayment(target.id, 1500, accountId: 'acc_gcash');
@@ -132,7 +132,7 @@ void main() {
 
       expect(
         second.debts.firstWhere((Debt d) => d.id == target.id).paidAmount,
-        closeTo(paidBefore + 1500, 0.001),
+        paidBefore + const Money.pesos(1500),
       );
       expect(
         second.transactions.length,

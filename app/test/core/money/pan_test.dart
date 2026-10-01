@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -187,16 +188,16 @@ void main() {
             id: 'd1',
             person: 'Ana',
             direction: DebtDirection.iOwe,
-            totalAmount: 5000,
-            paidAmount: 0,
+            totalAmount: Money.pesos(5000),
+            paidAmount: Money.pesos(0),
             isSettled: false,
           ),
           const Debt(
             id: 'd2',
             person: 'Mark',
             direction: DebtDirection.owedToMe,
-            totalAmount: 900,
-            paidAmount: 0,
+            totalAmount: Money.pesos(900),
+            paidAmount: Money.pesos(0),
             isSettled: false,
           ),
         ],

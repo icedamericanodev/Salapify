@@ -237,8 +237,8 @@ void main() {
         id: 'debt_1',
         person: 'Home Credit',
         direction: DebtDirection.iOwe,
-        totalAmount: 20000,
-        paidAmount: 5000,
+        totalAmount: Money.pesos(20000),
+        paidAmount: Money.pesos(5000),
         isSettled: false,
         schedule: DebtSchedule.scheduled,
       );

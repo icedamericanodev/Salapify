@@ -112,6 +112,7 @@ void main() {
   toolkitShots();
   settingsShots();
   unreadableRecoveryShots();
+  settleConfirmShot();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -2214,6 +2215,54 @@ void settingsShots() {
     await expectLater(
       find.byType(SettingsSheet),
       matchesGoldenFile('out/settings.png'),
+    );
+  });
+}
+
+/// "Mark settled" now asks first, and the question is the whole feature.
+///
+/// The button fills the rest of the debt in as paid, which is a figure
+/// appearing out of nothing, and all a person previously saw was a progress
+/// bar reaching the end. There was no confirmation at all, and the paired
+/// button, "Not settled after all", destroyed the real figure permanently.
+///
+/// Rendered because the thing being reviewed is whether the question actually
+/// reads as a question about MONEY rather than a yes or no about a flag.
+void settleConfirmShot() {
+  testWidgets('the Mark settled confirmation renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: DebtScreen(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mark settled').first);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AlertDialog),
+      matchesGoldenFile('out/debt_settle_confirm.png'),
     );
   });
 }
