@@ -521,15 +521,64 @@ all equal, and the prepayment test with an assertion that the plan got SHORTER.
 The settlement test runs the Home Credit plan specifically, because it is the
 only seeded plan that can fail it.
 
-### Still open, and NOT fixed here
+### Increment 4: the true cost of credit
 
-The lending officer's largest finding is deliberately deferred, in
-`docs/DEFERRED.md`: the screen reprints the lender's add-on rate as the annual
-cost, understating the true effective rate by roughly two times on both
-interest-bearing plans. Fixing it needs an internal-rate-of-return solver that
-does not exist in the codebase, which is new feature work rather than a
-conversion, and it changes what the app tells somebody about the cost of
-credit.
+Founder direction, 2026-10-01: "build the true cost figure". The lending
+officer's largest finding, deferred out of increment 3 as new feature work and
+then approved.
+
+`core/money/true_rate.dart` solves the rate at which the payments a person
+actually hands over are worth, today, exactly what they borrowed. Bisection,
+because the equation has no closed form and bisection cannot diverge: present
+value falls monotonically as the rate rises, so the bracket always closes.
+
+It needs no new stored field and cannot be gamed. It reads the principal, the
+payments and the term, whatever the lender called the rate.
+
+**Every figure was re-derived independently before a line was written**, rather
+than taken from the review:
+
+| Plan | Quoted | Shown before | True |
+|---|---|---|---|
+| Home Credit, 24,500 over 12 | 1.5% a month, 18.0% a year | 18.0% a year | 2.6% a month, 31.7% a year |
+| SPayLater, 8,400 over 6 | 2.95% a month, 35.4% a year | 35.4% a year | 4.9% a month, 58.4% a year |
+| BPI SIP, 54,990 over 24 | 0% | nothing | 0%, and no correction shown |
+
+**The test that decides whether any of it is trustworthy** is the sanity one: a
+loan that genuinely charges 1.5% a month on the diminishing balance must solve
+back to 1.5%. It returns 1.500000%. Discounting without compounding fails it:
+
+    Expected: a numeric value within <0.001> of <1.5>
+      Actual: <1.582640554261161>
+
+And a genuine 0% plan must land on exactly zero rather than drift, because
+"this costs you nothing" is a real claim. Removing that guard fails it:
+
+    Expected: <0>
+      Actual: <3.637978807091713e-11>
+
+**The annual figures are both multiplied by twelve, neither compounded.** The
+quoted annual figure beside it is also a monthly rate times twelve, so
+computing them the same way makes the comparison about the RATE rather than
+about the arithmetic. Compounding one and not the other would inflate the gap
+and start an argument about convention instead of about cost. Compounding makes
+the honest figure higher still (36.8% rather than 31.7% on the Home Credit
+plan), and that belongs in the explainer, not on the card.
+
+**Three deliberate restraints:**
+
+1. The quoted rate stays on screen. It is not wrong and nobody is hiding it.
+2. The correction appears only when the real rate is materially above the
+   quoted one. The interest-free BPI plan carries none: a line saying "really
+   0%" about a lender who charged nothing reads as an accusation and teaches
+   people to ignore the one that matters. A journey test asserts exactly two
+   plans carry it.
+3. No statute, circular or regulator is named anywhere. The reviewer marked
+   every regulatory statement as unverified memory, and this repository already
+   caught a fabricated government URL that a confident review had waved
+   through. The explainer describes arithmetic in plain words and claims no
+   official standing, the same line `loan.dart` draws when it refuses to call
+   30% "the BSP safety threshold".
 
 ## Phase 3 to 7
 

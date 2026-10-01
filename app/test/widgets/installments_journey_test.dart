@@ -64,11 +64,34 @@ void main() {
           'point of the screen.',
     );
     expect(
-      find.text('That 1.5% a month is 18.0% a year.'),
+      find.text('Quoted as 1.5% a month, 18.0% a year.'),
       findsOneWidget,
       reason:
-          'A rate quoted per month is the most misread number in '
-          'Philippine consumer lending, and the lender never prints this line.',
+          'The quoted rate stays visible. It is not wrong and nobody is '
+          'hiding it; it just answers a different question.',
+    );
+    expect(
+      // THE LINE THIS WHOLE FEATURE EXISTS FOR. The screen used to print the
+      // 18% alone and call it "the comparison the lender does not put on the
+      // poster". It is the poster: multiplying a quoted monthly rate by
+      // twelve is the lender's own arithmetic. On the money still owed this
+      // plan costs nearer 2.6% a month.
+      find.text(
+        'On what you still owe each month it works out to 2.6%, or '
+        '31.7% a year.',
+      ),
+      findsOneWidget,
+      reason: 'the true cost of an add-on plan is not on the card',
+    );
+    expect(
+      // And the genuine 0% plan is NOT accused of anything. A line saying
+      // "really 0%" about a lender who charged nothing reads as an
+      // accusation, and teaches people to distrust the one that matters.
+      find.textContaining('On what you still owe'),
+      findsNWidgets(2),
+      reason:
+          'the interest-free BPI plan must carry no correction, so only the '
+          'two interest-bearing plans do',
     );
     expect(find.text('Payment 5 of 12, 7 to go.'), findsOneWidget);
   });

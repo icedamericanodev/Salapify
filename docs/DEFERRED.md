@@ -120,7 +120,13 @@ for family utang that has no minimum and never did.
 
 Deferred pending the founder.
 
-### The instalment screen reprints the lender's marketing rate as the true cost
+### ~~The instalment screen reprints the lender's marketing rate~~ BUILT
+
+Founder direction, 2026-10-01: "build the true cost figure". Done, in
+`core/money/true_rate.dart`. Kept here with the finding intact, because the
+measured figures are the evidence for the copy that now ships.
+
+#### The finding, as it stood
 
 Found by the bank-officer review during P2.1's instalment conversion, and the
 largest single finding in it. NOT fixed, because fixing it is new feature work

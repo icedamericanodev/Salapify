@@ -8,6 +8,9 @@ import '../../features/debt/installment_sheet.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../../core/money/money.dart';
+import '../../core/money/true_rate.dart';
+import '../../features/info/info_dot.dart';
+import '../../features/info/info_sheet.dart';
 
 /// Instalment plans, from src/components/InstallmentsView.tsx.
 ///
@@ -150,7 +153,24 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double? annual = annualisedRate(plan);
+    final double? quotedAnnual = annualisedRate(plan);
+
+    // What the plan ACTUALLY costs, solved from its own payments rather than
+    // taken from the rate the lender chose to print.
+    final InstallmentSchedule schedule = scheduleFor(plan);
+    final double? realMonthly = trueMonthlyRate(
+      principal: plan.principal,
+      payments: <Money>[
+        for (int i = 0; i < schedule.count; i++) schedule.instalmentAt(i),
+      ],
+    );
+    // Shown only when it is MATERIALLY above the quoted figure. On a genuine
+    // 0% plan there is nothing to correct, and a line saying "really 0%" would
+    // read as an accusation against a lender who charged nothing.
+    final bool worthSaying =
+        realMonthly != null &&
+        plan.interestRate > 0 &&
+        realMonthly * 100 > plan.interestRate * 1.1;
 
     return Container(
       padding: const EdgeInsets.all(Spacing.lg),
@@ -191,16 +211,52 @@ class _PlanCard extends StatelessWidget {
               ),
             ],
           ),
-          if (annual != null) ...<Widget>[
+          if (quotedAnnual != null) ...<Widget>[
             const SizedBox(height: Spacing.xs),
             Text(
-              // The comparison the lender does not put on the poster. A rate
-              // quoted per month is the single most misread number in
-              // Philippine consumer lending.
-              'That ${plan.interestRate}% a month is '
-              '${annual.toStringAsFixed(1)}% a year.',
+              // THIS LINE USED TO CLAIM TO BE THE COMPARISON THE LENDER DOES
+              // NOT PUT ON THE POSTER. It is the poster: multiplying a quoted
+              // monthly rate by twelve is the lender's own arithmetic, so
+              // reprinting it corrects nothing.
+              //
+              // The real comparison is the line below, and it stays ON the
+              // screen rather than behind the dot under the rule's own
+              // exception: without it somebody concludes this plan costs 18% a
+              // year, which is the wrong conclusion the whole feature exists
+              // to prevent. The lesson, why an add-on rate differs from a rate
+              // on the balance, is the part that belongs one tap away.
+              'Quoted as ${plan.interestRate}% a month, '
+              '${quotedAnnual.toStringAsFixed(1)}% a year.',
               style: AppType.caption(palette),
             ),
+            if (worthSaying) ...<Widget>[
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      'On what you still owe each month it works out to '
+                      '${(realMonthly * 100).toStringAsFixed(1)}%, or '
+                      '${(realMonthly * 1200).toStringAsFixed(1)}% a year.',
+                      style: AppType.caption(
+                        palette,
+                      ).copyWith(color: palette.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.xs),
+                  // The FIGURE stays on the card; the lesson about add-on
+                  // interest is read once and then skipped forever, so it
+                  // goes one tap away.
+                  InfoDot(
+                    color: palette.textMuted,
+                    semanticLabel: 'Why the real rate is higher than quoted',
+                    onTap: () =>
+                        InfoSheet.show(context, palette, InfoTopic.addOnRate),
+                  ),
+                ],
+              ),
+            ],
           ],
           const SizedBox(height: Spacing.md),
           ClipRRect(
