@@ -244,7 +244,11 @@ class _Measures {
   /// Spending a day, from what was actually logged. NEVER a stand-in.
   late final double dailyPace = _last30.isEmpty
       ? 0
-      : _last30.fold<double>(0, (double s, Transaction t) => s + t.amount) / 30;
+      : _last30.fold<double>(
+              0,
+              (double s, Transaction t) => s + t.amount.pesos,
+            ) /
+            30;
 
   /// What the active instalment plans take every month. Real schedules, not
   /// a percentage of anything.
@@ -274,7 +278,9 @@ class _Measures {
       if (t.type == TransactionType.transfer) continue;
       final DateTime? d = DateTime.tryParse(t.date);
       if (d == null || d.year != year || d.month != month) continue;
-      net += t.type == TransactionType.income ? t.amount : -t.amount;
+      net += t.type == TransactionType.income
+          ? t.amount.pesos
+          : -t.amount.pesos;
     }
     return net;
   }

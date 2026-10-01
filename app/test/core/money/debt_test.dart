@@ -4,6 +4,7 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the debt payment port.
 ///
@@ -217,7 +218,7 @@ void main() {
 
       expect(t, isNotNull);
       expect(t!.type, TransactionType.expense);
-      expect(t.amount, 2450);
+      expect(t.amount, Money.pesos(2450));
       expect(t.category, 'Debt & Loan Servicing');
       expect(t.subcategory, 'Personal Loan Installment');
       expect(t.accountId, 'acc_gcash');

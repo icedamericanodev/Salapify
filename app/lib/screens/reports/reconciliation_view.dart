@@ -584,7 +584,7 @@ class _PairRow extends StatelessWidget {
         children: <Widget>[
           Text(
             '${pair.first.merchant ?? pair.first.category}, '
-            '${formatPeso(pair.first.amount)}',
+            '${formatPeso(pair.first.amount.pesos)}',
             style: AppType.rowTitle(palette),
           ),
           Text(pair.reason, style: AppType.caption(palette)),

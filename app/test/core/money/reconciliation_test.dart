@@ -4,6 +4,7 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Reconciliation: the one place the app admits it might be wrong.
 ///
@@ -54,7 +55,7 @@ void main() {
       );
 
       expect(t!.type, TransactionType.income);
-      expect(t.amount, closeTo(79.50, 0.001));
+      expect(t.amount, Money.of(79, 50));
       expect(t.category, foundCashCategory);
       expect(t.subcategory, 'Reconciliation Upward Adjustment');
       expect(t.accountId, 'acc_gcash');
@@ -77,7 +78,7 @@ void main() {
         id: 'tx_test',
       );
       expect(t!.type, TransactionType.expense);
-      expect(t.amount, closeTo(420.50, 0.001));
+      expect(t.amount, Money.of(420, 50));
       expect(t.category, writeOffCategory);
       expect(t.subcategory, 'Reconciliation Discrepancy Write-down');
     });
@@ -210,7 +211,7 @@ void main() {
       Transaction tx(String id, String date) => Transaction(
         id: id,
         type: TransactionType.expense,
-        amount: 500,
+        amount: Money.pesos(500),
         category: 'Food & Dining',
         accountId: 'acc_gcash',
         date: date,
@@ -242,7 +243,7 @@ void main() {
       }) => Transaction(
         id: id,
         type: type,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         category: 'Food & Dining',
         accountId: accountId,
         date: '2026-09-18',
@@ -370,7 +371,7 @@ void main() {
         Transaction(
           id: 'tx_t',
           type: TransactionType.transfer,
-          amount: 5000,
+          amount: Money.pesos(5000),
           category: 'Transfer',
           accountId: 'acc_bpi',
           toAccountId: 'acc_gcash',

@@ -88,7 +88,7 @@ void main() {
         const Transaction(
           id: 'tx_new',
           type: TransactionType.expense,
-          amount: 320,
+          amount: Money.pesos(320),
           category: 'Food & Dining',
           accountId: 'acc_cash',
           date: '2026-09-19',

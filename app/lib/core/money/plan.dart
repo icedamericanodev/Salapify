@@ -104,7 +104,7 @@ List<BudgetStatus> computeBudgets({
 
     final double spent = mine.fold<double>(
       0,
-      (double s, Transaction t) => s + t.amount,
+      (double s, Transaction t) => s + t.amount.pesos,
     );
 
     // Guard the divide. A zero limit is not reachable through the UI today,

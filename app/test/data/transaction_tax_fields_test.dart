@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/json_codec.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// The three fields the founder asked for on 2026-09-20: a tax deductible
 /// marking, a BIR reference, and a receipt image.
@@ -19,7 +20,7 @@ void main() {
   }) => Transaction(
     id: 'tx1',
     type: TransactionType.expense,
-    amount: 1240,
+    amount: Money.pesos(1240),
     category: 'Bills & Utilities',
     accountId: 'acc_bpi',
     date: '2026-09-20',
@@ -166,7 +167,7 @@ void main() {
         'isTaxDeductible': true,
         'taxTinOrRef': 'OR-2026-00184',
       });
-      expect(t.amount, 1240);
+      expect(t.amount, Money.pesos(1240));
       expect(t.isTaxDeductible, isTrue);
       expect(t.taxTinOrRef, 'OR-2026-00184');
     });
@@ -179,7 +180,7 @@ void main() {
       ).withTaxDetails(isTaxDeductible: true);
       expect(t.isTaxDeductible, isTrue);
       expect(t.taxTinOrRef, 'OR-1', reason: 'an untouched field moved');
-      expect(t.amount, 1240);
+      expect(t.amount, Money.pesos(1240));
       expect(t.category, 'Bills & Utilities');
     });
 

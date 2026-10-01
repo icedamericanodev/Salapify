@@ -24,6 +24,7 @@ import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+import 'package:salapify/core/money/money.dart';
 
 void main() {
   _reachable();
@@ -258,7 +259,7 @@ void main() {
       );
       expect(
         tx.amount,
-        1200,
+        const Money.pesos(1200),
         reason:
             'the whole bill left your account, and the debt is what '
             'brings half of it back',
@@ -285,7 +286,7 @@ void main() {
       final Transaction tx = state.transactions.firstWhere(
         (Transaction t) => t.id.startsWith('tx_split_'),
       );
-      expect(tx.amount, 600);
+      expect(tx.amount, const Money.pesos(600));
     });
 
     testWidgets('unticking it writes the debts and no transaction', (

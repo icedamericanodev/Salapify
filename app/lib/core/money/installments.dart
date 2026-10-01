@@ -285,7 +285,7 @@ Transaction? installmentEntry({
     // plan recorded another.
     id: id,
     type: TransactionType.expense,
-    amount: amount.pesos,
+    amount: amount,
     category: 'Debt & Loan Servicing',
     subcategory: installmentSubcategory,
     accountId: accountId,
@@ -314,7 +314,7 @@ Transaction? extraPaymentEntry({
   return Transaction(
     id: id,
     type: TransactionType.expense,
-    amount: amount.pesos,
+    amount: amount,
     category: 'Debt & Loan Servicing',
     subcategory: installmentSubcategory,
     accountId: accountId,

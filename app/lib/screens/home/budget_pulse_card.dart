@@ -38,7 +38,7 @@ class BudgetPulseCard extends StatelessWidget {
                 t.type == TransactionType.expense &&
                 t.category.toLowerCase() == b.category.toLowerCase(),
           )
-          .fold<double>(0, (double sum, Transaction t) => sum + t.amount);
+          .fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
 
       final double remaining = b.limit - spent;
       final int percent = math.min(100, jsRound((spent / b.limit) * 100));

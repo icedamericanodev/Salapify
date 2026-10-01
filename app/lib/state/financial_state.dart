@@ -1354,7 +1354,7 @@ class FinancialState extends ChangeNotifier {
     final Transaction tx = Transaction(
       id: 'tx_bill_${DateTime.now().microsecondsSinceEpoch}',
       type: TransactionType.expense,
-      amount: old.amount,
+      amount: Money.fromDouble(old.amount),
       category: category ?? defaultCategoryFor(old),
       accountId: accountId,
       merchant: old.name,

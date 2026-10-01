@@ -7,6 +7,7 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Splitting a bill, and turning the result into debts.
 ///
@@ -234,7 +235,7 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
           Transaction(
             id: 'tx_split_$stamp',
             type: TransactionType.expense,
-            amount: amount,
+            amount: Money.fromDouble(amount),
             category: _category,
             accountId: _accountId!,
             date:

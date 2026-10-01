@@ -18,6 +18,7 @@ library;
 
 import '../../models/models.dart';
 import 'debt.dart' show isoDate;
+import 'money.dart';
 
 /// The two categories an adjustment is filed under. Both already exist in the
 /// app's category list, so an adjustment lands somewhere Reports and Budgets
@@ -100,7 +101,7 @@ Transaction? adjustmentEntry({
   return Transaction(
     id: id,
     type: found ? TransactionType.income : TransactionType.expense,
-    amount: amount,
+    amount: Money.fromDouble(amount),
     category: found ? foundCashCategory : writeOffCategory,
     subcategory: found
         ? 'Reconciliation Upward Adjustment'
@@ -204,14 +205,14 @@ double ledgerMovementFor(List<Transaction> transactions, String accountId) {
     if (t.accountId == accountId) {
       switch (t.type) {
         case TransactionType.income:
-          sum += t.amount;
+          sum += t.amount.pesos;
         case TransactionType.expense:
         case TransactionType.transfer:
-          sum -= t.amount;
+          sum -= t.amount.pesos;
       }
     }
     if (t.type == TransactionType.transfer && t.toAccountId == accountId) {
-      sum += t.amount;
+      sum += t.amount.pesos;
     }
   }
   return sum;

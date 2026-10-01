@@ -416,7 +416,7 @@ void main() {
           Transaction(
             id: 't1',
             type: TransactionType.expense,
-            amount: 50,
+            amount: Money.pesos(50),
             category: 'Food & Dining',
             accountId: 'a1',
             date: '2026-09-19',
@@ -434,7 +434,7 @@ void main() {
           Transaction(
             id: 't1',
             type: TransactionType.income,
-            amount: 32500,
+            amount: Money.pesos(32500),
             category: 'Salary & Compensation',
             accountId: 'a1',
             date: '2026-09-19',
@@ -679,7 +679,7 @@ void planningTests() {
           Transaction(
             id: 't1',
             type: TransactionType.expense,
-            amount: 50,
+            amount: Money.pesos(50),
             category: 'Food & Dining',
             accountId: 'a1',
             date: '2026-09-19',

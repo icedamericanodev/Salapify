@@ -8,6 +8,7 @@
 library;
 
 import '../../models/models.dart';
+import 'money.dart';
 
 /// The type tabs above the list. `all` is not a type, it is the absence of the
 /// filter, which is why this is separate from TransactionType.
@@ -154,10 +155,10 @@ LedgerTotals computeTotals(List<Transaction> scoped) {
     if (!t.countsTowardTotals) continue;
 
     if (t.type == TransactionType.income) {
-      totalIn += t.amount;
+      totalIn += t.amount.pesos;
       inflowCount++;
     } else if (t.type == TransactionType.expense) {
-      totalOut += t.amount;
+      totalOut += t.amount.pesos;
       outflowCount++;
     }
   }
@@ -219,7 +220,7 @@ List<({String category, double amount})> categorySpending(
   for (final Transaction t in transactions) {
     if (t.type != TransactionType.expense) continue;
     if (!t.countsTowardTotals) continue;
-    byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount;
+    byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount.pesos;
   }
   final List<({String category, double amount})> rows =
       byCategory.entries
@@ -260,15 +261,15 @@ List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
 
   return accounts.map((Account a) {
     if (a.id == tx.accountId) {
-      final double delta = switch (tx.type) {
+      final Money delta = switch (tx.type) {
         TransactionType.income => tx.amount,
         TransactionType.expense => -tx.amount,
         TransactionType.transfer => -tx.amount,
       };
-      return a.copyWith(balance: a.balance + delta);
+      return a.copyWith(balance: a.balance + delta.pesos);
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance + tx.amount);
+      return a.copyWith(balance: a.balance + tx.amount.pesos);
     }
     return a;
   }).toList();
@@ -293,15 +294,15 @@ List<Account> reverseFromBalances(List<Account> accounts, Transaction tx) {
 
   return accounts.map((Account a) {
     if (a.id == tx.accountId) {
-      final double delta = switch (tx.type) {
+      final Money delta = switch (tx.type) {
         TransactionType.income => -tx.amount,
         TransactionType.expense => tx.amount,
         TransactionType.transfer => tx.amount,
       };
-      return a.copyWith(balance: a.balance + delta);
+      return a.copyWith(balance: a.balance + delta.pesos);
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance - tx.amount);
+      return a.copyWith(balance: a.balance - tx.amount.pesos);
     }
     return a;
   }).toList();
@@ -354,7 +355,7 @@ bool _matchesSearch(Transaction t, String rawSearch) {
   if (has(t.category) || has(t.subcategory)) return true;
   if (t.tags.any((String tag) => tag.toLowerCase().contains(q))) return true;
 
-  return _matchesAmount(t.amount, q);
+  return _matchesAmount(t.amount.pesos, q);
 }
 
 bool _matchesAmount(double amount, String q) {

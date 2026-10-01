@@ -5,6 +5,7 @@ import 'package:salapify/core/money/pan/pan_affordability.dart';
 import 'package:salapify/core/money/pan/pan_context.dart';
 import 'package:salapify/core/money/pan/pan_engine.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// "Can I afford this" and "how am I doing", the two questions the prototype
 /// answers best and the two that were missing here.
@@ -235,7 +236,7 @@ void main() {
         Transaction(
           id: 'in',
           type: TransactionType.income,
-          amount: income,
+          amount: Money.fromDouble(income),
           category: 'Salary',
           accountId: 'a1',
           date: '2026-09-15',
@@ -245,7 +246,7 @@ void main() {
         Transaction(
           id: 'e$d',
           type: TransactionType.expense,
-          amount: perDay,
+          amount: Money.fromDouble(perDay),
           category: 'Food',
           accountId: 'a1',
           date: '2026-09-${(startDay + d).toString().padLeft(2, '0')}',

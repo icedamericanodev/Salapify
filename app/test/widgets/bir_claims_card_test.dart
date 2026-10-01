@@ -6,6 +6,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/reports/bir_claims_card.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+import 'package:salapify/core/money/money.dart';
 
 /// The BIR receipts hub, and the one rule it exists to keep.
 ///
@@ -25,7 +26,7 @@ void main() {
       Transaction(
         id: 'tx${seq++}',
         type: TransactionType.expense,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         category: 'Food & Dining',
         accountId: 'acc',
         date: '2026-09-20',

@@ -16,6 +16,7 @@
 library;
 
 import '../../models/models.dart';
+import 'money.dart';
 
 /// Applies a payment to one debt and returns the whole list back.
 ///
@@ -111,7 +112,7 @@ Transaction? paymentEntry({
   return Transaction(
     id: id,
     type: owing ? TransactionType.expense : TransactionType.income,
-    amount: amount,
+    amount: Money.fromDouble(amount),
     category: owing ? 'Debt & Loan Servicing' : 'Receivables & Repayments',
     subcategory: owing
         ? 'Personal Loan Installment'

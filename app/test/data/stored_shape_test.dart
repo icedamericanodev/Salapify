@@ -118,4 +118,53 @@ void main() {
       expect(read.targetAmount.pesos, 5000.0);
     });
   });
+
+  group('a transaction amount is still stored in pesos', () {
+    // The ledger is the biggest thing in the file: every entry carries an
+    // amount, so if any single field were going to be written as centavos by
+    // accident it is this one, and a backup multiplied by a hundred would be
+    // unrecoverable by hand.
+    const Transaction tx = Transaction(
+      id: 't1',
+      type: TransactionType.expense,
+      amount: Money.of(1053, 50),
+      category: 'Food & Dining',
+      accountId: 'a1',
+      date: '2026-09-18',
+      createdAt: 0,
+    );
+
+    test('the written JSON holds a plain peso number', () {
+      final Map<String, dynamic> wire = transactionToJson(tx);
+      expect(wire['amount'], 1053.5);
+      expect(wire['amount'], isA<num>());
+    });
+
+    test('a file written by the OLD build still reads correctly', () {
+      final Transaction read = transactionFromJson(<String, dynamic>{
+        'id': 't1',
+        'type': 'expense',
+        'amount': 1053.5,
+        'category': 'Food & Dining',
+        'accountId': 'a1',
+        'date': '2026-09-18',
+        'createdAt': 0,
+      });
+      expect(read.amount, const Money.of(1053, 50));
+      expect(read.amount.centavos, 105350);
+    });
+
+    test('a whole-peso integer is read as pesos, not as centavos', () {
+      final Transaction read = transactionFromJson(<String, dynamic>{
+        'id': 't2',
+        'type': 'expense',
+        'amount': 500,
+        'category': 'Food & Dining',
+        'accountId': 'a1',
+        'date': '2026-09-18',
+        'createdAt': 0,
+      });
+      expect(read.amount, const Money.pesos(500));
+    });
+  });
 }

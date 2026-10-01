@@ -394,7 +394,7 @@ const Set<String> transactionKeys = <String>{
 Map<String, dynamic> transactionToJson(Transaction t) => <String, dynamic>{
   'id': t.id,
   'type': transactionTypeWire.encode(t.type),
-  'amount': t.amount,
+  'amount': t.amount.pesos,
   'category': t.category,
   'accountId': t.accountId,
   'date': t.date,
@@ -421,7 +421,7 @@ Transaction transactionFromJson(Map<String, dynamic> m) {
   return Transaction(
     id: _reqStr(m, 'id', what),
     type: transactionTypeWire.decodeRequired(m, 'type', what),
-    amount: _reqNum(m, 'amount', what),
+    amount: Money.fromDouble(_reqNum(m, 'amount', what)),
     category: _reqStr(m, 'category', what),
     accountId: _reqStr(m, 'accountId', what),
     date: _reqStr(m, 'date', what),

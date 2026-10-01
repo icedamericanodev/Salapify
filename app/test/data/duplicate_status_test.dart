@@ -51,7 +51,7 @@ void main() {
 
       expect(
         balanceOf(s, acc),
-        closeTo(before + tx.amount, 0.0001),
+        closeTo(before + tx.amount.pesos, 0.0001),
         reason: 'the entry stopped counting and the money stayed gone',
       );
     });
@@ -83,12 +83,12 @@ void main() {
 
       expect(
         s.panFacts.monthOut,
-        closeTo(spentBefore - tx.amount, 0.0001),
+        closeTo(spentBefore - tx.amount.pesos, 0.0001),
         reason: 'it is still being counted as spending',
       );
       expect(
         balanceOf(s, acc),
-        closeTo(balanceBefore + tx.amount, 0.0001),
+        closeTo(balanceBefore + tx.amount.pesos, 0.0001),
         reason: 'the balance did not follow the total',
       );
     });
@@ -102,7 +102,7 @@ void main() {
       final double start = balanceOf(s, acc);
 
       s.setTransactionStatus(tx.id, TransactionStatus.excluded);
-      expect(balanceOf(s, acc), closeTo(start + tx.amount, 0.0001));
+      expect(balanceOf(s, acc), closeTo(start + tx.amount.pesos, 0.0001));
 
       s.setTransactionStatus(tx.id, TransactionStatus.confirmed);
       expect(balanceOf(s, acc), closeTo(start, 0.0001));
@@ -154,7 +154,7 @@ void main() {
       final double start = balanceOf(s, acc);
 
       s.setTransactionStatus(income.id, TransactionStatus.duplicate);
-      expect(balanceOf(s, acc), closeTo(start - income.amount, 0.0001));
+      expect(balanceOf(s, acc), closeTo(start - income.amount.pesos, 0.0001));
 
       s.setTransactionStatus(income.id, TransactionStatus.confirmed);
       expect(balanceOf(s, acc), closeTo(start, 0.0001));
@@ -179,12 +179,12 @@ void main() {
 
       expect(
         balanceOf(s, move.accountId),
-        closeTo(fromStart + move.amount, 0.0001),
+        closeTo(fromStart + move.amount.pesos, 0.0001),
         reason: 'the source did not get its money back',
       );
       expect(
         balanceOf(s, move.toAccountId!),
-        closeTo(toStart - move.amount, 0.0001),
+        closeTo(toStart - move.amount.pesos, 0.0001),
         reason: 'the destination kept money that no longer moved',
       );
       expect(
