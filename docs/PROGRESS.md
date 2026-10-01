@@ -26,7 +26,7 @@ this branch point, so the review is slightly out of date where it says:
 
 ### Phase 1, in progress
 
-Shipped so far: P1.1.
+Shipped so far: P1.1, P1.2.
 
 ---
 
@@ -35,7 +35,7 @@ Shipped so far: P1.1.
 | ID | Task | Status | Commit |
 |---|---|---|---|
 | P1.1 | Wire the Home dead ends | DONE | see below |
-| P1.2 | Duplicate status balance bug (F10) | todo | |
+| P1.2 | Duplicate status balance bug (F10) | DONE | see below |
 | P1.3 | Remove always-on sample Netflix data | todo | |
 | P1.4 | Tax sheet mixed income | todo | |
 | P1.5 | Freelancer comparison consistency | todo | |
@@ -66,6 +66,34 @@ the helper is deleted.
 each link opens the RIGHT place. The Latest test asserts Activity opened AND
 Accounts did not, because an off-by-one in a tab index lands somewhere
 plausible.
+
+### P1.2 notes
+
+Fix-before-launch 4, and founder decision F10.
+
+`countsTowardTotals` is false for `excluded` and `duplicate`, and
+`applyToBalances` returns the accounts untouched for exactly those two. So the
+moment a status crossed that line, the money the entry once moved was
+stranded: the totals stopped counting it and the account still carried it.
+
+NOT new money math. Both halves already existed and are locked to vectors
+generated from the prototype, `applyToBalances` and its mirror
+`reverseFromBalances`. The fix decides WHEN to call them and never how much,
+and takes its direction from whether the entry crossed the counting line
+rather than from the status names, so a future third non-counting status needs
+no change there.
+
+Nine round-trip tests. Every one does the thing and undoes it, because a
+one-way check passes when the reverse is wrong in the same direction as the
+apply, which is the easy mistake when writing a mirror by hand. Four cover
+shapes that are easy to get wrong: income reverses the other way, a transfer
+reverses BOTH ends, duplicate to excluded must move nothing because neither
+counts, and an already-excluded entry must not be paid out when touched.
+
+Removing the balance move fails them with the real gap:
+
+    Expected: a numeric value within <0.0001> of <14299.0>
+      Actual: <12400.0>
 
 ## Phase 2 to 7
 

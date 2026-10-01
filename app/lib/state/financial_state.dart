@@ -1047,10 +1047,49 @@ class FinancialState extends ChangeNotifier {
   /// duplicate entries are left out of every total, so marking one is how a
   /// person says "the app is right that this happened, and wrong that it is
   /// mine".
+  /// Changes one entry's status, and MOVES THE BALANCE TO MATCH.
+  ///
+  /// P1.2, from fix-before-launch 4 in the October expert review: "Marking an
+  /// entry duplicate drops it from totals but leaves the account balance
+  /// unchanged." Founder decision F10 settles it: the balance reverses, and
+  /// un-marking restores it.
+  ///
+  /// ## Why it was wrong
+  ///
+  /// `countsTowardTotals` is false for `excluded` and `duplicate`, and
+  /// `applyToBalances` returns the accounts untouched for exactly those two.
+  /// So the moment a status crosses that line, the balance the entry once
+  /// moved is stranded: the totals stop counting it and the account still
+  /// carries it. Marking a 500 peso duplicate left the account 500 down with
+  /// nothing in any total explaining the gap, which for somebody reconciling
+  /// against a bank app is the defect, not a rounding nit.
+  ///
+  /// ## Why this is not new money math
+  ///
+  /// Both halves already existed and are locked to vectors generated from the
+  /// prototype: `applyToBalances` and its exact mirror `reverseFromBalances`.
+  /// This decides WHEN to call them and never how much. The direction is
+  /// taken from whether the entry crossed the counting line, not from the
+  /// status names, so a future third non-counting status needs no change
+  /// here.
+  ///
+  /// The OLD entry is reversed and the NEW one applied, which matters because
+  /// both functions early-return on a non-counting entry: reversing the new
+  /// one would do nothing at all and look like it worked.
   void setTransactionStatus(String id, TransactionStatus status) {
     final int i = _transactions.indexWhere((Transaction t) => t.id == id);
     if (i < 0 || _transactions[i].status == status) return;
+
+    final Transaction before = _transactions[i];
     _transactions = applyStatusChange(_transactions, id, status);
+    final Transaction after = _transactions[i];
+
+    if (before.countsTowardTotals && !after.countsTowardTotals) {
+      _accounts = reverseFromBalances(_accounts, before);
+    } else if (!before.countsTowardTotals && after.countsTowardTotals) {
+      _accounts = applyToBalances(_accounts, after);
+    }
+
     notifyListeners();
   }
 
