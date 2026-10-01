@@ -13,8 +13,31 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 /// the right screen, and did a write actually land where they would look for
 /// it afterwards.
 void main() {
+  /// The clock every test in this file runs against.
+  ///
+  /// It is PINNED, and that is the whole reason this helper exists rather
+  /// than a bare `pumpWidget(const SalapifyApp())`. The seed ledger is dated
+  /// September 2026, and every budget figure below is "spent THIS MONTH", so
+  /// an unpinned app read the real calendar and every one of these tests
+  /// quietly stopped testing anything the day the month rolled over to
+  /// October: nothing in the seed counted as this month any more, so every
+  /// budget showed its full limit unspent and six tests went red at once
+  /// without a line of app code changing.
+  ///
+  /// 18 September is the seed's own "today", the same date accounts_test.dart
+  /// pins to.
+  final DateTime pinnedToday = DateTime(2026, 9, 18);
+
   Future<void> openPlan(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    final FinancialState state = FinancialState(clock: pinnedToday);
+    // The app only restores a store it made itself, so an injected one has to
+    // be restored here. On the default memory store this settles immediately
+    // and its only real effect is turning saving on, which is what the
+    // production path does before the first frame.
+    await state.restore();
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.track_changes_outlined));
     await tester.pumpAndSettle();
