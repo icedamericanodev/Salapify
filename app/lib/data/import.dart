@@ -95,8 +95,8 @@ LedgerSummary summarizeSnapshot(Snapshot s, {String? savedAt}) {
     reconciliations: s.reconciliations.length,
     assets: accountsTotalPhp(assetsOf(sampleAware)),
     liabilities: accountsTotalPhp(liabilitiesOf(sampleAware)),
-    owed: outstanding(s.debts, DebtDirection.iOwe),
-    owedToYou: outstanding(s.debts, DebtDirection.owedToMe),
+    owed: outstanding(s.debts, DebtDirection.iOwe).pesos,
+    owedToYou: outstanding(s.debts, DebtDirection.owedToMe).pesos,
     hasSampleData:
         s.accounts.any((Account a) => a.isSample) ||
         s.transactions.any((Transaction t) => t.isSample),

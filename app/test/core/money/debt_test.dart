@@ -20,13 +20,17 @@ void main() {
   Debt of(List<Debt> list, String id) =>
       list.firstWhere((Debt d) => d.id == id);
 
-  List<Debt> pay(String id, double amount) =>
-      applyDebtPayment(SeedData.debts(testToday), id, amount, today: today);
+  List<Debt> pay(String id, double amount) => applyDebtPayment(
+    SeedData.debts(testToday),
+    id,
+    Money.fromDouble(amount),
+    today: today,
+  );
 
   group('applyDebtPayment matches the prototype', () {
     test('a part payment on an instalment debt advances the counter', () {
       final Debt d = of(pay('debt_homecredit', 2450), 'debt_homecredit');
-      expect(d.paidAmount, 9800);
+      expect(d.paidAmount, const Money.pesos(9800));
       expect(d.isSettled, isFalse);
       expect(d.settledDate, isNull);
       expect(
@@ -38,7 +42,7 @@ void main() {
 
     test('paying exactly what is left settles it and stamps the day', () {
       final Debt d = of(pay('debt_homecredit', 7350), 'debt_homecredit');
-      expect(d.paidAmount, 14700);
+      expect(d.paidAmount, const Money.pesos(14700));
       expect(d.isSettled, isTrue);
       expect(d.settledDate, '2026-09-18');
     });
@@ -47,7 +51,7 @@ void main() {
       final Debt d = of(pay('debt_homecredit', 10000), 'debt_homecredit');
       expect(
         d.paidAmount,
-        17350,
+        const Money.pesos(17350),
         reason:
             'The prototype does not clamp this, and neither do we. '
             'Swallowing 2,650 to make the row look tidy hides a real '
@@ -60,7 +64,7 @@ void main() {
 
     test('a flexible receivable has no counter to advance', () {
       final Debt d = of(pay('debt_kuya_mark', 1500), 'debt_kuya_mark');
-      expect(d.paidAmount, 1500);
+      expect(d.paidAmount, const Money.pesos(1500));
       expect(d.isSettled, isFalse);
       expect(
         d.installmentCurrent,
@@ -74,7 +78,7 @@ void main() {
 
     test('collecting a receivable in full settles it', () {
       final Debt d = of(pay('debt_sarah', 1250), 'debt_sarah');
-      expect(d.paidAmount, 1250);
+      expect(d.paidAmount, const Money.pesos(1250));
       expect(d.isSettled, isTrue);
       expect(d.settledDate, '2026-09-18');
     });
@@ -97,14 +101,24 @@ void main() {
       final List<Debt> input = SeedData.debts(testToday);
       expect(
         identical(
-          applyDebtPayment(input, 'debt_homecredit', 0, today: today),
+          applyDebtPayment(
+            input,
+            'debt_homecredit',
+            Money.pesos(0),
+            today: today,
+          ),
           input,
         ),
         isTrue,
       );
       expect(
         identical(
-          applyDebtPayment(input, 'debt_homecredit', -500, today: today),
+          applyDebtPayment(
+            input,
+            'debt_homecredit',
+            Money.pesos(-500),
+            today: today,
+          ),
           input,
         ),
         isTrue,
@@ -135,7 +149,11 @@ void main() {
     // date differs, and only on a debt that was already at zero.
     test('an already settled debt keeps the day it was settled', () {
       final Debt d = of(pay('debt_mom_settled', 500), 'debt_mom_settled');
-      expect(d.paidAmount, 2500, reason: 'the money still moves, as it must');
+      expect(
+        d.paidAmount,
+        const Money.pesos(2500),
+        reason: 'the money still moves, as it must',
+      );
       expect(d.isSettled, isTrue);
       expect(
         d.settledDate,
@@ -160,7 +178,7 @@ void main() {
       );
       expect(
         d.paidAmount,
-        14700,
+        const Money.pesos(14700),
         reason:
             'otherwise the row reads "settled" and "still owes 7,350" at '
             'the same time, and one of them is a lie',
@@ -180,15 +198,37 @@ void main() {
       );
       expect(d.isSettled, isFalse);
       expect(d.settledDate, isNull);
-      expect(d.paidAmount, 2000);
+      expect(d.paidAmount, const Money.pesos(2000));
     });
 
-    test('settling then un-settling leaves the money paid, not wound back', () {
+    test('settling then un-settling PUTS THE REAL FIGURE BACK', () {
+      // A DELIBERATE DIVERGENCE FROM THE PROTOTYPE, founder direction
+      // 2026-10-01, and this test used to assert the prototype's answer with
+      // a confident reason: winding back to 7,350 "would invent a figure
+      // nobody paid".
+      //
+      // That reasoning is sound for a debt settled by REAL PAYMENTS, and the
+      // case below this one still asserts it. It is wrong here, because 7,350
+      // is not invented: it is what the debt actually said before the button
+      // FILLED it to 14,700. Leaving the fill in place is what invents a
+      // figure, and it invents the larger one.
+      //
+      // What the old behaviour cost, with no confirmation on either tap:
+      // 7,350 of 14,700 becomes 14,700 of 14,700, permanently, because a debt
+      // keeps no payment history and the app has no edit or delete for one.
+      // "Not settled after all" is the button somebody taps believing it is
+      // the way back.
       final List<Debt> once = toggleDebtSettled(
         SeedData.debts(testToday),
         'debt_homecredit',
         today: today,
       );
+      expect(
+        of(once, 'debt_homecredit').paidAmount,
+        const Money.pesos(14700),
+        reason: 'the fill',
+      );
+
       final Debt d = of(
         toggleDebtSettled(once, 'debt_homecredit', today: today),
         'debt_homecredit',
@@ -197,11 +237,10 @@ void main() {
       expect(d.settledDate, isNull);
       expect(
         d.paidAmount,
-        14700,
+        const Money.pesos(7350),
         reason:
-            'The prototype leaves it at the total and so do we. Winding '
-            'it back to 7,350 would invent a figure nobody paid; the wrong '
-            'flag is the smaller error and the one the user can see.',
+            '7,350 is gone and 7,350 that nobody paid is recorded as paid, '
+            'with no screen in the app able to put it right',
       );
     });
   });
@@ -273,10 +312,13 @@ void main() {
 
   group('the register totals', () {
     test('outstanding counts only open debts, in one direction', () {
-      expect(outstanding(SeedData.debts(testToday), DebtDirection.iOwe), 17350);
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.iOwe),
+        const Money.pesos(17350),
+      );
       expect(
         outstanding(SeedData.debts(testToday), DebtDirection.owedToMe),
-        6250,
+        const Money.pesos(6250),
       );
     });
 
@@ -303,16 +345,16 @@ void main() {
           id: 'a',
           person: 'Bank',
           direction: DebtDirection.iOwe,
-          totalAmount: 1000000,
-          paidAmount: 0,
+          totalAmount: Money.pesos(1000000),
+          paidAmount: Money.pesos(0),
           isSettled: false,
         ),
         const Debt(
           id: 'b',
           person: 'Friend',
           direction: DebtDirection.owedToMe,
-          totalAmount: 50,
-          paidAmount: 0,
+          totalAmount: Money.pesos(50),
+          paidAmount: Money.pesos(0),
           isSettled: false,
         ),
       ];

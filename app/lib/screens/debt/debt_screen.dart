@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
@@ -115,8 +116,8 @@ class _DebtScreenState extends State<DebtScreen> {
                 _DirectionPicker(
                   palette: p,
                   current: _direction,
-                  owe: outstanding(debts, DebtDirection.iOwe),
-                  owed: outstanding(debts, DebtDirection.owedToMe),
+                  owe: outstanding(debts, DebtDirection.iOwe).pesos,
+                  owed: outstanding(debts, DebtDirection.owedToMe).pesos,
                   onSelect: (DebtDirection d) => setState(() => _direction = d),
                 ),
                 const SizedBox(height: Spacing.lg),
@@ -128,7 +129,7 @@ class _DebtScreenState extends State<DebtScreen> {
                       palette: p,
                       debt: d,
                       onPay: () => _openPayment(context, p, d),
-                      onSettle: () => widget.state.toggleDebtSettledById(d.id),
+                      onSettle: () => _confirmSettle(context, p, d),
                     ),
                     const SizedBox(height: Spacing.sm),
                   ],
@@ -141,8 +142,7 @@ class _DebtScreenState extends State<DebtScreen> {
                         palette: p,
                         debt: d,
                         onPay: null,
-                        onSettle: () =>
-                            widget.state.toggleDebtSettledById(d.id),
+                        onSettle: () => _confirmSettle(context, p, d),
                       ),
                       const SizedBox(height: Spacing.sm),
                     ],
@@ -179,6 +179,71 @@ class _DebtScreenState extends State<DebtScreen> {
       debt: debt,
     );
     if (mounted) setState(() {});
+  }
+
+  /// "Mark settled" FILLS IN the rest of the debt as paid, and until now it
+  /// did that on one unconfirmed tap.
+  ///
+  /// The amount it invents is the thing worth saying out loud, because it is
+  /// invisible otherwise: a debt at 7,350 of 12,000 silently becomes 12,000
+  /// of 12,000. The person reading the card sees a progress bar fill, not a
+  /// figure being written.
+  ///
+  /// The reverse direction needs no confirmation and deliberately does not
+  /// get one. Un-settling now puts the real figure back, so there is nothing
+  /// to lose by tapping it and nothing to warn about, which is the point of
+  /// having fixed the engine rather than only signposting it.
+  Future<void> _confirmSettle(
+    BuildContext context,
+    Palette palette,
+    Debt debt,
+  ) async {
+    if (debt.isSettled) {
+      widget.state.toggleDebtSettledById(debt.id);
+      setState(() {});
+      return;
+    }
+
+    final Money fills = debt.remaining;
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text(
+          'Mark ${debt.person} settled?',
+          style: AppType.title(palette),
+        ),
+        content: Text(
+          // Figures first, then the one thing somebody would otherwise get
+          // wrong: this is a correction, not a payment, so no account moves
+          // and nothing appears in Activity.
+          'This fills in the rest as paid. '
+          '${formatPeso(debt.paidAmount.pesos)} of ${formatPeso(debt.totalAmount.pesos)} '
+          'is recorded now, so Salapify will record the remaining '
+          '${formatPeso(fills.pesos)} as paid too.\n\n'
+          'Use this when the books were wrong and the debt is really clear. '
+          'It moves no account and nothing appears in your Activity.\n\n'
+          'If you change your mind, "Not settled after all" puts '
+          '${formatPeso(debt.paidAmount.pesos)} back.',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancel', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Mark it settled', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.toggleDebtSettledById(debt.id);
+      if (mounted) setState(() {});
+    }
   }
 }
 
@@ -269,10 +334,10 @@ class _Beam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double owe = outstanding(debts, DebtDirection.iOwe);
-    final double owed = outstanding(debts, DebtDirection.owedToMe);
+    final Money owe = outstanding(debts, DebtDirection.iOwe);
+    final Money owed = outstanding(debts, DebtDirection.owedToMe);
     final ({double owedToMe, double youOwe}) split = beamSplit(debts);
-    final double net = owed - owe;
+    final Money net = owed - owe;
 
     return Container(
       width: double.infinity,
@@ -294,7 +359,7 @@ class _Beam extends StatelessWidget {
                   children: <Widget>[
                     Text('YOU OWE', style: AppType.kicker(palette)),
                     Text(
-                      formatPeso(owe),
+                      formatPeso(owe.pesos),
                       style: AppType.amount(
                         palette,
                       ).copyWith(color: palette.negative),
@@ -307,7 +372,7 @@ class _Beam extends StatelessWidget {
                 children: <Widget>[
                   Text('OWED TO YOU', style: AppType.kicker(palette)),
                   Text(
-                    formatPeso(owed),
+                    formatPeso(owed.pesos),
                     style: AppType.amount(
                       palette,
                     ).copyWith(color: palette.positive),
@@ -339,11 +404,11 @@ class _Beam extends StatelessWidget {
             // for the reader to subtract. The bar itself is clamped so neither
             // side vanishes, which makes it an illustration; this is the
             // number.
-            net == 0
+            net.isZero
                 ? 'What you owe and what you are owed cancel out exactly.'
-                : net > 0
-                ? 'On balance, ${formatPeso(net)} is owed to you.'
-                : 'On balance, you owe ${formatPeso(net)}.',
+                : net.isPositive
+                ? 'On balance, ${formatPeso(net.pesos)} is owed to you.'
+                : 'On balance, you owe ${formatPeso(net.pesos)}.',
             style: AppType.caption(palette),
           ),
         ],
@@ -500,7 +565,8 @@ class _DebtCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     formatPeso(
-                      debt.isSettled ? debt.totalAmount : debt.remaining,
+                      (debt.isSettled ? debt.totalAmount : debt.remaining)
+                          .pesos,
                     ),
                     style: AppType.amountSmall(palette).copyWith(
                       color: debt.isSettled ? palette.textMuted : tint,
@@ -527,8 +593,8 @@ class _DebtCard extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.xs),
             Text(
-              '${formatPeso(debt.paidAmount)} of '
-              '${formatPeso(debt.totalAmount)} so far',
+              '${formatPeso(debt.paidAmount.pesos)} of '
+              '${formatPeso(debt.totalAmount.pesos)} so far',
               style: AppType.caption(palette),
             ),
           ],

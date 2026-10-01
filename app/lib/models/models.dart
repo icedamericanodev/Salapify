@@ -327,6 +327,37 @@ class Transaction {
       status != TransactionStatus.excluded &&
       status != TransactionStatus.duplicate;
 
+  /// True when SALAPIFY wrote this entry to explain a debt or instalment
+  /// payment, rather than the person logging it by hand.
+  ///
+  /// Recognised by the id this build gives such an entry, which is the ONLY
+  /// trace of the link that exists: a Transaction carries no debtId and no
+  /// planId, so nothing else in the app can tell a payment row from an
+  /// ordinary expense. `tx_inst_` covers `tx_inst_extra_` as well, since one
+  /// is a prefix of the other.
+  ///
+  /// IT EXISTS FOR ONE JOB: refusing a correction that can only half land.
+  /// Changing such an entry's status reverses the ACCOUNT through
+  /// reverseFromBalances, and cannot touch the debt or the plan, because
+  /// there is nothing to follow. Reconciliation offered exactly that on its
+  /// "possible double entries" list, so one tap on an orange warning put the
+  /// money back in the account and left the debt still claiming it was paid,
+  /// measured at 1,500.00 with no screen anywhere explaining the difference.
+  ///
+  /// DELIBERATELY CONSERVATIVE, and the direction matters. A hand-logged
+  /// entry that happens to carry one of these ids would wrongly lose the
+  /// duplicate control, which costs somebody one correction route out of
+  /// several. A payment entry wrongly treated as ordinary breaks a figure
+  /// that cannot be put back. Those are not comparable, so this errs toward
+  /// refusing.
+  ///
+  /// It is a stopgap, and the right answer replaces it: once a payment
+  /// carries its own stored record, the link is a fact rather than a guess at
+  /// a string, and an entry from a restored backup written by some other
+  /// build is covered too, which this is not.
+  bool get isEnginePayment =>
+      id.startsWith('tx_debt_') || id.startsWith('tx_inst_');
+
   /// The same entry with a different status on it.
   ///
   /// STATUS ONLY, deliberately narrow. Marking something a duplicate changes
@@ -450,6 +481,7 @@ class Debt {
     this.settledDate,
     this.notes,
     this.isSample = false,
+    this.paidBeforeSettle,
   });
 
   /// True for a record Salapify put there itself, so the screens are not blank
@@ -466,8 +498,8 @@ class Debt {
   final String id;
   final String person;
   final DebtDirection direction;
-  final double totalAmount;
-  final double paidAmount;
+  final Money totalAmount;
+  final Money paidAmount;
   final bool isSettled;
   final String? dueDate;
   final DebtSchedule schedule;
@@ -481,12 +513,45 @@ class Debt {
   final String? settledDate;
   final String? notes;
 
-  double get remaining => (totalAmount - paidAmount).clamp(0, double.infinity);
+  /// What [paidAmount] said before "Mark settled" FILLED it in, and null
+  /// whenever that button is not what made this debt settled.
+  ///
+  /// ## Why a field exists for this at all
+  ///
+  /// "Mark settled" sets paidAmount to totalAmount, which is what makes the
+  /// button honest: "settled" and "still owes 7,350" cannot both be true on
+  /// one row. "Not settled after all" then used to leave the filled figure
+  /// in place, and the reasoning was sound for the case it was written for,
+  /// a debt settled by real payments, where the money really was paid and
+  /// inventing a smaller figure would be worse than a wrong flag.
+  ///
+  /// The same function also served a debt settled BY THE BUTTON, where the
+  /// fill was invented in the first place. Two taps, with no confirmation on
+  /// either, destroyed the real figure permanently:
+  ///
+  ///     start        : paid 7,350.00 of 12,000.00
+  ///     Mark settled : paid 12,000.00
+  ///     Not settled  : paid 12,000.00, and 7,350.00 is gone
+  ///
+  /// A debt keeps no payment history and the app has no edit or delete for
+  /// one, so 4,650.00 the person never paid was recorded as paid with no way
+  /// back short of wiping the phone. "Not settled after all" is precisely the
+  /// button somebody taps believing it IS the way back.
+  ///
+  /// Null is the meaningful value, not a missing one: it says this debt was
+  /// not filled by the button, so un-settling must leave paidAmount exactly
+  /// where it is. Every debt stored before this field existed reads null and
+  /// therefore keeps the old behaviour, which is the correct behaviour for
+  /// the case it was written for.
+  final Money? paidBeforeSettle;
+
+  Money get remaining => maxMoney(Money.zero, totalAmount - paidAmount);
 
   /// How far through it is, from 0 to 1. Clamped, because an overpayment
   /// would otherwise draw a bar past the end of its own track.
-  double get progress =>
-      totalAmount <= 0 ? 0 : (paidAmount / totalAmount).clamp(0.0, 1.0);
+  double get progress => totalAmount.isPositive
+      ? (paidAmount.centavos / totalAmount.centavos).clamp(0.0, 1.0)
+      : 0;
 
   /// [isSample] is NOT carried through, and that is the point.
   ///
@@ -496,11 +561,13 @@ class Debt {
   /// history pointing at it. Letting the field default to false here is what
   /// adopts it, with no extra rule anywhere.
   Debt copyWith({
-    double? paidAmount,
+    Money? paidAmount,
     bool? isSettled,
     String? settledDate,
     int? installmentCurrent,
     bool clearSettledDate = false,
+    Money? paidBeforeSettle,
+    bool clearPaidBeforeSettle = false,
   }) => Debt(
     id: id,
     person: person,
@@ -514,6 +581,12 @@ class Debt {
     installmentTotal: installmentTotal,
     settledDate: clearSettledDate ? null : (settledDate ?? this.settledDate),
     notes: notes,
+    // Carried through, unlike isSample. A payment recorded while the button's
+    // fill is in place must not forget what the real figure was, or the next
+    // "Not settled after all" loses it again by a different route.
+    paidBeforeSettle: clearPaidBeforeSettle
+        ? null
+        : (paidBeforeSettle ?? this.paidBeforeSettle),
   );
 }
 

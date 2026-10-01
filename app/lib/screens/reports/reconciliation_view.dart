@@ -589,12 +589,35 @@ class _PairRow extends StatelessWidget {
           ),
           Text(pair.reason, style: AppType.caption(palette)),
           const SizedBox(height: Spacing.sm),
-          _Button(
-            palette: palette,
-            label: 'Mark the second one a duplicate',
-            filled: false,
-            onTap: onMark,
-          ),
+          // A DEBT OR INSTALMENT PAYMENT IS NOT OFFERED THE DUPLICATE
+          // CONTROL, because marking one can only half land.
+          //
+          // The status change reverses the ACCOUNT and cannot touch the debt,
+          // since nothing links the two. So the money comes back and the debt
+          // still says it was paid, measured at 1,500.00, with no screen
+          // anywhere explaining the gap and no way to put it right: a debt has
+          // no payment history, and the app has no edit or delete for one.
+          //
+          // The sentence stays ON SCREEN rather than behind the dot under the
+          // standing exception. Silence here is the wrong conclusion itself:
+          // a person who sees a warning and no way to act on it concludes the
+          // app is broken, when what is true is that this particular remedy
+          // would break something.
+          if (pair.second.isEnginePayment || pair.first.isEnginePayment)
+            Text(
+              'This is a payment on a debt or a plan, so marking it a '
+              'duplicate would put the money back in your account and still '
+              'leave the debt showing as paid. Take the payment back from the '
+              'Debt screen instead.',
+              style: AppType.caption(palette),
+            )
+          else
+            _Button(
+              palette: palette,
+              label: 'Mark the second one a duplicate',
+              filled: false,
+              onTap: onMark,
+            ),
         ],
       ),
     );

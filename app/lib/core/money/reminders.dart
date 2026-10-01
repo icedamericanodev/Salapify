@@ -27,6 +27,7 @@ library;
 
 import '../../models/models.dart';
 import 'format.dart';
+import 'money.dart';
 
 /// [ReminderKind] lives in models.dart, with [AppNotification], because a
 /// stored notification carries one and this file may not be what a reader of
@@ -379,14 +380,14 @@ ReminderResult evaluateReminders({
       final int? days = daysUntil(d.dueDate, now);
       if (days == null || days > settings.paymentDueDaysBefore) continue;
 
-      final double remaining = d.totalAmount - d.paidAmount;
-      if (remaining <= 0) continue;
+      final Money remaining = d.totalAmount - d.paidAmount;
+      if (!remaining.isPositive) continue;
 
       add(
         'debt-due-${d.id}-${d.dueDate}-$today',
         ReminderKind.paymentDue,
         'Payment due: ${d.person}',
-        'Your payment of ${formatPeso(remaining)} to ${d.person} '
+        'Your payment of ${formatPeso(remaining.pesos)} to ${d.person} '
             '${_whenPhrase(days, d.dueDate ?? '')}.',
         daysAway: days,
       );

@@ -114,7 +114,7 @@ void main() {
           (Account a) => a.id == 'acc_gcash',
         );
 
-        final double paidBefore = debt.paidAmount;
+        final Money paidBefore = debt.paidAmount;
         final double balanceBefore = from.balance;
 
         state.recordDebtPayment(debt.id, 1500.555, accountId: 'acc_gcash');
@@ -127,17 +127,20 @@ void main() {
           (Transaction t) => t.id.startsWith('tx_debt_'),
         );
 
-        final double liabilityFell = after.paidAmount - paidBefore;
+        final Money liabilityFell = after.paidAmount - paidBefore;
         final double assetFell = balanceBefore - fromAfter.balance;
 
         expect(entry.amount, const Money.of(1500, 56));
+        // The debt side is EXACT now. The account side is still a double
+        // until Account.balance moves too, so it is the one that has to be
+        // quantised, and this line is the remaining tolerance in the test.
         expect(
-          Money.fromDouble(liabilityFell),
+          liabilityFell,
           Money.fromDouble(assetFell),
           reason: 'net worth moved on a payment that must not move it',
         );
         // Directional: the payment landed rather than being skipped.
-        expect(liabilityFell, greaterThan(1500));
+        expect(liabilityFell, greaterThan(const Money.pesos(1500)));
       },
     );
   });

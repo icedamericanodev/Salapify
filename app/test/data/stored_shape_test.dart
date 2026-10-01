@@ -167,4 +167,61 @@ void main() {
       expect(read.amount, const Money.pesos(500));
     });
   });
+
+  group('a debt is still stored in pesos, and so is the settle memory', () {
+    Map<String, dynamic> wire(Debt d) => debtToJson(d);
+
+    const Debt plain = Debt(
+      id: 'd1',
+      person: 'Home Credit',
+      direction: DebtDirection.iOwe,
+      totalAmount: Money.of(14700, 50),
+      paidAmount: Money.of(7350, 25),
+      isSettled: false,
+    );
+
+    test('the written JSON holds plain peso numbers', () {
+      final Map<String, dynamic> m = wire(plain);
+      expect(m['totalAmount'], 14700.50);
+      expect(m['paidAmount'], 7350.25);
+      expect(
+        m['totalAmount'],
+        isNot(1470050),
+        reason:
+            'centavos reached the file, so every older build reading this '
+            'backup multiplies every debt by a hundred',
+      );
+    });
+
+    test('an ordinary debt gains NO new key', () {
+      // The new field must be invisible on a debt that was never filled by
+      // the Mark settled button, which is almost all of them. A key that
+      // appears on every row is a stored-shape change by another name.
+      expect(wire(plain).containsKey('paidBeforeSettle'), isFalse);
+    });
+
+    test('and it round trips through the file when it IS set', () {
+      final Debt filled = plain.copyWith(
+        isSettled: true,
+        paidAmount: plain.totalAmount,
+        paidBeforeSettle: plain.paidAmount,
+      );
+
+      final Map<String, dynamic> m = wire(filled);
+      expect(m['paidBeforeSettle'], 7350.25);
+
+      // Through the real decoder, because a value that survives encoding and
+      // not decoding loses the figure on the next cold start, which is the
+      // whole point of storing it.
+      expect(debtFromJson(m).paidBeforeSettle, const Money.of(7350, 25));
+    });
+
+    test('a debt written by the OLD build still reads, with no memory', () {
+      final Map<String, dynamic> old = wire(plain)..remove('paidBeforeSettle');
+
+      final Debt read = debtFromJson(old);
+      expect(read.paidBeforeSettle, isNull);
+      expect(read.paidAmount, const Money.of(7350, 25));
+    });
+  });
 }

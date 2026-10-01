@@ -1,3 +1,4 @@
+import 'money.dart';
 import 'dart:math' as math;
 
 import 'package:intl/intl.dart';
@@ -220,12 +221,11 @@ List<ControlCenterAlert> runControlCenterScan({
   }
 
   // 8. Debt owed above 80% of liquid reserves.
-  final double totalDebtOwed = debts
-      .where((Debt d) => d.direction == DebtDirection.iOwe && !d.isSettled)
-      .fold<double>(
-        0,
-        (double s, Debt d) => s + (d.totalAmount - d.paidAmount),
-      );
+  final double totalDebtOwed = sumMoney(
+    debts
+        .where((Debt d) => d.direction == DebtDirection.iOwe && !d.isSettled)
+        .map((Debt d) => d.totalAmount - d.paidAmount),
+  ).pesos;
 
   if (totalDebtOwed > liquidCash * 0.8 && totalDebtOwed > 0) {
     alerts.add(

@@ -150,7 +150,7 @@ void main() {
       // bill split three ways.
       for (final Debt d in made) {
         expect(d.direction, DebtDirection.owedToMe);
-        expect(d.totalAmount, 400);
+        expect(d.totalAmount, const Money.pesos(400));
         expect(d.notes, 'Split: Lunch');
         expect(d.isSettled, isFalse);
       }
@@ -184,7 +184,7 @@ void main() {
       );
       expect(made.single.direction, DebtDirection.iOwe);
       expect(made.single.person, 'Carla');
-      expect(made.single.totalAmount, 500);
+      expect(made.single.totalAmount, const Money.pesos(500));
     });
 
     testWidgets('the EXACT centavos are written, not whole pesos', (
@@ -215,7 +215,7 @@ void main() {
       for (final Debt d in made) {
         expect(
           d.totalAmount,
-          333.33,
+          const Money.of(333, 33),
           reason: 'the prototype would have written 333 here',
         );
       }

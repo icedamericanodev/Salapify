@@ -877,7 +877,7 @@ class FinancialState extends ChangeNotifier {
     final Money paid = Money.fromDouble(amount);
     if (!paid.isPositive) return;
 
-    _debts = applyDebtPayment(_debts, debtId, paid.pesos, today: now);
+    _debts = applyDebtPayment(_debts, debtId, paid, today: now);
 
     final Transaction? entry = paymentEntry(
       debt: before,
@@ -1529,12 +1529,12 @@ class FinancialState extends ChangeNotifier {
   /// Everything a person owes, across unsettled debts pointing outward.
   double get debtsIOwe => debts
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe)
-      .fold<double>(0, (double sum, Debt d) => sum + d.remaining);
+      .fold<double>(0, (double sum, Debt d) => sum + d.remaining.pesos);
 
   /// Everything owed back to them.
   double get debtsOwedToMe => debts
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.owedToMe)
-      .fold<double>(0, (double sum, Debt d) => sum + d.remaining);
+      .fold<double>(0, (double sum, Debt d) => sum + d.remaining.pesos);
 
   /// The soonest unsettled debt carrying a due date.
   Debt? get nextDueDebt {
