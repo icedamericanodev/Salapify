@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/bills/pay_bill_flow.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../models/models.dart';
@@ -390,22 +391,36 @@ class ComingUpCard extends StatelessWidget {
               color: isIncome ? palette.positive : palette.textPrimary,
             ),
           ),
-          // Marking an expectation met is not logging a transaction, so this
-          // ticks the row off and leaves the ledger alone.
+          // This comment used to read "Marking an expectation met is not
+          // logging a transaction, so this ticks the row off and leaves the
+          // ledger alone." That was a deliberate decision and the founder
+          // reversed it on 2026-10-01, choosing between three options: ticking
+          // a bill paid moves the money and asks which account it came from.
+          //
+          // It goes through the SHARED flow rather than calling the store
+          // directly, because the identical control exists in the Bills sheet
+          // with the identical label, and two ticks that look the same and do
+          // different things to money is worse than either behaviour alone.
+          //
+          // A Builder because `_itemRow` takes a palette and an item and no
+          // BuildContext, and threading one through every caller to reach a
+          // single tap handler is a wider change than the handler is worth.
           if (!isIncome)
-            Semantics(
-              button: true,
-              label: 'Mark ${item.name} as paid',
-              child: InkWell(
-                onTap: () => state.markUpcomingPaid(item.id),
-                customBorder: const CircleBorder(),
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: palette.textMuted,
+            Builder(
+              builder: (BuildContext context) => Semantics(
+                button: true,
+                label: 'Mark ${item.name} as paid',
+                child: InkWell(
+                  onTap: () => payBillFlow(context, palette, state, item),
+                  customBorder: const CircleBorder(),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: palette.textMuted,
+                    ),
                   ),
                 ),
               ),

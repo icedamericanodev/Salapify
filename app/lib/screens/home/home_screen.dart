@@ -4,6 +4,7 @@ import '../../design/tokens.dart';
 import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/accounts/move_money_sheet.dart';
+import '../../features/bills/bills_sheet.dart';
 import '../../features/debt/split_bill_sheet.dart';
 import '../../features/health/health_check_sheet.dart';
 import '../../features/info/info_sheet.dart';
@@ -116,7 +117,7 @@ class HomeScreen extends StatelessWidget {
               onLog:
                   onOpenLog ?? () => _soon(context, palette, 'The Log sheet'),
               onDebt: () => _addDebt(context, palette),
-              onBills: () => _soon(context, palette, 'Bills'),
+              onBills: () => _bills(context, palette),
               onMove: () => _moveMoney(context, palette),
               onSplit: () => _splitBill(context, palette),
             ),
@@ -147,7 +148,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: Spacing.lg),
             ComingUpCard(
               state: state,
-              onManage: () => _soon(context, palette, 'Bills'),
+              onManage: () => _bills(context, palette),
               onInfo: () =>
                   InfoSheet.show(context, palette, InfoTopic.comingUp),
               onAddItem: () =>
@@ -263,6 +264,10 @@ class HomeScreen extends StatelessWidget {
   /// ChangeNotifier the shell listens to, so there is nothing to redraw here.
   Future<void> _moveMoney(BuildContext context, Palette palette) =>
       MoveMoneySheet.show(context, palette: palette, state: state);
+
+  /// Bills and scheduled payments.
+  Future<void> _bills(BuildContext context, Palette palette) =>
+      BillsSheet.show(context, palette: palette, state: state);
 
   Future<void> _addDebt(BuildContext context, Palette palette) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);

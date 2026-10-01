@@ -11,6 +11,7 @@ import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/accounts/move_money_sheet.dart';
+import 'package:salapify/features/bills/bills_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
@@ -1106,6 +1107,55 @@ void main() {
       matchesGoldenFile('out/sheet_add_debt_schedule.png'),
     );
   });
+
+  // Bills, in both of the states worth reviewing: the list, and the schedule
+  // form open so the kind chips and the fields can be checked.
+  for (final ({String slug, bool adding}) shape
+      in <({String slug, bool adding})>[
+        (slug: 'bills', adding: false),
+        (slug: 'bills_adding', adding: true),
+      ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      BillsSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.adding) {
+        await tester.tap(find.text('Schedule a bill'));
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
 
   // Move money, in both of the states worth reviewing: as it opens, and with
   // a move filled in so the figures and the closing sentence are visible.

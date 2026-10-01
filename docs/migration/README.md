@@ -2156,3 +2156,100 @@ and fell into it anyway; only the picture showed it. This is the eighth.
 | As it opens | A move filled in |
 | --- | --- |
 | ![empty](screens/move-money-empty.png) | ![working](screens/move-money-working.png) |
+
+## Bills, the list half (2026-10-01)
+
+Founder direction: "Migrate bills and move quick actions". Then two choices
+between options, both of which changed what got built:
+
+1. **"Yes, with an account picker"** on whether ticking a bill paid should
+   move money. It now does, and asks which account it came from.
+2. **"List first, then the rest"** on scope. The prototype's modal has three
+   tabs; the calendar and the cash flow timeline are a separate batch.
+
+Ported from the list half of `src/components/BillsModal.tsx`.
+
+### What was actually broken before this
+
+`markUpcomingPaid` flipped a flag and nothing else. Somebody could mark
+Meralco paid, open the account it should have come from, and find the balance
+untouched with nothing in Activity to explain anything. Every test was green,
+because every test asked whether the flag flipped.
+
+That is the exact shape of the defect CLAUDE.md's "a write path is not tested
+until somebody can SEE what it did" rule was written for, shipped again.
+
+`BillsSegment` on the Plan tab made it visible: it renders a struck-through
+"Paid" state that nothing in the app could set. It stays as the read view;
+every write lives in the new sheet, so one place changes a bill rather than
+two that drift.
+
+### Three prototype behaviours deliberately not carried over
+
+1. **It files every bill under `Electricity (Meralco)`.** Paying Spotify
+   files it under electricity. `core/money/bills.dart` decides instead, from
+   the item's own category when it has one and from its TYPE when it does
+   not. Four of those mappings are judgement calls and are named in that file
+   so the next person changes them deliberately.
+2. **It hardcodes `profile: 'household'`.** The app already infers a profile
+   from the name and category; that inference is used.
+3. **It falls back to `accounts[0]?.id`**, writing a real expense against
+   whichever account happens to be first with no signal. This refuses: no
+   account, no ledger entry. The dialog does not pre-select one when there is
+   a choice to make.
+
+A first `'Bills & Utilities'` fallback for everything would have passed every
+test in the file, because NO seed item has a stored category, so every bill
+would have landed there. The test that found this threw `Bad state: No
+element` looking for a seed bill with one.
+
+### One flow, two doors
+
+The tick exists on Home's Coming Up card and in the Bills sheet, both labelled
+"Mark <name> as paid". Coming Up used to flip a flag and leave the ledger
+alone, by a deliberate decision recorded in its own comment. Two identical
+controls doing different things to money is worse than either behaviour, so
+both now call `payBillFlow` and a test fails if they diverge again.
+
+### A recovery hole, and where the undo had to move
+
+A SnackBar is drawn BELOW a modal bottom sheet. The Bills sheet stands at 92%
+of the screen, so the undo action was on screen and physically unreachable:
+the test tapping it moved nothing, and a person would have had the same
+silence. The sheet now offers its own undo on the row it just paid, where
+nothing can cover it. Coming Up keeps the snack bar, because nothing is over
+it.
+
+### Two defects the render caught, and no test could
+
+1. **Every bill name was truncated.** "Meralco Electri...", "Spotify Premium
+   F...", "Home Credit In...". The name, the amount and two 44dp icon buttons
+   on one line leave about 116dp for the name on a 390dp phone. Nothing
+   failed: the names were ellipsised, which is exactly what the widget was
+   told to do. A list where no row can be told from its neighbour is not a
+   list. The controls moved to a second line.
+2. **The payday row offered "Mark paid".** Ticking it moves no money by
+   design, so the control did nothing visible and said something untrue while
+   doing it. Coming Up had always hidden it on income rows; now both do.
+
+Also fixed on the way: the delete control was `Icons.close`, the same glyph
+the sheet header uses to close itself. Two identical X marks on one screen
+meaning "shut this" and "delete this bill". Both actions are words now.
+
+### Proving the guards fail
+
+Reverting Coming Up's tick to its old one-line `markUpcomingPaid(item.id)`:
+
+    Found 0 widgets with text "Mark it paid" descending from widgets with type AlertDialog
+    the Coming Up tick did not ask which account to pay from
+
+Replacing the ledger write with a bare `notifyListeners()`:
+
+    Expected: a numeric value within <0.001> of <-990.0>
+      Actual: <1850.0>
+
+### The screens, dark
+
+| The list | Scheduling one |
+| --- | --- |
+| ![bills](screens/bills-list.png) | ![schedule](screens/bills-schedule-form.png) |

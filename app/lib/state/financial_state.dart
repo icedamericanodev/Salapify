@@ -9,6 +9,7 @@ import '../data/snapshot.dart';
 import '../data/store.dart';
 import '../design/tokens.dart';
 import '../core/money/accounts.dart';
+import '../core/money/bills.dart';
 import '../core/money/debt.dart';
 import '../core/money/health_check.dart';
 import '../core/money/payday_schedule.dart';
@@ -1206,21 +1207,146 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void markUpcomingPaid(String id) {
-    final int i = _upcoming.indexWhere((UpcomingItem u) => u.id == id);
-    if (i == -1 || _upcoming[i].isPaid) return;
-    final UpcomingItem old = _upcoming[i];
-    _upcoming[i] = UpcomingItem(
-      id: old.id,
-      name: old.name,
-      amount: old.amount,
-      dueDate: old.dueDate,
-      type: old.type,
-      isIncome: old.isIncome,
-      isPaid: true,
-      category: old.category,
-    );
+  /// Schedules a new bill or expected payment.
+  ///
+  /// Ported from addUpcoming in src/context/FinancialContext.tsx. No money
+  /// moves: scheduling something is a note about the future, and the balance
+  /// only changes when it is marked paid.
+  void addUpcoming(UpcomingItem item) {
+    _upcoming = <UpcomingItem>[..._upcoming, item];
     notifyListeners();
+  }
+
+  /// Removes a scheduled item.
+  ///
+  /// No money moves here either, INCLUDING when the item was already marked
+  /// paid. Marking paid writes a ledger entry, and that entry is a record of
+  /// something that really happened; deleting the schedule row must not
+  /// silently reach into the ledger and un-spend money. The entry stays and
+  /// is undone from Activity like any other, which is the one place a person
+  /// expects to undo a transaction.
+  void deleteUpcoming(String id) {
+    _upcoming = _upcoming.where((UpcomingItem u) => u.id != id).toList();
+    notifyListeners();
+  }
+
+  /// Marks a scheduled item paid AND moves the money.
+  ///
+  /// Founder direction, 2026-10-01, choosing between three options: "Yes, with
+  /// an account picker". Until this, the tick only flipped a flag, so somebody
+  /// could mark Meralco paid and find their balance untouched and nothing in
+  /// Activity, which is the exact shape of defect CLAUDE.md's "a write path is
+  /// not tested until somebody can SEE what it did" rule was written for.
+  ///
+  /// Returns the ledger entry it wrote, or null when it wrote none, so the
+  /// caller can offer an undo. A tick that moves real money needs a way back,
+  /// and the ONLY way back otherwise is finding the entry in Activity and
+  /// knowing it was the bill that put it there.
+  ///
+  /// ## Three prototype behaviours deliberately not carried over
+  ///
+  /// 1. It hardcodes `subcategory: 'Electricity (Meralco)'` on EVERY bill, so
+  ///    paying Spotify files it under electricity. [defaultCategoryFor]
+  ///    decides instead, from the item's own category when it has one and
+  ///    from its type when it does not. The caller may override it, which the
+  ///    pay dialog offers, because a category is a judgement and the person
+  ///    paying knows better than a map does.
+  /// 2. It hardcodes `profile: 'household'`. The app already infers a profile
+  ///    from the name and category, and that inference is used instead.
+  /// 3. It falls back to `accounts[0]?.id` when no account is given, writing a
+  ///    real expense against whichever account happens to be first with no
+  ///    signal at all. This refuses instead: no account, no ledger entry. The
+  ///    sheet makes the picker required, so the refusal is unreachable from
+  ///    the UI and exists for callers that are not the UI.
+  ///
+  /// Income rows move nothing, which IS the prototype's behaviour
+  /// (`if (targetAccountId && !item.isIncome)`). Ticking a payday marks it
+  /// arrived without inventing a deposit, because the real deposit is logged
+  /// when it lands and a second one would double count it.
+  Transaction? markUpcomingPaid(
+    String id, {
+    String? accountId,
+    String? category,
+  }) {
+    final int i = _upcoming.indexWhere((UpcomingItem u) => u.id == id);
+    if (i == -1 || _upcoming[i].isPaid) return null;
+    final UpcomingItem old = _upcoming[i];
+
+    _upcoming = <UpcomingItem>[
+      ..._upcoming.sublist(0, i),
+      UpcomingItem(
+        id: old.id,
+        name: old.name,
+        amount: old.amount,
+        dueDate: old.dueDate,
+        type: old.type,
+        isIncome: old.isIncome,
+        isPaid: true,
+        category: old.category,
+        isSample: old.isSample,
+      ),
+      ..._upcoming.sublist(i + 1),
+    ];
+
+    if (accountId == null ||
+        old.countsAsIncome ||
+        !_accounts.any((Account a) => a.id == accountId)) {
+      notifyListeners();
+      return null;
+    }
+
+    final DateTime today = now;
+    final Transaction tx = Transaction(
+      id: 'tx_bill_${DateTime.now().microsecondsSinceEpoch}',
+      type: TransactionType.expense,
+      amount: old.amount,
+      category: category ?? defaultCategoryFor(old),
+      accountId: accountId,
+      merchant: old.name,
+      date:
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-'
+          '${today.day.toString().padLeft(2, '0')}',
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      note: 'Paid scheduled item: ${old.name}',
+      profile: profileOf(old),
+    );
+
+    // logTransaction notifies, so the flag edit above rides out with it.
+    logTransaction(tx);
+    return tx;
+  }
+
+  /// Takes a bill back off "paid", and reverses the entry it wrote.
+  ///
+  /// The recovery half of [markUpcomingPaid]. A tick that moves money and
+  /// cannot be untapped is a trap on a screen full of small round targets,
+  /// and the ledger entry has to come back off with the flag or the balance
+  /// stays wrong while the bill reads unpaid.
+  void undoUpcomingPaid(String id, Transaction? written) {
+    final int i = _upcoming.indexWhere((UpcomingItem u) => u.id == id);
+    if (i == -1) return;
+    final UpcomingItem old = _upcoming[i];
+    _upcoming = <UpcomingItem>[
+      ..._upcoming.sublist(0, i),
+      UpcomingItem(
+        id: old.id,
+        name: old.name,
+        amount: old.amount,
+        dueDate: old.dueDate,
+        type: old.type,
+        isIncome: old.isIncome,
+        category: old.category,
+        isSample: old.isSample,
+      ),
+      ..._upcoming.sublist(i + 1),
+    ];
+    if (written != null) {
+      // Notifies on its own, and is a no-op if the row is already gone, so a
+      // double undo cannot credit the money back twice.
+      undoLoggedTransaction(written);
+    } else {
+      notifyListeners();
+    }
   }
 
   /// Which profile an upcoming row belongs to, ported from getItemProfile in
