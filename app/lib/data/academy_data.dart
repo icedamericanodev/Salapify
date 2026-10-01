@@ -384,7 +384,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
         id: 's3',
         title: 'Safe Installment Guidelines',
         content:
-            'Only use 0% installments for planned, necessary capital items (such as a work laptop), never for impulsive lifestyle splurges. Cap your total active monthly installment obligations at no more than 15% of your net monthly income.',
+            'Only use 0% installments for planned, necessary capital items (such as a work laptop), never for impulsive lifestyle splurges. Cap your total active monthly installment obligations at no more than 30% of your take-home pay, the same rule Salapify uses everywhere else.',
       ),
     ],
     knowledgeCheck: KnowledgeCheck(
@@ -402,7 +402,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
     ),
     keyTakeaways: <String>[
       'A 0% interest rate is not free money; the principal amount must still be repaid.',
-      'Keep total monthly installment payments under 15% of your monthly take-home pay.',
+      'Keep total monthly installment payments at or below 30% of your monthly take-home pay.',
       'Wait 48 hours before committing to any non-essential installment purchase.',
     ],
   ),

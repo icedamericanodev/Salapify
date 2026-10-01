@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'debt_ratio.dart';
 import 'format.dart';
 import 'plan.dart';
 import '../../models/models.dart';
@@ -162,14 +163,15 @@ const int paceNeedsDays = 5;
 /// genuinely tight.
 const int bufferComfortableDays = 3;
 
-/// Where a lender starts to hesitate, as a share of take-home pay.
-///
-/// These bracket real Philippine consumer underwriting practice rather than
-/// any published rule: no regulator fixes a debt service ratio for
-/// individuals, and the prototype's "safe banking guidelines" presents a
-/// rule of thumb as one. The copy says whose rule it is.
-const int debtShareComfortable = 25;
-const int debtShareTight = 40;
+// The two debt share thresholds used to be declared HERE, at 25 and 40, and
+// three other places in the app declared their own. P1.7 and founder decision
+// F8 moved the rule to core/money/debt_ratio.dart so there is one. The
+// comfortable band went from 25 to 30 in the move.
+//
+// The caution that lived in this comment moved with them and still holds: the
+// bands bracket real Philippine consumer underwriting practice rather than any
+// published rule, because no regulator fixes a debt service ratio for
+// individuals.
 
 /// The cushion ladder, in pesos and then in months of spending.
 ///
@@ -421,7 +423,7 @@ HealthIndicator _promised(
   final int share = ((m.monthlyInstalments / monthly) * 100).round();
   final HealthTone tone = share <= debtShareComfortable
       ? HealthTone.good
-      : share <= debtShareTight
+      : share <= debtShareStretched
       ? HealthTone.watch
       : HealthTone.tight;
 

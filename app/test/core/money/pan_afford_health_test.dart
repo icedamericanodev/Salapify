@@ -1,19 +1,26 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/pan/pan_affordability.dart';
 import 'package:salapify/core/money/pan/pan_context.dart';
 import 'package:salapify/core/money/pan/pan_engine.dart';
-import 'package:salapify/core/money/pan/pan_health.dart';
 import 'package:salapify/models/models.dart';
 
 /// "Can I afford this" and "how am I doing", the two questions the prototype
 /// answers best and the two that were missing here.
 ///
-/// Both are scored answers, which is what makes them worth testing hard: a
-/// wrong figure in a scored answer does not look wrong. It looks like a
+/// Both are MEASURED answers, which is what makes them worth testing hard: a
+/// wrong figure in a measured answer does not look wrong. It looks like a
 /// measurement.
+///
+/// "How am I doing" no longer carries a score. Founder decision F9 retired
+/// Pan's own four-part engine so the whole app runs one health check, the
+/// five-question one, and these tests cover Pan's ANSWER rather than the
+/// engine behind it.
 void main() {
   PanFacts facts({
     List<Account>? accounts,
+    List<Transaction>? transactions,
     List<BillItem>? bills,
     PaydayCycle? payday,
     double safe = 12000,
@@ -37,7 +44,7 @@ void main() {
             monogram: 'ES',
           ),
         ],
-    transactions: const <Transaction>[],
+    transactions: transactions ?? const <Transaction>[],
     debts: const <Debt>[],
     budgets: const <Budget>[],
     goals: const <Goal>[],
@@ -205,81 +212,152 @@ void main() {
   });
 
   group('how am I doing', () {
-    test('it never scores a card against a limit nobody entered', () {
-      // The prototype reads creditLimit || 40000, so a card with no limit is
-      // measured against a figure Salapify invented, and the rating built on
-      // it looks exactly like a measurement.
-      final HealthCheck h = runHealthCheck(
-        facts(
-          accounts: <Account>[
-            const Account(
-              id: 'c1',
-              name: 'Gold Card',
-              kind: AccountKind.credit,
-              institution: 'Bank',
-              balance: -18400,
-              monogram: 'GC',
-            ),
-          ],
+    // ONE HEALTH CHECK, by founder decision F9. Pan used to run its own
+    // scoring engine, `pan_health.dart`, which marked four weighted parts out
+    // of a hundred. The Health Check sheet runs the five-question engine in
+    // `core/money/health_check.dart`. Both were defensible and they answered
+    // the same question differently, so a person who opened the sheet and
+    // then asked Pan got two readings of their own money.
+    //
+    // These tests are about the ANSWER, because the engine behind it is
+    // already covered by `health_check_test.dart` and testing it twice here
+    // is how the second engine survived as long as it did.
+
+    /// Expenses spread over [days] separate days, so the pace is a
+    /// measurement and not a guess. `paceNeedsDays` is 5.
+    List<Transaction> spending({
+      required int days,
+      required double perDay,
+      double income = 0,
+      int startDay = 5,
+    }) => <Transaction>[
+      if (income > 0)
+        Transaction(
+          id: 'in',
+          type: TransactionType.income,
+          amount: income,
+          category: 'Salary',
+          accountId: 'a1',
+          date: '2026-09-15',
+          createdAt: 1757900000000,
         ),
+      for (int d = 0; d < days; d++)
+        Transaction(
+          id: 'e$d',
+          type: TransactionType.expense,
+          amount: perDay,
+          category: 'Food',
+          accountId: 'a1',
+          date: '2026-09-${(startDay + d).toString().padLeft(2, '0')}',
+          createdAt: 1758000000000 + d,
+        ),
+    ];
+
+    test('the tightest question leads, and it is not an average', () {
+      // 2,800 a day against 23,400 held, with ten days to payday, is 4,600
+      // short. An average over five questions would have reported a number
+      // somewhere in the middle of that and three comfortable answers, which
+      // is exactly how an 85 out of 100 once sat directly above "you owe more
+      // than you hold".
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(transactions: spending(days: 7, perDay: 12000)),
       );
+
+      expect(a.topic, 'health');
+      expect(a.badge, 'Needs attention');
       expect(
-        h.parts.map((HealthPart p) => p.name),
-        isNot(contains('Card use')),
-      );
-      expect(
-        h.unmeasured.map((({String name, String missing}) u) => u.name),
-        contains('Card use'),
+        a.text,
+        'Will I make it to payday? ₱4,600.00 short, on the pace you are on.',
       );
     });
 
-    test('a card WITH a limit is measured, and owing reads as used', () {
-      // A card balance is stored negative when money is owed on it. Reading
-      // the sign straight through reports a maxed card as zero used, which
-      // is the most flattering possible wrong answer.
-      final HealthCheck h = runHealthCheck(
-        facts(
-          accounts: <Account>[
-            const Account(
-              id: 'c1',
-              name: 'Gold Card',
-              kind: AccountKind.credit,
-              institution: 'Bank',
-              balance: -18000,
-              monogram: 'GC',
-              creditLimit: 40000,
-            ),
-          ],
-        ),
+    test(
+      'and the leading question is the soonest one, not merely the worst',
+      () {
+        // Two answers come back tight on this ledger: payday, and keeping any
+        // of it (84,000 out and nothing in). Both are real. The one that leads
+        // has to be the one happening soonest, or the answer opens on a monthly
+        // trend while somebody runs out of money on Thursday.
+        final PanAnswer a = askPan(
+          'how am i doing',
+          facts(transactions: spending(days: 7, perDay: 12000)),
+        );
+
+        expect(a.text, startsWith('Will I make it to payday?'));
+        expect(
+          a.points.join(' '),
+          contains('more out than in'),
+          reason: 'the other tight answer must still be in the reply, below',
+        );
+      },
+    );
+
+    test('a comfortable ledger does not invent something to worry about', () {
+      // The other half of the alarm, and the half that gets skipped. A rule
+      // that always names a tightest question cries wolf on every answer,
+      // and then it is not there for the one that matters.
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(transactions: spending(days: 7, perDay: 300, income: 32500)),
       );
-      final HealthPart card = h.parts.firstWhere(
-        (HealthPart p) => p.name == 'Card use',
-      );
-      expect(card.reading, contains('45%'));
-      expect(card.points, 12);
+
+      expect(a.badge, 'Nothing tight');
+      expect(a.text, startsWith('Nothing tight on the'));
     });
 
-    test('the score is over what was measured, and says what was not', () {
-      final HealthCheck h = runHealthCheck(
-        facts(payday: PaydayCycle.unset, accounts: const <Account>[]),
+    test('there is no score out of a hundred anywhere in the answer', () {
+      // The guard for F9 itself. A single number standing in for five
+      // separate questions is what hid the one that mattered, so it must not
+      // come back in a figure row, a badge or a sentence.
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(transactions: spending(days: 7, perDay: 300, income: 32500)),
       );
-      // No accounts, no cards, no payday. Only the owe-against-hold part can
-      // be measured, and the score has to be honest about that.
-      expect(h.parts.length, 1);
-      expect(h.unmeasured.length, 3);
-      expect(h.possible, 20);
+
+      final String everything = <String>[
+        a.text,
+        a.badge ?? '',
+        a.more ?? '',
+        ...a.points,
+        ...a.figures.map((PanFigure f) => '${f.label} ${f.value}'),
+      ].join(' ');
+
+      expect(everything, isNot(contains('out of 100')));
+      expect(everything, isNot(matches(RegExp(r'\b\d{1,3}/100\b'))));
     });
 
-    test('nothing recorded says so instead of scoring zero', () {
-      final HealthCheck h = runHealthCheck(
-        facts(
-          accounts: const <Account>[],
-          payday: PaydayCycle.unset,
-          assets: 0,
-          liabilities: 0,
-        ),
+    test('the one figure it does show is how much of the picture there is', () {
+      // The honest replacement. On this ledger the pace is measured, so
+      // payday and keeping answer; nothing is promised on a schedule, so that
+      // answers too; there is no cushion goal and no budget, so two do not.
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(transactions: spending(days: 7, perDay: 300, income: 32500)),
       );
-      expect(h.measurable, isFalse);
+
+      expect(a.figures.single.label, 'Questions answered');
+      expect(a.figures.single.value, '3 of 5');
+    });
+
+    test('what cannot be answered is named, not quietly dropped', () {
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(transactions: spending(days: 7, perDay: 300, income: 32500)),
+      );
+
+      final String open = a.points.lastWhere(
+        (String p) => p.startsWith('Not answered yet'),
+      );
+      expect(open, contains('do i have a cushion'));
+      expect(open, contains('am i inside the limits i set'));
+
+      // And what each missing one NEEDS is one tap away rather than gone.
+      expect(a.more, contains('emergency fund'));
+      expect(a.more, contains('No limits set yet'));
+    });
+
+    test('nothing recorded says so instead of answering zero', () {
       expect(
         askPan(
           'how am i doing',
@@ -291,47 +369,25 @@ void main() {
           ),
         ).topic,
         'empty',
-        reason:
-            'a zero out of one hundred on an empty app is a made-up verdict',
+        reason: 'a zero on an empty app is a made-up verdict',
       );
     });
 
-    test('a high total never claims every part is comfortable', () {
-      // Found by looking at the rendered screen, not by a test. A real ledger
-      // scored 85, and the badge read "Comfortable on every part measured"
-      // directly above "You owe more than you hold" and a row reading 5 of
-      // 20. Both halves were correct. Together they were a lie, because an
-      // average is not a statement about every part.
-      final HealthCheck h = runHealthCheck(
-        facts(assets: 20000, liabilities: 44000, runway: 3.9),
+    test('money owed TO you is named, and is kept out of the answers', () {
+      final PanAnswer a = askPan(
+        'how am i doing',
+        facts(
+          owedToMe: 4500,
+          transactions: spending(days: 7, perDay: 300, income: 32500),
+        ),
       );
-
-      expect(h.score, greaterThanOrEqualTo(80));
-      expect(h.weakest!.name, 'What you owe');
+      expect(a.more, contains('4,500'));
+      expect(a.more, contains('owed to you'));
       expect(
-        h.reading,
-        isNot(contains('every part')),
-        reason:
-            'the summary claimed every part was comfortable while one of '
-            'them scored a quarter of its maximum',
+        a.points.join(' '),
+        isNot(contains('4,500')),
+        reason: 'money that is not on this phone is not one of the readings',
       );
-      expect(h.reading, 'Stretched on what you owe');
-    });
-
-    test('and a genuinely even picture still reads as comfortable', () {
-      // The other half of the alarm. A rule that always names a weakest part
-      // would cry wolf on every answer, and then it is not there for the one
-      // that matters.
-      final HealthCheck h = runHealthCheck(
-        facts(assets: 100000, liabilities: 5000, runway: 3.9),
-      );
-      expect(h.reading, 'Comfortable on every part measured');
-    });
-
-    test('money owed TO you is named and kept out of the score', () {
-      final HealthCheck h = runHealthCheck(facts(owedToMe: 4500));
-      expect(h.observations.join(' '), contains('4,500'));
-      expect(h.observations.join(' '), contains('owed to you'));
     });
 
     test('the answer reaches from several phrasings, English and Tagalog', () {
@@ -356,63 +412,56 @@ void main() {
         }
       }
     });
+
+    test('and it offers the Health Check screen the figures came from', () {
+      final PanAnswer a = askPan('how am i doing', facts());
+      expect(
+        a.actions.map((PanAction x) => x.id),
+        contains('healthCheck'),
+        reason:
+            'sending somebody to Reports for a health answer is what two '
+            'engines looked like from the outside',
+      );
+    });
   });
 
-  group('Cover is not scored against a burn rate nobody logged', () {
-    // The file's own heading says "It never invents a number to score
-    // against", and for one component that was false. Cover does not compute
-    // its own runway; it reads cashRunwayMonths from the Safe to Spend
-    // engine, which stands 28,000 a month in when under 5,000 has been
-    // logged in thirty days. The old guard only checked for no accounts, so
-    // somebody with one account and an empty ledger got a scored Cover part
-    // worth 30 of 100, the largest single weight here, computed from a
-    // figure they never entered.
+  group('there is exactly one health check in the app', () {
+    // The F9 guard that outlives this file's other tests. Nothing in a unit
+    // test can see a SECOND engine being written next door, which is how Pan
+    // came to carry its own for a month. This reads the source.
 
-    test(
-      'an unmeasured burn puts Cover in the missing list, not the score',
-      () {
-        final HealthCheck h = runHealthCheck(facts(runwayMeasured: false));
-        expect(
-          h.parts.map((HealthPart p) => p.name),
-          isNot(contains('Cover')),
-          reason: 'Cover was scored against the 28,000 stand-in',
-        );
-        expect(
-          h.unmeasured.map((({String name, String missing}) m) => m.name),
-          contains('Cover'),
-        );
-      },
-    );
+    test('only health_check.dart defines runHealthCheck', () {
+      final List<String> definers = <String>[];
+      for (final FileSystemEntity f in Directory(
+        'lib',
+      ).listSync(recursive: true)) {
+        if (f is! File || !f.path.endsWith('.dart')) continue;
+        final String src = f.readAsStringSync();
+        if (RegExp(
+          r'^HealthReport\s+runHealthCheck|^\w+\s+runHealthCheck\s*\(',
+          multiLine: true,
+        ).hasMatch(src)) {
+          definers.add(f.path);
+        }
+      }
+      expect(definers, <String>['lib/core/money/health_check.dart']);
+    });
 
-    test('and a measured one is still scored, exactly as before', () {
-      // The other half. A guard that dropped Cover always would pass the
-      // test above and would delete a working component for everybody.
-      final HealthCheck h = runHealthCheck(facts());
-      expect(h.parts.map((HealthPart p) => p.name), contains('Cover'));
+    test('and Pan reads that one rather than keeping its own', () {
+      final String engine = File(
+        'lib/core/money/pan/pan_engine.dart',
+      ).readAsStringSync();
+      expect(engine, contains("import '../health_check.dart';"));
       expect(
-        h.unmeasured.map((({String name, String missing}) m) => m.name),
-        isNot(contains('Cover')),
+        engine,
+        isNot(contains("import 'pan_health.dart';")),
+        reason: 'the retired second engine must not be imported again',
       );
-    });
-
-    test('the missing note names the input, and it is the user\'s to give', () {
-      final HealthCheck h = runHealthCheck(facts(runwayMeasured: false));
-      final String missing = h.unmeasured
-          .firstWhere((({String name, String missing}) m) => m.name == 'Cover')
-          .missing;
-      expect(missing, contains('logged spending'));
-    });
-
-    test('no accounts still wins, because it is the earlier question', () {
-      // Somebody with nothing recorded should be told they have no accounts,
-      // not lectured about logging spending they have nowhere to log against.
-      final HealthCheck h = runHealthCheck(
-        facts(accounts: const <Account>[], runwayMeasured: false),
+      expect(
+        File('lib/core/money/pan/pan_health.dart').existsSync(),
+        isFalse,
+        reason: 'a deleted engine that is still on disk gets imported again',
       );
-      final String missing = h.unmeasured
-          .firstWhere((({String name, String missing}) m) => m.name == 'Cover')
-          .missing;
-      expect(missing, contains('no accounts'));
     });
   });
 }

@@ -215,6 +215,16 @@ class HomeScreen extends StatelessWidget {
         onOpenLog();
       case 'safeToSpend':
         SafeToSpendSheet.show(context, state);
+      // Pan answers "how am I doing" FROM the Health Check engine now
+      // (founder decision F9), so the button beside that answer opens the
+      // screen those figures came from rather than a second reading of them.
+      case 'healthCheck':
+        HealthCheckSheet.show(
+          context,
+          palette,
+          state,
+          onAct: (HealthNeed need) => _healthAction(context, need),
+        );
       case 'debts':
         onOpenDebt();
       case 'privacy':

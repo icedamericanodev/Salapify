@@ -166,8 +166,18 @@ void main() {
       );
       expect(r.dsr, 12.5);
       expect(r.status, AffordabilityStatus.healthy);
-      expect(r.maxRecommendedMonthlyDebt, 28000);
-      expect(r.maxBorrowingCapacity30Yr, 2002607);
+      // 24,000 and 1,557,583 since P1.7, not 28,000 and 2,002,607. The
+      // recommended ceiling was 35% of gross, the FOURTH debt to income figure
+      // in the app and the only one nothing else agreed with. Founder decision
+      // F8 made it 30%, the one rule now in core/money/debt_ratio.dart.
+      //
+      // A deliberate divergence from the prototype, like the SSS schedule and
+      // the 8% election before it. Both figures were worked out by hand from
+      // the 180 month annuity at 7% before this file was touched, and the same
+      // hand calculation reproduces the OLD pair exactly at 0.35, which is
+      // what makes them trustworthy rather than copied off a failing run.
+      expect(r.maxRecommendedMonthlyDebt, 24000);
+      expect(r.maxBorrowingCapacity30Yr, 1557583);
     });
 
     test('exactly 30 percent is already moderate, not healthy', () {

@@ -18,7 +18,30 @@ this sprint, and they are listed here so the next pass has one place to look.
 
 ## Deferred during the sprint
 
-Nothing yet.
+### Three readings retired with Pan's second health engine (P1.7, F9)
+
+F9 retired `pan_health.dart`, so the whole app now runs one health check, the
+five-question engine the Health Check sheet already used. Pan's old engine
+scored four parts, and three of them have no equivalent among the five, so
+three readings left the app with it:
+
+| Retired reading | Still reachable? |
+|---|---|
+| Cover, months of spending held in cash | Yes. Safe to Spend owns the runway figure, and Pan still answers "what is safe to spend". |
+| What you owe, pesos owed per 100 held | Yes. Pan's own "what do I owe" answer and the Reports net worth card. |
+| Card use, balance against the limits entered | NO. Nothing else in the app computes a card utilisation percentage. The Accounts screen shows the limit and the balance side by side and leaves the division to the reader. |
+
+Card use is the real loss and it is deliberately not replaced here. Adding a
+sixth question is a product decision, not an engineering one: the founder
+settled on five on 2026-09-20 precisely because twelve destroyed the signal,
+and quietly making it six inside a consolidation task would undo that decision
+without anybody deciding anything.
+
+**For the founder:** should "Am I leaning on my cards?" become a sixth health
+question? It is the one reading that went nowhere else, it only works for
+people who entered a credit limit, and the old engine handled that honestly by
+excluding anybody who had not. Say the word and it is a small, contained
+addition to `health_check.dart`.
 
 ## Raised by the sprint, not in the prompt
 

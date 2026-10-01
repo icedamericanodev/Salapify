@@ -24,9 +24,9 @@ this branch point, so the review is slightly out of date where it says:
 
 ## Phase summaries
 
-### Phase 1, in progress
+### Phase 1, complete
 
-Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5, P1.6.
+Shipped: P1.1, P1.2, P1.3, P1.4, P1.5, P1.6, P1.7. **Phase 1 complete.**
 
 ---
 
@@ -40,7 +40,7 @@ Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5, P1.6.
 | P1.4 | Tax sheet mixed income | DONE | see below |
 | P1.5 | Freelancer comparison consistency | DONE | see below |
 | P1.6 | Small BIR fixes | DONE | see below |
-| P1.7 | One debt-to-income rule (F8), one health check (F9) | todo | |
+| P1.7 | One debt-to-income rule (F8), one health check (F9) | DONE | see below |
 
 ### P1.1 notes
 
@@ -219,6 +219,76 @@ exemption. They are separate: 13th month and other benefits share the ₱90,000,
 and de minimis benefits are exempt in their own right under their own ceilings,
 with only the excess joining that bucket. The info sheet already said this
 correctly and was left alone.
+
+### P1.7 notes
+
+Two decisions, F8 and F9, and both are the same defect: the app held more than
+one answer to a question somebody would ask it once.
+
+**F8, the debt share.** The review counted FOUR rules. The health check called
+25% comfortable and 40% tight, on take-home. `calculateDsr` called under 30%
+healthy and over 40% stretched, while separately recommending a ceiling of 35%
+of GROSS. The debt calculator screen repeated the 30 and 40 as its own copy.
+The Academy twice said to stay under 15% of take-home. Each was defensible
+alone, which is exactly why nothing was wrong enough to notice.
+
+`core/money/debt_ratio.dart` now states it once: 30% comfortable, 40%
+stretched, with the fraction DERIVED rather than typed a second time, because
+a `0.30` beside a `30` is how two constants drift apart.
+
+The 35% was the one that moved, and the moved golden vector was hand-computed
+before the test was changed rather than after. The model reproduced the OLD
+`2,002,607` exactly at 0.35, which is what makes the new `1,557,583` at 0.30
+trustworthy: two independent routes to the same arithmetic, the second one
+only believed because the first reproduced a number already locked.
+
+`one_debt_rule_test.dart` reads the source and fails when any file outside
+`debt_ratio.dart` declares a rival constant. Declaring one makes it fail:
+
+    Expected: ['lib/core/money/debt_ratio.dart']
+      Actual: ['lib/core/money/health_check.dart', 'lib/core/money/debt_ratio.dart']
+
+**F9, the health check.** Pan ran its own engine, `pan_health.dart`, scoring
+four weighted parts out of a hundred, while the Health Check sheet ran the
+five-question engine in `health_check.dart`. Somebody who opened the sheet and
+then asked Pan the same question got two readings of their own money.
+
+Pan now calls the five-question engine, and `pan_health.dart` is deleted. The
+SCORE went rather than the sheet, which is the right way round: a zero to one
+hundred compresses five separate questions into one number and hides the one
+that matters, and an 85 sat directly above "you owe more than you hold" on a
+real ledger for a whole release. Pan leads with the tightest question instead,
+by the sheet's own priority order, and the only figure it shows is "Questions
+answered, 3 of 5", which is the one thing a single number here can truthfully
+report.
+
+Pan also gained a `healthCheck` action, so the button beside that answer opens
+the screen the figures came from. Sending somebody to Reports for a health
+answer is part of what two engines looked like from the outside.
+
+Three readings left with the old engine. Cover and What you owe are still
+answerable elsewhere in Pan; CARD USE is not, and it is the one genuine loss.
+Deliberately not replaced: the founder settled on five questions on 2026-09-20
+because twelve destroyed the signal, and quietly making it six inside a
+consolidation task would undo that decision without anybody deciding anything.
+Written up for the founder in `docs/DEFERRED.md`.
+
+Both halves of the new alarm are proven, which is the half that gets skipped.
+Dropping the tightest-first rule fails it:
+
+    Expected: 'Needs attention'
+      Actual: 'Nothing tight'
+
+and always naming a tightest question fails the silent half:
+
+    Expected: a string starting with 'Nothing tight on the'
+      Actual: 'Will I make it to payday? Covered for the next 10 days, on the pace you are on.'
+
+The source guard is proven too. Putting a second `runHealthCheck` back next
+door fails it:
+
+    Expected: ['lib/core/money/health_check.dart']
+      Actual: ['lib/core/money/pan/pan_health.dart', 'lib/core/money/health_check.dart']
 
 ## Phase 2 to 7
 

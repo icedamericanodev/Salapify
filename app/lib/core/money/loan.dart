@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'js_round.dart';
+import 'debt_ratio.dart';
 
 /// Loan amortization and affordability, ported from src/utils/loanCalculators.ts.
 ///
@@ -201,8 +202,15 @@ class DsrResult {
   final String advice;
 }
 
-/// Debt service ratio against the BSP prudential bands: under 30% healthy,
-/// 30 to 40% moderate, over 40% stretched.
+/// Debt service ratio against the one rule in debt_ratio.dart: at or below
+/// 30% comfortable, 30 to 40% moderate, over 40% stretched.
+///
+/// The RATE now comes from that file rather than being typed here, by founder
+/// decision F8. What has NOT changed is the denominator: this takes gross
+/// monthly income, where F8's rule is stated on take-home. That difference is
+/// recorded in docs/DEFERRED.md rather than collapsed silently, because
+/// changing which figure a caller must pass is a bigger change than picking a
+/// rate, and a lender assessing capacity really does work on gross.
 DsrResult calculateDsr({
   required double monthlyDebtObligations,
   required double grossMonthlyIncome,
@@ -218,7 +226,10 @@ DsrResult calculateDsr({
   }
 
   final double dsr = (monthlyDebtObligations / grossMonthlyIncome) * 100;
-  final double maxRecommendedMonthlyDebt = grossMonthlyIncome * 0.35;
+  // 0.35 until P1.7. It was the FOURTH debt to income figure in the app and
+  // the only one nothing else agreed with, so it is the one F8 moved.
+  final double maxRecommendedMonthlyDebt =
+      grossMonthlyIncome * debtShareComfortableFraction;
   final double remainingDebtCapacity = math.max(
     0,
     maxRecommendedMonthlyDebt - monthlyDebtObligations,
@@ -238,11 +249,11 @@ DsrResult calculateDsr({
       // turns a rule of thumb into an official blessing the app cannot give.
       'Your debt commitments are inside the 30 percent level lenders '
       'commonly treat as comfortable.';
-  if (dsr > 40) {
+  if (dsr > debtShareStretched) {
     status = AffordabilityStatus.stretched;
     advice =
         'Debt commitments exceed 40% of income. High vulnerability to income shocks.';
-  } else if (dsr >= 30) {
+  } else if (dsr >= debtShareComfortable) {
     status = AffordabilityStatus.moderate;
     advice =
         'Debt commitments are between 30% and 40%. Approaching the cautionary threshold.';
