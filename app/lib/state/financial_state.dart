@@ -877,14 +877,33 @@ class FinancialState extends ChangeNotifier {
     final Money paid = Money.fromDouble(amount);
     if (!paid.isPositive) return;
 
-    _debts = applyDebtPayment(_debts, debtId, paid, today: now);
+    // ONE STAMP FOR BOTH HALVES, so the register row and the ledger row it
+    // writes can be tied to each other later. Taking a payment back has to
+    // move the debt AND remove the entry that explains it, and nothing else
+    // in the app links the two: a Transaction carries no debtId, which is the
+    // same gap that let a debt payment be marked a duplicate and half land.
+    final int stamp = DateTime.now().microsecondsSinceEpoch;
+    final String txId = 'tx_debt_$stamp';
+
+    _debts = applyDebtPayment(
+      _debts,
+      debtId,
+      paid,
+      today: now,
+      accountId: accountId,
+      paymentId: 'dp_$stamp',
+      // Only when an entry will actually exist. paymentEntry returns null
+      // with no account, and a row pointing at a transaction that was never
+      // written is worse than one pointing at nothing.
+      txId: accountId == null ? null : txId,
+    );
 
     final Transaction? entry = paymentEntry(
       debt: before,
       amount: paid.pesos,
       accountId: accountId,
       today: now,
-      id: 'tx_debt_${DateTime.now().microsecondsSinceEpoch}',
+      id: txId,
     );
     if (entry != null) {
       // logTransaction notifies as well. One notify too many is a repaint;
@@ -933,7 +952,7 @@ class FinancialState extends ChangeNotifier {
     final Money collected = nextPaymentFor(before);
     if (!collected.isPositive) return;
 
-    _installments = applyInstallmentPayment(_installments, planId);
+    _installments = applyInstallmentPayment(_installments, planId, today: now);
 
     final Transaction? entry = installmentEntry(
       plan: before,

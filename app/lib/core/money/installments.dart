@@ -161,8 +161,15 @@ Money appliedExtraPayment(InstallmentPlan p, Money amount) =>
 /// now a fact the app can still see, which is the whole point.
 List<InstallmentPlan> applyInstallmentPayment(
   List<InstallmentPlan> plans,
-  String id,
-) {
+  String id, {
+
+  /// Passed in rather than read from the clock, the same rule the debt engine
+  /// already follows, so a test can pin it and a render is deterministic. It
+  /// became load bearing when the register started stamping a date on every
+  /// row: an engine that reaches for DateTime.now() writes a different file
+  /// every run and no golden can hold it.
+  required DateTime today,
+}) {
   return plans.map((InstallmentPlan p) {
     if (p.id != id || p.isSettled) return p;
 
@@ -208,6 +215,29 @@ List<InstallmentPlan> applyInstallmentPayment(
       // the balance and leaves the counter behind, and the old counter-only
       // rule is exactly what let a settled plan keep accepting payments.
       isSettled: !nextBalance.isPositive || nextPaid >= p.totalInstallments,
+      // RECORDED, because none of this survives in the plan.
+      //
+      // `paidInstallments` is a counter rather than a set of events, and the
+      // collected amount is capped at the running balance, so a stub left by
+      // a prepayment cannot be told apart afterwards from a full instalment
+      // that happened to land on zero. Re-deriving one from the schedule
+      // credited 1,647.80 against a ledger row holding 591.20, and invented
+      // 1,400 of principal that was never owed.
+      //
+      // The three clamps and the unallocated sweep above are the other half:
+      // which branch fired is not recoverable from the result, so the split
+      // is written down rather than reasoned about later.
+      payments: <PlanPayment>[
+        ...p.payments,
+        PlanPayment(
+          id: 'pay_${p.id}_$nextPaid',
+          date: isoDate(today),
+          amount: payment,
+          toPrincipal: principalPart,
+          toInterest: interestPart,
+          installmentNumber: nextPaid,
+        ),
+      ],
     );
   }).toList();
 }
@@ -262,6 +292,8 @@ List<InstallmentPlan> applyExtraPayment(
     final Money nextInterest = p.interestRemaining - offInterest;
     final Money nextBalance = nextPrincipal + nextInterest;
 
+    final String rowId = extraId ?? 'ext_${today.microsecondsSinceEpoch}';
+
     return _copy(
       p,
       runningBalance: nextBalance,
@@ -271,12 +303,31 @@ List<InstallmentPlan> applyExtraPayment(
       extraPayments: <ExtraPayment>[
         ...p.extraPayments,
         ExtraPayment(
-          id: extraId ?? 'ext_${today.microsecondsSinceEpoch}',
+          id: rowId,
           date: isoDate(today),
           amount: applied,
           note: note?.trim().isNotEmpty == true
               ? note!.trim()
               : 'Principal prepayment',
+        ),
+      ],
+      // THE SPLIT IS RECORDED, not left to be worked out again.
+      //
+      // offPrincipal and offInterest were computed above and then thrown
+      // away, so the only way back was to re-derive them from the policy
+      // ("principal first"), which is wrong the moment a prepayment crosses
+      // the principal: 6,000 against 5,600 principal restores 6,000 of
+      // principal where the truth is 5,600 and 400. The balance foots either
+      // way, which is what made it silent.
+      payments: <PlanPayment>[
+        ...p.payments,
+        PlanPayment(
+          id: rowId,
+          date: isoDate(today),
+          amount: applied,
+          toPrincipal: offPrincipal,
+          toInterest: offInterest,
+          note: note?.trim().isNotEmpty == true ? note!.trim() : null,
         ),
       ],
     );
@@ -416,6 +467,7 @@ InstallmentPlan _copy(
   Money? interestRemaining,
   bool? isSettled,
   List<ExtraPayment>? extraPayments,
+  List<PlanPayment>? payments,
 }) => InstallmentPlan(
   id: p.id,
   name: p.name,
@@ -436,6 +488,7 @@ InstallmentPlan _copy(
   principalRemaining: principalRemaining ?? p.principalRemaining,
   interestRemaining: interestRemaining ?? p.interestRemaining,
   extraPayments: extraPayments ?? p.extraPayments,
+  payments: payments ?? p.payments,
   isSettled: isSettled ?? p.isSettled,
   notes: p.notes,
 );

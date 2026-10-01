@@ -36,6 +36,24 @@ List<Debt> applyDebtPayment(
   String debtId,
   Money amount, {
   required DateTime today,
+
+  /// Which account the money left, kept on the register row so a reversal
+  /// knows where to put it back. Legitimately null: paying with no account is
+  /// a real choice for somebody settling in cash they never logged, and the
+  /// sheet says so before they confirm.
+  String? accountId,
+
+  /// Supplied by the caller so the register row and the ledger row it writes
+  /// can be tied together. Defaults to a clock-derived id, which is fine for
+  /// an engine test and not fine for the app, where the two have to match.
+  String? paymentId,
+
+  /// The ledger row this payment writes, when it writes one.
+  ///
+  /// Null is a real answer, not a missing one: a payment recorded with no
+  /// account writes no entry at all, so there is nothing to point at. Taking
+  /// one of those back moves the debt and must not go hunting for a row.
+  String? txId,
 }) {
   if (!amount.isPositive) return debts;
 
@@ -58,6 +76,32 @@ List<Debt> applyDebtPayment(
       installmentCurrent: d.installmentCurrent == null
           ? null
           : _min(d.installmentTotal ?? 12, d.installmentCurrent! + 1),
+      // THE THREE FIGURES THAT CANNOT BE RECOMPUTED, written down as they
+      // were before this payment landed.
+      //
+      // `settledDate` is stamped only on the transition and a further payment
+      // on an already settled debt keeps the original, so clearing it on the
+      // way back is right in one case and destroys a real date in the other.
+      // `installmentCurrent` saturates, so the last payment of a plan does not
+      // move it and decrementing later would invent a payment nobody undid.
+      // `paidAmount` is stored rather than derived by subtraction because
+      // "Mark settled" can FILL it between two payments, after which the
+      // running figure is not the sum of the payments and nothing else in the
+      // app can tell you the difference.
+      payments: <DebtPayment>[
+        ...d.payments,
+        DebtPayment(
+          id: paymentId ?? 'dp_${today.microsecondsSinceEpoch}',
+          date: isoDate(today),
+          amount: amount,
+          paidBefore: d.paidAmount,
+          settledBefore: d.isSettled,
+          settledDateBefore: d.settledDate,
+          installmentCurrentBefore: d.installmentCurrent,
+          accountId: accountId,
+          txId: txId,
+        ),
+      ],
     );
   }).toList();
 }

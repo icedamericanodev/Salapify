@@ -220,4 +220,58 @@ void main() {
           'can act on.',
     );
   });
+
+  test('no screen sends somebody to take a payment back', () {
+    // ## The defect this exists to stop coming back
+    //
+    // Reconciliation stopped offering the duplicate control on a debt
+    // payment, correctly, and the sentence that replaced it ended:
+    //
+    //     "Take the payment back from the Debt screen instead."
+    //
+    // There is no such thing. No delete on a transaction, no reversal of a
+    // debt payment anywhere in the app. The founder read it on their phone
+    // within minutes of it shipping and asked where that screen was.
+    //
+    // Closing one door and pointing at a door that is not there is worse
+    // than the control it replaced, because the original at least did
+    // something. A small untruth on a money screen is exactly what stops
+    // somebody trusting the larger figures on it.
+    //
+    // WHEN TAKE-BACK IS BUILT, this test is DELETED in the same change, not
+    // weakened and not skipped. It is a promise about what does not exist
+    // yet, so it has to expire the moment that stops being true, or the next
+    // person reads a failing guard as noise.
+    final List<String> offenders = <String>[];
+    final RegExp literal = RegExp(r"'[^']*'");
+    final RegExp promise = RegExp(
+      r'take (the |this |your )?payment back|'
+      r'take it back from|undo (the |this )?payment',
+      caseSensitive: false,
+    );
+
+    for (final FileSystemEntity f
+        in Directory('lib')
+            .listSync(recursive: true)
+            .where((FileSystemEntity f) => f.path.endsWith('.dart'))) {
+      for (final String line in File(f.path).readAsLinesSync()) {
+        if (line.trimLeft().startsWith('//')) continue;
+        if (line.trimLeft().startsWith('///')) continue;
+        for (final RegExpMatch m in literal.allMatches(line)) {
+          if (promise.hasMatch(m.group(0)!)) {
+            offenders.add('${f.path}: ${m.group(0)}');
+          }
+        }
+      }
+    }
+
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'a string a user can read tells them to take a payment back, and '
+          'nothing in the app can do that yet. Either build the route in this '
+          'change and delete this test with it, or say only what is true now.',
+    );
+  });
 }

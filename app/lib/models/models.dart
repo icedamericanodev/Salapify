@@ -489,6 +489,7 @@ class Debt {
     this.notes,
     this.isSample = false,
     this.paidBeforeSettle,
+    this.payments = const <DebtPayment>[],
   });
 
   /// True for a record Salapify put there itself, so the screens are not blank
@@ -552,6 +553,19 @@ class Debt {
   /// the case it was written for.
   final Money? paidBeforeSettle;
 
+  /// Every payment recorded against this debt, in the order they landed.
+  ///
+  /// Each row carries the figures that CANNOT be recomputed from the debt
+  /// afterwards, so taking one back is a restore rather than a derivation.
+  /// See [DebtPayment] for which ones and why.
+  ///
+  /// Empty on every debt written before this existed. Empty means nothing is
+  /// known about how this debt reached its current figure, which is the
+  /// truth; nothing is back-filled by matching on person and amount, because
+  /// two debts to the same person are indistinguishable on every field the
+  /// ledger stores and a wrong guess would un-pay the other one.
+  final List<DebtPayment> payments;
+
   Money get remaining => maxMoney(Money.zero, totalAmount - paidAmount);
 
   /// How far through it is, from 0 to 1. Clamped, because an overpayment
@@ -575,6 +589,7 @@ class Debt {
     bool clearSettledDate = false,
     Money? paidBeforeSettle,
     bool clearPaidBeforeSettle = false,
+    List<DebtPayment>? payments,
   }) => Debt(
     id: id,
     person: person,
@@ -594,6 +609,10 @@ class Debt {
     paidBeforeSettle: clearPaidBeforeSettle
         ? null
         : (paidBeforeSettle ?? this.paidBeforeSettle),
+    // Carried through for the same reason: the register is the record of how
+    // this debt reached its figure, and a copy made for any other purpose
+    // must not quietly empty it.
+    payments: payments ?? this.payments,
   );
 }
 
@@ -881,6 +900,132 @@ class ExtraPayment {
   final String? note;
 }
 
+/// ONE APPLIED PAYMENT, recorded as a fact rather than left to be worked out
+/// again later.
+///
+/// ## Why this exists, and why a running total is not enough
+///
+/// Both instalment engines SPLIT a payment and then throw the split away.
+/// `applyExtraPayment` computes `offPrincipal` and `offInterest`,
+/// `applyInstallmentPayment` computes `interestPart` and `principalPart`
+/// through three clamps and an unallocated sweep, and neither is stored. The
+/// plan keeps only the totals they produced.
+///
+/// That makes the operation impossible to reverse correctly, and the failure
+/// is silent. Measured on the seeded SPayLater plan, prepaying 6,000 against
+/// 5,600 principal and 991.20 interest: the true split is 5,600 principal and
+/// 400 interest, and a reversal that re-derives it from the documented policy
+/// ("prepayments come off principal first") puts all 6,000 back on principal.
+///
+///     balance restored  : correct
+///     account restored  : correct
+///     net worth         : correct
+///     principal         : overstated by 400, permanently
+///     interest          : understated by 400, permanently
+///
+/// Every conservation assertion passes on that wrong answer, because the total
+/// foots. It is the same shape as the 991.20 defect from the other direction:
+/// the parts sum to the whole and the meaning is wrong. On an add-on contract
+/// the principal figure is what decides whether prepaying is worth it, so this
+/// is not bookkeeping trivia.
+///
+/// A scheduled instalment loses even more. `paidInstallments` is a counter,
+/// not a set of events, and the collected amount is capped at the running
+/// balance, so a stub left by a prepayment cannot be told apart from a full
+/// instalment that happened to land on zero. Reversing one by re-deriving the
+/// schedule credited 1,647.80 against a ledger row holding 591.20.
+///
+/// So the register stores what WAS applied. Reversal then reads a fact
+/// instead of recomputing a guess, and no rounding policy, clamp or sweep sits
+/// between the two.
+class PlanPayment {
+  const PlanPayment({
+    required this.id,
+    required this.date,
+    required this.amount,
+    required this.toPrincipal,
+    required this.toInterest,
+    this.installmentNumber,
+    this.accountId,
+    this.txId,
+    this.note,
+  });
+
+  final String id;
+
+  /// ISO date, YYYY-MM-DD.
+  final String date;
+
+  /// What was actually APPLIED, which is not always what was offered: a
+  /// prepayment larger than the balance is capped, and the difference exists
+  /// nowhere else.
+  final Money amount;
+
+  /// The split, stored because it cannot be recovered. These two always sum
+  /// to [amount]; `plan_register_test.dart` asserts it on every shape.
+  final Money toPrincipal;
+  final Money toInterest;
+
+  /// Which scheduled instalment this was, or null for a prepayment. Null is
+  /// the thing that tells the two apart on the way back out.
+  final int? installmentNumber;
+
+  /// Where the money came from, and the ledger row that explains it.
+  ///
+  /// Both are nullable and both are legitimately absent: a payment recorded
+  /// with no account writes no entry at all, deliberately, for somebody
+  /// settling in cash they never logged.
+  final String? accountId;
+  final String? txId;
+
+  final String? note;
+}
+
+/// One applied payment on a DEBT, with the fields that cannot be recomputed.
+///
+/// A debt keeps `paidAmount` as a single running figure, so subtracting an
+/// amount gets the total back but not the rest. Two fields are genuinely
+/// lossy and both are stored here as they were BEFORE the payment landed:
+///
+///  - `settledDate` is stamped only on the TRANSITION, and a further payment
+///    on an already settled debt keeps the original date. Clearing it on the
+///    way back is right in one case and destroys a real date in the other.
+///  - `installmentCurrent` SATURATES at its total, so the last payment of a
+///    plan does not move it. Decrementing on the way back would invent a
+///    payment that was never undone.
+///
+/// `paidAmount` before is stored too, rather than derived by subtraction,
+/// because `toggleDebtSettled` can FILL it to the total between two payments.
+/// After that fill the running figure is not the sum of the payments any more,
+/// and nothing else in the app can tell you the difference.
+class DebtPayment {
+  const DebtPayment({
+    required this.id,
+    required this.date,
+    required this.amount,
+    required this.paidBefore,
+    required this.settledBefore,
+    this.settledDateBefore,
+    this.installmentCurrentBefore,
+    this.accountId,
+    this.txId,
+    this.note,
+  });
+
+  final String id;
+  final String date;
+  final Money amount;
+
+  final Money paidBefore;
+  final bool settledBefore;
+  final String? settledDateBefore;
+  final int? installmentCurrentBefore;
+
+  final String? accountId;
+  final String? txId;
+  final String? note;
+}
+
 /// A formal instalment plan: a phone on Home Credit, a laptop on a bank's
 /// special instalment plan, a desk on SPayLater.
 ///
@@ -915,6 +1060,7 @@ class InstallmentPlan {
     required this.maturityDate,
     this.paymentFrequency = PaymentFrequency.monthly,
     this.extraPayments = const <ExtraPayment>[],
+    this.payments = const <PlanPayment>[],
     this.isSettled = false,
     this.notes,
     this.isSample = false,
@@ -952,6 +1098,21 @@ class InstallmentPlan {
   final Money principalRemaining;
   final Money interestRemaining;
   final List<ExtraPayment> extraPayments;
+
+  /// Every payment applied to this plan, scheduled and extra together, in the
+  /// order they landed.
+  ///
+  /// ONE ORDERED LIST, not two, and that is what makes "the most recent one"
+  /// a question with an answer. A prepayment shortens the plan, so every
+  /// instalment after it collected a different amount; taking the prepayment
+  /// back while those stand would leave their recorded amounts explainable by
+  /// no schedule at all. Interleaving both kinds here is what lets a reversal
+  /// refuse that, visibly, instead of quietly doing something else.
+  ///
+  /// Empty on every plan written before this existed, and empty is honest:
+  /// it says nothing is known about how this plan got where it is, which is
+  /// exactly the situation. Nothing is back-filled by guessing.
+  final List<PlanPayment> payments;
   final bool isSettled;
   final String? notes;
 

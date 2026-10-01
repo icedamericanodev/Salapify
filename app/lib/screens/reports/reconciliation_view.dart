@@ -604,12 +604,22 @@ class _PairRow extends StatelessWidget {
           // a person who sees a warning and no way to act on it concludes the
           // app is broken, when what is true is that this particular remedy
           // would break something.
+          // IT DOES NOT SEND ANYBODY ANYWHERE, and that is deliberate. The
+          // first version of this line ended "take the payment back from the
+          // Debt screen instead", which describes a feature that does not
+          // exist: there is no delete on a transaction and no way to reverse a
+          // debt payment anywhere in the app. The founder found it within
+          // minutes of it reaching their phone.
+          //
+          // Closing one door and pointing at a door that is not there is
+          // worse than the control it replaced, because the original at least
+          // did something. Say only what is true today. The pointer comes back
+          // in the same change that builds the route, never before it.
           if (pair.second.isEnginePayment || pair.first.isEnginePayment)
             Text(
-              'This is a payment on a debt or a plan, so marking it a '
-              'duplicate would put the money back in your account and still '
-              'leave the debt showing as paid. Take the payment back from the '
-              'Debt screen instead.',
+              'This is a payment on a debt or a plan. Marking it a duplicate '
+              'would put the money back in your account and still leave the '
+              'debt showing as paid, so Salapify does not offer it here.',
               style: AppType.caption(palette),
             )
           else

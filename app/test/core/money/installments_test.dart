@@ -21,7 +21,11 @@ void main() {
       list.firstWhere((InstallmentPlan p) => p.id == id);
 
   List<InstallmentPlan> pay(String id, [List<InstallmentPlan>? from]) =>
-      applyInstallmentPayment(from ?? SeedData.installments(testToday), id);
+      applyInstallmentPayment(
+        from ?? SeedData.installments(testToday),
+        id,
+        today: testToday,
+      );
 
   group('the seed is the prototype\'s, in full', () {
     test('every plan carries its real contract, not a name and an amount', () {

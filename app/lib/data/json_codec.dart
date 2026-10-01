@@ -506,6 +506,22 @@ const Set<String> debtKeys = <String>{
   'settledDate',
   'notes',
   'isSample',
+  // BOTH OF THESE MUST BE HERE, and leaving one out is not cosmetic.
+  //
+  // This set is what tells the decoder which keys this build MODELS. Anything
+  // outside it is copied into the unknown-key sidecar so a file from a newer
+  // build survives a round trip through an older one. On the way back out the
+  // merge is `{...kept, ...own}`, so our own value wins a clash.
+  //
+  // A CLEARED field has no own value to win with. `paidBeforeSettle` was
+  // missing here for one commit, which meant: settle a debt (the key is
+  // written), reload (the key is captured as a stranger's field), un-settle
+  // (the codec stops writing it), and the sidecar puts it back. A later
+  // un-settle would then wind a debt back to a figure from a settle that had
+  // already been undone, which is the exact data loss the field exists to
+  // prevent, arriving by the back door.
+  'paidBeforeSettle',
+  'payments',
 };
 
 Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
@@ -527,6 +543,8 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   // ordinary debt's row is byte for byte what it always was, and an older
   // build reading this file simply ignores a key it does not know.
   if (d.paidBeforeSettle != null) 'paidBeforeSettle': d.paidBeforeSettle!.pesos,
+  if (d.payments.isNotEmpty)
+    'payments': d.payments.map(debtPaymentToJson).toList(growable: false),
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -551,6 +569,10 @@ Debt debtFromJson(Map<String, dynamic> m) {
     // is", which is the right answer for every debt written before this key
     // existed as well as for one settled by real payments.
     paidBeforeSettle: _optMoney(m, 'paidBeforeSettle'),
+    payments: readList(
+      m['payments'],
+      '$what.payments',
+    ).map(debtPaymentFromJson).toList(growable: false),
   );
 }
 
@@ -696,6 +718,70 @@ ExtraPayment extraPaymentFromJson(Map<String, dynamic> m) => ExtraPayment(
   note: _optStr(m, 'note'),
 );
 
+/// The register rows, in pesos on the wire like every other money figure.
+///
+/// Optional keys are written only when set, so a plan or debt with nothing to
+/// record gains no keys at all and its row is byte for byte what it was. An
+/// older build reading a newer file ignores what it does not know, and a newer
+/// build reading an older file finds the list absent and leaves it empty,
+/// which is the honest answer rather than a guess.
+Map<String, dynamic> planPaymentToJson(PlanPayment p) => <String, dynamic>{
+  'id': p.id,
+  'date': p.date,
+  'amount': p.amount.pesos,
+  'toPrincipal': p.toPrincipal.pesos,
+  'toInterest': p.toInterest.pesos,
+  if (p.installmentNumber != null) 'installmentNumber': p.installmentNumber,
+  if (p.accountId != null) 'accountId': p.accountId,
+  if (p.txId != null) 'txId': p.txId,
+  if (p.note != null) 'note': p.note,
+};
+
+PlanPayment planPaymentFromJson(Map<String, dynamic> m) {
+  const String what = 'plan payment';
+  return PlanPayment(
+    id: _reqStr(m, 'id', what),
+    date: _reqStr(m, 'date', what),
+    amount: Money.fromDouble(_reqNum(m, 'amount', what)),
+    toPrincipal: Money.fromDouble(_reqNum(m, 'toPrincipal', what)),
+    toInterest: Money.fromDouble(_reqNum(m, 'toInterest', what)),
+    installmentNumber: _optInt(m, 'installmentNumber'),
+    accountId: _optStr(m, 'accountId'),
+    txId: _optStr(m, 'txId'),
+    note: _optStr(m, 'note'),
+  );
+}
+
+Map<String, dynamic> debtPaymentToJson(DebtPayment p) => <String, dynamic>{
+  'id': p.id,
+  'date': p.date,
+  'amount': p.amount.pesos,
+  'paidBefore': p.paidBefore.pesos,
+  'settledBefore': p.settledBefore,
+  if (p.settledDateBefore != null) 'settledDateBefore': p.settledDateBefore,
+  if (p.installmentCurrentBefore != null)
+    'installmentCurrentBefore': p.installmentCurrentBefore,
+  if (p.accountId != null) 'accountId': p.accountId,
+  if (p.txId != null) 'txId': p.txId,
+  if (p.note != null) 'note': p.note,
+};
+
+DebtPayment debtPaymentFromJson(Map<String, dynamic> m) {
+  const String what = 'debt payment';
+  return DebtPayment(
+    id: _reqStr(m, 'id', what),
+    date: _reqStr(m, 'date', what),
+    amount: Money.fromDouble(_reqNum(m, 'amount', what)),
+    paidBefore: Money.fromDouble(_reqNum(m, 'paidBefore', what)),
+    settledBefore: _optBool(m, 'settledBefore'),
+    settledDateBefore: _optStr(m, 'settledDateBefore'),
+    installmentCurrentBefore: _optInt(m, 'installmentCurrentBefore'),
+    accountId: _optStr(m, 'accountId'),
+    txId: _optStr(m, 'txId'),
+    note: _optStr(m, 'note'),
+  );
+}
+
 const Set<String> installmentKeys = <String>{
   'id',
   'name',
@@ -716,6 +802,7 @@ const Set<String> installmentKeys = <String>{
   'principalRemaining',
   'interestRemaining',
   'extraPayments',
+  'payments',
   'isSettled',
   'notes',
   'isSample',
@@ -743,6 +830,8 @@ Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
   'extraPayments': p.extraPayments
       .map(extraPaymentToJson)
       .toList(growable: false),
+  if (p.payments.isNotEmpty)
+    'payments': p.payments.map(planPaymentToJson).toList(growable: false),
   'isSettled': p.isSettled,
   if (p.notes != null) 'notes': p.notes,
   if (p.isSample) 'isSample': true,
@@ -779,6 +868,10 @@ InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
       m['extraPayments'],
       '$what.extraPayments',
     ).map(extraPaymentFromJson).toList(growable: false),
+    payments: readList(
+      m['payments'],
+      '$what.payments',
+    ).map(planPaymentFromJson).toList(growable: false),
     isSettled: _optBool(m, 'isSettled'),
     notes: _optStr(m, 'notes'),
     isSample: _optBool(m, 'isSample'),
