@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
+import '../../features/accounts/move_money_sheet.dart';
 import '../../features/debt/split_bill_sheet.dart';
 import '../../features/health/health_check_sheet.dart';
 import '../../features/info/info_sheet.dart';
@@ -116,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                   onOpenLog ?? () => _soon(context, palette, 'The Log sheet'),
               onDebt: () => _addDebt(context, palette),
               onBills: () => _soon(context, palette, 'Bills'),
-              onMove: () => _soon(context, palette, 'Move'),
+              onMove: () => _moveMoney(context, palette),
               onSplit: () => _splitBill(context, palette),
             ),
             const SizedBox(height: Spacing.lg),
@@ -255,6 +256,13 @@ class HomeScreen extends StatelessWidget {
   /// because it has a snack bar to show.
   Future<void> _splitBill(BuildContext context, Palette palette) =>
       SplitBillSheet.show(context, palette: palette, state: state);
+
+  /// Moving money between the person's own accounts.
+  ///
+  /// Same shape as _splitBill: the sheet writes through the store, which is a
+  /// ChangeNotifier the shell listens to, so there is nothing to redraw here.
+  Future<void> _moveMoney(BuildContext context, Palette palette) =>
+      MoveMoneySheet.show(context, palette: palette, state: state);
 
   Future<void> _addDebt(BuildContext context, Palette palette) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);

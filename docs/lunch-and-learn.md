@@ -10,6 +10,505 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-10-01, session 44: Split Bill reached an emulator and not a phone, a route I described to the founder did not exist, and the clock pin that revived six rotted tests also switched off the only machine that had noticed the real defect
+
+**What we believed / What was true.**
+
+Three ground truths, and all three have to be set down before any lesson,
+because two of them could easily be written up as something they are not.
+
+1. NOTHING WAS DELIVERED. `docs/delivery-log.md` still ends at
+   `| 2026-08-30 14:12 UTC | f4.72 | 11 | patch | 0.9.5+20 |`, which is
+   Salapify 2, archived on 2026-09-18. `app/` has no publisher, no Shorebird
+   app id and no stamp, so there is no row to read and there will not be one
+   until it earns a publisher. "The founder confirmed Split Bill" means they
+   opened it on their Android emulator, running a build `tools/dev-sync.sh`
+   made from `claude/flutter-final`. That is real evidence about the code and
+   it is not evidence about a phone. Nobody reading this later should take it
+   as a ship.
+
+2. NOTHING WAS MERGED EITHER. `git branch -a --contains b1312b7` returns only
+   `claude/flutter-final` and its remote. `origin/main` is at `2f055a2` and
+   does not contain `app/test/palette_contrast_test.dart`, which this branch
+   added in `e42746c`. The branch is 101 commits ahead of main and 1 behind.
+   Every guard named in this entry, and every guard named in session 43,
+   exists on one branch and not on the repository's integration point. That is
+   not a defect of this batch, it is the standing position of the whole `app/`
+   rebuild, and it is worth stating because "merged is not delivered" has a
+   quieter cousin here: unmerged is not banked.
+
+3. We believed the founder could open Split Bill by going to the "Debt tab".
+   There is no Debt tab. `app/lib/shell/app_shell.dart:258` holds the whole
+   bottom bar in one map, `_items`, and it is Home, Activity, Reports, Plan,
+   Accounts. The founder followed the instruction, found the nearest thing to
+   it, which is the "Debt" shortcut on Home, and that shortcut opens the
+   add-a-debt form. They reported the feature missing. It was not missing. It
+   was a card inside the debts register, reachable only by opening Home,
+   scrolling to the debt beam, tapping "See all", and then scrolling again.
+
+What was also true, and good: the port itself was correct, the suite was
+genuinely green, and both of the mechanisms this repository trusts most did
+catch real defects before the founder saw anything. Verified independently
+this session rather than taken from the commit message: a clean worktree at
+`b1312b7`, `flutter pub get`, `flutter test`, result `+1339: All tests
+passed!`.
+
+**Timeline, with evidence.**
+
+- `f132eab` "Pin the clock in plan_test and log_journey_test, which the
+  calendar had killed". Six tests in `app/test/widgets/plan_test.dart` and
+  `app/test/widgets/log_journey_test.dart` went red on 1 October with no app
+  code change. Both files pumped `const SalapifyApp()`, which takes no clock
+  and therefore reads the real one. The seed ledger is dated September 2026
+  and those tests assert "spent this month" figures, so from 1 October nothing
+  in the seed counted as this month and every budget showed its full limit
+  unspent. Confirmed pre-existing by stashing the unrelated work and watching
+  them fail anyway, which is the right move and is why the diagnosis is
+  trustworthy.
+
+  One of the six failed for a SECOND reason, and it is the more interesting
+  one. The date-picker journey steps back one day and taps that day number in
+  the Material calendar. On the first of a month, yesterday is in the previous
+  month, so the number it taps is a future date in the month the picker opened
+  on, the picker refuses it, and the tap lands nowhere. Flutter does not fail a
+  tap that lands nowhere, so the test read as a missing warning:
+
+      Expected: exactly one matching candidate
+        Actual: Found 0 widgets with text containing The balance changes now: []
+      a backdated entry still debits the account today
+
+  Both files now build `FinancialState(clock: DateTime(2026, 9, 18))` and pump
+  `SalapifyApp(state: state)`. `FinancialState` has accepted an injectable
+  clock the whole time (`financial_state.dart:37`, and `:356`
+  `DateTime get now => clock ?? DateTime.now()`), so no app code changed.
+
+- `358371d` "Port Split Bill, vector-locked against the prototype's own
+  engine". `app/tool/gen_split_vectors.ts` imports `calculateSplitShares` from
+  `src/utils/collaborationEngine.ts` and EXECUTES it over the fixture list, so
+  every expected figure in `app/test/core/money/split_bill_test.dart` is a
+  number the prototype printed rather than a number anybody reasoned out.
+
+  THE FIXTURE AUDIT FAILED, which is the entire reason the procedure exists.
+  After the replay went green, swapping the port's `_jsRound`
+  (`split_bill.dart:81`, `(x + 0.5).floorToDouble()`) for Dart's `round()`
+  still passed all twenty original fixtures. JavaScript rounds a half toward
+  positive infinity and Dart rounds away from zero, and no fixture reached a
+  negative half, so the two agreed everywhere the test set looked. Two cases
+  were added, generated the same way (`fixed_negative_half`, `pct_negative`,
+  `gen_split_vectors.ts:58-67`), and the deliberate break then failed:
+
+      Expected: <0>
+        Actual: <-0.1>
+      the displayed percentage: Dart round() would give -0.1 here, and did
+
+  Correcting the task prompt on the arithmetic of the counts, because the
+  numbers given were close but not right: the generator carries 22 fixtures
+  (20 original plus the 2 negative-half cases), and the test file contains 26
+  tests. Twenty-six is the test count, not the fixture count.
+
+  THE RENDER CAUGHT WHAT 1,338 PASSING TESTS COULD NOT. The Total bill field
+  passed `prefix: 'PHP'` where every other money field in the app passes
+  the peso sign followed by a space, so the shared `SheetField`
+  (`app/lib/features/shared/sheet_scaffold.dart:463`) drew it as "PHP2400".
+  Fixed at `split_bill_sheet.dart:278`, with the reason written beside it.
+
+- `768164b` "Quieten VS Code's Problems panel, and make a dev-sync failure
+  readable". Neither half touches the app. Worth one line only because of what
+  it reveals: the editor was reporting 798 errors, all of them from
+  `archive/salapify-2-flutter/`, which has 613 Dart files and no `pub get`
+  because it is archived. `flutter analyze` from `app/` had been reporting "No
+  issues found" the whole time and never saw one of them. A Problems panel
+  with 798 entries is a panel nobody reads.
+
+- `b1312b7` "Move Split to the Home shortcut row, where somebody looking for it
+  looks". Founder direction, "yes move it to the quick actions". The row is now
+  Log, Debt, Bills, Move, Split, and the card is gone from the debts register.
+  `debt_screen.dart:159` keeps a four-line tombstone comment saying where it
+  went and why, which is the right amount of record. Independently verified:
+  1,339 tests pass at this commit.
+
+**The divergence point.** Not 1 October, and not the founder's message. It is
+inside `358371d`, at the moment the Split Bill card was placed in the debts
+register and a reachability test was written that pumped `DebtScreen` on its
+own. From that commit onward the repository believed Split Bill was reachable,
+a test said so, the test was true, and the feature was effectively unreachable.
+The comment in that first version even argued the case out loud: a fifth
+shortcut "would crowd it on a narrow phone" and "somebody thinking about who
+owes whom is already on this screen". Both halves of that reasoning were wrong,
+and the second one is the instructive half, because it reasons about where a
+user ALREADY IS rather than about where they would START.
+
+**Root cause.** Two, and they are genuinely separate.
+
+The first: `app/lib/data/seed_data.dart` writes its dates in two different
+languages. `createdAt` is relative, `_daysAgo(n)` at line 14, subtracting a
+`Duration` from `DateTime.now()`. The `date` string beside it is absolute,
+`'2026-09-17'`, frozen. One field moves with the calendar and the other does
+not, so the gap between them widens by one day every day. That is not a test
+problem that happened to surface in tests, it is a fixture defect that tests
+were the first thing to trip over. The structural fault is the one session 26
+already named on 2026-08-01, in almost these words: any date expressed as a
+calendar position is a value the calendar can reinterpret, and a Duration from
+today is not. Session 26 fixed exactly this in the Salapify 2 fixture and
+called it "the THIRD rotation of one lesson". `app/` then re-created it,
+half-applied: the relative half of session 26's answer is in `_daysAgo`, and
+the absolute half it was supposed to replace is still sitting next to it.
+
+The second: a reachability test that is handed its destination. "Can a person
+get to this" is the one question that cannot be answered by a test that starts
+at the feature, and the first `_reachable()` started at `DebtScreen`. No amount
+of care inside that test could have made it fail the way reachability actually
+fails.
+
+Neither root cause is "somebody did not check". Both have fixes that work while
+everyone is busy.
+
+**Lessons, each with its guard and the guard's strength.**
+
+1. **The six rotted tests and the product defect left for the founder are ONE
+   lesson, not two, and the fix taken for the first one makes the second one
+   permanently invisible.** This is the merge the task prompt asked for if two
+   lessons turned out to be the same one wearing different clothes. They are.
+
+   The seed's two date fields disagree. In tests, that shows up as "spent this
+   month" going to zero on the first of October. On a stranger's phone it shows
+   up as a Log full of entries from "yesterday" sitting above a Budgets screen
+   saying nothing has been spent this month. Same single cause, two audiences.
+
+   Pinning the clock to `DateTime(2026, 9, 18)` in two test files is a correct
+   repair of the symptom and it is not a guard, for a reason that should be
+   said plainly rather than softened: with the clock pinned to a date on which
+   the two fields happen to agree, no test in those files can ever notice the
+   disagreement again. The calendar roll was the only mechanism that had ever
+   surfaced it, and the fix switched that mechanism off. The product defect was
+   then written into `docs/migration/README.md:1992` and left for the founder.
+   That deferral was the right call on the FIX, because what a stranger sees on
+   first run is product content and D19 makes first-run quality a real bar, so
+   it belongs to the founder. The deferral was the wrong call on the
+   VISIBILITY, because it was recorded in prose in the same change that removed
+   the detector. A deferred defect with no machine watching it is a note, and
+   notes becoming the whole plan is what this file exists to stop.
+
+   **Guard, NOT built, and the lesson is OPEN.** Two parts, in order of value.
+   (a) Make the seed's `date` relative the way `createdAt` already is, derived
+   from the same `_daysAgo` anchor, so the fixture does no calendar arithmetic
+   at all. That is session 26's structural answer, it removes the product
+   defect and the test rot in one edit, and it needs the founder because it
+   changes what a new install shows. Strength when built: STRONG, and
+   structurally so, because the arithmetic that causes the failure stops
+   existing. (b) A data-level self-check on the seed, in the shape of the
+   `fixture_still_lived_in_test.dart` that Salapify 2 had and `app/` has no
+   equivalent of: assert that every seeded transaction's `date` and `createdAt`
+   agree to within a day, and that the seed presents this-month spending
+   relative to whatever "today" is. Strength when built: STRONG, an ordinary
+   `*_test.dart` that fails loudly, and crucially it fails pointing at the seed
+   rather than at six confusing symptoms in two unrelated screens. Note that
+   session 26 proposed its own fourth fixture assertion and it was never built
+   either; this is that same unbuilt guard asking a second time, in a second
+   codebase.
+
+   On the task prompt's specific question, "could a test assert that no widget
+   test pumps an unpinned `SalapifyApp`, and is that worth building or is it
+   over-engineering": it is worth building, it is NOT the main guard, and the
+   honest ranking is medium rather than strong. For it: fourteen files in
+   `app/test/widgets/` still contain at least one `pumpWidget(const
+   SalapifyApp())`, so the fix covered two of sixteen and the exposure is
+   almost entirely still there (`sheets_test`, `debt_journey_test`,
+   `installments_journey_test`, `accounts_journey_test`,
+   `scan_receipt_journey_test`, `home_layout_test`, `accounts_test`,
+   `activity_test`, `scroll_behavior_test`, `app_smoke_test`,
+   `reconciliation_journey_test`, `health_check_journey_test`,
+   `info_sheet_test`, `truthful_claims_test`). The machine is also precedented
+   rather than novel: `app/test/data/main_wiring_test.dart` and
+   `app/test/widgets/truthful_claims_test.dart` both read source text and
+   assert on it, for exactly the reason that applies here. Against it: a test
+   that reads the real clock is nondeterministic, which is a defect on its own
+   terms, but several of those fourteen have no date-dependent assertion and
+   pinning them buys nothing, so the rule needs an exemption list, and an
+   exemption list is the kind of thing that rots quietly. Also worth noticing
+   that `accounts_test.dart` pins a clock at lines 224, 258 and 262 while its
+   main `openAccounts` helper at line 23 does not, so "this file pins" and
+   "this file is safe" are not the same statement, and the commit message's
+   claim that `accounts_test.dart` already pins is true only of part of it.
+   Build this after (a) and (b), not instead of them.
+
+2. **I described a route through the app that did not exist, and no machine in
+   this repository can read a sentence I say in a chat.** Same category as the
+   standing rule "never say a version number until its delivery row exists",
+   which CLAUDE.md openly admits is a rule and not a machine. I am not going to
+   invent a chat-reader to make this lesson look closed.
+
+   But the category is only half the answer, and the other half is better than
+   it looks. The sentence was wrong because the FEATURE was wrong. A feature
+   sitting three taps and two scrolls inside a register cannot be described in
+   one true short sentence by anybody, so the wrong sentence was the
+   predictable output of the wrong placement. Move the feature to the screen
+   the app opens on and the instruction collapses to "tap Split on the home
+   screen", which is a sentence a test can hold.
+
+   **Guard, and it is split.** The structural half is BUILT and is STRONG:
+   `app/test/widgets/split_bill_journey_test.dart:393`, "the split sheet opens
+   from the Home shortcut row", pumps the whole app, starts where the app
+   starts, and its negative half is proved. Removing the Split shortcut gives
+   "Found 0 widgets with text 'Split' descending from widgets with type
+   QuickActions / the Split shortcut is not on Home at all". The behavioural
+   half is a rule and therefore WEAK, and it is worth writing in the narrow
+   form that might survive: before telling the founder where to tap, read
+   `app_shell.dart`'s `_items` map rather than recalling the tab names. There
+   is one middle option that is a real machine and is not built: the route the
+   founder is given is also written into `docs/migration/README.md`, and a test
+   could extract the navigation labels that file names and assert each one
+   exists in `_items`. That would be MEDIUM, it would catch a wrong route
+   written down, and it would still not catch a wrong route merely spoken.
+
+3. **The reachability test that could not fail is NOT the most generalisable
+   lesson of the batch, and claiming it is overstates it.** The task prompt
+   named this as possibly the batch's biggest lesson, and the repository says
+   otherwise. Sixteen of the seventeen `*_journey_test.dart` files in
+   `app/test/widgets/` already pump the whole app, through `SalapifyApp(` or
+   `AppShell(`, and two of them say the lesson out loud in their own comments:
+   `plan_calculators_journey_test.dart` opens with "a feature can be complete
+   and still be unreachable, and only a test that walks the user's own path can
+   tell the difference", and `business_guide_journey_test.dart:50` says
+   "Tapped, not constructed: a screen somebody cannot REACH is not shipped".
+   This repository already knew this. Split Bill's journey file was a
+   regression from an established, documented, sixteen-times-followed pattern,
+   not the discovery of a new one.
+
+   That reframing is what makes the guard obvious and cheap. A convention
+   followed sixteen times out of seventeen, and broken on the one feature the
+   founder could not find, is exactly the convention to turn into a machine.
+
+   **Guard, NOT built, STRONG when built, and provably effective:** a
+   source-reading test in `main_wiring_test.dart`'s shape asserting that every
+   `app/test/widgets/*_journey_test.dart` pumps `SalapifyApp(` or `AppShell(`
+   at least once. Checked rather than assumed, which matters because this is a
+   claim about a test that does not exist yet: at `358371d`,
+   `git show 358371d:app/test/widgets/split_bill_journey_test.dart` contains
+   ZERO occurrences of either, so the guard would have reddened that commit.
+   One honest complication, found by running the same count over the current
+   tree: `scan_camera_journey_test.dart` also has zero, and it is not a defect.
+   Its twelve tests are all about the sheet's failure messages, and the door is
+   covered by `scan_receipt_journey_test.dart`, which does pump the whole app.
+   So the guard needs either an exemption with a written reason or that file
+   renamed to `scan_camera_test.dart`, which is what it actually is. Prefer the
+   rename: a naming rule with no exceptions outlives an exemption list.
+
+4. **Break-then-prove caught a fix of mine that was built on a false claim, and
+   this is the clean case of the procedure doing its job.** Moving Split to the
+   shortcut row made it the fifth tile. A `LayoutBuilder` was added to shrink
+   it, on the arithmetic that a 52 box in a 49.6 slot overflows by 2.4 pixels
+   at 320dp. The arithmetic is right. The conclusion is wrong:
+   `Container(width: 52)` resolves to a tight constraint which is then enforced
+   against the parent's, so Flutter clamps it to 49.6 and nothing overflows.
+   The deliberate break, restoring the fixed 52, PASSED. Per the standing rule,
+   that means the test was wrong rather than the code unusually good, so the
+   `LayoutBuilder` came out and the test was rewritten onto the risk that is
+   real.
+
+   What is actually at risk when a shortcut is added is the TOUCH TARGET, which
+   falls every time one is added, and which nothing else in the app measures.
+
+   **Guard: BUILT, STRONG, and both halves proved,** which is the half of an
+   alarm that usually goes untested. It fires at six shortcuts:
+
+       Expected: a value greater than or equal to <44.0>
+         Actual: <40.0>
+       a shortcut tile is only 40.0dp wide
+
+   and it stays silent at five. The reasoning that produced the wrong fix is
+   preserved in the code at `quick_actions.dart:80-93` rather than deleted,
+   which is right, because the next person to do that arithmetic will do it the
+   same way.
+
+   One durable fact worth lifting out of that comment, because it will come
+   back: in Flutter a fixed width inside a constrained parent is a REQUEST, not
+   a promise. Reasoning about overflow from declared sizes is unreliable, and
+   the only trustworthy answer is to pump it and measure it.
+
+5. **The golden-vector procedure earned its name: the audit failed, and that
+   failure is the strongest evidence this batch produced.** A replay that goes
+   green proves the port agrees with the fixtures. It says nothing about
+   whether the fixtures reach the places where the two languages disagree. Here
+   they did not, and the deliberate break is the only thing that could have
+   said so.
+
+   **Guard: BUILT, STRONG.** The two generated negative-half cases are
+   permanent fixtures in `gen_split_vectors.ts` and permanent tests in
+   `split_bill_test.dart:291`, with the failure line recorded beside them. The
+   procedure itself, run the replay and then break the core semantic and
+   require a failure, is already in CLAUDE.md and is what produced this.
+   Nothing to add except the observation that this is a second kind of catch
+   for the procedure: not a wrong port, but an incomplete fixture set that
+   would have let a future wrong port through unnoticed.
+
+6. **The render caught a money-field defect that 1,338 tests had nothing to say
+   about, and unlike most render catches, this one CAN be machine-checked.**
+   "PHP2400" is not a layout judgement or a taste call. It is a literal that
+   should have been one of two things and was a third.
+
+   **Guard, NOT built, MEDIUM when built, and genuinely cheap.** Twenty-three
+   call sites in `app/lib/` pass `prefix:` to `SheetField`, and every one of
+   them is either the peso literal or a currency-symbol expression for the
+   multi-currency account fields. A source-reading test asserting that is about
+   fifteen lines, and it has two precedents in this repository already. It is
+   MEDIUM and not STRONG because it is narrow: it catches a wrong currency
+   prefix on a money input and nothing else, and the general class, "this
+   screen is inconsistent with every other screen", stays with the eye. Say
+   that rather than pretend the eye is replaceable.
+
+**Open lessons carried forward.**
+
+- From session 26, 2026-08-01, STILL OPEN and now re-opened in a second
+  codebase. Session 26's root cause was "the fixture did month arithmetic at
+  all", and `app/lib/data/seed_data.dart` does month arithmetic. Its proposed
+  data-level fixture self-check was never built in Salapify 2, and `app/` has
+  no fixture self-check of any kind. This is lesson 1 above and it is the most
+  important unbuilt thing in this entry.
+
+- From session 43, 2026-09-22, PARTLY CLOSED. Session 43 found that CLAUDE.md
+  described `palette_contrast_test.dart` and `screen_readability_test.dart` as
+  running on the branch check while they existed only under
+  `archive/salapify-2-flutter/test/`. Commit `e42746c` on this branch, "Port
+  the two readability guards into app/, and fix the five they found", added
+  both at `app/test/palette_contrast_test.dart` and
+  `app/test/screen_readability_test.dart`. Verified that they exist and that
+  they run: both are collected in the 1,339. The nuance that keeps this from
+  being fully closed is ground truth 2 above, that neither is on `origin/main`.
+
+- From session 43, STILL OPEN and unchanged: there is no local pre-push guard
+  of any kind for `app/`. `.githooks/pre-push` is a documented `exit 0` with its
+  reasoning preserved above it, which is the honest version of a retired guard.
+
+- From session 43, CLOSED by its own later note: scan-to-log is confirmed end
+  to end. Nothing in this batch touched it.
+
+- NEW, open: the `app/` rebuild is 101 commits ahead of `origin/main` and
+  nothing in it has been merged. This is not a finding about Split Bill, and it
+  is the largest standing gap between what the repository's rules assume and
+  what is true. CLAUDE.md says "Main is the integration source of truth" and
+  says to fetch current main and read what already shipped before reconciling a
+  branch. A main that is 101 commits behind cannot answer either question.
+  Raised, not acted on; merging a hundred commits is a founder conversation,
+  not a retrospective's business.
+
+**CLAUDE.md factual re-check, done as a step and not as a favour.**
+
+Session 43 raised four stale paths and recommended a test that extracts every
+file path CLAUDE.md names and reddens when one does not exist. That test was
+not built, CLAUDE.md is the founder's to change, and so three of its four
+findings are still exactly as session 43 left them nine days ago. Re-verified
+by `find` and by running the commands, not by reading:
+
+- Line 220, the render command, `cd flutter && flutter test
+  test/screens_shot.dart --update-goldens`. STILL WRONG. `flutter/` does not
+  exist. The working command was run this session and is `cd app && flutter
+  test test/shots/screens_shot.dart --update-goldens`, which rendered 98 shots
+  and passed. This is the most consequential of them, because it sits under a
+  heading that governs every UI change in the live app.
+- Line 360, `flutter/test/journeys_test.dart`. STILL WRONG. It exists only at
+  `archive/salapify-2-flutter/test/journeys_test.dart`. `app/` has no
+  `journeys_test.dart`; its equivalent is the seventeen `*_journey_test.dart`
+  files in `app/test/widgets/`.
+- Line 551, `flutter/lib/widgets/salapify_icon.dart`. STILL WRONG. The live
+  file is `app/lib/design/salapify_icon.dart`.
+- Lines 302, 307, 344, 345 and 351, NEW this session and not on session 43's
+  list. `loadRealFonts` is described as coming from `test/screens_shot.dart`;
+  in `app/` it is `test/shots/screens_shot.dart`. `segmented_test.dart`,
+  `test/golden/ui_golden.dart` and `test/golden/baseline/` exist only in the
+  archive, so the entire committed-pixel-baseline paragraph describes
+  machinery `app/` does not have, while reading as current policy.
+- Lines 662 and 663, NEW this session. The Context7 rule says to inspect
+  `flutter/pubspec.yaml` and `flutter/pubspec.lock`; the live files are
+  `app/pubspec.yaml` and `app/pubspec.lock`.
+- Line 671, NEW this session. The Figma rule says to reuse "the shared widgets
+  in `flutter/lib/widgets`". `app/lib/widgets` does not exist; the live
+  equivalents are `app/lib/design/` and `app/lib/features/shared/`.
+- Covered and NOT a defect: the whole Flutter-rebuild delivery block, lines 89
+  to 150, and the `qa_record_test.dart` reference at line 878. CLAUDE.md's own
+  archive section declares those dormant by name, so they read as labelled
+  history rather than as wrong instruction.
+- Checked and TRUE: `app/lib/features/info/info_dot.dart` and `info_sheet.dart`
+  exist where named, `.claude/hooks/guard-destructive-edits.sh` and
+  `.claude/settings.json` exist, and `.claude/agents/journey-tester.md` and
+  `recovery-designer.md` exist.
+
+The pattern is one thing, the 2026-09-18 archive rename, and every stale claim
+points the same way. Session 43's proposed path-extraction test would have
+caught all nine of these and none of the claims that hold. It is the clearest
+case in this file of a guard that is cheap, precedented, and repeatedly asked
+for.
+
+**For the founder, over lunch.**
+
+Split Bill works, and you have seen it working. Two plain things about that
+before anything else. First, it is on your emulator only, built straight from
+the working branch by the dev-sync script. There is no new version on a real
+phone, because the new app has no publisher yet. Second, none of this batch has
+been merged into main, which is the shared trunk the repository treats as the
+record of what exists. The whole new app is now a hundred and one commits
+sitting on one branch. That is a conversation for you and me, not an emergency,
+but you should know it rather than find out later.
+
+What went wrong that actually cost you time: I told you to open the "Debt tab".
+There is no Debt tab. The five tabs along the bottom are Home, Activity,
+Reports, Plan and Accounts. You did the sensible thing, tapped the Debt button
+on Home, got the add-a-debt form, and reported the feature missing. It was not
+missing, it was buried: a card you could only reach by scrolling Home, tapping
+"See all", and scrolling again. The honest version of this is that my sentence
+was wrong because the FEATURE was wrong. Nothing I could have written would
+have been both short and true about a thing buried that deep. Split is now the
+fifth button on the Home shortcut row, and there is a test that starts the app
+from scratch, looks at Home, and fails if Split is not there. If anyone ever
+moves it away again, the build goes red before you ever see it.
+
+What made the test miss it in the first place is worth one sentence, because it
+is the kind of mistake that repeats. My "can you reach it" test started ON the
+screen the feature lived on. That is like checking you can find your keys by
+starting with the keys in your hand. It now starts where you start, on Home.
+The good news is that almost every other test of this kind in the app already
+did it the right way, sixteen out of seventeen, so this was me breaking an
+existing habit rather than discovering a new problem. I have written down a
+small check that would make the habit automatic.
+
+Two things worked exactly as designed and are worth you knowing about, since
+you pay for them in time. The maths for Split Bill was locked against your old
+app by running the old app's own code and copying the numbers it printed. Then
+I deliberately broke the new version to make sure the tests would notice. They
+did not, at first, which told me the test cases were missing an edge rather
+than telling me the code was fine. Two more cases went in and the break was
+caught. Separately, looking at the actual picture of the screen caught the
+total bill field showing "PHP2400" instead of a proper peso amount, which not
+one of 1,338 tests had anything to say about.
+
+Now the one that needs a decision from you. Our pretend starting data has a
+small contradiction: each sample transaction carries a fixed calendar date from
+September, but also a separate "created" timestamp that silently slides forward
+with today's date. So on a brand new install today, someone sees a list of
+spending from "yesterday" above a budget screen insisting nothing has been
+spent this month. On the first of October that same contradiction also broke
+six of our tests, with nobody having changed a line of code. I fixed the tests
+by freezing their clock to 18 September, and I need to be straight with you
+about what that costs: freezing the clock means those tests can never notice
+this problem again. I turned off the smoke alarm after confirming the smoke was
+real. The proper fix is to describe the sample dates as "three days ago"
+instead of "the 15th", which removes the contradiction and the breakage
+together, and it changes what a stranger sees on their first screen, which is
+your call and not mine. If we leave it as it is, the cost is that every new
+person who installs Salapify sees a first screen that contradicts itself, and
+we no longer have any automatic way to be reminded of it.
+
+Last, a housekeeping note I will keep raising until it is dealt with. Our rules
+file, CLAUDE.md, still points at nine files and folders in the old app's
+location, including the command for taking screenshots of screens, which cannot
+run as written. The previous lunch and learn found four of these and asked for
+a small automatic check that reads every file path the rules file mentions and
+complains when one is missing. It has not been built, and I found five more
+this time. A rule that confidently names the wrong file is worse than no rule,
+because it is read as though it is true.
+
+---
+
 ## 2026-09-22, session 43: the camera was never broken, seven journey tests faked the one boundary the bug lived on, and dev-sync's authoritative rebuild guard turned out to have never fired once
 
 **What we believed / What was true.**

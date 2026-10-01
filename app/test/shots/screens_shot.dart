@@ -10,6 +10,7 @@ import 'package:salapify/features/categories/category_manager_sheet.dart';
 import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
+import 'package:salapify/features/accounts/move_money_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
@@ -1105,6 +1106,64 @@ void main() {
       matchesGoldenFile('out/sheet_add_debt_schedule.png'),
     );
   });
+
+  // Move money, in both of the states worth reviewing: as it opens, and with
+  // a move filled in so the figures and the closing sentence are visible.
+  for (final ({String slug, bool filled}) shape
+      in <({String slug, bool filled})>[
+        (slug: 'move_money', filled: false),
+        (slug: 'move_money_working', filled: true),
+      ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      MoveMoneySheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.filled) {
+        // 1,200 out of the pitaka, which it can cover. The first version of
+        // this shot typed 2,500 against an 1,850 balance, so the "working"
+        // picture was really a picture of the refusal panel. A shot meant to
+        // show the ordinary state has to be in the ordinary state.
+        await tester.enterText(find.widgetWithText(TextField, '0.00'), '1200');
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Cash in for dinner'),
+          'Topping up the wallet',
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
 
   // Split a bill, in both of the states worth reviewing.
   //
