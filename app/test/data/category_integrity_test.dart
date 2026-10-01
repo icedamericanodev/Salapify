@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../support/test_clock.dart';
+
 /// Category names are load bearing, and nothing was checking them.
 ///
 /// A transaction stores its category as a STRING. The category manager counts
@@ -20,7 +22,7 @@ void main() {
         .map((CategoryInfo c) => c.name)
         .toSet();
 
-    final List<String> orphans = SeedData.transactions()
+    final List<String> orphans = SeedData.transactions(testToday)
         .map((Transaction t) => t.category)
         .where((String c) => !known.contains(c))
         .toSet()
@@ -37,7 +39,7 @@ void main() {
   });
 
   test('every subcategory belongs to a category that exists', () {
-    for (final Transaction t in SeedData.transactions()) {
+    for (final Transaction t in SeedData.transactions(testToday)) {
       if (t.subcategory == null) continue;
       final CategoryInfo parent = SeedData.categories.firstWhere(
         (CategoryInfo c) => c.name == t.category,

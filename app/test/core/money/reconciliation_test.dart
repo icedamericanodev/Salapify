@@ -3,6 +3,8 @@ import 'package:salapify/core/money/reconciliation.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Reconciliation: the one place the app admits it might be wrong.
 ///
 /// The rules are the prototype's, from the fourth tab of ReportsScreen.tsx
@@ -176,7 +178,9 @@ void main() {
 
   group('duplicate detection', () {
     test('it finds the duplicate Meralco charge already in the fixture', () {
-      final List<DuplicatePair> pairs = findDuplicates(SeedData.transactions());
+      final List<DuplicatePair> pairs = findDuplicates(
+        SeedData.transactions(testToday),
+      );
       expect(
         pairs,
         isNotEmpty,
@@ -187,7 +191,7 @@ void main() {
     });
 
     test('an entry already marked duplicate is never offered again', () {
-      final List<Transaction> flagged = SeedData.transactions()
+      final List<Transaction> flagged = SeedData.transactions(testToday)
           .map(
             (Transaction t) => t.status == TransactionStatus.excluded
                 ? t.withStatus(TransactionStatus.duplicate)
@@ -266,8 +270,8 @@ void main() {
     });
 
     test('it suggests and never acts', () {
-      final List<Transaction> before = SeedData.transactions();
-      final List<Transaction> after = SeedData.transactions();
+      final List<Transaction> before = SeedData.transactions(testToday);
+      final List<Transaction> after = SeedData.transactions(testToday);
       findDuplicates(after);
       for (int i = 0; i < before.length; i++) {
         expect(
@@ -284,7 +288,7 @@ void main() {
 
   group('the correction path', () {
     test('marking an entry changes its status and nothing else', () {
-      final List<Transaction> before = SeedData.transactions();
+      final List<Transaction> before = SeedData.transactions(testToday);
       final Transaction target = before.first;
 
       final List<Transaction> after = applyStatusChange(
@@ -304,9 +308,9 @@ void main() {
     });
 
     test('it changes whether the entry COUNTS, which is the point', () {
-      final Transaction t = SeedData.transactions().firstWhere(
-        (Transaction x) => x.status == TransactionStatus.confirmed,
-      );
+      final Transaction t = SeedData.transactions(
+        testToday,
+      ).firstWhere((Transaction x) => x.status == TransactionStatus.confirmed);
       expect(t.countsTowardTotals, isTrue);
       expect(
         t.withStatus(TransactionStatus.duplicate).countsTowardTotals,
@@ -324,7 +328,7 @@ void main() {
     });
 
     test('no other entry is touched', () {
-      final List<Transaction> before = SeedData.transactions();
+      final List<Transaction> before = SeedData.transactions(testToday);
       final List<Transaction> after = applyStatusChange(
         before,
         before.first.id,
@@ -338,7 +342,7 @@ void main() {
 
   group('what the ledger accounts for', () {
     test('it leaves out excluded and duplicate entries', () {
-      final List<Transaction> txs = SeedData.transactions();
+      final List<Transaction> txs = SeedData.transactions(testToday);
       // acc_maya, not acc_gcash: the excluded duplicate Meralco charge is on
       // the Maya account. Pointing this at the wrong account made it a test
       // of nothing, which is what its first version was.

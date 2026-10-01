@@ -8,6 +8,8 @@ import 'package:salapify/data/snapshot.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
 
+import '../support/test_clock.dart';
+
 /// The file format: what it promises, and what it refuses to do.
 ///
 /// Two promises are worth more than all the others here. The first is that
@@ -18,16 +20,16 @@ import 'package:salapify/models/models.dart';
 /// file alone, and a file left alone can still be recovered.
 void main() {
   Snapshot seeded() => Snapshot(
-    accounts: SeedData.accounts,
-    transactions: SeedData.transactions(),
-    debts: SeedData.debts,
+    accounts: SeedData.accounts(testToday),
+    transactions: SeedData.transactions(testToday),
+    debts: SeedData.debts(testToday),
     budgets: SeedData.budgets,
     goals: SeedData.goals,
-    upcoming: SeedData.upcoming,
+    upcoming: SeedData.upcoming(testToday),
     incomeStreams: SeedData.incomeStreams,
-    installments: SeedData.installments,
+    installments: SeedData.installments(testToday),
     reconciliations: const <ReconciliationRecord>[],
-    bills: SeedData.bills,
+    bills: SeedData.bills(testToday),
     payday: SeedData.payday,
     theme: ThemeMode2.gabi,
     scenario: DecisionScenario.conservative,

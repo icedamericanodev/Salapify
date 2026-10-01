@@ -3,6 +3,8 @@ import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Golden vectors for the Reports engine.
 ///
 /// Every number below was PRINTED by running the prototype's own arithmetic,
@@ -24,8 +26,8 @@ void main() {
     ProfileEntity? profile,
   }) {
     return buildReports(
-      transactions: SeedData.transactions(),
-      accounts: SeedData.accounts,
+      transactions: SeedData.transactions(testToday),
+      accounts: SeedData.accounts(testToday),
       period: period,
       now: now,
       profile: profile,

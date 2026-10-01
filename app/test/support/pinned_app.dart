@@ -31,13 +31,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/state/financial_state.dart';
 
-/// The day every widget test runs on unless it says otherwise.
-///
-/// 18 September 2026 is the seed ledger's own "today": the sample
-/// transactions are dated around it, payday is the 15th, and the bills fall in
-/// that window. A date outside it would technically be pinned and would still
-/// show every screen in a state nobody designed.
-DateTime get testToday => DateTime(2026, 9, 18);
+export 'test_clock.dart' show testToday;
+
+import 'test_clock.dart';
+
+// testToday comes from test_clock.dart, which engine tests import without
+// pulling in flutter_test. One date, one definition.
 
 /// Builds a store on [testToday], pumps the app with it, and settles.
 ///

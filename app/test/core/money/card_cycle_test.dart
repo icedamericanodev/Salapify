@@ -4,6 +4,8 @@ import 'package:salapify/core/money/reminders.dart' show daysUntil;
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Where a credit card sits in its billing cycle.
 ///
 /// The dates are read by the reminder tray's own parser, so most of what
@@ -259,9 +261,9 @@ void main() {
       // the app could read it: Salapify shipped a fixture its own parser
       // returned null for, so the one card on a new phone was the one card
       // that could never show this.
-      final Account seeded = SeedData.accounts.firstWhere(
-        (Account a) => a.kind == AccountKind.credit,
-      );
+      final Account seeded = SeedData.accounts(
+        testToday,
+      ).firstWhere((Account a) => a.kind == AccountKind.credit);
       final CardCycle c = cardCycleFor(seeded, now);
       expect(c.knowsCutoff, isTrue, reason: seeded.statementDate ?? 'null');
       expect(c.knowsDue, isTrue, reason: seeded.dueDate ?? 'null');

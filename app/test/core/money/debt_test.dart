@@ -3,6 +3,8 @@ import 'package:salapify/core/money/debt.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Golden vectors for the debt payment port.
 ///
 /// Every figure below was PRINTED by running the prototype's own reducers
@@ -18,7 +20,7 @@ void main() {
       list.firstWhere((Debt d) => d.id == id);
 
   List<Debt> pay(String id, double amount) =>
-      applyDebtPayment(SeedData.debts, id, amount, today: today);
+      applyDebtPayment(SeedData.debts(testToday), id, amount, today: today);
 
   group('applyDebtPayment matches the prototype', () {
     test('a part payment on an instalment debt advances the counter', () {
@@ -84,13 +86,33 @@ void main() {
     });
 
     test('a zero or negative payment changes nothing at all', () {
-      expect(identical(pay('debt_homecredit', 0), SeedData.debts), isTrue);
-      expect(identical(pay('debt_homecredit', -500), SeedData.debts), isTrue);
+      // Compares against the SAME list that went in, not against a fresh
+      // SeedData call. This used to read
+      // `identical(pay(...), SeedData.debts)` and passed only because the
+      // seed was a `const` list, so every reference was one object. The seed
+      // is built from a clock now and hands back a new list each call, which
+      // made the identity check false while the behaviour it describes was
+      // unchanged. Capturing the input is what the assertion always meant.
+      final List<Debt> input = SeedData.debts(testToday);
+      expect(
+        identical(
+          applyDebtPayment(input, 'debt_homecredit', 0, today: today),
+          input,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          applyDebtPayment(input, 'debt_homecredit', -500, today: today),
+          input,
+        ),
+        isTrue,
+      );
     });
 
     test('no other debt is touched', () {
       final List<Debt> after = pay('debt_homecredit', 2450);
-      for (final Debt d in SeedData.debts) {
+      for (final Debt d in SeedData.debts(testToday)) {
         if (d.id == 'debt_homecredit') continue;
         final Debt now = of(after, d.id);
         expect(now.paidAmount, d.paidAmount, reason: '${d.id} moved');
@@ -128,7 +150,11 @@ void main() {
   group('toggleDebtSettled matches the prototype', () {
     test('settling fills the paid amount to the total', () {
       final Debt d = of(
-        toggleDebtSettled(SeedData.debts, 'debt_homecredit', today: today),
+        toggleDebtSettled(
+          SeedData.debts(testToday),
+          'debt_homecredit',
+          today: today,
+        ),
         'debt_homecredit',
       );
       expect(
@@ -144,7 +170,11 @@ void main() {
 
     test('un-settling clears the flag and the date', () {
       final Debt d = of(
-        toggleDebtSettled(SeedData.debts, 'debt_mom_settled', today: today),
+        toggleDebtSettled(
+          SeedData.debts(testToday),
+          'debt_mom_settled',
+          today: today,
+        ),
         'debt_mom_settled',
       );
       expect(d.isSettled, isFalse);
@@ -154,7 +184,7 @@ void main() {
 
     test('settling then un-settling leaves the money paid, not wound back', () {
       final List<Debt> once = toggleDebtSettled(
-        SeedData.debts,
+        SeedData.debts(testToday),
         'debt_homecredit',
         today: today,
       );
@@ -178,7 +208,7 @@ void main() {
   group('the ledger entry a payment writes', () {
     test('paying somebody is an expense, filed where Budgets can see it', () {
       final Transaction? t = paymentEntry(
-        debt: of(SeedData.debts, 'debt_homecredit'),
+        debt: of(SeedData.debts(testToday), 'debt_homecredit'),
         amount: 2450,
         accountId: 'acc_gcash',
         today: today,
@@ -206,7 +236,7 @@ void main() {
 
     test('being repaid is income, with its own category', () {
       final Transaction? t = paymentEntry(
-        debt: of(SeedData.debts, 'debt_kuya_mark'),
+        debt: of(SeedData.debts(testToday), 'debt_kuya_mark'),
         amount: 1500,
         accountId: 'acc_gcash',
         today: today,
@@ -226,7 +256,7 @@ void main() {
     test('no account means no entry, rather than an entry from nowhere', () {
       expect(
         paymentEntry(
-          debt: of(SeedData.debts, 'debt_kuya_mark'),
+          debt: of(SeedData.debts(testToday), 'debt_kuya_mark'),
           amount: 1500,
           accountId: null,
           today: today,
@@ -242,18 +272,26 @@ void main() {
 
   group('the register totals', () {
     test('outstanding counts only open debts, in one direction', () {
-      expect(outstanding(SeedData.debts, DebtDirection.iOwe), 17350);
-      expect(outstanding(SeedData.debts, DebtDirection.owedToMe), 6250);
+      expect(outstanding(SeedData.debts(testToday), DebtDirection.iOwe), 17350);
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.owedToMe),
+        6250,
+      );
     });
 
     test('the settled Mom debt is excluded from what you owe', () {
       // 14,700 - 7,350 plus 15,000 - 5,000 is 17,350. Mom's 2,000 is settled
       // and must not be in there.
-      expect(outstanding(SeedData.debts, DebtDirection.iOwe), isNot(19350));
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.iOwe),
+        isNot(19350),
+      );
     });
 
     test('the beam splits the way the prototype splits it', () {
-      final ({double owedToMe, double youOwe}) b = beamSplit(SeedData.debts);
+      final ({double owedToMe, double youOwe}) b = beamSplit(
+        SeedData.debts(testToday),
+      );
       expect(b.owedToMe, closeTo(26.48305084745763, 1e-9));
       expect(b.youOwe, closeTo(73.51694915254237, 1e-9));
     });
@@ -298,7 +336,7 @@ void main() {
   group('splitting by status', () {
     test('open first, settled kept rather than hidden', () {
       final ({List<Debt> open, List<Debt> settled}) s = splitByStatus(
-        SeedData.debts,
+        SeedData.debts(testToday),
         DebtDirection.iOwe,
       );
       expect(s.open.map((Debt d) => d.id), <String>[

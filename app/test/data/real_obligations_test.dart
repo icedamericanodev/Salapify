@@ -7,11 +7,13 @@ import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
+import '../support/test_clock.dart';
+
 /// Safe to Spend must be built from the USER's obligations, never the seed's.
 ///
 /// The defect this file exists for was measured, not theorised. A brand new
 /// user holding one real ₱50,000 account saw a Safe to Spend of ₱0.00, because
-/// the engine was handed `SeedData.bills` and `SeedData.installments`
+/// the engine was handed `SeedData.bills(testToday)` and `SeedData.installments(testToday)`
 /// directly: ₱41,184 of demo bills (times the conservative 1.1 multiplier) and
 /// ₱6,348 of demo plans were reserved against obligations they had never
 /// entered. Worse than wrong, it was unaccountable, because no screen in the
@@ -140,10 +142,10 @@ void main() {
   });
 
   test('the seed still has bills, so the fixture did not go empty', () {
-    // Guards the guard. If SeedData.bills ever became empty, every assertion
+    // Guards the guard. If SeedData.bills(testToday) ever became empty, every assertion
     // above would pass for a reason that has nothing to do with the fix.
-    expect(SeedData.bills, isNotEmpty);
-    expect(SeedData.installments, isNotEmpty);
+    expect(SeedData.bills(testToday), isNotEmpty);
+    expect(SeedData.installments(testToday), isNotEmpty);
     expect(SeedData.payday.daysToPayday, greaterThan(0));
   });
 

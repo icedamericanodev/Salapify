@@ -217,8 +217,11 @@ class _SampleDataSheetState extends State<SampleDataSheet> {
     if (mounted) setState(() {});
   }
 
-  static double _seeded(String id) {
-    for (final Account a in SeedData.accounts) {
+  /// No longer static, for the same reason as its twin in FinancialState: the
+  /// seed is built against a clock now. It reads a BALANCE, which no date
+  /// affects, so the store's own clock is used rather than a second one.
+  double _seeded(String id) {
+    for (final Account a in SeedData.accounts(widget.state.now)) {
       if (a.id == id) return a.balance;
     }
     return 0;

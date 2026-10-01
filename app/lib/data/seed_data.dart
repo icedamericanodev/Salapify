@@ -8,13 +8,105 @@ import '../models/models.dart';
 class SeedData {
   const SeedData._();
 
-  /// Transaction timestamps are anchored to "now" rather than to a fixed date,
-  /// so the 30-day windows the engine reads still have signal whenever the app
-  /// is opened. The calendar dates stay as the prototype wrote them.
-  static int _daysAgo(int days) =>
-      DateTime.now().subtract(Duration(days: days)).millisecondsSinceEpoch;
+  /// EVERYTHING DATED IN HERE IS AN OFFSET FROM TODAY, in days.
+  ///
+  /// It did not used to be, and the half-measure was worse than either whole
+  /// one. `createdAt` was anchored to `DateTime.now()` so the 30-day windows
+  /// kept their signal, while the calendar `date` beside it stayed frozen at
+  /// the day the seed was written. The two fields described different days
+  /// about the same transaction.
+  ///
+  /// What that looked like, and it is the reason this changed: on 1 October a
+  /// brand new install showed a Log full of entries from "yesterday" sitting
+  /// above a Budgets screen reporting that nothing at all had been spent this
+  /// month. Both were reading the sample data correctly. Salapify 3 is built
+  /// for the public (D19), so that is the first screen a stranger meets.
+  ///
+  /// ## The anchor, and why the offsets are the numbers they are
+  ///
+  /// Every literal in this file used to be measured against 18 September 2026,
+  /// the day the seed was written: `date: '2026-09-17'` always sat beside
+  /// `createdAt: _daysAgo(1)`, `'2026-09-01'` beside `_daysAgo(17)`, and so on
+  /// without exception. The offsets below are exactly those numbers, so with
+  /// the clock at that anchor this file still produces what it always did.
+  /// `seed_dates_test.dart` holds the whole set and asserts it.
+  ///
+  /// ## What a day shift does at a month boundary
+  ///
+  /// The sample ledger spans eighteen days, so early in a month some of it
+  /// falls in the previous one and "spent this month" is smaller. That is not
+  /// a defect being accepted quietly, it is what the first week of a real
+  /// month looks like, and a demo that pretended otherwise would be teaching
+  /// somebody to expect a figure their own ledger will never show.
+  static DateTime _midnight(DateTime now) =>
+      DateTime(now.year, now.month, now.day);
 
-  static const List<Account> accounts = <Account>[
+  /// `offset` is NEGATIVE for the past, so it reads like a number line rather
+  /// than like `_daysAgo`, whose sign had to be remembered.
+  static DateTime _day(DateTime now, int offset) =>
+      _midnight(now).add(Duration(days: offset));
+
+  /// The stored form, which is what every date helper in core/money parses.
+  static String _iso(DateTime now, int offset) {
+    final DateTime d = _day(now, offset);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// A timestamp, kept separate from [_iso] because the two answer different
+  /// questions: when it happened, and when it was written down.
+  static int _epoch(DateTime now, int offset) =>
+      _day(now, offset).millisecondsSinceEpoch;
+
+  static const List<String> _months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static const List<String> _weekdays = <String>[
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  /// The short label a due date is shown as, such as "Sep 25".
+  static String _short(DateTime now, int offset) {
+    final DateTime d = _day(now, offset);
+    return '${_months[d.month - 1]} ${d.day}';
+  }
+
+  /// How the Coming Up card words a date.
+  ///
+  /// Today is "Today", the next few days are named by weekday, and anything
+  /// further out gets the short date. This is a small IMPROVEMENT on what the
+  /// seed said rather than a reproduction of it: one row read "Sep 18" on the
+  /// very day it was due, where "Today" is what a person would say, and
+  /// another read "Monday, Sep 15" when 15 September 2026 was a Tuesday. A
+  /// weekday worked out from the date cannot be wrong.
+  static String _due(DateTime now, int offset) {
+    if (offset == 0) return 'Today';
+    if (offset == 1) return 'Tomorrow';
+    if (offset > 1 && offset < 7) {
+      return _weekdays[_day(now, offset).weekday - 1];
+    }
+    return _short(now, offset);
+  }
+
+  static List<Account> accounts(DateTime now) => <Account>[
     Account(
       id: 'acc_cash',
       profile: ProfileEntity.personal,
@@ -121,7 +213,7 @@ class SeedData {
       creditLimit: 40000.00,
       monogram: 'BPI',
       accountNumber: '5424-****-****-8819',
-      dueDate: 'Oct 3',
+      dueDate: _short(now, 15),
       statementDate: '10th of the month',
       cardNetwork: CardNetwork.visa,
       notes: 'Kept below 30% utilization threshold for credit score health',
@@ -135,7 +227,7 @@ class SeedData {
       institution: 'BPI',
       balance: 10000.00,
       monogram: 'LOAN',
-      dueDate: 'Sep 25',
+      dueDate: _short(now, 7),
       notes: 'Remaining gadget upgrade principal balance',
       isSample: true,
     ),
@@ -147,13 +239,13 @@ class SeedData {
       institution: 'Pag-IBIG',
       balance: 385000.00,
       monogram: 'MTG',
-      dueDate: 'Sep 28',
+      dueDate: _short(now, 10),
       notes: '30-year residential housing mortgage',
       isSample: true,
     ),
   ];
 
-  static List<Transaction> transactions() => <Transaction>[
+  static List<Transaction> transactions(DateTime now) => <Transaction>[
     // Three rows that exist so the Activity screen can be REVIEWED rather
     // than merely rendered. Without them every entry is a plain confirmed
     // expense, so the status chips, the struck-through amount and the
@@ -169,8 +261,8 @@ class SeedData {
       category: 'Shopping & Personal',
       accountId: 'acc_ub_debit',
       merchant: 'Lazada Order',
-      date: '2026-09-17',
-      createdAt: _daysAgo(1),
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
       status: TransactionStatus.pending,
       note: 'Card authorisation, not posted yet',
       isSample: true,
@@ -184,8 +276,8 @@ class SeedData {
       category: 'Bills & Utilities',
       accountId: 'acc_maya',
       merchant: 'Meralco',
-      date: '2026-09-15',
-      createdAt: _daysAgo(3),
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
       status: TransactionStatus.excluded,
       note: 'Charged twice, this one is not mine to pay',
       isSample: true,
@@ -200,8 +292,8 @@ class SeedData {
       accountId: 'acc_bpi',
       toAccountId: 'acc_gcash',
       merchant: 'Top up GCash',
-      date: '2026-09-16',
-      createdAt: _daysAgo(2),
+      date: _iso(now, -2),
+      createdAt: _epoch(now, -2),
       isSample: true,
     ),
     Transaction(
@@ -213,8 +305,8 @@ class SeedData {
       category: 'Salary & Compensation',
       accountId: 'acc_bpi',
       merchant: 'Corporate Payroll Direct Deposit',
-      date: '2026-09-01',
-      createdAt: _daysAgo(17),
+      date: _iso(now, -17),
+      createdAt: _epoch(now, -17),
       note: 'First cutoff net pay after SSS, PhilHealth, and Pag-IBIG',
       isSample: true,
     ),
@@ -227,8 +319,8 @@ class SeedData {
       category: 'Business Revenue',
       accountId: 'acc_seabank',
       merchant: 'Apex Retainer Invoice #104',
-      date: '2026-09-08',
-      createdAt: _daysAgo(10),
+      date: _iso(now, -10),
+      createdAt: _epoch(now, -10),
       isSample: true,
     ),
     Transaction(
@@ -240,8 +332,8 @@ class SeedData {
       category: 'Bills & Utilities',
       accountId: 'acc_maya',
       merchant: 'Meralco',
-      date: '2026-09-15',
-      createdAt: _daysAgo(3),
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
       isSample: true,
     ),
     Transaction(
@@ -253,8 +345,8 @@ class SeedData {
       category: 'Groceries',
       accountId: 'acc_ub_debit',
       merchant: 'S&R Membership Shopping',
-      date: '2026-09-14',
-      createdAt: _daysAgo(4),
+      date: _iso(now, -4),
+      createdAt: _epoch(now, -4),
       isSample: true,
     ),
     Transaction(
@@ -266,8 +358,8 @@ class SeedData {
       category: 'Food & Dining',
       accountId: 'acc_gcash',
       merchant: 'Jollibee',
-      date: '2026-09-17',
-      createdAt: _daysAgo(1),
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
       isSample: true,
     ),
     Transaction(
@@ -279,8 +371,8 @@ class SeedData {
       category: 'Transport & Commute',
       accountId: 'acc_gcash',
       merchant: 'Grab',
-      date: '2026-09-17',
-      createdAt: _daysAgo(1),
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
       isSample: true,
     ),
     Transaction(
@@ -292,8 +384,8 @@ class SeedData {
       category: 'Family Support & Remittance',
       accountId: 'acc_bpi',
       merchant: 'Nanay Monthly Padala',
-      date: '2026-09-16',
-      createdAt: _daysAgo(2),
+      date: _iso(now, -2),
+      createdAt: _epoch(now, -2),
       isSample: true,
     ),
     Transaction(
@@ -305,8 +397,8 @@ class SeedData {
       category: 'Food & Dining',
       accountId: 'acc_cash',
       merchant: 'Local Kape Shop',
-      date: '2026-09-18',
-      createdAt: _daysAgo(0),
+      date: _iso(now, 0),
+      createdAt: _epoch(now, 0),
       isSample: true,
     ),
 
@@ -331,8 +423,8 @@ class SeedData {
       category: 'Debt & Loan Servicing',
       accountId: 'acc_gcash',
       merchant: 'Home Credit Philippines',
-      date: '2026-09-04',
-      createdAt: _daysAgo(14),
+      date: _iso(now, -14),
+      createdAt: _epoch(now, -14),
       isSample: true,
     ),
     Transaction(
@@ -344,8 +436,8 @@ class SeedData {
       category: 'Debt & Loan Servicing',
       accountId: 'acc_bpi',
       merchant: 'Pag-IBIG MP2 Top-up',
-      date: '2026-09-05',
-      createdAt: _daysAgo(13),
+      date: _iso(now, -13),
+      createdAt: _epoch(now, -13),
       isSample: true,
     ),
     Transaction(
@@ -357,8 +449,8 @@ class SeedData {
       category: 'Business & Freelance Ops',
       accountId: 'acc_ub_debit',
       merchant: 'Figma Professional & GitHub Copilot',
-      date: '2026-09-10',
-      createdAt: _daysAgo(8),
+      date: _iso(now, -8),
+      createdAt: _epoch(now, -8),
       isSample: true,
     ),
     // Pushes Debt & Loan Servicing PAST its 6,000 limit, on purpose. Without
@@ -379,8 +471,8 @@ class SeedData {
       category: 'Debt & Loan Servicing',
       accountId: 'acc_bpi',
       merchant: 'BPI Rewards Card Payment',
-      date: '2026-09-12',
-      createdAt: _daysAgo(6),
+      date: _iso(now, -6),
+      createdAt: _epoch(now, -6),
       isSample: true,
     ),
     Transaction(
@@ -392,14 +484,14 @@ class SeedData {
       category: 'Housing & Rent',
       accountId: 'acc_maya',
       merchant: 'Handyman Hardware BGC',
-      date: '2026-09-15',
-      createdAt: _daysAgo(3),
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
       status: TransactionStatus.pending,
       isSample: true,
     ),
   ];
 
-  static const List<Debt> debts = <Debt>[
+  static List<Debt> debts(DateTime now) => <Debt>[
     // The instalment counts, the schedule type, the settled date and the notes
     // are all from the prototype's own seed. They were dropped when this list
     // was first ported because no screen read them; the Debt screen does, and
@@ -411,7 +503,7 @@ class SeedData {
       direction: DebtDirection.iOwe,
       totalAmount: 14700,
       paidAmount: 7350,
-      dueDate: 'Sep 18',
+      dueDate: _short(now, 0),
       isSettled: false,
       schedule: DebtSchedule.scheduled,
       installmentCurrent: 3,
@@ -425,7 +517,7 @@ class SeedData {
       direction: DebtDirection.iOwe,
       totalAmount: 15000,
       paidAmount: 5000,
-      dueDate: 'Sep 25',
+      dueDate: _short(now, 7),
       isSettled: false,
       schedule: DebtSchedule.scheduled,
       installmentCurrent: 2,
@@ -439,7 +531,7 @@ class SeedData {
       direction: DebtDirection.owedToMe,
       totalAmount: 5000,
       paidAmount: 0,
-      dueDate: 'Sep 30',
+      dueDate: _short(now, 12),
       isSettled: false,
       notes: 'Concert tickets advance for Olivia Rodrigo',
       isSample: true,
@@ -450,7 +542,7 @@ class SeedData {
       direction: DebtDirection.owedToMe,
       totalAmount: 1250,
       paidAmount: 0,
-      dueDate: 'Sep 16',
+      dueDate: _short(now, -2),
       isSettled: false,
       notes: 'Hotpot dinner share at Robinson Galleria',
       isSample: true,
@@ -462,7 +554,7 @@ class SeedData {
       totalAmount: 2000,
       paidAmount: 2000,
       isSettled: true,
-      settledDate: 'Sep 3',
+      settledDate: _short(now, -15),
       notes: 'Pahiram for groceries last month, all paid',
       isSample: true,
     ),
@@ -777,12 +869,12 @@ class SeedData {
     ),
   ];
 
-  static const List<UpcomingItem> upcoming = <UpcomingItem>[
+  static List<UpcomingItem> upcoming(DateTime now) => <UpcomingItem>[
     UpcomingItem(
       id: 'up_meralco',
       name: 'Meralco Electric Bill',
       amount: 2840.00,
-      dueDate: 'Today',
+      dueDate: _due(now, 0),
       type: UpcomingItemType.bill,
       isSample: true,
     ),
@@ -790,7 +882,7 @@ class SeedData {
       id: 'up_spotify',
       name: 'Spotify Premium Family',
       amount: 239.00,
-      dueDate: 'Sunday',
+      dueDate: _due(now, 2),
       type: UpcomingItemType.subscription,
       isSample: true,
     ),
@@ -798,7 +890,7 @@ class SeedData {
       id: 'up_homecredit',
       name: 'Home Credit Installment',
       amount: 2450.00,
-      dueDate: 'Sep 18',
+      dueDate: _due(now, 0),
       type: UpcomingItemType.debt,
       isSample: true,
     ),
@@ -806,7 +898,7 @@ class SeedData {
       id: 'up_payday',
       name: 'Sweldo Payday (15th Cutoff)',
       amount: 32500.00,
-      dueDate: 'Monday, Sep 15',
+      dueDate: _due(now, -3),
       type: UpcomingItemType.payday,
       isIncome: true,
       isSample: true,
@@ -864,33 +956,33 @@ class SeedData {
     expectedIncome: 32500,
   );
 
-  static const List<BillItem> bills = <BillItem>[
+  static List<BillItem> bills(DateTime now) => <BillItem>[
     BillItem(
       id: 'bill_meralco',
       name: 'Meralco Electricity',
       amount: 2840.00,
-      dueDate: '2026-09-15',
+      dueDate: _iso(now, -3),
       isSample: true,
     ),
     BillItem(
       id: 'bill_water',
       name: 'Manila Water',
       amount: 480.00,
-      dueDate: '2026-09-18',
+      dueDate: _iso(now, 0),
       isSample: true,
     ),
     BillItem(
       id: 'bill_internet',
       name: 'Converge FiberX 1500',
       amount: 1500.00,
-      dueDate: '2026-09-20',
+      dueDate: _iso(now, 2),
       isSample: true,
     ),
     BillItem(
       id: 'bill_spotify',
       name: 'Spotify Family Plan',
       amount: 239.00,
-      dueDate: '2026-09-14',
+      dueDate: _iso(now, -4),
       isPaid: true,
       isSample: true,
     ),
@@ -898,42 +990,42 @@ class SeedData {
       id: 'bill_rent',
       name: 'Condo Unit Rental',
       amount: 14000.00,
-      dueDate: '2026-09-30',
+      dueDate: _iso(now, 12),
       isSample: true,
     ),
     BillItem(
       id: 'bill_insurance',
       name: 'Pru Life UK VUL Insurance',
       amount: 2500.00,
-      dueDate: '2026-09-25',
+      dueDate: _iso(now, 7),
       isSample: true,
     ),
     BillItem(
       id: 'bill_tuition',
       name: 'Sibling College Tuition (2nd Tranche)',
       amount: 8500.00,
-      dueDate: '2026-10-05',
+      dueDate: _iso(now, 17),
       isSample: true,
     ),
     BillItem(
       id: 'bill_sss',
       name: 'SSS Voluntary Contribution',
       amount: 1120.00,
-      dueDate: '2026-09-30',
+      dueDate: _iso(now, 12),
       isSample: true,
     ),
     BillItem(
       id: 'bill_philhealth',
       name: 'PhilHealth Contribution',
       amount: 500.00,
-      dueDate: '2026-09-30',
+      dueDate: _iso(now, 12),
       isSample: true,
     ),
     BillItem(
       id: 'bill_remittance',
       name: 'Nanay Monthly Padala & Groceries',
       amount: 6000.00,
-      dueDate: '2026-09-16',
+      dueDate: _iso(now, -2),
       isSample: true,
     ),
   ];
@@ -947,7 +1039,7 @@ class SeedData {
   /// genuine 0 percent promo with an extra payment against it, and one
   /// e-commerce plan at 2.95 a month, so the Installments screen can be
   /// REVIEWED rather than merely rendered.
-  static const List<InstallmentPlan> installments = <InstallmentPlan>[
+  static List<InstallmentPlan> installments(DateTime now) => <InstallmentPlan>[
     InstallmentPlan(
       id: 'inst_home_credit',
       name: 'Inverter Refrigerator (Abenson)',
@@ -958,7 +1050,7 @@ class SeedData {
       totalInterest: 4410.00,
       totalPayable: 28910.00,
       termMonths: 12,
-      startDate: '2026-04-18',
+      startDate: _iso(now, -153),
       maturityDate: '2027-04-18',
       installmentAmount: 2409.17,
       paidInstallments: 5,
@@ -979,7 +1071,7 @@ class SeedData {
       totalInterest: 0.0,
       totalPayable: 54990.00,
       termMonths: 24,
-      startDate: '2025-11-25',
+      startDate: _iso(now, -297),
       maturityDate: '2027-11-25',
       installmentAmount: 2291.25,
       paidInstallments: 10,
@@ -1008,7 +1100,7 @@ class SeedData {
       totalInterest: 1486.80,
       totalPayable: 9886.80,
       termMonths: 6,
-      startDate: '2026-07-05',
+      startDate: _iso(now, -75),
       maturityDate: '2027-01-05',
       installmentAmount: 1647.80,
       paidInstallments: 2,

@@ -3,6 +3,8 @@ import 'package:salapify/core/money/plan.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Golden vectors for the Plan engine.
 ///
 /// Produced by app/tool/gen_plan_vectors.ts, which runs the prototype's own
@@ -18,7 +20,7 @@ void main() {
 
   List<BudgetStatus> budgets() => computeBudgets(
     budgets: SeedData.budgets,
-    transactions: SeedData.transactions(),
+    transactions: SeedData.transactions(testToday),
     now: now,
   );
 
@@ -76,7 +78,7 @@ void main() {
       // dated outside September 2026, so this asserts the RULE directly by
       // handing the engine an entry from last month.
       final List<Transaction> withLastMonth = <Transaction>[
-        ...SeedData.transactions(),
+        ...SeedData.transactions(testToday),
         const Transaction(
           id: 'tx_last_month',
           type: TransactionType.expense,
@@ -157,7 +159,7 @@ void main() {
         budgets: const <Budget>[
           Budget(category: 'Food & Dining', limit: 0, emoji: 'x'),
         ],
-        transactions: SeedData.transactions(),
+        transactions: SeedData.transactions(testToday),
         now: now,
       );
       expect(rows.single.percent, 0);
@@ -295,7 +297,9 @@ void main() {
 
   group('upcoming', () {
     test('bills and income are separated', () {
-      final UpcomingTotals t = computeUpcomingTotals(SeedData.upcoming);
+      final UpcomingTotals t = computeUpcomingTotals(
+        SeedData.upcoming(testToday),
+      );
       closeTo(t.totalOut, 5529, 'totalOut');
       closeTo(t.totalIn, 32500, 'totalIn');
       expect(t.billCount, 3);
@@ -306,7 +310,9 @@ void main() {
       // Scheduled Bills", so the 32,500 payday is counted as a bill and the
       // figure reads 38,029 when the bills come to 5,529. No stored number
       // changes here; both figures are shown instead of one wrong one.
-      final UpcomingTotals t = computeUpcomingTotals(SeedData.upcoming);
+      final UpcomingTotals t = computeUpcomingTotals(
+        SeedData.upcoming(testToday),
+      );
       expect(
         t.totalOut,
         isNot(38029),
@@ -321,7 +327,7 @@ void main() {
 
     test('a paid item drops out of both totals', () {
       final List<UpcomingItem> items = <UpcomingItem>[
-        ...SeedData.upcoming.map(
+        ...SeedData.upcoming(testToday).map(
           (UpcomingItem u) => UpcomingItem(
             id: u.id,
             name: u.name,

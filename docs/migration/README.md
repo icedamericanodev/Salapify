@@ -2350,3 +2350,95 @@ Worth naming plainly: pinning the clock removed the only mechanism that had
 ever surfaced that defect. The tests can no longer notice it. Deferring the
 fix was right, since it is product content; deferring it in the same change
 that removed the detector is why it is written here rather than left implied.
+
+## The sample ledger dates itself from today (2026-10-01)
+
+Founder direction: "fix the sample data dates".
+
+### What was wrong
+
+Every date in `seed_data.dart` was a fixed calendar string written against
+18 September 2026, while the `createdAt` timestamp beside it was anchored to
+`DateTime.now()`. The two fields described different days about the same
+transaction.
+
+On 1 October a brand new install showed a Log full of entries from "yesterday"
+sitting above a Budgets screen reporting that nothing at all had been spent
+this month. Both were reading the sample data correctly. Salapify 3 is built
+for the public (D19), so that is the first screen a stranger meets.
+
+### The property that made the change safe
+
+Those fixed strings were ALWAYS the anchor minus the offset already written
+beside them: `'2026-09-17'` sat with `_daysAgo(1)`, `'2026-09-01'` with
+`_daysAgo(17)`, with no exceptions. The conversion asserted that pairing on
+every one of the sixteen transactions rather than trusting it, and all sixteen
+held.
+
+So replacing each string with its own offset leaves the ledger identical when
+the clock is at the anchor, which is why hundreds of expected figures across
+the suite did not move.
+
+That is a claim, and a claim about a hundred dates is exactly the sort that is
+true wherever somebody checked. `seed_dates_test.dart` compares against a
+fixture captured from the OLD code before any of it was touched, so it is a
+comparison rather than a restatement.
+
+### What a day shift does at a month boundary
+
+The sample ledger spans eighteen days, so early in a month some of it falls in
+the previous one and "spent this month" is smaller. That is not a defect being
+accepted quietly: it is what the first week of a real month looks like, and a
+demo that pretended otherwise would teach somebody to expect a figure their
+own ledger will never show.
+
+### One label set changed on purpose
+
+The Coming Up dates are derived now, and two of the old strings were wrong.
+`'Sep 18'` labelled a bill due the very day it was shown, where a person says
+"Today". `'Monday, Sep 15'` named a weekday that 15 September 2026 is not; it
+was a Tuesday. A weekday worked out from the date cannot be wrong.
+
+### Two tests that passed for the wrong reason
+
+`debt_test.dart` and `installments_test.dart` each asserted
+`identical(applyX(SeedData.y), SeedData.y)` to mean "a zero payment returns
+the list untouched". That passed because the seed was a `const` list, so every
+reference was the same object. The seed is built from a clock now and hands
+back a new list per call, so the identity check broke while the behaviour it
+describes did not. Both now capture the input and compare against it, which is
+what the assertion always meant.
+
+### Proving it
+
+Re-freezing the anchor inside the seed fails the three "moves with the clock"
+tests, and the middle one is the original defect in a single assertion:
+
+    Expected: a value greater than <0>
+      Actual: <0.0>
+    a brand new install reports nothing spent this month
+
+### STILL STALE, and it needs a founder decision
+
+![a new install in March](screens/home-new-install-march.png)
+
+The render above is a brand new install on 20 March 2027. The ledger has moved
+with the clock, and every figure matches the anchor exactly. The Safe to Spend
+card still reads **"4 days to payday"** and **"Sep 1 to Sep 15"**.
+
+`PaydayCycle` already recomputes its countdown and both labels from
+`paydayDays`, the RULE for which days of the month the money lands on. The
+seed does not carry that rule, so `hasRule` is false and the getter returns
+the frozen strings untouched. The model's own comment explains why empty is
+not a default: it marks a cycle restored from a backup older than the field.
+The seed is not an old backup, so it should carry the rule.
+
+It is not fixed here because fixing it MOVES A HEADLINE MONEY FIGURE. The
+frozen cycle is not merely stale, it is internally inconsistent: it claims 4
+days to a payday on 15 September while the anchor is 18 September, which is
+three days PAST it. Giving the seed `paydayDays: [15, 30]` would recompute the
+anchor to "Sep 15 to Sep 30, 12 days", changing Safe to Spend and everything
+derived from it, across roughly a dozen test files.
+
+That is STOP condition 1, money meaning, so it goes to the founder before it
+is done rather than after.

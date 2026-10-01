@@ -3,6 +3,8 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/core/money/safe_to_spend.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Golden vectors for the Safe to Spend port.
 ///
 /// These numbers were NOT worked out by hand and they were not copied from the
@@ -14,11 +16,11 @@ void main() {
   // The vectors were generated with this exact instant pinned.
   final DateTime pinnedNow = DateTime.utc(2026, 9, 18);
 
-  double debtsIOwe() => SeedData.debts
+  double debtsIOwe() => SeedData.debts(testToday)
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe)
       .fold<double>(0, (double s, Debt d) => s + d.remaining);
 
-  double debtsOwedToMe() => SeedData.debts
+  double debtsOwedToMe() => SeedData.debts(testToday)
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.owedToMe)
       .fold<double>(0, (double s, Debt d) => s + d.remaining);
 
@@ -26,11 +28,11 @@ void main() {
     required DecisionScenario scenario,
     List<Transaction> transactions = const <Transaction>[],
   }) => computeSafeToSpend(
-    accounts: SeedData.accounts,
+    accounts: SeedData.accounts(testToday),
     transactions: transactions,
-    bills: SeedData.bills,
+    bills: SeedData.bills(testToday),
     debtsIOwe: debtsIOwe(),
-    installments: SeedData.installments,
+    installments: SeedData.installments(testToday),
     incomeStreams: SeedData.incomeStreams,
     payday: SeedData.payday,
     scenario: scenario,
@@ -44,16 +46,15 @@ void main() {
     });
 
     test('liquid cash agrees, and excludes what is not spendable', () {
-      final double liquid = SeedData.accounts
+      final double liquid = SeedData.accounts(testToday)
           .where((Account a) => a.isLiquid)
           .fold<double>(0, (double s, Account a) => s + a.balance);
       expect(liquid, 110720.50);
 
       // The investment, the receivable and every borrowing line stay out.
-      final Set<String> excluded = SeedData.accounts
-          .where((Account a) => !a.isLiquid)
-          .map((Account a) => a.id)
-          .toSet();
+      final Set<String> excluded = SeedData.accounts(
+        testToday,
+      ).where((Account a) => !a.isLiquid).map((Account a) => a.id).toSet();
       expect(excluded, <String>{
         'acc_mp2',
         'acc_receivables',
@@ -216,11 +217,11 @@ void main() {
       // unmeasured would pass both tests above and be useless: it would hide
       // the runway from somebody who had told the app what they spend.
       final SafeToSpendAnalysis a = computeSafeToSpend(
-        accounts: SeedData.accounts,
+        accounts: SeedData.accounts(testToday),
         transactions: const <Transaction>[],
-        bills: SeedData.bills,
+        bills: SeedData.bills(testToday),
         debtsIOwe: debtsIOwe(),
-        installments: SeedData.installments,
+        installments: SeedData.installments(testToday),
         incomeStreams: SeedData.incomeStreams,
         payday: SeedData.payday,
         scenario: DecisionScenario.conservative,

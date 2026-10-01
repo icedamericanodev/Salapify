@@ -44,15 +44,15 @@ class FinancialState extends ChangeNotifier {
   }
 
   void _seed() {
-    _transactions = SeedData.transactions();
-    _upcoming = List<UpcomingItem>.of(SeedData.upcoming);
-    _debts = List<Debt>.of(SeedData.debts);
-    _accounts = List<Account>.of(SeedData.accounts);
+    _transactions = SeedData.transactions(now);
+    _upcoming = List<UpcomingItem>.of(SeedData.upcoming(now));
+    _debts = List<Debt>.of(SeedData.debts(now));
+    _accounts = List<Account>.of(SeedData.accounts(now));
     _budgets = List<Budget>.of(SeedData.budgets);
     _goals = List<Goal>.of(SeedData.goals);
     _incomeStreams = List<IncomeStream>.of(SeedData.incomeStreams);
-    _installments = List<InstallmentPlan>.of(SeedData.installments);
-    _bills = List<BillItem>.of(SeedData.bills);
+    _installments = List<InstallmentPlan>.of(SeedData.installments(now));
+    _bills = List<BillItem>.of(SeedData.bills(now));
     _payday = SeedData.payday;
     _notifications = <AppNotification>[];
     _reminderSettings = ReminderSettings.defaults;
@@ -1786,8 +1786,13 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
-  static double _seededBalanceOf(String id) {
-    for (final Account a in SeedData.accounts) {
+  /// No longer static, because the seed is built against a clock now.
+  ///
+  /// It only ever reads a BALANCE, which no date affects, so any clock would
+  /// do. Taking the store's own keeps one answer to "what does the seed say"
+  /// rather than two that could drift.
+  double _seededBalanceOf(String id) {
+    for (final Account a in SeedData.accounts(now)) {
       if (a.id == id) return a.balance;
     }
     return 0;
@@ -1822,17 +1827,17 @@ class FinancialState extends ChangeNotifier {
     // belt as well as the braces.
     _accounts = <Account>[
       ..._accounts,
-      for (final Account a in SeedData.accounts)
+      for (final Account a in SeedData.accounts(now))
         if (!accountIds.contains(a.id)) a,
     ];
     _transactions = <Transaction>[
       ..._transactions,
-      for (final Transaction t in SeedData.transactions())
+      for (final Transaction t in SeedData.transactions(now))
         if (!txIds.contains(t.id)) t,
     ];
     _debts = <Debt>[
       ..._debts,
-      for (final Debt d in SeedData.debts)
+      for (final Debt d in SeedData.debts(now))
         if (!debtIds.contains(d.id)) d,
     ];
     _budgets = <Budget>[
@@ -1847,17 +1852,17 @@ class FinancialState extends ChangeNotifier {
     ];
     _upcoming = <UpcomingItem>[
       ..._upcoming,
-      for (final UpcomingItem u in SeedData.upcoming)
+      for (final UpcomingItem u in SeedData.upcoming(now))
         if (!upIds.contains(u.id)) u,
     ];
     _installments = <InstallmentPlan>[
       ..._installments,
-      for (final InstallmentPlan p in SeedData.installments)
+      for (final InstallmentPlan p in SeedData.installments(now))
         if (!planIds.contains(p.id)) p,
     ];
     _bills = <BillItem>[
       ..._bills,
-      for (final BillItem b in SeedData.bills)
+      for (final BillItem b in SeedData.bills(now))
         if (!billIds.contains(b.id)) b,
     ];
 

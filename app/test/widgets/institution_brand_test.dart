@@ -9,6 +9,8 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
 
+import '../support/test_clock.dart';
+
 /// The institutions' own marks, and the card they sit on.
 void main() {
   cardFlipTests();
@@ -53,7 +55,7 @@ void main() {
 
   group('resolving a name', () {
     test('every institution in the seed resolves to something deliberate', () {
-      for (final Account a in SeedData.accounts) {
+      for (final Account a in SeedData.accounts(testToday)) {
         expect(
           brandFor(a.institution),
           isNotNull,

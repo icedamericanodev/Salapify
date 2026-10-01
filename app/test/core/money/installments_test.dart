@@ -3,6 +3,8 @@ import 'package:salapify/core/money/installments.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// Golden vectors for the instalment plan port.
 ///
 /// Every figure below was PRINTED by running the prototype's own reducers over
@@ -18,11 +20,14 @@ void main() {
       list.firstWhere((InstallmentPlan p) => p.id == id);
 
   List<InstallmentPlan> pay(String id, [List<InstallmentPlan>? from]) =>
-      applyInstallmentPayment(from ?? SeedData.installments, id);
+      applyInstallmentPayment(from ?? SeedData.installments(testToday), id);
 
   group('the seed is the prototype\'s, in full', () {
     test('every plan carries its real contract, not a name and an amount', () {
-      final InstallmentPlan p = of(SeedData.installments, 'inst_home_credit');
+      final InstallmentPlan p = of(
+        SeedData.installments(testToday),
+        'inst_home_credit',
+      );
       expect(p.provider, 'Home Credit');
       expect(p.principal, 24500);
       expect(p.totalInterest, 4410);
@@ -41,7 +46,7 @@ void main() {
     });
 
     test('the three plans differ in shape, so the screen can be reviewed', () {
-      final List<InstallmentPlan> all = SeedData.installments;
+      final List<InstallmentPlan> all = SeedData.installments(testToday);
       expect(
         all.where((InstallmentPlan p) => p.isZeroInterest).length,
         1,
@@ -101,7 +106,7 @@ void main() {
 
     test('paying one plan touches no other', () {
       final List<InstallmentPlan> after = pay('inst_home_credit');
-      for (final InstallmentPlan seeded in SeedData.installments) {
+      for (final InstallmentPlan seeded in SeedData.installments(testToday)) {
         if (seeded.id == 'inst_home_credit') continue;
         final InstallmentPlan now = of(after, seeded.id);
         expect(now.paidInstallments, seeded.paidInstallments);
@@ -110,7 +115,7 @@ void main() {
     });
 
     test('the last instalment zeroes both balances exactly', () {
-      List<InstallmentPlan> list = SeedData.installments;
+      List<InstallmentPlan> list = SeedData.installments(testToday);
       for (int i = 0; i < 4; i++) {
         list = pay('inst_spaylater', list);
       }
@@ -136,7 +141,7 @@ void main() {
     // nonsense on a screen whose whole job is to say where you are in a
     // contract.
     test('a settled plan cannot be paid again', () {
-      List<InstallmentPlan> list = SeedData.installments;
+      List<InstallmentPlan> list = SeedData.installments(testToday);
       for (int i = 0; i < 5; i++) {
         list = pay('inst_spaylater', list);
       }
@@ -156,7 +161,7 @@ void main() {
     test('it comes off BOTH balances in full', () {
       final InstallmentPlan p = of(
         applyExtraPayment(
-          SeedData.installments,
+          SeedData.installments(testToday),
           'inst_home_credit',
           5000,
           today: today,
@@ -182,7 +187,7 @@ void main() {
     test('paying the exact balance settles it', () {
       final InstallmentPlan p = of(
         applyExtraPayment(
-          SeedData.installments,
+          SeedData.installments(testToday),
           'inst_spaylater',
           6591.20,
           today: today,
@@ -196,7 +201,7 @@ void main() {
     test('overpaying clamps at zero rather than going negative', () {
       final InstallmentPlan p = of(
         applyExtraPayment(
-          SeedData.installments,
+          SeedData.installments(testToday),
           'inst_spaylater',
           99999,
           today: today,
@@ -211,7 +216,7 @@ void main() {
     test('an extra payment is APPENDED, never replacing the history', () {
       final InstallmentPlan p = of(
         applyExtraPayment(
-          SeedData.installments,
+          SeedData.installments(testToday),
           'inst_bpi_sip',
           1000,
           today: today,
@@ -231,27 +236,24 @@ void main() {
     });
 
     test('zero and negative do nothing at all', () {
+      // Compares against the SAME list that went in. This used to call
+      // SeedData twice and compare the results, which passed only because the
+      // seed was a const list and every reference was one object. The seed
+      // is built from a clock now and hands back a new list each call, so two
+      // calls are never identical and the check broke while the behaviour it
+      // describes did not. Capturing the input is what it always meant.
+      final List<InstallmentPlan> input = SeedData.installments(testToday);
       expect(
         identical(
-          applyExtraPayment(
-            SeedData.installments,
-            'inst_spaylater',
-            0,
-            today: today,
-          ),
-          SeedData.installments,
+          applyExtraPayment(input, 'inst_spaylater', 0, today: today),
+          input,
         ),
         isTrue,
       );
       expect(
         identical(
-          applyExtraPayment(
-            SeedData.installments,
-            'inst_spaylater',
-            -5,
-            today: today,
-          ),
-          SeedData.installments,
+          applyExtraPayment(input, 'inst_spaylater', -5, today: today),
+          input,
         ),
         isTrue,
       );
@@ -261,7 +263,7 @@ void main() {
   group('the ledger entry a payment writes', () {
     test('it is filed under a subcategory that EXISTS', () {
       final Transaction? t = installmentEntry(
-        plan: of(SeedData.installments, 'inst_home_credit'),
+        plan: of(SeedData.installments(testToday), 'inst_home_credit'),
         installmentNumber: 6,
         accountId: 'acc_gcash',
         today: today,
@@ -289,7 +291,7 @@ void main() {
 
     test('an extra payment is tagged apart from a scheduled one', () {
       final Transaction? t = extraPaymentEntry(
-        plan: of(SeedData.installments, 'inst_home_credit'),
+        plan: of(SeedData.installments(testToday), 'inst_home_credit'),
         amount: 5000,
         accountId: 'acc_gcash',
         today: today,
@@ -304,7 +306,7 @@ void main() {
     test('no account means no entry', () {
       expect(
         installmentEntry(
-          plan: of(SeedData.installments, 'inst_home_credit'),
+          plan: of(SeedData.installments(testToday), 'inst_home_credit'),
           installmentNumber: 6,
           accountId: null,
           today: today,
@@ -318,13 +320,13 @@ void main() {
   group('the totals across every plan', () {
     test('what they cost together each month', () {
       expect(
-        monthlyInstallmentLoad(SeedData.installments),
+        monthlyInstallmentLoad(SeedData.installments(testToday)),
         closeTo(2409.17 + 2291.25 + 1647.80, 0.001),
       );
     });
 
     test('a settled plan takes nothing out of next month', () {
-      List<InstallmentPlan> list = SeedData.installments;
+      List<InstallmentPlan> list = SeedData.installments(testToday);
       for (int i = 0; i < 4; i++) {
         list = pay('inst_spaylater', list);
       }
@@ -337,13 +339,13 @@ void main() {
 
     test('interest still to come is what a prepayment can still save', () {
       expect(
-        interestStillToCome(SeedData.installments),
+        interestStillToCome(SeedData.installments(testToday)),
         closeTo(2572.52 + 0 + 991.20, 0.001),
       );
     });
 
     test('open and settled are split, and settled is kept', () {
-      List<InstallmentPlan> list = SeedData.installments;
+      List<InstallmentPlan> list = SeedData.installments(testToday);
       for (int i = 0; i < 4; i++) {
         list = pay('inst_spaylater', list);
       }
@@ -359,34 +361,36 @@ void main() {
   group('how the rate is described', () {
     test('the unit is spelled out, because the number alone means nothing', () {
       expect(
-        rateLabel(of(SeedData.installments, 'inst_home_credit')),
+        rateLabel(of(SeedData.installments(testToday), 'inst_home_credit')),
         '1.5% a month',
       );
       expect(
-        rateLabel(of(SeedData.installments, 'inst_spaylater')),
+        rateLabel(of(SeedData.installments(testToday), 'inst_spaylater')),
         '2.95% a month',
       );
     });
 
     test('a genuine 0 percent says so in words', () {
       expect(
-        rateLabel(of(SeedData.installments, 'inst_bpi_sip')),
+        rateLabel(of(SeedData.installments(testToday), 'inst_bpi_sip')),
         'No interest',
       );
     });
 
     test('a monthly rate is annualised so it can be compared', () {
       expect(
-        annualisedRate(of(SeedData.installments, 'inst_home_credit')),
+        annualisedRate(
+          of(SeedData.installments(testToday), 'inst_home_credit'),
+        ),
         closeTo(18, 0.001),
         reason: '1.5 a month is 18 a year, and the 1.5 is what gets quoted',
       );
       expect(
-        annualisedRate(of(SeedData.installments, 'inst_spaylater')),
+        annualisedRate(of(SeedData.installments(testToday), 'inst_spaylater')),
         closeTo(35.4, 0.001),
       );
       expect(
-        annualisedRate(of(SeedData.installments, 'inst_bpi_sip')),
+        annualisedRate(of(SeedData.installments(testToday), 'inst_bpi_sip')),
         isNull,
         reason: 'a fixed rate has nothing to annualise',
       );

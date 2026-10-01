@@ -1,6 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/models/models.dart';
+import 'package:salapify/state/financial_state.dart';
+
+import 'support/test_clock.dart';
 
 /// A test rots silently when it reads the real calendar.
 ///
@@ -154,11 +158,36 @@ void main() {
     );
   });
 
-  test('the pinned day is inside the seed ledger, not merely fixed', () {
-    // A date that is pinned and WRONG is the quieter version of the same
-    // problem: every screen renders in a state nobody designed, consistently,
-    // forever. The seed's own window is September 2026.
-    final String src = File('test/support/pinned_app.dart').readAsStringSync();
-    expect(src, contains('DateTime(2026, 9, '));
+  test('the pinned day leaves the whole sample ledger inside one month', () {
+    // This assertion used to read "the pinned day is in September 2026",
+    // because the sample ledger carried fixed September dates. It does not
+    // any more: it is built from offsets and dates itself from whatever day
+    // it is handed, so September has stopped being special.
+    //
+    // What has NOT stopped mattering is where in the month the pinned day
+    // falls. The ledger spans about eighteen days backwards, so a day early
+    // in a month pushes half of it into the previous one and every figure
+    // meaning "this month" quietly halves. Hundreds of expected figures in
+    // this suite depend on that not happening.
+    //
+    // Derived rather than typed: asking the seed where its own entries landed
+    // cannot go stale when somebody adds an older one.
+    final FinancialState s = FinancialState(clock: testToday);
+    final List<String> outside = <String>[
+      for (final Transaction t in s.transactions)
+        if (!t.date.startsWith(
+          '${testToday.year}-${testToday.month.toString().padLeft(2, '0')}',
+        ))
+          '${t.id} on ${t.date}',
+    ];
+
+    expect(
+      outside,
+      isEmpty,
+      reason:
+          'testToday is day ${testToday.day} of its month, which is too early '
+          'to hold the whole sample ledger. Every figure meaning "this month" '
+          'is smaller than the suite expects.\n\n${outside.join('\n')}',
+    );
   });
 }

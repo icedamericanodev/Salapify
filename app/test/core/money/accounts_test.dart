@@ -4,6 +4,8 @@ import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 Account _a({
   required String id,
   required AccountKind kind,
@@ -60,7 +62,7 @@ void main() {
     });
 
     test('an asset never lands in a liability group, or the reverse', () {
-      final List<Account> all = SeedData.accounts;
+      final List<Account> all = SeedData.accounts(testToday);
       final Set<String> assetIds = groupAssets(
         all,
       ).expand((AccountGroup g) => g.accounts).map((Account a) => a.id).toSet();
@@ -108,8 +110,11 @@ void main() {
     });
 
     test('summarize agrees with Reports on the seed, to the centavo', () {
-      final AccountsSummary s = summarize(SeedData.accounts);
-      final FinancialPosition p = computePosition(SeedData.accounts, null);
+      final AccountsSummary s = summarize(SeedData.accounts(testToday));
+      final FinancialPosition p = computePosition(
+        SeedData.accounts(testToday),
+        null,
+      );
 
       expect(s.totalAssets, closeTo(p.totalAssets, 0.001));
       expect(s.totalLiabilities, closeTo(p.totalLiabilities, 0.001));
@@ -309,7 +314,7 @@ void main() {
           e.value: e.key,
       };
 
-      for (final Account a in SeedData.accounts) {
+      for (final Account a in SeedData.accounts(testToday)) {
         final String? owner = codeOwner[a.monogram];
         if (owner == null) continue; // a bespoke label such as MP2
         expect(
@@ -325,7 +330,7 @@ void main() {
     });
 
     test('every stored monogram is short enough to draw and not blank', () {
-      for (final Account a in SeedData.accounts) {
+      for (final Account a in SeedData.accounts(testToday)) {
         expect(a.monogram.trim(), isNotEmpty, reason: '${a.name} has none');
         expect(
           a.monogram.length,

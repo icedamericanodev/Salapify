@@ -21,6 +21,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../support/test_clock.dart';
+
 String _kind(AccountKind k) => switch (k) {
   AccountKind.cash => 'cash',
   AccountKind.bank => 'bank',
@@ -59,7 +61,7 @@ String _status(TransactionStatus s) => switch (s) {
 void main() {
   test('dump', () {
     final Map<String, Object?> out = <String, Object?>{
-      'accounts': SeedData.accounts
+      'accounts': SeedData.accounts(testToday)
           .map(
             (Account a) => <String, Object?>{
               'id': a.id,
@@ -87,7 +89,7 @@ void main() {
             },
           )
           .toList(),
-      'upcoming': SeedData.upcoming
+      'upcoming': SeedData.upcoming(testToday)
           .map(
             (UpcomingItem u) => <String, Object?>{
               'id': u.id,
@@ -98,7 +100,7 @@ void main() {
             },
           )
           .toList(),
-      'transactions': SeedData.transactions()
+      'transactions': SeedData.transactions(testToday)
           .map(
             (Transaction t) => <String, Object?>{
               'id': t.id,

@@ -4,6 +4,8 @@ import 'package:salapify/data/snapshot.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
+import '../support/test_clock.dart';
+
 /// Salapify's own demo data, and the one rule that makes it removable.
 ///
 /// The rule is: the sweep deletes where `isSample` is true and NOWHERE ELSE.
@@ -16,20 +18,31 @@ void main() {
     test('every seeded record carries isSample', () {
       // A new seeded row added without the flag would survive the sweep
       // forever and no other test would notice.
-      expect(SeedData.accounts.every((Account a) => a.isSample), isTrue);
       expect(
-        SeedData.transactions().every((Transaction t) => t.isSample),
+        SeedData.accounts(testToday).every((Account a) => a.isSample),
         isTrue,
       );
-      expect(SeedData.debts.every((Debt d) => d.isSample), isTrue);
+      expect(
+        SeedData.transactions(testToday).every((Transaction t) => t.isSample),
+        isTrue,
+      );
+      expect(SeedData.debts(testToday).every((Debt d) => d.isSample), isTrue);
       expect(SeedData.budgets.every((Budget b) => b.isSample), isTrue);
       expect(SeedData.goals.every((Goal g) => g.isSample), isTrue);
-      expect(SeedData.upcoming.every((UpcomingItem u) => u.isSample), isTrue);
       expect(
-        SeedData.installments.every((InstallmentPlan p) => p.isSample),
+        SeedData.upcoming(testToday).every((UpcomingItem u) => u.isSample),
         isTrue,
       );
-      expect(SeedData.bills.every((BillItem b) => b.isSample), isTrue);
+      expect(
+        SeedData.installments(
+          testToday,
+        ).every((InstallmentPlan p) => p.isSample),
+        isTrue,
+      );
+      expect(
+        SeedData.bills(testToday).every((BillItem b) => b.isSample),
+        isTrue,
+      );
     });
 
     test('a fresh state reports that it holds sample data', () {
@@ -56,7 +69,7 @@ void main() {
           type: TransactionType.expense,
           amount: 250,
           category: 'Food & Dining',
-          accountId: SeedData.accounts.first.id,
+          accountId: SeedData.accounts(testToday).first.id,
           date: '2026-09-19',
           createdAt: DateTime.utc(2026, 9, 19).millisecondsSinceEpoch,
         ),
@@ -71,7 +84,7 @@ void main() {
 
     test('logging against a sample account does NOT adopt the account', () {
       final FinancialState s = seeded();
-      final String id = SeedData.accounts.first.id;
+      final String id = SeedData.accounts(testToday).first.id;
       s.logTransaction(
         Transaction(
           id: 'tx_mine',
@@ -96,7 +109,7 @@ void main() {
   group('the sweep', () {
     test('it removes the demo data and keeps every single user record', () {
       final FinancialState s = seeded();
-      final String sampleAccountId = SeedData.accounts.first.id;
+      final String sampleAccountId = SeedData.accounts(testToday).first.id;
 
       s.addAccount(
         const Account(
@@ -143,7 +156,7 @@ void main() {
 
     test('an account the user entered against is KEPT, not deleted', () {
       final FinancialState s = seeded();
-      final Account seededAccount = SeedData.accounts.first;
+      final Account seededAccount = SeedData.accounts(testToday).first;
       s.logTransaction(
         Transaction(
           id: 'tx_mine',
@@ -226,7 +239,7 @@ void main() {
       s.removeSampleData();
       s.restoreSampleData();
 
-      expect(s.accounts.length, SeedData.accounts.length + 1);
+      expect(s.accounts.length, SeedData.accounts(testToday).length + 1);
       expect(
         s.accounts.firstWhere((Account a) => a.id == 'acc_mine').balance,
         5000,
