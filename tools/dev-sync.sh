@@ -506,6 +506,22 @@ while true; do
     echo "  3. An emulator that started but could not host the app."
     echo
     echo "Not retrying, because retrying just buries the message that matters."
+    echo
+    # The output above is the only copy there is, and it is long enough to
+    # scroll off the top of a terminal before anybody reads it. That is not
+    # hypothetical: a founder sent a screenshot of exactly this block with the
+    # cause already scrolled away, and the whole conversation after it was
+    # guesswork. This line is how they get the cause into a file they can
+    # paste. It is a SEPARATE run on purpose, so the normal loop keeps its
+    # interactive terminal and the r / R / q keys keep working.
+    echo "Can't see what went wrong above? Capture it:"
+    echo
+    echo "  bash tools/dev-sync.sh 2>&1 | tee /tmp/salapify-dev-sync.log"
+    echo
+    echo "then send the last 60 lines:"
+    echo
+    echo "  tail -60 /tmp/salapify-dev-sync.log"
+    echo
     echo "Fix it, then run: bash tools/dev-sync.sh"
     break
   fi
