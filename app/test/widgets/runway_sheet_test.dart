@@ -7,6 +7,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+import 'package:salapify/core/money/money.dart';
 
 /// The Cash Runway card in the Safe to Spend sheet.
 ///
@@ -103,7 +104,7 @@ void main() {
       Transaction(
         id: 'tx_spent',
         type: TransactionType.expense,
-        amount: 9000,
+        amount: Money.pesos(9000),
         category: 'Food & Dining',
         merchant: 'Groceries',
         accountId: 'mine',

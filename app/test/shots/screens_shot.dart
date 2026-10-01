@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -110,6 +111,7 @@ void main() {
   importShots();
   toolkitShots();
   settingsShots();
+  unreadableRecoveryShots();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -2212,6 +2214,114 @@ void settingsShots() {
     await expectLater(
       find.byType(SettingsSheet),
       matchesGoldenFile('out/settings.png'),
+    );
+  });
+}
+
+/// The state where Salapify cannot read your data file, which is the only
+/// state these two screens are rendered in anywhere.
+///
+/// It is a rare state and the most consequential one, and until now there was
+/// no picture of it at all. Both shots exist because the thing being reviewed
+/// is whether the screen reads as a WARNING: in the dark palette `accent` and
+/// `negative` are the same orange, so a bordered card here can read as brand
+/// chrome rather than as something wrong.
+void unreadableRecoveryShots() {
+  // Past the point where a double can still count every centavo, so the
+  // decoder refuses it. This is the realistic route into the state: every file
+  // already on a phone was written by a build with no magnitude check.
+  final String unreadable = jsonEncode(<String, dynamic>{
+    'schemaVersion': 1,
+    'accounts': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 'acc_real',
+        'name': 'My real bank',
+        'kind': 'bank',
+        'institution': 'BPI',
+        'balance': 48000,
+        'monogram': 'B',
+      },
+    ],
+    'transactions': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 'tx_bad',
+        'type': 'expense',
+        'amount': 1e17,
+        'category': 'Food',
+        'accountId': 'acc_real',
+        'date': '2026-09-12',
+        'createdAt': 1,
+      },
+    ],
+  });
+
+  testWidgets('home in the unreadable state renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+      store: MemorySnapshotStore(unreadable),
+    );
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/home_unreadable.png'),
+    );
+  });
+
+  testWidgets('settings in the unreadable state renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+      store: MemorySnapshotStore(unreadable),
+    );
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: SettingsSheet(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(SettingsSheet),
+      matchesGoldenFile('out/settings_unreadable.png'),
     );
   });
 }

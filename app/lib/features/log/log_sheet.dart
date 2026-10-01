@@ -10,6 +10,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 import 'scan_receipt_sheet.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Log an entry, from src/components/LogSheet.tsx.
 ///
@@ -242,7 +243,7 @@ class _LogSheetState extends State<LogSheet> {
       Transaction(
         id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
         type: _type,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         // A transfer is not spending and not income, so it carries the one
         // category that says exactly that, and no sub-category.
         category: isTransfer ? 'Transfer' : _category,

@@ -10,6 +10,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 import 'receipt_camera.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Scan-to-Log: read a receipt, check what it says, log it.
 ///
@@ -284,7 +285,7 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
       Transaction(
         id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
         type: TransactionType.expense,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         category: _category,
         subcategory: _subcategory.isEmpty ? null : _subcategory,
         accountId: _accountId!,

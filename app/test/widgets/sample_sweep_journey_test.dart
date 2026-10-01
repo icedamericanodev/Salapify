@@ -7,6 +7,7 @@ import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+import 'package:salapify/core/money/money.dart';
 
 /// Clearing the sample data, by tapping, and then walking to every screen that
 /// should now show the difference.
@@ -86,7 +87,7 @@ void main() {
       Transaction(
         id: 'tx_mine',
         type: TransactionType.expense,
-        amount: 250,
+        amount: Money.pesos(250),
         category: 'Food & Dining',
         merchant: 'Tindahan ni Aling Nena',
         accountId: sampleAccountId,

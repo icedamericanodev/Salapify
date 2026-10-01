@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/ledger.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Ledger, produced by RUNNING the prototype's own
 /// expressions out of src/components/LedgerScreen.tsx under bun against this
@@ -30,7 +31,7 @@ Transaction _tx({
   return Transaction(
     id: id,
     type: type,
-    amount: amount,
+    amount: Money.fromDouble(amount),
     category: category,
     accountId: accountId,
     date: date,
@@ -433,7 +434,7 @@ void _writeTests() {
   }) => Transaction(
     id: 'new',
     type: type,
-    amount: amount,
+    amount: Money.fromDouble(amount),
     category: 'Test',
     accountId: accountId,
     toAccountId: toAccountId,
@@ -601,32 +602,43 @@ void _writeTests() {
       expect(parseLoggedAmount('1,250.50'), 1250.5);
     });
 
-    test('the summary never throws, whatever it is handed', () {
-      // The reader is made safe as well as the writer, because a restored
-      // backup or an imported file does not go through parseLoggedAmount.
-      final List<Transaction> poisoned = <Transaction>[
+    test('a poisoned amount can no longer EXIST in an entry', () {
+      // This test used to build a Transaction holding `double.nan` and assert
+      // that the summary survived it. That was the right defence for a double,
+      // where a restored backup or an imported file could smuggle a non-finite
+      // value straight past the writer's own guard and poison every percentage
+      // computed from it.
+      //
+      // It cannot be written any more, and that is the improvement. `Money`
+      // holds whole centavos in an int, and there is no NaN or Infinity in an
+      // int. The defence moved from "survive the poison downstream" to "the
+      // poison never gets in", which is the stronger of the two: a figure that
+      // cannot be represented cannot be quietly carried through a dozen
+      // screens.
+      expect(Money.tryFromDouble(double.nan), isNull);
+      expect(Money.tryFromDouble(double.infinity), isNull);
+      expect(() => Money.fromDouble(double.nan), throwsFormatException);
+
+      // And the summary still has to behave on the shapes that CAN exist,
+      // which is the half worth keeping: an empty ledger, and one with income
+      // but nothing spent, both of which divide by zero if written carelessly.
+      final LedgerTotals empty = computeTotals(const <Transaction>[]);
+      expect(empty.outflowPercentage, isA<int>());
+      expect(empty.retentionPercentage, isA<int>());
+
+      final LedgerTotals incomeOnly = computeTotals(<Transaction>[
         Transaction(
           id: 'in',
           type: TransactionType.income,
-          amount: 100,
+          amount: const Money.pesos(100),
           category: 'Salary & Compensation',
           accountId: 'a',
           date: '2026-09-18',
           createdAt: 0,
         ),
-        Transaction(
-          id: 'bad',
-          type: TransactionType.expense,
-          amount: double.nan,
-          category: 'Food & Dining',
-          accountId: 'a',
-          date: '2026-09-18',
-          createdAt: 0,
-        ),
-      ];
-      final LedgerTotals t = computeTotals(poisoned);
-      expect(t.outflowPercentage, isA<int>());
-      expect(t.retentionPercentage, isA<int>());
+      ]);
+      expect(incomeOnly.outflowPercentage, 0);
+      expect(incomeOnly.retentionPercentage, 100);
     });
 
     test('the profile is READ from the entry, never guessed', () {
@@ -638,7 +650,7 @@ void _writeTests() {
       final Transaction payroll = Transaction(
         id: 'p',
         type: TransactionType.income,
-        amount: 32500,
+        amount: Money.pesos(32500),
         category: 'Salary & Compensation',
         accountId: 'a',
         merchant: 'Corporate Payroll Direct Deposit',
@@ -706,7 +718,7 @@ void _writeTests() {
     }) => Transaction(
       id: 'tx',
       type: type,
-      amount: amount,
+      amount: Money.fromDouble(amount),
       category: 'Food & Dining',
       accountId: account,
       toAccountId: to,

@@ -91,7 +91,11 @@ List<ControlCenterAlert> runControlCenterScan({
           a.merchant!.toLowerCase() == b.merchant!.toLowerCase();
       final bool sameCategory =
           a.category.toLowerCase() == b.category.toLowerCase();
-      final bool sameAmount = (a.amount - b.amount).abs() < 0.01;
+      // EXACT now. The 0.01 tolerance existed because two doubles holding
+      // the same peso figure can differ in their last bits. Two centavo
+      // counts cannot, so a near-match is no longer treated as a
+      // duplicate: 100.00 and 100.01 are two different charges.
+      final bool sameAmount = a.amount == b.amount;
 
       final DateTime? da = DateTime.tryParse(a.date);
       final DateTime? db = DateTime.tryParse(b.date);
@@ -106,10 +110,10 @@ List<ControlCenterAlert> runControlCenterScan({
             type: AlertType.duplicateCharge,
             title: 'Potential Duplicate Transaction',
             description:
-                'Two identical charges of ₱${_n(a.amount)} for "${a.merchant ?? a.category}" '
+                'Two identical charges of ₱${_n(a.amount.pesos)} for "${a.merchant ?? a.category}" '
                 'recorded within 48 hours (${a.date} and ${b.date}).',
             severity: AlertSeverity.medium,
-            amount: a.amount,
+            amount: a.amount.pesos,
             relatedTransactionId: b.id,
             suggestedAction:
                 'Review transaction ledger and mark redundant entry as duplicate or excluded.',
@@ -163,7 +167,7 @@ List<ControlCenterAlert> runControlCenterScan({
               t.type == TransactionType.expense &&
               t.category.toLowerCase() == b.category.toLowerCase(),
         )
-        .fold<double>(0, (double s, Transaction t) => s + t.amount);
+        .fold<double>(0, (double s, Transaction t) => s + t.amount.pesos);
 
     if (spent > b.limit * 1.15) {
       alerts.add(
@@ -244,7 +248,7 @@ List<ControlCenterAlert> runControlCenterScan({
   // 9. Total spending past total budget.
   final double totalExpenses = expenses.fold<double>(
     0,
-    (double s, Transaction t) => s + t.amount,
+    (double s, Transaction t) => s + t.amount.pesos,
   );
   final double totalBudgeted = budgets.fold<double>(
     0,

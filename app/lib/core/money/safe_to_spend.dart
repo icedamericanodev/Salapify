@@ -113,7 +113,7 @@ SafeToSpendAnalysis computeSafeToSpend({
         (Transaction t) =>
             t.type == TransactionType.expense && t.createdAt >= thirtyDaysAgo,
       )
-      .fold<double>(0, (double sum, Transaction t) => sum + t.amount);
+      .fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
 
   // Whether the figure below is the person's own spending or the stand-in.
   //

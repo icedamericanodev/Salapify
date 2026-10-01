@@ -191,6 +191,27 @@ ImportCheck checkImportFile(String raw) {
     // Carries the newer-version sentence and every bad field, already written
     // for a person.
     return ImportRefused(e.message);
+  } on Object {
+    // ANYTHING ELSE THE DECODER CAN THROW, and it must never escape this
+    // function.
+    //
+    // Only SnapshotFormatException was caught, and the decoder throws other
+    // things: `_reqInt` calls `toInt()` and `paydayFromJson` calls `round()`,
+    // and both throw UnsupportedError on an infinite double, which `1e400` in
+    // perfectly valid JSON decodes to. Money refuses a figure it cannot count
+    // in centavos with a plain FormatException, which is not a subtype of
+    // SnapshotFormatException either.
+    //
+    // An escape here does not show an error. It throws out of a tap handler,
+    // so the button simply does nothing: no red box, no "Nothing on this
+    // phone has changed", nothing. That is on the one screen somebody opens
+    // when they are already trying to recover, which is the worst possible
+    // place for a control that silently fails.
+    return const ImportRefused(
+      'Salapify could read that file, but one of the figures in it is not a '
+      'number it can use. The file may have been cut short while it was '
+      'copied, or edited by hand.',
+    );
   }
 
   final List<String> missing = <String>[

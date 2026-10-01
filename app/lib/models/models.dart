@@ -242,7 +242,7 @@ class Transaction {
 
   final String id;
   final TransactionType type;
-  final double amount;
+  final Money amount;
   final String category;
   final String accountId;
 

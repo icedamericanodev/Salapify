@@ -109,9 +109,17 @@ void main() {
       expect(s.saveProblem, isNotNull);
     });
 
-    test('import is refused while the data file is unreadable', () async {
-      // The state where importing would write over a file that is still
-      // recoverable by hand.
+    test('import is ALLOWED while the data file is unreadable', () async {
+      // This asserted a refusal until the recovery work, and the refusal was
+      // the defect. Somebody whose file will not decode, holding a good backup
+      // in their email, had exactly one move left: uninstall, which destroys
+      // the very file that might still have been rescued by hand.
+      //
+      // What made the refusal look right was the copy promise: a pre-import
+      // copy taken from state.snapshot() in this state holds the SEED, so
+      // importing would have thrown the person's records away while reporting
+      // that it had kept them. The fix is to copy the RAW BYTES, which is
+      // asserted below, not to block the one route out.
       final MemorySnapshotStore store = MemorySnapshotStore('{ not json');
       final FinancialState s = FinancialState(
         clock: DateTime.utc(2026, 9, 19),
@@ -120,11 +128,14 @@ void main() {
       await s.restore();
       expect(s.loadStatus, LoadStatus.unreadable);
 
-      expect(
-        await s.importSnapshot(ledgerOf(const <Account>[theirs])),
-        isFalse,
-      );
-      expect(store.writes, 0);
+      expect(await s.importSnapshot(ledgerOf(const <Account>[theirs])), isTrue);
+      // The directional half. `isTrue` alone would pass on a method that
+      // returned early having written nothing.
+      expect(s.accounts.single.id, theirs.id);
+      expect(store.writes, greaterThan(0));
+      // And the copy promise, kept literally: the unreadable bytes themselves,
+      // not a snapshot of the sample ledger that was on screen.
+      expect(store.preImport, '{ not json');
     });
   });
 

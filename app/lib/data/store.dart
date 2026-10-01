@@ -451,15 +451,38 @@ Future<LoadResult> _fallBackToPrevious(
   String problem, {
   LoadResult? whenNoPrevious,
 }) async {
+  // READING the previous generation and DECODING it are separated on purpose,
+  // and the reason is the worst defect this file has had.
+  //
+  // Both used to sit inside one try, so a previous generation that EXISTS and
+  // will not decode landed in the same branch as no previous generation at
+  // all. The missing-live-file caller passes `whenNoPrevious: fresh`, so that
+  // combination reported a FIRST RUN: saving turned on, the sample ledger
+  // appeared, nothing warned, and the second save overwrote the previous
+  // generation that still held the person's real records. Both copies gone,
+  // while the Settings panel said "Your entries are being saved to this
+  // phone".
+  //
+  // An absence and a refusal are not the same answer. A file that exists and
+  // cannot be read is a reason to stop, never a reason to start fresh.
+  String? previous;
   try {
-    final String? previous = await store.readPrevious();
-    if (previous != null && previous.trim().isNotEmpty) {
-      return LoadResult.recovered(Snapshot.decode(previous), problem);
-    }
+    previous = await store.readPrevious();
   } on Object {
-    // The previous generation is no better. Fall through to the honest answer
-    // below rather than reporting the second failure over the first.
+    previous = null;
   }
+
+  if (previous != null && previous.trim().isNotEmpty) {
+    try {
+      return LoadResult.recovered(Snapshot.decode(previous), problem);
+    } on Object {
+      return LoadResult.unreadable(
+        '$problem The copy before it could not be read either. Nothing has '
+        'been deleted and nothing has been written over it.',
+      );
+    }
+  }
+
   return whenNoPrevious ??
       LoadResult.unreadable(
         '$problem Nothing has been deleted and nothing has been written over '

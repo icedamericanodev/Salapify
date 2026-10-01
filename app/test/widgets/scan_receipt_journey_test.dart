@@ -5,6 +5,7 @@ import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../support/pinned_app.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Scanning a receipt, in BOTH halves, the way CLAUDE.md requires.
 ///
@@ -72,7 +73,7 @@ void main() {
     // HALF ONE: the money moved, and by exactly the right amount.
     expect(state.transactions.length, txBefore + 1);
     final Transaction logged = state.transactions.first;
-    expect(logged.amount, 213.00);
+    expect(logged.amount, const Money.pesos(213));
     expect(logged.type, TransactionType.expense);
     expect(logged.merchant, 'Jollibee');
     expect(

@@ -105,7 +105,7 @@ void main() {
             (Transaction t) => <String, Object?>{
               'id': t.id,
               'date': t.date,
-              'amount': t.amount,
+              'amount': t.amount.pesos,
               'type': _type(t.type),
               'category': t.category,
               'subcategory': t.subcategory,

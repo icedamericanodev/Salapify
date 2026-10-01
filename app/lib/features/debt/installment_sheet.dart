@@ -8,6 +8,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 import '../../core/money/money.dart';
+import '../../core/money/installments.dart';
 
 /// Pays an instalment, either the scheduled one or extra on top.
 ///
@@ -131,7 +132,7 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
                 children: <Widget>[
                   Text('THIS MONTH', style: AppType.kicker(p)),
                   Text(
-                    formatPeso(plan.installmentAmount.pesos),
+                    formatPeso(nextPaymentFor(plan).pesos),
                     style: AppType.amount(p),
                   ),
                   const SizedBox(height: Spacing.xs),
@@ -178,7 +179,13 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
             palette: p,
             plan: plan,
             extra: widget.extra,
-            amount: widget.extra ? typed : plan.installmentAmount.pesos,
+            // nextPaymentFor, NOT the quoted instalment. They differ on
+            // the adjusting final payment (2,409.13 rather than 2,409.17) and
+            // on a stub left by a prepayment (647.80 rather than 1,647.80).
+            // The engine was fixed for exactly this reason in increment 3 and
+            // this preview kept promising the quoted figure, so the sentence
+            // and the button disagreed by up to a whole instalment.
+            amount: widget.extra ? typed : nextPaymentFor(plan).pesos,
             accountName: _accountId == null
                 ? null
                 : widget.state.accounts

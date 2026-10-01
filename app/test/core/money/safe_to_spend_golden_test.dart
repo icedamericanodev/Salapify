@@ -4,6 +4,7 @@ import 'package:salapify/core/money/safe_to_spend.dart';
 import 'package:salapify/models/models.dart';
 
 import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Safe to Spend port.
 ///
@@ -117,7 +118,7 @@ void main() {
       Transaction(
         id: 't1',
         type: TransactionType.expense,
-        amount: 2840,
+        amount: Money.pesos(2840),
         category: 'Bills & Utilities',
         accountId: 'acc_maya',
         date: '2026-09-15',
@@ -128,7 +129,7 @@ void main() {
       Transaction(
         id: 't2',
         type: TransactionType.expense,
-        amount: 3250.75,
+        amount: Money.of(3250, 75),
         category: 'Groceries',
         accountId: 'acc_ub_debit',
         date: '2026-09-14',
@@ -139,7 +140,7 @@ void main() {
       Transaction(
         id: 't3',
         type: TransactionType.expense,
-        amount: 6000,
+        amount: Money.pesos(6000),
         category: 'Family & Remittance',
         accountId: 'acc_bpi',
         date: '2026-09-16',
@@ -199,7 +200,7 @@ void main() {
           Transaction(
             id: 'tx_small',
             type: TransactionType.expense,
-            amount: 400,
+            amount: Money.pesos(400),
             category: 'Food & Dining',
             accountId: 'acc_bpi',
             date: '2026-09-17',

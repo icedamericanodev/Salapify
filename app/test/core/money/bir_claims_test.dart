@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/bir_claims.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// What a person could put in front of the BIR, out of what they logged.
 void main() {
@@ -18,7 +19,7 @@ void main() {
   }) => Transaction(
     id: 'tx${seq++}',
     type: type,
-    amount: amount,
+    amount: Money.fromDouble(amount),
     category: category,
     accountId: 'acc',
     date: '2026-09-20',

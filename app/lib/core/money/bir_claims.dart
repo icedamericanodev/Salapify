@@ -130,7 +130,7 @@ BirClaimSummary summariseClaims(List<Transaction> transactions) {
   double unsupportedAmount = 0;
 
   for (final Transaction t in entries) {
-    final double amount = t.amount;
+    final double amount = t.amount.pesos;
     total += amount;
     if (isSubstantiated(t)) {
       substantiated += 1;

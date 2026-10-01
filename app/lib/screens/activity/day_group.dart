@@ -33,7 +33,7 @@ class DayGroup extends StatelessWidget {
           (Transaction t) =>
               t.type == TransactionType.expense && t.countsTowardTotals,
         )
-        .fold<double>(0, (double s, Transaction t) => s + t.amount);
+        .fold<double>(0, (double s, Transaction t) => s + t.amount.pesos);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +182,9 @@ class TransactionRow extends StatelessWidget {
             ),
             const SizedBox(width: Spacing.sm),
             Text(
-              isIncome ? '+${formatPeso(t.amount)}' : formatPeso(t.amount),
+              isIncome
+                  ? '+${formatPeso(t.amount.pesos)}'
+                  : formatPeso(t.amount.pesos),
               style: AppType.amountSmall(palette).copyWith(
                 fontSize: 14,
                 color: struck

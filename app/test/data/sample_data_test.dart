@@ -5,6 +5,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Salapify's own demo data, and the one rule that makes it removable.
 ///
@@ -67,7 +68,7 @@ void main() {
         Transaction(
           id: 'tx_mine',
           type: TransactionType.expense,
-          amount: 250,
+          amount: Money.pesos(250),
           category: 'Food & Dining',
           accountId: SeedData.accounts(testToday).first.id,
           date: '2026-09-19',
@@ -89,7 +90,7 @@ void main() {
         Transaction(
           id: 'tx_mine',
           type: TransactionType.expense,
-          amount: 250,
+          amount: Money.pesos(250),
           category: 'Food & Dining',
           accountId: id,
           date: '2026-09-19',
@@ -125,7 +126,7 @@ void main() {
         Transaction(
           id: 'tx_mine',
           type: TransactionType.expense,
-          amount: 250,
+          amount: Money.pesos(250),
           category: 'Food & Dining',
           accountId: sampleAccountId,
           date: '2026-09-19',
@@ -161,7 +162,7 @@ void main() {
         Transaction(
           id: 'tx_mine',
           type: TransactionType.expense,
-          amount: 250,
+          amount: Money.pesos(250),
           category: 'Food & Dining',
           accountId: seededAccount.id,
           date: '2026-09-19',

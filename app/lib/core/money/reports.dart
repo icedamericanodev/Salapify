@@ -366,7 +366,7 @@ bool _has(String? haystack, String needle) =>
     haystack != null && haystack.toLowerCase().contains(needle);
 
 double _sumOf(Iterable<Transaction> txs) =>
-    txs.fold<double>(0, (double sum, Transaction t) => sum + t.amount);
+    txs.fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
 
 /// The balance sheet.
 FinancialPosition computePosition(
@@ -585,14 +585,14 @@ List<CategoryBreakdown> computeCategoryBreakdown(
       category,
       () => _CategoryAccumulator(category),
     );
-    acc.total += t.amount;
+    acc.total += t.amount.pesos;
     acc.count += 1;
 
     final _SubAccumulator subAcc = acc.subcategories.putIfAbsent(
       sub,
       () => _SubAccumulator(),
     );
-    subAcc.total += t.amount;
+    subAcc.total += t.amount.pesos;
     subAcc.count += 1;
   }
 

@@ -56,7 +56,7 @@ class _CategoryManagerSheetState extends State<CategoryManagerSheet> {
             t.type == TransactionType.expense &&
             t.category.toLowerCase() == c.name.toLowerCase(),
       )
-      .fold<double>(0, (double s, Transaction t) => s + t.amount);
+      .fold<double>(0, (double s, Transaction t) => s + t.amount.pesos);
 
   List<CategoryInfo> get _visible {
     final String q = _search.text.trim().toLowerCase();

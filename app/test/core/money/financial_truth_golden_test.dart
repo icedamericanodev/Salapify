@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/financial_truth.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Financial Truth engine, produced by running
 /// src/utils/financialTruthEngine.ts under bun.
@@ -138,7 +139,7 @@ void main() {
     }) => Transaction(
       id: id,
       type: type,
-      amount: amount,
+      amount: Money.fromDouble(amount),
       category: category,
       accountId: 'acc_cash',
       date: date,

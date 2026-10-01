@@ -81,7 +81,9 @@ class TransactionDetailSheet extends StatelessWidget {
         children: <Widget>[
           // The amount, big, because it is the thing somebody opened this for.
           Text(
-            isIncome ? '+${formatPeso(t.amount)}' : formatPeso(t.amount),
+            isIncome
+                ? '+${formatPeso(t.amount.pesos)}'
+                : formatPeso(t.amount.pesos),
             style: AppType.amount(p).copyWith(
               color: struck
                   ? p.textMuted

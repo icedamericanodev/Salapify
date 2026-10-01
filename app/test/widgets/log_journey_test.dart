@@ -8,6 +8,7 @@ import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../support/pinned_app.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// The Log write path, tested the way CLAUDE.md requires a write path to be
 /// tested: in BOTH halves.
@@ -345,7 +346,7 @@ void main() {
       await tapAndSettle(tester, find.text('Save entry'));
 
       final Transaction saved = state.transactions.first;
-      expect(saved.amount, 500);
+      expect(saved.amount, const Money.pesos(500));
       expect(saved.merchant, 'Jollibee');
       expect(saved.category, 'Food & Dining');
       expect(saved.type, TransactionType.expense);
@@ -438,7 +439,7 @@ void main() {
       await tapAndSettle(tester, find.text('Fill the form with this'));
       await tapAndSettle(tester, find.text('Save entry'));
 
-      expect(state.transactions.first.amount, 2000);
+      expect(state.transactions.first.amount, const Money.pesos(2000));
       expect(
         state.transactions.first.category,
         isNot('Investment & Passive Income'),
@@ -505,7 +506,7 @@ void main() {
       await tapAndSettle(tester, find.text('Fill the form with this'));
       await tapAndSettle(tester, find.text('Save entry'));
 
-      expect(state.transactions.first.amount, 1500);
+      expect(state.transactions.first.amount, const Money.pesos(1500));
       expect(
         state.transactions.first.category,
         'Transport & Commute',

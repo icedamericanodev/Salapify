@@ -294,7 +294,7 @@ door fails it:
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | Goal and InstallmentPlan migrated; 18 model fields still to move |
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | Goal, InstallmentPlan and the LEDGER migrated; 18 names left on the guard list |
 | P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
 | P2.3 | Protected accounts (F3) | todo | |
 | P2.4 | Debt types and minimums (F4) | todo | |
@@ -579,6 +579,54 @@ plan), and that belongs in the explainer, not on the card.
    through. The explainer describes arithmetic in plain words and claims no
    official standing, the same line `loan.dart` draws when it refuses to call
    30% "the BSP safety threshold".
+
+### P2.1 increment 5: the ledger
+
+`Transaction.amount`, the root every other money figure in the app derives
+from. Sixty files, and the single largest piece of the migration.
+
+**How it was done, because the method is the transferable part.** Three
+hand-written edits missed on whitespace before I stopped guessing and wrote a
+fixer driven by the compiler's own `file:line:col` output. It made 45 edits
+mechanically and printed every one. A second, failure-driven pass handled what
+the analyzer cannot see: `expect()` takes `dynamic`, so comparing a `Money` to
+a bare number compiles cleanly and only fails when the test runs. Several
+sibling types still hold a double (receipt amounts, split shares, alert
+amounts), so a blanket rewrite would have broken them; patching only the lines
+the suite actually reported was the safe route.
+
+**Every ledger golden vector held.** `ledger_golden_test.dart` passes
+unchanged in substance: the port is still locked to the prototype's numbers.
+
+**One test could no longer be written, and that is the improvement.** It built
+a `Transaction` holding `double.nan`, a poisoned value from a corrupt backup,
+and asserted the summary survived it. There is no NaN in an int, so that value
+cannot enter a transaction at all. The defence moved from "survive the poison
+downstream" to "the poison never gets in", which is the stronger of the two.
+
+**A real behaviour change on the restore path, recorded rather than slipped
+past.** Because `Money.fromDouble` refuses a non-finite value, a file carrying
+one is now REFUSED rather than partly loaded. I traced it: `loadSnapshot`
+catches it, the previous generation opens instead, saving is turned off, and
+the person is told "Salapify could not make sense of its data file. It has not
+overwritten anything while it cannot read it." So nothing is lost, and the
+direction is safer: one bad amount used to poison every percentage computed
+from it, silently. But it IS more drastic than before, and it is a change to
+how restore behaves, so it is written here.
+
+**A limitation of the migration guard, stated rather than hidden.** The guard
+reads field NAMES out of `models.dart`, and `amount` is carried by four models.
+Transaction's is now `Money`; `UpcomingItem`, `BillItem` and `SubscriptionItem`
+still hold a double. So `amount` stays on the remaining-work list and the count
+does not fall for this increment, even though the biggest single field in the
+app moved. The count is honest about names, not about progress, and the three
+remaining holders have to move together before it can drop.
+
+**The stored file still does not change shape**, now guarded for the ledger
+too. Writing centavos to disk fails it with the damage spelled out:
+
+    Expected: <1053.5>
+      Actual: <105350>
 
 ## Phase 3 to 7
 

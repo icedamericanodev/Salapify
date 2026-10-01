@@ -203,7 +203,7 @@ class _AppShellState extends State<AppShell> {
             // stale warning about entries not surviving a restart, and it is
             // the one thing a person needs to hear about money they have
             // just typed into a phone.
-            '$whereItWent ${formatPeso(logged.amount)}'
+            '$whereItWent ${formatPeso(logged.amount.pesos)}'
             '${logged.merchant == null ? '' : ' at ${logged.merchant}'}. '
             'Saved to this phone.',
             style: TextStyle(color: palette.onAccent),

@@ -325,7 +325,7 @@ void main() {
             'by subcategory, so the money would sit perfectly in the ledger '
             'and vanish from every summary that reads it.',
       );
-      expect(t.amount, 2409.17);
+      expect(t.amount, Money.of(2409, 17));
       expect(t.merchant, 'Home Credit, Inverter Refrigerator (Abenson)');
       expect(t.note, contains('6 of 12'));
       expect(t.tags, contains('#installment'));
@@ -340,7 +340,7 @@ void main() {
         id: 'tx_test',
         note: 'Bonus',
       );
-      expect(t!.amount, 5000);
+      expect(t!.amount, Money.pesos(5000));
       expect(t.tags, contains('#prepayment'));
       expect(t.note, contains('Bonus'));
     });

@@ -8,6 +8,7 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Moving money between your own accounts.
 ///
@@ -220,7 +221,7 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
       Transaction(
         id: 'tx_move_${DateTime.now().microsecondsSinceEpoch}',
         type: TransactionType.transfer,
-        amount: _value,
+        amount: Money.fromDouble(_value),
         // The prototype's own category string. The ledger's totals skip
         // transfers entirely, so this never lands in a spending summary; it
         // is what the Activity row and the category filter read.

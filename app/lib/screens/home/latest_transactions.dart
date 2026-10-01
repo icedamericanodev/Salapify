@@ -125,8 +125,8 @@ class _Row extends StatelessWidget {
             children: <Widget>[
               Text(
                 isIncome
-                    ? formatSignedPeso(tx.amount, isIncome: true)
-                    : formatPeso(tx.amount),
+                    ? formatSignedPeso(tx.amount.pesos, isIncome: true)
+                    : formatPeso(tx.amount.pesos),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,

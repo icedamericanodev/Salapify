@@ -24,7 +24,7 @@ void main() {
       Transaction(
         id: 'tx${seq++}',
         type: TransactionType.expense,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         category: 'Food & Dining',
         accountId: 'a',
         date: date ?? iso(daysAgo),
@@ -35,7 +35,7 @@ void main() {
       Transaction(
         id: 'tx${seq++}',
         type: TransactionType.income,
-        amount: amount,
+        amount: Money.fromDouble(amount),
         category: 'Salary & Compensation',
         accountId: 'a',
         date: date ?? iso(daysAgo),
@@ -451,7 +451,7 @@ void main() {
           Transaction(
             id: 'tr',
             type: TransactionType.transfer,
-            amount: 9000,
+            amount: Money.pesos(9000),
             category: 'Transfer',
             accountId: 'a',
             toAccountId: 'b',
