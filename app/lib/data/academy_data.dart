@@ -775,7 +775,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
         id: 's1',
         title: 'Employee Withholding & TRAIN Law',
         content:
-            'Under the Philippine TRAIN Law, the first ₱250,000 of annual taxable compensation income is taxed at 0%. Employers withhold taxes each pay cycle. Additionally, the 13th-month pay and other de minimis bonuses are tax-exempt up to ₱90,000.',
+            'Under the Philippine TRAIN Law, the first ₱250,000 of annual taxable compensation income is taxed at 0%. Employers withhold taxes each pay cycle. Your 13th-month pay and other benefits are tax-exempt up to ₱90,000 for the year, counted together. De minimis benefits are a separate exemption with their own BIR ceilings; only what goes over a ceiling joins the ₱90,000 bucket.',
       ),
       LessonSection(
         id: 's2',
@@ -804,7 +804,7 @@ const List<CourseModule> academyCourses = <CourseModule>[
           'The TRAIN Law exempts the first ₱250,000 of annual taxable compensation income from Philippine personal income tax.',
     ),
     keyTakeaways: <String>[
-      '13th-month pay and qualified benefits are tax-exempt up to ₱90,000 per year.',
+      '13th-month pay and other benefits are tax-exempt up to ₱90,000 a year, counted together. De minimis benefits are exempt separately, under their own ceilings.',
       'Freelancers earning under ₱3M can choose the simplified 8% flat tax option.',
       'A stamped BIR tax return (ITR) is critical for home loans, car loans, and travel visas.',
     ],

@@ -26,7 +26,7 @@ this branch point, so the review is slightly out of date where it says:
 
 ### Phase 1, in progress
 
-Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5.
+Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5, P1.6.
 
 ---
 
@@ -39,7 +39,7 @@ Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5.
 | P1.3 | Remove always-on sample Netflix data | DONE | see below |
 | P1.4 | Tax sheet mixed income | DONE | see below |
 | P1.5 | Freelancer comparison consistency | DONE | see below |
-| P1.6 | Small BIR fixes | todo | |
+| P1.6 | Small BIR fixes | DONE | see below |
 | P1.7 | One debt-to-income rule (F8), one health check (F9) | todo | |
 
 ### P1.1 notes
@@ -177,6 +177,48 @@ Restoring the old label and figure fails both halves:
       Actual: Found 0 widgets with text "₱122,500.00"
     Expected: no matching candidates
       Actual: Found 1 widget with text containing full gross
+
+### P1.6 notes
+
+Three BIR fixes, and the first one was not what the review said it was.
+
+**The withholding constants were not typos.** The review reported ₱8,541.67
+where the table says ₱8,541.80, and the sprint prompt repeated it as three
+constants to change. Changing only them would have made the function WRONG.
+
+The old constants were coherent with the old bracket EDGES, which were the
+prototype's decimals: `1,875 + (66,666.67 - 33,333.33) x 0.20` is 8,541.67
+exactly. The published 8,541.80 is what the table's own INTEGER edges give:
+`1,875 + (66,667 - 33,333) x 0.20`. Each pair is internally consistent; mixing
+them double counts a sliver of a bracket at the boundary. Both moved together,
+and the whole function now matches one published source rather than two
+conventions averaged.
+
+Verified against [BIR Annex E of RR 11-2018](https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf),
+effective 1 January 2023 and still in force, rather than taken on the review's
+word. Every corrected figure was then computed BY HAND from the printed
+brackets before the tests were run, and all seven of the engine's new outputs
+matched those hand figures exactly. That is the cross-check: two independent
+routes to the same number.
+
+This is the third place a tax figure is corrected against current law rather
+than against the prototype, after the SSS schedule and the 8% election, and it
+is flagged for the same reason.
+
+`bir_withholding_table_test.dart` states the table on its own, because the
+existing vectors tangle a withholding figure with SSS, PhilHealth and Pag-IBIG,
+and when the table moved, seven of them moved with it with nothing saying what
+the table itself is. It includes a coherence check asserting each constant is
+what the band below ends at, which is the property the mixed convention broke.
+
+**The 32% comment**, which claimed the graduated table tops out at 32 where
+the code correctly uses 35. Comment only; no behaviour.
+
+**13th month and de minimis**, which the Academy conflated into one ₱90,000
+exemption. They are separate: 13th month and other benefits share the ₱90,000,
+and de minimis benefits are exempt in their own right under their own ceilings,
+with only the excess joining that bucket. The info sheet already said this
+correctly and was left alone.
 
 ## Phase 2 to 7
 
