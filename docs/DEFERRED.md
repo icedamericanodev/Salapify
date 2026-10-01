@@ -18,30 +18,107 @@ this sprint, and they are listed here so the next pass has one place to look.
 
 ## Deferred during the sprint
 
-### Three readings retired with Pan's second health engine (P1.7, F9)
+### Nothing was lost with Pan's second health engine (P1.7, F9), and one thing was fixed
 
-F9 retired `pan_health.dart`, so the whole app now runs one health check, the
-five-question engine the Health Check sheet already used. Pan's old engine
-scored four parts, and three of them have no equivalent among the five, so
-three readings left the app with it:
+**This section replaces an earlier version of itself that was wrong twice, and
+the way it was wrong is the point.** It claimed card utilisation left the app
+and asked the founder whether to add a sixth health question to bring it back.
+Three independent expert passes, asked to decide that question, each began by
+correcting the premise instead. Both corrections were then checked against the
+code rather than taken on their word.
 
-| Retired reading | Still reachable? |
+**Correction 1. Card utilisation never left.** `lib/core/money/accounts.dart`
+computes `creditUtilization` and `isHighUtilization`, and
+`lib/screens/accounts/bank_card.dart` renders it per card: the percentage, a
+progress bar, the limit underneath, the threshold spelled out in words and not
+colour alone, and an honest empty state for a card with no limit entered. It
+sits on the object it describes, which is where a reference figure belongs.
+
+**Correction 2. The retired reading was broken, so deleting it was a fix.**
+Salapify stores a credit balance POSITIVE when money is owed.
+`test/core/money/accounts_test.dart` pins it: 12,000 against a 40,000 limit is
+30 percent, and the sample BPI card carries `balance: 4200.00` against a 40,000
+limit. The retired `_cardUse` counted only the negative side:
+
+    (double s, Account c) => s + (c.balance < 0 ? -c.balance : 0),
+
+so on that sample card it computed 0 percent and awarded a perfect 25 of 25
+with the reading "0% of the limits you have entered". It reported zero
+utilisation on every card actually carrying debt, and could only ever fire on a
+card in credit, which by definition owes nothing.
+
+Its own doc comment asserted the opposite convention with full confidence, and
+its test used `balance: -18000` and expected 45 percent, so the test agreed with
+the bug. That is the failure this repository already has a rule about: a test
+written from the same wrong mental model as the code passes for the wrong reason
+and then reads as proof.
+
+**So the three retired readings are:**
+
+| Retired reading | Verdict |
 |---|---|
-| Cover, months of spending held in cash | Yes. Safe to Spend owns the runway figure, and Pan still answers "what is safe to spend". |
-| What you owe, pesos owed per 100 held | Yes. Pan's own "what do I owe" answer and the Reports net worth card. |
-| Card use, balance against the limits entered | NO. Nothing else in the app computes a card utilisation percentage. The Accounts screen shows the limit and the balance side by side and leaves the division to the reader. |
+| Cover, months of spending held in cash | Still answerable. Safe to Spend owns the runway figure and Pan still answers "what is safe to spend". |
+| What you owe, pesos owed per 100 held | Still answerable. Pan's own "what do I owe" answer and the Reports net worth card. |
+| Card use, balance against the limits entered | Already shipped and correct on the Accounts screen. The retired copy was wrong by sign and is not coming back. |
 
-Card use is the real loss and it is deliberately not replaced here. Adding a
-sixth question is a product decision, not an engineering one: the founder
-settled on five on 2026-09-20 precisely because twelve destroyed the signal,
-and quietly making it six inside a consolidation task would undo that decision
-without anybody deciding anything.
+**DECIDED, no founder action needed: the Health Check stays at five
+questions.** Nothing was lost that needs replacing, and three separate reviews
+converged on the same reasons for not adding a sixth even if something had
+been: credit card ownership is a minority of the audience and a typed-in credit
+limit a minority of that, so a sixth card would be grey on most installs, which
+is the exact outcome the five-not-twelve decision of 2026-09-20 was made to
+prevent; the five are ordered by time horizon and a ratio has no horizon;
+and a sixth candidate that is never measured dilutes the one "worth doing
+something about" banner without ever competing for it.
 
-**For the founder:** should "Am I leaning on my cards?" become a sixth health
-question? It is the one reading that went nowhere else, it only works for
-people who entered a credit limit, and the old engine handled that honestly by
-excluding anybody who had not. Say the word and it is a small, contained
-addition to `health_check.dart`.
+### Two Health Check and Accounts findings, verified, not yet fixed
+
+Both came out of the expert pass on the sixth-question decision, and both were
+checked against the code and the rendered screen rather than taken on the
+report's word. Neither is in P1.7's scope, so neither was folded into it.
+
+**1. The banner repeats a card the user can already see.** The Health Check
+sheet opens with one "WORTH DOING SOMETHING ABOUT" box carrying the tightest
+reading, and on the lived-in ledger that reading is the SAME SENTENCE as the
+one on card five, both on screen at rest: "Debt & Loan Servicing is over by
+₱450.00". The sheet's own comment records that an earlier version printed the
+question there and that this was fixed by printing the reading instead; it
+swapped one duplication for another. The fix is to let the card that is already
+in the banner render without restating it, or to give the banner the one tap
+and leave the detail to the card, so they are not the same object.
+
+**2. The one place that asks for a credit limit cannot accept the answer.**
+`_Utilisation` in `screens/accounts/bank_card.dart` prints "Add this card's
+limit to see how much of it you are using." as a bare `Text` with no tap of its
+own, and the card's only `InkWell` calls `_turn`, which flips it over. So the
+sentence is a request with a four-step scavenger hunt behind it: Accounts, find
+the card, tap to flip, tap Edit, scroll to the field. That is the same shape as
+the Home dead ends P1.1 removed. Making it a real control is the smallest
+change that would get more people measured on a figure the app already
+computes correctly.
+
+### The real card gap, which is NOT utilisation
+
+
+Two of the three reviews independently landed on the same genuine hole, and it
+survived checking. `_promised`, question 2, counts only `InstallmentPlan`
+records. A revolving credit card balance with no plan behind it contributes
+nothing to "how much of my pay is already promised", while costing the person
+real money every month. Utilisation cannot see this either: somebody who runs
+30,000 a month through a 50,000 card and clears it in full pays nothing and
+reads as stretched, while somebody carrying 6,000 on the same card at the
+minimum reads as comfortable. The ratio ranks them backwards, and the second
+person is who the Health Check exists for.
+
+**This is a founder decision and it is money meaning, so it is not being built
+on anyone's initiative.** The clean version is an optional minimum-payment
+field on a credit account, counted into `monthlyInstalments` when the person
+entered one and absent when they did not. Never an assumed percentage:
+`health_check.dart` already names that sin, because the prototype assumes eight
+percent of every outstanding debt is a monthly minimum and so charges somebody
+for family utang that has no minimum and never did.
+
+Deferred pending the founder.
 
 ## Raised by the sprint, not in the prompt
 

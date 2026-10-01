@@ -209,7 +209,16 @@ void main() {
       final Iterable<ControlCenterAlert> neg = alerts.where(
         (ControlCenterAlert a) => a.type == AlertType.balanceMismatch,
       );
-      expect(neg.length, 1, reason: 'a credit card is SUPPOSED to be negative');
+      expect(
+        neg.length,
+        1,
+        reason:
+            'a borrowing account is excluded from this alert whatever its '
+            'sign. The reason string here used to read "a credit card is '
+            'SUPPOSED to be negative", which is the opposite of the '
+            'convention: a credit balance is POSITIVE when money is owed, and '
+            'a negative one means the card owes you after an overpayment.',
+      );
       expect(neg.first.relatedAccountId, 'a1');
       expect(neg.first.amount, 250);
     });

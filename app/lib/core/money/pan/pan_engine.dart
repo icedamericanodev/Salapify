@@ -7,6 +7,7 @@ import '../../../models/academy.dart';
 import '../../../models/models.dart';
 import '../format.dart';
 import '../health_check.dart';
+import '../reports.dart' show liabilityKinds;
 import 'pan_affordability.dart';
 import 'pan_amounts.dart';
 import 'pan_bans.dart';
@@ -593,20 +594,54 @@ Account? _accountNamed(String q, PanFacts facts) {
 }
 
 PanAnswer _oneAccount(Account a, PanFacts facts) {
-  final bool owing = a.balance < 0;
+  // THE SIGN CONVENTION IS THE APP'S, NOT THIS FUNCTION'S GUESS.
+  //
+  // A credit, loan or mortgage balance is stored POSITIVE when money is owed.
+  // reports.dart computes net worth as assets minus a plain sum of those
+  // kinds, and accounts.dart divides that same positive balance by the credit
+  // limit to get utilisation. The sample BPI card carries 4,200.00 against a
+  // 40,000 limit.
+  //
+  // This read `balance < 0` instead, so a card carrying 4,200 of debt was
+  // reported as HOLDING 4,200, and the explanatory sentence then taught the
+  // wrong convention back to the reader as fact. The deleted pan_health.dart
+  // carried the identical defect with an equally confident comment; this one
+  // was found by going looking for its twin.
+  final bool liability = liabilityKinds.contains(a.kind);
+  final bool owing = liability ? a.balance > 0 : a.balance < 0;
+  final double amount = a.balance.abs();
+
+  final String text;
+  final String label;
+  if (liability && a.balance > 0) {
+    text =
+        '${a.name} is carrying ${formatPeso(amount)} owing. A card or a loan '
+        'records what you owe as a positive balance, and Salapify subtracts '
+        'it from your net worth rather than adding to it.';
+    label = 'Owing';
+  } else if (liability && a.balance < 0) {
+    // Rare but real: an overpayment leaves the card owing YOU.
+    text =
+        '${a.name} is ${formatPeso(amount)} in credit, which is money the '
+        'card owes you rather than money you owe it.';
+    label = 'In credit';
+  } else if (liability) {
+    text = '${a.name} has nothing owing on it.';
+    label = 'Owing';
+  } else if (owing) {
+    text =
+        '${a.name} is ${formatPeso(amount)} overdrawn, so it is money you owe '
+        'rather than money you hold.';
+    label = 'Overdrawn';
+  } else {
+    text = '${a.name} holds ${formatPeso(amount)}.';
+    label = 'Balance';
+  }
+
   return PanAnswer(
     topic: 'account',
-    text: owing
-        ? '${a.name} is carrying ${formatPeso(a.balance.abs())} owing. A card '
-              'or a loan records what you owe as a negative number, so it '
-              'lowers your net worth rather than adding to it.'
-        : '${a.name} holds ${formatPeso(a.balance)}.',
-    figures: <PanFigure>[
-      PanFigure(
-        label: owing ? 'Owing' : 'Balance',
-        value: formatPeso(a.balance.abs()),
-      ),
-    ],
+    text: text,
+    figures: <PanFigure>[PanFigure(label: label, value: formatPeso(amount))],
     followUps: <String>[
       'How much do I have right now?',
       'What is a reconciliation check?',

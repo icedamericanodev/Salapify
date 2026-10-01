@@ -121,8 +121,16 @@ List<ControlCenterAlert> runControlCenterScan({
   }
 
   // 2. A negative balance on an account that cannot legitimately hold one.
-  //    Credit, loan and mortgage accounts are excluded: owing money IS their
-  //    normal state.
+  //    Credit, loan and mortgage accounts are excluded, and the reason is NOT
+  //    the one this comment used to give. It said owing money is their normal
+  //    state, which reads as though a borrowing account owes money when its
+  //    balance is negative. It does not: this app stores a liability balance
+  //    POSITIVE when money is owed, and net worth subtracts a plain sum of
+  //    them. A negative balance on a card means the card owes YOU, after an
+  //    overpayment. That is unusual and legitimate, which is why it is
+  //    excluded here, and the exclusion is right for a different reason than
+  //    the comment claimed. See test/core/money/credit_sign_test.dart; two
+  //    engines were written against the wrong reading of this sentence.
   for (final Account acc in accounts) {
     final bool borrowing =
         acc.kind == AccountKind.credit ||

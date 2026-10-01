@@ -141,6 +141,10 @@ void main() {
     });
 
     test('a card in the red reads as owing, not as money held', () {
+      // The fixture used to be -18,400, which by this app's convention means
+      // the card owes YOU 18,400. The test passed against code that read the
+      // sign backwards, so both were wrong in the same direction and agreed.
+      // See the dedicated convention test at the end of this file.
       final PanAnswer a = askPan(
         'what about my Gold Card',
         facts(
@@ -150,7 +154,7 @@ void main() {
               name: 'Gold Card',
               kind: AccountKind.credit,
               institution: 'Bank',
-              balance: -18400,
+              balance: 18400,
               monogram: 'GC',
             ),
           ],
@@ -1053,6 +1057,85 @@ void qaRegressions() {
     test('and an exact name still works', () {
       final PanFacts f = ledger(accounts: <Account>[account('Everyday', 300)]);
       expect(askPan('how much is in everyday', f).topic, 'account');
+    });
+  });
+
+  group('a card balance is money OWED, not money held', () {
+    // The sign convention is settled everywhere else in the app: a credit,
+    // loan or mortgage balance is stored POSITIVE when money is owed.
+    // reports.dart computes netWorth as assets minus liabilities on a plain
+    // sum of each; accounts_test.dart pins 12,000 against a 40,000 limit at
+    // 30 percent; and the sample BPI card carries balance 4200.00 with a
+    // 40,000 limit.
+    //
+    // Pan read the opposite sign and told somebody their card HELD the money
+    // they owed on it, in a sentence that also explained the wrong convention
+    // back to them as fact. The deleted pan_health.dart carried the identical
+    // defect with an equally confident comment, and this was found by going
+    // looking for its twin rather than by anybody tripping over it.
+    //
+    // NOTE the local helper. The file's own `account()` helper sets the kind
+    // from the sign, so a credit account in it can only ever be negative,
+    // which is the fixture agreeing with the bug.
+    Account card(String name, double balance) => Account(
+      id: name,
+      name: name,
+      kind: AccountKind.credit,
+      institution: 'BPI',
+      balance: balance,
+      creditLimit: 40000,
+      monogram: 'BPI',
+    );
+
+    test('a card carrying a balance reads as owing', () {
+      final PanAnswer a = askPan(
+        'how much is in rewards',
+        ledger(accounts: <Account>[card('Rewards Card', 4200)]),
+      );
+      expect(a.topic, 'account');
+      expect(a.text, contains('₱4,200.00'));
+      expect(a.text, contains('owing'));
+      expect(
+        a.text,
+        isNot(contains('holds')),
+        reason: 'money owed on a card was reported as money held',
+      );
+      expect(a.figures.single.label, 'Owing');
+    });
+
+    test('and Pan does not teach the wrong convention while it is at it', () {
+      // The sentence said "a card or a loan records what you owe as a
+      // negative number", which is false in this app. Explaining a stored
+      // convention wrongly is worse than not explaining it, because somebody
+      // who believes it will read every other screen through it.
+      final PanAnswer a = askPan(
+        'how much is in rewards',
+        ledger(accounts: <Account>[card('Rewards Card', 4200)]),
+      );
+      expect(a.text, isNot(contains('negative number')));
+    });
+
+    test('a bank account still reads as money held', () {
+      // The other half of the alarm. A fix that called everything owing would
+      // pass the two tests above and break every ordinary account in the app.
+      final PanAnswer a = askPan(
+        'how much is in everyday',
+        ledger(accounts: <Account>[account('Everyday', 12400)]),
+      );
+      expect(a.text, contains('holds'));
+      expect(a.text, contains('₱12,400.00'));
+      expect(a.figures.single.label, 'Balance');
+    });
+
+    test('a card that is paid off says nothing is owing on it', () {
+      // Zero on a card is not "holds nothing", it is the good outcome, and
+      // the old code would have reported it as a balance of zero held.
+      final PanAnswer a = askPan(
+        'how much is in rewards',
+        ledger(accounts: <Account>[card('Rewards Card', 0)]),
+      );
+      expect(a.text, contains('nothing owing'));
+      expect(a.figures.single.label, 'Owing');
     });
   });
 }
