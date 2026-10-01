@@ -19,8 +19,11 @@ import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/models/models.dart';
-import 'package:salapify/screens/debt/debt_screen.dart';
+import 'package:salapify/main.dart';
+import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../shots/screens_shot.dart' show loadRealFonts;
 
 void main() {
   _reachable();
@@ -377,36 +380,52 @@ void main() {
 /// The journeys above open the sheet directly, deliberately, so that each one
 /// fails for its own reason rather than for whichever of three taps moved
 /// last. This is the one that drives the real route.
+///
+/// It drives the WHOLE APP rather than a bare Scaffold, and that is the
+/// difference between this version and the one it replaced. The first version
+/// pumped `DebtScreen` on its own and asserted a card inside it opened the
+/// sheet. Every word of that was true, and the feature was still effectively
+/// unreachable: the founder went looking for it, did not find it, and the
+/// test had nothing to say because it had been handed the destination as its
+/// starting point. A reachability test that begins where the feature lives
+/// cannot fail the way reachability actually fails.
 void _reachable() {
-  testWidgets('the split sheet opens from the Debt screen', (
+  testWidgets('the split sheet opens from the Home shortcut row', (
     WidgetTester tester,
   ) async {
+    // The real fonts, because this pumps the whole of Home and Home MEASURES.
+    // Without them the first run of this test reported a 45 pixel overflow in
+    // debt_beam_card.dart that does not exist on a phone: Flutter's default
+    // test font is wider than Plus Jakarta Sans, so a layout judged in it is
+    // a layout nobody will ever see.
+    await tester.runAsync(loadRealFonts);
+
     tester.view.physicalSize = const Size(1170, 3400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    final FinancialState state = FinancialState(
-      clock: DateTime.utc(2026, 10, 1),
-    );
-    final Palette p = Palette.of(state.theme);
+    // Pinned, for the same reason plan_test.dart and log_journey_test.dart
+    // are: the seed ledger is dated September and the real clock has moved
+    // past it.
+    final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
+    await state.restore();
+    addTearDown(state.dispose);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: salapifyTheme(p, state.theme),
-        home: Scaffold(
-          body: SafeArea(child: DebtScreen(state: state)),
-        ),
-      ),
-    );
+    await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
 
-    // Found by its TEXT rather than its semantics label. The card wraps an
-    // InkWell whose children carry their own text, and those merge upward, so
-    // the explicit label is not separately findable. The label still does its
-    // job for a screen reader; it is simply not the handle a test can grab.
-    final Finder door = find.text(
-      'Work out everyone\'s share and record who owes what',
+    // Home opens on the first tab, so nothing is tapped to get here. That is
+    // the point of the move: the door is on the screen the app opens on.
+    final Finder door = find.descendant(
+      of: find.byType(QuickActions),
+      matching: find.text('Split'),
     );
+    expect(
+      door,
+      findsOneWidget,
+      reason: 'the Split shortcut is not on Home at all',
+    );
+
     await tester.ensureVisible(door);
     await tester.pumpAndSettle();
     await tester.tap(door);
@@ -414,5 +433,98 @@ void _reachable() {
 
     expect(find.text('Split a bill'), findsWidgets);
     expect(find.text('Total bill'), findsOneWidget);
+  });
+
+  testWidgets('the Home shortcut row still fits on a 320dp phone', (
+    WidgetTester tester,
+  ) async {
+    // The fifth shortcut is why this exists, and what it guards is NOT an
+    // overflow. The first version of this test was written believing a fixed
+    // 52 tile would overflow by 2.4 pixels at five across; it does not,
+    // because Flutter enforces a tight width against the parent's constraint
+    // and silently clamps it to 49.6. The deliberate break proved that by
+    // passing when it should have failed.
+    //
+    // What is really at risk when shortcuts are added is the TOUCH TARGET.
+    // Each tile gets whatever a fifth of the row is, and that number falls
+    // every time somebody adds a shortcut. At six it is 40, under the 44
+    // floor, and nothing anywhere else in the app would say so. That is the
+    // assertion with teeth here.
+    //
+    // 320dp is the narrowest phone worth supporting, and the row is checked
+    // at large text too, because the LABEL under each tile is what runs out
+    // of room second.
+    //
+    // Real fonts, because this measures. The default test font is wider than
+    // the shipped one, so a row that fits in it is not evidence about a
+    // phone, and a row that fails in it is not necessarily a defect.
+    await tester.runAsync(loadRealFonts);
+
+    for (final double scale in <double>[1.0, 1.5]) {
+      tester.view.physicalSize = const Size(320 * 3, 800 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
+      final Palette p = Palette.of(state.theme);
+      addTearDown(state.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: salapifyTheme(p, state.theme),
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: Scaffold(
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                  child: QuickActions(
+                    palette: p,
+                    onLog: () {},
+                    onDebt: () {},
+                    onBills: () {},
+                    onMove: () {},
+                    onSplit: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the shortcut row overflowed at 320dp and ${scale}x text',
+      );
+
+      // All five are really drawn, not just not-overflowing. A row that
+      // dropped a shortcut would pass an overflow check perfectly.
+      for (final String label in <String>[
+        'Log',
+        'Debt',
+        'Bills',
+        'Move',
+        'Split',
+      ]) {
+        expect(
+          find.text(label),
+          findsOneWidget,
+          reason: '$label is missing from the shortcut row',
+        );
+      }
+
+      // And every tile still clears the 44dp touch floor.
+      for (final Element e in find.byType(InkWell).evaluate()) {
+        final Size size = e.size!;
+        expect(
+          size.width,
+          greaterThanOrEqualTo(44.0),
+          reason: 'a shortcut tile is only ${size.width}dp wide',
+        );
+      }
+    }
   });
 }

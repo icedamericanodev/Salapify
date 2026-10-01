@@ -6,7 +6,6 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/debt/payment_sheet.dart';
-import '../../features/debt/split_bill_sheet.dart';
 import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 import '../../models/models.dart';
@@ -113,8 +112,6 @@ class _DebtScreenState extends State<DebtScreen> {
               _Section.debts => <Widget>[
                 _Beam(palette: p, debts: debts),
                 const SizedBox(height: Spacing.md),
-                _SplitBillCard(palette: p, onTap: () => _openSplit(context, p)),
-                const SizedBox(height: Spacing.md),
                 _DirectionPicker(
                   palette: p,
                   current: _direction,
@@ -159,14 +156,10 @@ class _DebtScreenState extends State<DebtScreen> {
     );
   }
 
-  /// Splitting a bill ends in DEBTS, which is why it lives here rather than
-  /// on the Home quick actions row. That row is already four wide and a fifth
-  /// would crowd it on a narrow phone, and somebody thinking about who owes
-  /// whom is already on this screen.
-  Future<void> _openSplit(BuildContext context, Palette palette) async {
-    await SplitBillSheet.show(context, palette: palette, state: widget.state);
-    if (mounted) setState(() {});
-  }
+  // Splitting a bill used to open from a card on this screen, and the comment
+  // that lived here argued it belonged on the screen where debts live. The
+  // founder went looking for it the way anybody would, did not find it, and
+  // moved it to Home's shortcut row on 2026-10-01. It opens from there now.
 
   Future<void> _openAdd(BuildContext context, Palette palette) async {
     final Debt? added = await AddDebtSheet.show(context, palette);
@@ -659,60 +652,6 @@ class _Empty extends StatelessWidget {
             style: AppType.body(palette),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The door into splitting a bill.
-///
-/// A card rather than a second button beside "Add a debt", because the two do
-/// different things: one records a debt you already know about, the other
-/// works one out from a bill and then records several. Side by side as peers
-/// they would read as two variants of the same form.
-class _SplitBillCard extends StatelessWidget {
-  const _SplitBillCard({required this.palette, required this.onTap});
-
-  final Palette palette;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Split a bill between people',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.control),
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.all(Spacing.md),
-          decoration: BoxDecoration(
-            color: palette.accentSoft,
-            borderRadius: BorderRadius.circular(Radii.control),
-            border: Border.all(color: palette.border),
-          ),
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.groups_outlined, size: 18, color: palette.accent),
-              const SizedBox(width: Spacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Split a bill', style: AppType.rowTitle(palette)),
-                    Text(
-                      "Work out everyone's share and record who owes what",
-                      style: AppType.rowMeta(palette),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 18, color: palette.textMuted),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1996,3 +1996,62 @@ disagree, so a brand new install today shows a Log full of entries from
 "yesterday" and a Budgets screen that says nothing has been spent this month.
 For an app being built for the public, that is the first screen a stranger
 sees.
+
+### Split moved to the Home shortcut row (2026-10-01)
+
+Founder direction, same day it shipped: "yes move it to the quick actions".
+
+It first landed as a card inside the debts register, and the comment
+justifying that placement argued a fifth shortcut "would crowd it on a narrow
+phone" and that "somebody thinking about who owes whom is already on this
+screen". The founder went looking for it the way anybody would, did not find
+it, and said move it. Splitting a bill happens at a table with people waiting,
+which is the worst possible moment to need a scroll and three taps.
+
+The row is now Log, Debt, Bills, Move, Split. The card is gone from the debts
+register, which is what "move" means.
+
+#### The reachability test could not have caught this
+
+The old one pumped `DebtScreen` on its own and asserted a card inside it
+opened the sheet. Every word of that was true and the feature was still
+effectively unreachable: the test was handed the destination as its starting
+point. It now pumps the whole app and starts on Home, where the app opens.
+
+A reachability test that begins where the feature lives cannot fail the way
+reachability actually fails.
+
+#### A claim of mine that did not survive its own break
+
+The fifth tile was built with a `LayoutBuilder` that shrank it by hand, on
+this arithmetic: at 320dp the row has 288 to give out, a fifth slot gets 57.6,
+8 of that is the slot's own padding, and a 52 box in 49.6 overflows by 2.4
+pixels.
+
+The arithmetic is right and the conclusion is wrong. `Container(width: 52)`
+resolves to a tight constraint ENFORCED against the parent's, so Flutter
+clamps it to 49.6 and nothing overflows. The deliberate break, putting the
+fixed 52 back, PASSED. Per the repository rule that is the most informative
+result the procedure can give: the test was wrong, not the code unusually
+good. The LayoutBuilder came out and the comment now says what is true.
+
+What is really at risk when shortcuts are added is the TOUCH TARGET, which
+falls every time one is added and which nothing else in the app measures. At
+six it is 40, under the 44 floor. The test was rewritten onto that, and a
+sixth shortcut makes it fail with:
+
+    Expected: a value greater than or equal to <44.0>
+      Actual: <40.0>
+    a shortcut tile is only 40.0dp wide
+
+Removing the Split shortcut makes the reachability half fail with:
+
+    Found 0 widgets with text "Split" descending from widgets with type QuickActions
+    the Split shortcut is not on Home at all
+
+Both halves of the alarm are proved: it fires at six shortcuts and stays
+silent at five.
+
+#### The row, dark
+
+![home with the split shortcut](screens/home-with-split-shortcut.png)

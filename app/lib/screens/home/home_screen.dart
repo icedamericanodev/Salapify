@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
+import '../../features/debt/split_bill_sheet.dart';
 import '../../features/health/health_check_sheet.dart';
 import '../../features/info/info_sheet.dart';
 import '../../features/pan/pan_hero_card.dart';
@@ -116,6 +117,7 @@ class HomeScreen extends StatelessWidget {
               onDebt: () => _addDebt(context, palette),
               onBills: () => _soon(context, palette, 'Bills'),
               onMove: () => _soon(context, palette, 'Move'),
+              onSplit: () => _splitBill(context, palette),
             ),
             const SizedBox(height: Spacing.lg),
             PanHeroCard(
@@ -243,6 +245,17 @@ class HomeScreen extends StatelessWidget {
   /// The messenger is captured BEFORE the await. The sheet can be dismissed
   /// long after this context is gone, and reaching for ScaffoldMessenger.of
   /// on the far side of an await is the usual way that turns into a crash.
+  /// Splitting a bill, from the Home shortcut row.
+  ///
+  /// The sheet writes its own debts and its own expense entry through the
+  /// store, so there is nothing to hand back here and nothing to redraw by
+  /// hand: [FinancialState] is a ChangeNotifier and the shell listens to it,
+  /// so Home's debt beam and Safe to Spend pick the new figures up on their
+  /// own. _addDebt is the one that needs a line after the await, and only
+  /// because it has a snack bar to show.
+  Future<void> _splitBill(BuildContext context, Palette palette) =>
+      SplitBillSheet.show(context, palette: palette, state: state);
+
   Future<void> _addDebt(BuildContext context, Palette palette) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final Debt? saved = await AddDebtSheet.show(context, palette);
