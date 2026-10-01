@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/screens/home/hero_panel.dart';
-import 'package:salapify/main.dart';
+
+import '../support/pinned_app.dart';
 
 /// Boots the real app the way the phone does.
 ///
@@ -12,7 +13,7 @@ void main() {
   testWidgets('the app boots and lands on Home with real money on screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     // The hero is present, and it is showing a peso figure rather than a
@@ -39,7 +40,7 @@ void main() {
   });
 
   testWidgets('every tab opens without throwing', (WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     for (final String tab in <String>[
@@ -59,7 +60,7 @@ void main() {
   testWidgets('the theme switch actually changes the background', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     Color background() =>
@@ -76,7 +77,7 @@ void main() {
   testWidgets('switching the scenario moves the Safe to Spend figure', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     // Scoped to the HERO, not to "the first peso figure on the screen".

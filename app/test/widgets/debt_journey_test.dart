@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/debt/debt_screen.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// The debt payment write path, in BOTH halves.
 ///
@@ -20,7 +21,7 @@ import 'package:salapify/state/financial_state.dart';
 /// the payment and assert it is genuinely on the screen there.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

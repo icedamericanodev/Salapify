@@ -4,8 +4,9 @@ import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// The explainer sheets behind every circled "i".
 ///
@@ -102,7 +103,7 @@ void main() {
   ) async {
     // Two dots on Home used to show a "coming soon" message, which is worse
     // than no dot: it costs a tap and teaches that the dots do nothing.
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     // Home is a lazy list, so the debt card is not BUILT until it is scrolled

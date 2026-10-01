@@ -5,13 +5,14 @@ import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
 import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+
+import '../support/pinned_app.dart';
 
 /// Accounts, driven the way a person drives it.
 ///
@@ -20,7 +21,7 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 /// person would tap, is the right number actually ON THE SCREEN.
 void main() {
   Future<void> openAccounts(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined).last);
     await tester.pumpAndSettle();

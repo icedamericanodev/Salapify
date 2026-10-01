@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
+
+import '../support/pinned_app.dart';
 
 /// Layout guards for Home.
 ///
@@ -11,7 +12,7 @@ import 'package:salapify/screens/home/debt_beam_card.dart';
 /// constraints by its parent.
 void main() {
   Future<void> pumpHome(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

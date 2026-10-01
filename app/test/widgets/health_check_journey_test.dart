@@ -2,9 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/features/health/health_check_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// Health Check, opened the way a person opens it.
 ///
@@ -14,7 +15,7 @@ import 'package:salapify/state/financial_state.dart';
 /// decorative, and they do not tap the next one.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

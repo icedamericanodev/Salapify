@@ -2253,3 +2253,100 @@ Replacing the ledger write with a bare `notifyListeners()`:
 | The list | Scheduling one |
 | --- | --- |
 | ![bills](screens/bills-list.png) | ![schedule](screens/bills-schedule-form.png) |
+
+## The clock fix (2026-10-01)
+
+Founder direction, after it was flagged: "do the clock fix".
+
+### What was wrong
+
+On 1 October six tests went red and not a line of app code had changed. They
+pumped `const SalapifyApp()`, which builds its own `FinancialState` and so
+reads `DateTime.now()`. The seed ledger is dated September 2026 and those
+tests assert figures meaning "spent this month", so the moment the calendar
+rolled, nothing in the seed counted as this month and every budget showed its
+full limit unspent.
+
+Two files were pinned by hand that day. FOURTEEN were not, so the same thing
+was going to happen again on 1 November, and that version would have looked
+exactly as mysterious as the October one.
+
+### What was done
+
+All fourteen now go through one door, `pumpSalapify` in
+`test/support/pinned_app.dart`, which builds the store on 18 September 2026,
+the seed's own today. The five files that were already pinned by hand were
+folded into the same helper, so there is ONE pinning path rather than six
+copies that can drift.
+
+Pinning is three lines that are easy to leave out and impossible to notice
+missing, because a test written on the 10th of a month passes all month. A
+helper makes the pinned path the SHORT path.
+
+### The guard, and why it has to be one
+
+`test/clock_discipline_test.dart` reads the test sources and fails on two
+things: a `FinancialState` built anywhere under `test/` without a `clock:`,
+and anything pumping a bare `const SalapifyApp()`. That shape is precedented
+here, where the thing being checked is the CODE rather than its behaviour
+(`main_wiring_test.dart` reads main.dart, `truthful_claims_test.dart` reads
+what the app claims).
+
+It has to be a machine because the failure is invisible when it is
+introduced. No amount of care at writing time catches it, since at writing
+time there is nothing to see.
+
+Three things it got wrong on its own first runs, each fixed rather than
+excused:
+
+1. It flagged `plan_test.dart` for a `const SalapifyApp()` inside a doc
+   comment EXPLAINING why that file does not use one. A rule that punishes
+   writing down the reason is a rule people delete. It strips line comments
+   now.
+2. Widened from `test/widgets` to the whole tree, it flagged ITSELF, because
+   its own source contains the string it searches for. The needle is
+   assembled from pieces rather than written out. Skipping the file by name
+   would have worked and would also have been an exemption, and an exemption
+   list is what makes a guard negotiable.
+3. The sibling check gets away with a literal `FinancialState\(` regex only
+   because the backslash means it never equals the text it looks for. That is
+   luck, not design, and it is written into the file so the next person knows.
+
+### Proving it, three ways
+
+**The guard fires on a new offender**, naming the file and line:
+
+    Expected: empty
+      Actual: ['test/widgets/zz_offender_test.dart:7']
+
+**And stays silent on a pinned one.** A temporary test constructing
+`FinancialState(clock: DateTime(2026, 9, 18))` across several lines passed
+cleanly, which also proves the bracket scan reads a multi-line call properly;
+a line-by-line grep would have answered the wrong question, since almost every
+one of these has `clock:` on a line of its own.
+
+**The pin is load-bearing, not decoration.** Moving `testToday` to 1 November
+reproduces the original October failures exactly:
+
+    Found 0 widgets with text "₱25,425.25"
+    Found 0 widgets with text "₱11,535.00"
+    Found 0 widgets with text "₱450.00 over limit"
+    log_journey_test.dart: the date picker yesterday's coffee files under
+    yesterday and still moves the money today
+
+A route that was tried and abandoned: running the suite under `faketime` to
+see a real 1 November. The Dart VM polls the clock heavily enough that it
+crawls and then hangs, so it proves nothing. Moving the pinned date is the
+cheaper experiment and tests the same claim.
+
+### Still not fixed, and still the founder's call
+
+The seed's transaction `date` strings are frozen at `2026-09-xx` while their
+`createdAt` timestamps roll with `DateTime.now()`. The two fields disagree, so
+a brand new install today shows a Log full of entries from "yesterday" above a
+Budgets screen saying nothing has been spent this month.
+
+Worth naming plainly: pinning the clock removed the only mechanism that had
+ever surfaced that defect. The tests can no longer notice it. Deferring the
+fix was right, since it is product content; deferring it in the same change
+that removed the detector is why it is written here rather than left implied.

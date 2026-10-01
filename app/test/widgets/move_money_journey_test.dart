@@ -16,17 +16,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/accounts/move_money_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
 
+import '../support/pinned_app.dart';
+
 void main() {
   // Pinned for the same reason every other journey here pins: the seed ledger
   // is dated September 2026 and the real clock has moved past it.
-  final DateTime pinnedToday = DateTime(2026, 9, 18);
 
   Future<FinancialState> pumpApp(WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
@@ -34,13 +34,7 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    final FinancialState state = FinancialState(clock: pinnedToday);
-    await state.restore();
-    addTearDown(state.dispose);
-
-    await tester.pumpWidget(SalapifyApp(state: state));
-    await tester.pumpAndSettle();
-    return state;
+    return pumpSalapify(tester);
   }
 
   Future<void> tapIt(WidgetTester tester, Finder f) async {

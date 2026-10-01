@@ -12,7 +12,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/bills/bills_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/home/coming_up_card.dart';
 import 'package:salapify/screens/home/quick_actions.dart';
@@ -20,22 +19,16 @@ import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
 
-void main() {
-  final DateTime pinnedToday = DateTime(2026, 9, 18);
+import '../support/pinned_app.dart';
 
+void main() {
   Future<FinancialState> pumpApp(WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
     tester.view.physicalSize = const Size(1170, 3400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    final FinancialState state = FinancialState(clock: pinnedToday);
-    await state.restore();
-    addTearDown(state.dispose);
-
-    await tester.pumpWidget(SalapifyApp(state: state));
-    await tester.pumpAndSettle();
-    return state;
+    return pumpSalapify(tester);
   }
 
   Future<void> tapIt(WidgetTester tester, Finder f) async {

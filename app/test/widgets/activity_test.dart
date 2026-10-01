@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/screens/activity/transaction_detail_sheet.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
 
+import '../support/pinned_app.dart';
+
 /// Activity, driven the way a person drives it: tap the tab, type in the
 /// search box, tap a row.
 void main() {
   Future<void> openActivity(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.menu_book_outlined));
     await tester.pumpAndSettle();

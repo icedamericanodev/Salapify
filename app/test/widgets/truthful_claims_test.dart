@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
+
+import '../support/pinned_app.dart';
 
 /// Claims the app makes about itself, checked against what it actually does.
 ///
@@ -17,7 +18,7 @@ void main() {
   testWidgets('the header claims what is true, and nothing absolute', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('On this phone'), findsOneWidget);
@@ -46,7 +47,7 @@ void main() {
   testWidgets('the badge opens the receipt that backs it up', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('On this phone'));

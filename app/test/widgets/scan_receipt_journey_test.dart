@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/log/scan_receipt_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/activity/activity_screen.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// Scanning a receipt, in BOTH halves, the way CLAUDE.md requires.
 ///
@@ -13,7 +14,7 @@ import 'package:salapify/state/financial_state.dart';
 /// account's own history, with every money test green.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

@@ -6,7 +6,6 @@ import 'package:salapify/features/debt/add_debt_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/home/home_screen.dart';
@@ -14,12 +13,14 @@ import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
 
+import '../support/pinned_app.dart';
+
 /// The sheets ported from src/components, tested by tapping the same controls
 /// a person taps rather than by constructing them directly. A sheet that opens
 /// perfectly from a test and is unreachable from Home is not a feature.
 void main() {
   Future<void> pumpHome(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

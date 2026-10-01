@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+
+import '../support/pinned_app.dart';
 
 /// Reconciliation, the only Reports tab that writes.
 ///
@@ -32,7 +33,7 @@ void main() {
   }
 
   Future<void> openCheck(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
     await tapAndSettle(tester, find.byIcon(Icons.insert_chart_outlined));
     await tapAndSettle(tester, find.text('Check'));

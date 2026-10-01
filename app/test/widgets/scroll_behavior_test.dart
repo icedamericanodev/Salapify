@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
+
+import '../support/pinned_app.dart';
 
 /// Guards the scrolling feel.
 ///
@@ -15,7 +16,7 @@ void main() {
   testWidgets('no stretch or glow overscroll indicator is ever built', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     expect(
@@ -31,7 +32,7 @@ void main() {
   testWidgets('dragging past the end does not build an indicator either', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     // Overscroll downward, the exact gesture that stretched the screen.
@@ -48,7 +49,7 @@ void main() {
   testWidgets('the list still scrolls, so the fix did not freeze it', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
 
     final ScrollableState scrollable = tester.state<ScrollableState>(

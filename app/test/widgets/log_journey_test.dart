@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/format.dart';
 import 'package:salapify/features/log/log_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// The Log write path, tested the way CLAUDE.md requires a write path to be
 /// tested: in BOTH halves.
@@ -19,33 +20,8 @@ import 'package:salapify/state/financial_state.dart';
 /// a payment was once written perfectly and was invisible on the screen an
 /// auditor would look at, and every money test was green the whole time.
 void main() {
-  /// The clock every test in this file runs against.
-  ///
-  /// PINNED on purpose. The date-picker journey steps back one day and taps
-  /// that number in the Material calendar, and whether that tap lands at all
-  /// depends on where "yesterday" falls in the grid: on the first of a month
-  /// yesterday is in the PREVIOUS month, so the day number the test taps is a
-  /// future date in the month the picker opened on, the picker refuses it,
-  /// and the tap silently does nothing. That is exactly what happened when
-  /// the real calendar rolled to 1 October. The seed ledger is dated
-  /// September 2026 too, so an unpinned clock also stops it counting as this
-  /// month.
-  ///
-  /// 18 September is the seed's own "today", the same date accounts_test.dart
-  /// pins to.
-  final DateTime pinnedToday = DateTime(2026, 9, 18);
-
   Future<void> pumpApp(WidgetTester tester) async {
-    final FinancialState state = FinancialState(clock: pinnedToday);
-    // The app only restores a store it made itself, so an injected one has to
-    // be restored here. On the default memory store this settles immediately
-    // and its only real effect is turning saving on, which is what the
-    // production path does before the first frame.
-    await state.restore();
-    addTearDown(state.dispose);
-
-    await tester.pumpWidget(SalapifyApp(state: state));
-    await tester.pumpAndSettle();
+    await pumpSalapify(tester);
   }
 
   FinancialState storeOf(WidgetTester tester) =>

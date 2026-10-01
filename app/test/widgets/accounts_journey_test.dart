@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/state/financial_state.dart';
+
+import '../support/pinned_app.dart';
 
 /// The Accounts write path, in BOTH halves, the way CLAUDE.md requires.
 ///
@@ -18,7 +19,7 @@ import 'package:salapify/state/financial_state.dart';
 /// test green the whole time.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }
 

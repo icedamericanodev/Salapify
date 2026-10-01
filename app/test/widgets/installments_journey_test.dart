@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/main.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/debt/debt_screen.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+
+import '../support/pinned_app.dart';
 
 /// The instalment write path, in BOTH halves.
 ///
@@ -31,7 +32,7 @@ void main() {
   }
 
   Future<void> openPlans(WidgetTester tester) async {
-    await tester.pumpWidget(const SalapifyApp());
+    await pumpSalapify(tester);
     await tester.pumpAndSettle();
     await reach(tester, find.byType(DebtBeamCard));
     await tapAndSettle(
