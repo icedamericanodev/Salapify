@@ -204,6 +204,70 @@ else
   echo "Watching origin/$BRANCH, checking every ${INTERVAL}s."
   echo "If Claude is editing files ON THIS MAC rather than pushing, stop and"
   echo "run: bash tools/dev-sync.sh --local"
+  echo
+  echo "  You are on:   $BRANCH"
+  echo "  Built from:   $(git --no-pager log --oneline -1 2>/dev/null)"
+
+  # THE FAILURE THIS CATCHES: watching a branch nobody is pushing to.
+  #
+  # BRANCH is whatever happens to be checked out, so a checkout left on an old
+  # branch makes this script fetch forever and never pull. The terminal looks
+  # perfectly healthy the whole time, the emulator stays on old code, and the
+  # obvious conclusion is that the APP is broken rather than the checkout.
+  #
+  # It cost two rounds on 2026-10-01. Four merged commits sat on
+  # claude/flutter-final while the phone kept showing figures from before any
+  # of them, and the founder was told twice to go and look at a screen that
+  # could not have changed. Silence was the whole defect, so this is loud.
+  git fetch --quiet origin 2>/dev/null
+  BEHIND="$(git rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null)"
+  BEHIND="${BEHIND:-0}"
+  if [ "$BEHIND" -gt 0 ]; then
+    echo "  Waiting:      $BEHIND new commit(s) on origin/$BRANCH, pulling shortly."
+  else
+    echo "  Waiting:      nothing new on origin/$BRANCH."
+  fi
+
+  # The louder half: is some OTHER branch the one actually moving? Only worth
+  # saying when the current branch has nothing, because a branch that is
+  # merely behind is about to be pulled and needs no advice.
+  if [ "$BEHIND" -eq 0 ]; then
+    # claude/flutter-final ONLY. main is deliberately not checked: it is a
+    # hundred commits behind the rebuild, so "main has a commit you do not"
+    # is true, meaningless, and would fire on every single run.
+    for OTHER in claude/flutter-final; do
+      [ "$OTHER" = "$BRANCH" ] && continue
+      AHEAD="$(git rev-list --count "HEAD..origin/$OTHER" 2>/dev/null)"
+      AHEAD="${AHEAD:-0}"
+      [ "$AHEAD" -eq 0 ] && continue
+      # COUNTING COMMITS CRIED WOLF, so this compares CONTENT instead.
+      #
+      # A working branch that has been merged into claude/flutter-final is
+      # legitimately "2 commits behind" it while carrying byte-identical app
+      # code, because the merge commit is one of those two. The first version
+      # of this warning fired on exactly that and would have been switched off
+      # within a day, which is the one thing an alarm must never earn.
+      #
+      # The question that actually matters is not "am I behind" but "would
+      # switching change what the emulator runs". If app/ is identical there is
+      # nothing to say.
+      git diff --quiet HEAD "origin/$OTHER" -- "$APP_DIR" 2>/dev/null && continue
+      echo
+      echo "  ---------------------------------------------------------------"
+      echo "  NOTHING WILL REACH THE EMULATOR."
+      echo
+      echo "  You are on $BRANCH and it has nothing new, but"
+      echo "  origin/$OTHER has $AHEAD commit(s) you do not have."
+      echo
+      echo "  This script only ever watches the branch you have checked out."
+      echo "  To get that work, stop this with Ctrl-C and run:"
+      echo
+      echo "      git checkout $OTHER"
+      echo "      git pull origin $OTHER"
+      echo "      bash tools/dev-sync.sh"
+      echo "  ---------------------------------------------------------------"
+    done
+  fi
 fi
 echo "Press Ctrl-C to stop."
 echo
