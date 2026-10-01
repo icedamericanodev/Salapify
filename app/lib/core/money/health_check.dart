@@ -4,6 +4,7 @@ import 'debt_ratio.dart';
 import 'format.dart';
 import 'plan.dart';
 import '../../models/models.dart';
+import 'money.dart';
 
 /// Five questions about somebody's money, answered only where they can be.
 ///
@@ -178,7 +179,7 @@ const int bufferComfortableDays = 3;
 /// Zero to three months is too far to feel any progress, which is why people
 /// abandon it. The first rung is a figure that covers a tooth, a tyre or a
 /// hospital deposit, and is reachable from a single 13th month.
-const double cushionFirstRung = 10000;
+const Money cushionFirstRung = Money.pesos(10000);
 
 HealthReport runHealthCheck({
   required List<Transaction> transactions,
@@ -251,7 +252,10 @@ class _Measures {
       .where((InstallmentPlan i) => !i.isSettled)
       .fold<double>(
         0,
-        (double s, InstallmentPlan i) => s + i.installmentAmount,
+        // Capped at what is still owed: a plan with less than one
+        // instalment left does not promise a whole one.
+        (double s, InstallmentPlan i) =>
+            s + minMoney(i.installmentAmount, i.runningBalance).pesos,
       );
 
   /// The most instalments any single active plan still has to run.
@@ -466,14 +470,14 @@ HealthIndicator _cushion(_Measures m, List<Goal> goals) {
       id: id,
       question: question,
       missing:
-          'You have not set an emergency fund yet. ${formatPeso(cushionFirstRung)} '
+          'You have not set an emergency fund yet. ${formatPeso(cushionFirstRung.pesos)} '
           'is the usual first rung: it covers a tooth, a tyre or a hospital '
           'deposit.',
       need: HealthNeed.startCushion,
     );
   }
 
-  final double saved = fund.currentAmount;
+  final Money saved = fund.currentAmount;
 
   if (!m.paceMeasured) {
     // The AMOUNT is a measurement even when the months are not. Hiding it
@@ -481,7 +485,7 @@ HealthIndicator _cushion(_Measures m, List<Goal> goals) {
     return HealthIndicator.measured(
       id: id,
       question: question,
-      reading: '${formatPeso(saved)} set aside',
+      reading: '${formatPeso(saved.pesos)} set aside',
       detail:
           'How many months that covers needs a few more days of logged '
           'spending first.',
@@ -489,8 +493,11 @@ HealthIndicator _cushion(_Measures m, List<Goal> goals) {
     );
   }
 
+  // The daily pace is still a double until the ledger migrates, so this
+  // stays a ratio. It is a COUNT OF MONTHS either way, never money, so it
+  // does not become a Money.
   final double monthlySpend = m.dailyPace * 30;
-  final double months = monthlySpend > 0 ? saved / monthlySpend : 0;
+  final double months = monthlySpend > 0 ? saved.pesos / monthlySpend : 0;
 
   final HealthTone tone = months >= 3
       ? HealthTone.good
@@ -503,7 +510,7 @@ HealthIndicator _cushion(_Measures m, List<Goal> goals) {
     question: question,
     reading: '${months.toStringAsFixed(1)} months of your own spending',
     detail:
-        '${formatPeso(saved)} set aside. Three months is the usual '
+        '${formatPeso(saved.pesos)} set aside. Three months is the usual '
         'target, six if your work is contractual.',
     tone: tone,
   );

@@ -7,6 +7,7 @@ import '../../design/type.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import '../../core/money/money.dart';
 
 /// Pays an instalment, either the scheduled one or extra on top.
 ///
@@ -130,7 +131,7 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
                 children: <Widget>[
                   Text('THIS MONTH', style: AppType.kicker(p)),
                   Text(
-                    formatPeso(plan.installmentAmount),
+                    formatPeso(plan.installmentAmount.pesos),
                     style: AppType.amount(p),
                   ),
                   const SizedBox(height: Spacing.xs),
@@ -177,7 +178,7 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
             palette: p,
             plan: plan,
             extra: widget.extra,
-            amount: widget.extra ? typed : plan.installmentAmount,
+            amount: widget.extra ? typed : plan.installmentAmount.pesos,
             accountName: _accountId == null
                 ? null
                 : widget.state.accounts
@@ -195,7 +196,7 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
       if (amount == null) return;
       widget.state.payInstallmentExtra(
         widget.plan.id,
-        amount,
+        Money.fromDouble(amount),
         accountId: _accountId,
         note: _note.text,
       );
@@ -226,14 +227,14 @@ class _Standing extends StatelessWidget {
         children: <Widget>[
           Text(
             'Payment ${plan.paidInstallments} of ${plan.totalInstallments}, '
-            '${formatPeso(plan.runningBalance)} still to pay.',
+            '${formatPeso(plan.runningBalance.pesos)} still to pay.',
             style: AppType.rowTitle(palette),
           ),
-          if (plan.interestRemaining > 0) ...<Widget>[
+          if (plan.interestRemaining.isPositive) ...<Widget>[
             const SizedBox(height: Spacing.xs),
             Text(
-              '${formatPeso(plan.interestRemaining)} of that is interest not '
-              'yet charged.',
+              '${formatPeso(plan.interestRemaining.pesos)} of that is interest '
+              'not yet charged.',
               style: AppType.caption(palette),
             ),
           ],
@@ -317,7 +318,7 @@ class _WhatWillHappen extends StatelessWidget {
       );
     }
 
-    final double left = (plan.runningBalance - amount!).clamp(
+    final double left = (plan.runningBalance.pesos - amount!).clamp(
       0,
       double.infinity,
     );

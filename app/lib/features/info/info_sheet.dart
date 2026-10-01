@@ -156,6 +156,7 @@ enum InfoTopic {
   academy,
   reminders,
   cardCycle,
+  addOnRate,
   claimableExpenses,
   bonusSplit,
   businessChecklist,
@@ -764,6 +765,51 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
         body:
             'Clear one and it can come back, because the bill underneath it '
             'is still there. Nothing here changes your money.',
+      ),
+    ],
+  ),
+  InfoTopic.addOnRate: InfoContent(
+    title: 'Why the real rate is higher than the one quoted',
+    subtitle: 'Add-on interest, and what it costs on the money you still owe',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.price_change_outlined,
+        title: 'Add-on interest is charged on the WHOLE amount, all the way',
+        body:
+            'Most instalment plans here quote an add-on rate. The interest is '
+            'worked out once, on everything you borrowed, and spread over '
+            'every month. So in the last month you are still paying interest '
+            'calculated on the full original amount, even though almost all '
+            'of it has been paid back.',
+      ),
+      InfoPoint(
+        icon: Icons.calculate_outlined,
+        title: 'A bank loan usually works the other way',
+        body:
+            'On a diminishing balance loan the interest each month is worked '
+            'out on what is actually left. The same quoted rate therefore '
+            'costs far less. Borrowing 24,500 for twelve months at a real 1.5 '
+            'percent a month costs about 2,454 in interest; the same amount '
+            'on a 1.5 percent add-on plan costs 4,410.',
+      ),
+      InfoPoint(
+        icon: Icons.balance,
+        title: 'What the second line on the card is',
+        body:
+            'Salapify works backwards from the payments themselves: the rate '
+            'at which the money you hand over is worth exactly what you '
+            'borrowed. It is the same arithmetic however the rate was '
+            'described, which is why it can be compared between plans.',
+      ),
+      InfoPoint(
+        icon: Icons.info_outline,
+        title: 'The quoted rate is not wrong, and nobody is hiding it',
+        body:
+            'It is a normal way to price an instalment plan and it is printed '
+            'openly. Both figures are shown because they answer different '
+            'questions: what the plan is called, and what it costs you. The '
+            'yearly figures here are the monthly ones times twelve, for both, '
+            'so the comparison is about the rate and not about the method.',
       ),
     ],
   ),

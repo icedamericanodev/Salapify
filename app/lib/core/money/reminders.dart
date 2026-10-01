@@ -457,7 +457,7 @@ ReminderResult evaluateReminders({
         'installment-due-${p.id}-${_iso(next)}-$today',
         ReminderKind.paymentDue,
         'Payment plan: ${p.name}',
-        '${formatPeso(p.installmentAmount)} to ${p.provider} '
+        '${formatPeso(p.installmentAmount.pesos)} to ${p.provider} '
             '${_whenPhrase(days, _iso(next))}.',
         daysAway: days,
       );

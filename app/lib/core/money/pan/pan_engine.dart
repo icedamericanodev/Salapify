@@ -14,6 +14,7 @@ import 'pan_bans.dart';
 import 'pan_context.dart';
 import 'pan_explainers.dart';
 import 'pan_matchers.dart';
+import '../money.dart';
 
 /// Pan, the money assistant, ported in intent from `src/utils/panAiEngine.ts`
 /// and rewritten rather than copied.
@@ -919,13 +920,11 @@ PanAnswer _goals(PanFacts facts) {
     '${facts.goals.length == 1 ? 'goal' : 'goals'}:',
   );
   for (final Goal g in facts.goals.take(4)) {
-    final double left = (g.targetAmount - g.currentAmount).clamp(
-      0,
-      double.infinity,
-    );
+    final Money gap = g.targetAmount - g.currentAmount;
+    final Money left = gap.isNegative ? Money.zero : gap;
     b.write(
-      '\n  ${g.name}: ${formatPeso(g.currentAmount)} of '
-      '${formatPeso(g.targetAmount)}, ${formatPeso(left)} to go',
+      '\n  ${g.name}: ${formatPeso(g.currentAmount.pesos)} of '
+      '${formatPeso(g.targetAmount.pesos)}, ${formatPeso(left.pesos)} to go',
     );
   }
   return PanAnswer(

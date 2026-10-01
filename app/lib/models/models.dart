@@ -3,6 +3,7 @@
 // the tabs that need them, so nothing sits unused.
 
 import '../core/money/currencies.dart';
+import '../core/money/money.dart';
 
 export '../core/money/currencies.dart' show CurrencyCode;
 
@@ -590,10 +591,10 @@ class Goal {
   final String id;
   final String name;
   final String emoji;
-  final double targetAmount;
-  final double currentAmount;
+  final Money targetAmount;
+  final Money currentAmount;
   final String targetDate;
-  final double monthlyTarget;
+  final Money monthlyTarget;
 }
 
 class UpcomingItem {
@@ -796,7 +797,7 @@ class ExtraPayment {
 
   final String id;
   final String date;
-  final double amount;
+  final Money amount;
   final String? note;
 }
 
@@ -853,23 +854,23 @@ class InstallmentPlan {
   final String id;
   final String name;
   final String provider;
-  final double principal;
+  final Money principal;
   final double interestRate;
   final InterestRateType interestRateType;
-  final double totalInterest;
-  final double totalPayable;
+  final Money totalInterest;
+  final Money totalPayable;
   final int termMonths;
   final PaymentFrequency paymentFrequency;
   final String startDate;
   final String maturityDate;
-  final double installmentAmount;
+  final Money installmentAmount;
   final int paidInstallments;
   final int totalInstallments;
 
   /// What is left to pay, principal and interest together.
-  final double runningBalance;
-  final double principalRemaining;
-  final double interestRemaining;
+  final Money runningBalance;
+  final Money principalRemaining;
+  final Money interestRemaining;
   final List<ExtraPayment> extraPayments;
   final bool isSettled;
   final String? notes;
@@ -885,7 +886,7 @@ class InstallmentPlan {
 
   /// True when the plan charges nothing, which is the real 0 percent promo
   /// rather than one with the interest folded into the price.
-  bool get isZeroInterest => totalInterest <= 0;
+  bool get isZeroInterest => !totalInterest.isPositive;
 }
 
 class IncomeStream {

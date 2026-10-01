@@ -8,6 +8,7 @@ import 'package:salapify/state/financial_state.dart';
 import '../shots/screens_shot.dart' show loadRealFonts;
 
 import '../support/pinned_app.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// The instalment write path, in BOTH halves.
 ///
@@ -63,11 +64,34 @@ void main() {
           'point of the screen.',
     );
     expect(
-      find.text('That 1.5% a month is 18.0% a year.'),
+      find.text('Quoted as 1.5% a month, 18.0% a year.'),
       findsOneWidget,
       reason:
-          'A rate quoted per month is the most misread number in '
-          'Philippine consumer lending, and the lender never prints this line.',
+          'The quoted rate stays visible. It is not wrong and nobody is '
+          'hiding it; it just answers a different question.',
+    );
+    expect(
+      // THE LINE THIS WHOLE FEATURE EXISTS FOR. The screen used to print the
+      // 18% alone and call it "the comparison the lender does not put on the
+      // poster". It is the poster: multiplying a quoted monthly rate by
+      // twelve is the lender's own arithmetic. On the money still owed this
+      // plan costs nearer 2.6% a month.
+      find.text(
+        'On what you still owe each month it works out to 2.6%, or '
+        '31.7% a year.',
+      ),
+      findsOneWidget,
+      reason: 'the true cost of an add-on plan is not on the card',
+    );
+    expect(
+      // And the genuine 0% plan is NOT accused of anything. A line saying
+      // "really 0%" about a lender who charged nothing reads as an
+      // accusation, and teaches people to distrust the one that matters.
+      find.textContaining('On what you still owe'),
+      findsNWidgets(2),
+      reason:
+          'the interest-free BPI plan must carry no correction, so only the '
+          'two interest-bearing plans do',
     );
     expect(find.text('Payment 5 of 12, 7 to go.'), findsOneWidget);
   });
@@ -153,7 +177,10 @@ void main() {
     final InstallmentPlan p = store.installments.firstWhere(
       (InstallmentPlan x) => x.id == 'inst_home_credit',
     );
-    expect(p.principalRemaining, closeTo(9291.67, 0.001));
+    // 9,291.65 and exact. It was 9,291.67 with a tolerance, because the
+    // seeded principal was computed from the rounded instalment rather
+    // than from the contract. Centavos need no tolerance.
+    expect(p.principalRemaining, const Money.of(9291, 65));
     expect(
       p.paidInstallments,
       5,
@@ -202,7 +229,7 @@ void main() {
       (InstallmentPlan x) => x.id == 'inst_spaylater',
     );
     expect(p.isSettled, isTrue);
-    expect(p.runningBalance, 0);
+    expect(p.runningBalance, Money.zero);
 
     await reach(tester, find.text('PAID OFF'));
     expect(

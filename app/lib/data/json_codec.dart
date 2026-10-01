@@ -2,6 +2,7 @@ import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
 import '../design/tokens.dart';
 import '../models/models.dart';
+import '../core/money/money.dart';
 
 /// Turning Salapify's models into JSON and back, in the PROTOTYPE'S OWN
 /// spelling.
@@ -573,10 +574,10 @@ Map<String, dynamic> goalToJson(Goal g) => <String, dynamic>{
   'id': g.id,
   'name': g.name,
   'emoji': g.emoji,
-  'targetAmount': g.targetAmount,
-  'currentAmount': g.currentAmount,
+  'targetAmount': g.targetAmount.pesos,
+  'currentAmount': g.currentAmount.pesos,
   'targetDate': g.targetDate,
-  'monthlyTarget': g.monthlyTarget,
+  'monthlyTarget': g.monthlyTarget.pesos,
   if (g.isSample) 'isSample': true,
 };
 
@@ -584,10 +585,10 @@ Goal goalFromJson(Map<String, dynamic> m) => Goal(
   id: _reqStr(m, 'id', 'goal'),
   name: _reqStr(m, 'name', 'goal'),
   emoji: _optStr(m, 'emoji') ?? '',
-  targetAmount: _reqNum(m, 'targetAmount', 'goal'),
-  currentAmount: _reqNum(m, 'currentAmount', 'goal'),
+  targetAmount: Money.fromDouble(_reqNum(m, 'targetAmount', 'goal')),
+  currentAmount: Money.fromDouble(_reqNum(m, 'currentAmount', 'goal')),
   targetDate: _optStr(m, 'targetDate') ?? '',
-  monthlyTarget: _optNum(m, 'monthlyTarget') ?? 0,
+  monthlyTarget: Money.fromDouble(_optNum(m, 'monthlyTarget') ?? 0),
   isSample: _optBool(m, 'isSample'),
 );
 
@@ -664,14 +665,14 @@ IncomeStream incomeStreamFromJson(Map<String, dynamic> m) {
 Map<String, dynamic> extraPaymentToJson(ExtraPayment e) => <String, dynamic>{
   'id': e.id,
   'date': e.date,
-  'amount': e.amount,
+  'amount': e.amount.pesos,
   if (e.note != null) 'note': e.note,
 };
 
 ExtraPayment extraPaymentFromJson(Map<String, dynamic> m) => ExtraPayment(
   id: _reqStr(m, 'id', 'extra payment'),
   date: _reqStr(m, 'date', 'extra payment'),
-  amount: _reqNum(m, 'amount', 'extra payment'),
+  amount: Money.fromDouble(_reqNum(m, 'amount', 'extra payment')),
   note: _optStr(m, 'note'),
 );
 
@@ -704,21 +705,21 @@ Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
   'id': p.id,
   'name': p.name,
   'provider': p.provider,
-  'principal': p.principal,
+  'principal': p.principal.pesos,
   'interestRate': p.interestRate,
   'interestRateType': interestRateTypeWire.encode(p.interestRateType),
-  'totalInterest': p.totalInterest,
-  'totalPayable': p.totalPayable,
+  'totalInterest': p.totalInterest.pesos,
+  'totalPayable': p.totalPayable.pesos,
   'termMonths': p.termMonths,
   'paymentFrequency': paymentFrequencyWire.encode(p.paymentFrequency),
   'startDate': p.startDate,
   'maturityDate': p.maturityDate,
-  'installmentAmount': p.installmentAmount,
+  'installmentAmount': p.installmentAmount.pesos,
   'paidInstallments': p.paidInstallments,
   'totalInstallments': p.totalInstallments,
-  'runningBalance': p.runningBalance,
-  'principalRemaining': p.principalRemaining,
-  'interestRemaining': p.interestRemaining,
+  'runningBalance': p.runningBalance.pesos,
+  'principalRemaining': p.principalRemaining.pesos,
+  'interestRemaining': p.interestRemaining.pesos,
   'extraPayments': p.extraPayments
       .map(extraPaymentToJson)
       .toList(growable: false),
@@ -733,25 +734,27 @@ InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
     id: _reqStr(m, 'id', what),
     name: _reqStr(m, 'name', what),
     provider: _optStr(m, 'provider') ?? '',
-    principal: _reqNum(m, 'principal', what),
+    principal: Money.fromDouble(_reqNum(m, 'principal', what)),
     interestRate: _optNum(m, 'interestRate') ?? 0,
     interestRateType:
         interestRateTypeWire.decodeOptional(m, 'interestRateType', what) ??
         InterestRateType.annual,
-    totalInterest: _optNum(m, 'totalInterest') ?? 0,
-    totalPayable: _optNum(m, 'totalPayable') ?? _reqNum(m, 'principal', what),
+    totalInterest: Money.fromDouble(_optNum(m, 'totalInterest') ?? 0),
+    totalPayable: Money.fromDouble(
+      _optNum(m, 'totalPayable') ?? _reqNum(m, 'principal', what),
+    ),
     termMonths: _optInt(m, 'termMonths') ?? 0,
     paymentFrequency:
         paymentFrequencyWire.decodeOptional(m, 'paymentFrequency', what) ??
         PaymentFrequency.monthly,
     startDate: _optStr(m, 'startDate') ?? '',
     maturityDate: _optStr(m, 'maturityDate') ?? '',
-    installmentAmount: _reqNum(m, 'installmentAmount', what),
+    installmentAmount: Money.fromDouble(_reqNum(m, 'installmentAmount', what)),
     paidInstallments: _optInt(m, 'paidInstallments') ?? 0,
     totalInstallments: _reqInt(m, 'totalInstallments', what),
-    runningBalance: _optNum(m, 'runningBalance') ?? 0,
-    principalRemaining: _optNum(m, 'principalRemaining') ?? 0,
-    interestRemaining: _optNum(m, 'interestRemaining') ?? 0,
+    runningBalance: Money.fromDouble(_optNum(m, 'runningBalance') ?? 0),
+    principalRemaining: Money.fromDouble(_optNum(m, 'principalRemaining') ?? 0),
+    interestRemaining: Money.fromDouble(_optNum(m, 'interestRemaining') ?? 0),
     extraPayments: readList(
       m['extraPayments'],
       '$what.extraPayments',

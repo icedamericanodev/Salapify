@@ -12,10 +12,10 @@
 /// ledger entry explains why an account balance changed.
 library;
 
-import 'dart:math' as math;
-
 import '../../models/models.dart';
 import 'debt.dart' show isoDate;
+import 'js_round.dart';
+import 'money.dart';
 
 /// The subcategory an instalment payment is filed under.
 ///
@@ -31,19 +31,119 @@ import 'debt.dart' show isoDate;
 const String installmentSubcategory =
     'Gadget Loan (Home Credit/SpayLater/LazPay)';
 
+/// The payment schedule, in centavos, derived from the contract.
+///
+/// ## Where the leftover centavo goes, and why it is the LAST payment
+///
+/// A contract total rarely divides evenly by its term. 24,500 of principal
+/// over 12 months is 2,041.6666..., so somebody has to carry the remainder.
+///
+/// Founder decision, on the lending officer's ruling: the repeated share is
+/// rounded to the centavo and the FINAL instalment absorbs the whole
+/// difference. Every Philippine lender's disclosure statement and payment
+/// schedule works this way, Home Credit and SPayLater and the bank card
+/// conversion plans alike: one level figure, with the last line adjusting.
+///
+/// `Money.split` was the other candidate and it is deliberately NOT used here.
+/// It spreads the remainder over the EARLIEST shares, which is right for a
+/// bill split and wrong for a loan: it would bill 2,409.17 for eight months
+/// and 2,409.16 for four, and the month it diverges is a month the borrower is
+/// holding their real statement next to this screen.
+///
+/// ## The payment is built from its PARTS
+///
+/// `instalment = principalShare + interestShare`, never
+/// `round(totalPayable / n)`. Those two can differ by a centavo, and when they
+/// do the row stops reconciling. Building it from the components makes
+/// "principal plus interest equals the payment" true by construction on every
+/// line, which is the one check a person actually runs.
+class InstallmentSchedule {
+  const InstallmentSchedule({
+    required this.principalShares,
+    required this.interestShares,
+  });
+
+  final List<Money> principalShares;
+  final List<Money> interestShares;
+
+  int get count => principalShares.length;
+
+  Money principalAt(int i) => principalShares[i];
+  Money interestAt(int i) => interestShares[i];
+  Money instalmentAt(int i) => principalShares[i] + interestShares[i];
+
+  /// What the whole schedule collects. Equal to the contract's totalPayable
+  /// by construction, which is the invariant the old engine could not state.
+  Money get totalPayable =>
+      sumMoney(principalShares) + sumMoney(interestShares);
+}
+
+/// Splits a contract total into [n] shares, level except for the last.
+List<Money> _levelShares(Money total, int n) {
+  if (n <= 1) return <Money>[total];
+  final Money share = Money(jsRound(total.centavos / n));
+  final Money last = total - share * (n - 1);
+  return <Money>[for (int i = 0; i < n - 1; i++) share, last];
+}
+
+/// The schedule for a plan, from its own contract terms.
+InstallmentSchedule scheduleFor(InstallmentPlan p) {
+  // A term of zero cannot produce a schedule, and Money.split throws rather
+  // than quietly returning nothing. Guarded here so a bad import surfaces as
+  // an empty schedule rather than an exception on a screen somebody opened.
+  final int n = p.totalInstallments;
+  if (n < 1) {
+    return const InstallmentSchedule(
+      principalShares: <Money>[],
+      interestShares: <Money>[],
+    );
+  }
+  return InstallmentSchedule(
+    principalShares: _levelShares(p.principal, n),
+    interestShares: _levelShares(p.totalInterest, n),
+  );
+}
+
+/// What the NEXT scheduled payment actually collects.
+///
+/// Capped at what is still owed. Without the cap a plan that was prepaid keeps
+/// demanding the full instalment, which is how a 5,000 prepayment came to be
+/// collected TWICE: the counter never learned the plan got shorter, and the
+/// forced zero at the end swallowed the difference.
+Money nextPaymentFor(InstallmentPlan p) {
+  if (p.isSettled || !p.runningBalance.isPositive) return Money.zero;
+  final InstallmentSchedule s = scheduleFor(p);
+  final int k = p.paidInstallments;
+  final Money scheduled = k < s.count ? s.instalmentAt(k) : p.runningBalance;
+  return minMoney(scheduled, p.runningBalance);
+}
+
 /// Advances a plan by one scheduled instalment.
 ///
-/// The prototype's rules, verbatim:
-/// - the paid counter goes up by one;
-/// - settled the moment the counter reaches the total;
-/// - once settled BOTH remaining balances go to zero, rather than being left
-///   with a rounding crumb on them;
-/// - otherwise the running balance drops by the instalment (principal AND
-///   interest, which is what you actually hand over) while the principal
-///   remaining drops by only its own share.
+/// ## Two balances, and which one is derived
 ///
-/// Those last two moving by different amounts is the whole point of keeping
-/// both: it is how somebody can see that an early payment is mostly interest.
+/// `principalRemaining` and `interestRemaining` are TRACKED; `runningBalance`
+/// is their sum. That is the opposite way round from the first version, and
+/// the reason is a lending reason rather than a software one. Unearned
+/// interest on a fixed add-on contract has exactly two legitimate movers: an
+/// instalment consuming one month's share, or an explicit rebate. Deriving it
+/// from two other figures meant any arithmetic anywhere could move it, and one
+/// did: a prepayment larger than the principal left clamped the principal at
+/// zero and silently forgave 400 pesos of contractual interest.
+///
+/// ## There is no settlement sweep any more
+///
+/// The old code forced all three balances to zero on the final instalment,
+/// commented as avoiding "a rounding crumb". It was not preventing a
+/// discrepancy, it was deleting the evidence of one: the schedule never
+/// footed, so a crumb was guaranteed, and the sweep hid it at the last
+/// possible moment after eleven payments had already shown slightly wrong
+/// figures. Both tests that claimed to guard it ran the one seeded plan that
+/// divides evenly, and both passed with the sweep deleted.
+///
+/// With the schedule built to foot, the balances reach zero by subtraction and
+/// there is nothing to sweep. A non-zero balance at the end of the counter is
+/// now a fact the app can still see, which is the whole point.
 List<InstallmentPlan> applyInstallmentPayment(
   List<InstallmentPlan> plans,
   String id,
@@ -51,64 +151,114 @@ List<InstallmentPlan> applyInstallmentPayment(
   return plans.map((InstallmentPlan p) {
     if (p.id != id || p.isSettled) return p;
 
-    final int nextPaid = p.paidInstallments + 1;
-    final bool settled = nextPaid >= p.totalInstallments;
-    final double perInstallmentPrincipal = p.totalInstallments <= 0
-        ? 0
-        : p.principal / p.totalInstallments;
+    final InstallmentSchedule s = scheduleFor(p);
+    final int k = p.paidInstallments;
 
-    final double nextBalance = settled
-        ? 0
-        : math.max(0, p.runningBalance - p.installmentAmount);
-    final double nextPrincipal = settled
-        ? 0
-        : math.max(0, p.principalRemaining - perInstallmentPrincipal);
+    // WHAT IS COLLECTED is the scheduled instalment or the balance, whichever
+    // is smaller. That single cap is what makes a prepayment shorten the plan:
+    // without it the engine kept demanding full instalments after the balance
+    // had gone, which collected a 5,000 prepayment twice.
+    final Money payment = nextPaymentFor(p);
+
+    // HOW IT IS SPLIT is bookkeeping, not money: the total is already fixed
+    // above. Interest for the period comes off first, then principal, and
+    // anything still unallocated can only be interest, because that is the one
+    // side a prepayment never touched. Without that last step a prepaid plan
+    // runs out of principal before it runs out of payment and stalls, paying
+    // ever smaller amounts for the full original term.
+    Money interestPart = minMoney(
+      minMoney(k < s.count ? s.interestAt(k) : Money.zero, p.interestRemaining),
+      payment,
+    );
+    final Money principalPart = minMoney(
+      payment - interestPart,
+      p.principalRemaining,
+    );
+    final Money unallocated = payment - interestPart - principalPart;
+    interestPart += minMoney(unallocated, p.interestRemaining - interestPart);
+
+    final Money nextPrincipal = p.principalRemaining - principalPart;
+    final Money nextInterest = p.interestRemaining - interestPart;
+    final Money nextBalance = nextPrincipal + nextInterest;
+
+    final int nextPaid = p.paidInstallments + 1;
 
     return _copy(
       p,
       paidInstallments: nextPaid,
       runningBalance: nextBalance,
       principalRemaining: nextPrincipal,
-      interestRemaining: settled ? 0 : math.max(0, nextBalance - nextPrincipal),
-      isSettled: settled,
+      interestRemaining: nextInterest,
+      // SETTLEMENT IS BALANCE DRIVEN, not counter driven. A prepayment moves
+      // the balance and leaves the counter behind, and the old counter-only
+      // rule is exactly what let a settled plan keep accepting payments.
+      isSettled: !nextBalance.isPositive || nextPaid >= p.totalInstallments,
     );
   }).toList();
 }
 
 /// Records money paid on TOP of the schedule.
 ///
-/// An extra payment comes straight off the principal, which is why it is worth
-/// making: it takes interest off the end of the plan rather than paying the
-/// interest that was already going to be charged. Both balances drop by the
-/// full amount, the prototype's own rule.
+/// It comes off PRINCIPAL ONLY. On a flat add-on plan, which is what Philippine
+/// BNPL and gadget loans almost always are, the interest was fixed when the
+/// contract was signed and prepaying does not reduce it unless the provider
+/// rebates unearned interest. Providers vary, so Salapify takes the reading
+/// that cannot leave somebody short: no automatic rebate. A real rebate is a
+/// figure the provider quotes, and belongs on screen as something the person
+/// enters, never as something the engine assumes.
+///
+/// It is capped at the BALANCE, not at the principal, and the two are
+/// different in a way that matters. The balance is everything still owed;
+/// handing over all of it settles the plan, which is what somebody paying off
+/// a loan expects and what the engine must honour. Capping at the principal
+/// instead would mean a person could pay the full remaining balance and still
+/// be told they owed the interest.
+///
+/// So money beyond the principal is not refused and not forgiven: it PAYS the
+/// unearned interest, because it was actually handed over. What must never
+/// happen, and used to, is the interest falling by more than was paid. The
+/// invariant is that the balance drops by exactly the amount applied.
+///
+/// The APPLIED amount is what goes in the history. Recording more than was
+/// applied is how a plan comes to claim a prepayment it never credited.
 List<InstallmentPlan> applyExtraPayment(
   List<InstallmentPlan> plans,
   String id,
-  double amount, {
+  Money amount, {
   required DateTime today,
   String? note,
   String? extraId,
 }) {
-  if (amount <= 0) return plans;
+  if (!amount.isPositive) return plans;
 
   return plans.map((InstallmentPlan p) {
     if (p.id != id) return p;
 
-    final double nextBalance = math.max(0, p.runningBalance - amount);
-    final double nextPrincipal = math.max(0, p.principalRemaining - amount);
+    final Money applied = minMoney(amount, p.runningBalance);
+    if (!applied.isPositive) return p;
+
+    // Principal first, which is the point of prepaying: it is the only part
+    // that shortens the plan. Anything beyond the principal is paying the
+    // interest early rather than escaping it.
+    final Money offPrincipal = minMoney(applied, p.principalRemaining);
+    final Money offInterest = applied - offPrincipal;
+
+    final Money nextPrincipal = p.principalRemaining - offPrincipal;
+    final Money nextInterest = p.interestRemaining - offInterest;
+    final Money nextBalance = nextPrincipal + nextInterest;
 
     return _copy(
       p,
       runningBalance: nextBalance,
       principalRemaining: nextPrincipal,
-      interestRemaining: math.max(0, nextBalance - nextPrincipal),
-      isSettled: nextBalance <= 0,
+      interestRemaining: nextInterest,
+      isSettled: !nextBalance.isPositive,
       extraPayments: <ExtraPayment>[
         ...p.extraPayments,
         ExtraPayment(
           id: extraId ?? 'ext_${today.microsecondsSinceEpoch}',
           date: isoDate(today),
-          amount: amount,
+          amount: applied,
           note: note?.trim().isNotEmpty == true
               ? note!.trim()
               : 'Principal prepayment',
@@ -125,12 +275,17 @@ Transaction? installmentEntry({
   required String? accountId,
   required DateTime today,
   required String id,
+  required Money amount,
 }) {
-  if (accountId == null) return null;
+  if (accountId == null || !amount.isPositive) return null;
   return Transaction(
+    // THE AMOUNT ACTUALLY COLLECTED, not the quoted instalment. They differ on
+    // the adjusting final payment and on any stub left after a prepayment, and
+    // writing the quoted figure made the account move by one number while the
+    // plan recorded another.
     id: id,
     type: TransactionType.expense,
-    amount: plan.installmentAmount,
+    amount: amount.pesos,
     category: 'Debt & Loan Servicing',
     subcategory: installmentSubcategory,
     accountId: accountId,
@@ -149,17 +304,17 @@ Transaction? installmentEntry({
 /// The ledger entry an EXTRA payment writes.
 Transaction? extraPaymentEntry({
   required InstallmentPlan plan,
-  required double amount,
+  required Money amount,
   required String? accountId,
   required DateTime today,
   required String id,
   String? note,
 }) {
-  if (accountId == null || amount <= 0) return null;
+  if (accountId == null || !amount.isPositive) return null;
   return Transaction(
     id: id,
     type: TransactionType.expense,
-    amount: amount,
+    amount: amount.pesos,
     category: 'Debt & Loan Servicing',
     subcategory: installmentSubcategory,
     accountId: accountId,
@@ -179,23 +334,34 @@ Transaction? extraPaymentEntry({
 ///
 /// Settled plans are excluded: a finished plan takes nothing out of next
 /// month's money, however recently it finished.
-double monthlyInstallmentLoad(List<InstallmentPlan> plans) => plans
-    .where((InstallmentPlan p) => !p.isSettled)
-    .fold<double>(0, (double s, InstallmentPlan p) => s + p.installmentAmount);
+/// Capped at what is still owed on each plan. A plan with less than one
+/// instalment left does not take a whole instalment out of next month, and
+/// reserving one held back money the person did not owe.
+Money monthlyInstallmentLoad(List<InstallmentPlan> plans) => sumMoney(
+  plans
+      .where((InstallmentPlan p) => !p.isSettled)
+      .map(
+        (InstallmentPlan p) => minMoney(p.installmentAmount, p.runningBalance),
+      ),
+);
 
 /// Everything still owed across every open plan.
-double totalStillOwed(List<InstallmentPlan> plans) => plans
-    .where((InstallmentPlan p) => !p.isSettled)
-    .fold<double>(0, (double s, InstallmentPlan p) => s + p.runningBalance);
+Money totalStillOwed(List<InstallmentPlan> plans) => sumMoney(
+  plans
+      .where((InstallmentPlan p) => !p.isSettled)
+      .map((InstallmentPlan p) => p.runningBalance),
+);
 
 /// The interest an open plan has NOT yet been charged, across all of them.
 ///
 /// This is the figure worth showing beside an extra-payment button, because it
 /// is the part a prepayment can still take away. Interest already charged is
 /// gone whatever anybody does now.
-double interestStillToCome(List<InstallmentPlan> plans) => plans
-    .where((InstallmentPlan p) => !p.isSettled)
-    .fold<double>(0, (double s, InstallmentPlan p) => s + p.interestRemaining);
+Money interestStillToCome(List<InstallmentPlan> plans) => sumMoney(
+  plans
+      .where((InstallmentPlan p) => !p.isSettled)
+      .map((InstallmentPlan p) => p.interestRemaining),
+);
 
 /// Open plans first, settled ones after. Settled plans are KEPT, for the same
 /// reason a cleared debt is: it is the only record that it was cleared.
@@ -230,9 +396,9 @@ double? annualisedRate(InstallmentPlan p) => switch (p.interestRateType) {
 InstallmentPlan _copy(
   InstallmentPlan p, {
   int? paidInstallments,
-  double? runningBalance,
-  double? principalRemaining,
-  double? interestRemaining,
+  Money? runningBalance,
+  Money? principalRemaining,
+  Money? interestRemaining,
   bool? isSettled,
   List<ExtraPayment>? extraPayments,
 }) => InstallmentPlan(

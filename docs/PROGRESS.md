@@ -290,7 +290,297 @@ door fails it:
     Expected: ['lib/core/money/health_check.dart']
       Actual: ['lib/core/money/pan/pan_health.dart', 'lib/core/money/health_check.dart']
 
-## Phase 2 to 7
+## Phase 2: money foundation
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | Goal and InstallmentPlan migrated; 18 model fields still to move |
+| P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
+| P2.3 | Protected accounts (F3) | todo | |
+| P2.4 | Debt types and minimums (F4) | todo | |
+| P2.5 | Bills before payday only (F5) | todo | blocked behind the payday rule question in DEFERRED.md |
+| P2.6 | Single FX source (F7) | todo | |
+| P2.7 | Storage performance | todo | |
+| P2.8 | Lazy lists everywhere entries are shown | todo | |
+
+### P2.1 notes, increment 1 of several
+
+**The size, stated honestly before starting.** P2.1 reads as one row and is the
+largest change in the sprint: 28 money fields across the models, around 35
+engine files in `core/money`, 11 golden vector locks, and roughly 1,400 tests
+whose fixtures all pass pesos as doubles. It does not land in one sitting, and
+the sprint prompt already says how to do it: module by module, tests green
+after each.
+
+**The decision that keeps it out of the founder-gated categories.**
+`json_codec.dart` is the single boundary between the app and the file on disk.
+Keeping the STORED shape as pesos, exactly as it is today, and converting at
+that one boundary makes P2.1 purely internal: a backup written by this version
+opens in the old one and the other way round, there is no migration, and
+nothing can lose a record. The stored-format question belongs to P2.2, where it
+is gated and where it will have a pre-migration backup behind it.
+
+**What landed in this increment:** `core/money/money.dart`, the value type, and
+nothing migrated yet. It holds centavos in an int, so two centavos plus two
+centavos is four centavos on every machine and `==` means what it says.
+
+Every rounding rule is the prototype's `Math.round` through `jsRound`, not
+Dart's, so a figure that was right before is right after. The two differ only
+on a negative half centavo, which is exactly the case no fixture has.
+
+`money_test.dart` states each double failure first so the reason is on the
+page rather than cited: `0.1 + 0.2 == 0.3` is false, `(1.005 * 100).round()` is
+100 and not 101, and a thousand additions of a tenth miss by a sliver. The
+split is tested as a PROPERTY over every amount from 1 to 2,000 centavos across
+1 to 9 ways, asserting both that the shares sum back exactly and that no share
+carries more than a centavo over any other. Dropping the remainder fails it:
+
+    Expected: <1>
+      Actual: <0>
+    1 centavos over 2 did not sum back
+
+and swapping `jsRound` for Dart's `round()` fails the negative half:
+
+    Expected: <-2>
+      Actual: <-3>
+
+**The P2.1 check, usable from day one.** The prompt asks for a test that fails
+if a money field is a `double`. Written as a flat ban it would be red on
+purpose for the whole migration, and a test that is red on purpose gets
+ignored. `money_migration_guard_test.dart` is a SHRINKING LIST instead: it
+fails if a double field appears that is not accounted for, and equally if the
+list claims work that is already finished, so the count cannot drift from the
+code. Both halves proven. Planting a real field in the models:
+
+    Expected: empty
+      Actual: Set:['sneakyRolloverAmount']
+
+and claiming a finished one:
+
+    Expected: empty
+      Actual: Set:['alreadyMigratedAmount']
+
+Rates and durations are named separately as permanently double, with the
+reason: an interest rate is a ratio and a cash runway is a count of months, and
+forcing either into a centavo type is the same category error as holding a peso
+in a double, pointing the other way.
+
+### P2.1 notes, increment 2: Goal
+
+**Why Goal first, and not the smallest thing.** Budget looked like the smallest
+slice, one money field against fourteen construction sites. It is not
+self-contained: a budget's percentage divides spending by the limit, and
+spending comes from transaction amounts, which have not moved. Migrating it
+first would mean writing conversions between migrated and unmigrated code that
+get deleted later.
+
+Goal is the one model whose money answers only to itself. Progress is current
+against target, months to go is what is left over the monthly target, and
+nothing in it derives from the ledger. That makes it a complete vertical slice,
+model to codec to engine to screen, at the lowest possible cost.
+
+**The blast radius was three test files.** Not the hundreds the raw grep
+suggested, because most tests build goals from `SeedData` rather than by hand.
+That is the argument for picking a module by how self-contained it is rather
+than by how few call sites it has.
+
+**Every golden vector held, to the peso.** `plan_golden_test.dart` still
+asserts 71, 37 and 100 percent; 17,500, 47,000 and 0 remaining; 4, 11 and null
+months. What changed is that `remaining` is now compared EXACTLY rather than
+inside a tolerance. `closeTo` was there because a double could not be trusted
+to land on 17,500.00. A centavo count can, so the tolerance is gone and the
+test is stricter than it was.
+
+**The stored file did not change, and that is now a test rather than a claim.**
+`test/data/stored_shape_test.dart` asserts the written JSON holds plain peso
+numbers, decodes a hand-written file in the OLD shape rather than
+round-tripping the codec against itself, and refuses any figure that looks like
+a centavo count. Writing centavos to disk fails it with the damage spelled out:
+
+    Expected: <42500.75>
+      Actual: <4250075>
+
+    Expected: Money:<42500.75>
+      Actual: Money:<4250075.00>
+
+A goal multiplied by a hundred, silently, in somebody's file. That test is what
+has to be changed deliberately when P2.2 moves the stored format, with the
+founder's answer in hand and a pre-migration backup behind it.
+
+**Two figures stayed double on purpose.** Months of cover and months to a goal
+are COUNTS OF MONTHS, and a percentage is a ratio. Forcing either into a
+centavo type is the same category error as holding a peso in a double, pointing
+the other way. The guard file names rates and durations separately for exactly
+this reason.
+
+**The guard worked unprompted.** Migrating the three fields turned the
+migration guard red by itself, because the shrinking list refused to go on
+claiming finished work:
+
+    Expected: empty
+      Actual: Set:['currentAmount', 'monthlyTarget', 'targetAmount']
+
+### P2.1 notes, increment 3: InstallmentPlan, and three money defects it uncovered
+
+Seven money fields in one self-contained engine, and the conversion did what it
+is supposed to do: it forced every rounding decision into the open, and three
+of them turned out to be defects that existed in doubles long before centavos
+were considered.
+
+Two independent expert passes ruled first, a Philippine lending officer and a
+new `rounding-controller` agent, and every claim was re-checked against the
+arithmetic before anything was implemented.
+
+**1. The schedule never footed.** The Home Credit sample plan billed
+12 x 2,409.17 = 28,910.04 against a 28,910.00 contract. Four centavos, all of
+it interest, collected on every plan whose term does not divide evenly.
+
+**2. A prepayment was collected TWICE.** Measured end to end on the real
+engine before touching it:
+
+    after prepayment: balance 11864.19  settled false
+      pay 10: entry 2409.17  balance 0.00  settled false
+      pay 11: entry 2409.17  balance 0.00  settled false
+      pay 12: entry 2409.17  balance 0.00  settled true
+    total cash out: 33910.04   contract: 28910.00   OVERPAID BY: 5000.04
+
+Settlement was driven by the COUNTER while a prepayment moved the BALANCE, so
+the plan kept demanding full instalments against nothing owed, writing real
+2,409.17 expenses to the ledger each time, and the final zeroing swallowed the
+difference.
+
+**3. The settlement sweep was guarded by nothing.** Two tests claimed to lock
+it. Both ran the one seeded plan that divides evenly, and ALL 29 instalment
+tests passed with the sweep deleted. Proven by deleting it.
+
+### What changed
+
+**Where the leftover centavo goes: the FINAL payment.** The two rulings
+disagreed on exactly this and the disagreement is recorded rather than buried.
+The controller preferred `Money.split`, which spreads the remainder over the
+earliest shares so the app can never bill more than quoted. The lending officer
+ruled for the final instalment, because every Philippine disclosure statement
+shows one level figure with the last line adjusting. The lending officer wins
+on the tie-break the controller itself named, which is what a person can
+reconcile: the thing they hold next to this screen is their Home Credit bill,
+and it charges 2,409.17 every month. So eleven at 2,409.17 and a twelfth at
+2,409.13, summing to exactly 28,910.00.
+
+**The payment is built from its parts.** `instalment = principalShare +
+interestShare`, never `round(totalPayable / n)`. Those can differ by a centavo,
+and when they do the row stops reconciling. This way "principal plus interest
+equals the payment" is true by construction on every line.
+
+**Principal and interest are TRACKED, the balance is DERIVED.** The old code
+had it the other way round, and that let any arithmetic anywhere move the
+contracted interest.
+
+**Settlement is balance-driven and the sweep is gone.** The balances now reach
+zero by subtraction. A non-zero balance at the end of the counter is a fact the
+app can still see, which is the whole point of removing a sweep.
+
+**Every payment is capped at what is left**, and the ledger entry records the
+amount ACTUALLY collected rather than the quoted instalment. Those differ on
+the adjusting final payment and on any stub after a prepayment, and writing the
+quoted figure moved an account by one number while the plan recorded another.
+
+**A prepayment is capped at the BALANCE, not the principal, and this is where
+I departed from the lending ruling.** Capping at principal would have made
+"paying the exact balance settles it" false, and somebody who hands over
+everything owed is finished. So money beyond the principal pays the unearned
+interest rather than being refused or forgiven. The invariant that catches the
+original defect is not "interest never moves", it is that the balance falls by
+exactly what was applied.
+
+**Three seeded figures were wrong and are corrected**: Home Credit's balance,
+principal and interest were computed from the rounded instalment rather than
+from the contract, and the BPI plan recorded a 4,582.50 prepayment its own
+balances ignored.
+
+### The vectors that moved, and why
+
+| Figure | Was | Now | Why |
+|---|---|---|---|
+| Home Credit balance | 16,864.19 | 16,864.15 | derived from the contract, not from seven rounded instalments |
+| Home Credit principal left | 14,291.67 | 14,291.65 | same |
+| Home Credit interest left | 2,572.52 | 2,572.50 | 4,410 x 7/12 divides exactly |
+| Home Credit principal after one payment | 12,250.003333333334 | 12,249.98 | the carried third of a centavo is gone |
+| BPI balance | 32,077.50 | 27,495.00 | its recorded prepayment is credited now |
+
+The old test for that third-of-a-centavo asserted it with a tolerance and a
+comment explaining that "nothing here rounds it away". That was the defect
+written down as a feature.
+
+### The invariants
+
+`installment_schedule_test.dart`, thirteen tests, every one exact with no
+tolerance anywhere, because a centavo count does not need one and a tolerance
+is how the discrepancies hid. Each conservation invariant carries a directional
+companion: the footing test is paired with an assertion that the shares are NOT
+all equal, and the prepayment test with an assertion that the plan got SHORTER.
+The settlement test runs the Home Credit plan specifically, because it is the
+only seeded plan that can fail it.
+
+### Increment 4: the true cost of credit
+
+Founder direction, 2026-10-01: "build the true cost figure". The lending
+officer's largest finding, deferred out of increment 3 as new feature work and
+then approved.
+
+`core/money/true_rate.dart` solves the rate at which the payments a person
+actually hands over are worth, today, exactly what they borrowed. Bisection,
+because the equation has no closed form and bisection cannot diverge: present
+value falls monotonically as the rate rises, so the bracket always closes.
+
+It needs no new stored field and cannot be gamed. It reads the principal, the
+payments and the term, whatever the lender called the rate.
+
+**Every figure was re-derived independently before a line was written**, rather
+than taken from the review:
+
+| Plan | Quoted | Shown before | True |
+|---|---|---|---|
+| Home Credit, 24,500 over 12 | 1.5% a month, 18.0% a year | 18.0% a year | 2.6% a month, 31.7% a year |
+| SPayLater, 8,400 over 6 | 2.95% a month, 35.4% a year | 35.4% a year | 4.9% a month, 58.4% a year |
+| BPI SIP, 54,990 over 24 | 0% | nothing | 0%, and no correction shown |
+
+**The test that decides whether any of it is trustworthy** is the sanity one: a
+loan that genuinely charges 1.5% a month on the diminishing balance must solve
+back to 1.5%. It returns 1.500000%. Discounting without compounding fails it:
+
+    Expected: a numeric value within <0.001> of <1.5>
+      Actual: <1.582640554261161>
+
+And a genuine 0% plan must land on exactly zero rather than drift, because
+"this costs you nothing" is a real claim. Removing that guard fails it:
+
+    Expected: <0>
+      Actual: <3.637978807091713e-11>
+
+**The annual figures are both multiplied by twelve, neither compounded.** The
+quoted annual figure beside it is also a monthly rate times twelve, so
+computing them the same way makes the comparison about the RATE rather than
+about the arithmetic. Compounding one and not the other would inflate the gap
+and start an argument about convention instead of about cost. Compounding makes
+the honest figure higher still (36.8% rather than 31.7% on the Home Credit
+plan), and that belongs in the explainer, not on the card.
+
+**Three deliberate restraints:**
+
+1. The quoted rate stays on screen. It is not wrong and nobody is hiding it.
+2. The correction appears only when the real rate is materially above the
+   quoted one. The interest-free BPI plan carries none: a line saying "really
+   0%" about a lender who charged nothing reads as an accusation and teaches
+   people to ignore the one that matters. A journey test asserts exactly two
+   plans carry it.
+3. No statute, circular or regulator is named anywhere. The reviewer marked
+   every regulatory statement as unverified memory, and this repository already
+   caught a fabricated government URL that a confident review had waved
+   through. The explainer describes arithmetic in plain words and claims no
+   official standing, the same line `loan.dart` draws when it refuses to call
+   30% "the BSP safety threshold".
+
+## Phase 3 to 7
 
 Not started. Tracked in the sprint prompt; this table grows as each phase
 begins.

@@ -7,6 +7,7 @@ import '../../design/type.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+import '../../core/money/money.dart';
 
 /// Plan's four write paths.
 ///
@@ -175,10 +176,10 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
         name: _name.text.trim(),
         // The user's own emoji, not a Salapify icon. Goals are their data.
         emoji: '🎯',
-        targetAmount: _targetValue!,
-        currentAmount: 0,
+        targetAmount: Money.fromDouble(_targetValue!),
+        currentAmount: Money.zero,
         targetDate: 'Dec 2026',
-        monthlyTarget: _monthlyValue.roundToDouble(),
+        monthlyTarget: Money.fromDouble(_monthlyValue.roundToDouble()),
       ),
     );
     Navigator.of(context).pop();
@@ -302,7 +303,7 @@ class _ContributeSheetState extends State<ContributeSheet> {
   void _save() {
     final double? v = _value;
     if (v == null) return;
-    widget.state.contributeToGoal(widget.row.goal.id, v);
+    widget.state.contributeToGoal(widget.row.goal.id, Money.fromDouble(v));
     Navigator.of(context).pop();
   }
 
@@ -314,11 +315,12 @@ class _ContributeSheetState extends State<ContributeSheet> {
 
     // Clamped in the preview exactly as the engine clamps it, so the sentence
     // cannot promise something the save will not do.
-    final double after = v == null
+    final Money contribution = v == null ? Money.zero : Money.fromDouble(v);
+    final Money after = v == null
         ? g.currentAmount
-        : ((g.currentAmount + v) > g.targetAmount
+        : ((g.currentAmount + contribution) > g.targetAmount
               ? g.targetAmount
-              : g.currentAmount + v);
+              : g.currentAmount + contribution);
 
     return SheetScaffold(
       palette: p,
@@ -347,25 +349,26 @@ class _ContributeSheetState extends State<ContributeSheet> {
           BreakdownRow(
             palette: p,
             label: 'Saved so far',
-            value: formatPeso(g.currentAmount),
+            value: formatPeso(g.currentAmount.pesos),
           ),
           BreakdownRow(
             palette: p,
             label: 'After this',
-            value: formatPeso(after),
+            value: formatPeso(after.pesos),
             emphasis: true,
             valueColor: p.positive,
           ),
           BreakdownRow(
             palette: p,
             label: 'Still to go',
-            value: formatPeso(g.targetAmount - after),
+            value: formatPeso((g.targetAmount - after).pesos),
           ),
-          if (v != null && g.currentAmount + v > g.targetAmount) ...<Widget>[
+          if (v != null &&
+              g.currentAmount + contribution > g.targetAmount) ...<Widget>[
             const SizedBox(height: Spacing.xs),
             Text(
               'That is more than the goal needs, so only '
-              '${formatPeso(g.targetAmount - g.currentAmount)} is recorded '
+              '${formatPeso((g.targetAmount - g.currentAmount).pesos)} is recorded '
               'against it.',
               style: AppType.caption(p).copyWith(color: p.warning),
             ),

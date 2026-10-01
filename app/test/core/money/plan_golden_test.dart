@@ -4,6 +4,7 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Plan engine.
 ///
@@ -170,16 +171,20 @@ void main() {
   group('goals', () {
     test('every goal', () {
       final List<GoalStatus> rows = computeGoals(SeedData.goals);
-      const Map<String, (int percent, double remaining, int? months)> expected =
-          <String, (int, double, int?)>{
-            'goal_emergency': (71, 17500, 4),
-            'goal_japan': (37, 47000, 11),
-            'goal_phone': (100, 0, null),
+      // The SAME vectors as before the Money migration, to the peso. What
+      // changed is that `remaining` is now compared EXACTLY rather than
+      // within a tolerance: closeTo existed because a double could not be
+      // trusted to land on 17,500.00, and a centavo count can.
+      const Map<String, (int percent, Money remaining, int? months)> expected =
+          <String, (int, Money, int?)>{
+            'goal_emergency': (71, Money.pesos(17500), 4),
+            'goal_japan': (37, Money.pesos(47000), 11),
+            'goal_phone': (100, Money.zero, null),
           };
-      expected.forEach((String id, (int, double, int?) want) {
+      expected.forEach((String id, (int, Money, int?) want) {
         final GoalStatus g = rows.firstWhere((GoalStatus g) => g.goal.id == id);
         expect(g.percent, want.$1, reason: '$id percent');
-        closeTo(g.remaining, want.$2, '$id remaining');
+        expect(g.remaining, want.$2, reason: '$id remaining');
         expect(g.monthsAtCurrentRate, want.$3, reason: '$id months');
       });
     });
@@ -192,10 +197,10 @@ void main() {
           id: 'g',
           name: 'g',
           emoji: 'x',
-          targetAmount: 1000,
-          currentAmount: 900,
+          targetAmount: Money.pesos(1000),
+          currentAmount: Money.pesos(900),
           targetDate: 'Dec 2026',
-          monthlyTarget: 30,
+          monthlyTarget: Money.pesos(30),
         ),
       ]);
       expect(rows.single.monthsAtCurrentRate, 4);
@@ -206,7 +211,7 @@ void main() {
         SeedData.goals,
       ).firstWhere((GoalStatus g) => g.goal.id == 'goal_phone');
       expect(done.isComplete, isTrue);
-      closeTo(done.remaining, 0, 'remaining');
+      expect(done.remaining, Money.zero, reason: 'remaining');
       expect(done.monthsAtCurrentRate, isNull);
     });
   });
@@ -216,21 +221,25 @@ void main() {
       final List<Goal> after = applyGoalContribution(
         SeedData.goals,
         'goal_emergency',
-        2500,
+        const Money.pesos(2500),
       );
 
       final Goal moved = after.firstWhere((Goal g) => g.id == 'goal_emergency');
-      closeTo(moved.currentAmount, 45000, 'the contribution did not land');
+      expect(
+        moved.currentAmount,
+        const Money.pesos(45000),
+        reason: 'the contribution did not land',
+      );
 
       // The directional companion. Without this, a function that returns the
       // list untouched satisfies "nothing else changed" perfectly.
       final Goal untouched = after.firstWhere((Goal g) => g.id == 'goal_japan');
-      closeTo(
+      expect(
         untouched.currentAmount,
         SeedData.goals
             .firstWhere((Goal g) => g.id == 'goal_japan')
             .currentAmount,
-        'a contribution to one goal moved another',
+        reason: 'a contribution to one goal moved another',
       );
     });
 
@@ -238,23 +247,27 @@ void main() {
       final List<Goal> after = applyGoalContribution(
         SeedData.goals,
         'goal_emergency',
-        999999,
+        const Money.pesos(999999),
       );
       final Goal g = after.firstWhere((Goal g) => g.id == 'goal_emergency');
-      closeTo(g.currentAmount, g.targetAmount, 'a goal went past 100 percent');
+      expect(
+        g.currentAmount,
+        g.targetAmount,
+        reason: 'a goal went past 100 percent',
+      );
     });
 
     test('a zero or negative contribution changes nothing', () {
-      for (final double bad in <double>[0, -500]) {
+      for (final Money bad in <Money>[Money.zero, Money.pesos(-500)]) {
         final List<Goal> after = applyGoalContribution(
           SeedData.goals,
           'goal_emergency',
           bad,
         );
-        closeTo(
+        expect(
           after.firstWhere((Goal g) => g.id == 'goal_emergency').currentAmount,
-          42500,
-          'a contribution of $bad was accepted',
+          const Money.pesos(42500),
+          reason: 'a contribution of $bad was accepted',
         );
       }
     });

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Five questions, answered only where they can be.
 ///
@@ -560,18 +561,18 @@ InstallmentPlan _plan({required double monthly, required int left}) =>
       id: 'p1',
       name: 'Gadget',
       provider: 'Home Credit',
-      principal: 48000,
+      principal: Money.pesos(48000),
       interestRate: 0,
       interestRateType: InterestRateType.monthly,
-      totalInterest: 0,
-      totalPayable: 48000,
+      totalInterest: Money.pesos(0),
+      totalPayable: Money.pesos(48000),
       termMonths: 12,
-      installmentAmount: monthly,
+      installmentAmount: Money.fromDouble(monthly),
       paidInstallments: 12 - left,
       totalInstallments: 12,
-      runningBalance: monthly * left,
-      principalRemaining: monthly * left,
-      interestRemaining: 0,
+      runningBalance: Money.fromDouble(monthly * left),
+      principalRemaining: Money.fromDouble(monthly * left),
+      interestRemaining: Money.pesos(0),
       startDate: '2026-01-05',
       maturityDate: '2026-12-05',
     );
@@ -580,10 +581,10 @@ Goal _goal({required double saved}) => Goal(
   id: 'g1',
   name: 'Emergency fund',
   emoji: '🛡️',
-  targetAmount: 90000,
-  currentAmount: saved,
+  targetAmount: const Money.pesos(90000),
+  currentAmount: Money.fromDouble(saved),
   targetDate: '2027-06-30',
-  monthlyTarget: 5000,
+  monthlyTarget: const Money.pesos(5000),
 );
 
 Budget _budget(String category, double limit) =>

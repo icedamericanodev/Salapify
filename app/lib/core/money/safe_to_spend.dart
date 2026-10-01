@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../models/models.dart';
 import 'js_round.dart';
+import 'money.dart';
 
 /// Safe to Spend, ported line for line from src/utils/safeToSpendEngine.ts.
 ///
@@ -41,7 +42,10 @@ SafeToSpendAnalysis computeSafeToSpend({
       .where((InstallmentPlan i) => !i.isSettled)
       .fold<double>(
         0,
-        (double sum, InstallmentPlan i) => sum + i.installmentAmount,
+        // Capped at the balance, so Safe to Spend stops holding back a
+        // whole instalment for a plan with less than one left on it.
+        (double sum, InstallmentPlan i) =>
+            sum + minMoney(i.installmentAmount, i.runningBalance).pesos,
       );
 
   // 4. Debt minimums, estimated at 8 percent of what is outstanding.

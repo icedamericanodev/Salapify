@@ -6,6 +6,7 @@ import 'package:salapify/state/financial_state.dart';
 import '../shots/screens_shot.dart' show loadRealFonts;
 
 import '../support/pinned_app.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Plan, driven the way a person drives it.
 ///
@@ -229,11 +230,11 @@ void main() {
       // Half one, with the directional companion.
       expect(
         state.goals.firstWhere((g) => g.id == 'goal_emergency').currentAmount,
-        45000,
+        const Money.pesos(45000),
       );
       expect(
         state.goals.firstWhere((g) => g.id == 'goal_japan').currentAmount,
-        28000,
+        const Money.pesos(28000),
         reason: 'contributing to one goal moved another',
       );
 
