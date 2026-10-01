@@ -21,6 +21,7 @@ import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
+import '../core/money/money.dart';
 
 /// The single store the screens read, standing in for the prototype's
 /// FinancialContext. It holds the ledger and derives everything else, so no
@@ -1229,7 +1230,7 @@ class FinancialState extends ChangeNotifier {
   /// account logs a transfer, which is a different action with a different
   /// effect on net worth. Making this debit an account would double count
   /// every contribution against the transfer that funded it.
-  void contributeToGoal(String goalId, double amount) {
+  void contributeToGoal(String goalId, Money amount) {
     final List<Goal> next = applyGoalContribution(_goals, goalId, amount);
     if (identical(next, _goals)) return;
     _goals = next;

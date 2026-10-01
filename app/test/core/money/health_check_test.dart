@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Five questions, answered only where they can be.
 ///
@@ -580,10 +581,10 @@ Goal _goal({required double saved}) => Goal(
   id: 'g1',
   name: 'Emergency fund',
   emoji: '🛡️',
-  targetAmount: 90000,
-  currentAmount: saved,
+  targetAmount: const Money.pesos(90000),
+  currentAmount: Money.fromDouble(saved),
   targetDate: '2027-06-30',
-  monthlyTarget: 5000,
+  monthlyTarget: const Money.pesos(5000),
 );
 
 Budget _budget(String category, double limit) =>

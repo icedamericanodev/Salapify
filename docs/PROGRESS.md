@@ -294,7 +294,7 @@ door fails it:
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | type built and locked; 28 model fields still to move |
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | type built and locked; Goal migrated; 25 model fields still to move |
 | P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
 | P2.3 | Protected accounts (F3) | todo | |
 | P2.4 | Debt types and minimums (F4) | todo | |
@@ -364,6 +364,61 @@ Rates and durations are named separately as permanently double, with the
 reason: an interest rate is a ratio and a cash runway is a count of months, and
 forcing either into a centavo type is the same category error as holding a peso
 in a double, pointing the other way.
+
+### P2.1 notes, increment 2: Goal
+
+**Why Goal first, and not the smallest thing.** Budget looked like the smallest
+slice, one money field against fourteen construction sites. It is not
+self-contained: a budget's percentage divides spending by the limit, and
+spending comes from transaction amounts, which have not moved. Migrating it
+first would mean writing conversions between migrated and unmigrated code that
+get deleted later.
+
+Goal is the one model whose money answers only to itself. Progress is current
+against target, months to go is what is left over the monthly target, and
+nothing in it derives from the ledger. That makes it a complete vertical slice,
+model to codec to engine to screen, at the lowest possible cost.
+
+**The blast radius was three test files.** Not the hundreds the raw grep
+suggested, because most tests build goals from `SeedData` rather than by hand.
+That is the argument for picking a module by how self-contained it is rather
+than by how few call sites it has.
+
+**Every golden vector held, to the peso.** `plan_golden_test.dart` still
+asserts 71, 37 and 100 percent; 17,500, 47,000 and 0 remaining; 4, 11 and null
+months. What changed is that `remaining` is now compared EXACTLY rather than
+inside a tolerance. `closeTo` was there because a double could not be trusted
+to land on 17,500.00. A centavo count can, so the tolerance is gone and the
+test is stricter than it was.
+
+**The stored file did not change, and that is now a test rather than a claim.**
+`test/data/stored_shape_test.dart` asserts the written JSON holds plain peso
+numbers, decodes a hand-written file in the OLD shape rather than
+round-tripping the codec against itself, and refuses any figure that looks like
+a centavo count. Writing centavos to disk fails it with the damage spelled out:
+
+    Expected: <42500.75>
+      Actual: <4250075>
+
+    Expected: Money:<42500.75>
+      Actual: Money:<4250075.00>
+
+A goal multiplied by a hundred, silently, in somebody's file. That test is what
+has to be changed deliberately when P2.2 moves the stored format, with the
+founder's answer in hand and a pre-migration backup behind it.
+
+**Two figures stayed double on purpose.** Months of cover and months to a goal
+are COUNTS OF MONTHS, and a percentage is a ratio. Forcing either into a
+centavo type is the same category error as holding a peso in a double, pointing
+the other way. The guard file names rates and durations separately for exactly
+this reason.
+
+**The guard worked unprompted.** Migrating the three fields turned the
+migration guard red by itself, because the shrinking list refused to go on
+claiming finished work:
+
+    Expected: empty
+      Actual: Set:['currentAmount', 'monthlyTarget', 'targetAmount']
 
 ## Phase 3 to 7
 

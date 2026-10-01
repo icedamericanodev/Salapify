@@ -83,9 +83,9 @@ void main() {
           .map(
             (Goal g) => <String, Object?>{
               'id': g.id,
-              'targetAmount': g.targetAmount,
-              'currentAmount': g.currentAmount,
-              'monthlyTarget': g.monthlyTarget,
+              'targetAmount': g.targetAmount.pesos,
+              'currentAmount': g.currentAmount.pesos,
+              'monthlyTarget': g.monthlyTarget.pesos,
             },
           )
           .toList(),

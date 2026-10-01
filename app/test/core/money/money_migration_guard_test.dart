@@ -28,14 +28,12 @@ void main() {
     'amountReserved',
     'balance',
     'creditLimit',
-    'currentAmount',
     'emergencyBuffer',
     'expectedAmount',
     'expectedIncome',
     'installmentAmount',
     'interestRemaining',
     'limit',
-    'monthlyTarget',
     'paidAmount',
     'principal',
     'principalRemaining',
@@ -46,7 +44,6 @@ void main() {
     'safeToSave',
     'safeToSpendToday',
     'safeToSpendUntilPayday',
-    'targetAmount',
     'totalAmount',
     'totalExpectedInflow',
     'totalInterest',
@@ -103,7 +100,7 @@ void main() {
     // prompt asked for.
     expect(
       notYetMoney.length,
-      28,
+      25,
       reason:
           'Fields left to migrate changed. Update this figure AND the P2.1 '
           'row in docs/PROGRESS.md in the same commit, so the two cannot '

@@ -1,4 +1,5 @@
 import '../models/models.dart';
+import '../core/money/money.dart';
 
 /// The starting ledger, ported from the prototype's src/data/initialData.ts.
 ///
@@ -910,30 +911,30 @@ class SeedData {
       id: 'goal_emergency',
       name: 'Emergency Fund (6 Mos)',
       emoji: '\u{1F6E1}',
-      targetAmount: 60000,
-      currentAmount: 42500,
+      targetAmount: Money.pesos(60000),
+      currentAmount: Money.pesos(42500),
       targetDate: 'Dec 2026',
-      monthlyTarget: 5000,
+      monthlyTarget: Money.pesos(5000),
       isSample: true,
     ),
     Goal(
       id: 'goal_japan',
       name: 'Japan Autumn Trip',
       emoji: '✈',
-      targetAmount: 75000,
-      currentAmount: 28000,
+      targetAmount: Money.pesos(75000),
+      currentAmount: Money.pesos(28000),
       targetDate: 'Nov 2027',
-      monthlyTarget: 4500,
+      monthlyTarget: Money.pesos(4500),
       isSample: true,
     ),
     Goal(
       id: 'goal_phone',
       name: 'New Work Station Setup',
       emoji: '\u{1F4BB}',
-      targetAmount: 35000,
-      currentAmount: 35000,
+      targetAmount: Money.pesos(35000),
+      currentAmount: Money.pesos(35000),
       targetDate: 'Aug 2026',
-      monthlyTarget: 0,
+      monthlyTarget: Money.pesos(0),
       isSample: true,
     ),
   ];

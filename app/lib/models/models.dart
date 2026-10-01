@@ -3,6 +3,7 @@
 // the tabs that need them, so nothing sits unused.
 
 import '../core/money/currencies.dart';
+import '../core/money/money.dart';
 
 export '../core/money/currencies.dart' show CurrencyCode;
 
@@ -590,10 +591,10 @@ class Goal {
   final String id;
   final String name;
   final String emoji;
-  final double targetAmount;
-  final double currentAmount;
+  final Money targetAmount;
+  final Money currentAmount;
   final String targetDate;
-  final double monthlyTarget;
+  final Money monthlyTarget;
 }
 
 class UpcomingItem {

@@ -6,6 +6,7 @@ import 'package:salapify/data/store.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Saving, loading, and every way both can go wrong.
 ///
@@ -403,10 +404,10 @@ void main() {
             id: 'goal_$i',
             name: 'Goal $i',
             emoji: '',
-            targetAmount: 1000.0 * i,
-            currentAmount: 0,
+            targetAmount: Money.pesos(1000 * i),
+            currentAmount: Money.zero,
             targetDate: '2027-01-01',
-            monthlyTarget: 100,
+            monthlyTarget: const Money.pesos(100),
           ),
         );
         await state.flushWrites();

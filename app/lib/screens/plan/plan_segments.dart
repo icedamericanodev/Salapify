@@ -450,7 +450,7 @@ class _GoalRow extends StatelessWidget {
                 ),
               ),
               Text(
-                formatPeso(g.currentAmount),
+                formatPeso(g.currentAmount.pesos),
                 style: AppType.amountSmall(palette),
               ),
             ],
@@ -470,10 +470,10 @@ class _GoalRow extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             row.isComplete
-                ? 'Funded. ${formatPeso(g.targetAmount)} reached.'
-                : '${row.percent}% of ${formatPeso(g.targetAmount)} · '
-                      '${formatPeso(row.remaining)} to go'
-                      '${row.monthsAtCurrentRate == null ? '' : ' · about ${row.monthsAtCurrentRate} months at ${formatPeso(g.monthlyTarget, showDecimals: false)} a month'}',
+                ? 'Funded. ${formatPeso(g.targetAmount.pesos)} reached.'
+                : '${row.percent}% of ${formatPeso(g.targetAmount.pesos)} · '
+                      '${formatPeso(row.remaining.pesos)} to go'
+                      '${row.monthsAtCurrentRate == null ? '' : ' · about ${row.monthsAtCurrentRate} months at ${formatPeso(g.monthlyTarget.pesos, showDecimals: false)} a month'}',
             style: AppType.caption(palette).copyWith(
               color: row.isComplete ? palette.positive : palette.textMuted,
             ),

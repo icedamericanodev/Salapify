@@ -2,6 +2,7 @@ import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
 import '../design/tokens.dart';
 import '../models/models.dart';
+import '../core/money/money.dart';
 
 /// Turning Salapify's models into JSON and back, in the PROTOTYPE'S OWN
 /// spelling.
@@ -573,10 +574,10 @@ Map<String, dynamic> goalToJson(Goal g) => <String, dynamic>{
   'id': g.id,
   'name': g.name,
   'emoji': g.emoji,
-  'targetAmount': g.targetAmount,
-  'currentAmount': g.currentAmount,
+  'targetAmount': g.targetAmount.pesos,
+  'currentAmount': g.currentAmount.pesos,
   'targetDate': g.targetDate,
-  'monthlyTarget': g.monthlyTarget,
+  'monthlyTarget': g.monthlyTarget.pesos,
   if (g.isSample) 'isSample': true,
 };
 
@@ -584,10 +585,10 @@ Goal goalFromJson(Map<String, dynamic> m) => Goal(
   id: _reqStr(m, 'id', 'goal'),
   name: _reqStr(m, 'name', 'goal'),
   emoji: _optStr(m, 'emoji') ?? '',
-  targetAmount: _reqNum(m, 'targetAmount', 'goal'),
-  currentAmount: _reqNum(m, 'currentAmount', 'goal'),
+  targetAmount: Money.fromDouble(_reqNum(m, 'targetAmount', 'goal')),
+  currentAmount: Money.fromDouble(_reqNum(m, 'currentAmount', 'goal')),
   targetDate: _optStr(m, 'targetDate') ?? '',
-  monthlyTarget: _optNum(m, 'monthlyTarget') ?? 0,
+  monthlyTarget: Money.fromDouble(_optNum(m, 'monthlyTarget') ?? 0),
   isSample: _optBool(m, 'isSample'),
 );
 

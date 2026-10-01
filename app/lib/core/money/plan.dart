@@ -1,5 +1,6 @@
 import '../../models/models.dart';
 import 'reports.dart' show validLedgerEntries;
+import 'money.dart';
 
 /// The Plan engine, ported from src/components/PlanScreen.tsx.
 ///
@@ -181,7 +182,7 @@ class GoalStatus {
   final int percent;
 
   /// Floored at zero: an overfunded goal is finished, not negatively short.
-  final double remaining;
+  final Money remaining;
 
   /// How many months of the goal's own monthly target are still needed, or
   /// null when the target is zero and the question has no answer.
@@ -192,25 +193,31 @@ class GoalStatus {
   /// four is a goal tracker that lies about the last one.
   final int? monthsAtCurrentRate;
 
-  bool get isComplete => remaining <= 0;
+  bool get isComplete => remaining <= Money.zero;
 }
 
 List<GoalStatus> computeGoals(List<Goal> goals) {
   return goals.map((Goal g) {
-    final double remaining = g.targetAmount - g.currentAmount;
-    final int percent = g.targetAmount <= 0
-        ? 0
-        : (g.currentAmount / g.targetAmount * 100).round().clamp(0, 100);
+    final Money remaining = g.targetAmount - g.currentAmount;
+
+    // ratioTo returns null on a zero target rather than an infinity, which is
+    // the same guard the old "targetAmount <= 0" branch gave, now stated once
+    // in the type instead of at every call site.
+    final double? share = g.currentAmount.ratioTo(g.targetAmount);
+    final int percent = share == null ? 0 : (share * 100).round().clamp(0, 100);
 
     int? months;
-    if (remaining > 0 && g.monthlyTarget > 0) {
-      months = (remaining / g.monthlyTarget).ceil();
+    if (remaining.isPositive && g.monthlyTarget.isPositive) {
+      // Still a division of two centavo counts, which is a ratio and so a
+      // double by nature. Rounded UP, unchanged: 4.2 months means five
+      // payments, and a goal tracker that says four lies about the last one.
+      months = (remaining.centavos / g.monthlyTarget.centavos).ceil();
     }
 
     return GoalStatus(
       goal: g,
       percent: percent,
-      remaining: remaining < 0 ? 0 : remaining,
+      remaining: remaining.isNegative ? Money.zero : remaining,
       monthsAtCurrentRate: months,
     );
   }).toList();
@@ -262,12 +269,12 @@ UpcomingTotals computeUpcomingTotals(List<UpcomingItem> items) {
 List<Goal> applyGoalContribution(
   List<Goal> goals,
   String goalId,
-  double amount,
+  Money amount,
 ) {
-  if (amount <= 0) return goals;
+  if (!amount.isPositive) return goals;
   return goals.map((Goal g) {
     if (g.id != goalId) return g;
-    final double next = g.currentAmount + amount;
+    final Money next = g.currentAmount + amount;
     return Goal(
       id: g.id,
       name: g.name,
