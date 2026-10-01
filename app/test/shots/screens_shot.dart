@@ -11,6 +11,7 @@ import 'package:salapify/features/info/info_dot.dart';
 import 'package:salapify/features/info/info_sheet.dart';
 import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
 import 'package:salapify/features/reminders/reminders_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
@@ -1104,6 +1105,83 @@ void main() {
       matchesGoldenFile('out/sheet_add_debt_schedule.png'),
     );
   });
+
+  // Split a bill, in both of the states worth reviewing.
+  //
+  // Two shots rather than one, because the empty sheet and the working sheet
+  // answer different questions. The empty one is what somebody meets, so it
+  // has to explain itself with nothing typed in it. The working one carries
+  // the per-person figures, the running total and the reconcile line, which
+  // is the part a founder can look at and say "that number is in the wrong
+  // place".
+  for (final ({String slug, bool filled}) shape
+      in <({String slug, bool filled})>[
+        (slug: 'split_bill', filled: false),
+        (slug: 'split_bill_working', filled: true),
+      ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 4600);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      SplitBillSheet.show(
+        tester.element(find.byType(AppShell)),
+        palette: palette,
+        state: state,
+      );
+      await tester.pumpAndSettle();
+
+      if (shape.filled) {
+        // A 2,400 lunch three ways, which is the case the screen exists for:
+        // it does not divide evenly, so the centavo has to land somewhere
+        // visible rather than be quietly dropped.
+        final Finder fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), '2400');
+        await tester.enterText(fields.at(1), 'Barkada lunch');
+        await tester.pumpAndSettle();
+
+        // The add control is an icon with a semantics label, not a button
+        // reading "Add", so it is found the way the journey test finds it.
+        for (final String who in <String>['Carla', 'Miggy']) {
+          await tester.enterText(
+            find.widgetWithText(TextField, 'Their name'),
+            who,
+          );
+          await tester.pumpAndSettle();
+          final Finder add = find.bySemanticsLabel(
+            'Add this person to the split',
+          );
+          await tester.ensureVisible(add);
+          await tester.pumpAndSettle();
+          await tester.tap(add);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
 
   // Accounts, the fifth tab. All four views at both brightnesses, because a
   // view nobody renders is a screen nobody has looked at.

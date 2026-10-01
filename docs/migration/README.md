@@ -1866,3 +1866,133 @@ too: MCIT is a corporate tax, and putting it there would swap one wrong
 conclusion for another.
 
 This closes every finding from the factual review.
+
+## Split a bill (2026-10-01)
+
+Founder direction: "do the Split Bill". Ported from the prototype's
+`src/components/SplitBillModal.tsx` and `calculateSplitShares` in
+`src/utils/collaborationEngine.ts`.
+
+### The engine is vector-locked, and the vectors were EXECUTED
+
+`app/tool/gen_split_vectors.ts` imports the prototype's own
+`calculateSplitShares` and runs it over 22 fixtures under bun. Every figure in
+`app/test/core/money/split_bill_test.dart` is a number that function printed.
+None of it was worked out by hand, because a figure derived by hand can agree
+with a misreading of the source rather than with the source.
+
+### The fixture audit FAILED, which is the point of running it
+
+After the replay went green, the port's `_jsRound` was swapped for Dart's own
+`round()`. All twenty original cases still passed. That does not mean the port
+is right, it means the fixture set could not tell the two apart.
+
+JavaScript rounds a half toward positive infinity, so `Math.round(-0.5)` is
+`-0`. Dart rounds away from zero, so `(-0.5).round()` is `-1`. Nothing in the
+engine can reach that difference unless a fixture carries a negative half, and
+none did. Two were added (`fixed_negative_half`, `pct_negative`), generated the
+same way, and the deliberate break then failed as it should:
+
+    Expected: <0>
+      Actual: <-0.1>
+    the displayed percentage: Dart round() would give -0.1 here, and did
+
+It is reachable in the real screen: the prototype runs `parseFloat` over a text
+field and never checks the sign of a fixed amount.
+
+### Five prototype behaviours are REPRODUCED, not corrected
+
+Each one looks like a bug and each one is what the source does. They are
+locked by name so nobody later "fixes" one into a mismatch:
+
+1. Seven ways on 100 returns `14.319999999999999`, not `14.32`. Binary
+   floating point, reproduced exactly.
+2. Percentages that do not sum to 100 still total the bill. The last person
+   absorbs the remainder while their percentage label stays stale, so two
+   people at 80% each pay 800 and 200 and the screen still reads 80% beside
+   the 200. The sheet leads with the AMOUNT for exactly this reason.
+3. Fixed amounts are never reconciled against the bill. 100 and 200 against a
+   1,000 bill leaves 700 unaccounted for and the engine does not object. The
+   sheet warns; the engine does not.
+4. No inputs under Fixed or Shares lands a centavo short, because that path
+   does not hand the remainder to anybody the way Equal does.
+5. A zero or negative bill returns no shares at all, rather than a list of
+   zeroes.
+
+Also load-bearing: the prototype writes `customInputs?.[id] || 1`, not `?? 1`.
+A typed zero is falsy in JavaScript, so zero shares becomes ONE share. Swapping
+the operator would silently move money.
+
+### Where the warning line sits, and why it scales
+
+`sharesReconcile` allows one centavo per person plus a hair, not a flat
+centavo. Seven ways on 1,000 rounds UP to three centavos over, and a flat
+tolerance would have warned about it. A warning that fires on three centavos of
+the engine's own rounding gets ignored, and then it is not there for the 700
+peso case that matters.
+
+Writing this test is where one of my own expectations turned out wrong: the
+"centavo short" case was asserted as `isFalse` first, on the assumption it
+should warn. It should not.
+
+### Two deliberate divergences from the prototype, both founder-decided
+
+- **Exact centavos on the debts.** The prototype wraps each share in
+  `Math.round` before writing the debt, so a 333.33 share is stored as 333.
+  The founder chose to keep the centavos.
+- **A tick box, an account and a category.** The prototype hardcodes Food &
+  Dining and always logs the expense. Here the expense log is a tick box that
+  can be turned off, and both the account and the category are pickers.
+
+`createExpenseSplit`, the prototype's collaboration record, is NOT ported.
+Collaboration is not being built, and a stored record nothing reads is a
+schema liability.
+
+### A defect caught by the render, not by any test
+
+The Total bill field prefixed `PHP` where every other money field in the app
+prefixes `₱ ` with the space, so it drew as **PHP2400**. 1,338 passing tests
+had nothing to say about it. This is the rule working as written: look at the
+screen before shipping the screen.
+
+### The screens, dark
+
+| As it opens | Mid-split, 2,400 three ways |
+| --- | --- |
+| ![empty](screens/split-bill-empty.png) | ![working](screens/split-bill-working.png) |
+
+The empty state keeps "Record it" disabled and says why underneath ("Add at
+least one other person."), rather than offering a button that does nothing.
+
+## Six tests had quietly stopped testing anything (2026-10-01)
+
+Found while running the full suite before shipping Split Bill, and confirmed
+pre-existing by stashing the Split Bill work and watching them fail anyway.
+
+`plan_test.dart` and `log_journey_test.dart` both pumped
+`const SalapifyApp()`, which reads the REAL clock. The seed ledger is dated
+September 2026, and the budget figures those tests assert are "spent this
+month". The moment the calendar rolled to 1 October, nothing in the seed
+counted as this month, every budget showed its full limit unspent, and six
+tests went red without a line of app code changing.
+
+The date-picker journey failed for a second reason worth writing down: it steps
+back one day and taps that day number in the Material calendar. On the first of
+a month, yesterday is in the PREVIOUS month, so the number it taps is a future
+date in the month the picker opened on, the picker refuses it, and the tap
+lands nowhere. The failure reads as a missing warning:
+
+    Expected: exactly one matching candidate
+      Actual: Found 0 widgets with text containing The balance changes now: []
+
+Both files now pin `DateTime(2026, 9, 18)`, the seed's own today and the date
+`accounts_test.dart` already pins to. `FinancialState` has taken an injectable
+clock the whole time, so this is a test-fixture change and touches no app code.
+
+Still open, and NOT taken here because it is a product decision rather than a
+test fix: the seed's transaction `date` strings are frozen at `2026-09-xx`
+while their `createdAt` timestamps roll with `DateTime.now()`. The two fields
+disagree, so a brand new install today shows a Log full of entries from
+"yesterday" and a Budgets screen that says nothing has been spent this month.
+For an app being built for the public, that is the first screen a stranger
+sees.
