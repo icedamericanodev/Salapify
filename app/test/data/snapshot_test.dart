@@ -9,6 +9,7 @@ import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
 
 import '../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// The file format: what it promises, and what it refuses to do.
 ///
@@ -140,26 +141,26 @@ void main() {
         id: 'plan_1',
         name: 'iPhone 15 via Home Credit',
         provider: 'Home Credit',
-        principal: 54990,
+        principal: Money.pesos(54990),
         interestRate: 3.5,
         interestRateType: InterestRateType.monthly,
-        totalInterest: 11547.90,
-        totalPayable: 66537.90,
+        totalInterest: Money.of(11547, 90),
+        totalPayable: Money.of(66537, 90),
         termMonths: 12,
         paymentFrequency: PaymentFrequency.semimonthly,
         startDate: '2026-03-15',
         maturityDate: '2027-03-15',
-        installmentAmount: 5544.83,
+        installmentAmount: Money.of(5544, 83),
         paidInstallments: 6,
         totalInstallments: 12,
-        runningBalance: 33268.95,
-        principalRemaining: 27495,
-        interestRemaining: 5773.95,
+        runningBalance: Money.of(33268, 95),
+        principalRemaining: Money.pesos(27495),
+        interestRemaining: Money.of(5773, 95),
         extraPayments: <ExtraPayment>[
           ExtraPayment(
             id: 'ex_1',
             date: '2026-07-04',
-            amount: 3000,
+            amount: Money.pesos(3000),
             note: 'Mid-year bonus',
           ),
         ],
@@ -204,7 +205,7 @@ void main() {
       expect(back.isSettled, isFalse);
       expect(back.notes, plan.notes);
       expect(back.extraPayments, hasLength(1));
-      expect(back.extraPayments.single.amount, 3000);
+      expect(back.extraPayments.single.amount, const Money.pesos(3000));
       expect(back.extraPayments.single.note, 'Mid-year bonus');
     });
   });

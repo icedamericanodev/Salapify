@@ -294,7 +294,7 @@ door fails it:
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | type built and locked; Goal migrated; 25 model fields still to move |
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | Goal and InstallmentPlan migrated; 18 model fields still to move |
 | P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
 | P2.3 | Protected accounts (F3) | todo | |
 | P2.4 | Debt types and minimums (F4) | todo | |
@@ -419,6 +419,117 @@ claiming finished work:
 
     Expected: empty
       Actual: Set:['currentAmount', 'monthlyTarget', 'targetAmount']
+
+### P2.1 notes, increment 3: InstallmentPlan, and three money defects it uncovered
+
+Seven money fields in one self-contained engine, and the conversion did what it
+is supposed to do: it forced every rounding decision into the open, and three
+of them turned out to be defects that existed in doubles long before centavos
+were considered.
+
+Two independent expert passes ruled first, a Philippine lending officer and a
+new `rounding-controller` agent, and every claim was re-checked against the
+arithmetic before anything was implemented.
+
+**1. The schedule never footed.** The Home Credit sample plan billed
+12 x 2,409.17 = 28,910.04 against a 28,910.00 contract. Four centavos, all of
+it interest, collected on every plan whose term does not divide evenly.
+
+**2. A prepayment was collected TWICE.** Measured end to end on the real
+engine before touching it:
+
+    after prepayment: balance 11864.19  settled false
+      pay 10: entry 2409.17  balance 0.00  settled false
+      pay 11: entry 2409.17  balance 0.00  settled false
+      pay 12: entry 2409.17  balance 0.00  settled true
+    total cash out: 33910.04   contract: 28910.00   OVERPAID BY: 5000.04
+
+Settlement was driven by the COUNTER while a prepayment moved the BALANCE, so
+the plan kept demanding full instalments against nothing owed, writing real
+2,409.17 expenses to the ledger each time, and the final zeroing swallowed the
+difference.
+
+**3. The settlement sweep was guarded by nothing.** Two tests claimed to lock
+it. Both ran the one seeded plan that divides evenly, and ALL 29 instalment
+tests passed with the sweep deleted. Proven by deleting it.
+
+### What changed
+
+**Where the leftover centavo goes: the FINAL payment.** The two rulings
+disagreed on exactly this and the disagreement is recorded rather than buried.
+The controller preferred `Money.split`, which spreads the remainder over the
+earliest shares so the app can never bill more than quoted. The lending officer
+ruled for the final instalment, because every Philippine disclosure statement
+shows one level figure with the last line adjusting. The lending officer wins
+on the tie-break the controller itself named, which is what a person can
+reconcile: the thing they hold next to this screen is their Home Credit bill,
+and it charges 2,409.17 every month. So eleven at 2,409.17 and a twelfth at
+2,409.13, summing to exactly 28,910.00.
+
+**The payment is built from its parts.** `instalment = principalShare +
+interestShare`, never `round(totalPayable / n)`. Those can differ by a centavo,
+and when they do the row stops reconciling. This way "principal plus interest
+equals the payment" is true by construction on every line.
+
+**Principal and interest are TRACKED, the balance is DERIVED.** The old code
+had it the other way round, and that let any arithmetic anywhere move the
+contracted interest.
+
+**Settlement is balance-driven and the sweep is gone.** The balances now reach
+zero by subtraction. A non-zero balance at the end of the counter is a fact the
+app can still see, which is the whole point of removing a sweep.
+
+**Every payment is capped at what is left**, and the ledger entry records the
+amount ACTUALLY collected rather than the quoted instalment. Those differ on
+the adjusting final payment and on any stub after a prepayment, and writing the
+quoted figure moved an account by one number while the plan recorded another.
+
+**A prepayment is capped at the BALANCE, not the principal, and this is where
+I departed from the lending ruling.** Capping at principal would have made
+"paying the exact balance settles it" false, and somebody who hands over
+everything owed is finished. So money beyond the principal pays the unearned
+interest rather than being refused or forgiven. The invariant that catches the
+original defect is not "interest never moves", it is that the balance falls by
+exactly what was applied.
+
+**Three seeded figures were wrong and are corrected**: Home Credit's balance,
+principal and interest were computed from the rounded instalment rather than
+from the contract, and the BPI plan recorded a 4,582.50 prepayment its own
+balances ignored.
+
+### The vectors that moved, and why
+
+| Figure | Was | Now | Why |
+|---|---|---|---|
+| Home Credit balance | 16,864.19 | 16,864.15 | derived from the contract, not from seven rounded instalments |
+| Home Credit principal left | 14,291.67 | 14,291.65 | same |
+| Home Credit interest left | 2,572.52 | 2,572.50 | 4,410 x 7/12 divides exactly |
+| Home Credit principal after one payment | 12,250.003333333334 | 12,249.98 | the carried third of a centavo is gone |
+| BPI balance | 32,077.50 | 27,495.00 | its recorded prepayment is credited now |
+
+The old test for that third-of-a-centavo asserted it with a tolerance and a
+comment explaining that "nothing here rounds it away". That was the defect
+written down as a feature.
+
+### The invariants
+
+`installment_schedule_test.dart`, thirteen tests, every one exact with no
+tolerance anywhere, because a centavo count does not need one and a tolerance
+is how the discrepancies hid. Each conservation invariant carries a directional
+companion: the footing test is paired with an assertion that the shares are NOT
+all equal, and the prepayment test with an assertion that the plan got SHORTER.
+The settlement test runs the Home Credit plan specifically, because it is the
+only seeded plan that can fail it.
+
+### Still open, and NOT fixed here
+
+The lending officer's largest finding is deliberately deferred, in
+`docs/DEFERRED.md`: the screen reprints the lender's add-on rate as the annual
+cost, understating the true effective rate by roughly two times on both
+interest-bearing plans. Fixing it needs an internal-rate-of-return solver that
+does not exist in the codebase, which is new feature work rather than a
+conversion, and it changes what the app tells somebody about the cost of
+credit.
 
 ## Phase 3 to 7
 

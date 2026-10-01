@@ -31,24 +31,17 @@ void main() {
     'emergencyBuffer',
     'expectedAmount',
     'expectedIncome',
-    'installmentAmount',
-    'interestRemaining',
     'limit',
     'paidAmount',
-    'principal',
-    'principalRemaining',
     'reservedBills',
     'reservedDebtMinimums',
     'reservedInstallments',
-    'runningBalance',
     'safeToSave',
     'safeToSpendToday',
     'safeToSpendUntilPayday',
     'totalAmount',
     'totalExpectedInflow',
-    'totalInterest',
     'totalLiquidCash',
-    'totalPayable',
   };
 
   /// Doubles that are NOT money and never become [Money].
@@ -100,7 +93,7 @@ void main() {
     // prompt asked for.
     expect(
       notYetMoney.length,
-      25,
+      18,
       reason:
           'Fields left to migrate changed. Update this figure AND the P2.1 '
           'row in docs/PROGRESS.md in the same commit, so the two cannot '

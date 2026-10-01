@@ -7,6 +7,7 @@ import '../../design/type.dart';
 import '../../features/debt/installment_sheet.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+import '../../core/money/money.dart';
 
 /// Instalment plans, from src/components/InstallmentsView.tsx.
 ///
@@ -94,9 +95,9 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double monthly = monthlyInstallmentLoad(plans);
-    final double owed = totalStillOwed(plans);
-    final double interest = interestStillToCome(plans);
+    final Money monthly = monthlyInstallmentLoad(plans);
+    final Money owed = totalStillOwed(plans);
+    final Money interest = interestStillToCome(plans);
 
     return Container(
       padding: const EdgeInsets.all(Spacing.xl),
@@ -109,20 +110,22 @@ class _Summary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text('EVERY MONTH, ALL PLANS', style: AppType.kicker(palette)),
-          Text(formatPeso(monthly), style: AppType.hero(palette)),
+          Text(formatPeso(monthly.pesos), style: AppType.hero(palette)),
           const SizedBox(height: Spacing.sm),
           Text(
-            '${formatPeso(owed)} still to pay in total.',
+            '${formatPeso(owed.pesos)} still to pay in total.',
             style: AppType.caption(palette),
           ),
-          if (interest > 0) ...<Widget>[
+          if (interest.isPositive) ...<Widget>[
             const SizedBox(height: Spacing.xs),
             Text(
               // On the screen rather than behind a dot, because it is the one
               // thing a person can still DO something about. Interest already
               // charged is gone; this is the part a prepayment removes.
-              '${formatPeso(interest)} of that is interest you have not been '
-              'charged yet. Paying early is what takes it off.',
+              '${formatPeso(interest.pesos)} of that is interest you have not '
+              'been charged yet. On a fixed add-on plan it was set when you '
+              'signed, so paying early finishes the plan sooner but does not '
+              'usually reduce it.',
               style: AppType.caption(palette),
             ),
           ],
@@ -180,7 +183,7 @@ class _PlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: <Widget>[
                   Text(
-                    formatPeso(plan.installmentAmount),
+                    formatPeso(plan.installmentAmount.pesos),
                     style: AppType.amountSmall(palette),
                   ),
                   Text('a month', style: AppType.caption(palette)),
@@ -225,18 +228,18 @@ class _PlanCard extends StatelessWidget {
             _Line(
               palette: palette,
               label: 'Still to pay',
-              value: formatPeso(plan.runningBalance),
+              value: formatPeso(plan.runningBalance.pesos),
             ),
             _Line(
               palette: palette,
               label: 'Of that, still principal',
-              value: formatPeso(plan.principalRemaining),
+              value: formatPeso(plan.principalRemaining.pesos),
             ),
-            if (plan.interestRemaining > 0)
+            if (plan.interestRemaining.isPositive)
               _Line(
                 palette: palette,
                 label: 'Of that, interest not yet charged',
-                value: formatPeso(plan.interestRemaining),
+                value: formatPeso(plan.interestRemaining.pesos),
               ),
             _Line(
               palette: palette,
@@ -252,7 +255,7 @@ class _PlanCard extends StatelessWidget {
               _Line(
                 palette: palette,
                 label: '${e.date}, ${e.note ?? 'Prepayment'}',
-                value: formatPeso(e.amount),
+                value: formatPeso(e.amount.pesos),
               ),
           ],
           if (plan.notes != null) ...<Widget>[

@@ -8,6 +8,7 @@ import 'package:salapify/state/financial_state.dart';
 import '../shots/screens_shot.dart' show loadRealFonts;
 
 import '../support/pinned_app.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// The instalment write path, in BOTH halves.
 ///
@@ -153,7 +154,10 @@ void main() {
     final InstallmentPlan p = store.installments.firstWhere(
       (InstallmentPlan x) => x.id == 'inst_home_credit',
     );
-    expect(p.principalRemaining, closeTo(9291.67, 0.001));
+    // 9,291.65 and exact. It was 9,291.67 with a tolerance, because the
+    // seeded principal was computed from the rounded instalment rather
+    // than from the contract. Centavos need no tolerance.
+    expect(p.principalRemaining, const Money.of(9291, 65));
     expect(
       p.paidInstallments,
       5,
@@ -202,7 +206,7 @@ void main() {
       (InstallmentPlan x) => x.id == 'inst_spaylater',
     );
     expect(p.isSettled, isTrue);
-    expect(p.runningBalance, 0);
+    expect(p.runningBalance, Money.zero);
 
     await reach(tester, find.text('PAID OFF'));
     expect(

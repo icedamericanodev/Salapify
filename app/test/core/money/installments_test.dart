@@ -4,6 +4,7 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the instalment plan port.
 ///
@@ -29,15 +30,19 @@ void main() {
         'inst_home_credit',
       );
       expect(p.provider, 'Home Credit');
-      expect(p.principal, 24500);
-      expect(p.totalInterest, 4410);
-      expect(p.totalPayable, 28910);
+      expect(p.principal, const Money.pesos(24500));
+      expect(p.totalInterest, const Money.pesos(4410));
+      expect(p.totalPayable, const Money.pesos(28910));
       expect(p.termMonths, 12);
       expect(p.maturityDate, '2027-04-18');
-      expect(p.runningBalance, 16864.19);
+      // CORRECTED with the centavo conversion. These were 16,864.19 and
+      // 14,291.67, computed as seven times the ROUNDED instalment, which is
+      // four centavos more than the contract. Derived from the contract now:
+      // 24,500 less five shares of 2,041.67, and 4,410 less five of 367.50.
+      expect(p.runningBalance, const Money.of(16864, 15));
       expect(
         p.principalRemaining,
-        14291.67,
+        const Money.of(14291, 65),
         reason:
             'This class was a four field stub until the Installments '
             'batch. The coverage audit missed it because it compared RECORD '
@@ -73,31 +78,38 @@ void main() {
     test('the monthly add-on plan', () {
       final InstallmentPlan p = of(pay('inst_home_credit'), 'inst_home_credit');
       expect(p.paidInstallments, 6);
-      expect(p.runningBalance, closeTo(14455.019999999999, 0.001));
+      expect(p.runningBalance, const Money.of(14454, 98));
       expect(
-        // 12250.003333333334, not 12250. The generator's own PRINT rounded it
-        // and the first version of this line copied the rounded figure, which
-        // is precisely the hand-derivation the golden-vector rule exists to
-        // stop. The carried third of a centavo is real: 24,500 over twelve
-        // does not divide evenly, and nothing here rounds it away.
+        // 12,249.98, and EXACTLY, with no tolerance. This line used to read
+        // closeTo(12250.003333333334, 0.000001), with a comment explaining
+        // that the carried third of a centavo was real and that "nothing here
+        // rounds it away". That was the defect written down as a feature: the
+        // third of a centavo existed because the schedule never footed, and a
+        // sweep at the end deleted the evidence. The share is a whole 2,041.67
+        // now, and the twelfth payment carries the difference.
         p.principalRemaining,
-        closeTo(12250.003333333334, 0.000001),
+        const Money.of(12249, 98),
         reason:
             'The balance fell by the full 2,409.17 instalment while the '
             'principal fell by only its own 2,041.67 share. Those two moving '
             'by different amounts is the whole reason both are kept: it is '
             'how somebody can see an early payment is mostly interest.',
       );
+      expect(p.interestRemaining, const Money.of(2205, 0));
       expect(p.isSettled, isFalse);
     });
 
     test('the genuine 0 percent plan moves both by the same amount', () {
       final InstallmentPlan p = of(pay('inst_bpi_sip'), 'inst_bpi_sip');
       expect(p.paidInstallments, 11);
-      expect(p.runningBalance, closeTo(29786.25, 0.001));
+      // 25,203.75, not 29,786.25. The seed records a 4,582.50 prepayment that
+      // its own balances used to ignore: 32,077.50 was exactly fourteen
+      // untouched instalments. The prepayment is credited now, so the plan
+      // genuinely has less to pay.
+      expect(p.runningBalance, const Money.of(25203, 75));
       expect(
         p.principalRemaining,
-        closeTo(29786.25, 0.001),
+        const Money.of(25203, 75),
         reason:
             'no interest means the two balances are the same number, and '
             'stay the same number',
@@ -124,13 +136,18 @@ void main() {
       expect(p.isSettled, isTrue);
       expect(
         p.runningBalance,
-        0,
+        Money.zero,
         reason:
-            'settled is forced to zero rather than left with a rounding '
-            'crumb, so a finished plan never shows "₱0.03 still to go"',
+            'It ARRIVES at zero by subtraction now. It used to be forced '
+            'there by a settlement sweep, and that sweep was not preventing a '
+            'rounding crumb, it was deleting one the schedule guaranteed. '
+            'Both tests that claimed to guard it ran this plan, which divides '
+            'evenly and has no crumb, and both passed with the sweep removed. '
+            'installment_schedule_test.dart runs the Home Credit plan, which '
+            'is the only seeded one that can fail it.',
       );
-      expect(p.principalRemaining, 0);
-      expect(p.interestRemaining, 0);
+      expect(p.principalRemaining, Money.zero);
+      expect(p.interestRemaining, Money.zero);
     });
 
     // THE DIVERGENCE, asserted so it is measured rather than accidental.
@@ -163,22 +180,29 @@ void main() {
         applyExtraPayment(
           SeedData.installments(testToday),
           'inst_home_credit',
-          5000,
+          const Money.pesos(5000),
           today: today,
         ),
         'inst_home_credit',
       );
-      expect(p.runningBalance, closeTo(11864.19, 0.001));
+      expect(p.runningBalance, const Money.of(11864, 15));
       expect(
         p.principalRemaining,
-        closeTo(9291.67, 0.001),
+        const Money.of(9291, 65),
         reason:
-            'Both drop by the whole 5,000. That is why an extra payment is '
-            'worth making: it takes interest off the END of the plan rather '
-            'than paying interest that was already going to be charged.',
+            'It comes off PRINCIPAL, and the balance falls by the same 5,000 '
+            'because the balance is principal plus interest. On a fixed '
+            'add-on plan the interest was set at signing, so prepaying '
+            'finishes the plan sooner rather than reducing what is owed in '
+            'interest.',
+      );
+      expect(
+        p.interestRemaining,
+        const Money.of(2572, 50),
+        reason: 'contracted interest is not forgiven by a prepayment',
       );
       expect(p.extraPayments.length, 1);
-      expect(p.extraPayments.single.amount, 5000);
+      expect(p.extraPayments.single.amount, const Money.pesos(5000));
       expect(p.extraPayments.single.date, '2026-09-18');
       expect(p.extraPayments.single.note, 'Principal prepayment');
       expect(p.isSettled, isFalse);
@@ -189,12 +213,12 @@ void main() {
         applyExtraPayment(
           SeedData.installments(testToday),
           'inst_spaylater',
-          6591.20,
+          const Money.of(6591, 20),
           today: today,
         ),
         'inst_spaylater',
       );
-      expect(p.runningBalance, 0);
+      expect(p.runningBalance, Money.zero);
       expect(p.isSettled, isTrue);
     });
 
@@ -203,14 +227,22 @@ void main() {
         applyExtraPayment(
           SeedData.installments(testToday),
           'inst_spaylater',
-          99999,
+          const Money.pesos(99999),
           today: today,
         ),
         'inst_spaylater',
       );
-      expect(p.runningBalance, 0);
-      expect(p.principalRemaining, 0);
+      expect(p.runningBalance, Money.zero);
+      expect(p.principalRemaining, Money.zero);
       expect(p.isSettled, isTrue);
+      expect(
+        p.extraPayments.single.amount,
+        const Money.of(6591, 20),
+        reason:
+            'the history records what was APPLIED, not the 99,999 offered. A '
+            'plan that logs money it never credited is a plan that cannot be '
+            'reconciled against a bank statement.',
+      );
     });
 
     test('an extra payment is APPENDED, never replacing the history', () {
@@ -218,7 +250,7 @@ void main() {
         applyExtraPayment(
           SeedData.installments(testToday),
           'inst_bpi_sip',
-          1000,
+          const Money.pesos(1000),
           today: today,
           note: 'Thirteenth month',
         ),
@@ -245,14 +277,19 @@ void main() {
       final List<InstallmentPlan> input = SeedData.installments(testToday);
       expect(
         identical(
-          applyExtraPayment(input, 'inst_spaylater', 0, today: today),
+          applyExtraPayment(input, 'inst_spaylater', Money.zero, today: today),
           input,
         ),
         isTrue,
       );
       expect(
         identical(
-          applyExtraPayment(input, 'inst_spaylater', -5, today: today),
+          applyExtraPayment(
+            input,
+            'inst_spaylater',
+            const Money.pesos(-5),
+            today: today,
+          ),
           input,
         ),
         isTrue,
@@ -262,9 +299,14 @@ void main() {
 
   group('the ledger entry a payment writes', () {
     test('it is filed under a subcategory that EXISTS', () {
+      final InstallmentPlan plan = of(
+        SeedData.installments(testToday),
+        'inst_home_credit',
+      );
       final Transaction? t = installmentEntry(
-        plan: of(SeedData.installments(testToday), 'inst_home_credit'),
+        plan: plan,
         installmentNumber: 6,
+        amount: nextPaymentFor(plan),
         accountId: 'acc_gcash',
         today: today,
         id: 'tx_test',
@@ -292,7 +334,7 @@ void main() {
     test('an extra payment is tagged apart from a scheduled one', () {
       final Transaction? t = extraPaymentEntry(
         plan: of(SeedData.installments(testToday), 'inst_home_credit'),
-        amount: 5000,
+        amount: const Money.pesos(5000),
         accountId: 'acc_gcash',
         today: today,
         id: 'tx_test',
@@ -308,6 +350,7 @@ void main() {
         installmentEntry(
           plan: of(SeedData.installments(testToday), 'inst_home_credit'),
           installmentNumber: 6,
+          amount: const Money.of(2409, 17),
           accountId: null,
           today: today,
           id: 'tx_test',
@@ -321,7 +364,9 @@ void main() {
     test('what they cost together each month', () {
       expect(
         monthlyInstallmentLoad(SeedData.installments(testToday)),
-        closeTo(2409.17 + 2291.25 + 1647.80, 0.001),
+        const Money.of(2409, 17) +
+            const Money.of(2291, 25) +
+            const Money.of(1647, 80),
       );
     });
 
@@ -332,7 +377,7 @@ void main() {
       }
       expect(
         monthlyInstallmentLoad(list),
-        closeTo(2409.17 + 2291.25, 0.001),
+        const Money.of(2409, 17) + const Money.of(2291, 25),
         reason: 'the SPayLater plan just finished and must drop out',
       );
     });
@@ -340,7 +385,9 @@ void main() {
     test('interest still to come is what a prepayment can still save', () {
       expect(
         interestStillToCome(SeedData.installments(testToday)),
-        closeTo(2572.52 + 0 + 991.20, 0.001),
+        // 2,572.50 rather than 2,572.52: derived from the contract as seven
+        // shares of 367.50, not from seven rounded instalments.
+        const Money.of(2572, 50) + const Money.of(991, 20),
       );
     });
 

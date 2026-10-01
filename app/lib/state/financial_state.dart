@@ -913,6 +913,14 @@ class FinancialState extends ChangeNotifier {
     final InstallmentPlan before = _installments[i];
     if (before.isSettled) return;
 
+    // What this payment ACTUALLY collects, worked out before the plan
+    // moves. It is the quoted instalment on an ordinary month, less on the
+    // adjusting final payment, and less again on a stub left by a
+    // prepayment. Writing the quoted figure instead is what moved an
+    // account by one number while the plan recorded another.
+    final Money collected = nextPaymentFor(before);
+    if (!collected.isPositive) return;
+
     _installments = applyInstallmentPayment(_installments, planId);
 
     final Transaction? entry = installmentEntry(
@@ -921,6 +929,7 @@ class FinancialState extends ChangeNotifier {
       accountId: accountId,
       today: now,
       id: 'tx_inst_${DateTime.now().microsecondsSinceEpoch}',
+      amount: collected,
     );
     if (entry != null) {
       logTransaction(entry);
@@ -932,11 +941,11 @@ class FinancialState extends ChangeNotifier {
   /// Records money paid on TOP of a plan's schedule.
   void payInstallmentExtra(
     String planId,
-    double amount, {
+    Money amount, {
     String? accountId,
     String? note,
   }) {
-    if (amount <= 0) return;
+    if (!amount.isPositive) return;
     final int i = _installments.indexWhere(
       (InstallmentPlan p) => p.id == planId,
     );
@@ -951,9 +960,15 @@ class FinancialState extends ChangeNotifier {
       note: note,
     );
 
+    // The APPLIED amount, which is capped at the principal still owed. A
+    // prepayment larger than the principal is an early settlement and needs
+    // a quote from the provider, so the ledger must not claim the excess
+    // was credited to the plan.
+    final Money applied = minMoney(amount, before.principalRemaining);
+
     final Transaction? entry = extraPaymentEntry(
       plan: before,
-      amount: amount,
+      amount: applied,
       accountId: accountId,
       today: now,
       id: 'tx_inst_extra_${DateTime.now().microsecondsSinceEpoch}',

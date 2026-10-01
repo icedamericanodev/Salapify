@@ -120,6 +120,56 @@ for family utang that has no minimum and never did.
 
 Deferred pending the founder.
 
+### The instalment screen reprints the lender's marketing rate as the true cost
+
+Found by the bank-officer review during P2.1's instalment conversion, and the
+largest single finding in it. NOT fixed, because fixing it is new feature work
+and it changes what Salapify tells somebody about the cost of credit.
+
+`annualisedRate` multiplies a monthly ADD-ON rate by twelve, and the screen
+prints "That 1.5% a month is 18.0% a year." The arithmetic is right and the
+framing is wrong: 18% a year IS what the poster says, because the poster quotes
+the add-on rate. An add-on rate charges interest on the ORIGINAL principal for
+the whole term, so the true cost on the balance you still owe is roughly double.
+
+Solved from each plan's own cash flows:
+
+| Plan | Quoted | Shown today | True effective a year |
+|---|---|---|---|
+| Home Credit, 24,500 over 12 months | 1.5% a month | 18.0% | about 36.8% |
+| SPayLater, 8,400 over 6 months | 2.95% a month | 35.4% | about 76.8% |
+| BPI SIP, 54,990 over 24 months | 0% | n/a | 0% |
+
+The app is currently on the lender's side of the add-on trap, which is the
+single thing `bank-officer` exists to prevent.
+
+**Why it is not fixed here.** The honest figure is an internal rate of return
+solved from the payment schedule, and nothing in the codebase computes one. It
+is new math with its own vectors, not a type conversion, and the correct screen
+copy is a founder call: the quoted rate must stay visible, with the real one
+beside it, and the wording decides whether this reads as help or as an accusation
+against a lender.
+
+**The adjacent half, already fixed**, because leaving it was worse: the summary
+card claimed "Paying early is what takes it off" about unearned interest. On a
+fixed add-on plan it does not. That line now says so.
+
+**One discipline note.** The review's statements about Philippine lending
+practice, the Consumer Act, the Truth in Lending Act and BSP circulars were all
+marked UNVERIFIED MEMORY by the reviewer, who could not reach gov.ph from the
+sandbox. None of it has reached a screen and none should until independently
+searched, which is this repository's existing rule after a fabricated
+government URL survived a confident review.
+
+### A plan cannot be created in the app yet
+
+`InstallmentPlan` is constructed in exactly three places: the model, the JSON
+codec and the sample data. There is no "add a plan" sheet. That is the cheap
+moment to settle something the model cannot currently express: `InterestRateType`
+says "per what period" and never says add-on or diminishing, and those cost
+roughly double one another. `loan.dart` already has the right enum. When the
+sheet is built, make it a required choice.
+
 ## Raised by the sprint, not in the prompt
 
 ### The sample payday cycle is still frozen

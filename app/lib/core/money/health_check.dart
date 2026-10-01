@@ -252,7 +252,10 @@ class _Measures {
       .where((InstallmentPlan i) => !i.isSettled)
       .fold<double>(
         0,
-        (double s, InstallmentPlan i) => s + i.installmentAmount,
+        // Capped at what is still owed: a plan with less than one
+        // instalment left does not promise a whole one.
+        (double s, InstallmentPlan i) =>
+            s + minMoney(i.installmentAmount, i.runningBalance).pesos,
       );
 
   /// The most instalments any single active plan still has to run.
