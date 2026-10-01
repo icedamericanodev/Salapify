@@ -605,8 +605,32 @@ class TrackersSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const List<HabitItem> habits = SeedData.habits;
-    const List<SubscriptionItem> subs = SeedData.subscriptions;
+    // P1.3, from the October expert review's guardrails: "Habits and
+    // Subscriptions always show sample Netflix data, even after sample data is
+    // removed."
+    //
+    // They were read as compile-time constants straight off SeedData, so
+    // "Delete the sample data" cleared eleven accounts, a housing loan and a
+    // ledger, and left Netflix and a gym streak sitting there. Somebody who
+    // has just wiped a stranger's money off their phone and still sees a
+    // stranger's Netflix bill has every reason to think the wipe did not work.
+    //
+    // GATED ON hasSampleData, which is the single rule the rest of the app
+    // already uses: it is derived from the isSample flag on real stored
+    // records, so it answers "is the demo ledger present" without this screen
+    // inventing a second convention. It is also right after a restart, since
+    // the restored file carries no sample records.
+    //
+    // These two are NOT given their own isSample flag, deliberately. Neither
+    // model is persisted and neither screen can add, edit or tick one, so
+    // there is no user data here to protect: they are illustrations of a
+    // feature that is not built. The empty state below says so rather than
+    // implying the person has simply not started yet.
+    final bool demo = state.hasSampleData;
+    final List<HabitItem> habits = demo ? SeedData.habits : const <HabitItem>[];
+    final List<SubscriptionItem> subs = demo
+        ? SeedData.subscriptions
+        : const <SubscriptionItem>[];
 
     // COMPUTED, not hardcoded. The prototype prints a fixed 3,288 beside a
     // list that does not add up to it under any reading, and an annual plan
@@ -627,115 +651,131 @@ class TrackersSegment extends StatelessWidget {
           palette: palette,
           title: 'Habits',
           topic: InfoTopic.trackers,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Longest streak $longest days',
-                style: AppType.rowTitle(palette),
-              ),
-              const SizedBox(height: Spacing.sm),
-              for (final HabitItem h in habits)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: <Widget>[
-                      Icon(
-                        h.doneToday
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
-                        size: 16,
-                        color: h.doneToday
-                            ? palette.positive
-                            : palette.textMuted,
-                      ),
-                      const SizedBox(width: Spacing.sm),
-                      Expanded(
-                        child: Text(
-                          h.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppType.body(palette),
+          child: habits.isEmpty
+              ? Text(
+                  // Honest about WHY it is empty. "No habits yet" would imply
+                  // somebody could add one, and they cannot: there is no add
+                  // path anywhere in the app. Saying it is not built costs
+                  // nothing and stops a person hunting for a button.
+                  'Habit tracking is not built yet. It showed a sample streak '
+                  'while the demo money was here.',
+                  style: AppType.caption(palette),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Longest streak $longest days',
+                      style: AppType.rowTitle(palette),
+                    ),
+                    const SizedBox(height: Spacing.sm),
+                    for (final HabitItem h in habits)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: <Widget>[
+                            Icon(
+                              h.doneToday
+                                  ? Icons.check_circle
+                                  : Icons.circle_outlined,
+                              size: 16,
+                              color: h.doneToday
+                                  ? palette.positive
+                                  : palette.textMuted,
+                            ),
+                            const SizedBox(width: Spacing.sm),
+                            Expanded(
+                              child: Text(
+                                h.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.body(palette),
+                              ),
+                            ),
+                            Text(
+                              '${h.streak} ${h.isDaily ? 'days' : 'weeks'}',
+                              style: AppType.caption(palette),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        '${h.streak} ${h.isDaily ? 'days' : 'weeks'}',
-                        style: AppType.caption(palette),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-            ],
-          ),
         ),
         const SizedBox(height: Spacing.md),
         PlanCard(
           palette: palette,
           title: 'Subscriptions',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                '${formatPeso(monthly)} a month',
-                style: AppType.rowTitle(palette),
-              ),
-              Text(
-                'Annual plans counted at a twelfth',
-                style: AppType.caption(palette),
-              ),
-              const SizedBox(height: Spacing.sm),
-              for (final SubscriptionItem s in subs)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+          child: subs.isEmpty
+              ? Text(
+                  'Subscription tracking is not built yet. It showed sample '
+                  'plans while the demo money was here.',
+                  style: AppType.caption(palette),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      '${formatPeso(monthly)} a month',
+                      style: AppType.rowTitle(palette),
+                    ),
+                    Text(
+                      'Annual plans counted at a twelfth',
+                      style: AppType.caption(palette),
+                    ),
+                    const SizedBox(height: Spacing.sm),
+                    for (final SubscriptionItem s in subs)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
                           children: <Widget>[
-                            Text(
-                              s.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppType.body(palette),
-                            ),
-                            if (s.unusedAlert ||
-                                s.duplicateAlert ||
-                                s.state == SubscriptionState.trial)
-                              Text(
-                                s.state == SubscriptionState.trial
-                                    ? 'Trial ends ${s.trialEnds}'
-                                    : s.duplicateAlert
-                                    ? 'Looks like a duplicate'
-                                    : 'Looks unused',
-                                style: AppType.caption(
-                                  palette,
-                                ).copyWith(color: palette.warning),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    s.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppType.body(palette),
+                                  ),
+                                  if (s.unusedAlert ||
+                                      s.duplicateAlert ||
+                                      s.state == SubscriptionState.trial)
+                                    Text(
+                                      s.state == SubscriptionState.trial
+                                          ? 'Trial ends ${s.trialEnds}'
+                                          : s.duplicateAlert
+                                          ? 'Looks like a duplicate'
+                                          : 'Looks unused',
+                                      style: AppType.caption(
+                                        palette,
+                                      ).copyWith(color: palette.warning),
+                                    ),
+                                ],
                               ),
+                            ),
+                            const SizedBox(width: Spacing.sm),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: <Widget>[
+                                Text(
+                                  formatPeso(s.amount),
+                                  style: AppType.amountSmall(palette),
+                                ),
+                                Text(
+                                  s.cycle == BillingCycle.annual
+                                      ? 'a year'
+                                      : 'a month',
+                                  style: AppType.caption(palette),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: Spacing.sm),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: <Widget>[
-                          Text(
-                            formatPeso(s.amount),
-                            style: AppType.amountSmall(palette),
-                          ),
-                          Text(
-                            s.cycle == BillingCycle.annual
-                                ? 'a year'
-                                : 'a month',
-                            style: AppType.caption(palette),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-            ],
-          ),
         ),
       ],
     );

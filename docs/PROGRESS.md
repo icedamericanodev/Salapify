@@ -26,7 +26,7 @@ this branch point, so the review is slightly out of date where it says:
 
 ### Phase 1, in progress
 
-Shipped so far: P1.1, P1.2.
+Shipped so far: P1.1, P1.2, P1.3.
 
 ---
 
@@ -36,7 +36,7 @@ Shipped so far: P1.1, P1.2.
 |---|---|---|---|
 | P1.1 | Wire the Home dead ends | DONE | see below |
 | P1.2 | Duplicate status balance bug (F10) | DONE | see below |
-| P1.3 | Remove always-on sample Netflix data | todo | |
+| P1.3 | Remove always-on sample Netflix data | DONE | see below |
 | P1.4 | Tax sheet mixed income | todo | |
 | P1.5 | Freelancer comparison consistency | todo | |
 | P1.6 | Small BIR fixes | todo | |
@@ -94,6 +94,31 @@ Removing the balance move fails them with the real gap:
 
     Expected: a numeric value within <0.0001> of <14299.0>
       Actual: <12400.0>
+
+### P1.3 notes
+
+Habits and Subscriptions were read as compile-time constants straight off
+`SeedData`, so "Delete the sample data" cleared eleven accounts, a housing loan
+and a whole ledger, and left Netflix and a gym streak sitting there. Somebody
+who has just wiped a stranger's money off their phone and still sees a
+stranger's Netflix bill has every reason to think the wipe did not work, which
+is the worst thing a wipe can do.
+
+Gated on `hasSampleData`, the single rule the rest of the app already uses. It
+is derived from the `isSample` flag on real stored records, so this screen
+invents no second convention, and it is right after a restart because the
+restored file carries no sample records.
+
+Neither model gets its own `isSample` flag, deliberately. Neither is persisted
+and neither screen can add, edit or tick one, so there is no user data here to
+protect: they are illustrations of a feature that is not built. The empty
+states say exactly that, rather than "no habits yet", which would imply an add
+button that does not exist anywhere in the app.
+
+Ignoring the gate fails the screen test with the defect itself:
+
+    Expected: no matching candidates
+      Actual: Found 1 widget with text containing Netflix
 
 ## Phase 2 to 7
 
