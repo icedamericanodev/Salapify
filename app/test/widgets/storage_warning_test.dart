@@ -184,11 +184,18 @@ void main() {
 /// Export must never hand somebody Salapify's demo accounts as their backup.
 ///
 /// When the data file cannot be read, restore() never applies it, so the state
-/// still holds the seed. Exporting then encodes eleven demo accounts under a
-/// row promising "everything on this phone". The person in front of the red
-/// panel is exactly the person who taps Export to rescue their data.
+/// still holds the seed. Exporting a SNAPSHOT would encode eleven demo accounts
+/// under a row promising "everything on this phone". The person in front of the
+/// red panel is exactly the person who taps Export to rescue their data.
+///
+/// This used to assert a REFUSAL, and the refusal was right about the danger
+/// and wrong about the remedy: it left the one state that needs an export with
+/// no route out at all, on a phone where the data file sits in app-private
+/// storage a stock file manager cannot open. So the row now sends the RAW
+/// BYTES, which are the only copy worth having, and this test holds the row to
+/// saying so rather than to going quiet.
 void exportGuardTests() {
-  testWidgets('export is refused while the data file is unreadable', (
+  testWidgets('export sends the RAW FILE while the data file is unreadable', (
     WidgetTester tester,
   ) async {
     final FinancialState state = FinancialState(
@@ -202,12 +209,29 @@ void exportGuardTests() {
     await tester.tap(find.byIcon(Icons.settings_outlined).first);
     await tester.pumpAndSettle();
 
+    // The row names what it will actually send, so nobody keeps a file of
+    // Salapify's samples believing it holds their salary.
     expect(
-      find.textContaining('would hold the sample data and not yours'),
+      find.text('Export the file Salapify cannot read'),
       findsOneWidget,
       reason:
-          'Export is still offered, and it would write eleven demo accounts '
-          'into a file the person keeps as their backup',
+          'the export row went quiet or kept its ordinary title, so the one '
+          'person who needs the raw bytes has no route to them',
+    );
+    expect(
+      find.textContaining('This sends the file exactly as it is'),
+      findsOneWidget,
+    );
+    // And it is reachable. A disabled row with honest copy is still a dead end.
+    final Finder row = find.ancestor(
+      of: find.text('Export the file Salapify cannot read'),
+      matching: find.byType(InkWell),
+    );
+    expect(row, findsWidgets);
+    expect(
+      tester.widget<InkWell>(row.first).onTap,
+      isNotNull,
+      reason: 'the export row was offered and then did nothing when tapped',
     );
   });
 

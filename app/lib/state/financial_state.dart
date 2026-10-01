@@ -865,11 +865,23 @@ class FinancialState extends ChangeNotifier {
     if (i < 0) return;
     final Debt before = _debts[i];
 
-    _debts = applyDebtPayment(_debts, debtId, amount, today: now);
+    // QUANTISED ONCE, HERE, so both halves move by the same figure.
+    //
+    // The debt took the raw typed double while the ledger entry rounded it to
+    // the centavo, so the liability fell by 1500.555 and the account fell by
+    // 1500.56. "Paying a debt cannot change net worth, an asset falls and a
+    // liability falls by the same amount" is one of this app's four stated
+    // invariants, and it was false by half a centavo on every payment typed
+    // with more than two decimals. The amount field accepts them: it is a
+    // decimal keyboard with no formatter.
+    final Money paid = Money.fromDouble(amount);
+    if (!paid.isPositive) return;
+
+    _debts = applyDebtPayment(_debts, debtId, paid.pesos, today: now);
 
     final Transaction? entry = paymentEntry(
       debt: before,
-      amount: amount,
+      amount: paid.pesos,
       accountId: accountId,
       today: now,
       id: 'tx_debt_${DateTime.now().microsecondsSinceEpoch}',
@@ -960,11 +972,14 @@ class FinancialState extends ChangeNotifier {
       note: note,
     );
 
-    // The APPLIED amount, which is capped at the principal still owed. A
-    // prepayment larger than the principal is an early settlement and needs
-    // a quote from the provider, so the ledger must not claim the excess
-    // was credited to the plan.
-    final Money applied = minMoney(amount, before.principalRemaining);
+    // THE SAME POLICY THE ENGINE USES, read rather than re-derived.
+    //
+    // This used to cap at the principal while the engine capped at the
+    // balance, so paying a plan off early credited the plan 6,591.20 and
+    // moved the account by 5,600.00. The plan's EXTRA PAYMENTS row and the
+    // account's own history disagreed by 991.20, with that much real cash
+    // unaccounted for on either side.
+    final Money applied = appliedExtraPayment(before, amount);
 
     final Transaction? entry = extraPaymentEntry(
       plan: before,
@@ -980,6 +995,14 @@ class FinancialState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// The data file exactly as it is on disk, for the one case where Salapify
+  /// cannot read it.
+  ///
+  /// NOT a snapshot. A snapshot in that state is the SEED, so handing somebody
+  /// demo accounts labelled as their backup is how the real file gets thrown
+  /// away. These are the bytes, whatever they are.
+  Future<String?> rawStoredFile() => _store.read();
 
   /// Everything reconciled so far, newest first.
   List<ReconciliationRecord> get reconciliations =>
@@ -1605,10 +1628,37 @@ class FinancialState extends ChangeNotifier {
   /// ledger plus a copy of the old ledger, which is a harmless no-op. There is
   /// no interleaving that produces a new ledger with no way back.
   Future<bool> importSnapshot(Snapshot incoming) async {
-    // Never import over a file we could not read. In that state _apply never
-    // ran, so what we would "preserve" is the SEED, and the person's real
-    // unreadable file is still on disk waiting to be written over.
-    if (!_saveEnabled) return false;
+    // AN UNREADABLE FILE NO LONGER BLOCKS AN IMPORT, and the reason the block
+    // existed is the reason it can be lifted.
+    //
+    // It was right that `snapshot()` in that state is the SEED, so the
+    // ordinary pre-import copy would have preserved eleven demo accounts and
+    // written over the person's real file. But that argument gives the fix
+    // rather than forbidding it: copy the BYTES instead. They are what the
+    // person needs back, and they are exactly what is on disk.
+    //
+    // Refusing was the worse answer. Somebody with an unreadable file and a
+    // good backup in their email had no move at all except to uninstall,
+    // which destroys the very file they might still have rescued.
+    if (!_saveEnabled) {
+      final String? raw = await _store.read();
+      if (raw == null || raw.trim().isEmpty) {
+        // Nothing on disk to preserve means nothing to protect, but it also
+        // means the copy promise cannot be kept, and this method's whole
+        // contract is that the copy lands first. Refuse rather than weaken it.
+        return false;
+      }
+      try {
+        await _store.writePreImport(raw);
+      } on Object {
+        return false;
+      }
+      _apply(incoming);
+      _saveEnabled = true;
+      await _writeNow();
+      notifyListeners();
+      return true;
+    }
 
     // Land any queued write first, so the copy is of what is actually saved
     // rather than of a state one notification behind it.

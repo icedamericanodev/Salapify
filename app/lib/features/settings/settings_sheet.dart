@@ -94,49 +94,68 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
             _Section(palette: p, title: 'Your data'),
             _StorageStatus(palette: p, state: state, problem: problem),
-            // EXPORT IS REFUSED WHEN THE FILE COULD NOT BE READ, and this is
-            // a defect that was live until now rather than a precaution.
+            // EXPORT SENDS THE RAW BYTES WHEN THE FILE COULD NOT BE READ,
+            // and never a snapshot.
             //
             // On an unreadable file, restore() never runs _apply, so the state
-            // still holds SeedData. state.snapshot() then encodes ELEVEN DEMO
+            // still holds SeedData. state.snapshot() would encode ELEVEN DEMO
             // ACCOUNTS under a row promising "everything on this phone". The
             // person standing in front of the red "not being saved" panel is
             // exactly the person who taps Export to rescue their data, and
             // they would receive a file of Salapify's samples and keep it as
             // their backup.
+            //
+            // This row was simply DISABLED here for a while, which was right
+            // about the danger and wrong about the remedy: the one state that
+            // most needs an export then had no route out, on a phone where the
+            // data file sits in app-private storage a stock file manager
+            // cannot open.
             _Row(
               palette: p,
               icon: Icons.ios_share_outlined,
-              title: cannotExport
-                  ? 'Export a backup'
-                  : _busy
+              title: _busy
                   ? 'Preparing your backup...'
+                  : cannotExport
+                  ? 'Export the file Salapify cannot read'
                   : 'Export a backup',
               // Says what it IS, because a person about to hand a file to
               // Google Drive deserves to know it holds their salary.
+              //
+              // IN THE UNREADABLE STATE IT SENDS THE RAW BYTES, not a
+              // snapshot. Disabling it entirely was right about the danger and
+              // wrong about the remedy: it left the one state with no route
+              // out at all, on a phone where the file sits in app-private
+              // storage a file manager cannot reach. The bytes are still the
+              // person's records, and they are plain text.
               subtitle: cannotExport
-                  ? 'Not available. Salapify cannot read your data file, so a '
-                        'backup taken now would hold the sample data and not '
-                        'yours.'
+                  ? 'Salapify cannot make sense of your data file, so it '
+                        'cannot build a normal backup. This sends the file '
+                        'exactly as it is. Keep it. It still holds your '
+                        'records, and it is plain text.'
                   : 'One file holding everything on this phone. Keep it '
                         'somewhere you trust.',
-              onTap: _busy || cannotExport ? null : _export,
+              onTap: _busy ? null : (cannotExport ? _exportRaw : _export),
             ),
             _Row(
               palette: p,
               icon: Icons.settings_backup_restore_outlined,
               title: 'Restore from a backup',
+              // OFFERED EVEN WHEN THE FILE IS UNREADABLE. Refusing it was
+              // the worse answer: somebody with an unreadable file and a good
+              // backup in their email had no move except to uninstall, which
+              // destroys the very file they might still have rescued. The
+              // copy promise stays literally true because the import keeps
+              // the RAW BYTES rather than a snapshot of the seed.
               subtitle: cannotExport
-                  ? 'Not available. Salapify cannot read your data file, so it '
-                        'will not write over it.'
+                  ? 'Replaces what is on this phone with a backup file. '
+                        'Salapify keeps the file it cannot read, so nothing '
+                        'is thrown away. Export it first.'
                   : 'Replaces everything on this phone with a backup file. '
                         'Salapify keeps a copy of what is here now.',
-              onTap: cannotExport
-                  ? null
-                  : () async {
-                      await ImportSheet.show(context, state);
-                      if (mounted) setState(() {});
-                    },
+              onTap: () async {
+                await ImportSheet.show(context, state);
+                if (mounted) setState(() {});
+              },
             ),
             _Row(
               palette: p,
@@ -225,6 +244,47 @@ class _SettingsSheetState extends State<SettingsSheet> {
   /// file holding somebody's salary and the names of people who owe them
   /// money, and it has a consequence: without this, a lost phone loses
   /// everything. The export is what makes that decision honest.
+  /// Shares the data file EXACTLY as it is, for the state where Salapify
+  /// cannot read it.
+  ///
+  /// Deliberately a different filename and a different sentence from a normal
+  /// backup, because it is a different thing: it may not import anywhere, and
+  /// somebody filing it beside their good backups should be able to tell them
+  /// apart six months later.
+  Future<void> _exportRaw() async {
+    setState(() => _busy = true);
+    try {
+      final String? raw = await state.rawStoredFile();
+      if (raw == null || raw.trim().isEmpty) {
+        _say(
+          'There is no data file on this phone to send. Nothing has been '
+          'deleted.',
+        );
+        return;
+      }
+      final String stamp = state.now.toIso8601String().split('T').first;
+      try {
+        final Directory dir = await getTemporaryDirectory();
+        final File file = File('${dir.path}/salapify-unreadable-$stamp.json');
+        await file.writeAsString(raw, flush: true);
+        await Share.shareXFiles(<XFile>[
+          XFile(file.path, mimeType: 'application/json'),
+        ], subject: 'Salapify data file, unreadable, $stamp');
+      } on Object {
+        // Same fallback as the normal export, and for the same reason: a
+        // missing plugin or a refused share must not be the thing that loses
+        // the only copy worth having.
+        await Clipboard.setData(ClipboardData(text: raw));
+        _say(
+          'Could not open the share sheet, so the file is on your clipboard '
+          'instead. Paste it somewhere safe before doing anything else.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _export() async {
     setState(() => _busy = true);
     final String json = state.snapshot().encode(at: state.now);

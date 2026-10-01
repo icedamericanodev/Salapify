@@ -118,6 +118,21 @@ Money nextPaymentFor(InstallmentPlan p) {
   return minMoney(scheduled, p.runningBalance);
 }
 
+/// How much of an offered prepayment a plan can actually take.
+///
+/// ONE NAMED POLICY, because this used to be decided twice and the two
+/// decisions drifted apart. `applyExtraPayment` capped at the running balance
+/// while `FinancialState.payInstallmentExtra` capped at the principal, so
+/// settling a plan early credited the plan 6,591.20 and moved the account by
+/// 5,600.00: the plan's own history row and the account it came out of
+/// disagreed by 991.20, and that much real cash had no record anywhere.
+///
+/// `nextPaymentFor` already had the right shape for the scheduled half. This
+/// is its twin, and both halves of a prepayment must read it rather than
+/// re-derive it.
+Money appliedExtraPayment(InstallmentPlan p, Money amount) =>
+    amount.isPositive ? minMoney(amount, p.runningBalance) : Money.zero;
+
 /// Advances a plan by one scheduled instalment.
 ///
 /// ## Two balances, and which one is derived
@@ -234,7 +249,7 @@ List<InstallmentPlan> applyExtraPayment(
   return plans.map((InstallmentPlan p) {
     if (p.id != id) return p;
 
-    final Money applied = minMoney(amount, p.runningBalance);
+    final Money applied = appliedExtraPayment(p, amount);
     if (!applied.isPositive) return p;
 
     // Principal first, which is the point of prepaying: it is the only part

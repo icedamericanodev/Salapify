@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
+import '../../design/type.dart';
+import '../../data/store.dart' show LoadStatus;
 import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/accounts/move_money_sheet.dart';
@@ -107,6 +109,28 @@ class HomeScreen extends StatelessWidget {
               onOpenSettings: () => SettingsSheet.show(context, state),
               onOpenPrivacy: () => PrivacySheet.show(context, palette),
             ),
+            // THE ONE BANNER ON HOME, and it appears in exactly one state.
+            //
+            // The founder removed the standing banners on 2026-09-19 because
+            // they sat in front of every screen on every visit. This is not
+            // that: it shows only when Salapify could not read the data file,
+            // which means the figures below it are the SAMPLE ledger and
+            // nothing typed now is being saved.
+            //
+            // It is on the screen rather than behind the info dot under that
+            // rule's own exception: anything somebody needs in order to avoid
+            // a WRONG CONCLUSION stays visible, however long. Two wrong
+            // conclusions are available here and both cost money. Believing
+            // eleven demo accounts are yours is the first. Entering a week of
+            // real spending into a ledger that will not be saved is the
+            // second, and it is the one that wastes somebody's effort.
+            if (state.loadStatus == LoadStatus.unreadable) ...<Widget>[
+              const SizedBox(height: Spacing.md),
+              _CannotReadBanner(
+                palette: palette,
+                onOpenSettings: () => SettingsSheet.show(context, state),
+              ),
+            ],
             const SizedBox(height: Spacing.md),
             HeroPanel(
               state: state,
@@ -325,5 +349,94 @@ class HomeScreen extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+}
+
+/// Shown on Home ONLY when the data file could not be read.
+///
+/// Deliberately plain and deliberately not dismissible. A person in this state
+/// is looking at somebody else's money and does not know it, and anything they
+/// type is going nowhere. A banner they can wave away is a banner they will
+/// wave away on the one occasion it mattered.
+class _CannotReadBanner extends StatelessWidget {
+  const _CannotReadBanner({
+    required this.palette,
+    required this.onOpenSettings,
+  });
+
+  final Palette palette;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Spacing.lg),
+        // FILLED, not merely outlined, and the reason is measurable rather
+        // than aesthetic: in the dark palette `negative` and `accent` are the
+        // SAME colour (0xFFFF9A52), so an orange border on the ordinary
+        // surface is indistinguishable from every other orange element on
+        // Home. The one banner that has to be noticed would have read as
+        // decoration. negativeSoft gives it its own block without changing a
+        // colour token, which would move every negative figure in the app.
+        decoration: BoxDecoration(
+          color: palette.negativeSoft,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(color: palette.negative),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(Icons.error_outline, size: 18, color: palette.negative),
+                const SizedBox(width: Spacing.xs),
+                Expanded(
+                  child: Text(
+                    'These figures are not yours',
+                    style: AppType.rowTitle(
+                      palette,
+                    ).copyWith(color: palette.negative),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Spacing.xs),
+            Text(
+              'Salapify could not read your data file, so it is showing its '
+              'own example figures. Nothing you type now is being saved, and '
+              'nothing of yours has been deleted or written over.',
+              style: AppType.caption(palette),
+            ),
+            const SizedBox(height: Spacing.sm),
+            // A real control rather than a sentence telling somebody to go
+            // and find one. The route out of this state lives in Settings.
+            InkWell(
+              onTap: onOpenSettings,
+              borderRadius: BorderRadius.circular(Radii.pill),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                  border: Border.all(color: palette.negative),
+                ),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    'What I can do about it',
+                    style: AppType.rowTitle(
+                      palette,
+                    ).copyWith(color: palette.negative),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
