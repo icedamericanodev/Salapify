@@ -82,7 +82,8 @@ void main() {
         name: 'UnionBank Platinum',
         kind: AccountKind.credit,
         institution: 'UnionBank',
-        balance: -18450.75,
+        // Positive: a credit balance is money OWED in this app.
+        balance: 18450.75,
         monogram: 'UB',
         currency: CurrencyCode.usd,
         profile: ProfileEntity.sideHustle,
