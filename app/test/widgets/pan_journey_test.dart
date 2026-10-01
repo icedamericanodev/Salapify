@@ -294,8 +294,12 @@ void main() {
         findsOneWidget,
         reason: 'the chip did not open Pan at all',
       );
+      // This used to look for "out of 100", which was Pan's own second
+      // health engine. F9 retired it, and the replacement is a better check
+      // anyway: the figure row only renders on an ANSWERED health question,
+      // where a score could also come back as a zero on an empty chat.
       expect(
-        find.textContaining('out of 100'),
+        find.text('Questions answered'),
         findsWidgets,
         reason: 'Pan opened without the question being asked',
       );

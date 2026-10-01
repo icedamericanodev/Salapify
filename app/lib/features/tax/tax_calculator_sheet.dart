@@ -39,6 +39,12 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
   final TextEditingController _months = TextEditingController(text: '12');
 
   final TextEditingController _gross = TextEditingController(text: '1200000');
+
+  /// Salary earned ALONGSIDE the freelancing, which makes somebody a mixed
+  /// income taxpayer. Zero by default, so a pure freelancer is unaffected.
+  final TextEditingController _salaryBesideFreelance = TextEditingController();
+
+  bool _vatRegistered = false;
   FreelanceTaxOption _option = FreelanceTaxOption.eightPercentGit;
 
   @override
@@ -345,12 +351,33 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
 
   Widget _freelance(Palette p) {
     final double gross = _num(_gross);
+    // P1.4, money copy error 1 in the October expert review:
+    // calculateFreelanceTax was called with NEITHER compensationIncome nor
+    // vatRegistered, so every person using this screen was treated as a pure
+    // freelancer who had never registered for VAT.
+    //
+    // The engine has always handled both. It was the sheet that never asked,
+    // and the two defaults it fell back to are the two expensive ones to be
+    // wrong about:
+    //
+    //   compensationIncome 0  gives the 250,000 zero-rated allowance on the
+    //   8% route to somebody with a salary, who is not entitled to it. On a
+    //   250,000 sideline that understates the tax by 20,000 a year, and the
+    //   8% election cannot be undone for twelve months.
+    //
+    //   vatRegistered false   offers the 8% option to somebody who may not
+    //   elect it at all, at any income.
+    final double sideSalary = _num(_salaryBesideFreelance);
     final FreelanceTaxCalculation git = calculateFreelanceTax(
       annualGrossIncome: gross,
+      compensationIncome: sideSalary,
+      vatRegistered: _vatRegistered,
     );
     final FreelanceTaxCalculation graduated = calculateFreelanceTax(
       annualGrossIncome: gross,
       taxOption: FreelanceTaxOption.graduatedRates,
+      compensationIncome: sideSalary,
+      vatRegistered: _vatRegistered,
     );
     final FreelanceTaxCalculation chosen =
         _option == FreelanceTaxOption.eightPercentGit ? git : graduated;
@@ -370,6 +397,37 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           controller: _gross,
           prefix: '₱ ',
           onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.md),
+        // MIXED INCOME. Left at zero this changes nothing, so a pure
+        // freelancer sees the same figures as before; filled in, it removes
+        // the 250,000 allowance from the 8% route and stacks one combined
+        // base through the graduated table.
+        SheetField(
+          palette: p,
+          label: 'Salary from a job, if you also have one',
+          controller: _salaryBesideFreelance,
+          prefix: '₱ ',
+          hint: '0',
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.sm),
+        Text(
+          sideSalary > 0
+              ? 'Mixed income. The 250,000 tax free allowance on the 8% '
+                    'option does not apply to you.'
+              : 'Leave this at zero if freelancing is your only income.',
+          style: AppType.caption(p),
+        ),
+        const SizedBox(height: Spacing.md),
+        _Toggle(
+          palette: p,
+          label: 'I am registered for VAT',
+          caption:
+              'The 8% option is closed to VAT registered taxpayers at '
+              'any income.',
+          value: _vatRegistered,
+          onChanged: (bool v) => setState(() => _vatRegistered = v),
         ),
         const SizedBox(height: Spacing.md),
         SegmentedChoice<FreelanceTaxOption>(
@@ -420,20 +478,51 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
         ),
         const SizedBox(height: Spacing.lg),
+        // P1.5, money copy error 2: this card contradicted itself three ways,
+        // and the verdict above it was comparing different figures again.
+        //
+        //   "8% of gross above 250,000" is wrong for a mixed income taxpayer,
+        //   who gets no allowance at all. P1.4 made that case reachable, so
+        //   the label had to follow or it would be confidently wrong on the
+        //   exact screen that just started asking the question.
+        //
+        //   "Graduated brackets on the full gross" is wrong for everybody:
+        //   the engine applies the 40% Optional Standard Deduction first, so
+        //   the brackets see 60% of gross plus any salary.
+        //
+        //   The rows showed estimatedTaxDue, income tax alone, while the
+        //   verdict compares totalTaxDue, which also carries the 3%
+        //   percentage tax the graduated route owes and the 8% route
+        //   substitutes for. So the card named one winner and showed the
+        //   figures of a different comparison.
+        //
+        // Both rows now show totalTaxDue, the same figure the verdict reads,
+        // and both labels say what they actually did.
         _card(p, 'Side by side', <Widget>[
           BreakdownRow(
             palette: p,
-            label: '8% of gross above ₱250,000',
-            value: formatPeso(git.estimatedTaxDue),
+            label: sideSalary > 0
+                ? '8% of gross, no allowance on mixed income'
+                : '8% of gross above ₱250,000',
+            value: formatPeso(git.totalTaxDue),
             valueColor: gitWins ? p.positive : null,
             emphasis: gitWins,
           ),
           BreakdownRow(
             palette: p,
-            label: 'Graduated brackets on the full gross',
-            value: formatPeso(graduated.estimatedTaxDue),
+            label: 'Graduated after the 40% deduction, plus 3%',
+            value: formatPeso(graduated.totalTaxDue),
             valueColor: gitWins ? null : p.positive,
             emphasis: !gitWins,
+          ),
+          const SizedBox(height: Spacing.sm),
+          Text(
+            // Said once, under both rows, rather than left for somebody to
+            // work out from two numbers that do not obviously add up to the
+            // detail card below.
+            'Both figures are everything owed for the year. The graduated '
+            'one includes the 3% percentage tax; electing 8% replaces it.',
+            style: AppType.caption(p),
           ),
         ]),
         const SizedBox(height: Spacing.md),
@@ -461,11 +550,27 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
           BreakdownRow(
             palette: p,
-            label: 'Tax due for the year',
+            // "Income tax", not "Tax due for the year". A percentage tax row
+            // sits above this one, so a line calling itself the year's tax
+            // while excluding the other tax on the same screen is the
+            // card contradicting itself the way the side by side did. The
+            // total follows, so the column now adds up.
+            label: 'Income tax for the year',
             value: formatPeso(chosen.estimatedTaxDue),
             valueColor: p.negative,
-            emphasis: true,
+            emphasis: chosen.percentageTax <= 0,
           ),
+          // Only where there are two taxes to add. On the 8% route the income
+          // tax IS the total, and a "total" row repeating the figure above it
+          // teaches somebody to stop reading the column.
+          if (chosen.percentageTax > 0)
+            BreakdownRow(
+              palette: p,
+              label: 'Everything owed for the year',
+              value: formatPeso(chosen.totalTaxDue),
+              valueColor: p.negative,
+              emphasis: true,
+            ),
           BreakdownRow(
             palette: p,
             label: 'Effective rate',
@@ -537,6 +642,59 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           const SizedBox(width: Spacing.sm),
           Expanded(child: Text(text, style: AppType.caption(p))),
         ],
+      ),
+    );
+  }
+}
+
+/// A yes or no that changes a tax figure, with the reason beside it.
+///
+/// The caption is not decoration. "I am registered for VAT" closes the 8%
+/// option entirely, and somebody who ticks it and watches their cheaper
+/// option vanish deserves to be told why on the same screen rather than
+/// wondering whether the app broke.
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.palette,
+    required this.label,
+    required this.caption,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final Palette palette;
+  final String label;
+  final String caption;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      toggled: value,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(label, style: AppType.rowTitle(palette)),
+                    const SizedBox(height: 2),
+                    Text(caption, style: AppType.caption(palette)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
       ),
     );
   }

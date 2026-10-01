@@ -6,12 +6,12 @@ import 'pan_knowledge.dart';
 import '../../../models/academy.dart';
 import '../../../models/models.dart';
 import '../format.dart';
+import '../health_check.dart';
 import 'pan_affordability.dart';
 import 'pan_amounts.dart';
 import 'pan_bans.dart';
 import 'pan_context.dart';
 import 'pan_explainers.dart';
-import 'pan_health.dart';
 import 'pan_matchers.dart';
 
 /// Pan, the money assistant, ported in intent from `src/utils/panAiEngine.ts`
@@ -184,6 +184,7 @@ class PanAction {
 const List<String> panActionIds = <String>[
   'log',
   'safeToSpend',
+  'healthCheck',
   'reports',
   'accounts',
   'debts',
@@ -1473,54 +1474,95 @@ PanAnswer _afford(double amount, PanFacts facts) {
   );
 }
 
-/// The whole picture, scored over what could actually be measured.
+/// The whole picture, from THE health check.
+///
+/// Founder decision F9: Salapify has ONE health check, the five-question
+/// engine in `core/money/health_check.dart`. Pan used to carry a second one,
+/// `pan_health.dart`, which scored four weighted parts out of a hundred.
+/// Both were defensible, and they answered the same question differently, so
+/// somebody who opened the Health Check sheet and then asked Pan the same
+/// thing got two readings of their own money. That is the defect F8 fixed for
+/// the debt share, arriving through a different door.
+///
+/// THE SCORE WENT, not the sheet, and that is the right way round. A zero to
+/// one hundred is a single number standing in for five separate questions,
+/// and it hides the one that matters: an 85 sat directly above "you owe more
+/// than you hold" on a real ledger for a whole release. Each question keeps
+/// its own answer now, and the tightest one leads.
 PanAnswer _health(PanFacts facts) {
-  final HealthCheck h = runHealthCheck(facts);
+  final HealthReport r = runHealthCheck(
+    transactions: facts.transactions,
+    accounts: facts.accounts,
+    budgets: facts.budgets,
+    goals: facts.goals,
+    bills: facts.bills,
+    installments: facts.installments,
+    payday: facts.payday,
+    now: facts.now,
+  );
 
-  if (!h.measurable) {
-    return _nothingYet('how you are doing');
-  }
+  if (r.nothingYet) return _nothingYet('how you are doing');
 
-  // LEAD, then one line per part. This was five paragraphs, and it is the
-  // answer the founder was reading when they said Pan is too wordy next to
-  // the prototype. The marks are already in the figure rows below, so the
-  // lines carry the READING rather than repeating the score.
-  final String lead =
-      '${h.score} out of 100, on ${h.parts.length} '
-      '${h.parts.length == 1 ? 'part' : 'parts'} of your money Salapify can '
-      'see. ${h.reading}.';
+  // THE TIGHTEST ANSWER LEADS, by the sheet's own rule. It is the first in
+  // priority order at the worst tone rather than merely the worst, so two
+  // tight answers lead with the one happening soonest.
+  final HealthIndicator? attention = r.needsAttention;
+
+  final String lead = attention == null
+      ? 'Nothing tight on the ${r.measured.length} of ${r.indicators.length} '
+            'questions Salapify can answer from what you have recorded.'
+      : '${attention.question}? ${attention.reading}.';
 
   final List<String> lines = <String>[
-    for (final HealthPart p in h.parts)
-      '${p.name}: ${p.reading}.${p.note == null ? '' : ' ${p.note}'}',
+    for (final HealthIndicator i in r.measured)
+      if (i.id != attention?.id) '${i.question}: ${i.reading}.',
   ];
 
-  // WHAT WAS NOT MEASURED IS SHOWN, never quietly dropped, and it stays in
-  // the visible half rather than behind the tap. A score over three parts
-  // that reads like a score over four is the prototype's habit of filling a
-  // gap with an invented number, arriving by a different door.
-  if (h.unmeasured.isNotEmpty) {
-    final String missing = h.unmeasured
-        .map((({String name, String missing}) u) => u.name.toLowerCase())
-        .join(', ');
-    lines.add('Not counted yet: $missing. Nothing recorded to count.');
+  // WHAT IS NOT ANSWERED IS SHOWN, never quietly dropped. A reply over two
+  // questions that reads like a reply over five is the prototype's habit of
+  // filling a gap with an invented number, arriving by a different door.
+  if (r.unmeasured.isNotEmpty) {
+    final String open = r.unmeasured
+        .map((HealthIndicator i) => i.question.toLowerCase())
+        .join('; ');
+    lines.add('Not answered yet: $open.');
   }
+
+  // The detail behind each reading, what each missing answer needs, and the
+  // one fact the five questions do not carry, all go one tap away. That is
+  // the founder's rule about the screens arriving in the chat.
+  final List<String> deeper = <String>[
+    for (final HealthIndicator i in r.measured)
+      if (i.detail case final String d) '${i.question}: $d',
+    for (final HealthIndicator i in r.unmeasured)
+      if (i.missing case final String m) m,
+    if (facts.owedToMe > 0)
+      'Separately, ${formatPeso(facts.owedToMe)} is owed to you. It is yours '
+          'and it is not in the figures above, because it is not on this '
+          'phone yet.',
+  ];
 
   return PanAnswer(
     topic: 'health',
-    badge: h.reading,
+    badge: switch (attention?.tone) {
+      HealthTone.tight => 'Needs attention',
+      HealthTone.watch => 'One to watch',
+      _ => 'Nothing tight',
+    },
     text: lead,
     points: lines,
-    // The observations TEACH, so they go one tap away. That is the founder's
-    // own rule about the screens, arriving in the chat.
-    more: h.observations.isEmpty ? null : h.observations.join('\n\n'),
+    more: deeper.isEmpty ? null : deeper.join('\n\n'),
     figures: <PanFigure>[
-      PanFigure(label: 'Out of 100', value: '${h.score}'),
-      for (final HealthPart p in h.parts)
-        PanFigure(label: p.name, value: '${p.points}/${p.outOf}'),
+      // The honest replacement for "Out of 100". It does not compress five
+      // answers into one, it says how much of the picture there is, which is
+      // the only thing a single number here can truthfully report.
+      PanFigure(
+        label: 'Questions answered',
+        value: '${r.measured.length} of ${r.indicators.length}',
+      ),
     ],
     actions: const <PanAction>[
-      PanAction(label: 'See Reports', id: 'reports'),
+      PanAction(label: 'Open the Health Check', id: 'healthCheck'),
       PanAction(label: 'Inspect Safe to Spend', id: 'safeToSpend'),
     ],
     followUps: const <String>[

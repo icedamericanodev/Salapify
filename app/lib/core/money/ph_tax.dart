@@ -88,22 +88,52 @@ class EmployeeTaxCalculation {
 
 /// BIR TRAIN law graduated MONTHLY withholding, 2023 onwards.
 ///
-/// The bracket edges are the prototype's own decimals (20833.33 and friends),
-/// not the exact twelfths of the annual table. Rounding them to something
-/// tidier moves real pesos at the boundary, so they are copied verbatim.
+/// THE PUBLISHED TABLE, not the prototype's arithmetic. This is the third
+/// place where a tax figure is corrected against current law rather than
+/// against the prototype, after the SSS schedule and the 8% election, and
+/// like those it is flagged because being wrong costs somebody real money.
+///
+/// Source: BIR Annex E of RR 11-2018, effective 1 January 2023 and still in
+/// force. Its brackets are:
+///
+///     up to 20,833            nil
+///     20,833 to 33,332        15% of the excess over 20,833
+///     33,333 to 66,666        1,875.00 + 20% of the excess over 33,333
+///     66,667 to 166,666       8,541.80 + 25% of the excess over 66,667
+///     166,667 to 666,666     33,541.80 + 30% of the excess over 166,667
+///     666,667 and over      183,541.80 + 35% of the excess over 666,667
+///
+/// ## Why the constants and the edges had to move together
+///
+/// The October expert review reported the three constants as typos: 8,541.67
+/// where the table says 8,541.80, and the same for the other two. They are
+/// not typos, and changing only them would have made this function WRONG.
+///
+/// The old figures were internally consistent with the old edges. Carrying
+/// 33,333.33 and 66,666.67 forward gives
+/// `1,875 + (66,666.67 - 33,333.33) x 0.20 = 8,541.67` exactly. The published
+/// table's 8,541.80 is what its own INTEGER edges give:
+/// `1,875 + (66,667 - 33,333) x 0.20 = 8,541.80`. Each pair is coherent and
+/// mixing them is not: a .80 constant on a .67 edge double counts a third of
+/// a bracket at the boundary.
+///
+/// So both moved, and the whole function now matches one published source
+/// rather than two conventions averaged together. The practical effect is a
+/// few centavos a month, which is not the point: the point is that the figure
+/// Salapify shows can be checked against the table a payroll officer holds.
 double monthlyWithholdingTax(double taxableIncome) {
-  if (taxableIncome <= 20833.33) return 0;
-  if (taxableIncome <= 33333.33) return (taxableIncome - 20833.33) * 0.15;
-  if (taxableIncome <= 66666.67) {
-    return 1875.00 + (taxableIncome - 33333.33) * 0.20;
+  if (taxableIncome <= 20833) return 0;
+  if (taxableIncome <= 33332) return (taxableIncome - 20833) * 0.15;
+  if (taxableIncome <= 66666) {
+    return 1875.00 + (taxableIncome - 33333) * 0.20;
   }
-  if (taxableIncome <= 166666.67) {
-    return 8541.67 + (taxableIncome - 66666.67) * 0.25;
+  if (taxableIncome <= 166666) {
+    return 8541.80 + (taxableIncome - 66667) * 0.25;
   }
-  if (taxableIncome <= 666666.67) {
-    return 33541.67 + (taxableIncome - 166666.67) * 0.30;
+  if (taxableIncome <= 666666) {
+    return 33541.80 + (taxableIncome - 166667) * 0.30;
   }
-  return 183541.67 + (taxableIncome - 666666.67) * 0.35;
+  return 183541.80 + (taxableIncome - 666667) * 0.35;
 }
 
 EmployeeTaxCalculation calculateEmployeeTaxDeductions({

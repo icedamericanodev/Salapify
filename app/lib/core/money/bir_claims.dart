@@ -36,7 +36,7 @@ import '../../models/models.dart';
 ///     gross sales whatever the receipts say. Again the shield is not
 ///     computed from this total.
 ///  3. EVEN ON GRADUATED AND ITEMISED, 25 percent is one bracket of six. The
-///     graduated table runs 0, 15, 20, 25, 30 and 32 percent, so the saving
+///     graduated table runs 0, 15, 20, 25, 30 and 35 percent, so the saving
 ///     depends on the income the deduction comes off. Somebody under the
 ///     250,000 exemption saves nothing at all, and quoting them a quarter of
 ///     their receipts is telling them money is coming that is not.

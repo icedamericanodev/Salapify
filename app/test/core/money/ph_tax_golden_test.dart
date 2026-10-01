@@ -97,7 +97,7 @@ void main() {
       expect(low.sss, 1250);
       expect(low.totalContributions, 2075);
       expect(low.taxableIncome, 22925);
-      expect(low.withholdingTax, closeTo(313.7505, 1e-6));
+      expect(low.withholdingTax, closeTo(313.8, 1e-6));
       expect(low.netTakeHome, 22611);
 
       final EmployeeTaxCalculation high = calculateEmployeeTaxDeductions(
@@ -106,7 +106,7 @@ void main() {
       expect(high.sss, 1750, reason: 'the MSC should cap at 35,000');
       expect(high.totalContributions, 2950);
       expect(high.taxableIncome, 37050);
-      expect(high.withholdingTax, closeTo(2618.334, 1e-6));
+      expect(high.withholdingTax, closeTo(2618.4, 1e-6));
       expect(high.netTakeHome, 34432);
     });
   });
@@ -135,16 +135,22 @@ void main() {
     // tax falls and the net falls with it, because the contribution rose by
     // more than the tax fell. That is the correct direction and it will look
     // like a regression to anybody who does not know why.
-    check('15 percent band, 30,000', 30000, 27550, 1007.5004999999996, 26542);
-    check('20 percent band, 65,000', 65000, 61425, 7493.334, 53932);
+    check('15 percent band, 30,000', 30000, 27550, 1007.55, 26542);
+    check('20 percent band, 65,000', 65000, 61425, 7493.400000000001, 53932);
     check(
       '25 percent band, 200,000',
       200000,
       195550,
-      42206.668999999994,
+      42206.700000000004,
       153343,
     );
-    check('35 percent band, 700,000', 700000, 695550, 193650.8355, 501899);
+    check(
+      '35 percent band, 700,000',
+      700000,
+      695550,
+      193650.84999999998,
+      501899,
+    );
 
     test('below the 20,833.33 threshold nothing is withheld', () {
       final EmployeeTaxCalculation r = calculateEmployeeTaxDeductions(
@@ -176,7 +182,7 @@ void main() {
         expect(fortnight.philhealth, 813);
         expect(semi.taxableIncome, closeTo(29862, eps));
         expect(fortnight.taxableIncome, closeTo(29862, eps));
-        expect(semi.withholdingTax, closeTo(1354.3004999999996, eps));
+        expect(semi.withholdingTax, closeTo(1354.35, eps));
         expect(semi.netTakeHome, 28508);
         expect(semi.semiMonthlyTakeHome, 14254);
       },
@@ -208,7 +214,7 @@ void main() {
       );
       expect(r.monthlySalary, 45000);
       expect(r.taxableIncome, closeTo(51425, eps));
-      expect(r.withholdingTax, closeTo(5493.334, eps));
+      expect(r.withholdingTax, closeTo(5493.4, eps));
       expect(r.netTakeHome, 47932);
 
       // Contributions read the BASE salary only, never the extras.

@@ -33,14 +33,26 @@ import 'reminders_banner.dart';
 ///
 /// The card order is App.tsx's, not a preference: hero, budget pulse, quick
 /// actions, reminders, debts, coming up, latest. An earlier pass reordered it
+/// The tab indices Home points at.
+///
+/// Plain ints rather than the shell's `SalapifyTab` enum, which is the
+/// separation the `onOpenTab` comment below already describes: Home does not
+/// import the shell that builds it. Naming them here keeps the call sites
+/// readable without a bare 1 and 3 in the middle of a widget tree.
+///
+/// `main_wiring_test.dart` reads the shell and asserts these still match the
+/// enum, so the two cannot drift apart silently.
+const int kActivityTab = 1;
+const int kPlanTab = 3;
+
 /// by guesswork and the founder spotted it against the real screens.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
     required this.state,
-    this.onOpenLog,
-    this.onOpenDebt,
-    this.onOpenTab,
+    required this.onOpenLog,
+    required this.onOpenDebt,
+    required this.onOpenTab,
   });
 
   final FinancialState state;
@@ -50,17 +62,23 @@ class HomeScreen extends StatelessWidget {
   /// An int rather than the enum, so Home does not have to import the shell
   /// that builds it. The shell owns which tab is showing; Home only knows
   /// that an answer pointed at Reports.
-  final ValueChanged<int>? onOpenTab;
+  final ValueChanged<int> onOpenTab;
 
   /// Opening the debt register belongs to the shell too: it is a whole screen
   /// pushed over the tabs rather than a sheet, so the thing that owns the
   /// navigator has to own the push.
-  final VoidCallback? onOpenDebt;
+  final VoidCallback onOpenDebt;
 
   /// Opening the Log sheet belongs to the shell, not to Home: the shell owns
   /// the store write AND the tab switch that lands somebody on the entry they
   /// just made. Home only needs to say the button was pressed.
-  final VoidCallback? onOpenLog;
+  ///
+  /// REQUIRED, as of P1.1. All three of these used to be optional with a
+  /// "not migrated yet" snack bar behind them, which meant forgetting one
+  /// produced an apology at runtime instead of an error at compile time. The
+  /// shell has always passed all three; the fallbacks only ever fired in a
+  /// harness that forgot, and then said the feature did not exist.
+  final VoidCallback onOpenLog;
 
   @override
   Widget build(BuildContext context) {
@@ -109,13 +127,14 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: Spacing.md),
             BudgetPulseCard(
               state: state,
-              onSeeAll: () => _soon(context, palette, 'The Plan tab'),
+              // P1.1: was a "not migrated yet" snack bar. Budget Pulse summarises
+              // the Plan tab's budgets, so its See all opens that tab.
+              onSeeAll: () => onOpenTab(kPlanTab),
             ),
             const SizedBox(height: Spacing.lg),
             QuickActions(
               palette: palette,
-              onLog:
-                  onOpenLog ?? () => _soon(context, palette, 'The Log sheet'),
+              onLog: onOpenLog,
               onDebt: () => _addDebt(context, palette),
               onBills: () => _bills(context, palette),
               onMove: () => _moveMoney(context, palette),
@@ -152,12 +171,16 @@ class HomeScreen extends StatelessWidget {
               onInfo: () =>
                   InfoSheet.show(context, palette, InfoTopic.comingUp),
               onAddItem: () =>
-                  _soon(context, palette, 'Adding an upcoming item'),
+                  // P1.1: scheduling an item is what the Bills sheet now does, so this
+                  // opens it rather than apologising.
+                  _bills(context, palette),
             ),
             const SizedBox(height: Spacing.lg),
             LatestTransactions(
               state: state,
-              onSeeAll: () => _soon(context, palette, 'The Activity tab'),
+              // P1.1: Latest is the first few ledger rows, so its See all opens
+              // the screen that holds all of them.
+              onSeeAll: () => onOpenTab(kActivityTab),
             ),
           ],
         ),
@@ -189,22 +212,32 @@ class HomeScreen extends StatelessWidget {
   void _panAction(BuildContext context, Palette palette, String id) {
     switch (id) {
       case 'log':
-        onOpenLog?.call();
+        onOpenLog();
       case 'safeToSpend':
         SafeToSpendSheet.show(context, state);
+      // Pan answers "how am I doing" FROM the Health Check engine now
+      // (founder decision F9), so the button beside that answer opens the
+      // screen those figures came from rather than a second reading of them.
+      case 'healthCheck':
+        HealthCheckSheet.show(
+          context,
+          palette,
+          state,
+          onAct: (HealthNeed need) => _healthAction(context, need),
+        );
       case 'debts':
-        onOpenDebt?.call();
+        onOpenDebt();
       case 'privacy':
         PrivacySheet.show(context, palette);
       case 'reminders':
         RemindersSheet.show(context, state);
       case 'reports':
-        onOpenTab?.call(2);
+        onOpenTab(2);
       case 'accounts':
-        onOpenTab?.call(4);
+        onOpenTab(4);
       case 'bills':
       case 'academy':
-        onOpenTab?.call(3);
+        onOpenTab(3);
     }
   }
 
@@ -223,7 +256,7 @@ class HomeScreen extends StatelessWidget {
     Navigator.of(context).pop();
     switch (need) {
       case HealthNeed.logSpending:
-        onOpenLog?.call();
+        onOpenLog();
       case HealthNeed.setPayday:
         // Its own sheet now. This case used to fall through to Plan with a
         // comment claiming "the payday lives in its Budgets segment", and it
@@ -238,7 +271,7 @@ class HomeScreen extends StatelessWidget {
         // Plan owns these three: budgets live in its Budgets segment, bills
         // in Bills, and a goal in Goals. One destination beats three
         // half-wired ones, and the hub is one tap from each.
-        onOpenTab?.call(3);
+        onOpenTab(3);
     }
   }
 
@@ -289,25 +322,6 @@ class HomeScreen extends StatelessWidget {
           ),
           backgroundColor: palette.accent,
           duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
-  /// Every control on this screen is real and reachable. The destinations
-  /// behind most of them are later migration steps, so a tap says so rather
-  /// than doing nothing: a dead button is indistinguishable from a bug.
-  void _soon(BuildContext context, Palette palette, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            '$what is not migrated yet.',
-            style: TextStyle(color: palette.onAccent),
-          ),
-          backgroundColor: palette.accent,
-          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
