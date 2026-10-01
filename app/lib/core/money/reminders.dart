@@ -412,7 +412,7 @@ ReminderResult evaluateReminders({
     // was fully built, covered by a passing test, and silent on every card a
     // person could actually record.
     for (final Account a in accounts) {
-      if (a.kind != AccountKind.credit || a.balance <= 0) continue;
+      if (a.kind != AccountKind.credit || a.balance <= Money.pesos(0)) continue;
       final int? days = daysUntil(a.dueDate, now);
       if (days == null || days > settings.paymentDueDaysBefore) continue;
 
@@ -432,7 +432,7 @@ ReminderResult evaluateReminders({
         // the minimum is paying on time and still being charged interest on
         // everything left, which is the single most expensive
         // misunderstanding a card holder can have.
-        '${formatPeso(a.balance)} on ${a.name} '
+        '${formatPeso(a.balance.pesos)} on ${a.name} '
             '${_whenPhrase(days, a.dueDate ?? '')}. Paying the full amount by '
             'the due date is what keeps the interest off it.',
         daysAway: days,

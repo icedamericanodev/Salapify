@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -1384,7 +1385,7 @@ void main() {
         name: 'Singapore payroll',
         kind: AccountKind.bank,
         institution: 'Other',
-        balance: 2000,
+        balance: Money.pesos(2000),
         monogram: 'SG',
         currency: CurrencyCode.sgd,
         profile: ProfileEntity.personal,
@@ -2007,7 +2008,7 @@ void _cardFaceShots() {
     name: 'BPI Rewards Card',
     kind: AccountKind.credit,
     institution: 'BPI',
-    balance: 12480.5,
+    balance: Money.of(12480, 50),
     monogram: 'BP',
     accountNumber: '**** 8819',
     creditLimit: 40000,
@@ -2023,7 +2024,7 @@ void _cardFaceShots() {
     name: 'Metrobank Gold',
     kind: AccountKind.credit,
     institution: 'Metrobank',
-    balance: 6200,
+    balance: Money.pesos(6200),
     monogram: 'MB',
     accountNumber: '4127 8890 2211 4402',
     creditLimit: 150000,
@@ -2040,7 +2041,7 @@ void _cardFaceShots() {
     name: 'GoTyme Debit',
     kind: AccountKind.debit,
     institution: 'GoTyme',
-    balance: 3150,
+    balance: Money.pesos(3150),
     monogram: 'GT',
   );
 

@@ -212,7 +212,7 @@ void main() {
       final FinancialState state = storeOf(tester);
       final double netBefore = state.accounts.fold<double>(
         0,
-        (double s, a) => s + a.balance,
+        (double s, a) => s + a.balance.pesos,
       );
 
       // The goal CARD is not tappable, only its button is. Tapping the card
@@ -241,7 +241,7 @@ void main() {
       // A goal is INTENT, not a pot. It must not move an account balance, or
       // every contribution double counts against the transfer that funded it.
       expect(
-        state.accounts.fold<double>(0, (double s, a) => s + a.balance),
+        state.accounts.fold<double>(0, (double s, a) => s + a.balance.pesos),
         netBefore,
         reason: 'a goal contribution moved real money',
       );

@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/json_codec.dart';
 import 'package:salapify/data/snapshot.dart';
@@ -32,7 +33,7 @@ void main() {
           'one unreadable message rejected the whole document, which turns '
           'saving off and shows the red panel over a notification',
     );
-    expect(s.accounts.first.balance, 23400);
+    expect(s.accounts.first.balance, const Money.pesos(23400));
     expect(s.notifications, isEmpty);
   });
 

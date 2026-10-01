@@ -58,7 +58,7 @@ void main() {
         name: 'Cash on Hand',
         kind: AccountKind.cash,
         institution: 'Cash',
-        balance: 1850,
+        balance: Money.pesos(1850),
         monogram: 'C',
       );
 

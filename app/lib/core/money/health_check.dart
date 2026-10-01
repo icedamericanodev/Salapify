@@ -214,7 +214,7 @@ class _Measures {
   /// Money that can actually be spent. A credit limit is not money you have.
   late final double liquid = accounts
       .where((Account a) => a.isLiquid)
-      .fold<double>(0, (double s, Account a) => s + a.balanceInPhp);
+      .fold<double>(0, (double s, Account a) => s + a.balanceInPhp.pesos);
 
   late final List<Transaction> _counted = transactions
       .where((Transaction t) => t.countsTowardTotals)

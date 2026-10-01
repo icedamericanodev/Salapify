@@ -20,7 +20,7 @@ void main() {
     name: 'GCash Wallet',
     kind: AccountKind.gcash,
     institution: 'GCash',
-    balance: balance,
+    balance: Money.fromDouble(balance),
     monogram: 'GC',
     profile: ProfileEntity.personal,
   );
@@ -159,7 +159,7 @@ void main() {
           name: 'UnionBank',
           kind: AccountKind.bank,
           institution: 'UnionBank',
-          balance: 100,
+          balance: Money.pesos(100),
           monogram: 'UB',
           profile: ProfileEntity.business,
         ),

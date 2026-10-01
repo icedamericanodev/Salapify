@@ -69,7 +69,7 @@ void main() {
       for (int i = 0; i < before.accounts.length; i++) {
         expect(
           after.accounts[i].balance,
-          closeTo(before.accounts[i].balance, 0.0001),
+          before.accounts[i].balance.pesos,
           reason: 'account ${before.accounts[i].name} changed value on disk',
         );
         expect(after.accounts[i].id, before.accounts[i].id);
@@ -84,7 +84,7 @@ void main() {
         kind: AccountKind.credit,
         institution: 'UnionBank',
         // Positive: a credit balance is money OWED in this app.
-        balance: 18450.75,
+        balance: Money.of(18450, 75),
         monogram: 'UB',
         currency: CurrencyCode.usd,
         profile: ProfileEntity.sideHustle,

@@ -30,7 +30,7 @@ SafeToSpendAnalysis computeSafeToSpend({
   // 1. Liquid cash. Investments and credit limits are excluded on purpose.
   final double totalLiquidCash = accounts
       .where((Account a) => a.isLiquid)
-      .fold<double>(0, (double sum, Account a) => sum + a.balance);
+      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
 
   // 2. Bills still owed this cycle.
   final double totalBillsAmount = bills

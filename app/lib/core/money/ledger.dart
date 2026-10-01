@@ -266,10 +266,10 @@ List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
         TransactionType.expense => -tx.amount,
         TransactionType.transfer => -tx.amount,
       };
-      return a.copyWith(balance: a.balance + delta.pesos);
+      return a.copyWith(balance: a.balance + delta);
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance + tx.amount.pesos);
+      return a.copyWith(balance: a.balance + tx.amount);
     }
     return a;
   }).toList();
@@ -299,10 +299,10 @@ List<Account> reverseFromBalances(List<Account> accounts, Transaction tx) {
         TransactionType.expense => tx.amount,
         TransactionType.transfer => tx.amount,
       };
-      return a.copyWith(balance: a.balance + delta.pesos);
+      return a.copyWith(balance: a.balance + delta);
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance - tx.amount.pesos);
+      return a.copyWith(balance: a.balance - tx.amount);
     }
     return a;
   }).toList();

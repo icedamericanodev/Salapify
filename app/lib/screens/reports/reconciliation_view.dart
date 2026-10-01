@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
@@ -58,12 +59,12 @@ class _ReconciliationViewState extends State<ReconciliationView> {
     final Account? selected = _accountOrNull;
     if (selected == null) return _nothingToCheck(p);
     final Account account = selected;
-    final double book = bookBalanceOf(account);
+    final Money book = bookBalanceOf(account);
     final double? typed = double.tryParse(
       _actual.text.trim().replaceAll(',', ''),
     );
     final bool entered = typed != null;
-    final double variance = entered ? varianceOf(book, typed) : 0;
+    final double variance = entered ? varianceOf(book.pesos, typed) : 0;
     final bool balanced = isBalanced(variance);
 
     return Column(
@@ -92,7 +93,7 @@ class _ReconciliationViewState extends State<ReconciliationView> {
         const SizedBox(height: Spacing.lg),
         _Comparator(
           palette: p,
-          book: book,
+          book: book.pesos,
           controller: _actual,
           entered: entered,
           variance: variance,
@@ -102,7 +103,7 @@ class _ReconciliationViewState extends State<ReconciliationView> {
         if (entered) ...<Widget>[
           const SizedBox(height: Spacing.lg),
           if (balanced)
-            _Balanced(palette: p, onConfirm: () => _confirm(book, typed))
+            _Balanced(palette: p, onConfirm: () => _confirm(book.pesos, typed))
           else
             _Fix(
               palette: p,

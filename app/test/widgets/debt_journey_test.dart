@@ -72,7 +72,7 @@ void main() {
     await openDebts(tester);
 
     final FinancialState store = storeOf(tester);
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
     final int entriesBefore = store.transactions.length;
@@ -104,7 +104,7 @@ void main() {
     // --- half one, directional: both sides moved by exactly 2,450 ---------
     expect(
       store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
-      closeTo(gcashBefore - 2450, 0.001),
+      gcashBefore - const Money.pesos(2450),
       reason: 'the account the money came out of must be 2,450 lighter',
     );
     expect(
@@ -149,7 +149,7 @@ void main() {
   ) async {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 
@@ -168,7 +168,7 @@ void main() {
 
     expect(
       store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
-      closeTo(gcashBefore + 1500, 0.001),
+      gcashBefore + const Money.pesos(1500),
       reason:
           'Being repaid is money coming IN. If this went down, the '
           'direction was read backwards and the row on screen would look '
@@ -187,7 +187,7 @@ void main() {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
     final int entriesBefore = store.transactions.length;
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 
@@ -224,7 +224,7 @@ void main() {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
     final int entriesBefore = store.transactions.length;
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 

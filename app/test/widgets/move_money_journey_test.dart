@@ -13,6 +13,7 @@
 // statement. Every invariant below is paired with a DIRECTIONAL one naming
 // which account went down and which went up.
 
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/accounts/move_money_sheet.dart';
@@ -44,11 +45,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   Future<void> openMove(WidgetTester tester) async {
     await tapIt(
@@ -143,8 +146,8 @@ void main() {
       final FinancialState state = await pumpApp(tester);
 
       final double worthBefore = netWorthOf(state);
-      final double cashBefore = balanceOf(state, 'acc_cash');
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money cashBefore = balanceOf(state, 'acc_cash');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
       final int rowsBefore = state.transactions.length;
 
       await openMove(tester);
@@ -157,7 +160,7 @@ void main() {
       // nothing happened, which is why it is never alone.
       expect(
         netWorthOf(state),
-        closeTo(worthBefore, 0.001),
+        worthBefore,
         reason: 'moving your own money cannot change what you are worth',
       );
 
@@ -167,12 +170,12 @@ void main() {
       // would pass with the whole feature deleted.
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(gcashBefore - 1200, 0.001),
+        gcashBefore - const Money.pesos(1200),
         reason: 'the source did not fall by the amount moved',
       );
       expect(
         balanceOf(state, 'acc_cash'),
-        closeTo(cashBefore + 1200, 0.001),
+        cashBefore + const Money.pesos(1200),
         reason: 'the destination did not rise by the amount moved',
       );
       expect(state.transactions.length, rowsBefore + 1);
@@ -185,7 +188,7 @@ void main() {
       // edit that can look right and do nothing, and the invariant cannot
       // tell: net worth holds whichever direction the money went.
       final FinancialState state = await pumpApp(tester);
-      final double cashBefore = balanceOf(state, 'acc_cash');
+      final Money cashBefore = balanceOf(state, 'acc_cash');
 
       await openMove(tester);
       await pickAccount(tester, moneyLeaves, 'Cash on Hand');
@@ -197,7 +200,7 @@ void main() {
       // After the swap, cash is the DESTINATION, so it must go UP.
       expect(
         balanceOf(state, 'acc_cash'),
-        closeTo(cashBefore + 300, 0.001),
+        cashBefore + const Money.pesos(300),
         reason: 'the swap did not actually exchange the two ends',
       );
     });
@@ -217,7 +220,7 @@ void main() {
 
       expect(
         state.panFacts.monthOut,
-        closeTo(spentBefore, 0.001),
+        spentBefore,
         reason: 'a transfer was counted as money spent',
       );
       // The did-anything-happen half, because "spending did not change" is
@@ -259,7 +262,7 @@ void main() {
         rowsBefore,
         reason: 'it wrote the row anyway',
       );
-      expect(netWorthOf(state), closeTo(worthBefore, 0.001));
+      expect(netWorthOf(state), worthBefore);
       expect(
         find.byType(MoveMoneySheet),
         findsOneWidget,
@@ -284,13 +287,16 @@ void main() {
       // Physical cash cannot go negative. You cannot hand somebody money you
       // are not holding, so this one is a hard stop rather than a warning.
       final FinancialState state = await pumpApp(tester);
-      final double cash = balanceOf(state, 'acc_cash');
+      final Money cash = balanceOf(state, 'acc_cash');
       final int rowsBefore = state.transactions.length;
 
       await openMove(tester);
       await pickAccount(tester, moneyLeaves, 'Cash on Hand');
       await pickAccount(tester, moneyArrives, 'GCash');
-      await typeAmount(tester, (cash + 1000).toStringAsFixed(2));
+      await typeAmount(
+        tester,
+        (cash + const Money.pesos(1000)).pesos.toStringAsFixed(2),
+      );
       await tapIt(tester, find.text('Move it'));
 
       expect(find.textContaining('There is only'), findsOneWidget);
@@ -308,13 +314,16 @@ void main() {
       // Both halves of the alarm matter here: it has to speak, and the save
       // has to still work. An alarm that quietly blocks is worse than none.
       final FinancialState state = await pumpApp(tester);
-      final double bpi = balanceOf(state, 'acc_bpi');
+      final Money bpi = balanceOf(state, 'acc_bpi');
       final int rowsBefore = state.transactions.length;
 
       await openMove(tester);
       await pickAccount(tester, moneyLeaves, 'BPI Preferred Payroll');
       await pickAccount(tester, moneyArrives, 'Cash on Hand');
-      await typeAmount(tester, (bpi + 500).toStringAsFixed(2));
+      await typeAmount(
+        tester,
+        (bpi + const Money.pesos(500)).pesos.toStringAsFixed(2),
+      );
 
       expect(
         find.textContaining('below zero'),
@@ -328,7 +337,7 @@ void main() {
         rowsBefore + 1,
         reason: 'the warning turned into a block, which it must not',
       );
-      expect(balanceOf(state, 'acc_bpi'), closeTo(-500, 0.001));
+      expect(balanceOf(state, 'acc_bpi'), const Money.pesos(-500));
     });
 
     testWidgets('a normal move says NOTHING, so the warning means something', (

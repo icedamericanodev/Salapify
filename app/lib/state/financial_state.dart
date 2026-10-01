@@ -1055,8 +1055,8 @@ class FinancialState extends ChangeNotifier {
     final int i = _accounts.indexWhere((Account a) => a.id == accountId);
     if (i < 0) return;
     final Account account = _accounts[i];
-    final double book = bookBalanceOf(account);
-    final double variance = varianceOf(book, actualBalance);
+    final Money book = bookBalanceOf(account);
+    final double variance = varianceOf(book.pesos, actualBalance);
     if (isBalanced(variance)) return;
 
     final Transaction? entry = adjustmentEntry(
@@ -1071,7 +1071,7 @@ class FinancialState extends ChangeNotifier {
     logTransaction(entry);
     recordReconciliation(
       accountId: accountId,
-      bookBalance: book,
+      bookBalance: book.pesos,
       actualBalance: actualBalance,
       notes:
           'Traceable adjustment posted: '
@@ -1550,7 +1550,7 @@ class FinancialState extends ChangeNotifier {
   /// receivables and every borrowing line on purpose.
   double get totalLiquidCash => accounts
       .where((Account a) => a.isLiquid)
-      .fold<double>(0, (double sum, Account a) => sum + a.balance);
+      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
 
   /// The five-question health check, from one place.
   ///
@@ -1896,11 +1896,11 @@ class FinancialState extends ChangeNotifier {
   /// It only ever reads a BALANCE, which no date affects, so any clock would
   /// do. Taking the store's own keeps one answer to "what does the seed say"
   /// rather than two that could drift.
-  double _seededBalanceOf(String id) {
+  Money _seededBalanceOf(String id) {
     for (final Account a in SeedData.accounts(now)) {
       if (a.id == id) return a.balance;
     }
-    return 0;
+    return Money.zero;
   }
 
   /// Puts the sample data back, without touching anything the person made.

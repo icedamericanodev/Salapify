@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/tokens.dart';
@@ -30,7 +31,7 @@ void main() {
     name: 'BPI Rewards',
     kind: kind,
     institution: 'BPI',
-    balance: balance,
+    balance: Money.fromDouble(balance),
     monogram: 'BPI',
     creditLimit: 40000,
     dueDate: due,

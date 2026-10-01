@@ -325,7 +325,7 @@ Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
   'name': a.name,
   'kind': accountKindWire.encode(a.kind),
   'institution': a.institution,
-  'balance': a.balance,
+  'balance': a.balance.pesos,
   'monogram': a.monogram,
   'currency': currencyWire.encode(a.currency),
   if (a.profile != null) 'profile': profileWire.encode(a.profile!),
@@ -347,7 +347,7 @@ Account accountFromJson(Map<String, dynamic> m) {
     name: _reqStr(m, 'name', what),
     kind: accountKindWire.decodeRequired(m, 'kind', what),
     institution: _reqStr(m, 'institution', what),
-    balance: _reqNum(m, 'balance', what),
+    balance: Money.fromDouble(_reqNum(m, 'balance', what)),
     monogram: _reqStr(m, 'monogram', what),
     // A backup written before currencies existed has no field here, and
     // every account in it was pesos. Absent means PHP; present but

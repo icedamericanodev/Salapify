@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/card_cycle.dart';
 import 'package:salapify/core/money/reminders.dart' show daysUntil;
@@ -23,7 +24,7 @@ void main() {
     name: 'BPI Rewards',
     kind: AccountKind.credit,
     institution: 'BPI',
-    balance: balance,
+    balance: Money.fromDouble(balance),
     monogram: 'BPI',
     dueDate: due,
     statementDate: cutoff,
@@ -76,7 +77,7 @@ void main() {
             name: 'x',
             kind: k,
             institution: 'BPI',
-            balance: 1000,
+            balance: Money.pesos(1000),
             monogram: 'X',
             dueDate: '23',
             statementDate: '10',

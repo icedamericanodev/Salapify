@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
@@ -186,8 +187,8 @@ class _SampleDataSheetState extends State<SampleDataSheet> {
                 Text(
                   '${a.name} stays, because entries you made point at it. Its '
                   'sample money comes out, so it goes from '
-                  '${formatPeso(a.balance)} to '
-                  '${formatPeso(a.balance - _seeded(a.id))}.',
+                  '${formatPeso(a.balance.pesos)} to '
+                  '${formatPeso((a.balance - _seeded(a.id)).pesos)}.',
                   style: AppType.body(p),
                 ),
               ],
@@ -220,11 +221,11 @@ class _SampleDataSheetState extends State<SampleDataSheet> {
   /// No longer static, for the same reason as its twin in FinancialState: the
   /// seed is built against a clock now. It reads a BALANCE, which no date
   /// affects, so the store's own clock is used rather than a second one.
-  double _seeded(String id) {
+  Money _seeded(String id) {
     for (final Account a in SeedData.accounts(widget.state.now)) {
       if (a.id == id) return a.balance;
     }
-    return 0;
+    return Money.zero;
   }
 }
 

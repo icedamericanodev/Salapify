@@ -110,7 +110,7 @@ class Account {
   final String name;
   final AccountKind kind;
   final String institution;
-  final double balance;
+  final Money balance;
   final String monogram;
 
   /// What the balance is DENOMINATED in.
@@ -149,7 +149,14 @@ class Account {
   bool get isLiquid => liquidKinds.contains(kind);
 
   /// The peso value of this balance, for anything that adds accounts up.
-  double get balanceInPhp => convertToPhp(balance, currency);
+  /// This balance in pesos, for anything that adds accounts together.
+  ///
+  /// A RATE is applied, so the result is a converted figure rather than a
+  /// recorded one, and it is rounded to the centavo once here instead of
+  /// being left to drift through every caller.
+  Money get balanceInPhp => isForeign
+      ? Money.fromDouble(convertToPhp(balance.pesos, currency))
+      : balance;
 
   /// True when this balance is NOT in pesos, so the screen knows to show the
   /// conversion and label it as an estimate.
@@ -170,7 +177,7 @@ class Account {
   /// account into the user's own. The sweep handles that case properly
   /// instead: an account a real entry points at is KEPT, with its seeded
   /// opening balance subtracted, rather than deleted underneath the entry.
-  Account copyWith({double? balance, bool? isSample}) => Account(
+  Account copyWith({Money? balance, bool? isSample}) => Account(
     id: id,
     name: name,
     kind: kind,

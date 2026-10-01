@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/debt_strategy.dart';
 
@@ -78,7 +79,7 @@ void main() {
         expect(row.balance, lessThan(previous));
         previous = row.balance;
       }
-      expect(minimum.schedule.last.balance, 0);
+      expect(minimum.schedule.last.balance, 0.0);
     });
   });
 

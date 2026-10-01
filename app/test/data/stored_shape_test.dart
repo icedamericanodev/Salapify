@@ -168,6 +168,54 @@ void main() {
     });
   });
 
+  group('an account balance is still stored in pesos', () {
+    const Account acc = Account(
+      id: 'a1',
+      name: 'GCash Wallet',
+      kind: AccountKind.gcash,
+      institution: 'GCash',
+      balance: Money.of(8420, 50),
+      monogram: 'GC',
+    );
+
+    test('the written JSON holds a plain peso number', () {
+      // This group exists because the account codec was MISSED on the first
+      // pass of the centavo migration and wrote the Money object itself. The
+      // whole app stopped saving with "Converting object to an encodable
+      // object failed", which the journeys caught and this file, covering
+      // only transactions at the time, did not.
+      expect(accountToJson(acc)['balance'], 8420.50);
+      expect(
+        accountToJson(acc)['balance'],
+        isA<num>(),
+        reason: 'a Money object reached the file, so nothing can be saved',
+      );
+    });
+
+    test('and it round trips through the decoder', () {
+      expect(
+        accountFromJson(accountToJson(acc)).balance,
+        const Money.of(8420, 50),
+      );
+    });
+
+    test('a whole-peso integer is read as pesos, not as centavos', () {
+      final Account read = accountFromJson(<String, dynamic>{
+        'id': 'a1',
+        'name': 'BPI',
+        'kind': 'bank',
+        'institution': 'BPI',
+        'balance': 23000,
+        'monogram': 'B',
+      });
+      expect(
+        read.balance,
+        const Money.pesos(23000),
+        reason: 'every balance in every existing backup divided by a hundred',
+      );
+    });
+  });
+
   group('a debt is still stored in pesos, and so is the settle memory', () {
     Map<String, dynamic> wire(Debt d) => debtToJson(d);
 

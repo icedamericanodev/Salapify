@@ -49,7 +49,7 @@ void main() {
     test('liquid cash agrees, and excludes what is not spendable', () {
       final double liquid = SeedData.accounts(testToday)
           .where((Account a) => a.isLiquid)
-          .fold<double>(0, (double s, Account a) => s + a.balance);
+          .fold<double>(0, (double s, Account a) => s + a.balance.pesos);
       expect(liquid, 110720.50);
 
       // The investment, the receivable and every borrowing line stay out.

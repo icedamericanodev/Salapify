@@ -118,7 +118,7 @@ void main() {
           name: 'My GCash',
           kind: AccountKind.gcash,
           institution: 'GCash',
-          balance: 5000,
+          balance: Money.pesos(5000),
           monogram: 'GC',
         ),
       );
@@ -151,7 +151,7 @@ void main() {
       final Account mine = s.accounts.firstWhere(
         (Account a) => a.id == 'acc_mine',
       );
-      expect(mine.balance, 5000);
+      expect(mine.balance, const Money.pesos(5000));
       expect(mine.isSample, isFalse);
     });
 
@@ -233,7 +233,7 @@ void main() {
           name: 'My GCash',
           kind: AccountKind.gcash,
           institution: 'GCash',
-          balance: 5000,
+          balance: Money.pesos(5000),
           monogram: 'GC',
         ),
       );

@@ -113,7 +113,7 @@ void main() {
       'trail', (WidgetTester tester) async {
     await openPlans(tester);
     final FinancialState store = storeOf(tester);
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
     final int entriesBefore = store.transactions.length;
@@ -139,7 +139,7 @@ void main() {
     expect(p.paidInstallments, 6);
     expect(
       store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
-      closeTo(gcashBefore - 2409.17, 0.001),
+      gcashBefore - Money.fromDouble(2409.17),
     );
     expect(store.transactions.length, entriesBefore + 1);
 

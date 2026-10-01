@@ -64,7 +64,7 @@ void main() {
     final Account cash = state.accounts.firstWhere((Account a) => a.isLiquid);
     await tapAndSettle(tester, find.text(cash.name).last);
 
-    final double balanceBefore = state.accounts
+    final Money balanceBefore = state.accounts
         .firstWhere((Account a) => a.id == cash.id)
         .balance;
 
@@ -78,7 +78,7 @@ void main() {
     expect(logged.merchant, 'Jollibee');
     expect(
       state.accounts.firstWhere((Account a) => a.id == cash.id).balance,
-      closeTo(balanceBefore - 213.00, 0.001),
+      balanceBefore - Money.fromDouble(213.00),
       reason: 'the account did not fall by what was spent',
     );
 
@@ -108,7 +108,7 @@ void main() {
     await tapAndSettle(tester, find.text('Choose an account'));
     final Account cash = state.accounts.firstWhere((Account a) => a.isLiquid);
     await tapAndSettle(tester, find.text(cash.name).last);
-    final double balanceBefore = state.accounts
+    final Money balanceBefore = state.accounts
         .firstWhere((Account a) => a.id == cash.id)
         .balance;
 
@@ -124,7 +124,7 @@ void main() {
     );
     expect(
       state.accounts.firstWhere((Account a) => a.id == cash.id).balance,
-      closeTo(balanceBefore, 0.001),
+      balanceBefore.pesos,
       reason:
           'the row went but the money did not come back, which leaves a '
           'balance nothing on any screen explains',

@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/app_theme.dart';
@@ -123,7 +124,7 @@ void main() {
         name: 'My savings',
         kind: AccountKind.bank,
         institution: 'SeaBank',
-        balance: 50000,
+        balance: Money.pesos(50000),
         monogram: 'SB',
       ),
     );

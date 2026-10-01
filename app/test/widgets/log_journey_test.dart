@@ -43,18 +43,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   testWidgets('logging a spend moves the money AND shows up where a person '
       'would look for it', (WidgetTester tester) async {
     await pumpApp(tester);
     final FinancialState state = storeOf(tester);
 
-    final double cashBefore = balanceOf(state, 'acc_cash');
+    final Money cashBefore = balanceOf(state, 'acc_cash');
     final int countBefore = state.transactions.length;
 
     await tapAndSettle(tester, logButton);
@@ -89,7 +91,7 @@ void main() {
     // ---------------------------------------------------------------- half one
     // The money moved, by exactly the amount typed, out of exactly the account
     // chosen. Directional, so a save that silently did nothing fails here.
-    expect(balanceOf(state, 'acc_cash'), cashBefore - 250);
+    expect(balanceOf(state, 'acc_cash'), cashBefore - Money.pesos(250));
     expect(state.transactions.length, countBefore + 1);
     expect(
       state.transactions.first.merchant,
@@ -132,8 +134,8 @@ void main() {
       final FinancialState state = storeOf(tester);
 
       final double netBefore = netWorthOf(state);
-      final double bpiBefore = balanceOf(state, 'acc_bpi');
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money bpiBefore = balanceOf(state, 'acc_bpi');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
 
       await tapAndSettle(tester, logButton);
       await tapAndSettle(tester, find.text('Moved'));
@@ -168,8 +170,8 @@ void main() {
       expect(netWorthOf(state), netBefore);
       // The directional companion, without which a transfer that transferred
       // nothing would satisfy the invariant perfectly.
-      expect(balanceOf(state, 'acc_bpi'), bpiBefore - 1500);
-      expect(balanceOf(state, 'acc_gcash'), gcashBefore + 1500);
+      expect(balanceOf(state, 'acc_bpi'), bpiBefore - Money.pesos(1500));
+      expect(balanceOf(state, 'acc_gcash'), gcashBefore + Money.pesos(1500));
     },
   );
 
@@ -315,7 +317,7 @@ void main() {
     ) async {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double cashBefore = balanceOf(state, 'acc_cash');
+      final Money cashBefore = balanceOf(state, 'acc_cash');
 
       await tapAndSettle(tester, logButton);
 
@@ -351,7 +353,7 @@ void main() {
       expect(saved.category, 'Food & Dining');
       expect(saved.type, TransactionType.expense);
       // The default account is Cash on Hand and no account word was typed.
-      expect(balanceOf(state, 'acc_cash'), cashBefore - 500);
+      expect(balanceOf(state, 'acc_cash'), cashBefore - Money.pesos(500));
 
       // And a person can SEE it.
       expect(find.text('Jollibee'), findsWidgets);
@@ -362,7 +364,7 @@ void main() {
     ) async {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
 
       await tapAndSettle(tester, logButton);
       await tester.enterText(
@@ -373,7 +375,7 @@ void main() {
       await tapAndSettle(tester, find.text('Fill the form with this'));
       await tapAndSettle(tester, find.text('Save entry'));
 
-      expect(balanceOf(state, 'acc_gcash'), gcashBefore - 85);
+      expect(balanceOf(state, 'acc_gcash'), gcashBefore - Money.pesos(85));
       expect(state.transactions.first.category, 'Transport & Commute');
     });
 
@@ -382,7 +384,7 @@ void main() {
     ) async {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double cashBefore = balanceOf(state, 'acc_cash');
+      final Money cashBefore = balanceOf(state, 'acc_cash');
 
       await tapAndSettle(tester, logButton);
       await tester.enterText(
@@ -398,7 +400,7 @@ void main() {
       // The sign is the whole point: getting this backwards would take 32,500
       // OUT of an account on payday.
       expect(state.transactions.first.type, TransactionType.income);
-      expect(balanceOf(state, 'acc_cash'), cashBefore + 32500);
+      expect(balanceOf(state, 'acc_cash'), cashBefore + Money.pesos(32500));
     });
 
     testWidgets('a line with no amount is not offered as an entry', (
@@ -624,7 +626,7 @@ void main() {
         'the money today', (WidgetTester tester) async {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double cashBefore = balanceOf(state, 'acc_cash');
+      final Money cashBefore = balanceOf(state, 'acc_cash');
 
       await tapAndSettle(tester, logButton);
       await tester.enterText(
@@ -677,7 +679,7 @@ void main() {
 
       // The money moved anyway. This is the half that would be easy to lose
       // while making the date work.
-      expect(balanceOf(state, 'acc_cash'), cashBefore - 180);
+      expect(balanceOf(state, 'acc_cash'), cashBefore - Money.pesos(180));
 
       // A backdated entry is NOT at the top of Activity, because the list is
       // newest day first. Landing on a screen whose first rows are today's
@@ -745,7 +747,7 @@ void main() {
     ) async {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double before = balanceOf(state, 'acc_gcash');
+      final Money before = balanceOf(state, 'acc_gcash');
 
       await tapAndSettle(tester, logButton);
       await tester.enterText(
@@ -772,7 +774,7 @@ void main() {
       // message named rather than whichever one was first in the list.
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(before - 450, 0.001),
+        before - const Money.pesos(450),
         reason: 'the 450 did not leave the GCash account',
       );
     });
@@ -786,7 +788,7 @@ void main() {
       // later when nothing reconciles.
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
-      final double before = balanceOf(state, 'acc_gcash');
+      final Money before = balanceOf(state, 'acc_gcash');
 
       await tapAndSettle(tester, logButton);
       await tester.enterText(
@@ -800,7 +802,7 @@ void main() {
 
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(before + 5000, 0.001),
+        before + const Money.pesos(5000),
         reason: 'a received amount was logged as money leaving',
       );
     });

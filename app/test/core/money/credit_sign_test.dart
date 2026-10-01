@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/accounts.dart';
 import 'package:salapify/core/money/financial_truth.dart';
@@ -42,7 +43,7 @@ void main() {
     name: 'BPI Rewards Card',
     kind: AccountKind.credit,
     institution: 'BPI',
-    balance: 4200,
+    balance: Money.pesos(4200),
     creditLimit: 40000,
     monogram: 'BPI',
   );
@@ -52,7 +53,7 @@ void main() {
     name: 'Everyday Savings',
     kind: AccountKind.bank,
     institution: 'BPI',
-    balance: 23400,
+    balance: Money.pesos(23400),
     monogram: 'ES',
   );
 
@@ -105,7 +106,7 @@ void main() {
         reason: 'a credit account is a liability',
       );
       expect(
-        card.balance > 0,
+        card.balance > Money.pesos(0),
         isTrue,
         reason: 'and owing money on it is a POSITIVE balance',
       );
@@ -133,7 +134,7 @@ void main() {
         name: 'Overpaid Card',
         kind: AccountKind.credit,
         institution: 'BPI',
-        balance: -1500,
+        balance: Money.pesos(-1500),
         creditLimit: 40000,
         monogram: 'OC',
       );
