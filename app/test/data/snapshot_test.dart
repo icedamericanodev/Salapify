@@ -69,7 +69,7 @@ void main() {
       for (int i = 0; i < before.accounts.length; i++) {
         expect(
           after.accounts[i].balance,
-          before.accounts[i].balance.pesos,
+          before.accounts[i].balance,
           reason: 'account ${before.accounts[i].name} changed value on disk',
         );
         expect(after.accounts[i].id, before.accounts[i].id);

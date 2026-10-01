@@ -66,7 +66,7 @@ void main() {
             (Account a) => <String, Object?>{
               'id': a.id,
               'kind': _kind(a.kind),
-              'balance': a.balance,
+              'balance': a.balance.pesos,
               'profile': a.profile == null ? null : _profile(a.profile!),
             },
           )

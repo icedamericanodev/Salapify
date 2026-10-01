@@ -263,7 +263,7 @@ void main() {
 
       expect(
         balanceOf(state, 'acc_gcash'),
-        gcashBefore.pesos,
+        gcashBefore,
         reason: 'Undo did not put the money back',
       );
       expect(
@@ -338,7 +338,7 @@ void main() {
         rows,
         reason: 'removing the schedule row un-spent real money',
       );
-      expect(balanceOf(state, 'acc_gcash'), afterPaying.pesos);
+      expect(balanceOf(state, 'acc_gcash'), afterPaying);
     });
 
     testWidgets('Keep it on the remove dialog removes nothing', (

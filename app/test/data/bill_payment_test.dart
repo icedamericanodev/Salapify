@@ -258,7 +258,7 @@ void main() {
       );
       s.undoUpcomingPaid(bill.id, tx);
 
-      expect(balanceOf(s, 'acc_cash'), cashBefore.pesos);
+      expect(balanceOf(s, 'acc_cash'), cashBefore);
       expect(s.transactions.length, rowsBefore);
       expect(
         s.upcoming.firstWhere((UpcomingItem u) => u.id == bill.id).isPaid,
@@ -280,7 +280,7 @@ void main() {
 
       expect(
         balanceOf(s, 'acc_cash'),
-        cashBefore.pesos,
+        cashBefore,
         reason: 'a second undo paid the money back again',
       );
     });
@@ -325,7 +325,7 @@ void main() {
 
       expect(s.upcoming.any((UpcomingItem u) => u.id == bill.id), isFalse);
       expect(s.transactions.length, rows);
-      expect(balanceOf(s, 'acc_cash'), afterPaying.pesos);
+      expect(balanceOf(s, 'acc_cash'), afterPaying);
     });
   });
 }

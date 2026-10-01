@@ -78,7 +78,7 @@ void main() {
     expect(logged.merchant, 'Jollibee');
     expect(
       state.accounts.firstWhere((Account a) => a.id == cash.id).balance,
-      balanceBefore - Money.fromDouble(213.00),
+      balanceBefore - const Money.pesos(213),
       reason: 'the account did not fall by what was spent',
     );
 
@@ -124,7 +124,7 @@ void main() {
     );
     expect(
       state.accounts.firstWhere((Account a) => a.id == cash.id).balance,
-      balanceBefore.pesos,
+      balanceBefore,
       reason:
           'the row went but the money did not come back, which leaves a '
           'balance nothing on any screen explains',

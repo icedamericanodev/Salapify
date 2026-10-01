@@ -92,6 +92,48 @@ void main() {
       }
     });
 
+    test('and the OLD arithmetic really did drift, which is why', () {
+      // ## Why this test is shaped like this, stated rather than hidden
+      //
+      // The break-then-prove step was run on the three tests above and FAILED
+      // TO FAIL: putting double arithmetic back into applyToBalances left
+      // every one of them green. That is the most informative result the
+      // procedure can give, and it means those tests guard something other
+      // than what a one-line break can reach.
+      //
+      // Working out which branch they actually reach: `Money.fromDouble`
+      // re-quantises to the centavo at EVERY hop, so a single trip through a
+      // double cannot leave a residue behind. The defect needed the STORED
+      // FIELD to be a double, so the residue survived from one operation to
+      // the next and accumulated. That is a property of the type, not of any
+      // line, so no line can be broken to reproduce it.
+      //
+      // This case therefore pins the thing that IS falsifiable: that integer
+      // centavos and doubles genuinely disagree on these figures, and that
+      // Money is on the right side of it. It fails the day Money stops being
+      // exact, which is the only way the three tests above could start lying.
+      const double b = 129425.77;
+      const double x = 19861.93;
+
+      expect(
+        (b - x) + x,
+        isNot(b),
+        reason:
+            'doubles round trip these figures exactly, so the defect this '
+            'file documents never existed and the migration had no reason',
+      );
+
+      const Money mb = Money.of(129425, 77);
+      const Money mx = Money.of(19861, 93);
+      expect(
+        (mb - mx) + mx,
+        mb,
+        reason:
+            'whole centavos stopped being exact, which is the only way '
+            'the round trips above could pass while being wrong',
+      );
+    });
+
     test('a transfer round trips on BOTH legs', () {
       // The second leg reads a different field, which is why reverse is
       // written as a mirror rather than derived. A residue on either side

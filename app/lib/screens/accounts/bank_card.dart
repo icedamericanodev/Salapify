@@ -572,7 +572,7 @@ class _BottomRow extends StatelessWidget {
                   // with a minus. Without it a 12,000 debt renders character
                   // for character like 12,000 in savings.
                   isCredit && account.balance.isPositive
-                      ? '-\$balance'
+                      ? '-$balance'
                       : balance,
                   maxLines: 1,
                   style: TextStyle(
@@ -586,7 +586,7 @@ class _BottomRow extends StatelessWidget {
               ),
               if (account.isForeign)
                 Text(
-                  '≈ \${formatPeso(account.balanceInPhp.abs.pesos)}',
+                  '≈ ${formatPeso(account.balanceInPhp.abs.pesos)}',
                   style: TextStyle(
                     fontFamily: AppType.family,
                     fontSize: height * 0.062,

@@ -69,7 +69,7 @@ void main() {
       s.setTransactionStatus(tx.id, TransactionStatus.duplicate);
       s.setTransactionStatus(tx.id, TransactionStatus.confirmed);
 
-      expect(balanceOf(s, acc), start.pesos);
+      expect(balanceOf(s, acc), start);
       expect(netWorthOf(s), worth);
     });
 
@@ -108,7 +108,7 @@ void main() {
       expect(balanceOf(s, acc), start + tx.amount);
 
       s.setTransactionStatus(tx.id, TransactionStatus.confirmed);
-      expect(balanceOf(s, acc), start.pesos);
+      expect(balanceOf(s, acc), start);
     });
 
     test('duplicate to excluded moves nothing, because neither counts', () {
@@ -126,7 +126,7 @@ void main() {
 
       expect(
         balanceOf(s, acc),
-        afterFirst.pesos,
+        afterFirst,
         reason: 'the money came back a second time',
       );
     });
@@ -139,7 +139,7 @@ void main() {
 
       s.setTransactionStatus(tx.id, TransactionStatus.pending);
 
-      expect(balanceOf(s, acc), start.pesos);
+      expect(balanceOf(s, acc), start);
     });
   });
 
@@ -160,7 +160,7 @@ void main() {
       expect(balanceOf(s, acc), start - income.amount);
 
       s.setTransactionStatus(income.id, TransactionStatus.confirmed);
-      expect(balanceOf(s, acc), start.pesos);
+      expect(balanceOf(s, acc), start);
     });
 
     test('a transfer reverses BOTH ends', () {

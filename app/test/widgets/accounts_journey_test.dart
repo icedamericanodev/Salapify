@@ -1,3 +1,5 @@
+import 'package:salapify/models/models.dart';
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
@@ -53,10 +55,9 @@ void main() {
       await pumpApp(tester);
       await openTab(tester, Icons.account_balance_wallet_outlined);
 
-      final double before = storeOf(tester).accounts.fold<double>(
-        0,
-        (double s, dynamic a) => s + (a.balance as double),
-      );
+      final Money before = storeOf(
+        tester,
+      ).accounts.fold<Money>(Money.zero, (Money s, Account a) => s + a.balance);
 
       await tapAndSettle(tester, find.text('Add'));
       await tapAndSettle(tester, find.text('Bank'));
@@ -72,11 +73,10 @@ void main() {
       // The did-anything-happen check, and a DIRECTIONAL one: the store is
       // heavier by exactly 7,500. "The account list is not empty" would pass
       // with the whole write deleted.
-      final double after = storeOf(tester).accounts.fold<double>(
-        0,
-        (double s, dynamic a) => s + (a.balance as double),
-      );
-      expect(after - before, closeTo(7500, 0.001));
+      final Money after = storeOf(
+        tester,
+      ).accounts.fold<Money>(Money.zero, (Money s, Account a) => s + a.balance);
+      expect(after - before, const Money.pesos(7500));
 
       // Screen one: Accounts itself, in the Bank Accounts group.
       expect(find.text('Tonik Stash'), findsOneWidget);
