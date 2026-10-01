@@ -26,7 +26,7 @@ this branch point, so the review is slightly out of date where it says:
 
 ### Phase 1, in progress
 
-Shipped so far: P1.1, P1.2, P1.3, P1.4.
+Shipped so far: P1.1, P1.2, P1.3, P1.4, P1.5.
 
 ---
 
@@ -38,7 +38,7 @@ Shipped so far: P1.1, P1.2, P1.3, P1.4.
 | P1.2 | Duplicate status balance bug (F10) | DONE | see below |
 | P1.3 | Remove always-on sample Netflix data | DONE | see below |
 | P1.4 | Tax sheet mixed income | DONE | see below |
-| P1.5 | Freelancer comparison consistency | todo | |
+| P1.5 | Freelancer comparison consistency | DONE | see below |
 | P1.6 | Small BIR fixes | todo | |
 | P1.7 | One debt-to-income rule (F8), one health check (F9) | todo | |
 
@@ -148,6 +148,35 @@ onto the peso figures, the same break fails:
 The figures, on the sheet's default 1,200,000 gross: no salary gives a 250,000
 allowance and 76,000 of tax; a 600,000 salary gives no allowance and 96,000,
 which is the 20,000 a year the review measured.
+
+### P1.5 notes
+
+Money copy error 2. The Side by side card contradicted itself three ways, and
+P1.4 had just made the first one worse:
+
+1. **"8% of gross above ₱250,000"** is wrong for a mixed income taxpayer, who
+   gets no allowance at all. P1.4 made that case reachable, so the label had to
+   follow or it would be confidently wrong on the exact screen that had just
+   started asking the question.
+2. **"Graduated brackets on the full gross"** is wrong for everybody: the
+   engine applies the 40% Optional Standard Deduction first, so the brackets
+   see 60% of gross plus any salary.
+3. **The rows showed `estimatedTaxDue`**, income tax alone, while the verdict
+   above them compares `totalTaxDue`, which also carries the 3% percentage tax.
+   The card named one winner and showed the figures of a different comparison.
+
+Both rows now show `totalTaxDue`, the figure the verdict actually reads, with
+one caption saying so. The detail card's "Tax due for the year" became "Income
+tax for the year" and gained a total, because a line calling itself the year's
+tax while a percentage tax row sits above it is the same contradiction one card
+down.
+
+Restoring the old label and figure fails both halves:
+
+    Expected: at least one matching candidate
+      Actual: Found 0 widgets with text "₱122,500.00"
+    Expected: no matching candidates
+      Actual: Found 1 widget with text containing full gross
 
 ## Phase 2 to 7
 

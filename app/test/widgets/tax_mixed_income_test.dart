@@ -36,6 +36,33 @@ import '../support/pinned_app.dart';
 /// for, which is the half that was actually broken: the engine was right the
 /// whole time.
 void main() {
+  Future<void> openFreelance(WidgetTester tester) async {
+    final FinancialState state = await pumpSalapify(tester);
+    // AppShell, not MaterialApp. A MaterialApp's own element sits ABOVE
+    // the Localizations it provides, so showing a dialog from it throws
+    // "No MaterialLocalizations found".
+    TaxCalculatorSheet.show(
+      tester.element(find.byType(AppShell)),
+      Palette.of(state.theme),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Freelance'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> type(WidgetTester tester, String label, String value) async {
+    await tester.enterText(
+      find.descendant(
+        of: find
+            .ancestor(of: find.text(label), matching: find.byType(Column))
+            .first,
+        matching: find.byType(TextField),
+      ),
+      value,
+    );
+    await tester.pumpAndSettle();
+  }
+
   group('the engine, so the numbers in this file are not folklore', () {
     test('a pure freelancer keeps the 250,000 allowance', () {
       final FreelanceTaxCalculation c = calculateFreelanceTax(
@@ -78,33 +105,6 @@ void main() {
   });
 
   group('the sheet passes what it asks for', () {
-    Future<void> openFreelance(WidgetTester tester) async {
-      final FinancialState state = await pumpSalapify(tester);
-      // AppShell, not MaterialApp. A MaterialApp's own element sits ABOVE
-      // the Localizations it provides, so showing a dialog from it throws
-      // "No MaterialLocalizations found".
-      TaxCalculatorSheet.show(
-        tester.element(find.byType(AppShell)),
-        Palette.of(state.theme),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Freelance'));
-      await tester.pumpAndSettle();
-    }
-
-    Future<void> type(WidgetTester tester, String label, String value) async {
-      await tester.enterText(
-        find.descendant(
-          of: find
-              .ancestor(of: find.text(label), matching: find.byType(Column))
-              .first,
-          matching: find.byType(TextField),
-        ),
-        value,
-      );
-      await tester.pumpAndSettle();
-    }
-
     testWidgets('a salary typed in removes the 250,000 allowance', (
       WidgetTester tester,
     ) async {
@@ -174,6 +174,81 @@ void main() {
         find.textContaining('not open to you'),
         findsOneWidget,
         reason: 'the sheet offered an election the taxpayer may not make',
+      );
+    });
+  });
+
+  group('P1.5: the label, the row and the verdict agree', () {
+    // Money copy error 2. The card contradicted itself three ways. It said
+    // "8% of gross above 250,000" to a mixed income taxpayer who gets no
+    // allowance, said "graduated brackets on the full gross" when the engine
+    // deducts 40% first, and showed income tax alone in its rows while the
+    // verdict above compared income tax PLUS the 3% percentage tax. So the
+    // card named one winner and showed the figures of a different comparison.
+
+    test('the engine figures the card has to agree with', () {
+      final FreelanceTaxCalculation git = calculateFreelanceTax(
+        annualGrossIncome: 1200000,
+      );
+      final FreelanceTaxCalculation grad = calculateFreelanceTax(
+        annualGrossIncome: 1200000,
+        taxOption: FreelanceTaxOption.graduatedRates,
+      );
+
+      // The 8% route owes no percentage tax, so its two figures are equal and
+      // showing either was always honest.
+      expect(git.percentageTax, 0);
+      expect(git.totalTaxDue, git.estimatedTaxDue);
+
+      // The graduated route owes both, which is the whole defect.
+      expect(grad.percentageTax, closeTo(36000, 0.01), reason: '3% of 1.2M');
+      expect(
+        grad.totalTaxDue,
+        isNot(closeTo(grad.estimatedTaxDue, 1)),
+        reason: 'if these were equal the bug would be invisible',
+      );
+    });
+
+    testWidgets('the graduated row shows the total the verdict compares', (
+      WidgetTester tester,
+    ) async {
+      await openFreelance(tester);
+      final FreelanceTaxCalculation grad = calculateFreelanceTax(
+        annualGrossIncome: 1200000,
+        taxOption: FreelanceTaxOption.graduatedRates,
+      );
+
+      expect(
+        find.text(formatPeso(grad.totalTaxDue)),
+        findsWidgets,
+        reason: 'the row still shows income tax without the 3%',
+      );
+    });
+
+    testWidgets('no label claims the brackets see the full gross', (
+      WidgetTester tester,
+    ) async {
+      await openFreelance(tester);
+      expect(find.textContaining('full gross'), findsNothing);
+      expect(find.textContaining('40% deduction'), findsOneWidget);
+    });
+
+    testWidgets('the allowance label follows the mixed income answer', (
+      WidgetTester tester,
+    ) async {
+      await openFreelance(tester);
+      expect(find.textContaining('above ₱250,000'), findsOneWidget);
+
+      await type(tester, 'Salary from a job, if you also have one', '600000');
+
+      expect(
+        find.textContaining('above ₱250,000'),
+        findsNothing,
+        reason: 'it still promises an allowance this taxpayer cannot have',
+      );
+      expect(
+        find.textContaining('no allowance on mixed income'),
+        findsOneWidget,
       );
     });
   });

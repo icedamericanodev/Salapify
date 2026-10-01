@@ -478,20 +478,51 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
         ),
         const SizedBox(height: Spacing.lg),
+        // P1.5, money copy error 2: this card contradicted itself three ways,
+        // and the verdict above it was comparing different figures again.
+        //
+        //   "8% of gross above 250,000" is wrong for a mixed income taxpayer,
+        //   who gets no allowance at all. P1.4 made that case reachable, so
+        //   the label had to follow or it would be confidently wrong on the
+        //   exact screen that just started asking the question.
+        //
+        //   "Graduated brackets on the full gross" is wrong for everybody:
+        //   the engine applies the 40% Optional Standard Deduction first, so
+        //   the brackets see 60% of gross plus any salary.
+        //
+        //   The rows showed estimatedTaxDue, income tax alone, while the
+        //   verdict compares totalTaxDue, which also carries the 3%
+        //   percentage tax the graduated route owes and the 8% route
+        //   substitutes for. So the card named one winner and showed the
+        //   figures of a different comparison.
+        //
+        // Both rows now show totalTaxDue, the same figure the verdict reads,
+        // and both labels say what they actually did.
         _card(p, 'Side by side', <Widget>[
           BreakdownRow(
             palette: p,
-            label: '8% of gross above ₱250,000',
-            value: formatPeso(git.estimatedTaxDue),
+            label: sideSalary > 0
+                ? '8% of gross, no allowance on mixed income'
+                : '8% of gross above ₱250,000',
+            value: formatPeso(git.totalTaxDue),
             valueColor: gitWins ? p.positive : null,
             emphasis: gitWins,
           ),
           BreakdownRow(
             palette: p,
-            label: 'Graduated brackets on the full gross',
-            value: formatPeso(graduated.estimatedTaxDue),
+            label: 'Graduated after the 40% deduction, plus 3%',
+            value: formatPeso(graduated.totalTaxDue),
             valueColor: gitWins ? null : p.positive,
             emphasis: !gitWins,
+          ),
+          const SizedBox(height: Spacing.sm),
+          Text(
+            // Said once, under both rows, rather than left for somebody to
+            // work out from two numbers that do not obviously add up to the
+            // detail card below.
+            'Both figures are everything owed for the year. The graduated '
+            'one includes the 3% percentage tax; electing 8% replaces it.',
+            style: AppType.caption(p),
           ),
         ]),
         const SizedBox(height: Spacing.md),
@@ -519,11 +550,27 @@ class _TaxCalculatorSheetState extends State<TaxCalculatorSheet> {
           ),
           BreakdownRow(
             palette: p,
-            label: 'Tax due for the year',
+            // "Income tax", not "Tax due for the year". A percentage tax row
+            // sits above this one, so a line calling itself the year's tax
+            // while excluding the other tax on the same screen is the
+            // card contradicting itself the way the side by side did. The
+            // total follows, so the column now adds up.
+            label: 'Income tax for the year',
             value: formatPeso(chosen.estimatedTaxDue),
             valueColor: p.negative,
-            emphasis: true,
+            emphasis: chosen.percentageTax <= 0,
           ),
+          // Only where there are two taxes to add. On the 8% route the income
+          // tax IS the total, and a "total" row repeating the figure above it
+          // teaches somebody to stop reading the column.
+          if (chosen.percentageTax > 0)
+            BreakdownRow(
+              palette: p,
+              label: 'Everything owed for the year',
+              value: formatPeso(chosen.totalTaxDue),
+              valueColor: p.negative,
+              emphasis: true,
+            ),
           BreakdownRow(
             palette: p,
             label: 'Effective rate',
