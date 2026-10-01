@@ -290,7 +290,82 @@ door fails it:
     Expected: ['lib/core/money/health_check.dart']
       Actual: ['lib/core/money/pan/pan_health.dart', 'lib/core/money/health_check.dart']
 
-## Phase 2 to 7
+## Phase 2: money foundation
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | type built and locked; 28 model fields still to move |
+| P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
+| P2.3 | Protected accounts (F3) | todo | |
+| P2.4 | Debt types and minimums (F4) | todo | |
+| P2.5 | Bills before payday only (F5) | todo | blocked behind the payday rule question in DEFERRED.md |
+| P2.6 | Single FX source (F7) | todo | |
+| P2.7 | Storage performance | todo | |
+| P2.8 | Lazy lists everywhere entries are shown | todo | |
+
+### P2.1 notes, increment 1 of several
+
+**The size, stated honestly before starting.** P2.1 reads as one row and is the
+largest change in the sprint: 28 money fields across the models, around 35
+engine files in `core/money`, 11 golden vector locks, and roughly 1,400 tests
+whose fixtures all pass pesos as doubles. It does not land in one sitting, and
+the sprint prompt already says how to do it: module by module, tests green
+after each.
+
+**The decision that keeps it out of the founder-gated categories.**
+`json_codec.dart` is the single boundary between the app and the file on disk.
+Keeping the STORED shape as pesos, exactly as it is today, and converting at
+that one boundary makes P2.1 purely internal: a backup written by this version
+opens in the old one and the other way round, there is no migration, and
+nothing can lose a record. The stored-format question belongs to P2.2, where it
+is gated and where it will have a pre-migration backup behind it.
+
+**What landed in this increment:** `core/money/money.dart`, the value type, and
+nothing migrated yet. It holds centavos in an int, so two centavos plus two
+centavos is four centavos on every machine and `==` means what it says.
+
+Every rounding rule is the prototype's `Math.round` through `jsRound`, not
+Dart's, so a figure that was right before is right after. The two differ only
+on a negative half centavo, which is exactly the case no fixture has.
+
+`money_test.dart` states each double failure first so the reason is on the
+page rather than cited: `0.1 + 0.2 == 0.3` is false, `(1.005 * 100).round()` is
+100 and not 101, and a thousand additions of a tenth miss by a sliver. The
+split is tested as a PROPERTY over every amount from 1 to 2,000 centavos across
+1 to 9 ways, asserting both that the shares sum back exactly and that no share
+carries more than a centavo over any other. Dropping the remainder fails it:
+
+    Expected: <1>
+      Actual: <0>
+    1 centavos over 2 did not sum back
+
+and swapping `jsRound` for Dart's `round()` fails the negative half:
+
+    Expected: <-2>
+      Actual: <-3>
+
+**The P2.1 check, usable from day one.** The prompt asks for a test that fails
+if a money field is a `double`. Written as a flat ban it would be red on
+purpose for the whole migration, and a test that is red on purpose gets
+ignored. `money_migration_guard_test.dart` is a SHRINKING LIST instead: it
+fails if a double field appears that is not accounted for, and equally if the
+list claims work that is already finished, so the count cannot drift from the
+code. Both halves proven. Planting a real field in the models:
+
+    Expected: empty
+      Actual: Set:['sneakyRolloverAmount']
+
+and claiming a finished one:
+
+    Expected: empty
+      Actual: Set:['alreadyMigratedAmount']
+
+Rates and durations are named separately as permanently double, with the
+reason: an interest rate is a ratio and a cash runway is a count of months, and
+forcing either into a centavo type is the same category error as holding a peso
+in a double, pointing the other way.
+
+## Phase 3 to 7
 
 Not started. Tracked in the sprint prompt; this table grows as each phase
 begins.
