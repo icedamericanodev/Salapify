@@ -76,6 +76,25 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
         paidAmount: Money.pesos(0),
         isSettled: false,
         dueDate: _dueDate.text.trim().isEmpty ? null : _dueDate.text.trim(),
+        // EVERYTHING THE FORM ASKS FOR IS NOW KEPT.
+        //
+        // This constructor used to stop at dueDate, so the note, the
+        // Installments choice and the term were collected, rendered, used to
+        // draw a full amortisation preview, and then thrown away on save. A
+        // debt entered as a 6 month plan came back as "Flexible, pay when
+        // you can" and the note never appeared, on a card that renders notes
+        // whenever they exist.
+        //
+        // Nothing new is stored: debtToJson already writes notes,
+        // scheduleType and installmentTotal, and debtKeys already declares
+        // all three. The form was simply not filling them in.
+        schedule: _scheduled ? DebtSchedule.scheduled : DebtSchedule.flexible,
+        // The counter starts at the first payment, which is what
+        // applyDebtPayment increments. Null on a flexible debt, which has no
+        // instalments to count.
+        installmentCurrent: _scheduled && _termMonths > 0 ? 0 : null,
+        installmentTotal: _scheduled && _termMonths > 0 ? _termMonths : null,
+        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       ),
     );
   }

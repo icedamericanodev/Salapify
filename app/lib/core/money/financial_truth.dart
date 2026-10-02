@@ -1,3 +1,4 @@
+import 'debt.dart' show outstanding;
 import 'money.dart';
 import 'dart:math' as math;
 
@@ -228,11 +229,18 @@ List<ControlCenterAlert> runControlCenterScan({
   }
 
   // 8. Debt owed above 80% of liquid reserves.
-  final double totalDebtOwed = sumMoney(
-    debts
-        .where((Debt d) => d.direction == DebtDirection.iOwe && !d.isSettled)
-        .map((Debt d) => d.totalAmount - d.paidAmount),
-  ).pesos;
+  // ONE implementation of "what you owe", shared with every screen.
+  //
+  // This used to be its own copy, identical to `outstanding` except that it
+  // dropped the floor. `Debt.remaining` clamps at zero and this did not, and
+  // the result is summed, so an OVERPAID debt subtracted from the total.
+  //
+  // Reachable in two taps: overpay a debt (which is deliberately allowed),
+  // it settles, then tap "Not settled after all". Measured gap 2,000.00
+  // between this alert and the figure the Debts screen shows for the same
+  // debts. It also gates the alert, so an overpaid debt could silence a real
+  // debt-pressure warning.
+  final double totalDebtOwed = outstanding(debts, DebtDirection.iOwe).pesos;
 
   if (totalDebtOwed > liquidCash * 0.8 && totalDebtOwed > 0) {
     alerts.add(

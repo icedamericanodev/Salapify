@@ -185,7 +185,21 @@ class _InstallmentSheetState extends State<InstallmentSheet> {
             // The engine was fixed for exactly this reason in increment 3 and
             // this preview kept promising the quoted figure, so the sentence
             // and the button disagreed by up to a whole instalment.
-            amount: widget.extra ? typed : nextPaymentFor(plan).pesos,
+            // The EXTRA branch goes through the engine's own cap for the same
+            // reason the scheduled branch goes through nextPaymentFor. Typing
+            // 10,000 against a 6,591.20 balance made the sheet promise the
+            // account would fall by 10,000.00 while the engine applied
+            // min(typed, balance) and took 6,591.20. The sentence above the
+            // button was wrong by 3,408.80, and it is the sentence somebody
+            // reads to decide.
+            amount: widget.extra
+                ? (typed == null
+                      ? null
+                      : appliedExtraPayment(
+                          plan,
+                          Money.fromDouble(typed),
+                        ).pesos)
+                : nextPaymentFor(plan).pesos,
             accountName: _accountId == null
                 ? null
                 : widget.state.accounts
