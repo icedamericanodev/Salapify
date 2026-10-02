@@ -4,6 +4,8 @@ import 'package:salapify/core/money/money.dart';
 import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
+import '../../support/test_clock.dart';
+
 /// The invariants the instalment engine never had, and the three defects they
 /// would have caught.
 ///
@@ -117,7 +119,11 @@ void main() {
         final Money due = nextPaymentFor(p);
         expect(due.isPositive, isTrue, reason: 'a payment of nothing');
         handedOver += due;
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
       }
 
       expect(p.runningBalance, Money.zero);
@@ -137,7 +143,11 @@ void main() {
       Money fromHere = Money.zero;
       while (!p.isSettled) {
         fromHere += nextPaymentFor(p);
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
       }
       final Money alreadyPaid = scheduleFor(seed).totalPayable - fromHere;
       expect(alreadyPaid + fromHere, seed.totalPayable);
@@ -170,7 +180,11 @@ void main() {
       while (!p.isSettled) {
         final Money due = nextPaymentFor(p);
         handedOver += due;
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
         scheduledPayments++;
       }
 
@@ -203,7 +217,11 @@ void main() {
       int n = 0;
       while (!p.isSettled) {
         last = nextPaymentFor(p);
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
         n++;
       }
       expect(
@@ -218,12 +236,18 @@ void main() {
     test('a settled plan refuses another payment', () {
       InstallmentPlan p = _plan('inst_spaylater');
       while (!p.isSettled) {
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
       }
       expect(nextPaymentFor(p), Money.zero);
-      final InstallmentPlan again = applyInstallmentPayment(<InstallmentPlan>[
-        p,
-      ], p.id).single;
+      final InstallmentPlan again = applyInstallmentPayment(
+        <InstallmentPlan>[p],
+        p.id,
+        today: testToday,
+      ).single;
       expect(again.paidInstallments, p.paidInstallments);
     });
   });
@@ -310,7 +334,11 @@ void main() {
       expect(p.interestRemaining.isPositive, isTrue);
       expect(p.interestRemaining == p.runningBalance, isFalse);
 
-      p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+      p = applyInstallmentPayment(
+        <InstallmentPlan>[p],
+        p.id,
+        today: testToday,
+      ).single;
       check('after a scheduled payment');
       p = applyExtraPayment(
         <InstallmentPlan>[p],
@@ -320,7 +348,11 @@ void main() {
       ).single;
       check('after a prepayment');
       while (!p.isSettled) {
-        p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+        p = applyInstallmentPayment(
+          <InstallmentPlan>[p],
+          p.id,
+          today: testToday,
+        ).single;
       }
       check('at settlement');
     });
@@ -333,7 +365,11 @@ void main() {
       )) {
         InstallmentPlan p = seed;
         while (!p.isSettled) {
-          p = applyInstallmentPayment(<InstallmentPlan>[p], p.id).single;
+          p = applyInstallmentPayment(
+            <InstallmentPlan>[p],
+            p.id,
+            today: testToday,
+          ).single;
           expect(p.runningBalance.isNegative, isFalse, reason: p.id);
           expect(p.principalRemaining.isNegative, isFalse, reason: p.id);
           expect(p.interestRemaining.isNegative, isFalse, reason: p.id);

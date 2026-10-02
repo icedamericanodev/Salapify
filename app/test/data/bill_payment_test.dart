@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
@@ -17,11 +18,13 @@ import 'package:salapify/state/financial_state.dart';
 void main() {
   FinancialState store() => FinancialState(clock: DateTime(2026, 9, 18));
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   UpcomingItem anExpense(FinancialState s) =>
       s.upcoming.firstWhere((UpcomingItem u) => !u.countsAsIncome && !u.isPaid);
@@ -30,7 +33,7 @@ void main() {
     test('the account falls by exactly the bill, and so does net worth', () {
       final FinancialState s = store();
       final UpcomingItem bill = anExpense(s);
-      final double cashBefore = balanceOf(s, 'acc_cash');
+      final Money cashBefore = balanceOf(s, 'acc_cash');
       final double worthBefore = netWorthOf(s);
 
       final Transaction? tx = s.markUpcomingPaid(
@@ -44,9 +47,9 @@ void main() {
       // per-account figure is what names which money moved.
       expect(
         balanceOf(s, 'acc_cash'),
-        closeTo(cashBefore - bill.amount, 0.001),
+        cashBefore - Money.fromDouble(bill.amount),
       );
-      expect(netWorthOf(s), closeTo(worthBefore - bill.amount, 0.001));
+      expect(netWorthOf(s), worthBefore - bill.amount);
     });
 
     test('the entry is findable, and says what it was for', () {
@@ -77,7 +80,7 @@ void main() {
     test('paying the same bill twice does not charge twice', () {
       final FinancialState s = store();
       final UpcomingItem bill = anExpense(s);
-      final double cashBefore = balanceOf(s, 'acc_cash');
+      final Money cashBefore = balanceOf(s, 'acc_cash');
 
       s.markUpcomingPaid(bill.id, accountId: 'acc_cash');
       final Transaction? second = s.markUpcomingPaid(
@@ -88,7 +91,7 @@ void main() {
       expect(second, isNull);
       expect(
         balanceOf(s, 'acc_cash'),
-        closeTo(cashBefore - bill.amount, 0.001),
+        cashBefore - Money.fromDouble(bill.amount),
       );
     });
   });
@@ -190,7 +193,7 @@ void main() {
 
       expect(tx, isNull);
       expect(s.transactions.length, rowsBefore);
-      expect(netWorthOf(s), closeTo(worthBefore, 0.001));
+      expect(netWorthOf(s), worthBefore);
       // The flag still flips, which is the behaviour the Coming Up card has
       // always had: ticking it off is allowed, charging an account nobody
       // named is not.
@@ -208,7 +211,7 @@ void main() {
       expect(s.markUpcomingPaid(bill.id, accountId: 'acc_nope'), isNull);
       expect(
         netWorthOf(s),
-        closeTo(worthBefore, 0.001),
+        worthBefore,
         reason: 'money left an account that does not exist',
       );
     });
@@ -231,7 +234,7 @@ void main() {
       );
 
       expect(tx, isNull);
-      expect(netWorthOf(s), closeTo(worthBefore, 0.001));
+      expect(netWorthOf(s), worthBefore);
       expect(
         s.upcoming.firstWhere((UpcomingItem u) => u.id == payday.id).isPaid,
         isTrue,
@@ -246,7 +249,7 @@ void main() {
       // screen full of small round targets.
       final FinancialState s = store();
       final UpcomingItem bill = anExpense(s);
-      final double cashBefore = balanceOf(s, 'acc_cash');
+      final Money cashBefore = balanceOf(s, 'acc_cash');
       final int rowsBefore = s.transactions.length;
 
       final Transaction? tx = s.markUpcomingPaid(
@@ -255,7 +258,7 @@ void main() {
       );
       s.undoUpcomingPaid(bill.id, tx);
 
-      expect(balanceOf(s, 'acc_cash'), closeTo(cashBefore, 0.001));
+      expect(balanceOf(s, 'acc_cash'), cashBefore);
       expect(s.transactions.length, rowsBefore);
       expect(
         s.upcoming.firstWhere((UpcomingItem u) => u.id == bill.id).isPaid,
@@ -266,7 +269,7 @@ void main() {
     test('undoing twice does not credit the money back twice', () {
       final FinancialState s = store();
       final UpcomingItem bill = anExpense(s);
-      final double cashBefore = balanceOf(s, 'acc_cash');
+      final Money cashBefore = balanceOf(s, 'acc_cash');
 
       final Transaction? tx = s.markUpcomingPaid(
         bill.id,
@@ -277,7 +280,7 @@ void main() {
 
       expect(
         balanceOf(s, 'acc_cash'),
-        closeTo(cashBefore, 0.001),
+        cashBefore,
         reason: 'a second undo paid the money back again',
       );
     });
@@ -303,7 +306,7 @@ void main() {
       expect(s.upcoming.length, before + 1);
       expect(
         netWorthOf(s),
-        closeTo(worthBefore, 0.001),
+        worthBefore,
         reason: 'scheduling something charged for it',
       );
     });
@@ -315,14 +318,14 @@ void main() {
       final FinancialState s = store();
       final UpcomingItem bill = anExpense(s);
       s.markUpcomingPaid(bill.id, accountId: 'acc_cash');
-      final double afterPaying = balanceOf(s, 'acc_cash');
+      final Money afterPaying = balanceOf(s, 'acc_cash');
       final int rows = s.transactions.length;
 
       s.deleteUpcoming(bill.id);
 
       expect(s.upcoming.any((UpcomingItem u) => u.id == bill.id), isFalse);
       expect(s.transactions.length, rows);
-      expect(balanceOf(s, 'acc_cash'), closeTo(afterPaying, 0.001));
+      expect(balanceOf(s, 'acc_cash'), afterPaying);
     });
   });
 }

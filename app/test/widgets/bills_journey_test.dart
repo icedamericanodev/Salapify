@@ -9,6 +9,7 @@
 // in Activity to explain anything. Every test was green the whole time,
 // because every test asked whether the flag flipped.
 
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/features/bills/bills_sheet.dart';
@@ -38,11 +39,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   Future<void> openBills(WidgetTester tester) async {
     await tapIt(
@@ -118,7 +121,7 @@ void main() {
       final UpcomingItem meralco = state.upcoming.firstWhere(
         (UpcomingItem u) => u.name.contains('Meralco'),
       );
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
       final double worthBefore = netWorthOf(state);
 
       await openBills(tester);
@@ -127,10 +130,10 @@ void main() {
 
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(gcashBefore - meralco.amount, 0.001),
+        gcashBefore - Money.fromDouble(meralco.amount),
         reason: 'the chosen account did not fall by the bill',
       );
-      expect(netWorthOf(state), closeTo(worthBefore - meralco.amount, 0.001));
+      expect(netWorthOf(state), worthBefore - meralco.amount);
     });
 
     testWidgets('cancelling the dialog pays nothing', (
@@ -149,7 +152,7 @@ void main() {
       await tapIt(tester, payTick(meralco.id));
       await tapIt(tester, inDialog(find.text('Cancel')));
 
-      expect(netWorthOf(state), closeTo(worthBefore, 0.001));
+      expect(netWorthOf(state), worthBefore);
       expect(state.transactions.length, rowsBefore);
       expect(
         state.upcoming
@@ -236,7 +239,7 @@ void main() {
       final UpcomingItem meralco = state.upcoming.firstWhere(
         (UpcomingItem u) => u.name.contains('Meralco'),
       );
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
 
       await openBills(tester);
       await tapIt(tester, payTick(meralco.id));
@@ -260,7 +263,7 @@ void main() {
 
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(gcashBefore, 0.001),
+        gcashBefore,
         reason: 'Undo did not put the money back',
       );
       expect(
@@ -298,7 +301,7 @@ void main() {
       expect(find.text('Converge Fibre'), findsWidgets);
       expect(
         netWorthOf(state),
-        closeTo(worthBefore, 0.001),
+        worthBefore,
         reason: 'scheduling something charged for it',
       );
     });
@@ -314,7 +317,7 @@ void main() {
       await openBills(tester);
       await tapIt(tester, payTick(meralco.id));
       await payWith(tester, 'GCash');
-      final double afterPaying = balanceOf(state, 'acc_gcash');
+      final Money afterPaying = balanceOf(state, 'acc_gcash');
       final int rows = state.transactions.length;
 
       await tapIt(tester, removeTick(meralco.id));
@@ -335,7 +338,7 @@ void main() {
         rows,
         reason: 'removing the schedule row un-spent real money',
       );
-      expect(balanceOf(state, 'acc_gcash'), closeTo(afterPaying, 0.001));
+      expect(balanceOf(state, 'acc_gcash'), afterPaying);
     });
 
     testWidgets('Keep it on the remove dialog removes nothing', (
@@ -367,7 +370,7 @@ void main() {
       final UpcomingItem meralco = state.upcoming.firstWhere(
         (UpcomingItem u) => u.name.contains('Meralco'),
       );
-      final double gcashBefore = balanceOf(state, 'acc_gcash');
+      final Money gcashBefore = balanceOf(state, 'acc_gcash');
 
       // Home is a lazy list, so the Coming Up card is not BUILT until it is
       // scrolled to. The first version of this tapped straight at it and
@@ -398,7 +401,7 @@ void main() {
       await payWith(tester, 'GCash');
       expect(
         balanceOf(state, 'acc_gcash'),
-        closeTo(gcashBefore - meralco.amount, 0.001),
+        gcashBefore - Money.fromDouble(meralco.amount),
         reason: 'the Coming Up tick ticked off without moving money',
       );
     });

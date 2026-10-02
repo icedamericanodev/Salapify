@@ -72,7 +72,7 @@ void main() {
     await openDebts(tester);
 
     final FinancialState store = storeOf(tester);
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
     final int entriesBefore = store.transactions.length;
@@ -104,7 +104,7 @@ void main() {
     // --- half one, directional: both sides moved by exactly 2,450 ---------
     expect(
       store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
-      closeTo(gcashBefore - 2450, 0.001),
+      gcashBefore - const Money.pesos(2450),
       reason: 'the account the money came out of must be 2,450 lighter',
     );
     expect(
@@ -149,7 +149,7 @@ void main() {
   ) async {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 
@@ -168,7 +168,7 @@ void main() {
 
     expect(
       store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
-      closeTo(gcashBefore + 1500, 0.001),
+      gcashBefore + const Money.pesos(1500),
       reason:
           'Being repaid is money coming IN. If this went down, the '
           'direction was read backwards and the row on screen would look '
@@ -187,7 +187,7 @@ void main() {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
     final int entriesBefore = store.transactions.length;
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 
@@ -224,7 +224,7 @@ void main() {
     await openDebts(tester);
     final FinancialState store = storeOf(tester);
     final int entriesBefore = store.transactions.length;
-    final double gcashBefore = store.accounts
+    final Money gcashBefore = store.accounts
         .firstWhere((Account a) => a.id == 'acc_gcash')
         .balance;
 
@@ -309,6 +309,78 @@ void main() {
       reason:
           'Two screens reading the same debts must never print two '
           'different totals.',
+    );
+  });
+
+  testWidgets('a payment can be taken back, and the trail goes with it', (
+    WidgetTester tester,
+  ) async {
+    // THE SECOND HALF, by tapping. Every money test on the original Debt
+    // batch asked only whether the figures were right; the founder then paid
+    // 1,500 off a loan, opened the account it came from, and found nothing in
+    // its history. A reversal that is invisible on the account it credited is
+    // the same defect with the sign flipped.
+    await openDebts(tester);
+    final FinancialState store = storeOf(tester);
+
+    final Money gcashBefore = store.accounts
+        .firstWhere((Account a) => a.id == 'acc_gcash')
+        .balance;
+    final Money paidBefore = store.debts
+        .firstWhere((Debt d) => d.id == 'debt_homecredit')
+        .paidAmount;
+
+    // NOT OFFERED until there is something to take back. Every debt from a
+    // restored backup sits in that state for good.
+    expect(
+      find.text('Take back the last payment'),
+      findsNothing,
+      reason: 'the control is offered on a debt with no record of any payment',
+    );
+
+    await tapAndSettle(tester, find.text('Record a payment').first);
+    await tester.enterText(find.byType(TextField).first, '1500');
+    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.text('GCash Wallet'));
+    await tapAndSettle(tester, find.textContaining('Record the payment'));
+
+    expect(
+      store.debts.firstWhere((Debt d) => d.id == 'debt_homecredit').paidAmount,
+      paidBefore + const Money.pesos(1500),
+      reason: 'the payment did not land, so nothing below proves anything',
+    );
+
+    // IT APPEARS once there is a payment to take back.
+    await reach(tester, find.text('Take back the last payment'));
+    await tapAndSettle(tester, find.text('Take back the last payment').first);
+
+    // The question names BOTH sides, because the payment moved both.
+    expect(find.textContaining('goes back to'), findsOneWidget);
+    expect(find.textContaining('goes back up by'), findsOneWidget);
+
+    await tapAndSettle(tester, find.text('Take it back'));
+
+    expect(
+      store.debts.firstWhere((Debt d) => d.id == 'debt_homecredit').paidAmount,
+      paidBefore,
+    );
+    expect(
+      store.accounts.firstWhere((Account a) => a.id == 'acc_gcash').balance,
+      gcashBefore,
+      reason: 'the account came back NEARLY right, which an undo must not do',
+    );
+    expect(
+      store.transactions.any((Transaction t) => t.id.startsWith('tx_debt_')),
+      isFalse,
+      reason:
+          'the entry explaining the payment is still in Activity while the '
+          'debt says it never happened, which is the half-landed state this '
+          'whole batch exists to stop',
+    );
+    expect(
+      find.text('Take back the last payment'),
+      findsNothing,
+      reason: 'it is still offered with nothing left to take back',
     );
   });
 }

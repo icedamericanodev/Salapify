@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/accounts.dart';
 import 'package:salapify/core/money/reports.dart';
@@ -20,7 +21,7 @@ Account _a({
   name: name,
   kind: kind,
   institution: institution,
-  balance: balance,
+  balance: Money.fromDouble(balance),
   monogram: 'TT',
   currency: currency,
   profile: profile,

@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/data/seed_data.dart';
@@ -255,7 +256,7 @@ void main() {
         name: 'Unsorted Wallet',
         kind: AccountKind.cash,
         institution: 'Cash',
-        balance: 1000,
+        balance: Money.pesos(1000),
         monogram: 'U',
       );
       for (final ProfileEntity scope in ProfileEntity.values) {

@@ -26,7 +26,6 @@ void main() {
   const Set<String> notYetMoney = <String>{
     'amount',
     'amountReserved',
-    'balance',
     'creditLimit',
     'emergencyBuffer',
     'expectedAmount',
@@ -91,7 +90,7 @@ void main() {
     // prompt asked for.
     expect(
       notYetMoney.length,
-      16,
+      15,
       reason:
           'Fields left to migrate changed. Update this figure AND the P2.1 '
           'row in docs/PROGRESS.md in the same commit, so the two cannot '

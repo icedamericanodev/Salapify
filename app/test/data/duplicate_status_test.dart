@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
@@ -28,11 +29,13 @@ import '../support/test_clock.dart';
 void main() {
   FinancialState store() => FinancialState(clock: testToday);
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   /// A counted expense somebody could plausibly mark as a duplicate.
   Transaction anExpense(FinancialState s) => s.transactions.firstWhere(
@@ -45,13 +48,13 @@ void main() {
       final FinancialState s = store();
       final Transaction tx = anExpense(s);
       final String acc = tx.accountId;
-      final double before = balanceOf(s, acc);
+      final Money before = balanceOf(s, acc);
 
       s.setTransactionStatus(tx.id, TransactionStatus.duplicate);
 
       expect(
         balanceOf(s, acc),
-        closeTo(before + tx.amount.pesos, 0.0001),
+        before + tx.amount,
         reason: 'the entry stopped counting and the money stayed gone',
       );
     });
@@ -60,14 +63,14 @@ void main() {
       final FinancialState s = store();
       final Transaction tx = anExpense(s);
       final String acc = tx.accountId;
-      final double start = balanceOf(s, acc);
+      final Money start = balanceOf(s, acc);
       final double worth = netWorthOf(s);
 
       s.setTransactionStatus(tx.id, TransactionStatus.duplicate);
       s.setTransactionStatus(tx.id, TransactionStatus.confirmed);
 
-      expect(balanceOf(s, acc), closeTo(start, 0.0001));
-      expect(netWorthOf(s), closeTo(worth, 0.0001));
+      expect(balanceOf(s, acc), start);
+      expect(netWorthOf(s), worth);
     });
 
     test('the totals and the balance agree afterwards', () {
@@ -76,19 +79,19 @@ void main() {
       final FinancialState s = store();
       final Transaction tx = anExpense(s);
       final String acc = tx.accountId;
-      final double balanceBefore = balanceOf(s, acc);
+      final Money balanceBefore = balanceOf(s, acc);
       final double spentBefore = s.panFacts.monthOut;
 
       s.setTransactionStatus(tx.id, TransactionStatus.duplicate);
 
       expect(
         s.panFacts.monthOut,
-        closeTo(spentBefore - tx.amount.pesos, 0.0001),
+        spentBefore - tx.amount.pesos,
         reason: 'it is still being counted as spending',
       );
       expect(
         balanceOf(s, acc),
-        closeTo(balanceBefore + tx.amount.pesos, 0.0001),
+        balanceBefore + tx.amount,
         reason: 'the balance did not follow the total',
       );
     });
@@ -99,13 +102,13 @@ void main() {
       final FinancialState s = store();
       final Transaction tx = anExpense(s);
       final String acc = tx.accountId;
-      final double start = balanceOf(s, acc);
+      final Money start = balanceOf(s, acc);
 
       s.setTransactionStatus(tx.id, TransactionStatus.excluded);
-      expect(balanceOf(s, acc), closeTo(start + tx.amount.pesos, 0.0001));
+      expect(balanceOf(s, acc), start + tx.amount);
 
       s.setTransactionStatus(tx.id, TransactionStatus.confirmed);
-      expect(balanceOf(s, acc), closeTo(start, 0.0001));
+      expect(balanceOf(s, acc), start);
     });
 
     test('duplicate to excluded moves nothing, because neither counts', () {
@@ -117,13 +120,13 @@ void main() {
       final String acc = tx.accountId;
 
       s.setTransactionStatus(tx.id, TransactionStatus.duplicate);
-      final double afterFirst = balanceOf(s, acc);
+      final Money afterFirst = balanceOf(s, acc);
 
       s.setTransactionStatus(tx.id, TransactionStatus.excluded);
 
       expect(
         balanceOf(s, acc),
-        closeTo(afterFirst, 0.0001),
+        afterFirst,
         reason: 'the money came back a second time',
       );
     });
@@ -132,11 +135,11 @@ void main() {
       final FinancialState s = store();
       final Transaction tx = anExpense(s);
       final String acc = tx.accountId;
-      final double start = balanceOf(s, acc);
+      final Money start = balanceOf(s, acc);
 
       s.setTransactionStatus(tx.id, TransactionStatus.pending);
 
-      expect(balanceOf(s, acc), closeTo(start, 0.0001));
+      expect(balanceOf(s, acc), start);
     });
   });
 
@@ -151,13 +154,13 @@ void main() {
             t.type == TransactionType.income && t.countsTowardTotals,
       );
       final String acc = income.accountId;
-      final double start = balanceOf(s, acc);
+      final Money start = balanceOf(s, acc);
 
       s.setTransactionStatus(income.id, TransactionStatus.duplicate);
-      expect(balanceOf(s, acc), closeTo(start - income.amount.pesos, 0.0001));
+      expect(balanceOf(s, acc), start - income.amount);
 
       s.setTransactionStatus(income.id, TransactionStatus.confirmed);
-      expect(balanceOf(s, acc), closeTo(start, 0.0001));
+      expect(balanceOf(s, acc), start);
     });
 
     test('a transfer reverses BOTH ends', () {
@@ -171,25 +174,25 @@ void main() {
             t.countsTowardTotals &&
             t.toAccountId != null,
       );
-      final double fromStart = balanceOf(s, move.accountId);
-      final double toStart = balanceOf(s, move.toAccountId!);
+      final Money fromStart = balanceOf(s, move.accountId);
+      final Money toStart = balanceOf(s, move.toAccountId!);
       final double worth = netWorthOf(s);
 
       s.setTransactionStatus(move.id, TransactionStatus.duplicate);
 
       expect(
         balanceOf(s, move.accountId),
-        closeTo(fromStart + move.amount.pesos, 0.0001),
+        fromStart + move.amount,
         reason: 'the source did not get its money back',
       );
       expect(
         balanceOf(s, move.toAccountId!),
-        closeTo(toStart - move.amount.pesos, 0.0001),
+        toStart - move.amount,
         reason: 'the destination kept money that no longer moved',
       );
       expect(
         netWorthOf(s),
-        closeTo(worth, 0.0001),
+        worth,
         reason: 'a transfer never changes net worth, in either direction',
       );
     });
@@ -205,7 +208,7 @@ void main() {
 
       s.setTransactionStatus(already.id, TransactionStatus.duplicate);
 
-      expect(netWorthOf(s), closeTo(worth, 0.0001));
+      expect(netWorthOf(s), worth);
     });
   });
 }

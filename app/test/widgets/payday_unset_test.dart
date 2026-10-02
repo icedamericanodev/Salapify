@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/reconciliation.dart';
@@ -25,7 +26,7 @@ void main() {
           name: 'My GCash',
           kind: AccountKind.gcash,
           institution: 'GCash',
-          balance: 50000,
+          balance: Money.pesos(50000),
           monogram: 'GC',
         ),
       ],

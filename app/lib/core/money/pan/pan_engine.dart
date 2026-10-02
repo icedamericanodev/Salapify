@@ -609,18 +609,18 @@ PanAnswer _oneAccount(Account a, PanFacts facts) {
   // carried the identical defect with an equally confident comment; this one
   // was found by going looking for its twin.
   final bool liability = liabilityKinds.contains(a.kind);
-  final bool owing = liability ? a.balance > 0 : a.balance < 0;
-  final double amount = a.balance.abs();
+  final bool owing = liability ? a.balance.isPositive : a.balance.isNegative;
+  final double amount = a.balance.abs.pesos;
 
   final String text;
   final String label;
-  if (liability && a.balance > 0) {
+  if (liability && a.balance > Money.pesos(0)) {
     text =
         '${a.name} is carrying ${formatPeso(amount)} owing. A card or a loan '
         'records what you owe as a positive balance, and Salapify subtracts '
         'it from your net worth rather than adding to it.';
     label = 'Owing';
-  } else if (liability && a.balance < 0) {
+  } else if (liability && a.balance < Money.pesos(0)) {
     // Rare but real: an overpayment leaves the card owing YOU.
     text =
         '${a.name} is ${formatPeso(amount)} in credit, which is money the '

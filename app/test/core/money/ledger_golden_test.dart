@@ -398,7 +398,7 @@ void _writeTests() {
       name: 'BPI',
       kind: AccountKind.bank,
       institution: 'BPI',
-      balance: 48500,
+      balance: Money.pesos(48500),
       monogram: 'B',
     ),
     const Account(
@@ -406,7 +406,7 @@ void _writeTests() {
       name: 'GCash',
       kind: AccountKind.gcash,
       institution: 'GCash',
-      balance: 8420.5,
+      balance: Money.of(8420, 50),
       monogram: 'G',
     ),
     const Account(
@@ -414,16 +414,16 @@ void _writeTests() {
       name: 'Cash',
       kind: AccountKind.cash,
       institution: 'Cash',
-      balance: 1850,
+      balance: Money.pesos(1850),
       monogram: 'C',
     ),
   ];
 
-  double balanceOf(List<Account> accounts, String id) =>
+  Money balanceOf(List<Account> accounts, String id) =>
       accounts.firstWhere((Account a) => a.id == id).balance;
 
   double sumOf(List<Account> accounts) =>
-      accounts.fold<double>(0, (double s, Account a) => s + a.balance);
+      accounts.fold<double>(0, (double s, Account a) => s + a.balance.pesos);
 
   Transaction logged({
     required TransactionType type,
@@ -449,10 +449,10 @@ void _writeTests() {
         base(),
         logged(type: TransactionType.expense, amount: 285, accountId: 'gcash'),
       );
-      expect(balanceOf(r, 'gcash'), 8135.5);
+      expect(balanceOf(r, 'gcash'), const Money.of(8135, 50));
       expect(
         balanceOf(r, 'bpi'),
-        48500,
+        const Money.pesos(48500),
         reason: 'other accounts must not move',
       );
       expect(sumOf(r), 58485.5);
@@ -463,7 +463,7 @@ void _writeTests() {
         base(),
         logged(type: TransactionType.income, amount: 32500, accountId: 'bpi'),
       );
-      expect(balanceOf(r, 'bpi'), 81000);
+      expect(balanceOf(r, 'bpi'), const Money.pesos(81000));
       expect(sumOf(r), 91270.5);
     });
 
@@ -481,8 +481,8 @@ void _writeTests() {
       expect(sumOf(r), sumOf(base()));
       // And the directional companion, without which a transfer that
       // transferred nothing would satisfy the line above perfectly.
-      expect(balanceOf(r, 'bpi'), 43500);
-      expect(balanceOf(r, 'gcash'), 13420.5);
+      expect(balanceOf(r, 'bpi'), const Money.pesos(43500));
+      expect(balanceOf(r, 'gcash'), const Money.of(13420, 50));
     });
 
     test('an excluded entry moves no money at all', () {
@@ -496,7 +496,7 @@ void _writeTests() {
         ),
       );
       expect(sumOf(r), sumOf(base()));
-      expect(balanceOf(r, 'gcash'), 8420.5);
+      expect(balanceOf(r, 'gcash'), const Money.of(8420, 50));
     });
 
     test('a duplicate entry moves no money at all', () {
@@ -509,7 +509,7 @@ void _writeTests() {
           status: TransactionStatus.duplicate,
         ),
       );
-      expect(balanceOf(r, 'bpi'), 48500);
+      expect(balanceOf(r, 'bpi'), const Money.pesos(48500));
     });
 
     test('a PENDING entry does move the money, and may go negative', () {
@@ -525,7 +525,7 @@ void _writeTests() {
           status: TransactionStatus.pending,
         ),
       );
-      expect(balanceOf(r, 'cash'), -49);
+      expect(balanceOf(r, 'cash'), const Money.pesos(-49));
     });
 
     test('centavos survive', () {
@@ -537,7 +537,7 @@ void _writeTests() {
           accountId: 'gcash',
         ),
       );
-      expect(balanceOf(r, 'gcash'), 7170);
+      expect(balanceOf(r, 'gcash'), const Money.pesos(7170));
     });
 
     test('a transfer to an unknown account LOSES money, quirk preserved', () {
@@ -554,7 +554,7 @@ void _writeTests() {
           toAccountId: 'nope',
         ),
       );
-      expect(balanceOf(r, 'bpi'), 48400);
+      expect(balanceOf(r, 'bpi'), const Money.pesos(48400));
       expect(sumOf(r), 58670.5);
       expect(
         sumOf(r),
@@ -688,7 +688,7 @@ void _writeTests() {
         name: 'BPI',
         kind: AccountKind.bank,
         institution: 'BPI',
-        balance: 50000,
+        balance: Money.pesos(50000),
         monogram: 'BP',
       ),
       const Account(
@@ -696,7 +696,7 @@ void _writeTests() {
         name: 'GCash',
         kind: AccountKind.gcash,
         institution: 'GCash',
-        balance: 3000,
+        balance: Money.pesos(3000),
         monogram: 'GC',
       ),
       const Account(
@@ -704,7 +704,7 @@ void _writeTests() {
         name: 'Card',
         kind: AccountKind.credit,
         institution: 'BPI',
-        balance: 4200,
+        balance: Money.pesos(4200),
         monogram: 'BP',
       ),
     ];
@@ -737,7 +737,7 @@ void _writeTests() {
         for (int i = 0; i < before.length; i++) {
           expect(
             after[i].balance,
-            closeTo(before[i].balance, 0.0001),
+            before[i].balance,
             reason: '${before[i].name} did not come back to where it started',
           );
         }
@@ -776,22 +776,26 @@ void _writeTests() {
       final List<Account> before = accounts();
       final Transaction tx = shape(type: TransactionType.expense);
       final List<Account> applied = applyToBalances(before, tx);
-      expect(applied.first.balance, 48500, reason: 'the expense did nothing');
+      expect(
+        applied.first.balance,
+        const Money.pesos(48500),
+        reason: 'the expense did nothing',
+      );
 
       final List<Account> undone = reverseFromBalances(applied, tx);
-      expect(undone.first.balance, 50000);
+      expect(undone.first.balance, const Money.pesos(50000));
     });
 
     test('a transfer moves BOTH accounts, and puts both back', () {
       final List<Account> before = accounts();
       final Transaction tx = shape(type: TransactionType.transfer, to: 'b');
       final List<Account> applied = applyToBalances(before, tx);
-      expect(applied[0].balance, 48500);
-      expect(applied[1].balance, 4500);
+      expect(applied[0].balance, const Money.pesos(48500));
+      expect(applied[1].balance, const Money.pesos(4500));
 
       final List<Account> undone = reverseFromBalances(applied, tx);
-      expect(undone[0].balance, 50000);
-      expect(undone[1].balance, 3000);
+      expect(undone[0].balance, const Money.pesos(50000));
+      expect(undone[1].balance, const Money.pesos(3000));
     });
   });
 }

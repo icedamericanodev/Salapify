@@ -169,9 +169,10 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
     final Account? from = _from;
     if (from != null &&
         from.kind == AccountKind.cash &&
-        from.balance < _value) {
+        from.balance < Money.fromDouble(_value)) {
       return (
-        message: 'There is only ${formatPeso(from.balance)} in ${from.name}.',
+        message:
+            'There is only ${formatPeso(from.balance.pesos)} in ${from.name}.',
         isMistake: true,
       );
     }
@@ -193,9 +194,9 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
     final Account? from = _from;
     if (from == null || _value <= 0) return null;
     if (from.kind == AccountKind.cash) return null;
-    if (from.balance >= _value) return null;
+    if (from.balance >= Money.fromDouble(_value)) return null;
     return 'This takes ${from.name} below zero, to '
-        '${formatPeso(from.balance - _value)}.';
+        '${formatPeso((from.balance - Money.fromDouble(_value)).pesos)}.';
   }
 
   void _swap() {
@@ -356,7 +357,9 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
             // The prototype's own four, plus its Max, which it shows only
             // when the source actually holds something.
             amounts: const <double>[500, 1000, 2000, 5000],
-            maxAmount: (_from?.balance ?? 0) > 0 ? _from!.balance : null,
+            maxAmount: (_from?.balance ?? Money.zero).isPositive
+                ? _from!.balance.pesos
+                : null,
             onPick: (double v) => setState(() {
               _amount.text = v.toStringAsFixed(2);
             }),
@@ -484,7 +487,7 @@ class _AccountPicker extends StatelessWidget {
             // account money leaves is the moment somebody needs to know
             // whether there is enough in it.
             child: Text(
-              '${a.name}  ${formatPeso(a.balance)}',
+              '${a.name}  ${formatPeso(a.balance.pesos)}',
               style: AppType.body(palette),
               overflow: TextOverflow.ellipsis,
             ),

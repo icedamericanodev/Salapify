@@ -78,7 +78,7 @@ void main() {
         expect(row.balance, lessThan(previous));
         previous = row.balance;
       }
-      expect(minimum.schedule.last.balance, 0);
+      expect(minimum.schedule.last.balance, 0.0);
     });
   });
 

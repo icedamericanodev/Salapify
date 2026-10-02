@@ -169,7 +169,7 @@ void main() {
       name: 'BPI Gold',
       kind: AccountKind.credit,
       institution: 'BPI',
-      balance: balance,
+      balance: Money.fromDouble(balance),
       monogram: 'BP',
       dueDate: due ?? iso(1),
     );
@@ -188,7 +188,11 @@ void main() {
       final Account seeded = SeedData.accounts(
         testToday,
       ).firstWhere((Account a) => a.kind == AccountKind.credit);
-      expect(seeded.balance, greaterThan(0), reason: 'positive means owed');
+      expect(
+        seeded.balance,
+        greaterThan(Money.zero),
+        reason: 'positive means owed',
+      );
       final ReminderResult r = run(
         accounts: <Account>[
           Account(
@@ -228,7 +232,7 @@ void main() {
             name: 'BPI Savings',
             kind: AccountKind.bank,
             institution: 'BPI',
-            balance: -400,
+            balance: Money.pesos(-400),
             monogram: 'BP',
             dueDate: iso(1),
           ),

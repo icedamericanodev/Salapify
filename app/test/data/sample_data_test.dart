@@ -118,7 +118,7 @@ void main() {
           name: 'My GCash',
           kind: AccountKind.gcash,
           institution: 'GCash',
-          balance: 5000,
+          balance: Money.pesos(5000),
           monogram: 'GC',
         ),
       );
@@ -151,7 +151,7 @@ void main() {
       final Account mine = s.accounts.firstWhere(
         (Account a) => a.id == 'acc_mine',
       );
-      expect(mine.balance, 5000);
+      expect(mine.balance, const Money.pesos(5000));
       expect(mine.isSample, isFalse);
     });
 
@@ -182,7 +182,7 @@ void main() {
       expect(kept.isSample, isFalse);
       expect(
         kept.balance,
-        closeTo(-250, 0.001),
+        const Money.pesos(-250),
         reason:
             'the seeded opening must come back out, leaving exactly the '
             'movement the user\'s own entry explains',
@@ -233,7 +233,7 @@ void main() {
           name: 'My GCash',
           kind: AccountKind.gcash,
           institution: 'GCash',
-          balance: 5000,
+          balance: Money.pesos(5000),
           monogram: 'GC',
         ),
       );
@@ -243,7 +243,7 @@ void main() {
       expect(s.accounts.length, SeedData.accounts(testToday).length + 1);
       expect(
         s.accounts.firstWhere((Account a) => a.id == 'acc_mine').balance,
-        5000,
+        const Money.pesos(5000),
         reason: 'putting the sample data back overwrote a real account',
       );
       expect(s.hasSampleData, isTrue);

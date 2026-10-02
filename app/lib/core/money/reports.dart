@@ -1,3 +1,4 @@
+import 'money.dart';
 import '../../models/models.dart';
 
 /// The Reports engine, ported from src/components/ReportsScreen.tsx.
@@ -75,7 +76,7 @@ const List<AccountKind> cashEquivalentKinds = <AccountKind>[
 /// It stays a function rather than being inlined because the prototype calls
 /// convertToPhp at every one of these sums, and a MISSING call site is
 /// invisible while a wrapper is greppable.
-double toPhp(Account account) => account.balanceInPhp;
+Money toPhp(Account account) => account.balanceInPhp;
 
 /// What you own and what you owe, at this instant. No period applies: a
 /// balance sheet is a photograph, not a film.
@@ -382,34 +383,33 @@ FinancialPosition computePosition(
       .where((Account a) => liabilityKinds.contains(a.kind))
       .toList();
 
-  double sum(Iterable<Account> list) =>
-      list.fold<double>(0, (double s, Account a) => s + toPhp(a));
+  Money sum(Iterable<Account> list) => sumMoney(list.map(toPhp));
 
-  final double totalAssets = sum(assets);
-  final double totalLiabilities = sum(liabilities);
+  final Money totalAssets = sum(assets);
+  final Money totalLiabilities = sum(liabilities);
 
   return FinancialPosition(
-    totalAssets: totalAssets,
-    totalLiabilities: totalLiabilities,
-    netWorth: totalAssets - totalLiabilities,
+    totalAssets: totalAssets.pesos,
+    totalLiabilities: totalLiabilities.pesos,
+    netWorth: (totalAssets - totalLiabilities).pesos,
     cashEquivalents: sum(
       assets.where((Account a) => cashEquivalentKinds.contains(a.kind)),
-    ),
+    ).pesos,
     investments: sum(
       assets.where((Account a) => a.kind == AccountKind.investment),
-    ),
+    ).pesos,
     receivables: sum(
       assets.where((Account a) => a.kind == AccountKind.receivable),
-    ),
+    ).pesos,
     creditCards: sum(
       liabilities.where((Account a) => a.kind == AccountKind.credit),
-    ),
+    ).pesos,
     loans: sum(
       liabilities.where(
         (Account a) =>
             a.kind == AccountKind.loan || a.kind == AccountKind.mortgage,
       ),
-    ),
+    ).pesos,
     assetAccounts: assets,
     liabilityAccounts: liabilities,
   );

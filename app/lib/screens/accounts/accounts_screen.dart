@@ -723,8 +723,11 @@ class _AccountRow extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     account.isForeign
-                        ? formatCurrency(account.balance, account.currency)
-                        : formatPeso(account.balance),
+                        ? formatCurrency(
+                            account.balance.pesos,
+                            account.currency,
+                          )
+                        : formatPeso(account.balance.pesos),
                     style: AppType.amountSmall(
                       palette,
                     ).copyWith(color: amountColor),
@@ -734,7 +737,7 @@ class _AccountRow extends StatelessWidget {
                       // "About", because the rate is fixed and offline. A
                       // converted figure is an estimate and the screen has to
                       // say so wherever it shows one.
-                      'about ${formatPeso(account.balanceInPhp)}',
+                      'about ${formatPeso(account.balanceInPhp.pesos)}',
                       style: AppType.caption(palette),
                     ),
                 ],

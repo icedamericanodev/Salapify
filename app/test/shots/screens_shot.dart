@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -113,6 +114,7 @@ void main() {
   settingsShots();
   unreadableRecoveryShots();
   settleConfirmShot();
+  takeBackShot();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -1384,7 +1386,7 @@ void main() {
         name: 'Singapore payroll',
         kind: AccountKind.bank,
         institution: 'Other',
-        balance: 2000,
+        balance: Money.pesos(2000),
         monogram: 'SG',
         currency: CurrencyCode.sgd,
         profile: ProfileEntity.personal,
@@ -2007,7 +2009,7 @@ void _cardFaceShots() {
     name: 'BPI Rewards Card',
     kind: AccountKind.credit,
     institution: 'BPI',
-    balance: 12480.5,
+    balance: Money.of(12480, 50),
     monogram: 'BP',
     accountNumber: '**** 8819',
     creditLimit: 40000,
@@ -2023,7 +2025,7 @@ void _cardFaceShots() {
     name: 'Metrobank Gold',
     kind: AccountKind.credit,
     institution: 'Metrobank',
-    balance: 6200,
+    balance: Money.pesos(6200),
     monogram: 'MB',
     accountNumber: '4127 8890 2211 4402',
     creditLimit: 150000,
@@ -2040,7 +2042,7 @@ void _cardFaceShots() {
     name: 'GoTyme Debit',
     kind: AccountKind.debit,
     institution: 'GoTyme',
-    balance: 3150,
+    balance: Money.pesos(3150),
     monogram: 'GT',
   );
 
@@ -2263,6 +2265,61 @@ void settleConfirmShot() {
     await expectLater(
       find.byType(AlertDialog),
       matchesGoldenFile('out/debt_settle_confirm.png'),
+    );
+  });
+}
+
+/// Taking a payment back, which is the one control in the app that UNDOES a
+/// money write.
+///
+/// Rendered because the question has to name BOTH sides: a payment moved the
+/// debt and the account, so a dialog naming only the amount leaves somebody to
+/// do the arithmetic they came here to avoid.
+void takeBackShot() {
+  testWidgets('the take back confirmation renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    await state.restore();
+    // A payment to take back, through the real write path, so the dialog is
+    // reading a register row rather than a fixture somebody typed.
+    state.recordDebtPayment('debt_homecredit', 1500, accountId: 'acc_gcash');
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: DebtScreen(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Take back the last payment').first,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take back the last payment').first);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AlertDialog),
+      matchesGoldenFile('out/debt_take_back.png'),
     );
   });
 }

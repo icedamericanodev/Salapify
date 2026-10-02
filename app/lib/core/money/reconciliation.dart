@@ -68,7 +68,7 @@ class ReconciliationRecord {
 
 /// What the app believes an account holds. Its stored balance, which the
 /// ledger keeps up to date on every write.
-double bookBalanceOf(Account account) => account.balance;
+Money bookBalanceOf(Account account) => account.balance;
 
 /// Statement minus book.
 double varianceOf(double bookBalance, double actualBalance) =>

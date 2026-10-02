@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -168,7 +169,7 @@ void main() {
       name: 'BPI Rewards Card',
       kind: kind,
       institution: 'BPI',
-      balance: balance,
+      balance: Money.fromDouble(balance),
       monogram: 'BP',
       accountNumber: '**** 8819',
       creditLimit: limit,
@@ -297,7 +298,7 @@ void cardFlipTests() {
     name: 'BPI Rewards Card',
     kind: AccountKind.credit,
     institution: 'BPI',
-    balance: 4200,
+    balance: Money.pesos(4200),
     monogram: 'BP',
     accountNumber: '**** 8819',
     creditLimit: 40000,
@@ -405,7 +406,7 @@ void cardFlipTests() {
           name: 'Plain Debit',
           kind: AccountKind.debit,
           institution: 'GoTyme',
-          balance: 500,
+          balance: Money.pesos(500),
           monogram: 'GT',
         ),
       ),
@@ -437,7 +438,7 @@ void cardFlipTests() {
           name: 'Metrobank Gold',
           kind: AccountKind.credit,
           institution: 'Metrobank',
-          balance: 6200,
+          balance: Money.pesos(6200),
           monogram: 'MB',
           accountNumber: '4127 8890 2211 4402',
         ),
@@ -506,7 +507,7 @@ void cardFlipTests() {
           name: 'Main card',
           kind: AccountKind.debit,
           institution: 'Pag-IBIG',
-          balance: 900,
+          balance: Money.pesos(900),
           monogram: 'HDMF',
         ),
       ),

@@ -12,6 +12,7 @@
 /// up disagreeing about the same money.
 library;
 
+import 'money.dart';
 import '../../models/models.dart';
 import 'currencies.dart';
 import 'reports.dart' show assetKinds, liabilityKinds;
@@ -39,8 +40,10 @@ class AccountGroup {
 /// dollar account and a peso account are different units, and adding them
 /// gives a number that is wrong in a way no test on a peso-only fixture can
 /// see.
-double accountsTotalPhp(Iterable<Account> accounts) =>
-    accounts.fold<double>(0, (double sum, Account a) => sum + a.balanceInPhp);
+double accountsTotalPhp(Iterable<Account> accounts) => accounts.fold<double>(
+  0,
+  (double sum, Account a) => sum + a.balanceInPhp.pesos,
+);
 
 /// The prototype's filter: entity first, then the asset or liability slice.
 ///
@@ -156,8 +159,11 @@ int? creditUtilization(Account account) {
   if (account.kind != AccountKind.credit) return null;
   final double? limit = account.creditLimit;
   if (limit == null || limit <= 0) return null;
-  return (account.balanceInPhp / convertToPhp(limit, account.currency) * 100)
-      .round();
+  final Money limitInPhp = Money.fromDouble(
+    convertToPhp(limit, account.currency),
+  );
+  if (!limitInPhp.isPositive) return null;
+  return (account.balanceInPhp.centavos / limitInPhp.centavos * 100).round();
 }
 
 /// The threshold the prototype colours red. Thirty percent is the figure

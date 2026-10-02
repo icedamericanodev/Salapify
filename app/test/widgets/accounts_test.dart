@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/accounts.dart';
@@ -230,7 +231,7 @@ void main() {
             name: 'Singapore payroll',
             kind: AccountKind.bank,
             institution: 'Other',
-            balance: 2000,
+            balance: Money.pesos(2000),
             monogram: 'SG',
             currency: CurrencyCode.sgd,
             profile: ProfileEntity.personal,
@@ -267,7 +268,7 @@ void main() {
           name: 'Singapore payroll',
           kind: AccountKind.bank,
           institution: 'Other',
-          balance: 2000,
+          balance: Money.pesos(2000),
           monogram: 'SG',
           currency: CurrencyCode.sgd,
         ),

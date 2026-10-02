@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +35,7 @@ void main() {
     name: 'My GCash',
     kind: AccountKind.gcash,
     institution: 'GCash',
-    balance: 52300,
+    balance: Money.pesos(52300),
     monogram: 'GC',
   );
   const Account theirs = Account(
@@ -42,7 +43,7 @@ void main() {
     name: 'Their BPI',
     kind: AccountKind.bank,
     institution: 'BPI',
-    balance: 71940,
+    balance: Money.pesos(71940),
     monogram: 'BPI',
   );
 
@@ -68,7 +69,7 @@ void main() {
       // The copy holds what was here.
       final Snapshot kept = Snapshot.decode(store.preImport!);
       expect(kept.accounts.single.id, 'acc_mine');
-      expect(kept.accounts.single.balance, 52300);
+      expect(kept.accounts.single.balance, const Money.pesos(52300));
 
       // DIRECTIONAL COMPANION. Without this the test passes when the import
       // silently did nothing at all.
@@ -248,7 +249,7 @@ void main() {
         name: 'Demo',
         kind: AccountKind.cash,
         institution: 'Cash',
-        balance: 100,
+        balance: Money.pesos(100),
         monogram: 'D',
         isSample: true,
       );

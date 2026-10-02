@@ -141,17 +141,17 @@ List<ControlCenterAlert> runControlCenterScan({
         acc.kind == AccountKind.credit ||
         acc.kind == AccountKind.loan ||
         acc.kind == AccountKind.mortgage;
-    if (!borrowing && acc.balance < 0) {
+    if (!borrowing && acc.balance < Money.pesos(0)) {
       alerts.add(
         ControlCenterAlert(
           id: 'alert_neg_bal_${acc.id}',
           type: AlertType.balanceMismatch,
           title: 'Negative Balance in ${acc.name}',
           description:
-              'Account has a negative balance of ₱${_n(acc.balance)}. '
+              'Account has a negative balance of ₱${_n(acc.balance.pesos)}. '
               'A reconciliation adjustment is needed.',
           severity: AlertSeverity.high,
-          amount: acc.balance.abs(),
+          amount: acc.balance.abs.pesos,
           relatedAccountId: acc.id,
           suggestedAction:
               'Reconcile account balance against actual mobile banking / e-wallet statement.',
@@ -201,7 +201,7 @@ List<ControlCenterAlert> runControlCenterScan({
             a.kind == AccountKind.gcash ||
             a.kind == AccountKind.maya,
       )
-      .fold<double>(0, (double s, Account a) => s + a.balance);
+      .fold<double>(0, (double s, Account a) => s + a.balance.pesos);
 
   if (liquidCash < 5000) {
     alerts.add(

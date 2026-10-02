@@ -181,7 +181,7 @@ class _PayBillDialogState extends State<_PayBillDialog> {
                     DropdownMenuItem<String>(
                       value: a.id,
                       child: Text(
-                        '${a.name}  ${formatPeso(a.balance)}',
+                        '${a.name}  ${formatPeso(a.balance.pesos)}',
                         style: AppType.body(p),
                         overflow: TextOverflow.ellipsis,
                       ),

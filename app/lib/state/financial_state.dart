@@ -877,14 +877,33 @@ class FinancialState extends ChangeNotifier {
     final Money paid = Money.fromDouble(amount);
     if (!paid.isPositive) return;
 
-    _debts = applyDebtPayment(_debts, debtId, paid, today: now);
+    // ONE STAMP FOR BOTH HALVES, so the register row and the ledger row it
+    // writes can be tied to each other later. Taking a payment back has to
+    // move the debt AND remove the entry that explains it, and nothing else
+    // in the app links the two: a Transaction carries no debtId, which is the
+    // same gap that let a debt payment be marked a duplicate and half land.
+    final int stamp = DateTime.now().microsecondsSinceEpoch;
+    final String txId = 'tx_debt_$stamp';
+
+    _debts = applyDebtPayment(
+      _debts,
+      debtId,
+      paid,
+      today: now,
+      accountId: accountId,
+      paymentId: 'dp_$stamp',
+      // Only when an entry will actually exist. paymentEntry returns null
+      // with no account, and a row pointing at a transaction that was never
+      // written is worse than one pointing at nothing.
+      txId: accountId == null ? null : txId,
+    );
 
     final Transaction? entry = paymentEntry(
       debt: before,
       amount: paid.pesos,
       accountId: accountId,
       today: now,
-      id: 'tx_debt_${DateTime.now().microsecondsSinceEpoch}',
+      id: txId,
     );
     if (entry != null) {
       // logTransaction notifies as well. One notify too many is a repaint;
@@ -893,6 +912,87 @@ class FinancialState extends ChangeNotifier {
       return;
     }
     notifyListeners();
+  }
+
+  /// Takes the most recent payment back off a debt, in BOTH halves.
+  ///
+  /// Returns false when there is nothing to take back, and false is a real
+  /// answer rather than a failure: every debt from a restored backup, and
+  /// every payment made before the register existed, has no row to read. The
+  /// screen asks before offering the control, so a person never taps into a
+  /// refusal.
+  ///
+  /// The two halves are the same split every other write here uses. The debt
+  /// moves through [reverseLastDebtPayment], which RESTORES stored figures
+  /// rather than subtracting, and the ledger row goes through the existing
+  /// [undoLoggedTransaction], which reverses the balance through the
+  /// vector-locked mirror and is already a no-op when the row has gone.
+  ///
+  /// ## The entry is removed rather than marked
+  ///
+  /// Keeping it and marking it "taken back" would read better in a ledger,
+  /// and it is not built that way because it cannot be yet: no existing
+  /// status means that. `excluded` means the app is right that this happened
+  /// and wrong that it is the person's, and `corrected` COUNTS toward every
+  /// total. Making it not count would change what every figure on Reports
+  /// means, which is a founder decision rather than a detail of this method.
+  /// Flagged to the founder; until then removal is the honest option, because
+  /// a row left counting while the debt has moved is the half-landed state
+  /// this whole batch exists to stop.
+  bool takeBackDebtPayment(String debtId) {
+    final int i = _debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0) return false;
+
+    final Debt before = _debts[i];
+    if (before.payments.isEmpty) return false;
+    final DebtPayment row = before.payments.last;
+
+    _debts = reverseLastDebtPayment(_debts, debtId);
+
+    // No txId is a REAL case, not a missing one: a payment recorded with no
+    // account writes no entry, deliberately, for somebody settling in cash
+    // they never logged. The debt still moves; there is simply nothing to
+    // take out of the ledger.
+    if (row.txId != null) {
+      final int at = _transactions.indexWhere(
+        (Transaction t) => t.id == row.txId,
+      );
+      if (at >= 0) {
+        undoLoggedTransaction(_transactions[at]);
+        return true;
+      }
+    }
+
+    notifyListeners();
+    return true;
+  }
+
+  /// Takes the most recent payment back off an instalment plan, in both
+  /// halves. Same contract as [takeBackDebtPayment].
+  bool takeBackPlanPayment(String planId) {
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0) return false;
+
+    final InstallmentPlan before = _installments[i];
+    if (before.payments.isEmpty) return false;
+    final PlanPayment row = before.payments.last;
+
+    _installments = reverseLastPlanPayment(_installments, planId);
+
+    if (row.txId != null) {
+      final int at = _transactions.indexWhere(
+        (Transaction t) => t.id == row.txId,
+      );
+      if (at >= 0) {
+        undoLoggedTransaction(_transactions[at]);
+        return true;
+      }
+    }
+
+    notifyListeners();
+    return true;
   }
 
   /// Marks a debt settled, or puts it back.
@@ -933,14 +1033,21 @@ class FinancialState extends ChangeNotifier {
     final Money collected = nextPaymentFor(before);
     if (!collected.isPositive) return;
 
-    _installments = applyInstallmentPayment(_installments, planId);
+    final String txId = 'tx_inst_${DateTime.now().microsecondsSinceEpoch}';
+
+    _installments = applyInstallmentPayment(
+      _installments,
+      planId,
+      today: now,
+      txId: accountId == null ? null : txId,
+    );
 
     final Transaction? entry = installmentEntry(
       plan: before,
       installmentNumber: before.paidInstallments + 1,
       accountId: accountId,
       today: now,
-      id: 'tx_inst_${DateTime.now().microsecondsSinceEpoch}',
+      id: txId,
       amount: collected,
     );
     if (entry != null) {
@@ -964,12 +1071,16 @@ class FinancialState extends ChangeNotifier {
     if (i < 0) return;
     final InstallmentPlan before = _installments[i];
 
+    final String txId =
+        'tx_inst_extra_${DateTime.now().microsecondsSinceEpoch}';
+
     _installments = applyExtraPayment(
       _installments,
       planId,
       amount,
       today: now,
       note: note,
+      txId: accountId == null ? null : txId,
     );
 
     // THE SAME POLICY THE ENGINE USES, read rather than re-derived.
@@ -986,7 +1097,7 @@ class FinancialState extends ChangeNotifier {
       amount: applied,
       accountId: accountId,
       today: now,
-      id: 'tx_inst_extra_${DateTime.now().microsecondsSinceEpoch}',
+      id: txId,
       note: note,
     );
     if (entry != null) {
@@ -1055,8 +1166,8 @@ class FinancialState extends ChangeNotifier {
     final int i = _accounts.indexWhere((Account a) => a.id == accountId);
     if (i < 0) return;
     final Account account = _accounts[i];
-    final double book = bookBalanceOf(account);
-    final double variance = varianceOf(book, actualBalance);
+    final Money book = bookBalanceOf(account);
+    final double variance = varianceOf(book.pesos, actualBalance);
     if (isBalanced(variance)) return;
 
     final Transaction? entry = adjustmentEntry(
@@ -1071,7 +1182,7 @@ class FinancialState extends ChangeNotifier {
     logTransaction(entry);
     recordReconciliation(
       accountId: accountId,
-      bookBalance: book,
+      bookBalance: book.pesos,
       actualBalance: actualBalance,
       notes:
           'Traceable adjustment posted: '
@@ -1550,7 +1661,7 @@ class FinancialState extends ChangeNotifier {
   /// receivables and every borrowing line on purpose.
   double get totalLiquidCash => accounts
       .where((Account a) => a.isLiquid)
-      .fold<double>(0, (double sum, Account a) => sum + a.balance);
+      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
 
   /// The five-question health check, from one place.
   ///
@@ -1896,11 +2007,11 @@ class FinancialState extends ChangeNotifier {
   /// It only ever reads a BALANCE, which no date affects, so any clock would
   /// do. Taking the store's own keeps one answer to "what does the seed say"
   /// rather than two that could drift.
-  double _seededBalanceOf(String id) {
+  Money _seededBalanceOf(String id) {
     for (final Account a in SeedData.accounts(now)) {
       if (a.id == id) return a.balance;
     }
-    return 0;
+    return Money.zero;
   }
 
   /// Puts the sample data back, without touching anything the person made.

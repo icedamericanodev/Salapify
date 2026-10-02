@@ -34,7 +34,7 @@ void main() {
       final Account from = state.accounts.firstWhere(
         (Account a) => a.id == 'acc_gcash',
       );
-      final double before = from.balance;
+      final Money before = from.balance;
       final Money owed = plan.runningBalance;
       expect(owed, const Money.of(6591, 20));
 
@@ -53,7 +53,7 @@ void main() {
       expect(after.extraPayments.last.amount, owed);
       expect(entry.amount, owed, reason: 'the ledger entry disagreed');
       expect(
-        Money.fromDouble(before - fromAfter.balance),
+        before - fromAfter.balance,
         owed,
         reason: 'the account moved by a different figure from the plan',
       );
@@ -69,7 +69,7 @@ void main() {
       final Account from = state.accounts.firstWhere(
         (Account a) => a.id == 'acc_gcash',
       );
-      final double before = from.balance;
+      final Money before = from.balance;
 
       state.payInstallmentExtra(
         'inst_spaylater',
@@ -84,10 +84,7 @@ void main() {
         (Account a) => a.id == 'acc_gcash',
       );
       expect(entry.amount, const Money.pesos(1000));
-      expect(
-        Money.fromDouble(before - fromAfter.balance),
-        const Money.pesos(1000),
-      );
+      expect(before - fromAfter.balance, const Money.pesos(1000));
       expect(
         state.installments
             .firstWhere((InstallmentPlan x) => x.id == 'inst_spaylater')
@@ -115,7 +112,7 @@ void main() {
         );
 
         final Money paidBefore = debt.paidAmount;
-        final double balanceBefore = from.balance;
+        final Money balanceBefore = from.balance;
 
         state.recordDebtPayment(debt.id, 1500.555, accountId: 'acc_gcash');
 
@@ -128,15 +125,18 @@ void main() {
         );
 
         final Money liabilityFell = after.paidAmount - paidBefore;
-        final double assetFell = balanceBefore - fromAfter.balance;
+        final Money assetFell = balanceBefore - fromAfter.balance;
 
         expect(entry.amount, const Money.of(1500, 56));
-        // The debt side is EXACT now. The account side is still a double
-        // until Account.balance moves too, so it is the one that has to be
-        // quantised, and this line is the remaining tolerance in the test.
+        // EXACT ON BOTH SIDES NOW, with nothing quantised in the assertion
+        // itself. Every earlier version of this line ran one side or the
+        // other through Money.fromDouble before comparing, which is a half
+        // centavo tolerance wearing a different hat: it would have passed on
+        // a payment that moved the debt and the account by different figures,
+        // which is precisely the defect the test is named after.
         expect(
           liabilityFell,
-          Money.fromDouble(assetFell),
+          assetFell,
           reason: 'net worth moved on a payment that must not move it',
         );
         // Directional: the payment landed rather than being skipped.

@@ -36,6 +36,24 @@ List<Debt> applyDebtPayment(
   String debtId,
   Money amount, {
   required DateTime today,
+
+  /// Which account the money left, kept on the register row so a reversal
+  /// knows where to put it back. Legitimately null: paying with no account is
+  /// a real choice for somebody settling in cash they never logged, and the
+  /// sheet says so before they confirm.
+  String? accountId,
+
+  /// Supplied by the caller so the register row and the ledger row it writes
+  /// can be tied together. Defaults to a clock-derived id, which is fine for
+  /// an engine test and not fine for the app, where the two have to match.
+  String? paymentId,
+
+  /// The ledger row this payment writes, when it writes one.
+  ///
+  /// Null is a real answer, not a missing one: a payment recorded with no
+  /// account writes no entry at all, so there is nothing to point at. Taking
+  /// one of those back moves the debt and must not go hunting for a row.
+  String? txId,
 }) {
   if (!amount.isPositive) return debts;
 
@@ -58,11 +76,79 @@ List<Debt> applyDebtPayment(
       installmentCurrent: d.installmentCurrent == null
           ? null
           : _min(d.installmentTotal ?? 12, d.installmentCurrent! + 1),
+      // THE THREE FIGURES THAT CANNOT BE RECOMPUTED, written down as they
+      // were before this payment landed.
+      //
+      // `settledDate` is stamped only on the transition and a further payment
+      // on an already settled debt keeps the original, so clearing it on the
+      // way back is right in one case and destroys a real date in the other.
+      // `installmentCurrent` saturates, so the last payment of a plan does not
+      // move it and decrementing later would invent a payment nobody undid.
+      // `paidAmount` is stored rather than derived by subtraction because
+      // "Mark settled" can FILL it between two payments, after which the
+      // running figure is not the sum of the payments and nothing else in the
+      // app can tell you the difference.
+      payments: <DebtPayment>[
+        ...d.payments,
+        DebtPayment(
+          id: paymentId ?? 'dp_${today.microsecondsSinceEpoch}',
+          date: isoDate(today),
+          amount: amount,
+          paidBefore: d.paidAmount,
+          settledBefore: d.isSettled,
+          settledDateBefore: d.settledDate,
+          installmentCurrentBefore: d.installmentCurrent,
+          accountId: accountId,
+          txId: txId,
+        ),
+      ],
     );
   }).toList();
 }
 
 int _min(int a, int b) => a < b ? a : b;
+
+/// Takes the MOST RECENT payment back off a debt, restoring what it moved.
+///
+/// Returns the debts unchanged when there is nothing to take back, which is
+/// every debt that has not been paid through this build and every debt from a
+/// restored backup. That is not a failure to report, it is the honest answer:
+/// nothing is known about how those reached their figure.
+///
+/// ## Why only the most recent one
+///
+/// Not an implementation shortcut. `paidAmount` is a single running figure, so
+/// a row's `paidBefore` is only the right answer to put back if nothing landed
+/// after it. Restoring an older row would wind the debt back past payments
+/// that still stand, and the register would then describe a debt that does not
+/// exist. A caller wanting an older one has to take the later ones back first,
+/// which is also the only order a person can actually reason about.
+///
+/// ## Why it restores rather than subtracts
+///
+/// Subtracting the amount gets `paidAmount` back and nothing else.
+/// `settledDate` is stamped only on the transition, `installmentCurrent`
+/// saturates, and "Mark settled" can FILL the paid figure between two
+/// payments. All three are read off the row instead.
+List<Debt> reverseLastDebtPayment(List<Debt> debts, String debtId) {
+  return debts.map((Debt d) {
+    if (d.id != debtId || d.payments.isEmpty) return d;
+
+    final DebtPayment row = d.payments.last;
+
+    return d.copyWith(
+      paidAmount: row.paidBefore,
+      isSettled: row.settledBefore,
+      settledDate: row.settledDateBefore,
+      // `settledDate` is nullable and copyWith treats null as "leave it", so
+      // clearing needs saying out loud. Without this a debt that was NOT
+      // settled before the payment keeps the date the payment stamped on it.
+      clearSettledDate: row.settledDateBefore == null,
+      installmentCurrent: row.installmentCurrentBefore,
+      payments: d.payments.sublist(0, d.payments.length - 1),
+    );
+  }).toList();
+}
 
 /// Marks a debt settled, or un-settles it.
 ///

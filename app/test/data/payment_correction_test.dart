@@ -58,7 +58,7 @@ void main() {
         name: 'Cash on Hand',
         kind: AccountKind.cash,
         institution: 'Cash',
-        balance: 1850,
+        balance: Money.pesos(1850),
         monogram: 'C',
       );
 
@@ -66,7 +66,7 @@ void main() {
       final List<Account> after = reverseFromBalances(<Account>[
         account,
       ], payment);
-      expect(after.single.balance, 1850 + 1500);
+      expect(after.single.balance, const Money.pesos(1850 + 1500));
 
       // And the debt is untouched by that call, which is the whole defect.
       // It still says 7,350 of a payment it never gave back.

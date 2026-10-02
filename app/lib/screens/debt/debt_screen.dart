@@ -130,6 +130,9 @@ class _DebtScreenState extends State<DebtScreen> {
                       debt: d,
                       onPay: () => _openPayment(context, p, d),
                       onSettle: () => _confirmSettle(context, p, d),
+                      onTakeBack: d.payments.isEmpty
+                          ? null
+                          : () => _confirmTakeBack(context, p, d),
                     ),
                     const SizedBox(height: Spacing.sm),
                   ],
@@ -143,6 +146,14 @@ class _DebtScreenState extends State<DebtScreen> {
                         debt: d,
                         onPay: null,
                         onSettle: () => _confirmSettle(context, p, d),
+                        // Offered on a CLEARED debt too, and deliberately: a
+                        // payment that settled a debt by mistake is exactly
+                        // the one somebody needs back, and hiding the control
+                        // on the settled list would put it out of reach in
+                        // the case that matters most.
+                        onTakeBack: d.payments.isEmpty
+                            ? null
+                            : () => _confirmTakeBack(context, p, d),
                       ),
                       const SizedBox(height: Spacing.sm),
                     ],
@@ -242,6 +253,60 @@ class _DebtScreenState extends State<DebtScreen> {
 
     if (yes == true) {
       widget.state.toggleDebtSettledById(debt.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  /// Confirms taking the last payment back, naming BOTH sides in pesos.
+  ///
+  /// A payment moved two things, so the question has to name two things.
+  /// Saying only "take back ₱1,500?" leaves somebody to work out what happens
+  /// to the debt and to the account, which is the arithmetic they came here to
+  /// avoid doing.
+  Future<void> _confirmTakeBack(
+    BuildContext context,
+    Palette palette,
+    Debt debt,
+  ) async {
+    final DebtPayment row = debt.payments.last;
+    final Account? from = row.accountId == null
+        ? null
+        : widget.state.accounts
+              .where((Account a) => a.id == row.accountId)
+              .firstOrNull;
+
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Take this payment back?', style: AppType.title(palette)),
+        content: Text(
+          'This takes back the ${formatPeso(row.amount.pesos)} payment you '
+          'recorded ${formatDateLabel(row.date, now: widget.state.now).toLowerCase()} '
+          'against ${debt.person}.\n\n'
+          '${debt.person} goes back to ${formatPeso(row.paidBefore.pesos)} '
+          'paid of ${formatPeso(debt.totalAmount.pesos)}.\n\n'
+          // The account half, and the no-account case said out loud rather
+          // than left as a silence. A person who chose "no account, just the
+          // debt" is entitled to know nothing will move in Activity either.
+          '${from == null ? 'No account moves, because this payment was recorded against the debt alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry for it leaves your Activity.'}',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Take it back', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.takeBackDebtPayment(debt.id);
       if (mounted) setState(() {});
     }
   }
@@ -512,12 +577,20 @@ class _DebtCard extends StatelessWidget {
     required this.debt,
     required this.onPay,
     required this.onSettle,
+    this.onTakeBack,
   });
 
   final Palette palette;
   final Debt debt;
   final VoidCallback? onPay;
   final VoidCallback onSettle;
+
+  /// Null when there is nothing to take back, which is every debt from a
+  /// restored backup and every payment made before the register existed. The
+  /// control is ABSENT rather than disabled: a dead button on a money screen
+  /// reads as the app being broken, when the truth is simply that this debt
+  /// has no record of how it got where it is.
+  final VoidCallback? onTakeBack;
 
   @override
   Widget build(BuildContext context) {
@@ -627,6 +700,20 @@ class _DebtCard extends StatelessWidget {
               ),
             ],
           ),
+          if (onTakeBack != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              // Named for the LAST one on purpose. Only the most recent
+              // payment can go back, because paidAmount is one running figure
+              // and an older row's "before" is only the right answer when
+              // nothing landed after it. Saying so in the label is what stops
+              // somebody tapping it expecting to pick.
+              label: 'Take back the last payment',
+              filled: false,
+              onTap: onTakeBack,
+            ),
+          ],
         ],
       ),
     );

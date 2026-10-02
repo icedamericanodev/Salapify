@@ -1,3 +1,4 @@
+import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/models/models.dart';
@@ -42,7 +43,7 @@ void main() {
   FinancialState storeOf(WidgetTester tester) =>
       tester.widget<ReportsScreen>(find.byType(ReportsScreen)).state;
 
-  double balanceOf(FinancialState s, String id) =>
+  Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
   testWidgets('it opens showing what Salapify thinks the account holds', (
@@ -67,7 +68,7 @@ void main() {
   ) async {
     await openCheck(tester);
     final FinancialState store = storeOf(tester);
-    final double before = balanceOf(store, 'acc_cash');
+    final Money before = balanceOf(store, 'acc_cash');
     final int entriesBefore = store.transactions.length;
 
     await tester.enterText(find.byType(TextField).first, '1950');
@@ -84,7 +85,7 @@ void main() {
     await tapAndSettle(tester, find.text('Post the adjustment'));
 
     // The balance moved...
-    expect(balanceOf(store, 'acc_cash'), closeTo(before + 100, 0.001));
+    expect(balanceOf(store, 'acc_cash'), before + const Money.pesos(100));
     // ...and an ENTRY moved it. This is the whole design.
     expect(
       store.transactions.length,
@@ -106,7 +107,7 @@ void main() {
   ) async {
     await openCheck(tester);
     final FinancialState store = storeOf(tester);
-    final double before = balanceOf(store, 'acc_cash');
+    final Money before = balanceOf(store, 'acc_cash');
 
     await tester.enterText(find.byType(TextField).first, '1600');
     await tester.pumpAndSettle();
@@ -114,7 +115,7 @@ void main() {
 
     await tapAndSettle(tester, find.text('Post the adjustment'));
 
-    expect(balanceOf(store, 'acc_cash'), closeTo(before - 250, 0.001));
+    expect(balanceOf(store, 'acc_cash'), before - const Money.pesos(250));
     expect(store.transactions.first.type, TransactionType.expense);
     expect(store.transactions.first.category, 'Adjustments & Write-offs');
   });
@@ -147,7 +148,7 @@ void main() {
   ) async {
     await openCheck(tester);
     final FinancialState store = storeOf(tester);
-    final double before = balanceOf(store, 'acc_cash');
+    final Money before = balanceOf(store, 'acc_cash');
     final int entriesBefore = store.transactions.length;
 
     await tester.enterText(find.byType(TextField).first, '1850');
@@ -201,7 +202,7 @@ void main() {
     final int before = store.transactions
         .where((Transaction t) => t.status == TransactionStatus.duplicate)
         .length;
-    final double cashBefore = balanceOf(store, 'acc_cash');
+    final Money cashBefore = balanceOf(store, 'acc_cash');
 
     await tapAndSettle(
       tester,

@@ -95,7 +95,7 @@ void main() {
         kind: AccountKind.cash,
         institution: 'Cash',
         // Starts at exactly what gets spent, so the wallet lands on zero.
-        balance: 9000,
+        balance: Money.pesos(9000),
         monogram: 'C',
       ),
     );

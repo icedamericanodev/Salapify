@@ -192,8 +192,8 @@ class _BankCardState extends State<BankCard>
         ThemeData.estimateBrightnessForColor(from) == Brightness.light;
 
     final String balance = account.isForeign
-        ? formatCurrency(account.balance.abs(), account.currency)
-        : formatPeso(account.balance.abs());
+        ? formatCurrency(account.balance.abs.pesos, account.currency)
+        : formatPeso(account.balance.abs.pesos);
 
     final InstitutionBrand? brand = brandFor(account.institution);
 
@@ -571,7 +571,9 @@ class _BottomRow extends StatelessWidget {
                   // A credit card's balance is money OWED, so it is drawn
                   // with a minus. Without it a 12,000 debt renders character
                   // for character like 12,000 in savings.
-                  isCredit && account.balance > 0 ? '-$balance' : balance,
+                  isCredit && account.balance.isPositive
+                      ? '-$balance'
+                      : balance,
                   maxLines: 1,
                   style: TextStyle(
                     fontFamily: AppType.family,
@@ -584,7 +586,7 @@ class _BottomRow extends StatelessWidget {
               ),
               if (account.isForeign)
                 Text(
-                  '≈ ${formatPeso(account.balanceInPhp.abs())}',
+                  '≈ ${formatPeso(account.balanceInPhp.abs.pesos)}',
                   style: TextStyle(
                     fontFamily: AppType.family,
                     fontSize: height * 0.062,

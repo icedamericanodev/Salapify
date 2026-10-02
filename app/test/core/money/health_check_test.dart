@@ -52,7 +52,7 @@ void main() {
     name: 'GCash',
     kind: AccountKind.gcash,
     institution: 'GCash',
-    balance: balance,
+    balance: Money.fromDouble(balance),
     monogram: 'GC',
   );
 

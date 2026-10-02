@@ -697,7 +697,7 @@ class _AccountPicker extends StatelessWidget {
               _Pill(
                 palette: palette,
                 label: a.name,
-                caption: formatPeso(a.balance),
+                caption: formatPeso(a.balance.pesos),
                 selected: a.id == selectedId,
                 onTap: () => onSelect(a.id),
               ),

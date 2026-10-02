@@ -168,6 +168,142 @@ void main() {
     });
   });
 
+  group('the payment register is additive, and nothing resurrects', () {
+    const Debt plain = Debt(
+      id: 'd1',
+      person: 'Home Credit',
+      direction: DebtDirection.iOwe,
+      totalAmount: Money.pesos(14700),
+      paidAmount: Money.pesos(7350),
+      isSettled: false,
+    );
+
+    test('a record with no payments gains NO key', () {
+      // Every debt and plan on a phone today has an empty register. An empty
+      // array written onto every row would be a change to the stored shape
+      // for no gain at all.
+      expect(debtToJson(plain).containsKey('payments'), isFalse);
+    });
+
+    test('and a file from the OLD build still opens, with an empty one', () {
+      final Map<String, dynamic> old = debtToJson(plain)..remove('payments');
+      final Debt read = debtFromJson(old);
+      expect(read.payments, isEmpty);
+      expect(
+        read.paidAmount,
+        const Money.pesos(7350),
+        reason:
+            'the figure moved while reading a file this build did not '
+            'write, which is every backup the founder already has',
+      );
+    });
+
+    test('a register row round trips through the file, split intact', () {
+      final Debt withRow = plain.copyWith(
+        payments: <DebtPayment>[
+          const DebtPayment(
+            id: 'dp_1',
+            date: '2026-10-01',
+            amount: Money.pesos(1500),
+            paidBefore: Money.pesos(7350),
+            settledBefore: false,
+            accountId: 'acc_gcash',
+          ),
+        ],
+      );
+
+      final Map<String, dynamic> wire = debtToJson(withRow);
+      expect(
+        (wire['payments'] as List<dynamic>).first,
+        containsPair('amount', 1500.0),
+        reason: 'centavos reached the file',
+      );
+
+      final DebtPayment back = debtFromJson(wire).payments.single;
+      expect(back.amount, const Money.pesos(1500));
+      expect(back.paidBefore, const Money.pesos(7350));
+      expect(back.accountId, 'acc_gcash');
+    });
+
+    test('a CLEARED field does not come back from the unknown-key sidecar', () {
+      // ## The defect this exists to stop, which was live for one commit
+      //
+      // Snapshot copies any key a build does not MODEL into a sidecar, so a
+      // file from a newer build survives a round trip through an older one.
+      // On the way out the merge is `{...kept, ...own}`, so our own value
+      // wins a clash.
+      //
+      // A CLEARED field has no own value to win with. `paidBeforeSettle` was
+      // missing from `debtKeys`, so: settle a debt (written), reload (captured
+      // as a stranger's field), un-settle (the codec stops writing it), and
+      // the sidecar put it back. A later un-settle would then wind the debt
+      // back to a figure from a settle that had already been undone, which is
+      // the exact loss the field exists to prevent, by the back door.
+      for (final String key in <String>['paidBeforeSettle', 'payments']) {
+        expect(
+          debtKeys,
+          contains(key),
+          reason:
+              '$key is not declared as a field this build models, so once it '
+              'is cleared the sidecar resurrects the old value',
+        );
+      }
+      expect(
+        installmentKeys,
+        contains('payments'),
+        reason: 'the same hole, on the plan side',
+      );
+    });
+  });
+
+  group('an account balance is still stored in pesos', () {
+    const Account acc = Account(
+      id: 'a1',
+      name: 'GCash Wallet',
+      kind: AccountKind.gcash,
+      institution: 'GCash',
+      balance: Money.of(8420, 50),
+      monogram: 'GC',
+    );
+
+    test('the written JSON holds a plain peso number', () {
+      // This group exists because the account codec was MISSED on the first
+      // pass of the centavo migration and wrote the Money object itself. The
+      // whole app stopped saving with "Converting object to an encodable
+      // object failed", which the journeys caught and this file, covering
+      // only transactions at the time, did not.
+      expect(accountToJson(acc)['balance'], 8420.50);
+      expect(
+        accountToJson(acc)['balance'],
+        isA<num>(),
+        reason: 'a Money object reached the file, so nothing can be saved',
+      );
+    });
+
+    test('and it round trips through the decoder', () {
+      expect(
+        accountFromJson(accountToJson(acc)).balance,
+        const Money.of(8420, 50),
+      );
+    });
+
+    test('a whole-peso integer is read as pesos, not as centavos', () {
+      final Account read = accountFromJson(<String, dynamic>{
+        'id': 'a1',
+        'name': 'BPI',
+        'kind': 'bank',
+        'institution': 'BPI',
+        'balance': 23000,
+        'monogram': 'B',
+      });
+      expect(
+        read.balance,
+        const Money.pesos(23000),
+        reason: 'every balance in every existing backup divided by a hundred',
+      );
+    });
+  });
+
   group('a debt is still stored in pesos, and so is the settle memory', () {
     Map<String, dynamic> wire(Debt d) => debtToJson(d);
 

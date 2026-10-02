@@ -1,3 +1,4 @@
+import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -109,7 +110,9 @@ class _AccountSheetState extends State<AccountSheet> {
     super.initState();
     final Account? e = widget.existing;
     _name = TextEditingController(text: e?.name ?? '');
-    _balance = TextEditingController(text: e == null ? '' : _plain(e.balance));
+    _balance = TextEditingController(
+      text: e == null ? '' : _plain(e.balance.pesos),
+    );
     _limit = TextEditingController(
       text: e?.creditLimit == null ? '' : _plain(e!.creditLimit!),
     );
@@ -384,7 +387,9 @@ class _AccountSheetState extends State<AccountSheet> {
       name: name,
       kind: _kind,
       institution: _institution,
-      balance: double.tryParse(_balance.text.trim().replaceAll(',', '')) ?? 0,
+      balance: Money.fromDouble(
+        double.tryParse(_balance.text.trim().replaceAll(',', '')) ?? 0,
+      ),
       // An existing account keeps the monogram it has, because a stored one is
       // a deliberate label (the MP2 fund is MP2, not the generic INV this
       // would derive). A new one gets the derived default.

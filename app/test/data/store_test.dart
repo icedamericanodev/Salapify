@@ -56,7 +56,7 @@ void main() {
           name: 'Seabank Savings',
           kind: AccountKind.bank,
           institution: 'Seabank',
-          balance: 12500,
+          balance: Money.pesos(12500),
           monogram: 'SB',
         ),
       );
@@ -71,7 +71,7 @@ void main() {
         (Account a) => a.id == 'acc_new',
       );
       expect(back.name, 'Seabank Savings');
-      expect(back.balance, 12500);
+      expect(back.balance, const Money.pesos(12500));
     });
 
     test('a logged expense, and the balance it moved, both survive', () async {
@@ -79,7 +79,7 @@ void main() {
       final FinancialState first = stateOn(store);
       await first.restore();
 
-      final double before = first.accounts
+      final Money before = first.accounts
           .firstWhere((Account a) => a.id == 'acc_cash')
           .balance;
       final int entriesBefore = first.transactions.length;
@@ -104,7 +104,7 @@ void main() {
       expect(second.transactions.length, entriesBefore + 1);
       expect(
         second.accounts.firstWhere((Account a) => a.id == 'acc_cash').balance,
-        closeTo(before - 320, 0.001),
+        before - const Money.pesos(320),
         reason:
             'the entry came back but the balance it moved did not, which is '
             'the ledger disagreeing with itself across a restart',
@@ -249,7 +249,7 @@ void main() {
           name: 'Older Save',
           kind: AccountKind.bank,
           institution: 'BPI',
-          balance: 1000,
+          balance: Money.pesos(1000),
           monogram: 'BP',
         ),
       );
