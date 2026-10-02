@@ -101,9 +101,19 @@ class TransactionDetailSheet extends StatelessWidget {
               // to miss, and somebody reconciling needs to know this row is
               // deliberately not in their totals rather than wonder why the
               // sums do not add up.
-              t.status == TransactionStatus.duplicate
-                  ? 'Marked a duplicate, so it is not counted in your totals.'
-                  : 'Excluded on purpose, so it is not counted in your totals.',
+              switch (t.status) {
+                TransactionStatus.duplicate =>
+                  'Marked a duplicate, so it is not counted in your totals.',
+                // Names what happened rather than only the consequence. This
+                // row describes a payment the person deliberately took back,
+                // and the debt or plan it paid has already moved with it.
+                TransactionStatus.corrected =>
+                  'You took this payment back, so it is not counted in your '
+                      'totals. It stays here because it is part of what '
+                      'happened.',
+                _ =>
+                  'Excluded on purpose, so it is not counted in your totals.',
+              },
               style: AppType.caption(p).copyWith(color: p.warning),
             ),
           ],

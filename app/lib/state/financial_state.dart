@@ -928,17 +928,21 @@ class FinancialState extends ChangeNotifier {
   /// [undoLoggedTransaction], which reverses the balance through the
   /// vector-locked mirror and is already a no-op when the row has gone.
   ///
-  /// ## The entry is removed rather than marked
+  /// ## The entry STAYS, marked as taken back
   ///
-  /// Keeping it and marking it "taken back" would read better in a ledger,
-  /// and it is not built that way because it cannot be yet: no existing
-  /// status means that. `excluded` means the app is right that this happened
-  /// and wrong that it is the person's, and `corrected` COUNTS toward every
-  /// total. Making it not count would change what every figure on Reports
-  /// means, which is a founder decision rather than a detail of this method.
-  /// Flagged to the founder; until then removal is the honest option, because
-  /// a row left counting while the debt has moved is the half-landed state
-  /// this whole batch exists to stop.
+  /// Founder direction, 2026-10-02, and it is the auditor's answer: a payment
+  /// you took back is part of your history, and a gap with no explanation is
+  /// worse than a line you can read. The row keeps its figure and its date and
+  /// stops counting, through `TransactionStatus.corrected`.
+  ///
+  /// The balance moves exactly ONCE, inside `setTransactionStatus`, which
+  /// reverses it through the vector-locked mirror when an entry stops
+  /// counting. Calling that AND removing the row would credit the money back
+  /// twice.
+  ///
+  /// The REGISTER row goes, because that list is what has been applied and
+  /// this payment has not been any more. Keeping it would also let the same
+  /// payment be taken back a second time.
   bool takeBackDebtPayment(String debtId) {
     final int i = _debts.indexWhere((Debt d) => d.id == debtId);
     if (i < 0) return false;
@@ -953,14 +957,11 @@ class FinancialState extends ChangeNotifier {
     // account writes no entry, deliberately, for somebody settling in cash
     // they never logged. The debt still moves; there is simply nothing to
     // take out of the ledger.
+    // MARKED, NOT REMOVED. setTransactionStatus moves the balance back on its
+    // own, because the entry stops counting, so this must not also undo it.
     if (row.txId != null) {
-      final int at = _transactions.indexWhere(
-        (Transaction t) => t.id == row.txId,
-      );
-      if (at >= 0) {
-        undoLoggedTransaction(_transactions[at]);
-        return true;
-      }
+      setTransactionStatus(row.txId!, TransactionStatus.corrected);
+      return true;
     }
 
     notifyListeners();
@@ -981,14 +982,11 @@ class FinancialState extends ChangeNotifier {
 
     _installments = reverseLastPlanPayment(_installments, planId);
 
+    // MARKED, NOT REMOVED. setTransactionStatus moves the balance back on its
+    // own, because the entry stops counting, so this must not also undo it.
     if (row.txId != null) {
-      final int at = _transactions.indexWhere(
-        (Transaction t) => t.id == row.txId,
-      );
-      if (at >= 0) {
-        undoLoggedTransaction(_transactions[at]);
-        return true;
-      }
+      setTransactionStatus(row.txId!, TransactionStatus.corrected);
+      return true;
     }
 
     notifyListeners();

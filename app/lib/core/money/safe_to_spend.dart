@@ -108,10 +108,17 @@ SafeToSpendAnalysis computeSafeToSpend({
   //    (under 5,000 logged) is treated as not enough signal, and the override
   //    or the 28,000 default stands in.
   final int thirtyDaysAgo = nowMs - 30 * 86400000;
+  // STATUS IS CHECKED HERE TOO, and this one reaches further than the alert:
+  // the burn rate feeds the runway, which feeds the headline figure on Home.
+  // An entry marked excluded, duplicate or taken back used to keep inflating
+  // it, so the number a person reads first was built partly from money that
+  // did not move.
   final double recentExpenses = transactions
       .where(
         (Transaction t) =>
-            t.type == TransactionType.expense && t.createdAt >= thirtyDaysAgo,
+            t.countsTowardTotals &&
+            t.type == TransactionType.expense &&
+            t.createdAt >= thirtyDaysAgo,
       )
       .fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
 

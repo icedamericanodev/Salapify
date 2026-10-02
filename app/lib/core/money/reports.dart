@@ -293,13 +293,12 @@ List<Account> filterAccountsByProfile(
 /// Excluded and duplicate entries are shown in Activity, struck through, so a
 /// person can see what was discounted and why. They must never reach a total.
 List<Transaction> validLedgerEntries(List<Transaction> transactions) {
-  return transactions
-      .where(
-        (Transaction t) =>
-            t.status != TransactionStatus.excluded &&
-            t.status != TransactionStatus.duplicate,
-      )
-      .toList();
+  // READS THE MODEL'S OWN RULE rather than restating it. This function used to
+  // carry its own copy of the list, so "does this count" had two definitions
+  // that had to be kept in step by hand. They were, until a third state was
+  // added; then one of them would have been right and the other wrong, and the
+  // same entry would have counted on some screens and not on others.
+  return transactions.where((Transaction t) => t.countsTowardTotals).toList();
 }
 
 /// Keeps only the entries inside [period], relative to [now].

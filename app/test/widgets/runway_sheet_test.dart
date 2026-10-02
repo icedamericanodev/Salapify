@@ -69,7 +69,21 @@ void main() {
     );
     await pump(tester, state);
 
-    expect(find.text('116 days'), findsOneWidget);
+    // 129, NOT 116, AND THE MOVE IS A FIX RATHER THAN A DRIFT.
+    //
+    // The burn rate behind this figure summed every expense in the last 30
+    // days whatever its status. The seed carries a 2,840.00 Meralco charge
+    // marked EXCLUDED, with the note "Charged twice, this one is not mine to
+    // pay", and it was being counted:
+    //
+    //     burn, counting everything : 28,614.75
+    //     burn, respecting status   : 25,774.75
+    //     difference                : 2,840.00, exactly that charge
+    //
+    // So the runway on Home was built partly from money the person had
+    // explicitly said was not theirs, and it was 13 days too SHORT. The same
+    // hole counted a duplicate, and would have counted a payment taken back.
+    expect(find.text('129 days'), findsOneWidget);
     expect(
       find.textContaining('at your recent spending'),
       findsOneWidget,
