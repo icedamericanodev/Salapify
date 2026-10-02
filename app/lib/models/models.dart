@@ -945,6 +945,7 @@ class PlanPayment {
     required this.amount,
     required this.toPrincipal,
     required this.toInterest,
+    this.settledBefore = false,
     this.installmentNumber,
     this.accountId,
     this.txId,
@@ -969,6 +970,15 @@ class PlanPayment {
   /// Which scheduled instalment this was, or null for a prepayment. Null is
   /// the thing that tells the two apart on the way back out.
   final int? installmentNumber;
+
+  /// Whether the plan was ALREADY settled when this landed.
+  ///
+  /// Not recoverable from the balance afterwards, and not always false.
+  /// `applyInstallmentPayment` refuses a settled plan, but `applyExtraPayment`
+  /// does not guard at entry, so a prepayment can be applied to one that was
+  /// already clear. Recomputing settlement from the restored balance would
+  /// then reopen a plan that was settled before the payment ever happened.
+  final bool settledBefore;
 
   /// Where the money came from, and the ledger row that explains it.
   ///

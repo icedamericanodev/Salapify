@@ -54,6 +54,9 @@ class _InstallmentsViewState extends State<InstallmentsView> {
               plan: plan,
               onPay: () => _open(context, p, plan, extra: false),
               onExtra: () => _open(context, p, plan, extra: true),
+              onTakeBack: plan.payments.isEmpty
+                  ? null
+                  : () => _confirmTakeBack(context, p, plan),
             ),
             const SizedBox(height: Spacing.sm),
           ],
@@ -62,7 +65,17 @@ class _InstallmentsViewState extends State<InstallmentsView> {
             Text('PAID OFF', style: AppType.kicker(p)),
             const SizedBox(height: Spacing.sm),
             for (final InstallmentPlan plan in split.settled) ...<Widget>[
-              _PlanCard(palette: p, plan: plan, onPay: null, onExtra: null),
+              _PlanCard(
+                palette: p,
+                plan: plan,
+                onPay: null,
+                onExtra: null,
+                // Offered on a PAID OFF plan too: a payment that settled a
+                // plan by mistake is exactly the one somebody needs back.
+                onTakeBack: plan.payments.isEmpty
+                    ? null
+                    : () => _confirmTakeBack(context, p, plan),
+              ),
               const SizedBox(height: Spacing.sm),
             ],
           ],
@@ -85,6 +98,66 @@ class _InstallmentsViewState extends State<InstallmentsView> {
       extra: extra,
     );
     if (mounted) setState(() {});
+  }
+
+  /// Confirms taking the last payment back, naming both sides in pesos.
+  ///
+  /// The PRINCIPAL figure is named as well as the balance, which the debt
+  /// version has no equivalent of. On an add-on contract the principal is
+  /// what decides whether prepaying was worth it, and it is the figure a
+  /// re-derived reversal would have corrupted while every total still footed.
+  Future<void> _confirmTakeBack(
+    BuildContext context,
+    Palette palette,
+    InstallmentPlan plan,
+  ) async {
+    final PlanPayment row = plan.payments.last;
+    final Account? from = row.accountId == null
+        ? null
+        : widget.state.accounts
+              .where((Account a) => a.id == row.accountId)
+              .firstOrNull;
+
+    final String what = row.installmentNumber == null
+        ? 'the ${formatPeso(row.amount.pesos)} extra payment'
+        : 'payment ${row.installmentNumber} of ${plan.totalInstallments}, '
+              '${formatPeso(row.amount.pesos)}';
+
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Take this payment back?', style: AppType.title(palette)),
+        content: Text(
+          'This takes back $what, recorded '
+          '${formatDateLabel(row.date, now: widget.state.now).toLowerCase()} '
+          'against '
+          '${plan.name}.\n\n'
+          '${plan.name} goes back to '
+          '${formatPeso((plan.runningBalance + row.amount).pesos)} still to '
+          'pay, of which '
+          '${formatPeso((plan.principalRemaining + row.toPrincipal).pesos)} '
+          'is principal.\n\n'
+          '${from == null ? 'No account moves, because this payment was recorded against the plan alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry for it leaves your Activity.'}',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Take it back', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.takeBackPlanPayment(plan.id);
+      if (mounted) setState(() {});
+    }
   }
 }
 
@@ -144,12 +217,18 @@ class _PlanCard extends StatelessWidget {
     required this.plan,
     required this.onPay,
     required this.onExtra,
+    this.onTakeBack,
   });
 
   final Palette palette;
   final InstallmentPlan plan;
   final VoidCallback? onPay;
   final VoidCallback? onExtra;
+
+  /// Null when the plan has no record of how it reached its figures, which
+  /// is every plan from a restored backup. Absent rather than disabled: a
+  /// dead control on a money screen reads as a broken app.
+  final VoidCallback? onTakeBack;
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +422,19 @@ class _PlanCard extends StatelessWidget {
                     ),
                   ),
               ],
+            ),
+          ],
+          if (onTakeBack != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              // The LAST one, and the label says so. A prepayment shortens
+              // the plan, so every instalment after it collected a different
+              // amount; letting somebody pick an older one would leave those
+              // explainable by no schedule at all.
+              label: 'Take back the last payment',
+              filled: false,
+              onTap: onTakeBack,
             ),
           ],
         ],

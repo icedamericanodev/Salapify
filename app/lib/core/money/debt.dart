@@ -108,6 +108,48 @@ List<Debt> applyDebtPayment(
 
 int _min(int a, int b) => a < b ? a : b;
 
+/// Takes the MOST RECENT payment back off a debt, restoring what it moved.
+///
+/// Returns the debts unchanged when there is nothing to take back, which is
+/// every debt that has not been paid through this build and every debt from a
+/// restored backup. That is not a failure to report, it is the honest answer:
+/// nothing is known about how those reached their figure.
+///
+/// ## Why only the most recent one
+///
+/// Not an implementation shortcut. `paidAmount` is a single running figure, so
+/// a row's `paidBefore` is only the right answer to put back if nothing landed
+/// after it. Restoring an older row would wind the debt back past payments
+/// that still stand, and the register would then describe a debt that does not
+/// exist. A caller wanting an older one has to take the later ones back first,
+/// which is also the only order a person can actually reason about.
+///
+/// ## Why it restores rather than subtracts
+///
+/// Subtracting the amount gets `paidAmount` back and nothing else.
+/// `settledDate` is stamped only on the transition, `installmentCurrent`
+/// saturates, and "Mark settled" can FILL the paid figure between two
+/// payments. All three are read off the row instead.
+List<Debt> reverseLastDebtPayment(List<Debt> debts, String debtId) {
+  return debts.map((Debt d) {
+    if (d.id != debtId || d.payments.isEmpty) return d;
+
+    final DebtPayment row = d.payments.last;
+
+    return d.copyWith(
+      paidAmount: row.paidBefore,
+      isSettled: row.settledBefore,
+      settledDate: row.settledDateBefore,
+      // `settledDate` is nullable and copyWith treats null as "leave it", so
+      // clearing needs saying out loud. Without this a debt that was NOT
+      // settled before the payment keeps the date the payment stamped on it.
+      clearSettledDate: row.settledDateBefore == null,
+      installmentCurrent: row.installmentCurrentBefore,
+      payments: d.payments.sublist(0, d.payments.length - 1),
+    );
+  }).toList();
+}
+
 /// Marks a debt settled, or un-settles it.
 ///
 /// Settling FILLS the paid amount to the total, which is what makes the

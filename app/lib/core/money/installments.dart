@@ -169,6 +169,11 @@ List<InstallmentPlan> applyInstallmentPayment(
   /// row: an engine that reaches for DateTime.now() writes a different file
   /// every run and no golden can hold it.
   required DateTime today,
+
+  /// The ledger row this payment writes, when it writes one. Null is a real
+  /// answer: paying with no account writes no entry, so the register row has
+  /// nothing to point at and taking it back must not go hunting for one.
+  String? txId,
 }) {
   return plans.map((InstallmentPlan p) {
     if (p.id != id || p.isSettled) return p;
@@ -235,9 +240,77 @@ List<InstallmentPlan> applyInstallmentPayment(
           amount: payment,
           toPrincipal: principalPart,
           toInterest: interestPart,
+          settledBefore: p.isSettled,
+          txId: txId,
           installmentNumber: nextPaid,
         ),
       ],
+    );
+  }).toList();
+}
+
+/// Takes the MOST RECENT payment back off a plan, restoring what it moved.
+///
+/// Returns the plans unchanged when there is nothing to take back. Every plan
+/// written before the register existed reports exactly that, which is the
+/// truth: nothing is known about how it reached its figures, and guessing
+/// would be the defect this whole register was built to stop.
+///
+/// ## Why only the most recent one, and why both kinds share one list
+///
+/// A prepayment SHORTENS a plan, so every scheduled instalment after it
+/// collected a different amount. Taking the prepayment back while those stand
+/// would leave their recorded amounts explainable by no schedule at all, and
+/// the plan would then disagree with its own register. Scheduled payments and
+/// prepayments therefore interleave in one ordered list, and only its last
+/// entry can be removed; anything else is refused where the person can see it,
+/// which also tells them which one they have to take back first.
+///
+/// ## Why nothing here is recomputed
+///
+/// Every figure comes off the stored row. The split cannot be re-derived: the
+/// forward pass clamps three times and then sweeps what is unallocated, and
+/// which branch fired is not visible in the result. Re-deriving a prepayment
+/// from "principal first" overstates principal by the whole interest portion
+/// it actually paid, measured at 400 on the seeded plan, with every total
+/// still footing.
+List<InstallmentPlan> reverseLastPlanPayment(
+  List<InstallmentPlan> plans,
+  String planId,
+) {
+  return plans.map((InstallmentPlan p) {
+    if (p.id != planId || p.payments.isEmpty) return p;
+
+    final PlanPayment row = p.payments.last;
+
+    final Money nextPrincipal = p.principalRemaining + row.toPrincipal;
+    final Money nextInterest = p.interestRemaining + row.toInterest;
+
+    return _copy(
+      p,
+      // A scheduled instalment moved the counter; a prepayment did not. The
+      // null instalment number is what tells them apart, which is why it is
+      // stored rather than inferred from the amount.
+      paidInstallments: row.installmentNumber != null
+          ? p.paidInstallments - 1
+          : p.paidInstallments,
+      runningBalance: nextPrincipal + nextInterest,
+      principalRemaining: nextPrincipal,
+      interestRemaining: nextInterest,
+      // READ OFF THE ROW, never recomputed from the restored balance.
+      // applyExtraPayment has no settled guard at entry, so a prepayment can
+      // land on an already clear plan; deciding settlement from the balance
+      // afterwards would reopen a plan that was settled before this payment
+      // ever happened.
+      isSettled: row.settledBefore,
+      // A prepayment also wrote a row on the plan's own history, and leaving
+      // it behind would show a prepayment that no longer exists.
+      extraPayments: row.installmentNumber == null
+          ? p.extraPayments
+                .where((ExtraPayment e) => e.id != row.id)
+                .toList(growable: false)
+          : p.extraPayments,
+      payments: p.payments.sublist(0, p.payments.length - 1),
     );
   }).toList();
 }
@@ -273,6 +346,9 @@ List<InstallmentPlan> applyExtraPayment(
   required DateTime today,
   String? note,
   String? extraId,
+
+  /// As above: the ledger row, when there is one.
+  String? txId,
 }) {
   if (!amount.isPositive) return plans;
 
@@ -327,6 +403,8 @@ List<InstallmentPlan> applyExtraPayment(
           amount: applied,
           toPrincipal: offPrincipal,
           toInterest: offInterest,
+          settledBefore: p.isSettled,
+          txId: txId,
           note: note?.trim().isNotEmpty == true ? note!.trim() : null,
         ),
       ],

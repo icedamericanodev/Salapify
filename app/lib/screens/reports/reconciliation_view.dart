@@ -604,22 +604,27 @@ class _PairRow extends StatelessWidget {
           // a person who sees a warning and no way to act on it concludes the
           // app is broken, when what is true is that this particular remedy
           // would break something.
-          // IT DOES NOT SEND ANYBODY ANYWHERE, and that is deliberate. The
-          // first version of this line ended "take the payment back from the
-          // Debt screen instead", which describes a feature that does not
-          // exist: there is no delete on a transaction and no way to reverse a
-          // debt payment anywhere in the app. The founder found it within
-          // minutes of it reaching their phone.
+          // THE POINTER IS BACK, because the route now exists.
           //
-          // Closing one door and pointing at a door that is not there is
-          // worse than the control it replaced, because the original at least
-          // did something. Say only what is true today. The pointer comes back
-          // in the same change that builds the route, never before it.
+          // It shipped once before the route did, saying "take the payment
+          // back from the Debt screen instead" when there was no such thing,
+          // and the founder read it on their phone within minutes and asked
+          // where to go. Closing one door and pointing at a door that is not
+          // there is worse than the control it replaced, because the original
+          // at least did something.
+          //
+          // Both halves are real now: "Take back the last payment" is on the
+          // debt card and on the instalment plan card, and both are reached
+          // from this same Debts screen. A guard in truthful_claims_test held
+          // this sentence honest in between and was deleted in the change
+          // that built the route, which is the only way a promise like that
+          // is allowed to expire.
           if (pair.second.isEnginePayment || pair.first.isEnginePayment)
             Text(
               'This is a payment on a debt or a plan. Marking it a duplicate '
               'would put the money back in your account and still leave the '
-              'debt showing as paid, so Salapify does not offer it here.',
+              'debt showing as paid. Take the payment back from the Debts '
+              'screen instead.',
               style: AppType.caption(palette),
             )
           else
