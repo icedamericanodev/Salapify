@@ -1109,7 +1109,30 @@ class FinancialState extends ChangeNotifier {
   void toggleDebtSettledById(String debtId) {
     final List<Debt> next = toggleDebtSettled(_debts, debtId, today: now);
     if (identical(next, _debts)) return;
-    _debts = next;
+
+    // ARCHIVED IMPLIES SETTLED, and this line is what makes that an INVARIANT
+    // rather than a precondition on one transition.
+    //
+    // [archiveDebt] refuses a live debt, which was taken to be enough. It was
+    // not: the Archived section rendered the ordinary settle control, so two
+    // taps produced a debt that was live AND archived. Because the `debts`
+    // getter filters archived ones out, that debt then counted in NO total
+    // anywhere, which is exactly the design the founder turned down on
+    // 2026-10-02, reached by a different route. It also fed the reminder
+    // engine, which skips settled debts and would therefore have raised a due
+    // date for a debt on no screen.
+    //
+    // Un-settling brings it back to the list rather than refusing. Refusing
+    // would leave a dead control, and there is nothing to protect here: the
+    // person asked for this debt to be live again, and live debts belong on
+    // the live list.
+    final int i = next.indexWhere((Debt d) => d.id == debtId);
+    _debts = (i >= 0 && !next[i].isSettled && next[i].isArchived)
+        ? <Debt>[
+            for (final Debt d in next)
+              if (d.id == debtId) d.copyWith(clearArchivedAt: true) else d,
+          ]
+        : next;
     notifyListeners();
   }
 

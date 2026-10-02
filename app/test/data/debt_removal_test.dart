@@ -55,6 +55,13 @@ void main() {
     settledDate: '2026-09-28',
   );
 
+  /// The store is RETURNED, not hidden inside, and that is a fix rather than
+  /// a style choice. The reload test below used to assert on the same
+  /// in-memory object it had just written, so it could not see the file at
+  /// all: blinding `debtFromJson` to archivedAt left all eight tests here
+  /// green while the real round-trip test failed twice.
+  late MemorySnapshotStore lastStore;
+
   Future<FinancialState> stateWith(List<Debt> debts) async {
     final MemorySnapshotStore store = MemorySnapshotStore(
       jsonEncode(<String, dynamic>{
@@ -64,6 +71,7 @@ void main() {
         'debts': debts.map(debtToJson).toList(),
       }),
     );
+    lastStore = store;
     final FinancialState s = FinancialState(clock: testToday, store: store);
     await s.restore();
     addTearDown(s.dispose);
@@ -182,18 +190,93 @@ void main() {
       expect(owedBefore, greaterThan(0), reason: 'the fixture owes nothing');
     });
 
-    test('an archived debt survives a save and a reload, still archived',
-        () async {
+    test('an archived debt survives a save and a GENUINE reload', () async {
       final FinancialState s = await stateWith(<Debt>[settled]);
       expect(s.archiveDebt('d_settled'), isTrue);
       await s.flushWrites();
 
-      expect(
-        s.debts,
-        isEmpty,
-        reason: 'the live list still shows it, so nothing was put away',
+      // A SECOND state, reading the file the first one wrote. The previous
+      // version of this test asserted on `s` itself, which never consults
+      // storage, so it passed with the decoder blinded to archivedAt.
+      final FinancialState reopened = FinancialState(
+        clock: testToday,
+        store: lastStore,
       );
+      await reopened.restore();
+      addTearDown(reopened.dispose);
+
+      expect(
+        reopened.archivedDebts,
+        hasLength(1),
+        reason:
+            'it came back live, so archiving does not survive closing the '
+            'app and the whole feature is cosmetic',
+      );
+      expect(reopened.debts, isEmpty);
+    });
+  });
+
+  group('archived implies settled, whatever route is taken', () {
+    test('un-settling an archived debt brings it back to the list', () async {
+      // THE DEFECT THIS PINS, found by the retrospective AFTER the founder
+      // had tested and approved the feature.
+      //
+      // archiveDebt refuses a live debt, and that was taken to be enough. It
+      // was not: the Archived section rendered the ordinary settle control,
+      // so two taps made a debt live while it stayed archived. The `debts`
+      // getter filters archived debts out, so that liability then counted in
+      // no total anywhere, which is the design the founder explicitly turned
+      // down, reached by a different route.
+      // Settled by the BUTTON, so un-settling restores a real remainder and
+      // "it counts again" is something a figure can actually show. A debt
+      // settled by real payments has nothing left to count, which is correct
+      // and makes it the wrong fixture for this assertion.
+      final Debt byButton = partPaid.copyWith(
+        paidAmount: const Money.pesos(12000),
+        isSettled: true,
+        paidBeforeSettle: const Money.pesos(7350),
+      );
+      final FinancialState s = await stateWith(<Debt>[byButton]);
+      expect(s.archiveDebt('d_part'), isTrue);
       expect(s.archivedDebts, hasLength(1));
+      expect(
+        s.debtsIOwe,
+        0,
+        reason: 'an archived debt is still being counted',
+      );
+
+      s.toggleDebtSettledById('d_part');
+
+      expect(
+        s.archivedDebts,
+        isEmpty,
+        reason:
+            'the debt is live AND archived, so it is a real liability that '
+            'appears on no screen and in no total',
+      );
+      // The directional companion. "Not archived" is also true of a debt
+      // that was quietly deleted, or of nothing happening at all.
+      expect(s.debts.single.id, 'd_part');
+      expect(s.debts.single.isSettled, isFalse);
+      expect(
+        s.debtsIOwe,
+        4650,
+        reason: 'it is back on the list but still counts for nothing',
+      );
+    });
+
+    test('settling and un-settling a LIVE debt never archives it', () async {
+      // The silent half of the alarm. The clause above must not start
+      // archiving or unarchiving debts nobody put away.
+      final FinancialState s = await stateWith(<Debt>[partPaid]);
+
+      s.toggleDebtSettledById('d_part');
+      expect(s.archivedDebts, isEmpty);
+      expect(s.debts.single.isSettled, isTrue);
+
+      s.toggleDebtSettledById('d_part');
+      expect(s.archivedDebts, isEmpty);
+      expect(s.debts.single.isSettled, isFalse);
     });
   });
 }
