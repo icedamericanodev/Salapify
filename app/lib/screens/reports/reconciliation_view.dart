@@ -624,7 +624,8 @@ class _PairRow extends StatelessWidget {
               'This is a payment on a debt or a plan. Marking it a duplicate '
               'would put the money back in your account and still leave the '
               'debt showing as paid. Take the payment back from the Debts '
-              'screen instead.',
+              'screen instead. If the debt is not on that list, open '
+              'Archived at the bottom and put it back first.',
               style: AppType.caption(palette),
             )
           else

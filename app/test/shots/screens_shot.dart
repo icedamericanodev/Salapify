@@ -116,6 +116,7 @@ void main() {
   settleConfirmShot();
   takeBackShot();
   takenBackRowShot();
+  debtRemovalShots();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -2369,6 +2370,98 @@ void takeBackShot() {
     await expectLater(
       find.byType(AlertDialog),
       matchesGoldenFile('out/debt_take_back.png'),
+    );
+  });
+}
+
+/// Taking a debt off the list: the ARCHIVED section, and the one genuinely
+/// irreversible dialog on this screen.
+///
+/// Both are new states nobody has looked at, which is the whole reason they
+/// are here. The archive shot is the one that matters: a section that holds
+/// the ONLY way back out of archiving is worthless if it does not read as a
+/// place you can get to.
+void debtRemovalShots() {
+  Future<FinancialState> seeded() async {
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    await state.restore();
+    return state;
+  }
+
+  Future<void> pump(WidgetTester tester, FinancialState state) async {
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: DebtScreen(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('the archived section renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    // TALLER than the standard phone frame on purpose. At 2532 the ARCHIVED
+    // heading lands exactly on the bottom edge and its card is off screen,
+    // so the render proved the section existed while showing none of the
+    // thing being reviewed. A picture that cannot show the defect is the
+    // fixture problem this harness has been bitten by before.
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = await seeded();
+    // Through the real paths. 'Mom' is the seeded settled debt, so this is
+    // the sequence a person actually walks rather than a fixture in the
+    // shape somebody hoped for.
+    state.archiveDebt('debt_mom_settled');
+    await pump(tester, state);
+
+    await expectLater(
+      find.byType(DebtScreen),
+      matchesGoldenFile('out/debt_archived.png'),
+    );
+  });
+
+  testWidgets('the delete confirmation renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = await seeded();
+    await pump(tester, state);
+
+    // The seeded debts with NOTHING paid are both the other way round, money
+    // lent rather than borrowed, so this is the only direction where a
+    // delete is offered on a fresh phone. That is correct behaviour and not
+    // a fixture quirk: every borrowed debt in the seed has been paid into.
+    await tester.tap(find.text('Owed to you'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Delete this debt').first,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete this debt').first);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AlertDialog),
+      matchesGoldenFile('out/debt_delete_confirm.png'),
     );
   });
 }

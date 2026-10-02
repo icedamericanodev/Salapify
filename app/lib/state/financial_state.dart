@@ -360,7 +360,29 @@ class FinancialState extends ChangeNotifier {
   List<Account> get accounts => List<Account>.unmodifiable(_accounts);
   List<Transaction> get transactions =>
       List<Transaction>.unmodifiable(_transactions);
-  List<Debt> get debts => List<Debt>.unmodifiable(_debts);
+  /// The debts the app shows anywhere, archived ones excluded.
+  ///
+  /// THE FILTER IS HERE, at the one getter, rather than inside [outstanding].
+  /// Every consumer in the app reads this, including
+  /// `accounts_screen.dart`, which carries its OWN inline copy of the
+  /// outstanding sum rather than calling the engine. Filtering in the engine
+  /// would have left that screen counting archived debts while the Debts
+  /// screen did not, which is two screens disagreeing about money, the exact
+  /// class of defect the journey tests exist for. One getter cannot drift
+  /// from itself.
+  ///
+  /// Only a SETTLED debt can be archived, so in practice this subtracts
+  /// nothing from any total: a settled debt is already out of [outstanding].
+  /// The filter changes what is LISTED, not what is COUNTED.
+  List<Debt> get debts =>
+      List<Debt>.unmodifiable(_debts.where((Debt d) => !d.isArchived));
+
+  /// Put away, newest first. Shown only on the Debts screen, in its own
+  /// section, where "Put it back" lives.
+  List<Debt> get archivedDebts => List<Debt>.unmodifiable(
+    _debts.where((Debt d) => d.isArchived).toList()
+      ..sort((Debt a, Debt b) => b.archivedAt!.compareTo(a.archivedAt!)),
+  );
   List<Budget> get budgets => List<Budget>.unmodifiable(_budgets);
   List<CategoryInfo> get categories => SeedData.categories;
   List<Goal> get goals => List<Goal>.unmodifiable(_goals);
@@ -964,6 +986,88 @@ class FinancialState extends ChangeNotifier {
       return true;
     }
 
+    notifyListeners();
+    return true;
+  }
+
+  /// Puts a SETTLED debt away. Returns false and changes nothing otherwise.
+  ///
+  /// The settled-only gate is founder direction, 2026-10-02, and it is the
+  /// reason this method moves no money. A settled debt is already out of
+  /// [outstanding], so taking it off the list changes no figure on any
+  /// screen. Archiving a LIVE debt would have dropped a real liability out
+  /// of "You owe" on a tap, with the explanation on a different screen from
+  /// the number that moved, and that was the option the founder turned down.
+  ///
+  /// NOTHING ELSE MOVES. No entry is written, no balance changes, the
+  /// payment register is untouched, and the `tx_debt_` rows stay in Activity
+  /// and keep counting. That money really did leave the account.
+  ///
+  /// The gate is HERE and not only in the screen, because a screen that
+  /// hides a control is a presentation choice and this is a rule about the
+  /// data. Same construction as [markUpcomingPaid]'s account refusal.
+  bool archiveDebt(String debtId) {
+    final int i = _debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0) return false;
+    if (!_debts[i].isSettled) return false;
+    if (_debts[i].isArchived) return false;
+
+    _debts = <Debt>[
+      for (final Debt d in _debts)
+        if (d.id == debtId) d.copyWith(archivedAt: isoDate(now)) else d,
+    ];
+    notifyListeners();
+    return true;
+  }
+
+  /// Brings an archived debt back to the list it came from.
+  ///
+  /// No confirmation anywhere in the UI, deliberately: nothing is lost by
+  /// tapping it, which is the same reasoning the screen already applies to
+  /// un-settling.
+  bool unarchiveDebt(String debtId) {
+    final int i = _debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0 || !_debts[i].isArchived) return false;
+
+    _debts = <Debt>[
+      for (final Debt d in _debts)
+        if (d.id == debtId) d.copyWith(clearArchivedAt: true) else d,
+    ];
+    notifyListeners();
+    return true;
+  }
+
+  /// Deletes a debt OUTRIGHT, and only one that never moved any money.
+  ///
+  /// This is the one genuinely irreversible path on the Debts screen, and the
+  /// gate is what keeps it safe to offer at all: a debt with a paid figure or
+  /// a payment register is refused, every time, whatever the screen shows.
+  ///
+  /// Why that gate and not a confirmation: deleting a debt that HAS payments
+  /// would destroy the only structured record of what those payments were,
+  /// while the `tx_debt_` entries they wrote stayed in Activity pointing at
+  /// a debt that no longer exists. Reports > Check would then flag one of
+  /// those entries, suppress its duplicate button because it is an engine
+  /// payment, and tell the person to take the payment back from a Debts
+  /// screen that no longer lists it. That dead end shipped once before and
+  /// the founder found it within minutes. A debt that moved money gets
+  /// archived instead, and archiving needs it settled first.
+  ///
+  /// There is NO undo. The confirmation says so in those words rather than
+  /// implying the backup covers it, because an export is a snapshot of now
+  /// and not a history. An export taken BEFORE the delete does contain it,
+  /// which is a real route back for somebody who already had one.
+  bool deleteDebt(String debtId) {
+    final int i = _debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0) return false;
+
+    final Debt d = _debts[i];
+    if (d.paidAmount.isPositive || d.payments.isNotEmpty) return false;
+
+    _debts = <Debt>[
+      for (final Debt x in _debts)
+        if (x.id != debtId) x,
+    ];
     notifyListeners();
     return true;
   }

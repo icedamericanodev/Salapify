@@ -50,6 +50,11 @@ class _DebtScreenState extends State<DebtScreen> {
       debts,
       _direction,
     );
+    // Archived debts are filtered out of state.debts, so they reach this
+    // screen only here, and only in the direction being looked at.
+    final List<Debt> archived = widget.state.archivedDebts
+        .where((Debt d) => d.direction == _direction)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +126,13 @@ class _DebtScreenState extends State<DebtScreen> {
                   onSelect: (DebtDirection d) => setState(() => _direction = d),
                 ),
                 const SizedBox(height: Spacing.lg),
-                if (split.open.isEmpty && split.settled.isEmpty)
+                // `archived` belongs in this test. Without it, a person
+                // whose only debt in this direction is archived gets the
+                // empty state AND no Archived section, which puts the one
+                // way back out of reach entirely.
+                if (split.open.isEmpty &&
+                    split.settled.isEmpty &&
+                    archived.isEmpty)
                   _Empty(palette: p, direction: _direction)
                 else ...<Widget>[
                   for (final Debt d in split.open) ...<Widget>[
@@ -133,6 +144,9 @@ class _DebtScreenState extends State<DebtScreen> {
                       onTakeBack: d.payments.isEmpty
                           ? null
                           : () => _confirmTakeBack(context, p, d),
+                      onDelete: _canDelete(d)
+                          ? () => _confirmDelete(context, p, d)
+                          : null,
                     ),
                     const SizedBox(height: Spacing.sm),
                   ],
@@ -154,6 +168,29 @@ class _DebtScreenState extends State<DebtScreen> {
                         onTakeBack: d.payments.isEmpty
                             ? null
                             : () => _confirmTakeBack(context, p, d),
+                        // Settled, so this is the archive side of the gate.
+                        onArchive: () => _confirmArchive(context, p, d),
+                      ),
+                      const SizedBox(height: Spacing.sm),
+                    ],
+                  ],
+                  // PUT AWAY, and still reachable. Rendered only when the
+                  // list is non-empty: a permanent "0 archived" heading is
+                  // the clutter that teaches people to stop reading.
+                  if (archived.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: Spacing.sm),
+                    Text('ARCHIVED', style: AppType.kicker(p)),
+                    const SizedBox(height: Spacing.sm),
+                    for (final Debt d in archived) ...<Widget>[
+                      _DebtCard(
+                        palette: p,
+                        debt: d,
+                        onPay: null,
+                        onSettle: () => _confirmSettle(context, p, d),
+                        onUnarchive: () {
+                          widget.state.unarchiveDebt(d.id);
+                          setState(() {});
+                        },
                       ),
                       const SizedBox(height: Spacing.sm),
                     ],
@@ -263,6 +300,98 @@ class _DebtScreenState extends State<DebtScreen> {
   /// Saying only "take back ₱1,500?" leaves somebody to work out what happens
   /// to the debt and to the account, which is the arithmetic they came here to
   /// avoid doing.
+  /// The delete gate, repeated from [FinancialState.deleteDebt] on purpose.
+  ///
+  /// The state refuses regardless of what this returns, so the two cannot
+  /// disagree about what HAPPENS. This one exists so the screen never offers
+  /// a control that would be refused, which is its own kind of lie.
+  static bool _canDelete(Debt d) =>
+      !d.paidAmount.isPositive && d.payments.isEmpty;
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    Palette palette,
+    Debt debt,
+  ) async {
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Delete ${debt.person}?', style: AppType.title(palette)),
+        content: Text(
+          '${formatPeso(debt.totalAmount.pesos)}, nothing paid. No payment is '
+          'recorded against this debt, so nothing in your Activity changes '
+          'and no account moves.\n\n'
+          // Said plainly, and not softened by pointing at the backup. An
+          // export is a snapshot of now, not a history, so it only helps
+          // somebody who already made one BEFORE this tap.
+          'There is no undo. If you want it back you will have to type it '
+          'in again.',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.deleteDebt(debt.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _confirmArchive(
+    BuildContext context,
+    Palette palette,
+    Debt debt,
+  ) async {
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Archive ${debt.person}?', style: AppType.title(palette)),
+        content: Text(
+          'This takes it off your list. It is NOT deleted. It moves to '
+          'Archived at the bottom of this screen, and "Put it back" brings '
+          'it up again.\n\n'
+          // The sentence that stops the wrong conclusion. A person who has
+          // just watched this app's figures move on every other action will
+          // reasonably expect this one to move something too.
+          'No total changes. A debt you have cleared is already out of what '
+          'you owe.'
+          '${debt.payments.isEmpty ? '' : '\n\nIts ${debt.payments.length} '
+                    'payment${debt.payments.length == 1 ? '' : 's'} stay in '
+                    'your Activity and still count. That money really left '
+                    'your account, so Salapify does not put it back.'}',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it here', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Archive it', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.archiveDebt(debt.id);
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> _confirmTakeBack(
     BuildContext context,
     Palette palette,
@@ -578,12 +707,23 @@ class _DebtCard extends StatelessWidget {
     required this.onPay,
     required this.onSettle,
     this.onTakeBack,
+    this.onDelete,
+    this.onArchive,
+    this.onUnarchive,
   });
 
   final Palette palette;
   final Debt debt;
   final VoidCallback? onPay;
   final VoidCallback onSettle;
+
+  /// Taking the debt off the list. Exactly one of these is ever non-null for
+  /// a given debt, and which one is decided by the debt's own figures rather
+  /// than by the caller, so the screen cannot offer something the state
+  /// would refuse.
+  final VoidCallback? onDelete;
+  final VoidCallback? onArchive;
+  final VoidCallback? onUnarchive;
 
   /// Null when there is nothing to take back, which is every debt from a
   /// restored backup and every payment made before the register existed. The
@@ -737,6 +877,57 @@ class _DebtCard extends StatelessWidget {
               style: AppType.caption(palette),
             ),
           ],
+          // TAKING THE DEBT OFF THE LIST.
+          //
+          // Three outcomes, and the third one is why there is a line here at
+          // all. Shipping Delete on some cards and nothing on others invites
+          // exactly one wrong conclusion, that the app is inconsistent or
+          // broken, so the card that cannot offer it says why and names the
+          // way out instead of going quiet. That is this session's own
+          // lesson: an unexplained missing control is what cost the founder
+          // their emulator data.
+          if (onUnarchive != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Put it back',
+              filled: false,
+              // No confirmation anywhere behind this, deliberately. Nothing
+              // is lost by tapping it, which is the same reasoning this
+              // screen already applies to un-settling.
+              onTap: onUnarchive,
+            ),
+          ] else if (onDelete != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Delete this debt',
+              filled: false,
+              onTap: onDelete,
+            ),
+          ] else if (onArchive != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Archive it',
+              filled: false,
+              onTap: onArchive,
+            ),
+          ],
+          // NO LINE on a debt that can be neither deleted nor archived, and
+          // this is a deliberate reversal made after LOOKING at the render.
+          //
+          // A first version explained the absence on the card itself. It was
+          // correct and it was unreadable: part paid and live is the normal
+          // state of a real debt, so that sentence landed on every card
+          // forever, under the take-back line, and turned the screen into
+          // the wall of grey text the founder ruled against on 2026-09-18.
+          //
+          // It is a LESSON, read once and skipped forever after, so it goes
+          // behind the "i" dot in this screen's own header, under "Taking a
+          // debt off the list". The take-back line above stays, because that
+          // one is not a lesson: it explains a control that USED to be there
+          // and is specific to this debt's own history.
         ],
       ),
     );

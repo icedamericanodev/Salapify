@@ -522,6 +522,13 @@ const Set<String> debtKeys = <String>{
   // prevent, arriving by the back door.
   'paidBeforeSettle',
   'payments',
+  // THREE now, and this one is here for the identical reason. "Put it back"
+  // CLEARS archivedAt, so if this set did not declare the key, the decoder
+  // would file it as a stranger's field, the `{...kept, ...own}` merge would
+  // have nothing of ours to beat it, and the debt would re-archive itself on
+  // the next launch. A liability silently vanishing off the Debts screen is
+  // the exact failure paidBeforeSettle already demonstrated once.
+  'archivedAt',
 };
 
 Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
@@ -545,6 +552,9 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   if (d.paidBeforeSettle != null) 'paidBeforeSettle': d.paidBeforeSettle!.pesos,
   if (d.payments.isNotEmpty)
     'payments': d.payments.map(debtPaymentToJson).toList(growable: false),
+  // Written only while the debt is actually put away, so a live debt's row is
+  // byte for byte what it always was.
+  if (d.archivedAt != null) 'archivedAt': d.archivedAt,
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -573,6 +583,9 @@ Debt debtFromJson(Map<String, dynamic> m) {
       m['payments'],
       '$what.payments',
     ).map(debtPaymentFromJson).toList(growable: false),
+    // Absent means live, which is the right answer for every debt written
+    // before this key existed.
+    archivedAt: _optStr(m, 'archivedAt'),
   );
 }
 

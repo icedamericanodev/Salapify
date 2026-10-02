@@ -502,7 +502,28 @@ class Debt {
     this.isSample = false,
     this.paidBeforeSettle,
     this.payments = const <DebtPayment>[],
+    this.archivedAt,
   });
+
+  /// The day this debt was put away, as an ISO date. Null means it is live.
+  ///
+  /// ONLY A SETTLED DEBT MAY CARRY THIS, by founder direction on 2026-10-02,
+  /// and that single rule is what makes archiving safe. A settled debt is
+  /// already outside [outstanding], so hiding it changes no total on any
+  /// screen: not "You owe", not "Owed to me", not net worth, not the Accounts
+  /// debt register. The alternative, letting a live debt be archived, would
+  /// have let a tap in the UI take a liability off the balance sheet, with
+  /// the explanation one screen away from the figure that moved. The founder
+  /// chose against it and the gate lives in [FinancialState.archiveDebt]
+  /// rather than in a rule anybody has to remember.
+  ///
+  /// Archiving is reversible and nothing else moves when it happens. The
+  /// payment register is untouched, the `tx_debt_` entries stay in Activity
+  /// and keep counting, and no balance changes. The money really did leave
+  /// the account, so Salapify does not put it back.
+  final String? archivedAt;
+
+  bool get isArchived => archivedAt != null;
 
   /// True for a record Salapify put there itself, so the screens are not blank
   /// on a brand new phone. NEVER true for anything the person entered.
@@ -602,6 +623,8 @@ class Debt {
     Money? paidBeforeSettle,
     bool clearPaidBeforeSettle = false,
     List<DebtPayment>? payments,
+    String? archivedAt,
+    bool clearArchivedAt = false,
   }) => Debt(
     id: id,
     person: person,
@@ -625,6 +648,10 @@ class Debt {
     // this debt reached its figure, and a copy made for any other purpose
     // must not quietly empty it.
     payments: payments ?? this.payments,
+    // Same clear-flag shape as settledDate and paidBeforeSettle, and for the
+    // same reason: passing null has to mean "leave it alone", or every copy
+    // made for an unrelated purpose would un-archive the debt by accident.
+    archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
   );
 }
 
