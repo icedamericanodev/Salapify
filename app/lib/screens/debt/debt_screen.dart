@@ -186,7 +186,11 @@ class _DebtScreenState extends State<DebtScreen> {
                         palette: p,
                         debt: d,
                         onPay: null,
-                        onSettle: () => _confirmSettle(context, p, d),
+                        // ONE ACTION on an archived card, and that is the
+                        // whole point. Offering settle here let a debt be
+                        // made live while it stayed archived, which hid a
+                        // real liability from every total in the app.
+                        onSettle: null,
                         onUnarchive: () {
                           widget.state.unarchiveDebt(d.id);
                           setState(() {});
@@ -715,7 +719,14 @@ class _DebtCard extends StatelessWidget {
   final Palette palette;
   final Debt debt;
   final VoidCallback? onPay;
-  final VoidCallback onSettle;
+
+  /// Null on an ARCHIVED card, which offers one action and no others.
+  ///
+  /// It was not null once, and the bug that produced is the reason this is
+  /// nullable now. The archived card drew the ordinary "Not settled after
+  /// all" control, so two taps made a debt live while it stayed archived,
+  /// and an archived debt is filtered out of every total in the app.
+  final VoidCallback? onSettle;
 
   /// Taking the debt off the list. Exactly one of these is ever non-null for
   /// a given debt, and which one is decided by the debt's own figures rather
@@ -827,17 +838,19 @@ class _DebtCard extends StatelessWidget {
                     onTap: onPay,
                   ),
                 ),
-              if (onPay != null) const SizedBox(width: Spacing.sm),
-              Expanded(
-                child: _Action(
-                  palette: palette,
-                  label: debt.isSettled
-                      ? 'Not settled after all'
-                      : 'Mark settled',
-                  filled: false,
-                  onTap: onSettle,
+              if (onPay != null && onSettle != null)
+                const SizedBox(width: Spacing.sm),
+              if (onSettle != null)
+                Expanded(
+                  child: _Action(
+                    palette: palette,
+                    label: debt.isSettled
+                        ? 'Not settled after all'
+                        : 'Mark settled',
+                    filled: false,
+                    onTap: onSettle,
+                  ),
                 ),
-              ),
             ],
           ),
           if (onTakeBack != null) ...<Widget>[

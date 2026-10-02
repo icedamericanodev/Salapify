@@ -10,6 +10,381 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-10-02, session 46: a batch that passed six manual cases and deserved to, a manual test case that dropped the one step its own automated test was built around, a test whose name promises a reload it never performs, and a two-tap route from the Archived section into the exact design the founder turned down
+
+**What we believed / What was true.**
+
+1. GROUND TRUTH, again, is not a stamp. `app/` has no publisher, no Shorebird
+   app id, no `updateStamp` and no delivery row, and `docs/delivery-log.md`
+   still ends at Salapify 2's `f4.72`. Ground truth for this batch is the
+   founder running `origin/claude/flutter-final` on their Android emulator and
+   reporting six manual cases passed. That is real evidence about the code and
+   it is not evidence about a phone. Nothing in this entry should be read as a
+   delivery finding, because there is no delivery.
+
+2. THE BATCH IS SOUND, and that is the headline rather than a courtesy. Four of
+   the five claims put to this session survived a check against the code. The
+   two gates really do live in `FinancialState` and not only in the screen
+   (`archiveDebt` at `app/lib/state/financial_state.dart:1009`, `deleteDebt` at
+   `:1060`), the settled-only rule really does mean no figure moves anywhere
+   (`outstanding` filters `!d.isSettled` at `app/lib/core/money/debt.dart:269`,
+   so an archived debt was already outside every total before it was archived),
+   and the write-path rule's forgotten half is present: the money tests are in
+   `app/test/data/debt_removal_test.dart` and the can-a-person-see-it half is
+   in `app/test/widgets/debt_archive_journey_test.dart`, with the midpoint
+   asserted at `:118-126` BEFORE the round trip, which is exactly the "a
+   conservation invariant is unfalsifiable by inaction" rule being followed.
+
+3. VERIFIED INDEPENDENTLY AT THE TIP, not taken from the commit message. I ran
+   `test/data/debt_removal_test.dart` and `test/data/archived_debt_test.dart`
+   (12 pass), `test/docs/claude_md_paths_test.dart` and
+   `test/widgets/debt_archive_journey_test.dart` (6 pass), and the whole render
+   harness `test/shots/screens_shot.dart --update-goldens` (109 pass, both new
+   renders written). I then broke the decoder on purpose and watched which
+   tests noticed, which is where two of this entry's findings come from.
+
+4. ONE NEW DEFECT, live on the branch the founder is running, and it was in the
+   render that was reviewed. It is lesson 5. It is recoverable, not data loss.
+
+5. STILL UNMERGED, and still going one way.
+   `git rev-list --left-right --count origin/main...origin/claude/flutter-final`
+   returns `1 146`. Session 45 recorded 140 earlier today.
+
+**Timeline, with evidence.**
+
+- `93959ac` (#482), earlier today. Session 45's retrospective plus its guard,
+  `app/test/docs/claude_md_paths_test.dart`. Re-checked this session: green, so
+  every path CLAUDE.md names still exists. The guard is in place and working.
+- `c9eae75`, authored 03:45 UTC. The batch. 11 files, 981 insertions. Nullable
+  `archivedAt` on `Debt` (`app/lib/models/models.dart:524`), declared in
+  `debtKeys` (`app/lib/data/json_codec.dart:531`), written only when set
+  (`:557`), read back with absent meaning live (`:588`). Gates in the state,
+  screen filter at the one getter (`financial_state.dart:377-378`).
+- Inside that commit, two self-corrections that are the reason this session has
+  less to find than it might have. The behavioural sidecar test was rewritten
+  after it passed with the key removed, and the per-card explanation was moved
+  behind the "i" dot after the render was looked at.
+- `406285c` (#483), merged 11:51 +08. The founder then ran six manual cases on
+  the emulator, including a corrected version of the case in lesson 1, and all
+  six passed.
+
+**Root cause.** Three, and they are separate.
+
+1. A MANUAL TEST CASE IS PROSE WITH NO MECHANICAL LINK TO THE TEST IT CAME
+   FROM. Nothing in the repository can compare a sentence written in chat
+   against the automated test whose property it is meant to reproduce, so the
+   step that made the automated test work can be dropped in translation and
+   every part of the system still reports success.
+
+2. A TEST'S NAME IS NOT CHECKED AGAINST ITS BODY BY ANYTHING. A test called
+   "survives a save and a reload" that never reloads passes forever, and reads
+   in a diff as coverage of the exact property it does not cover.
+
+3. A GATE WRITTEN AS A PRECONDITION ON ONE TRANSITION IS NOT AN INVARIANT. The
+   settled-only rule is enforced where a debt ENTERS the archive and nowhere
+   else, so a different transition can falsify it afterwards without ever
+   touching the guarded code.
+
+**Lessons, each with its guard and the guard's strength.**
+
+LESSON 1. THE MANUAL TEST CASE WAS WEAKER THAN THE AUTOMATED TEST IT CAME FROM,
+and the claim survives the check exactly as stated. The resurrection branch is
+`{...kept, ...own}` at `app/lib/data/snapshot.dart:205`, and `kept` is only
+ever non-empty when the snapshot came out of a DECODE, which is where unknown
+keys are filed (`snapshot.dart:399-422`). A freshly built snapshot carries
+`Extras.empty()` (`:51`). So the defect needs archive, save, load, clear, save,
+load, and the written manual case, archive then restart then confirm still
+archived, stops one step short of the load that makes the clear dangerous. It
+could not have failed whatever the code did. Confirmed experimentally rather
+than by reading: with `debtFromJson` made blind to the key
+(`app/lib/data/json_codec.dart:588` replaced by `archivedAt: null`), the
+archive-and-restart property still reported green everywhere except
+`archived_debt_test.dart`.
+GUARD: a rule, and I am saying plainly that no machine here can hold it.
+Nothing in this repository can read a sentence written for a human, which is
+the same honest limit session 15 recorded for "never say a version number
+before its delivery row exists". The rule with the best chance of working is
+narrow and tied to a moment: WHEN A MANUAL TEST CASE IS DERIVED FROM AN
+AUTOMATED TEST, COPY ITS STEP LIST, DO NOT PARAPHRASE ITS INTENT. If the
+automated test has a save and a load in the middle, the manual script names a
+restart in the same position, or it is testing something else.
+STRENGTH: medium at best, a rule tied to a specific moment. It depends on
+somebody reading it while writing a chat message, which is the weakest moment
+this project has. The compensating fact, and it is real, is that the automated
+test is the one that actually holds the property, it is strongest-class, and it
+is proven to fail. The manual case was never the net.
+
+LESSON 2. THE BEHAVIOURAL SIDECAR TEST PASSED WITH THE BUG PRESENT, and the
+break-then-prove rule caught it, exactly as reported. The first version
+re-encoded a freshly constructed `Snapshot`, whose `extras` default to
+`Extras.empty()`, so the branch under test was unreachable and the test passed
+for a reason unrelated to its own name. The fix carries `reloaded.extras`
+through, the way a real save after a load does.
+GUARD, ALREADY EXISTS: `app/test/data/archived_debt_test.dart:97-137`, with the
+reason written into the fixture helper at `:41-48` so the next person cannot
+quietly simplify it back. I re-proved it this session, independently of the
+commit: blinding the decoder made it fail with "Expected: true, Actual: false".
+STRENGTH: strongest. Automated, runs unattended, demonstrated to fail.
+WORTH RECORDING: this is the second time in two days that a test in this exact
+area passed for a reason unrelated to what it claimed (session 45, lesson 3,
+was the first). Both were caught by the same rule, which is a rule earning its
+place, and it is also a signal that storage is the part of this app where tests
+are most likely to be hollow, because its defects live in the gap between two
+operations rather than inside either one.
+
+LESSON 3. A TEST WHOSE NAME PROMISES A RELOAD IT NEVER PERFORMS. This was not
+in the brief and it is the most valuable thing this session found, because it
+is the same defect class as lessons 1 and 2 in a third costume.
+`app/test/data/debt_removal_test.dart:185` is named "an archived debt survives
+a save and a reload, still archived". Its body archives, calls `flushWrites`
+(`app/lib/state/financial_state.dart:346-349`, which only awaits the write
+chain), and then asserts on THE SAME in-memory object. No reload happens, and
+none can: the fixture helper `stateWith` builds its `MemorySnapshotStore`
+inside itself and never returns it, so no test in that file has a handle to
+restore from.
+EVIDENCE IT IS HOLLOW, not an opinion: with `debtFromJson` blinded to
+`archivedAt`, all eight tests in that file passed, including this one, while
+`archived_debt_test.dart` failed twice. The property IS covered, by the other
+file. The name in this one is a claim nothing backs.
+GUARD, NOT YET BUILT, and therefore this lesson is OPEN: return the store from
+`stateWith`, construct a second `FinancialState` over it, `restore()`, and
+assert the debt comes back archived. One edit, and it becomes strongest-class.
+Until that exists, the honest statement is that the file's name overstates its
+coverage by one test.
+STRENGTH when built: strongest. Today: absent.
+
+LESSON 4. LOOKING AT THE RENDER REVERSED A SHIPPED DECISION, and the claim
+holds. The first build explained the missing removal control on the card
+itself, which is correct and unreadable, because part-paid-and-live is the
+normal state of a real debt and the sentence therefore lands on every card
+forever, under the take-back line, producing exactly the wall of grey text the
+founder ruled against on 2026-09-18. It moved behind the screen's "i" dot
+(`app/lib/features/info/info_sheet.dart`, the "Taking a debt off the list"
+point). I rendered the screen myself this session and the live cards are clean.
+GUARD, ALREADY EXISTS, and it is a pair rather than one test, which is the
+right shape: `debt_archive_journey_test.dart` asserts the per-card sentence is
+ABSENT ("the per-card explanation is back, which is the wall of grey text that
+was removed after looking at the render") and, in a companion test, that the
+explanation IS behind the dot, so deleting the info entry cannot leave a person
+with no control, no line and nowhere to find out why.
+STRENGTH: strongest for the regression, both halves automated. The DECISION to
+look at the render in the first place is a rule, medium, and no machine can
+raise it. Recorded because this is that rule paying for itself in a way tests
+could not: no test was ever going to report "this is correct and nobody will
+read it".
+
+LESSON 5. THE GATE GUARDS THE DOOR AND NOT THE ROOM. A two-tap sequence from
+the Archived section produces precisely the state the founder's fork choice
+exists to prevent.
+WHAT HAPPENS: the archived card is rendered with the same unconditional settle
+action as every other card (`app/lib/screens/debt/debt_screen.dart:189` passes
+`onSettle`, and `_DebtCard` always draws it, labelled "Not settled after all"
+for a settled debt). `toggleDebtSettledById`
+(`app/lib/state/financial_state.dart:1099-1114`) works on the private `_debts`
+list and knows nothing about `archivedAt`. So tapping it un-settles a debt that
+is still archived.
+WHAT THAT COSTS: the debt is now LIVE and INVISIBLE. `debtsIOwe` reads the
+filtered getter (`financial_state.dart:1743`), the Accounts screen's own inline
+debt sum reads `state.debts`
+(`app/lib/screens/accounts/accounts_screen.dart:834`), and both therefore
+exclude it. A real liability sits outside "You owe" with no screen showing it,
+which is the rejected design reached by a different route. `archiveDebt` would
+REFUSE to create this state (`:1012` requires `isSettled`), so the state's own
+gate and the screen's own reachable path now disagree about what is allowed.
+MEASURED, not inferred. A throwaway probe over the real state object printed
+`isSettled=false isArchived=true debtsIOwe=0.0 liveList=0 archivedList=1
+canArchiveAgain=false`, on a debt of 2,000.00. A second probe pumped the real
+`DebtScreen` and found the "Not settled after all" button rendered on the
+archived card. It is also plainly visible in `out/debt_archived.png`, the
+render this batch produced and reviewed, which is worth sitting with: looking
+at the screen caught the wall of grey text in lesson 4 and did not catch this,
+in the same picture.
+SECOND ORDER, and worse in its own small way: `refreshReminders`
+(`financial_state.dart:492`) and `_replan` (`:783`) pass the UNFILTERED `_debts`
+to the reminder engine, which skips settled debts
+(`app/lib/core/money/reminders.dart:379`). That is safe today only because
+nothing live can be archived. An un-settled archived debt with a due date
+inside the window and a positive remainder will raise a payment-due reminder
+for a debt that appears on no screen in the app.
+NOT DATA LOSS: "Put it back" is still on the card, and it returns the debt to
+the live list. The money is intact. The defect is a wrong figure and a hidden
+record, not a destroyed one.
+ROOT CAUSE: the settled-only rule is enforced as a precondition on the archive
+transition and is not maintained as an invariant across the others. Writing it
+as "you may only enter here if settled" leaves every later transition free to
+make it false.
+GUARD, NOT YET BUILT, so this lesson is OPEN: hold the invariant rather than
+the door. Either `toggleDebtSettledById` clears `archivedAt` when it un-settles,
+or the archived card does not offer un-settle at all, and either way a test
+asserts over every public mutator that no debt is ever both live and archived.
+The preference is the first, because it keeps the control and fixes the state,
+and the test is the part that matters.
+STRENGTH when built: strongest. Today: nothing holds it, and the condition is
+reachable on the branch the founder is running.
+
+LESSON 6. THE MUST-FIX AUDIT, asked for and answered honestly. Two of three
+landed, one landed in code with nothing holding it.
+  - Reports > Check now names Archived. DONE and present:
+    `app/lib/screens/reports/reconciliation_view.dart:627-628`, "If the debt is
+    not on that list, open Archived at the bottom and put it back first."
+    Nothing tests that sentence, which is consistent with how the rest of that
+    view's copy is treated, and is not a new gap.
+  - The empty state counts archived debts. DONE in code,
+    `app/lib/screens/debt/debt_screen.dart:132-136`, and I confirmed by probe
+    that a person whose only debt in a direction is archived does get the
+    ARCHIVED heading and the "Put it back" rather than an empty screen. NO TEST
+    HOLDS IT. The condition is three clauses long and the third is the one that
+    keeps the only way back reachable; deleting it reddens nothing. Open guard,
+    one widget test, and I proved today that it takes a few lines.
+  - Anything still reading the private `_debts` that should read the filtered
+    getter. NO, for every screen: the only consumers are `debt_screen.dart:48`,
+    `debt_beam_card.dart:34-35` and `accounts_screen.dart:834`, all on the
+    public getter. The direct `_debts` reads that remain are correct ones
+    (persistence at `:199` and `:223`, the sample-data machinery at `:1973`,
+    `:2018` and `:2053`, the import merge at `:2131`), with the two reminder
+    feeds noted in lesson 5 as safe-by-coupling rather than safe-by-construction.
+
+LESSON 7. CLAUDE.md'S FACTUAL CLAIMS, re-read against the repository as a step
+rather than as a favour, and one is false. Session 45's new guard,
+`app/test/docs/claude_md_paths_test.dart`, is in place and green, so every PATH
+the file names exists where it says. The claim it cannot check is a number.
+CLAUDE.md:331 says `test/palette_contrast_test.dart` "measures every colour
+pair in all sixteen palettes against WCAG AA". The live app has TWO palettes:
+`enum ThemeMode2 { hapon, gabi }` at `app/lib/design/tokens.dart:6`, and
+`Palette.of` at `:132` maps the two modes onto two palettes. The test iterates
+`ThemeMode2.values` (`app/test/palette_contrast_test.dart:179`, `:208`, `:269`)
+and asserts it saw all of them (`:273`), so the DERIVED part of CLAUDE.md's
+description is true and only the count is wrong. "Sixteen" is inherited from
+Salapify 2's wording, and even there it overstates: `barakoThemes` in
+`archive/salapify-2-flutter/lib/theme.dart:298` carries four themes with a
+light and a dark palette each, which is eight.
+This is the FOURTH consecutive retrospective to find a false factual claim in
+CLAUDE.md, and the first that the new path test structurally cannot catch,
+because the claim is a quantity and not a path.
+GUARD: delete the number. CLAUDE.md's own rule two paragraphs away says numbers
+in prose rot and that the directory listing is the count. "Every colour pair in
+every palette" is true today, true after a third palette, and unfalsifiable by
+addition. This entry does not make that edit, because editing CLAUDE.md is not
+a retrospective's call to take on its own.
+STRENGTH: removing a rotting number is structural rather than a habit, so it is
+better than a habit and worse than a machine. Honest grade: medium. The real
+lesson is that the path test raised the floor without raising the ceiling.
+
+**Where this batch simply went well, said plainly.**
+
+- The irreversible path is gated by DATA, not by a confirmation dialog.
+  `deleteDebt` refuses on `paidAmount.isPositive || payments.isNotEmpty`, and
+  `debt_removal_test.dart` carries the directional half, including the subtle
+  case of a debt back at zero paid because every payment was taken back, which
+  still has a register and is still refused.
+- The screen's `_canDelete` (`debt_screen.dart:308`) is a deliberate duplicate
+  of the state's rule, with a comment saying why: the state refuses regardless,
+  and the screen copy exists so no control is offered that would be refused.
+  The two agree exactly today. Nothing tests that they agree, which is a small
+  watch-item rather than a finding.
+- Break-then-prove was actually run, the first test was thrown away rather than
+  patched, and the failure line went into the commit message, which is the
+  house rule followed in full.
+- The render frame was enlarged to 3400 rather than accepting a shot in which
+  the ARCHIVED heading sat on the bottom edge with its card off screen. That is
+  the fixture-that-cannot-show-the-defect trap being refused on sight.
+- The founder's fork choice, recorded as a DECISION and not a lesson: the
+  recovery pass recommended archiving any debt with the dropped figure shown
+  one tap away, the narrower settled-only option was recommended and put to the
+  founder, and they chose it. It removed most of the risk, because a settled
+  debt is already outside `outstanding` and the feature therefore moves no
+  figure anywhere. Worth noting in passing that the founder's original stated
+  problem, a debt typed in wrong, is solved entirely by the hard-delete half,
+  which is what made the narrow option sufficient rather than merely safer.
+  Lesson 5 is the one place where that choice is not yet fully enforced, which
+  is a reason to finish the enforcement and not a reason to revisit the choice.
+- No review artifact exists under `docs/reviews/` for this batch, while the two
+  before it have one. Noted, not graded.
+
+**Open lessons carried forward.**
+
+1. NEW, from lesson 5. A debt can be live and archived at the same time, and
+   then counts in no total. Nothing holds the invariant. Highest priority item
+   in this entry.
+2. NEW, from lesson 3. `debt_removal_test.dart:185` claims a reload it does not
+   perform. One edit to the fixture helper closes it.
+3. NEW, from lesson 6. The empty state's archived clause has no test.
+4. NEW, from lesson 7. CLAUDE.md:331 says sixteen palettes and the app has two.
+5. CARRIED FROM SESSION 45, re-checked and still open: `stored_shape_test.dart`
+   guards the sidecar class with a HAND-TYPED list of key names (now three,
+   `archivedAt` joined it at `:239-250`). It cannot fail for a field that does
+   not exist yet, which is the only kind of field this defect ever affects. The
+   class guard, encode a fully populated record and assert every key it writes
+   is declared, is still one derived assertion away and still not built. This
+   batch added a field and added it to the typed list correctly, which is the
+   rule working, and does not change the fact that the rule is a list.
+6. CARRIED FROM SESSION 45, still open: nested payment rows
+   (`debtPaymentToJson` and its siblings) have no key set and no sidecar, so an
+   unknown sub-key is dropped on a round trip through an older build.
+7. CARRIED: 146 commits on one branch, unmerged to main. Not a retrospective's
+   decision, and the number is going one way.
+
+**For the founder, in plain English.**
+
+The batch you tested is in good shape, and the six cases you ran passing is a
+real result rather than a formality. You can now delete a debt you typed in by
+mistake, as long as no money has been recorded against it, and that one cannot
+be undone, which the app says in those words. A debt you have fully cleared can
+be put away into an Archived list instead, and that one can always be brought
+back. A debt that is half paid and still live gets neither, on purpose, because
+deleting it would throw away the record of payments that are still sitting in
+your Activity. The reason that rule exists lives behind the small "i" dot at the
+top of the Debts screen instead of on every card, because a sentence printed on
+every card forever is how people learn to stop reading.
+
+Three things are worth your time.
+
+The first is a mistake I made in how I asked you to test. I had written an
+automatic test that checks a specific trap: that putting a debt back does not
+quietly re-archive itself the next time the app saves. Then I wrote you a manual
+version of the same check, and I left out the one step that made it work. The
+sequence you were given could not have caught the problem even if the problem
+had been there. You noticed something was odd when you asked how to restart, I
+re-read my own reasoning, and the corrected version is what you ran. Nothing was
+wrong with the app. What was wrong was the instruction. No machine here can
+check an instruction I type to you in a chat, so this one is a written rule, and
+I am telling you plainly that a rule is the weak kind of fix.
+
+The second is a test I wrote that lied about itself. It is named "an archived
+debt survives a save and a reload", and it never actually reloads anything. I
+found this by deliberately breaking the part of the app that reads your save
+file, and watching which tests complained. That one did not complain. The good
+news is that a different test did, so the thing itself is genuinely protected.
+The bad news is that a test with a confident name and an empty middle is worse
+than no test, because the next person reads the name and stops looking. It takes
+a few lines to fix and it is on the open list.
+
+The third is a real bug, on the branch you are running, and I want to be
+straight about it because you may hit it. If you archive a cleared debt, and
+then tap "Not settled after all" on it while it is sitting in the Archived
+section, the debt becomes live again but stays archived. It then shows up in no
+total at all: not in "You owe", not on the Accounts screen. Nothing is
+destroyed, and "Put it back" still works and fixes it completely. But for as
+long as it is in that state, Salapify is showing you a smaller number than the
+truth, and that is the exact thing you said no to when you chose the narrower
+design. I made the rule hold at the moment a debt goes into the archive and did
+not make it hold afterwards. It needs fixing before the next batch, and the fix
+is small.
+
+What it costs if these guards are removed. The test that checks a put-back debt
+stays put back is the one to protect: delete it and a debt you deliberately
+brought back out of the archive can file itself away again on the next launch,
+and you would find out by watching something you owe disappear from the screen
+on its own. The pair of tests on the Debts screen keep the explanation behind
+the dot rather than on every card; remove them and the screen slowly turns back
+into the wall of grey text you asked me to stop writing. And the gates on delete
+are what make a permanent delete safe to offer at all; remove those and it
+becomes possible to delete a debt while the payments against it stay in your
+Activity, pointing at something that no longer exists, which is a dead end you
+already found once in under a minute.
+
+---
+
 ## 2026-10-02, session 45: two live data-loss paths closed before any publisher exists, a cleared field resurrected through the unknown-key sidecar on a merged commit the emulator was building from, and a reinstall caused by a screen that could not tell "nothing to undo" from "broken"
 
 **What we believed / What was true.**
