@@ -436,6 +436,17 @@ class _PlanCard extends StatelessWidget {
               filled: false,
               onTap: onTakeBack,
             ),
+          ]
+          // Same rule as the debt card: say so only where a figure shows
+          // payments were made and Salapify cannot say which. On a plan the
+          // test is the counter rather than an amount.
+          else if (plan.paidInstallments > 0) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Salapify has no record of the payments on this plan, so it '
+              'cannot take one back. Payments you record from now on can be.',
+              style: AppType.caption(palette),
+            ),
           ],
         ],
       ),
