@@ -10,6 +10,446 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-10-02, session 45: two live data-loss paths closed before any publisher exists, a cleared field resurrected through the unknown-key sidecar on a merged commit the emulator was building from, and a reinstall caused by a screen that could not tell "nothing to undo" from "broken"
+
+**What we believed / What was true.**
+
+1. GROUND TRUTH IS NOT A STAMP, and this entry refuses to pretend otherwise.
+   `docs/delivery-log.md` still ends at
+   `| 2026-08-30 14:12 UTC | f4.72 | 11 | patch | 0.9.5+20 |`, which is
+   Salapify 2, archived on 2026-09-18. `app/` has no publisher, no Shorebird
+   app id, no `updateStamp` and no delivery row, so there is nothing to read
+   and nothing to compare. Ground truth here is the founder running
+   `origin/claude/flutter-final` on their Android emulator through
+   `tools/dev-sync.sh`, whose default mode watches `origin/<branch>` (stated
+   in its own header). Their words were "test 1 and test 2 works", meaning the
+   settle and un-settle pair. That is real evidence about the code and it is
+   not evidence about a phone.
+
+2. THE FIGURES IN THE BRIEF WERE ONE STEP OFF, and the correction matters
+   because the whole lesson is about which number is real. The pair was a
+   12,000.00 debt carrying 7,350.00 of recorded payments. 4,650.00 is the
+   amount NOBODY PAID that the old code recorded as paid, not the amount that
+   was recorded. Evidence:
+   `app/test/core/money/settle_toggle_test.dart:11-18` and the worked example
+   now in `app/lib/core/money/debt.dart:186-192`.
+
+3. FIVE MERGES, NOT SIX. `fa2b2f3` (#477), `7b9c976` (#478), `bf41e8d` (#479),
+   `4e824bd` (#480) and `f2b2256` (#481) are merge commits on
+   `origin/claude/flutter-final`. `d0f5874` is not a merge; it is an ordinary
+   commit on #478's branch, absorbed by `7b9c976`. Said here because a
+   timeline built from `git log --first-parent` does not show it, and it
+   carries one of this entry's findings.
+
+4. STILL UNMERGED, and worse than when it was last measured.
+   `git rev-list --left-right --count origin/main...origin/claude/flutter-final`
+   returns `1 140`. Session 44 recorded 101 nine days ago. Not a defect of
+   this sprint, and not something a retrospective can fix, but the number is
+   going one way.
+
+What was also true, and good: both data-loss paths were found and closed
+BEFORE anything can publish `app/`, which is the cheapest possible moment to
+find them. Verified independently this session rather than taken from a commit
+message: at the tip, a run over the six files this entry cites reports
+`+45: All tests passed!`.
+
+**Timeline, with evidence.**
+
+- `fa2b2f3`, 2026-10-01 22:46 +08, PR #477. The ledger moves to whole
+  centavos. Also lands the unreadable-file escape hatch.
+- `d0f5874`, inside #478. A mouse may drag a list. `ScrollBehavior.dragDevices`
+  omits mouse upstream, so on the emulator a wheel scrolled vertical lists and
+  every HORIZONTAL strip read as frozen. The founder hit it on Activity's
+  filter strip while trying to confirm a payment landed in the right account.
+  The commit's own words: "Nothing on screen distinguishes 'there is nothing
+  more here' from 'I cannot get to it'".
+- `7b9c976`, 2026-10-02 00:27 +08, PR #478. `toggleDebtSettled` stops
+  destroying the real paid figure, and a debt payment can no longer be marked
+  a duplicate. AND THE STORAGE HALF OF THE FIRST FIX DID NOT LAND. Verified
+  with `git show 7b9c976:app/lib/data/json_codec.dart`: `debtKeys` at that
+  commit holds thirteen names, ending at `isSample`, with no
+  `paidBeforeSettle` and no `payments`.
+- `bf41e8d`, 2026-10-02 08:30 +08, PR #479. The payment register, "Take back
+  the last payment", account balances to centavos. `debtKeys` gains
+  `paidBeforeSettle` and `payments`, closing the hole opened eight hours
+  earlier.
+- `4e824bd`, 09:05 +08, PR #480. A taken-back payment stays in Activity,
+  marked, and stops counting. Checking that it genuinely stops counting
+  exposed two engines that ignored entry status entirely, which was already
+  live for excluded and duplicate entries.
+- `f2b2256`, 10:07 +08, PR #481. A debt showing money paid with no payment
+  record now says so.
+
+**The divergence point.** 00:27 on 2 October, at `7b9c976`, and nobody noticed
+for about eight hours. The fix to `toggleDebtSettled` was correct and its
+engine test was green, while the field the fix depends on was not declared to
+the file format. `app/lib/data/snapshot.dart:419` copies any key a build does
+not model into an extras sidecar, and `snapshot.dart:205` merges it back as
+`{...kept, ...own}`. Our own value wins a clash, but A CLEARED FIELD HAS NO OWN
+VALUE TO WIN WITH, so the sequence settle, reload, un-settle put the figure
+straight back from the sidecar. For those eight hours the branch that dev-sync
+builds the founder's emulator from carried a data-loss fix that its own storage
+layer could undo. It was not found by review. It was found because the register
+work in #479 needed the same key set again.
+
+**Root cause.** Two, and they are separate.
+
+1. ADDING A MODELLED FIELD IS TWO EDITS IN TWO FILES WITH NO MECHANICAL LINK
+   BETWEEN THEM. One in `debtToJson`, one in `debtKeys`, and nothing in the
+   codec requires the second. Analyze passes, every engine test passes, and
+   the round-trip tests pass, because the value is written and so it survives.
+   The defect only appears on the CLEAR. The fix that works while everybody is
+   busy is to derive the declaration from the writer rather than to remember
+   it. "Claude forgot a line" is not a root cause, because the remedy would be
+   "remember harder".
+
+2. NOTHING IN THE APP DISTINGUISHES A CONTROL THAT IS CORRECTLY ABSENT FROM A
+   CONTROL THAT IS BROKEN. That is an architectural silence, not an attention
+   failure, and it cost the founder their emulator data and the evidence of
+   why.
+
+**Lessons, each with its guard and the guard's strength.**
+
+LESSON 1. One function served two cases that needed opposite answers, and the
+comment defending the wrong one is why it survived review. `toggleDebtSettled`
+filled `paidAmount` to `totalAmount` on settle and left the filled figure in
+place on un-settle. The old comment said winding the figure back would be
+"worse than the wrong flag", which is RIGHT for a debt settled by real payments
+and catastrophic for a debt settled by the button. Two taps, neither confirmed,
+no history on a debt, no edit and no delete: the only route back was wiping the
+phone. Fix at `app/lib/core/money/debt.dart:200` and `:210`, storing
+`paidBeforeSettle` on settle and spending it on un-settle.
+GUARD, ALREADY EXISTS: `app/test/core/money/settle_toggle_test.dart`, which
+pins the restoration, the directional half (nothing is remembered on a debt
+that was never filled, `:78-90`) and the copyWith carry-through (`:144-152`).
+STRENGTH: strongest. An automated check that runs unattended on every push.
+
+LESSON 1B, not in the brief and part of the same family. The same merge closed
+a second live path: reconciliation offered "possible double entries" on a debt
+payment, and the one tap that makes the warning go away reversed the ACCOUNT
+and could not touch the DEBT, because a Transaction carries no debtId. Measured
+gap 1,500.00, with no screen explaining it and no way to put it right.
+GUARD, ALREADY EXISTS: `app/test/data/payment_correction_test.dart`, which
+keeps the engine-level reproduction next to the UI guard on purpose, in its own
+words "because a guard nobody can justify is the next thing somebody deletes".
+STRENGTH: strongest, automated.
+
+LESSON 2. The sidecar pattern has a hole shaped exactly like a cleared field,
+and the existing guard covers the two instances rather than the class.
+CHECKED TODAY, as asked. I compared every `*ToJson` writer in
+`app/lib/data/json_codec.dart` against its matching `*Keys` set, all thirteen
+sets. Zero keys missing, zero keys declared but never written. There is no open
+instance of this defect right now.
+GUARD, ALREADY EXISTS: `app/test/data/stored_shape_test.dart:228-256`.
+STRENGTH: automated, so it runs unattended, but it is a HAND-TYPED LIST of
+three names (`paidBeforeSettle` and `payments` on `debtKeys`, `payments` on
+`installmentKeys`). It cannot fail for a field that does not exist yet, which
+is the only kind of field this defect ever affects. CLAUDE.md already states
+the principle it falls short of, in the palette note: "a derived set is a rule
+and a typed set is a promise". The class guard is one derived assertion away,
+encode a fully populated instance of each record and assert every key it writes
+is declared, and it is not built, so I am recording the class as OPEN rather
+than claiming it closed.
+ADJACENT AND PRE-EXISTING, raised not acted on: the nested payment rows have no
+key set and no sidecar at all. `debtPaymentToJson`, `planPaymentToJson` and
+`extraPaymentToJson` are re-written wholly from the model, so an unknown
+sub-key inside a `payments` row is DROPPED on a round trip through an older
+build. That is silent loss rather than resurrection, and it predates this
+sprint, but it is a hole in the same promise.
+
+LESSON 3. A test that failed to fail, handled correctly. Breaking
+`applyToBalances` back to double arithmetic left all three balance round-trip
+tests green. The reason is written into the file rather than hidden:
+`app/test/core/money/balance_round_trip_test.dart:95-114`. `Money.fromDouble`
+re-quantises to the centavo at every hop, so one trip through a double leaves
+no residue; the defect needed the STORED FIELD to be a double, which is a
+property of the type and not of any line, so no line could be broken to
+reproduce it. The response was to find the falsifiable shape, now pinned at
+`:118`: doubles must genuinely disagree on these figures, or the file documents
+a defect that never existed.
+GUARD, ALREADY EXISTS: that test file, plus the CLAUDE.md rule that "when the
+deliberate break does NOT produce a failure, that is the most informative
+result this procedure can give".
+STRENGTH: the property check is automated and strongest. The DISCIPLINE behind
+it, do not shrug and do not break something else until something goes red, is a
+rule and therefore medium, and no machine can raise it. Worth recording that
+this is the second confirmed instance (session 34 was the first) and both times
+the rule was followed, which is a rule earning its place.
+
+LESSON 4. The stored-shape guard covered one record type out of five, and
+THREE PARTS OF THE BRIEF DID NOT SURVIVE THE CHECK.
+
+  - The "app could not save at all" defect NEVER EXISTED IN ANY COMMIT.
+    `git log -L '/accountToJson/,+6:app/lib/data/json_codec.dart'` shows the
+    line touched exactly twice: created as `'balance': a.balance` when balance
+    was a double, and changed to `a.balance.pesos` in `90ed0b7`, the same
+    commit that changed the field to `Money`. It was a working-tree state
+    during the migration. It could not have reached the emulator, and nothing
+    in this entry should read as though the founder was exposed to it.
+  - The journeys were not the only net under it.
+    `app/test/data/snapshot_test.dart:41` round-trips the entire seed through
+    the real encoder, and `snapshot.dart:192` is a real `JsonEncoder.convert`,
+    so a `Money` object would have thrown there too. The journeys reported
+    first, which is not the same as being the only thing watching.
+  - `stored_shape_test.dart` does NOT now cover plans. Its groups are goal,
+    transaction, the payment register and the sidecar, account, and debt.
+    `InstallmentPlan` has no group, and it writes eight Money fields
+    (`principal`, `totalInterest`, `totalPayable`, `installmentAmount`,
+    `runningBalance`, `principalRemaining`, `interestRemaining`) plus the
+    register's `amount`, `toPrincipal` and `toInterest`. I read every one and
+    all of them currently write `.pesos`, so there is no live defect. There is
+    an unguarded surface, and it is the largest money record in the file.
+GUARD: the existing file, extended by one group. STRENGTH: automated once
+extended, strongest. Today the lesson is OPEN for plans, and I am not writing
+it up as closed.
+
+LESSON 5. Absence and breakage looked identical, and the founder paid for it
+with their data.
+WHAT IS NOT KNOWN, stated plainly. The original cause of the missing "Take back
+the last payment" button is not recoverable. The reinstall destroyed the file
+that would have answered it, and nothing was written down before it went. The
+save and load path was probed afterwards and the register does persist in both
+directions, there is no reseeding on restore
+(`app/lib/state/financial_state.dart:168-194`), and the control's condition is
+a plain `if (onTakeBack != null)` at `debt_screen.dart:703`. That is where the
+investigation honestly ends. It is NOT claimed fixed.
+WHAT WAS FIXED is the thing that made the question unanswerable in the first
+place: `f2b2256` adds one line at `debt_screen.dart:732` and
+`installments_view.dart:443`, so a record showing money paid with no payment
+history says so.
+THE CLASS, which is what was asked for. Three instances, verified this session,
+two of which bit the founder inside one sprint:
+  (a) The take back control. Fixed for debts.
+  (b) `d0f5874`. Horizontal strips were unreachable with a mouse, and the
+      screen edge looks the same whether there is nothing more or you simply
+      cannot get there. The founder read a present feature as missing.
+  (c) FOUND THIS SESSION AND UNFIXED. `LoadStatus.fresh` is surfaced NOWHERE.
+      Only `unreadable` reaches Home (`home_screen.dart:127`) and the header
+      (`home_header.dart:128`); `recovered` reaches Settings alone
+      (`settings_sheet.dart:359`). And debts carry no sample marker, unlike
+      accounts (`accounts_screen.dart:610` and `:667`) and transactions
+      (`day_group.dart:209`). So an app that comes up with no file at all shows
+      `SeedData.debts` (`seed_data.dart:501-514`): "Home Credit (Phone)",
+      7,350.00 paid of 14,700.00, no payment register, no badge. That is, to
+      the eye, exactly the state the founder read as "my data is here and the
+      button is broken". Accidental partial mitigation worth noting: the new
+      `f2b2256` line fires on precisely that seed debt, so the screen now at
+      least says Salapify has no record of those payments. It still does not
+      say the data is a sample.
+GUARD, NEW AND PROVEN: `app/test/widgets/take_back_absent_test.dart`, three
+states pinned, including the middle one that no test checking only the button
+can see, and built through the real load path rather than a test-only setter.
+STRENGTH: strongest, for the debt card.
+HONEST LIMIT, found by grep rather than assumed: the identical line on the PLAN
+card has no test at all. `installments_view.dart:443` could be deleted today
+and nothing would go red. The general form of the lesson, "a control that can
+disappear needs all three of its states tested", is a rule in prose and
+therefore the WEAKEST rank, and I am saying so rather than dressing it up as a
+machine.
+
+LESSON 6. An invariant that holds while the composition is corrupted, worked
+all the way through. Re-deriving a payment's principal and interest split after
+the fact is provably wrong: about 400.00 on a prepayment
+(`payment_register_test.dart:27-53`) and 1,056.60 on a stub period (`:126-162`,
+where re-deriving credited 1,647.80 against a ledger row holding 591.20, and
+1,647.80 minus 591.20 is 1,056.60). Every conservation check passes throughout,
+because the total foots and only the split inside it is wrong. This is the
+cleanest example yet of CLAUDE.md's rule that an invariant also holds when the
+action silently did nothing, and it is why the split is now stored per payment
+rather than recomputed.
+GUARD, ALREADY EXISTS: `app/test/core/money/payment_register_test.dart`,
+including the fixture self-check at `:139-145` that reddens if the stub stops
+being a stub, which is the thing that would otherwise let the test quietly stop
+reaching its own case.
+STRENGTH: strongest, automated. No second guard invented.
+
+**Where the sprint simply went fine, said plainly.**
+
+Most of it. Two live data-loss paths were found and closed before any publisher
+exists for `app/`, which is the cheapest moment in the whole lifetime of a
+defect to find one. The break-then-prove procedure was actually run, and when
+it returned a negative the response was the one CLAUDE.md asks for rather than
+a shrug. Every key set in the codec is correct today. The register's design
+decision is evidenced with real numbers rather than asserted. The founder's two
+tests behaved. `+45: All tests passed!` over the six files this entry cites,
+re-run here rather than quoted. There is no manufactured finding in this entry,
+and the two largest things in it, the eight-hour sidecar window and the stale
+and false CLAUDE.md claims, are both things the sprint's own work surfaced
+rather than things invented to fill a template.
+
+**Open lessons carried forward.**
+
+- From sessions 43 and 44, STILL OPEN and now the clearest case in this file: a
+  test that extracts every file path CLAUDE.md names and reddens when one does
+  not exist. Three sessions have now asked for it. It would have caught all of
+  session 44's nine findings and the path findings below, and none of the
+  claims that hold.
+- From session 44, STILL OPEN and measurably worse: nothing in `app/` has been
+  merged to `origin/main`. 101 commits ahead then, 140 now. Every guard named
+  in sessions 43, 44 and 45 lives on one branch. Raised, not acted on; this is
+  a founder conversation.
+- NEW, open: the derived key-set assertion (lesson 2). Until it exists the
+  sidecar guard is a typed promise over three names.
+- NEW, open: `InstallmentPlan` has no group in `stored_shape_test.dart`
+  (lesson 4).
+- NEW, open: the plan card's "no record of the payments" line has no test
+  (lesson 5).
+- NEW, open: `LoadStatus.fresh` is invisible and debts carry no sample badge,
+  so a seed start and a real ledger look alike (lesson 5c).
+- NEW, open: nested payment rows have no key set and no sidecar, so unknown
+  sub-keys are dropped rather than kept (lesson 2, adjacent).
+
+**CLAUDE.md factual re-check, done as a step and not as a favour.**
+
+Re-verified session 44's list by `find` and by running the commands. All of it
+is still exactly as session 44 left it: the render command at line 220
+(`cd flutter && ...`, where the working one is `cd app && flutter test
+test/shots/screens_shot.dart --update-goldens`),
+`flutter/test/journeys_test.dart` at line 360,
+`flutter/lib/widgets/salapify_icon.dart` at line 551 (live file is
+`app/lib/design/salapify_icon.dart`), the `ui_golden.dart`, `baseline/` and
+`segmented_test.dart` paragraph which describes machinery `app/` does not
+have, `flutter/pubspec.yaml` at lines 662 and 663, and `flutter/lib/widgets`
+at line 671 (`app/lib` holds `core data design features models screens shell
+state`, and no `widgets`).
+
+NEW, AND THE MOST CONSEQUENTIAL ONE THIS SESSION, because it sits in the
+section a Claude doing exactly this sprint reads first. CLAUDE.md lines 425 to
+427, under "A write path is not tested until somebody can SEE what it did":
+
+    the engine deliberately writes the payment with no accountId (tagging it
+    would double debit the account), so the account link lives in the top
+    level `payments` collection and the screen reads it from there. Display
+    only, no stored change.
+
+There is no top level `payments` collection in `app/`.
+`Snapshot.collectionKeys` (`snapshot.dart:150-161`) and `_ownTopKeys`
+(`:165-186`) do not contain one, and nothing in `app/lib` writes one. The top
+level `payments` collection is Salapify 2's, and it still exists at
+`archive/salapify-2-flutter/lib/money/debts.dart:296-310`. In `app/`, as of
+`bf41e8d`, the account link lives ON the debt, in `DebtPayment.accountId`, is
+written to the file by `debtPaymentToJson`, and IS a stored change. So the
+sentence is not merely stale: its last four words are now the exact opposite
+of the truth, under a heading that reads as current policy. It names real
+things, so no path checker could have caught it, which makes this the third
+consecutive session to find a false factual claim in CLAUDE.md of exactly that
+kind.
+
+NEW, GUARD HEALTH, and the sort of finding step 6 exists for. CLAUDE.md lines
+456 to 458 say rule 3 of the Bash hook "matches only an INVOCATION (command
+position on the first line), so a commit message or document that merely
+mentions the banned shape passes." That is FALSE, and it was reproduced twice
+this session, once by accident and once deliberately by feeding the hook its
+own JSON payload, which exited 2. A read-only
+`grep -n "cd flutter && flutter test\|x" CLAUDE.md` is blocked, because the
+hook's rule 3 regex `(^|[;&|])[[:space:]]*flutter[[:space:]]+test[^|]*\|`
+in `.claude/hooks/guard-destructive-edits.sh` matches the `&&` and the escaped
+`\|` that live INSIDE the quoted grep pattern. Cost today: one wasted round.
+Significance: the hook's own header states the principle it just broke, "this
+under-blocks rather than over-blocks, and that is the correct direction on
+purpose. A guard that fires on ordinary work gets switched off, and is then
+absent for the real thing". This is a small instance of precisely that failure
+mode, and it is cheap to fix before it fires on something a session actually
+needs.
+
+CHECKED AND TRUE, reported because the rule says to report it either way:
+`app/lib/features/info/info_dot.dart` and `info_sheet.dart`,
+`app/test/widgets/info_sheet_test.dart`, `.claude/settings.json` and
+`.claude/hooks/guard-destructive-edits.sh`, `.claude/agents/journey-tester.md`,
+`recovery-designer.md` and `lunch-and-learn.md`, `archive/README.md` and
+`archive/salapify-2-flutter/ci-disabled/`, `docs/revamp/README.md`,
+`07-decisions.md` and `09-working-rules.md`,
+`docs/archive/Product_Vision_Spec.md`, `.githooks/pre-push`, the "feature
+folder is debt/ not utang/" rule (`app/lib/features/debt/`), and the archive
+section's claim that the delivery log ends at f4.72.
+
+**For the founder, over lunch.**
+
+Your two tests passed, and what they were testing is worth knowing, because
+the thing they now prove was broken in a way that could have quietly destroyed
+real money records.
+
+The old behaviour. When you tapped "Mark settled" on a debt, Salapify changed
+"you have paid 7,350" to "you have paid 12,000", so that one row could not say
+"settled" and "still owes 4,650" at the same time. When you then tapped "Not
+settled after all", it left the 12,000 there. The 7,350 was gone, permanently,
+with no warning and no undo, and a debt keeps no list of payments, so there was
+no way to work it back out. Two taps anybody could make by accident. It now
+remembers the real figure before it fills anything in, and puts it back. That
+is test 1 and test 2.
+
+There is a second thing in the same area that nobody asked you to test. On the
+reconciliation screen, Salapify sometimes warns that two entries look like a
+double. For a debt payment, the one tap that makes that warning disappear used
+to give the money back to your account and leave the debt still claiming it had
+been paid. That control is now refused on debt payments.
+
+Now the honest part, and it is about me rather than about you.
+
+When I fixed the first problem on Thursday night I fixed the behaviour and
+forgot to tell the SAVE FILE about the new piece of information it needs to
+keep. Salapify's save file has a sort of lost property box in it: anything it
+does not recognise is set aside and handed back later, so a file written by a
+newer Salapify still works in an older one. Because I had not declared the new
+piece of information, it went into the lost property box, and the next time you
+un-settled a debt the box handed the old value straight back. For about eight
+hours the fix was on your emulator and the save file could undo it. It was
+closed the next morning. It is not why your data went, the timing does not line
+up, but it is the real gap in this sprint and it is written down here so the
+next person reads it.
+
+About the reinstall. You restarted the emulator, the "Take back the last
+payment" button was not there, you reasonably decided the feature was broken,
+and you reinstalled. I want to be straight: I do not know what happened, and I
+cannot find out, because the reinstall wiped the only file that could have told
+us. I have tested saving and loading since and it works in both directions. I
+am NOT telling you it is fixed, because I do not know what "it" was.
+
+What I did fix is the reason you had no way to tell. The button only appears
+when there is a payment it can take back, which is correct, but "there is
+nothing to take back" and "this screen is broken" looked exactly the same, and
+nothing on the card said which. A debt that shows money paid and has no record
+of those payments now says so in one line. There is a test that checks all
+three situations, including that the line does NOT appear on a debt nobody has
+paid, because a message on every card is how people learn to stop reading
+messages.
+
+That same blind spot turned up twice more this week, which is why I am
+labouring it. Earlier you could not drag the sideways row of filters on
+Activity, because a mouse is not a finger and Flutter does not let a mouse drag
+lists by default. The edge of a screen looks identical whether there is nothing
+more to see or you simply cannot reach it, so a working feature read as a
+missing one. And I found a third one today that is not fixed: if Salapify ever
+starts up and cannot find your file, it shows the demo data with nothing on
+screen saying so, and the demo debt happens to look a lot like a real one.
+Written down, on the list, not fixed.
+
+One more, because it is the reason a button called "Take back the last payment"
+exists at all. When you pay a loan, part of your payment kills the debt and
+part of it is interest. If Salapify did not write that split down at the time
+and tried to work it out again later, it got it wrong by about 400 pesos on one
+kind of payment and about 1,056 on another, and every "does this add up" check
+still passed, because the total was right and only the two halves inside it
+were wrong. So the split is recorded the moment you pay, as a fact, instead of
+being guessed at afterwards.
+
+What it costs if these guards are removed. The settle test is the one that
+matters most: delete it and the two-tap sequence that erases your payment
+figure comes back silently, and you would find out by noticing a number you
+know is wrong. The three-state test on the take back button is what stops the
+screen going quiet again, and quiet is what cost you an afternoon and your test
+data. The payment register tests are what stop the interest split going back to
+being guessed, which is the kind of wrong that passes every check and shows up
+only when you compare Salapify against your bank.
+
+Last thing, plainly. None of this is on a phone, and none of it has been merged
+into main, the shared trunk that the repository treats as the record of what
+exists. The new app is now 140 commits sitting on one branch. That is not an
+emergency and it is not a retrospective's decision to make, but it is yours to
+know.
+
+---
+
 ## 2026-10-01, session 44: Split Bill reached an emulator and not a phone, a route I described to the founder did not exist, and the clock pin that revived six rotted tests also switched off the only machine that had noticed the real defect
 
 **What we believed / What was true.**
