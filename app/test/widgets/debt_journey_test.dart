@@ -369,14 +369,19 @@ void main() {
       gcashBefore,
       reason: 'the account came back NEARLY right, which an undo must not do',
     );
-    expect(
-      store.transactions.any((Transaction t) => t.id.startsWith('tx_debt_')),
-      isFalse,
-      reason:
-          'the entry explaining the payment is still in Activity while the '
-          'debt says it never happened, which is the half-landed state this '
-          'whole batch exists to stop',
+    // THE ENTRY STAYS, AND STOPS COUNTING. Founder direction, 2026-10-02.
+    // Both halves matter and they are asserted separately: a row that vanished
+    // leaves a hole in the history, and a row that stayed while still counting
+    // is the half-landed state this whole batch exists to stop.
+    final Transaction kept = store.transactions.firstWhere(
+      (Transaction t) => t.id.startsWith('tx_debt_'),
+      orElse: () => throw StateError(
+        'the entry was deleted rather than marked, so Activity no longer '
+        'shows that the payment ever happened',
+      ),
     );
+    expect(kept.status, TransactionStatus.corrected);
+    expect(kept.countsTowardTotals, isFalse);
     expect(
       find.text('Take back the last payment'),
       findsNothing,

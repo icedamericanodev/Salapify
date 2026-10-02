@@ -440,7 +440,7 @@ String statusLabel(TransactionStatus s) => switch (s) {
   TransactionStatus.reconciled => 'Reconciled',
   TransactionStatus.pending => 'Pending',
   TransactionStatus.duplicate => 'Duplicate',
-  TransactionStatus.corrected => 'Corrected',
+  TransactionStatus.corrected => 'Taken back',
   TransactionStatus.excluded => 'Excluded',
 };
 
@@ -448,6 +448,12 @@ String statusLabel(TransactionStatus s) => switch (s) {
 /// prototype's own treatment and the clearest way to say "this is here, and it
 /// is deliberately not in your totals".
 bool statusIsStruckThrough(TransactionStatus s) =>
-    s == TransactionStatus.excluded || s == TransactionStatus.duplicate;
+    s == TransactionStatus.excluded ||
+    s == TransactionStatus.duplicate ||
+    // A taken back payment is money that did not move in the end, so it is
+    // drawn like the other two. The row stays visible on purpose: the person
+    // asked for the payment to come back out, and a line they can read beats
+    // a gap they cannot explain.
+    s == TransactionStatus.corrected;
 
 String formatDayOut(double out) => 'Out: ${formatPeso(out)}';

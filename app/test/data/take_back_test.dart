@@ -63,12 +63,31 @@ void main() {
         reason:
             'the account came back NEARLY right, which an undo must never do',
       );
+      // THE ENTRY STAYS, MARKED. Founder direction, 2026-10-02: a payment you
+      // took back is part of your history, and a gap with no explanation is
+      // worse than a line you can read.
       expect(
         s.transactions.length,
-        rowsBefore,
+        rowsBefore + 1,
         reason:
-            'the entry that explained the payment is still in Activity '
-            'while the debt says it never happened',
+            'the entry was deleted, so the history has a hole where a payment '
+            'and its correction should both be readable',
+      );
+      final Transaction kept = s.transactions.firstWhere(
+        (Transaction t) => t.id.startsWith('tx_debt_'),
+      );
+      expect(kept.status, TransactionStatus.corrected);
+      expect(
+        kept.countsTowardTotals,
+        isFalse,
+        reason:
+            'a row left counting while the debt has moved is the half-landed '
+            'state this whole batch exists to stop',
+      );
+      expect(
+        kept.amount,
+        const Money.pesos(1500),
+        reason: 'and it keeps its figure, so the history says what happened',
       );
       expect(debtOf(s, 'debt_homecredit').payments, isEmpty);
     });

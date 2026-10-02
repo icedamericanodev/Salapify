@@ -328,11 +328,23 @@ class Transaction {
 
   bool get hasAttachment => attachmentPath != null;
 
-  /// Left out of the in and out totals. The two states that mean "this is not
+  /// Left out of the in and out totals. The states that mean "this is not
   /// really money that moved".
+  ///
+  /// THIS IS THE ONLY DEFINITION. `validLedgerEntries` in reports.dart used to
+  /// carry a second copy of the same list, which is how a rule like this drifts:
+  /// a state added to one and not the other counts in half the app. It now
+  /// reads this getter.
+  ///
+  /// `corrected` means TAKEN BACK, and it joined the list on founder direction,
+  /// 2026-10-02. The row stays in Activity so the history still shows what
+  /// happened, and it stops counting, because the payment it describes has been
+  /// undone. A row left counting while the debt has moved is the half-landed
+  /// state this whole batch exists to stop.
   bool get countsTowardTotals =>
       status != TransactionStatus.excluded &&
-      status != TransactionStatus.duplicate;
+      status != TransactionStatus.duplicate &&
+      status != TransactionStatus.corrected;
 
   /// True when SALAPIFY wrote this entry to explain a debt or instalment
   /// payment, rather than the person logging it by hand.

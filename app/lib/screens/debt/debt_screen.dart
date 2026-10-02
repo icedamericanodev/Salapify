@@ -289,7 +289,7 @@ class _DebtScreenState extends State<DebtScreen> {
           // The account half, and the no-account case said out loud rather
           // than left as a silence. A person who chose "no account, just the
           // debt" is entitled to know nothing will move in Activity either.
-          '${from == null ? 'No account moves, because this payment was recorded against the debt alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry for it leaves your Activity.'}',
+          '${from == null ? 'No account moves, because this payment was recorded against the debt alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry stays in your Activity, marked as taken back.'}',
           style: AppType.body(palette),
         ),
         actions: <Widget>[

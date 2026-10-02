@@ -162,9 +162,16 @@ List<ControlCenterAlert> runControlCenterScan({
 
   // 3. A category more than 15% past its limit. High once it passes 30%.
   for (final Budget b in budgets) {
+    // STATUS IS CHECKED, which it was not. This alert summed every expense in
+    // the category whatever its state, so an entry marked excluded, duplicate
+    // or taken back kept pushing the category toward an orange warning for
+    // good. That was already wrong for the two older states; it becomes
+    // visible with the third, because taking a payment back and watching the
+    // warning stay is the obvious thing a person would notice.
     final double spent = transactions
         .where(
           (Transaction t) =>
+              t.countsTowardTotals &&
               t.type == TransactionType.expense &&
               t.category.toLowerCase() == b.category.toLowerCase(),
         )

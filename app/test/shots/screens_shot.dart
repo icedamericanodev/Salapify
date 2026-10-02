@@ -115,6 +115,7 @@ void main() {
   unreadableRecoveryShots();
   settleConfirmShot();
   takeBackShot();
+  takenBackRowShot();
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
@@ -2265,6 +2266,54 @@ void settleConfirmShot() {
     await expectLater(
       find.byType(AlertDialog),
       matchesGoldenFile('out/debt_settle_confirm.png'),
+    );
+  });
+}
+
+/// How a TAKEN BACK payment reads in Activity.
+///
+/// Founder direction, 2026-10-02: the row stays rather than vanishing, because
+/// a payment you took back is part of your history and a gap with no
+/// explanation is worse than a line you can read. Rendered because the whole
+/// point is whether it reads as deliberate rather than as a mistake.
+void takenBackRowShot() {
+  testWidgets('a taken back entry renders in Activity', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    await state.restore();
+    // Through the real paths, so the row on screen is one the app actually
+    // produces rather than a fixture somebody typed into the shape they hoped
+    // for.
+    state.recordDebtPayment('debt_homecredit', 1500, accountId: 'acc_gcash');
+    state.takeBackDebtPayment('debt_homecredit');
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: ActivityScreen(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(ActivityScreen),
+      matchesGoldenFile('out/activity_taken_back.png'),
     );
   });
 }

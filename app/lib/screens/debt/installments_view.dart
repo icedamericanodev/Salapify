@@ -138,7 +138,7 @@ class _InstallmentsViewState extends State<InstallmentsView> {
           'pay, of which '
           '${formatPeso((plan.principalRemaining + row.toPrincipal).pesos)} '
           'is principal.\n\n'
-          '${from == null ? 'No account moves, because this payment was recorded against the plan alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry for it leaves your Activity.'}',
+          '${from == null ? 'No account moves, because this payment was recorded against the plan alone.' : '${from.name} goes back up by ${formatPeso(row.amount.pesos)}, and the entry stays in your Activity, marked as taken back.'}',
           style: AppType.body(palette),
         ),
         actions: <Widget>[
