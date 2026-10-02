@@ -533,6 +533,16 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'is reversible and changes no total. Archived debts sit at the '
             'bottom of this screen with a "Put it back".',
       ),
+      InfoPoint(
+        icon: Icons.event_repeat_outlined,
+        title: 'And the same for a payment plan',
+        body:
+            'A plan you have never paid into can be deleted, which also '
+            'stops Salapify holding its monthly amount back from Safe to '
+            'Spend. A plan you have paid off can be archived, which changes '
+            'no figure. For one in between, take its payments back first and '
+            'then delete it.',
+      ),
     ],
   ),
 

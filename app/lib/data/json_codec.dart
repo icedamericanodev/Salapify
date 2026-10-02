@@ -821,6 +821,11 @@ const Set<String> installmentKeys = <String>{
   'isSettled',
   'notes',
   'isSample',
+  // Same reason as debtKeys' own entry. "Put it back" CLEARS archivedAt, and
+  // an undeclared key is filed in the unknown-key sidecar, where the
+  // {...kept, ...own} merge has nothing of ours to beat it. The plan would
+  // re-archive itself on the next launch.
+  'archivedAt',
 };
 
 Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
@@ -850,6 +855,9 @@ Map<String, dynamic> installmentToJson(InstallmentPlan p) => <String, dynamic>{
   'isSettled': p.isSettled,
   if (p.notes != null) 'notes': p.notes,
   if (p.isSample) 'isSample': true,
+  // Written only while the plan is actually put away, so a live plan's row is
+  // byte for byte what it always was.
+  if (p.archivedAt != null) 'archivedAt': p.archivedAt,
 };
 
 InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
@@ -890,6 +898,9 @@ InstallmentPlan installmentFromJson(Map<String, dynamic> m) {
     isSettled: _optBool(m, 'isSettled'),
     notes: _optStr(m, 'notes'),
     isSample: _optBool(m, 'isSample'),
+    // Absent means live, which is right for every plan written before this
+    // key existed.
+    archivedAt: _optStr(m, 'archivedAt'),
   );
 }
 
