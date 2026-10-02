@@ -239,7 +239,14 @@ void main() {
       // the sidecar put it back. A later un-settle would then wind the debt
       // back to a figure from a settle that had already been undone, which is
       // the exact loss the field exists to prevent, by the back door.
-      for (final String key in <String>['paidBeforeSettle', 'payments']) {
+      // archivedAt joined this list on 2026-10-02 and is the same shape
+      // exactly: "Put it back" CLEARS it, so an undeclared key would be
+      // resurrected and the debt would re-archive itself on the next launch.
+      for (final String key in <String>[
+        'paidBeforeSettle',
+        'payments',
+        'archivedAt',
+      ]) {
         expect(
           debtKeys,
           contains(key),

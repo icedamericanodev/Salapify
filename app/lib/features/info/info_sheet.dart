@@ -521,6 +521,18 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'which way you are leaning rather than making you do the '
             'subtraction.',
       ),
+      InfoPoint(
+        icon: Icons.inventory_2_outlined,
+        title: 'Taking a debt off the list',
+        body:
+            'A debt with nothing paid against it can be deleted outright, '
+            'and that cannot be undone. Once money has been recorded against '
+            'it there is no delete, because the payments stay in your '
+            'Activity and deleting the debt would leave them explaining '
+            'nothing. Mark it settled instead and you can archive it, which '
+            'is reversible and changes no total. Archived debts sit at the '
+            'bottom of this screen with a "Put it back".',
+      ),
     ],
   ),
 
