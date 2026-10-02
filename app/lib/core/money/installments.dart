@@ -586,4 +586,15 @@ InstallmentPlan _copy(
   payments: payments ?? p.payments,
   isSettled: isSettled ?? p.isSettled,
   notes: p.notes,
+  // CARRIED THROUGH, unlike isSample one line down, and the difference
+  // between them is the point.
+  //
+  // Dropping this would mean any engine write silently un-archived the plan,
+  // which is the quiet kind of failure the debt side already paid for once.
+  archivedAt: p.archivedAt,
+  // NOT carried, deliberately, matching Debt.copyWith. A real payment against
+  // a demo plan makes it the person's own, so the sample sweep cannot delete
+  // a record that the user's own ledger rows point at. It was undocumented
+  // here while the debt side explained itself, which is why a reviewer had to
+  // work out whether it was a decision or an oversight. It is a decision.
 );

@@ -390,8 +390,29 @@ class FinancialState extends ChangeNotifier {
   List<BillItem> get bills => List<BillItem>.unmodifiable(_bills);
   List<IncomeStream> get incomeStreams =>
       List<IncomeStream>.unmodifiable(_incomeStreams);
-  List<InstallmentPlan> get installments =>
-      List<InstallmentPlan>.unmodifiable(_installments);
+  /// The plans the app shows anywhere, archived ones excluded.
+  ///
+  /// The filter is at the one getter for the same reason the debt one is:
+  /// every consumer reads this, including Safe to Spend's reserve and the
+  /// Plans summary, and one getter cannot drift from itself.
+  ///
+  /// Only a SETTLED plan can be archived, and a settled plan is already
+  /// outside both of those figures, so this subtracts nothing from any total.
+  /// It changes what is LISTED, not what is COUNTED.
+  List<InstallmentPlan> get installments => List<InstallmentPlan>.unmodifiable(
+    _installments.where((InstallmentPlan p) => !p.isArchived),
+  );
+
+  /// Put away, newest first. Shown only on the Plans tab, where "Put it back"
+  /// lives.
+  List<InstallmentPlan> get archivedInstallments =>
+      List<InstallmentPlan>.unmodifiable(
+        _installments.where((InstallmentPlan p) => p.isArchived).toList()
+          ..sort(
+            (InstallmentPlan a, InstallmentPlan b) =>
+                b.archivedAt!.compareTo(a.archivedAt!),
+          ),
+      );
 
   /// The pay cycle, with its countdown worked out against TODAY.
   ///
@@ -1074,6 +1095,109 @@ class FinancialState extends ChangeNotifier {
 
   /// Takes the most recent payment back off an instalment plan, in both
   /// halves. Same contract as [takeBackDebtPayment].
+  /// ARCHIVED IMPLIES SETTLED, enforced wherever a plan can stop being
+  /// settled rather than only where it can be archived.
+  ///
+  /// [reverseLastPlanPayment] restores `isSettled` from the stored row, so
+  /// taking back the payment that cleared a plan un-settles it. On an
+  /// archived plan that produces live-and-archived, which the `installments`
+  /// getter filters out of every total, so a real monthly obligation would
+  /// count nowhere. That is exactly the defect found on the debt side on
+  /// 2026-10-02, and it is written as a helper here so the next method that
+  /// can un-settle a plan has somewhere obvious to call.
+  List<InstallmentPlan> _unarchiveIfLive(
+    List<InstallmentPlan> plans,
+    String planId,
+  ) {
+    final int i = plans.indexWhere((InstallmentPlan p) => p.id == planId);
+    if (i < 0 || plans[i].isSettled || !plans[i].isArchived) return plans;
+    return <InstallmentPlan>[
+      for (final InstallmentPlan p in plans)
+        if (p.id == planId) p.copyWithArchived(null) else p,
+    ];
+  }
+
+  /// Puts a SETTLED plan away. Returns false and changes nothing otherwise.
+  ///
+  /// Nothing else moves: no entry, no balance, the register untouched, the
+  /// `tx_inst_` rows still in Activity and still counting.
+  bool archivePlan(String planId) {
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0) return false;
+    if (!_installments[i].isSettled) return false;
+    if (_installments[i].isArchived) return false;
+
+    _installments = <InstallmentPlan>[
+      for (final InstallmentPlan p in _installments)
+        if (p.id == planId) p.copyWithArchived(isoDate(now)) else p,
+    ];
+    notifyListeners();
+    return true;
+  }
+
+  /// Brings an archived plan back. No confirmation anywhere behind it,
+  /// because nothing is lost by tapping it.
+  bool unarchivePlan(String planId) {
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0 || !_installments[i].isArchived) return false;
+
+    _installments = <InstallmentPlan>[
+      for (final InstallmentPlan p in _installments)
+        if (p.id == planId) p.copyWithArchived(null) else p,
+    ];
+    notifyListeners();
+    return true;
+  }
+
+  /// Deletes a plan OUTRIGHT, and only one that never moved any money.
+  ///
+  /// This is the exit the Plans tab never had. Until it existed a plan could
+  /// not be removed by any route: there is no delete, no archive, and no
+  /// settle control on a plan card, so a plan restored from a backup that was
+  /// cancelled or refinanced outside the app stayed in Safe to Spend's
+  /// reserve for ever.
+  ///
+  /// THE GATE IS THE REGISTER, NOT THE COUNTER, and that distinction is the
+  /// difference between a feature that works and one that does not.
+  ///
+  /// A first version also refused when `paidInstallments > 0`, by analogy
+  /// with [deleteDebt]'s paid figure. Every one of the three seeded plans
+  /// arrives with a counter of 5, 10 and 2 and an EMPTY register, so not one
+  /// of them could be deleted, archived (not settled) or taken back from (no
+  /// register). The exit still did not exist, which is the whole thing this
+  /// was built to fix.
+  ///
+  /// The counter is a number copied off a contract. The REGISTER is what
+  /// Salapify itself recorded, and it is the only thing that wrote ledger
+  /// rows. So the real question is whether deleting this plan would leave
+  /// entries in Activity explaining something that no longer exists, and
+  /// that is answered by the register alone. A plan with none orphans
+  /// nothing.
+  ///
+  /// A plan that HAS been paid through this app still refuses, and the route
+  /// back is unchanged: take the payments back first, which empties the
+  /// register and marks their entries corrected, then delete.
+  bool deletePlan(String planId) {
+    final int i = _installments.indexWhere(
+      (InstallmentPlan p) => p.id == planId,
+    );
+    if (i < 0) return false;
+
+    final InstallmentPlan p = _installments[i];
+    if (p.payments.isNotEmpty || p.extraPayments.isNotEmpty) return false;
+
+    _installments = <InstallmentPlan>[
+      for (final InstallmentPlan x in _installments)
+        if (x.id != planId) x,
+    ];
+    notifyListeners();
+    return true;
+  }
+
   bool takeBackPlanPayment(String planId) {
     final int i = _installments.indexWhere(
       (InstallmentPlan p) => p.id == planId,
@@ -1084,7 +1208,10 @@ class FinancialState extends ChangeNotifier {
     if (before.payments.isEmpty) return false;
     final PlanPayment row = before.payments.last;
 
-    _installments = reverseLastPlanPayment(_installments, planId);
+    _installments = _unarchiveIfLive(
+      reverseLastPlanPayment(_installments, planId),
+      planId,
+    );
 
     // MARKED, NOT REMOVED. setTransactionStatus moves the balance back on its
     // own, because the entry stops counting, so this must not also undo it.

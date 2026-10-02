@@ -1113,6 +1113,7 @@ class InstallmentPlan {
     this.isSettled = false,
     this.notes,
     this.isSample = false,
+    this.archivedAt,
   });
 
   /// True for a record Salapify put there itself, so the screens are not blank
@@ -1125,6 +1126,24 @@ class InstallmentPlan {
   /// plain constructor, which is what an edit does, becomes the user's own
   /// automatically.
   final bool isSample;
+
+  /// The day this plan was put away, as an ISO date. Null means it is live.
+  ///
+  /// Same rule as [Debt.archivedAt], and for the same reason: ONLY A SETTLED
+  /// PLAN MAY CARRY THIS. A settled plan is already outside Safe to Spend's
+  /// reserve and outside the Plans summary, so putting it away changes no
+  /// figure. Allowing a LIVE plan to be archived would take a real monthly
+  /// obligation out of Safe to Spend on a tap, which is the design the
+  /// founder turned down for debts on 2026-10-02.
+  ///
+  /// Plans needed this more than debts did. Until it existed there was no way
+  /// to remove a plan AT ALL, and paying one adopts it, because the copier
+  /// drops [isSample] deliberately so that a real payment makes a demo record
+  /// yours. So one exploratory tap on a demo plan held Safe to Spend down for
+  /// ever, and the only exit was Delete everything.
+  final String? archivedAt;
+
+  bool get isArchived => archivedAt != null;
 
   final String id;
   final String name;
@@ -1177,6 +1196,47 @@ class InstallmentPlan {
   /// True when the plan charges nothing, which is the real 0 percent promo
   /// rather than one with the interest folded into the price.
   bool get isZeroInterest => !totalInterest.isPositive;
+
+  /// The ONLY public copier on a plan, and it changes one field.
+  ///
+  /// Deliberately not a general `copyWith`. Every other change to a plan goes
+  /// through the engine, which owns the arithmetic between the balances, the
+  /// counter and the register, and a wide copier on this class would be an
+  /// invitation to move one of those without the others. Archiving is the one
+  /// change that touches no money at all.
+  ///
+  /// Null CLEARS it, which is what "Put it back" needs. That is safe here
+  /// precisely because the parameter means one thing: unlike the flag-based
+  /// clears on [Debt.copyWith], there is no "leave it alone" case to confuse
+  /// it with.
+  InstallmentPlan copyWithArchived(String? archivedAt) => InstallmentPlan(
+    id: id,
+    name: name,
+    provider: provider,
+    principal: principal,
+    interestRate: interestRate,
+    interestRateType: interestRateType,
+    totalInterest: totalInterest,
+    totalPayable: totalPayable,
+    termMonths: termMonths,
+    paymentFrequency: paymentFrequency,
+    startDate: startDate,
+    maturityDate: maturityDate,
+    installmentAmount: installmentAmount,
+    paidInstallments: paidInstallments,
+    totalInstallments: totalInstallments,
+    runningBalance: runningBalance,
+    principalRemaining: principalRemaining,
+    interestRemaining: interestRemaining,
+    extraPayments: extraPayments,
+    payments: payments,
+    isSettled: isSettled,
+    notes: notes,
+    // CARRIED, unlike the engine's copier. Archiving is not a payment, so it
+    // must not quietly adopt a demo plan the sweep would otherwise remove.
+    isSample: isSample,
+    archivedAt: archivedAt,
+  );
 }
 
 class IncomeStream {

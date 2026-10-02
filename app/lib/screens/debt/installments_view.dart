@@ -39,13 +39,19 @@ class _InstallmentsViewState extends State<InstallmentsView> {
     final List<InstallmentPlan> plans = widget.state.installments;
     final ({List<InstallmentPlan> open, List<InstallmentPlan> settled}) split =
         splitPlans(plans);
+    // Archived plans are filtered out of state.installments, so they reach
+    // this screen only here.
+    final List<InstallmentPlan> archived = widget.state.archivedInstallments;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _Summary(palette: p, plans: plans),
         const SizedBox(height: Spacing.lg),
-        if (split.open.isEmpty && split.settled.isEmpty)
+        // `archived` belongs in this test. Without it, somebody whose only
+        // plan is archived gets the empty state AND no Archived section,
+        // which puts the one way back out of reach.
+        if (split.open.isEmpty && split.settled.isEmpty && archived.isEmpty)
           _Empty(palette: p)
         else ...<Widget>[
           for (final InstallmentPlan plan in split.open) ...<Widget>[
@@ -57,6 +63,9 @@ class _InstallmentsViewState extends State<InstallmentsView> {
               onTakeBack: plan.payments.isEmpty
                   ? null
                   : () => _confirmTakeBack(context, p, plan),
+              onDelete: _canDelete(plan)
+                  ? () => _confirmDelete(context, p, plan)
+                  : null,
             ),
             const SizedBox(height: Spacing.sm),
           ],
@@ -75,6 +84,35 @@ class _InstallmentsViewState extends State<InstallmentsView> {
                 onTakeBack: plan.payments.isEmpty
                     ? null
                     : () => _confirmTakeBack(context, p, plan),
+                // Settled, so this is the archive side of the gate.
+                onArchive: () => _confirmArchive(context, p, plan),
+              ),
+              const SizedBox(height: Spacing.sm),
+            ],
+          ],
+          // PUT AWAY, and still reachable. Rendered only when non-empty: a
+          // permanent "0 archived" heading is clutter that teaches people to
+          // stop reading headings.
+          if (archived.isNotEmpty) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text('ARCHIVED', style: AppType.kicker(p)),
+            const SizedBox(height: Spacing.sm),
+            for (final InstallmentPlan plan in archived) ...<Widget>[
+              _PlanCard(
+                palette: p,
+                plan: plan,
+                onPay: null,
+                onExtra: null,
+                // ONE ACTION on an archived card. Offering take-back here
+                // would un-settle the plan while it stayed archived, and an
+                // archived plan counts in no total, so a live obligation
+                // would appear nowhere. The state guards it too; this is the
+                // half that keeps it unreachable.
+                onTakeBack: null,
+                onUnarchive: () {
+                  widget.state.unarchivePlan(plan.id);
+                  setState(() {});
+                },
               ),
               const SizedBox(height: Spacing.sm),
             ],
@@ -106,6 +144,99 @@ class _InstallmentsViewState extends State<InstallmentsView> {
   /// version has no equivalent of. On an add-on contract the principal is
   /// what decides whether prepaying was worth it, and it is the figure a
   /// re-derived reversal would have corrupted while every total still footed.
+  /// The delete gate, repeated from [FinancialState.deletePlan] on purpose.
+  /// The state refuses regardless; this stops the screen offering what would
+  /// be refused, which is its own kind of lie.
+  static bool _canDelete(InstallmentPlan p) =>
+      p.payments.isEmpty && p.extraPayments.isEmpty;
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    Palette palette,
+    InstallmentPlan plan,
+  ) async {
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Delete ${plan.name}?', style: AppType.title(palette)),
+        content: Text(
+          '${formatPeso(plan.totalPayable.pesos)} over '
+          '${plan.totalInstallments} payments, none of them made yet. '
+          'Nothing in your Activity changes and no account moves.\n\n'
+          // The figure this frees up, named, because unlike a debt a plan is
+          // held back from Safe to Spend every month.
+          'Salapify stops holding back '
+          '${formatPeso(plan.installmentAmount.pesos)} a month for it, so '
+          'Safe to Spend on Home goes up.\n\n'
+          'There is no undo. If you want it back you will have to restore a '
+          'backup that still has it.',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Delete', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.deletePlan(plan.id);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _confirmArchive(
+    BuildContext context,
+    Palette palette,
+    InstallmentPlan plan,
+  ) async {
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('Archive ${plan.name}?', style: AppType.title(palette)),
+        content: Text(
+          'This takes it off your Plans list. It is NOT deleted. It moves to '
+          'Archived at the bottom of this screen, and "Put it back" brings '
+          'it up again.\n\n'
+          // The sentence that stops the wrong conclusion. A paid off plan is
+          // already out of the reserve, so nothing moves, and somebody who
+          // has watched every other action move a figure will expect this
+          // one to as well.
+          'No total changes, and Safe to Spend stays where it is. A plan you '
+          'have paid off is already out of what Salapify holds back.'
+          '${plan.payments.isEmpty ? '' : '\n\nIts ${plan.payments.length} '
+                    'payment${plan.payments.length == 1 ? '' : 's'} stay in '
+                    'your Activity and still count. That money really left '
+                    'your account, so Salapify does not put it back.'}',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Keep it here', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Archive it', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == true) {
+      widget.state.archivePlan(plan.id);
+      if (mounted) setState(() {});
+    }
+  }
+
   Future<void> _confirmTakeBack(
     BuildContext context,
     Palette palette,
@@ -218,12 +349,21 @@ class _PlanCard extends StatelessWidget {
     required this.onPay,
     required this.onExtra,
     this.onTakeBack,
+    this.onDelete,
+    this.onArchive,
+    this.onUnarchive,
   });
 
   final Palette palette;
   final InstallmentPlan plan;
   final VoidCallback? onPay;
   final VoidCallback? onExtra;
+
+  /// Taking the plan off the list. Exactly one is ever non-null, and which
+  /// one is decided by the plan's own figures rather than by the caller.
+  final VoidCallback? onDelete;
+  final VoidCallback? onArchive;
+  final VoidCallback? onUnarchive;
 
   /// Null when the plan has no record of how it reached its figures, which
   /// is every plan from a restored backup. Absent rather than disabled: a
@@ -437,17 +577,58 @@ class _PlanCard extends StatelessWidget {
               onTap: onTakeBack,
             ),
           ]
-          // Same rule as the debt card: say so only where a figure shows
-          // payments were made and Salapify cannot say which. On a plan the
-          // test is the counter rather than an amount.
-          else if (plan.paidInstallments > 0) ...<Widget>[
+          // Same rule as the debt card, and the same correction: the branch
+          // is decided by the DATA, not by whether the callback is null.
+          // Keying it on the callback made every ARCHIVED card claim there
+          // was no record, over a plan holding a full register, on the one
+          // screen somebody goes to in order to recover.
+          else if (plan.paidInstallments > 0 && plan.payments.isEmpty) ...[
             const SizedBox(height: Spacing.sm),
             Text(
               'Salapify has no record of the payments on this plan, so it '
               'cannot take one back. Payments you record from now on can be.',
               style: AppType.caption(palette),
             ),
+          ] else if (plan.payments.isNotEmpty) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Its ${plan.payments.length} '
+              'payment${plan.payments.length == 1 ? '' : 's'} '
+              '${plan.payments.length == 1 ? 'is' : 'are'} still recorded. '
+              'Put it back on the list first if you need to take one back.',
+              style: AppType.caption(palette),
+            ),
           ],
+          // TAKING THE PLAN OFF THE LIST, which was impossible until now.
+          if (onUnarchive != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Put it back',
+              filled: false,
+              onTap: onUnarchive,
+            ),
+          ] else if (onDelete != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Delete this plan',
+              filled: false,
+              onTap: onDelete,
+            ),
+          ] else if (onArchive != null) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              palette: palette,
+              label: 'Archive it',
+              filled: false,
+              onTap: onArchive,
+            ),
+          ],
+          // No line on a plan that can be neither, for the reason the debt
+          // screen records: part paid and live is the normal state of a real
+          // plan, so a sentence here would land on every card forever. The
+          // lesson lives behind this screen's own "i" dot.
         ],
       ),
     );
