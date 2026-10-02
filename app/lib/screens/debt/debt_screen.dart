@@ -713,6 +713,29 @@ class _DebtCard extends StatelessWidget {
               filled: false,
               onTap: onTakeBack,
             ),
+          ]
+          // A DEBT THAT HAS BEEN PAID AND HAS NO RECORD OF IT SAYS SO.
+          //
+          // This is the case that cost the founder their emulator data. The
+          // control is absent whenever there is nothing to take back, which
+          // is right, and silence cannot be told apart from a broken screen:
+          // they restarted, saw no button, concluded the feature was broken,
+          // and reinstalled. The evidence went with it.
+          //
+          // Deliberately NOT shown on a debt with nothing paid. There is
+          // nothing surprising about having no payments to take back when no
+          // payment was ever made, and a line on every card is the clutter
+          // that makes people stop reading the one that matters. It appears
+          // only where a figure says money moved and Salapify cannot say when,
+          // which is every debt from a restored backup and every payment made
+          // before the register existed.
+          else if (debt.paidAmount.isPositive) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Salapify has no record of the payments on this debt, so it '
+              'cannot take one back. Payments you record from now on can be.',
+              style: AppType.caption(palette),
+            ),
           ],
         ],
       ),
