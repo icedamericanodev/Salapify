@@ -144,6 +144,24 @@ List<Debt> reverseLastDebtPayment(List<Debt> debts, String debtId) {
       // clearing needs saying out loud. Without this a debt that was NOT
       // settled before the payment keeps the date the payment stamped on it.
       clearSettledDate: row.settledDateBefore == null,
+      // AND THE SETTLE MEMORY, for the same reason one line up.
+      //
+      // `paidBeforeSettle` only ever describes a settle that is IN FORCE.
+      // Rewinding a payment past the settle that followed it leaves the
+      // figure describing nothing, and copyWith carries it through unless
+      // told otherwise, so it stayed attached to the debt, on no screen,
+      // until the next un-settle spent it and destroyed the difference.
+      //
+      // Measured at 600.00 on a 1,000.00 debt: pay 400, settle, take it
+      // back, pay the full 1,000, then un-settle, and the debt claims 400
+      // was paid while the account is 1,000 down with a confirmed entry
+      // explaining it. That is the data loss this field exists to prevent,
+      // arriving through the take-back door.
+      //
+      // Only when the debt comes back UN-settled. A stray payment on an
+      // already settled debt, taken back, leaves the settle standing, and
+      // its memory is still the real figure.
+      clearPaidBeforeSettle: !row.settledBefore,
       installmentCurrent: row.installmentCurrentBefore,
       payments: d.payments.sublist(0, d.payments.length - 1),
     );

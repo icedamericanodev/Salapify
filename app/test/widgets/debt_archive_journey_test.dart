@@ -145,6 +145,118 @@ void main() {
     expect(find.text('ARCHIVED'), findsNothing);
   });
 
+  testWidgets('DELETE a debt by tapping, and the screens agree afterwards', (
+    WidgetTester tester,
+  ) async {
+    // The irreversible path, walked the way a person walks it.
+    //
+    // This journey is here because a review pass found it missing. Delete had
+    // unit coverage in test/data/debt_removal_test.dart and the only mention
+    // of the button in any journey was a findsNothing assertion. So the one
+    // action in this feature that destroys a record for good was never once
+    // tapped, confirmed and followed to the screens that should change.
+    await openDebts(tester);
+    final FinancialState store = storeOf(tester);
+
+    // Kuya Mark is the seeded debt with nothing paid, so it is the only kind
+    // that can be deleted. It is money LENT, so it lives the other way round.
+    await tapAndSettle(tester, find.text('Owed to you'));
+
+    final int before = store.debts.length;
+    final double owedBefore = store.debtsOwedToMe;
+    final int entriesBefore = store.transactions.length;
+    expect(find.text('Kuya Mark'), findsOneWidget);
+
+    await reach(tester, find.text('Delete this debt').first);
+    await tapAndSettle(tester, find.text('Delete this debt').first);
+
+    // The confirmation has to state the consequence in FIGURES, and say the
+    // one thing that matters about this path.
+    expect(find.textContaining('There is no undo'), findsOneWidget);
+    await tapAndSettle(tester, find.text('Delete'));
+
+    expect(
+      store.debts,
+      hasLength(before - 1),
+      reason: 'the delete did nothing, so every assertion below is hollow',
+    );
+    expect(
+      find.text('Kuya Mark'),
+      findsNothing,
+      reason: 'the debt is gone from the store and still on the screen',
+    );
+    // Deleting a debt SHOULD move this figure, unlike archiving. That is the
+    // difference between the two and it is worth pinning.
+    expect(store.debtsOwedToMe, lessThan(owedBefore));
+    expect(
+      store.transactions,
+      hasLength(entriesBefore),
+      reason: 'deleting a debt invented or destroyed a ledger entry',
+    );
+  });
+
+  testWidgets('UN-SETTLE by tapping, and the real paid figure is on screen', (
+    WidgetTester tester,
+  ) async {
+    // The path that destroyed 4,650.00 of a founder's data.
+    //
+    // It has engine vectors (core/money/settle_toggle_test.dart) and a
+    // screenshot, and until this review it had no journey: nothing walked to
+    // the screen and checked that the restored figure is READABLE where a
+    // person looks for it. That gap is the exact failure mode the house rule
+    // exists for, the write being right where it was written and invisible
+    // where it is read.
+    await openDebts(tester);
+    final FinancialState store = storeOf(tester);
+
+    // Home Credit: 7,350.00 paid of 14,700.00.
+    expect(find.text('Home Credit (Phone)'), findsOneWidget);
+    expect(find.textContaining('of ₱14,700.00 so far'), findsOneWidget);
+    final double owedBefore = store.debtsIOwe;
+
+    await tapAndSettle(tester, find.text('Mark settled').first);
+    await tapAndSettle(tester, find.text('Mark it settled'));
+
+    // The midpoint, so the round trip below cannot pass by doing nothing.
+    expect(
+      store.debtsIOwe,
+      lessThan(owedBefore),
+      reason: 'settling changed nothing, so un-settling proves nothing',
+    );
+
+    await tapAndSettle(tester, find.text('Not settled after all').first);
+
+    expect(
+      store.debtsIOwe,
+      owedBefore,
+      reason:
+          'the real paid figure was not restored, which is the 4,650.00 '
+          'data loss returning',
+    );
+    // AND a person can read it. The store being right is half the job.
+    //
+    // Scrolled UP first, deliberately. Un-settling moves the card from
+    // CLEARED at the bottom back to the open list at the top, and this list
+    // only builds its visible range, so the card is genuinely not in the
+    // widget tree until the view reaches it. A first version of this
+    // assertion read that as the card failing to show the figure, which
+    // would have been a false alarm reported as a defect.
+    await tester.scrollUntilVisible(
+      find.text('Home Credit (Phone)'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('₱7,350.00 of ₱14,700.00 so far'),
+      findsOneWidget,
+      reason:
+          'the figure is correct in the store and the card does not show it, '
+          'which is exactly how this defect hid the first time',
+    );
+  });
+
   testWidgets('archiving moves no money and writes no entry', (
     WidgetTester tester,
   ) async {

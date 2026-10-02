@@ -882,11 +882,38 @@ class _DebtCard extends StatelessWidget {
           // only where a figure says money moved and Salapify cannot say when,
           // which is every debt from a restored backup and every payment made
           // before the register existed.
-          else if (debt.paidAmount.isPositive) ...<Widget>[
+          // THE BRANCH IS DECIDED BY THE DATA, NOT BY THE CALLBACK, and that
+          // distinction is a fix rather than a flourish.
+          //
+          // It used to read `else if (paidAmount.isPositive)`, which asked
+          // "is the button absent" and answered a different question: "is
+          // there nothing to take back". Those agree on a live card, where
+          // the callback is computed from payments.isEmpty, and they disagree
+          // on an ARCHIVED card, which passes no callback for its own
+          // reasons. An archived debt is always settled and settling fills
+          // paidAmount, so every archived card drew this sentence, and it is
+          // FALSE for any debt cleared by real payments.
+          //
+          // That is worse than clutter. reconciliation_view.dart sends people
+          // to this exact screen to take a payment back, and the card they
+          // arrive at was telling them it could not be done.
+          else if (debt.paidAmount.isPositive && debt.payments.isEmpty) ...[
             const SizedBox(height: Spacing.sm),
             Text(
               'Salapify has no record of the payments on this debt, so it '
               'cannot take one back. Payments you record from now on can be.',
+              style: AppType.caption(palette),
+            ),
+          ]
+          // Archived, and it DOES have a register. The way back is real, so
+          // the card names it instead of denying it.
+          else if (debt.payments.isNotEmpty) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Its ${debt.payments.length} '
+              'payment${debt.payments.length == 1 ? '' : 's'} '
+              '${debt.payments.length == 1 ? 'is' : 'are'} still recorded. '
+              'Put it back on the list first if you need to take one back.',
               style: AppType.caption(palette),
             ),
           ],
