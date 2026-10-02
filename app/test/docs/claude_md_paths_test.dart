@@ -61,10 +61,9 @@ void main() {
   /// added tomorrow is recognised without editing this file.
   final Set<String> realDirs = <String>{
     ...repoRoot.listSync().whereType<Directory>().map(_basename),
-    ...Directory('${repoRoot.path}/app')
-        .listSync()
-        .whereType<Directory>()
-        .map(_basename),
+    ...Directory(
+      '${repoRoot.path}/app',
+    ).listSync().whereType<Directory>().map(_basename),
   };
 
   late final List<_Ref> refs;
@@ -155,8 +154,21 @@ final RegExp _pathish = RegExp(
 );
 
 const List<String> _sourceExtensions = <String>[
-  '.dart', '.md', '.yml', '.yaml', '.json', '.sh', '.js', '.ts', '.tsx',
-  '.py', '.html', '.kts', '.gradle', '.lock', '.png',
+  '.dart',
+  '.md',
+  '.yml',
+  '.yaml',
+  '.json',
+  '.sh',
+  '.js',
+  '.ts',
+  '.tsx',
+  '.py',
+  '.html',
+  '.kts',
+  '.gradle',
+  '.lock',
+  '.png',
 ];
 
 List<_Ref> _extract(String text, Set<String> realDirs) {
@@ -172,7 +184,9 @@ List<_Ref> _extract(String text, Set<String> realDirs) {
     }
   }
 
-  return seen.entries.map((MapEntry<String, int> e) => _Ref(e.key, e.value)).toList()
+  return seen.entries
+      .map((MapEntry<String, int> e) => _Ref(e.key, e.value))
+      .toList()
     ..sort((_Ref a, _Ref b) => a.line.compareTo(b.line));
 }
 
@@ -180,12 +194,17 @@ List<_Ref> _extract(String text, Set<String> realDirs) {
 String? _candidate(String raw, Set<String> realDirs) {
   // Trailing sentence punctuation is part of the prose, not of the path.
   String t = raw;
-  while (t.isNotEmpty && '.,;:)'.contains(t[t.length - 1]) && !t.endsWith('/')) {
+  while (t.isNotEmpty &&
+      '.,;:)'.contains(t[t.length - 1]) &&
+      !t.endsWith('/')) {
     t = t.substring(0, t.length - 1);
   }
   if (t.isEmpty) return null;
 
-  final List<String> segments = t.split('/').where((String s) => s.isNotEmpty).toList();
+  final List<String> segments = t
+      .split('/')
+      .where((String s) => s.isNotEmpty)
+      .toList();
   if (segments.isEmpty) return null;
 
   final bool hasExtension = _sourceExtensions.any(t.endsWith);

@@ -83,7 +83,10 @@ void main() {
     // it is worse than no statement.
     expect(find.text('PRINCIPAL LOAN'), findsOneWidget);
     expect(find.textContaining('₱1,500,000.00'), findsWidgets);
-    expect(find.textContaining('₱2,355,171.58'), findsWidgets); // WAS ...14, totals are now the sum of the rows
+    expect(
+      find.textContaining('₱2,355,171.58'),
+      findsWidgets,
+    ); // WAS ...14, totals are now the sum of the rows
     expect(find.textContaining('₱855,171.58'), findsWidgets); // WAS ...14
   });
 

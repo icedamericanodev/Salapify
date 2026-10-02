@@ -39,18 +39,51 @@ import 'package:salapify/core/money/money.dart';
 /// The prototype's default participant is named "Carla" and its default
 /// description is "Barkada Lunch". Both are placeholder data that would ship
 /// as a stranger's name pre-filled into a money form, so neither is ported.
+/// What one tap on Record it actually wrote.
+///
+/// The sheet used to hand back a bare `true`, and Home threw even that away,
+/// so a split saved with no confirmation and no way back: real money left an
+/// account and the only screen that could have said so said nothing. This
+/// carries the records themselves rather than their ids, because the undo
+/// that reads it must be unable to ask for the removal of something it has
+/// not got in front of it.
+///
+/// [accountName] is resolved HERE rather than by the caller. The sheet knows
+/// for certain which account it spent from; a caller looking the id up again
+/// afterwards is one deleted account away from throwing while trying to
+/// display a reassurance.
+class SplitBillResult {
+  const SplitBillResult({
+    required this.transaction,
+    required this.debts,
+    required this.accountName,
+  });
+
+  /// The expense, or null when the person unticked the box or had no account
+  /// to spend from. A split with no expense is perfectly ordinary: somebody
+  /// else paid and all that happened is that you now owe them.
+  final Transaction? transaction;
+
+  /// Every debt the split created, in the order it created them.
+  final List<Debt> debts;
+
+  /// The account the expense came out of, for the confirmation sentence.
+  /// Null exactly when [transaction] is.
+  final String? accountName;
+}
+
 class SplitBillSheet extends StatefulWidget {
   const SplitBillSheet({super.key, required this.palette, required this.state});
 
   final Palette palette;
   final FinancialState state;
 
-  static Future<bool?> show(
+  static Future<SplitBillResult?> show(
     BuildContext context, {
     required Palette palette,
     required FinancialState state,
   }) {
-    return SheetScaffold.show<bool>(
+    return SheetScaffold.show<SplitBillResult>(
       context: context,
       palette: palette,
       builder: (BuildContext context) =>
@@ -81,6 +114,23 @@ class _Person {
     fixed.dispose();
     shares.dispose();
   }
+}
+
+/// One debt Record it is going to create, before it has an id or a date.
+///
+/// Deliberately not a [Debt]. A Debt is a stored record and building one to
+/// describe a hypothetical invites somebody to save it by accident; this
+/// carries only what the sentence above the button and the save both need.
+class _PlannedDebt {
+  const _PlannedDebt({
+    required this.person,
+    required this.amount,
+    required this.direction,
+  });
+
+  final String person;
+  final double amount;
+  final DebtDirection direction;
 }
 
 class _SplitBillSheetState extends State<SplitBillSheet> {
@@ -172,13 +222,20 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
 
   bool get _canSave => _bill > 0 && _people.length >= 2 && _shares.isNotEmpty;
 
-  void _save() {
+  /// Exactly what Record it would write, worked out in ONE place.
+  ///
+  /// The sentence above the button and [_save] both read this, and that is
+  /// the whole reason it exists. The first draft had the caption counting
+  /// the debts for itself, which is the shape of defect this feature has
+  /// already produced four times over: a rule applied at one entry point and
+  /// not the others, so the sentence promises three debts while the save
+  /// writes two, and the person is told something untrue about their money
+  /// one tap before it happens.
+  ///
+  /// It decides nothing on its own. Every branch below is lifted from what
+  /// [_save] already did; moving them here is a refactor, not a rule change.
+  ({List<_PlannedDebt> debts, double leaving}) get _plan {
     final List<SplitShare> shares = _shares;
-    if (!_canSave) return;
-
-    final String what = _what.text.trim().isEmpty
-        ? 'Split bill'
-        : _what.text.trim();
     final bool iPaid = _payer == 'You';
     final double myShare = shares
         .firstWhere(
@@ -187,72 +244,161 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
         )
         .amount;
 
+    final List<_PlannedDebt> debts = <_PlannedDebt>[
+      for (final SplitShare s in shares)
+        if (s.name != 'You')
+          if (iPaid && s.amount > 0)
+            _PlannedDebt(
+              person: s.name,
+              amount: s.amount,
+              direction: DebtDirection.owedToMe,
+            )
+          else if (s.name == _payer && myShare > 0)
+            _PlannedDebt(
+              person: _payer,
+              amount: myShare,
+              direction: DebtDirection.iOwe,
+            ),
+    ];
+
+    // The FULL bill if you paid it, your share if somebody else did. That is
+    // the prototype's rule and it is right: money left your account for the
+    // whole bill, and the debts are what brings it back.
+    double leaving = 0;
+    if (_logExpense && _accountId != null) {
+      final double amount = iPaid ? _bill : myShare;
+      if (amount > 0) leaving = amount;
+    }
+
+    return (debts: debts, leaving: leaving);
+  }
+
+  /// The sentence under Record it, which says what the tap is about to do.
+  ///
+  /// It used to read "This creates a debt for each person, and nothing is
+  /// sent anywhere." True, and it left out the only part that cannot be
+  /// taken back: that money leaves a real account. Worse, the account is
+  /// never chosen. [initState] picks whichever one sorts first and the
+  /// expense box starts ticked, so the ordinary path spends the whole bill
+  /// from an account the person was never shown. Naming it here is what
+  /// makes that default visible, and it is cheaper than forcing a choice
+  /// somebody would make identically nine times out of ten.
+  ///
+  /// Three clauses, and each one stops a different wrong conclusion, which
+  /// is the only reason a caption is allowed to run this long:
+  ///
+  /// 1. the figure and the account, so nobody discovers afterwards which
+  ///    account paid;
+  /// 2. nothing is sent, so nobody believes their friends were just messaged
+  ///    a payment request, which is what every app that looks like this does;
+  /// 3. the undo exists, which is the difference between hesitating over a
+  ///    button and tapping it.
+  String get _whatTheTapWillDo {
+    if (_people.length < 2) return 'Add at least one other person.';
+
+    final ({List<_PlannedDebt> debts, double leaving}) plan = _plan;
+    final int n = plan.debts.length;
+    final String debts = n == 1 ? '1 debt' : '$n debts';
+    final String account = _accountName ?? 'your account';
+
+    if (plan.leaving <= 0) {
+      return n == 0
+          ? 'This moves no money and creates no debts yet.'
+          : 'This creates $debts and moves no money. Nothing is sent to '
+                'anyone.';
+    }
+
+    final String spend =
+        'Recording this takes ${formatPeso(plan.leaving)} out of $account';
+    return n == 0
+        ? '$spend. Nothing is sent to anyone. You can undo it for a few '
+              'seconds afterwards.'
+        : '$spend and creates $debts. Nothing is sent to anyone. You can '
+              'undo it for a few seconds afterwards.';
+  }
+
+  void _save() {
+    if (!_canSave) return;
+
+    final ({List<_PlannedDebt> debts, double leaving}) plan = _plan;
+    final String what = _what.text.trim().isEmpty
+        ? 'Split bill'
+        : _what.text.trim();
+    final bool iPaid = _payer == 'You';
+
     final String stamp = DateTime.now().microsecondsSinceEpoch.toString();
     int seq = 0;
 
-    for (final SplitShare s in shares) {
-      if (s.name == 'You') continue;
+    // COLLECTED AS THEY ARE WRITTEN, not looked up again afterwards. The ids
+    // share [stamp], so a later cold-start undo could find them by prefix,
+    // but an undo offered in the same breath as the write does not need to
+    // go looking: it already holds exactly what it would be searching for.
+    final List<Debt> created = <Debt>[];
 
+    for (final _PlannedDebt pd in plan.debts) {
       // EXACT, not rounded. Founder decision, 2026-10-01, and a deliberate
       // divergence from the prototype: it wraps this in Math.round, so a
       // 333.33 share becomes a 333 debt and the centavos leave the ledger
       // with nothing said.
-      if (iPaid && s.amount > 0) {
-        widget.state.addDebt(
-          Debt(
-            id: 'debt_split_${stamp}_${seq++}',
-            person: s.name,
-            direction: DebtDirection.owedToMe,
-            totalAmount: Money.fromDouble(s.amount),
-            paidAmount: Money.pesos(0),
-            isSettled: false,
-            notes: 'Split: $what',
-          ),
-        );
-      } else if (s.name == _payer && myShare > 0) {
-        widget.state.addDebt(
-          Debt(
-            id: 'debt_split_${stamp}_${seq++}',
-            person: _payer,
-            direction: DebtDirection.iOwe,
-            totalAmount: Money.fromDouble(myShare),
-            paidAmount: Money.pesos(0),
-            isSettled: false,
-            notes: 'Split: $what',
-          ),
-        );
-      }
+      final Debt d = Debt(
+        id: 'debt_split_${stamp}_${seq++}',
+        person: pd.person,
+        direction: pd.direction,
+        totalAmount: Money.fromDouble(pd.amount),
+        paidAmount: Money.pesos(0),
+        isSettled: false,
+        notes: 'Split: $what',
+      );
+      widget.state.addDebt(d);
+      created.add(d);
     }
 
-    if (_logExpense && _accountId != null) {
-      // The FULL bill if you paid it, your share if somebody else did. That
-      // is the prototype's rule and it is right: money left your account for
-      // the whole bill, and the debts are what brings it back.
-      final double amount = iPaid ? _bill : myShare;
-      if (amount > 0) {
-        final DateTime now = widget.state.now;
-        widget.state.logTransaction(
-          Transaction(
-            id: 'tx_split_$stamp',
-            type: TransactionType.expense,
-            amount: Money.fromDouble(amount),
-            category: _category,
-            accountId: _accountId!,
-            date:
-                '${now.year}-${now.month.toString().padLeft(2, '0')}-'
-                '${now.day.toString().padLeft(2, '0')}',
-            createdAt: DateTime.now().millisecondsSinceEpoch,
-            merchant: what,
-            note: iPaid
-                ? 'Paid the whole bill, split with '
-                      '${_people.where((_Person p) => !p.isMe).map((_Person p) => p.name).join(', ')}'
-                : 'My share, $_payer paid',
-          ),
-        );
-      }
+    Transaction? logged;
+    String? spentFrom;
+
+    if (plan.leaving > 0) {
+      final DateTime now = widget.state.now;
+      logged = Transaction(
+        id: 'tx_split_$stamp',
+        type: TransactionType.expense,
+        amount: Money.fromDouble(plan.leaving),
+        category: _category,
+        accountId: _accountId!,
+        date:
+            '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+            '${now.day.toString().padLeft(2, '0')}',
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        merchant: what,
+        note: iPaid
+            ? 'Paid the whole bill, split with '
+                  '${_people.where((_Person p) => !p.isMe).map((_Person p) => p.name).join(', ')}'
+            : 'My share, $_payer paid',
+      );
+      widget.state.logTransaction(logged);
+      spentFrom = _accountName;
     }
 
-    Navigator.of(context).pop(true);
+    Navigator.of(context).pop(
+      SplitBillResult(
+        transaction: logged,
+        debts: created,
+        accountName: spentFrom,
+      ),
+    );
+  }
+
+  /// The chosen account's name, or null when there is no account to spend
+  /// from.
+  ///
+  /// A plain loop rather than `firstWhere`, because `firstWhere` with no
+  /// match throws, and a sentence written to reassure somebody about their
+  /// money is the worst place in the app for an exception.
+  String? get _accountName {
+    if (_accountId == null) return null;
+    for (final Account a in widget.state.accounts) {
+      if (a.id == _accountId) return a.name;
+    }
+    return null;
   }
 
   @override
@@ -399,13 +545,7 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
             onTap: _canSave ? _save : null,
           ),
           const SizedBox(height: Spacing.sm),
-          Text(
-            _people.length < 2
-                ? 'Add at least one other person.'
-                : 'This creates a debt for each person, and nothing is sent '
-                      'anywhere.',
-            style: AppType.caption(p),
-          ),
+          Text(_whatTheTapWillDo, style: AppType.caption(p)),
         ],
       ),
     );

@@ -137,32 +137,34 @@ void main() {
       );
     });
 
-    test('a COUNTER alone does not block it, which is the seeded case',
-        () async {
-      // THE TEST THAT CAUGHT THE FIRST VERSION OF THIS GATE.
-      //
-      // All three seeded plans arrive with a counter of 5, 10 and 2 and an
-      // EMPTY register. A gate that also refused on paidInstallments left
-      // every one of them unremovable by any route: not deletable (counter),
-      // not archivable (not settled), not take-back-able (no register). The
-      // exit still did not exist, which is the whole thing this was built
-      // for.
-      //
-      // The counter is a number copied off a contract. The register is what
-      // Salapify recorded, and it is the only thing that wrote ledger rows.
-      final FinancialState s = await stateWith(<InstallmentPlan>[
-        plan(paid: 10),
-      ]);
+    test(
+      'a COUNTER alone does not block it, which is the seeded case',
+      () async {
+        // THE TEST THAT CAUGHT THE FIRST VERSION OF THIS GATE.
+        //
+        // All three seeded plans arrive with a counter of 5, 10 and 2 and an
+        // EMPTY register. A gate that also refused on paidInstallments left
+        // every one of them unremovable by any route: not deletable (counter),
+        // not archivable (not settled), not take-back-able (no register). The
+        // exit still did not exist, which is the whole thing this was built
+        // for.
+        //
+        // The counter is a number copied off a contract. The register is what
+        // Salapify recorded, and it is the only thing that wrote ledger rows.
+        final FinancialState s = await stateWith(<InstallmentPlan>[
+          plan(paid: 10),
+        ]);
 
-      expect(
-        s.deletePlan('p1'),
-        isTrue,
-        reason:
-            'a plan Salapify never recorded a payment for cannot be removed, '
-            'so every seeded plan is stuck in Safe to Spend for good',
-      );
-      expect(s.installments, isEmpty);
-    });
+        expect(
+          s.deletePlan('p1'),
+          isTrue,
+          reason:
+              'a plan Salapify never recorded a payment for cannot be removed, '
+              'so every seeded plan is stuck in Safe to Spend for good',
+        );
+        expect(s.installments, isEmpty);
+      },
+    );
 
     test('deleting writes no entry and moves no balance', () async {
       final FinancialState s = await stateWith(<InstallmentPlan>[plan()]);
@@ -199,33 +201,37 @@ void main() {
     test('a LIVE plan is refused, however much is paid off', () async {
       // The founder's fork, applied here: archiving this plan would take a
       // real monthly obligation out of Safe to Spend on a tap.
-      final FinancialState s = await stateWith(<InstallmentPlan>[plan(paid: 6)]);
+      final FinancialState s = await stateWith(<InstallmentPlan>[
+        plan(paid: 6),
+      ]);
 
       expect(s.archivePlan('p1'), isFalse);
       expect(s.archivedInstallments, isEmpty);
     });
 
-    test('archiving holds Safe to Spend still, because it is settled already',
-        () async {
-      final FinancialState s = await stateWith(<InstallmentPlan>[
-        plan(settled: true, paid: 12),
-        plan(id: 'p2'),
-      ]);
-      final double before = s.safeToSpend;
+    test(
+      'archiving holds Safe to Spend still, because it is settled already',
+      () async {
+        final FinancialState s = await stateWith(<InstallmentPlan>[
+          plan(settled: true, paid: 12),
+          plan(id: 'p2'),
+        ]);
+        final double before = s.safeToSpend;
 
-      expect(s.archivePlan('p1'), isTrue);
+        expect(s.archivePlan('p1'), isTrue);
 
-      expect(
-        s.safeToSpend,
-        before,
-        reason:
-            'archiving moved Safe to Spend, which is the whole thing the '
-            'settled only gate exists to make impossible',
-      );
-      // The companion, because "nothing changed" is also true of nothing
-      // happening at all.
-      expect(s.archivedInstallments, hasLength(1));
-    });
+        expect(
+          s.safeToSpend,
+          before,
+          reason:
+              'archiving moved Safe to Spend, which is the whole thing the '
+              'settled only gate exists to make impossible',
+        );
+        // The companion, because "nothing changed" is also true of nothing
+        // happening at all.
+        expect(s.archivedInstallments, hasLength(1));
+      },
+    );
 
     test('an archived plan survives a save and a GENUINE reload', () async {
       final FinancialState s = await stateWith(<InstallmentPlan>[
@@ -253,98 +259,102 @@ void main() {
   });
 
   group('archived implies settled, whatever route is taken', () {
-    test('taking back the payment that cleared it brings it back too',
-        () async {
-      // reverseLastPlanPayment restores isSettled from the stored row, so
-      // this un-settles the plan. Without the guard it would stay archived,
-      // and the getter filters archived plans out of every total, so a live
-      // obligation would count nowhere.
-      final FinancialState s = await stateWith(<InstallmentPlan>[
-        plan(
-          settled: true,
-          paid: 12,
-          payments: <PlanPayment>[
-            const PlanPayment(
-              id: 'pp_last',
-              date: '2026-10-01',
-              amount: Money.of(2409, 13),
-              toPrincipal: Money.pesos(2042),
-              toInterest: Money.of(367, 13),
-              settledBefore: false,
-              installmentNumber: 12,
-            ),
-          ],
-        ),
-      ]);
-      expect(s.archivePlan('p1'), isTrue);
-      expect(s.archivedInstallments, hasLength(1));
+    test(
+      'taking back the payment that cleared it brings it back too',
+      () async {
+        // reverseLastPlanPayment restores isSettled from the stored row, so
+        // this un-settles the plan. Without the guard it would stay archived,
+        // and the getter filters archived plans out of every total, so a live
+        // obligation would count nowhere.
+        final FinancialState s = await stateWith(<InstallmentPlan>[
+          plan(
+            settled: true,
+            paid: 12,
+            payments: <PlanPayment>[
+              const PlanPayment(
+                id: 'pp_last',
+                date: '2026-10-01',
+                amount: Money.of(2409, 13),
+                toPrincipal: Money.pesos(2042),
+                toInterest: Money.of(367, 13),
+                settledBefore: false,
+                installmentNumber: 12,
+              ),
+            ],
+          ),
+        ]);
+        expect(s.archivePlan('p1'), isTrue);
+        expect(s.archivedInstallments, hasLength(1));
 
-      expect(s.takeBackPlanPayment('p1'), isTrue);
+        expect(s.takeBackPlanPayment('p1'), isTrue);
 
-      expect(
-        s.archivedInstallments,
-        isEmpty,
-        reason:
-            'the plan is live AND archived, so a real monthly obligation '
-            'appears on no screen and in no total',
-      );
-      expect(s.installments.single.id, 'p1');
-      expect(s.installments.single.isSettled, isFalse);
-    });
+        expect(
+          s.archivedInstallments,
+          isEmpty,
+          reason:
+              'the plan is live AND archived, so a real monthly obligation '
+              'appears on no screen and in no total',
+        );
+        expect(s.installments.single.id, 'p1');
+        expect(s.installments.single.isSettled, isFalse);
+      },
+    );
 
-    test('an engine write on an archived plan does not quietly un-archive it',
-        () async {
-      // THE PATH THAT REACHES THE COPIER, and the reason this test exists.
-      //
-      // A first version of this group only covered a take-back that
-      // UN-SETTLES the plan, and `_unarchiveIfLive` un-archives that one on
-      // purpose. So deleting the copier's `archivedAt` carry changed nothing
-      // and every test still passed, which per the house rule means the test
-      // was wrong rather than the code unusually safe.
-      //
-      // The reachable case is a take-back whose stored row says the plan was
-      // ALREADY settled before that payment. The plan stays settled, so the
-      // invariant helper correctly leaves it alone, and the engine's copier
-      // is then the only thing standing between the archive and oblivion.
-      final FinancialState s = await stateWith(<InstallmentPlan>[
-        plan(
-          settled: true,
-          paid: 12,
-          payments: <PlanPayment>[
-            const PlanPayment(
-              id: 'pp_stray',
-              date: '2026-10-01',
-              amount: Money.pesos(100),
-              toPrincipal: Money.pesos(100),
-              toInterest: Money.zero,
-              // Already settled when this one landed.
-              settledBefore: true,
-            ),
-          ],
-        ),
-      ]);
-      expect(s.archivePlan('p1'), isTrue);
+    test(
+      'an engine write on an archived plan does not quietly un-archive it',
+      () async {
+        // THE PATH THAT REACHES THE COPIER, and the reason this test exists.
+        //
+        // A first version of this group only covered a take-back that
+        // UN-SETTLES the plan, and `_unarchiveIfLive` un-archives that one on
+        // purpose. So deleting the copier's `archivedAt` carry changed nothing
+        // and every test still passed, which per the house rule means the test
+        // was wrong rather than the code unusually safe.
+        //
+        // The reachable case is a take-back whose stored row says the plan was
+        // ALREADY settled before that payment. The plan stays settled, so the
+        // invariant helper correctly leaves it alone, and the engine's copier
+        // is then the only thing standing between the archive and oblivion.
+        final FinancialState s = await stateWith(<InstallmentPlan>[
+          plan(
+            settled: true,
+            paid: 12,
+            payments: <PlanPayment>[
+              const PlanPayment(
+                id: 'pp_stray',
+                date: '2026-10-01',
+                amount: Money.pesos(100),
+                toPrincipal: Money.pesos(100),
+                toInterest: Money.zero,
+                // Already settled when this one landed.
+                settledBefore: true,
+              ),
+            ],
+          ),
+        ]);
+        expect(s.archivePlan('p1'), isTrue);
 
-      expect(s.takeBackPlanPayment('p1'), isTrue);
+        expect(s.takeBackPlanPayment('p1'), isTrue);
 
-      // Read from the ARCHIVED list, because a plan that correctly stayed
-      // archived is filtered out of `installments` by design.
-      expect(
-        <InstallmentPlan>[
-          ...s.installments,
-          ...s.archivedInstallments,
-        ].single.isSettled,
-        isTrue,
-        reason: 'the fixture stopped exercising the stays-settled branch',
-      );
-      expect(
-        s.archivedInstallments,
-        hasLength(1),
-        reason:
-            'an ordinary engine write dropped the archive, so the plan '
-            'reappeared on the Plans list on its own',
-      );
-    });
+        // Read from the ARCHIVED list, because a plan that correctly stayed
+        // archived is filtered out of `installments` by design.
+        expect(
+          <InstallmentPlan>[
+            ...s.installments,
+            ...s.archivedInstallments,
+          ].single.isSettled,
+          isTrue,
+          reason: 'the fixture stopped exercising the stays-settled branch',
+        );
+        expect(
+          s.archivedInstallments,
+          hasLength(1),
+          reason:
+              'an ordinary engine write dropped the archive, so the plan '
+              'reappeared on the Plans list on its own',
+        );
+      },
+    );
 
     test('a take-back on a plan nobody archived archives nothing', () async {
       // The silent half. The guard above must not start archiving or
@@ -426,7 +436,9 @@ void main() {
     // A fixture check, not a feature check. Every assertion above about
     // archivedInstallments assumes a clean starting point.
     expect(
-      SeedData.installments(testToday).where((InstallmentPlan p) => p.isArchived),
+      SeedData.installments(
+        testToday,
+      ).where((InstallmentPlan p) => p.isArchived),
       isEmpty,
     );
   });

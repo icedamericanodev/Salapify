@@ -1222,6 +1222,69 @@ void main() {
     });
   }
 
+  // The confirmation and the undo, AFTER a split has been recorded.
+  //
+  // Driven through the Home shortcut rather than by calling the sheet
+  // directly, because the thing being photographed does not belong to the
+  // sheet. The sheet hands back what it wrote; Home is what decides to say so
+  // and to offer five seconds to take it back. A shot that opened the sheet
+  // on its own would be a picture of the old silent behaviour.
+  testWidgets('home split confirmation renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final Finder door = find.text('Split');
+    await tester.ensureVisible(door.first);
+    await tester.pumpAndSettle();
+    await tester.tap(door.first);
+    await tester.pumpAndSettle();
+
+    final Finder fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '2400');
+    await tester.enterText(fields.at(1), 'Barkada lunch');
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Their name'),
+      'Carla',
+    );
+    await tester.pumpAndSettle();
+    final Finder add = find.bySemanticsLabel('Add this person to the split');
+    await tester.ensureVisible(add);
+    await tester.pumpAndSettle();
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+
+    final Finder record = find.text('Record it');
+    await tester.ensureVisible(record);
+    await tester.pumpAndSettle();
+    await tester.tap(record);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_split_confirmation.png'),
+    );
+  });
+
   // Split a bill, in both of the states worth reviewing.
   //
   // Two shots rather than one, because the empty sheet and the working sheet

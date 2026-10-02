@@ -107,27 +107,29 @@ void main() {
       );
     });
 
-    test('a debt with a payment register is REFUSED even at zero paid',
-        () async {
-      // paidAmount back at zero because every payment was taken back. The
-      // register is still the history and the entries are still in Activity
-      // marked corrected, so this is not a clean debt.
-      final Debt emptied = clean.copyWith(
-        payments: <DebtPayment>[
-          const DebtPayment(
-            id: 'dp_1',
-            date: '2026-10-01',
-            amount: Money.pesos(500),
-            paidBefore: Money.zero,
-            settledBefore: false,
-          ),
-        ],
-      );
-      final FinancialState s = await stateWith(<Debt>[emptied]);
+    test(
+      'a debt with a payment register is REFUSED even at zero paid',
+      () async {
+        // paidAmount back at zero because every payment was taken back. The
+        // register is still the history and the entries are still in Activity
+        // marked corrected, so this is not a clean debt.
+        final Debt emptied = clean.copyWith(
+          payments: <DebtPayment>[
+            const DebtPayment(
+              id: 'dp_1',
+              date: '2026-10-01',
+              amount: Money.pesos(500),
+              paidBefore: Money.zero,
+              settledBefore: false,
+            ),
+          ],
+        );
+        final FinancialState s = await stateWith(<Debt>[emptied]);
 
-      expect(s.deleteDebt('d_clean'), isFalse);
-      expect(s.debts, hasLength(1));
-    });
+        expect(s.deleteDebt('d_clean'), isFalse);
+        expect(s.debts, hasLength(1));
+      },
+    );
 
     test('deleting writes no entry and moves no balance', () async {
       final FinancialState s = await stateWith(<Debt>[clean]);
@@ -170,8 +172,7 @@ void main() {
       expect(s.debts, hasLength(1));
     });
 
-    test('archiving changes no total, because it is settled already',
-        () async {
+    test('archiving changes no total, because it is settled already', () async {
       final FinancialState s = await stateWith(<Debt>[settled, partPaid]);
       final double owedBefore = s.debtsIOwe;
 
@@ -239,11 +240,7 @@ void main() {
       final FinancialState s = await stateWith(<Debt>[byButton]);
       expect(s.archiveDebt('d_part'), isTrue);
       expect(s.archivedDebts, hasLength(1));
-      expect(
-        s.debtsIOwe,
-        0,
-        reason: 'an archived debt is still being counted',
-      );
+      expect(s.debtsIOwe, 0, reason: 'an archived debt is still being counted');
 
       s.toggleDebtSettledById('d_part');
 

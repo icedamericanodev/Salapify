@@ -15,7 +15,10 @@ void main() {
         termYears: 30,
       );
       expect(r.monthlyPayment, 3162.03);
-      expect(r.totalInterest, 388330.90); // WAS ...89, totals are now the sum of the rows
+      expect(
+        r.totalInterest,
+        388330.90,
+      ); // WAS ...89, totals are now the sum of the rows
       expect(r.payoffMonths, 360);
     });
 

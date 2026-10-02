@@ -360,6 +360,7 @@ class FinancialState extends ChangeNotifier {
   List<Account> get accounts => List<Account>.unmodifiable(_accounts);
   List<Transaction> get transactions =>
       List<Transaction>.unmodifiable(_transactions);
+
   /// The debts the app shows anywhere, archived ones excluded.
   ///
   /// THE FILTER IS HERE, at the one getter, rather than inside [outstanding].
@@ -390,6 +391,7 @@ class FinancialState extends ChangeNotifier {
   List<BillItem> get bills => List<BillItem>.unmodifiable(_bills);
   List<IncomeStream> get incomeStreams =>
       List<IncomeStream>.unmodifiable(_incomeStreams);
+
   /// The plans the app shows anywhere, archived ones excluded.
   ///
   /// The filter is at the one getter for the same reason the debt one is:
@@ -407,11 +409,10 @@ class FinancialState extends ChangeNotifier {
   /// lives.
   List<InstallmentPlan> get archivedInstallments =>
       List<InstallmentPlan>.unmodifiable(
-        _installments.where((InstallmentPlan p) => p.isArchived).toList()
-          ..sort(
-            (InstallmentPlan a, InstallmentPlan b) =>
-                b.archivedAt!.compareTo(a.archivedAt!),
-          ),
+        _installments.where((InstallmentPlan p) => p.isArchived).toList()..sort(
+          (InstallmentPlan a, InstallmentPlan b) =>
+              b.archivedAt!.compareTo(a.archivedAt!),
+        ),
       );
 
   /// The pay cycle, with its countdown worked out against TODAY.
@@ -877,10 +878,13 @@ class FinancialState extends ChangeNotifier {
   /// by due date and a brand new row with no due date would otherwise land
   /// somewhere the person who just typed it would not think to look.
   ///
-  /// This lives in memory only, like every other write on this store today:
-  /// the prototype's local storage layer is a later migration step, so a debt
-  /// added now is gone on the next cold start. That is honest rather than
-  /// desirable, and the sheet says so when it saves.
+  /// IT PERSISTS. This comment used to say the write was memory only and gone
+  /// on the next cold start, which stopped being true when storage landed:
+  /// `notifyListeners` is overridden on this store and writes the whole
+  /// snapshot. The same false sentence sat on [logTransaction] and was
+  /// corrected there; this is the other copy of it. It matters here for the
+  /// same reason it mattered there, because a persisted write is what makes
+  /// an undo a second write rather than a memory edit.
   void addDebt(Debt debt) {
     _debts = <Debt>[debt, ..._debts];
     notifyListeners();
@@ -1602,6 +1606,70 @@ class FinancialState extends ChangeNotifier {
     if (_transactions.length == before) return;
     _accounts = reverseFromBalances(_accounts, tx);
     notifyListeners();
+  }
+
+  /// Takes a whole Split Bill straight back out again, BOTH HALVES OR NEITHER.
+  ///
+  /// A split is not one record. One tap writes a receivable for every other
+  /// person and, usually, an expense for the whole bill, and the two only mean
+  /// anything together: the expense is the money that left the account, the
+  /// debts are what brings it back. Undoing one and leaving the other is the
+  /// exact half-landed state the duplicate control on Reconciliation already
+  /// refuses to create, where money returns to an account and a record
+  /// somewhere else still says it is owed, with no screen explaining the
+  /// difference.
+  ///
+  /// So this is ALL OR NOTHING, in both directions:
+  ///
+  /// 1. It REFUSES WHOLE, returning false and touching nothing, if any of the
+  ///    split's debts has since been paid against. That payment is somebody's
+  ///    real money and it is not this undo's to erase. The gate is the same
+  ///    one [deleteDebt] uses, deliberately, so the two cannot drift apart.
+  /// 2. When it does act, both halves move inside ONE notifyListeners, which
+  ///    is one snapshot write. There is no instant where the file holds the
+  ///    expense without the debts.
+  ///
+  /// It takes the OBJECTS the split created rather than ids, for the same
+  /// reason [undoLoggedTransaction] does: a caller cannot ask to remove
+  /// something it has not got in front of it.
+  bool undoSplitBill({required Transaction? tx, required List<Debt> debts}) {
+    // CHECKED BEFORE ANYTHING IS TOUCHED. A refusal halfway through would be
+    // the half-landed state this method exists to prevent.
+    for (final Debt d in debts) {
+      final int i = _debts.indexWhere((Debt x) => x.id == d.id);
+      // Already gone, which is fine: the person deleted it by hand and there
+      // is nothing left to protect.
+      if (i < 0) continue;
+      final Debt live = _debts[i];
+      if (live.paidAmount.isPositive || live.payments.isNotEmpty) return false;
+    }
+
+    bool changed = false;
+
+    if (tx != null) {
+      final int before = _transactions.length;
+      _transactions = _transactions
+          .where((Transaction t) => t.id != tx.id)
+          .toList();
+      // Nothing removed means nothing to reverse. Without this, a second tap
+      // would credit the money back twice.
+      if (_transactions.length != before) {
+        _accounts = reverseFromBalances(_accounts, tx);
+        changed = true;
+      }
+    }
+
+    final Set<String> ids = <String>{for (final Debt d in debts) d.id};
+    final int debtsBefore = _debts.length;
+    _debts = <Debt>[
+      for (final Debt d in _debts)
+        if (!ids.contains(d.id)) d,
+    ];
+    if (_debts.length != debtsBefore) changed = true;
+
+    // ONE notify for both halves, which is one save. See the doc above.
+    if (changed) notifyListeners();
+    return true;
   }
 
   /// Changes one budget's monthly limit.

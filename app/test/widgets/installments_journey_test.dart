@@ -309,7 +309,10 @@ void main() {
     await tapAndSettle(tester, find.text('Delete this plan').first);
 
     // The confirmation names the figure it frees up, not just the deletion.
-    expect(find.textContaining('Safe to Spend on Home goes up'), findsOneWidget);
+    expect(
+      find.textContaining('Safe to Spend on Home goes up'),
+      findsOneWidget,
+    );
     expect(find.textContaining('There is no undo'), findsOneWidget);
     await tapAndSettle(tester, find.text('Delete'));
 
@@ -366,14 +369,17 @@ void main() {
     // Clear a plan by paying it out, so the archive gate is satisfied the way
     // a person would satisfy it rather than by a fixture.
     final InstallmentPlan target = store.installments.first;
-    for (int i = store.installments.first.paidInstallments;
-        i < target.totalInstallments;
-        i++) {
+    for (
+      int i = store.installments.first.paidInstallments;
+      i < target.totalInstallments;
+      i++
+    ) {
       store.payInstallment(target.id);
     }
     await tester.pumpAndSettle();
     expect(
-      store.installments.firstWhere((InstallmentPlan p) => p.id == target.id)
+      store.installments
+          .firstWhere((InstallmentPlan p) => p.id == target.id)
           .isSettled,
       isTrue,
       reason: 'paying it out did not settle it, so there is nothing to archive',

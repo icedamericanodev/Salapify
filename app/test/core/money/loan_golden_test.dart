@@ -42,8 +42,14 @@ void main() {
 
     test('the headline figures', () {
       expect(r.monthlyPayment, 22470.71);
-      expect(r.totalPayment, 4044726.78); // WAS 4044727.22, now the sum of the rows
-      expect(r.totalInterest, 1544726.78); // WAS 1544727.22, now the sum of the rows
+      expect(
+        r.totalPayment,
+        4044726.78,
+      ); // WAS 4044727.22, now the sum of the rows
+      expect(
+        r.totalInterest,
+        1544726.78,
+      ); // WAS 1544727.22, now the sum of the rows
       expect(r.payoffMonths, 180);
       expect(r.amortizationSchedule.length, 180);
     });
@@ -53,8 +59,14 @@ void main() {
       () {
         final AmortizationRow first = r.amortizationSchedule.first;
         expect(first.interestComponent, 14583.33);
-        expect(first.principalComponent, 7887.38); // WAS 7887.37, now foots with the payment
-        expect(first.remainingBalance, 2492112.62); // WAS ...63, follows the corrected principal
+        expect(
+          first.principalComponent,
+          7887.38,
+        ); // WAS 7887.37, now foots with the payment
+        expect(
+          first.remainingBalance,
+          2492112.62,
+        ); // WAS ...63, follows the corrected principal
 
         final AmortizationRow last = r.amortizationSchedule.last;
         // WAS 130.32. The balance this is charged on walks down from the
@@ -136,8 +148,14 @@ void main() {
     test('3,000 a month clears a 5 year loan in 44 months', () {
       expect(r.payoffMonths, 44);
       expect(r.monthsSavedWithExtra, 16);
-      expect(r.interestSavedWithExtra, 47055.35); // WAS 47055.37, follows the summed interest
-      expect(r.totalInterest, 120278.08); // WAS 120278.06, now the sum of the rows
+      expect(
+        r.interestSavedWithExtra,
+        47055.35,
+      ); // WAS 47055.37, follows the summed interest
+      expect(
+        r.totalInterest,
+        120278.08,
+      ); // WAS 120278.06, now the sum of the rows
     });
 
     test('the final extra is trimmed so the loan cannot overpay itself', () {
@@ -201,7 +219,10 @@ void main() {
       // That is the prototype's behaviour, captured here rather than fixed,
       // because changing it would move money on a screen.
       expect(r.payoffMonths, 45);
-      expect(r.totalPayment, 1244329.22); // WAS 1244329.18, now the sum of the rows
+      expect(
+        r.totalPayment,
+        1244329.22,
+      ); // WAS 1244329.18, now the sum of the rows
     });
   });
 

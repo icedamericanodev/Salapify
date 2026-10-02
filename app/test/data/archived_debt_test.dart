@@ -65,9 +65,9 @@ void main() {
 
   test('an archived debt survives the file', () {
     final Snapshot after = Snapshot.decode(
-      withDebts(<Debt>[settled.copyWith(archivedAt: '2026-10-02')]).encode(
-        at: at,
-      ),
+      withDebts(<Debt>[
+        settled.copyWith(archivedAt: '2026-10-02'),
+      ]).encode(at: at),
     );
 
     expect(after.debts.single.archivedAt, '2026-10-02');
