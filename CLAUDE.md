@@ -15,7 +15,8 @@ features. It replaces
 docs/Salapify_Master_Constitution.md (Master Constitution v2, 2026-08-12) as
 the top authority below direct founder direction. The constitution file stays
 in the repository unedited, as history and because
-flutter/test/constitution_citation_test.dart reads its path; nothing in it
+archive/salapify-2-flutter/test/constitution_citation_test.dart reads its
+path; nothing in it
 binds work any more, and where the two disagree docs/revamp wins.
 
 Salapify 3 is being built FOR THE PUBLIC. Founder direction, 2026-09-14,
@@ -91,10 +92,12 @@ and untouched for testers until the Flutter app reaches parity. Rules for the
 Flutter track:
 1. Delivery has TWO actions, and confusing them cost thirteen undelivered
    stamps once already. Pushes to a claude/** branch run the "Flutter check"
-   action (.github/workflows/flutter-check.yml): analyze and test only, on a
+   action (archive/salapify-2-flutter/ci-disabled/workflows/flutter-check.yml):
+   analyze and test only, on a
    real runner, nothing published. Only pushes to main
    that touch flutter/ run the "Flutter preview APK" action
-   (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
+   (archive/salapify-2-flutter/ci-disabled/workflows/flutter-preview.yml):
+   flutter analyze (zero issues),
    flutter test, then Shorebird ships it. So a push touching flutter/ on the
    working branch publishes NOTHING; delivery happens at the merge to main,
    and is not real until that run is green. THERE IS NO PATH THAT MERGES
@@ -107,7 +110,9 @@ Flutter track:
    merge on the belief that it ships nothing. That belief shipped f3.10 patch 5
    unrecorded (docs/lunch-and-learn.md session 25). Two guards now hold this: the
    branch check reddens a flutter/-touching PR whose stamp still equals the
-   delivered one (.github/scripts/check-stamp-unique.sh), and the publisher's own
+   delivered one
+   (archive/salapify-2-flutter/ci-disabled/scripts/check-stamp-unique.sh),
+   and the publisher's own
    record step is the backstop that refuses to write a colliding row. One RELEASE
    exists per pubspec version (the base APK at the fixed flutter-preview release
    tag, installed once); every later push PATCHES that release over the air and
@@ -115,8 +120,10 @@ Flutter track:
    installed app updates itself on reopen. Bump the pubspec version ONLY for
    native-level changes; that forces a new base APK and one manual install,
    flag it loudly to the founder. Auth is the SHOREBIRD_TOKEN repo secret;
-   the app id lives in flutter/shorebird.yaml (public, not a secret).
-2. Bump the updateStamp constant in flutter/lib/main.dart on every push
+   the app id lives in archive/salapify-2-flutter/shorebird.yaml (public, not
+   a secret).
+2. Bump the updateStamp constant in archive/salapify-2-flutter/lib/main.dart
+   on every push
    (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
    Bump it FIRST, before writing the feature, not last after testing is
    done: a commit finished and pushed before the stamp is bumped ships with
@@ -127,7 +134,8 @@ Flutter track:
    catches the collision itself at the PR border every time (see below); this
    is only about not wasting a test run on a tree that was never going to
    ship (session 32, docs/lunch-and-learn.md). KEEP IT SHORT, one high level
-   line, 120 characters, enforced by test/update_stamp_test.dart. It became a
+   line, 120 characters, enforced by
+   archive/salapify-2-flutter/test/update_stamp_test.dart. It became a
    forty line wall of text on the
    founder's phone because each build appended the previous build's notes
    instead of replacing them. The detail belongs in the PULL REQUEST. Not in
@@ -217,7 +225,7 @@ matters.
 
 Claude can render any Flutter screen to a PNG and actually look at it:
 
-    cd flutter && flutter test test/screens_shot.dart --update-goldens
+    cd app && flutter test test/shots/screens_shot.dart --update-goldens
 
 Do this for every UI change, before the merge. Two real bugs reached the
 founder's phone because it was not done: a lesson rendering its reference
@@ -299,7 +307,8 @@ Three things about the render, learned the hard way:
 The same font rule reaches past the render harness. A widget test that MEASURES
 layout, whether a label wraps, whether a control stacks, whether anything
 overflows or clips, must load the real fonts first with `loadRealFonts` from
-`test/screens_shot.dart`, or it judges a font the phone never draws. Flutter's
+`app/test/shots/screens_shot.dart`, or it judges a font the phone never draws.
+Flutter's
 default test font is wider than Plus Jakarta Sans, the face the app ships, so a
 layout decision can come out one way in the test and the other way on the phone.
 The theme-mode selector test did exactly this: it demanded the picker stack at
@@ -341,14 +350,25 @@ writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
 
 There is also a small COMMITTED pixel baseline, and it is a reference, not the
-gate. `test/golden/ui_golden.dart` renders the screens one change set touched
-into fixed PNGs under `test/golden/baseline/`, deterministic on purpose (fixed
-size and DPR, dark theme, en locale, real fonts, animations off, an injected
-clock where a date shows). It carries NO `_test` suffix, so `flutter test` never
-collects it, and the CI step that compares it is non-blocking: a pixel diff
-across environments is information, not a red build. The real per-push regression
-gate stays the DETERMINISTIC layout-metric tests (`screen_readability_test.dart`,
-`palette_contrast_test.dart`, `segmented_test.dart` and the like), which measure
+gate. IT BELONGS TO SALAPIFY 2 AND LIVES IN THE ARCHIVE, at
+`archive/salapify-2-flutter/test/golden/ui_golden.dart`, which renders the
+screens one change set touched into fixed PNGs under
+`archive/salapify-2-flutter/test/golden/baseline/`, deterministic on purpose
+(fixed size and DPR, dark theme, en locale, real fonts, animations off, an
+injected clock where a date shows). It carries NO `_test` suffix, so
+`flutter test` never collects it, and the CI step that compared it was
+non-blocking: a pixel diff across environments is information, not a red build.
+
+`app/` HAS NOT GOT ONE, and this paragraph read as though it did until
+2026-10-02, describing machinery the live app does not have in the present
+tense. If `app/` ever wants one, copy it forward deliberately and rewritten,
+the way the archive section says to copy anything forward, and never inherit
+it by accident.
+
+The RULING the baseline encodes is the founder's and stands whatever `app/`
+builds. The per-push regression gate is the DETERMINISTIC layout-metric tests
+(`app/test/screen_readability_test.dart`, `app/test/palette_contrast_test.dart`
+and the like), which measure
 layout rather than pixels and so cannot flake cross-platform. That split is the
 standing answer to "add a stable pixel baseline": commit one for the screens that
 can be made deterministic, keep it opt-in and non-blocking, and never let a
@@ -357,8 +377,9 @@ pixel check; that is exactly the flake the founder ruled out.
 
 ## Test the app the way a person uses it, not one screen at a time
 
-`flutter/test/journeys_test.dart` taps and types through several features in one
-sitting and then checks that every screen still agrees about the money. Most of
+The journey tests in `app/test/widgets/`, the files named `*_journey_test.dart`,
+tap and type through several features in one
+sitting and then check that every screen still agrees about the money. Most of
 the other test files drive ONE screen with a store built for it, which is good
 and is not this (no count here on purpose: the last version of this sentence
 said sixty and the real figure was seventy-nine, two paragraphs from the rule
@@ -389,7 +410,7 @@ invariant ("changes nothing", "returns to the start") is unfalsifiable by
 inaction by construction, so its companion can never be another conservation
 statement: name the per-account movement, or assert the stored blob changed.
 
-The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
+The journey-tester agent (.claude/agents/journey-tester.md) owns these files and
 the discipline around it. Use it when the founder cannot test by hand, which is
 most of the time.
 
@@ -572,7 +593,7 @@ defense is actually re-running the search on every kept source, every time.
 ## Icons: ours are orange, the user's are emoji
 
 Salapify's own icons are Material glyphs in the theme accent, resolved through
-flutter/lib/widgets/salapify_icon.dart. Content declares the MEANING ('shield',
+app/lib/design/salapify_icon.dart. Content declares the MEANING ('shield',
 'mountain') and that one file decides how it is drawn, so restyling every icon
 is one edit. Emoji cannot do this: they are OS-drawn multicolour stickers, the
 palette cannot reach them, and they change shape between phones.
@@ -683,8 +704,8 @@ them, do not rely on model memory where they apply.
 
 Context7: use it before implementing, debugging, reviewing, or modifying any code
 that depends on an external Flutter or Dart package. Verify APIs against the
-version Salapify actually uses, not the latest. Inspect flutter/pubspec.yaml and
-flutter/pubspec.lock before recommending any upgrade, and do not upgrade a
+version Salapify actually uses, not the latest. Inspect app/pubspec.yaml and
+app/pubspec.lock before recommending any upgrade, and do not upgrade a
 dependency unless the task requires it. Model memory of a package API is a guess
 until Context7 confirms it against the pinned version.
 
@@ -692,7 +713,8 @@ Figma: use the Figma MCP for UI and UX work only when a Figma design or frame is
 provided. Treat what it returns as design context, never as production code.
 Translate designs into idiomatic Flutter that reuses Salapify's existing design
 tokens and widgets before creating anything new (the Barako palette,
-salapify_icon.dart, and the shared widgets in flutter/lib/widgets). Preserve
+salapify_icon.dart, and the shared widgets in app/lib/design/ and
+app/lib/features/shared/). Preserve
 accessibility, responsive behavior, and platform conventions. Never introduce
 React, HTML, CSS, or any web implementation into the Flutter app on the strength
 of Figma output; Salapify's icons stay Material glyphs in the accent, not emoji
@@ -899,7 +921,8 @@ a short factual line, not a silence and not an essay.
 The conditions, ALL of which must hold before the merge:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked. Record it as a row in
-  docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when
+  docs/qa-log.md; archive/salapify-2-flutter/test/qa_record_test.dart fails on
+  the runner when
   the current stamp has no row. This rule sat unenforced for weeks and then
   was simply skipped on f2.71, which put a monthly cap that could not see the
   app's own Log entries on the founder's phone for two hours. SKIPPED is an
