@@ -209,7 +209,8 @@ LoanCalculationResult calculateAmortization({
     // it into 36.
     //
     // A residue is smaller than one payment. A balloon is not.
-    final bool absorbsResidue = isFinalScheduled && balanceCent <= basePaymentCent;
+    final bool absorbsResidue =
+        isFinalScheduled && balanceCent <= basePaymentCent;
 
     final int interestCent = rateType == RateType.flatAddon
         // The final period takes the whole remainder, so sixty rows sum to

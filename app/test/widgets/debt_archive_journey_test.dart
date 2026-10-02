@@ -51,8 +51,10 @@ void main() {
       tester.widget<DebtScreen>(find.byType(DebtScreen)).state;
 
   /// Same shape the bills journey uses, so the two agree on the word.
-  double netWorthOf(FinancialState s) =>
-      s.accounts.fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
+  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
+    0,
+    (double sum, Account a) => sum + a.balance.pesos,
+  );
 
   testWidgets('a debt with money against it offers no delete, and the card '
       'stays clean', (WidgetTester tester) async {

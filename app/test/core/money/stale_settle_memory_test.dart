@@ -113,15 +113,16 @@ void main() {
     );
   });
 
-  test('a take-back on a debt settled BEFORE the payment keeps its memory',
-      () {
+  test('a take-back on a debt settled BEFORE the payment keeps its memory', () {
     // The silent half. The fix must not start clearing a memory that is
     // still in force: a stray payment on an already settled debt, taken
     // back, leaves the debt settled, and its original memory still
     // describes that settle.
-    List<Debt> s = toggleDebtSettled(<Debt>[
-      open.copyWith(paidAmount: const Money.pesos(300)),
-    ], 'd1', today: today);
+    List<Debt> s = toggleDebtSettled(
+      <Debt>[open.copyWith(paidAmount: const Money.pesos(300))],
+      'd1',
+      today: today,
+    );
     expect(s.single.paidBeforeSettle, const Money.pesos(300));
 
     s = applyDebtPayment(

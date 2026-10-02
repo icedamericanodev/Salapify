@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../data/store.dart' show LoadStatus;
+import '../../core/money/format.dart';
 import '../../core/money/health_check.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/accounts/move_money_sheet.dart';
@@ -299,21 +300,92 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  /// Opens the Add Debt sheet and records what comes back.
+  /// Splitting a bill, from the Home shortcut row.
+  ///
+  /// THIS USED TO BE A ONE LINE CALL THAT THREW THE RESULT AWAY, and the doc
+  /// above it argued that was correct: the sheet writes through the store,
+  /// the store is a ChangeNotifier, so the figures redraw on their own and
+  /// there is nothing to hand back. Every word of that was true about the
+  /// FIGURES and it missed the person. One tap here can take the whole bill
+  /// out of a real account, and the only screen in a position to say so said
+  /// nothing at all, while every ordinary logged entry got "Saved to this
+  /// phone" and an Undo.
+  ///
+  /// So it now does what the Log sheet does, for the same reasons written at
+  /// `app_shell.dart:181`: confirm what happened, and offer five seconds to
+  /// take it back. The undo goes through [FinancialState.undoSplitBill]
+  /// rather than being assembled here, because a split is several records
+  /// and they have to come out together or not at all.
   ///
   /// The messenger is captured BEFORE the await. The sheet can be dismissed
   /// long after this context is gone, and reaching for ScaffoldMessenger.of
   /// on the far side of an await is the usual way that turns into a crash.
-  /// Splitting a bill, from the Home shortcut row.
-  ///
-  /// The sheet writes its own debts and its own expense entry through the
-  /// store, so there is nothing to hand back here and nothing to redraw by
-  /// hand: [FinancialState] is a ChangeNotifier and the shell listens to it,
-  /// so Home's debt beam and Safe to Spend pick the new figures up on their
-  /// own. _addDebt is the one that needs a line after the await, and only
-  /// because it has a snack bar to show.
-  Future<void> _splitBill(BuildContext context, Palette palette) =>
-      SplitBillSheet.show(context, palette: palette, state: state);
+  Future<void> _splitBill(BuildContext context, Palette palette) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final SplitBillResult? saved = await SplitBillSheet.show(
+      context,
+      palette: palette,
+      state: state,
+    );
+    // Dismissed without saving. Nothing was written, so there is nothing to
+    // confirm and nothing to offer back.
+    if (saved == null) return;
+
+    final int n = saved.debts.length;
+    final String debts = n == 1 ? '1 debt' : '$n debts';
+    final Transaction? tx = saved.transaction;
+
+    // WHAT ACTUALLY HAPPENED, not a generic success. "Saved" on its own
+    // leaves somebody checking their balance to find out which account paid.
+    final String what = tx == null
+        ? 'Split recorded. $debts created, no money moved. Saved to this '
+              'phone.'
+        : 'Split recorded. ${formatPeso(tx.amount.pesos)} out of '
+              '${saved.accountName ?? 'your account'}, $debts created. '
+              'Saved to this phone.';
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(what, style: TextStyle(color: palette.onAccent)),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: palette.onAccent,
+            onPressed: () {
+              final bool done = state.undoSplitBill(tx: tx, debts: saved.debts);
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    // TWO OUTCOMES, AND THEY ARE NOT THE SAME SENTENCE. The
+                    // undo refuses whole if one of the split's debts has
+                    // already been paid against, and a refusal that looked
+                    // like a success would leave somebody believing their
+                    // balance went back when it did not.
+                    content: Text(
+                      done
+                          ? 'Taken back out. Your balance and your debts are '
+                                'where they were.'
+                          : 'Not taken back. Somebody has already paid '
+                                'against one of these debts, so the split '
+                                'stays. Remove what you do not need from the '
+                                'Debts tab.',
+                      style: TextStyle(color: palette.onAccent),
+                    ),
+                    backgroundColor: palette.accent,
+                    duration: Duration(seconds: done ? 3 : 6),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+            },
+          ),
+        ),
+      );
+  }
 
   /// Moving money between the person's own accounts.
   ///
