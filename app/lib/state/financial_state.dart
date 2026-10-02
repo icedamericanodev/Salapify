@@ -1164,6 +1164,7 @@ class FinancialState extends ChangeNotifier {
       _installments,
       planId,
       today: now,
+      accountId: accountId,
       txId: accountId == null ? null : txId,
     );
 
@@ -1205,6 +1206,7 @@ class FinancialState extends ChangeNotifier {
       amount,
       today: now,
       note: note,
+      accountId: accountId,
       txId: accountId == null ? null : txId,
     );
 

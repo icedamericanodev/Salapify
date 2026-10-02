@@ -337,12 +337,17 @@ class _WhatWillHappen extends StatelessWidget {
       if (clears && over > Money.pesos(0))
         'That is ${formatPeso(over.pesos)} more than the debt, and Salapify records '
             'it rather than rounding it away.',
+      // `paying`, not `amount`. The comment above says these three figures
+      // are quantised once so they cannot disagree, and this one read the
+      // raw typed double anyway. Type 100.005 and the sentence said the
+      // account goes down by 100.00 while the account fell by 100.01, in the
+      // single sentence this block exists to state truthfully.
       if (accountName != null)
         owing
-            ? '$accountName goes down by ${formatPeso(amount!)}, and an entry '
-                  'in your Activity will say why.'
-            : '$accountName goes up by ${formatPeso(amount!)}, and an entry '
-                  'in your Activity will say why.'
+            ? '$accountName goes down by ${formatPeso(paying.pesos)}, and an '
+                  'entry in your Activity will say why.'
+            : '$accountName goes up by ${formatPeso(paying.pesos)}, and an '
+                  'entry in your Activity will say why.'
       else
         'No account will change, and nothing will appear in your Activity. '
             'Only the debt moves.',

@@ -174,6 +174,18 @@ List<InstallmentPlan> applyInstallmentPayment(
   /// answer: paying with no account writes no entry, so the register row has
   /// nothing to point at and taking it back must not go hunting for one.
   String? txId,
+
+  /// WHICH ACCOUNT the money came out of, stored on the row.
+  ///
+  /// `PlanPayment.accountId` existed, was declared in the codec, and was
+  /// never written by anything, so it was always null. The take-back dialog
+  /// reads it to name the account, found null every time, and told people
+  /// "No account moves, because this payment was recorded against the plan
+  /// alone" while `setTransactionStatus` put the money straight back.
+  ///
+  /// The debt engine has carried this since the register was built. The plan
+  /// engine is the same feature one file over, and it did not.
+  String? accountId,
 }) {
   return plans.map((InstallmentPlan p) {
     if (p.id != id || p.isSettled) return p;
@@ -241,6 +253,7 @@ List<InstallmentPlan> applyInstallmentPayment(
           toPrincipal: principalPart,
           toInterest: interestPart,
           settledBefore: p.isSettled,
+          accountId: accountId,
           txId: txId,
           installmentNumber: nextPaid,
         ),
@@ -347,6 +360,9 @@ List<InstallmentPlan> applyExtraPayment(
   String? note,
   String? extraId,
 
+  /// Same reason as [applyInstallmentPayment]'s, one function down.
+  String? accountId,
+
   /// As above: the ledger row, when there is one.
   String? txId,
 }) {
@@ -404,6 +420,7 @@ List<InstallmentPlan> applyExtraPayment(
           toPrincipal: offPrincipal,
           toInterest: offInterest,
           settledBefore: p.isSettled,
+          accountId: accountId,
           txId: txId,
           note: note?.trim().isNotEmpty == true ? note!.trim() : null,
         ),

@@ -4,6 +4,32 @@ import 'package:salapify/core/money/loan.dart';
 /// Golden vectors for the loan port, produced by running
 /// src/utils/loanCalculators.ts under bun. Every figure below came out of the
 /// prototype; none was computed by hand from an amortization formula.
+///
+/// ## SIX FIGURES NOW DIVERGE FROM THE PROTYPE, DELIBERATELY (2026-10-02)
+///
+/// Each one is marked WAS at its assertion. The rule in this repository is
+/// that an odd prototype behaviour is reproduced and locked, with the defence
+/// in the UI rather than in a quietly corrected number, and the stated
+/// exception is where a wrong figure costs real money. A schedule whose rows
+/// do not add up is that exception: it is the one artefact in this app a
+/// person lays beside a lender's paperwork.
+///
+/// What was wrong. The loop rounded interest, principal and their sum
+/// INDEPENDENTLY on the way into each row, so `principal + interest` did not
+/// equal `payment`. On the Car loan tab's own defaults that was true of all
+/// sixty rows. Separately, the totals were accumulated from unrounded values
+/// that never saw a row, so the TOTAL PAYABLE chip disagreed with the table
+/// beneath it by 0.20. These goldens encoded it: the first row below reads
+/// 14,583.33 interest against a 22,470.71 payment, and 22,470.71 minus
+/// 14,583.33 is 7,887.38, not the 7,887.37 the prototype recorded.
+///
+/// What is true now, enforced by loan_foots_test.dart across six loan shapes
+/// with no tolerance anywhere: every row foots, the balance walks down by
+/// exactly the principal paid, the last row lands on exactly zero, and every
+/// total is the sum of its rows.
+///
+/// What was deliberately NOT changed: the balloon case still overruns its
+/// stated term, because that is a product behaviour rather than arithmetic.
 void main() {
   const double eps = 1e-6;
 
@@ -16,8 +42,8 @@ void main() {
 
     test('the headline figures', () {
       expect(r.monthlyPayment, 22470.71);
-      expect(r.totalPayment, 4044727.22);
-      expect(r.totalInterest, 1544727.22);
+      expect(r.totalPayment, 4044726.78); // WAS 4044727.22, now the sum of the rows
+      expect(r.totalInterest, 1544726.78); // WAS 1544727.22, now the sum of the rows
       expect(r.payoffMonths, 180);
       expect(r.amortizationSchedule.length, 180);
     });
@@ -27,12 +53,19 @@ void main() {
       () {
         final AmortizationRow first = r.amortizationSchedule.first;
         expect(first.interestComponent, 14583.33);
-        expect(first.principalComponent, 7887.37);
-        expect(first.remainingBalance, 2492112.63);
+        expect(first.principalComponent, 7887.38); // WAS 7887.37, now foots with the payment
+        expect(first.remainingBalance, 2492112.62); // WAS ...63, follows the corrected principal
 
         final AmortizationRow last = r.amortizationSchedule.last;
-        expect(last.interestComponent, 130.32);
-        expect(last.principalComponent, 22340.39);
+        // WAS 130.32. The balance this is charged on walks down from the
+        // corrected first row, so it arrives a centavo lower.
+        expect(last.interestComponent, 130.31);
+        // WAS 22340.39. Each row's principal is now derived from the payment
+        // rather than rounded on its own, so a little more lands in the
+        // earlier rows and the final one is correspondingly smaller. The
+        // schedule still pays off exactly 2,500,000.00, which
+        // loan_foots_test.dart asserts on this very loan.
+        expect(last.principalComponent, 22339.38);
         expect(last.remainingBalance, 0);
       },
     );
@@ -62,7 +95,21 @@ void main() {
         // The defining property: interest never falls, because it is charged on
         // what was borrowed rather than on what is still owed.
         expect(flat.amortizationSchedule.first.interestComponent, 6333.33);
-        expect(flat.amortizationSchedule.last.interestComponent, 6333.33);
+        // WAS 6333.33. THE LAST ROW ABSORBS THE CONTRACT REMAINDER, and this
+        // one is a judgement about lending practice rather than arithmetic,
+        // so it is spelled out.
+        //
+        // A flat add-on quotes a TOTAL: 380,000.00 here, and the line above
+        // asserts the app still reports exactly that. The true monthly share
+        // is 6,333.333..., so charging the rounded 6,333.33 sixty times adds
+        // up to 379,999.80 and the schedule contradicts the contract. The
+        // instalment engine already answers this the same way, in its own
+        // words, the final instalment absorbs the whole difference, and a
+        // real dealer's final payment adjusts for exactly this reason.
+        //
+        // The property this test is named for still holds: interest never
+        // FALLS. It rises by 0.20 on the final row.
+        expect(flat.amortizationSchedule.last.interestComponent, 6333.53);
       },
     );
 
@@ -89,14 +136,14 @@ void main() {
     test('3,000 a month clears a 5 year loan in 44 months', () {
       expect(r.payoffMonths, 44);
       expect(r.monthsSavedWithExtra, 16);
-      expect(r.interestSavedWithExtra, 47055.37);
-      expect(r.totalInterest, 120278.06);
+      expect(r.interestSavedWithExtra, 47055.35); // WAS 47055.37, follows the summed interest
+      expect(r.totalInterest, 120278.08); // WAS 120278.06, now the sum of the rows
     });
 
     test('the final extra is trimmed so the loan cannot overpay itself', () {
       // 1,900.22 rather than the full 3,000: the last instalment only takes
       // what is left.
-      expect(r.amortizationSchedule.last.extraPayment, 1900.22);
+      expect(r.amortizationSchedule.last.extraPayment, 1900.40); // WAS 1900.22
       expect(r.amortizationSchedule.last.remainingBalance, 0);
     });
 
@@ -154,7 +201,7 @@ void main() {
       // That is the prototype's behaviour, captured here rather than fixed,
       // because changing it would move money on a screen.
       expect(r.payoffMonths, 45);
-      expect(r.totalPayment, 1244329.18);
+      expect(r.totalPayment, 1244329.22); // WAS 1244329.18, now the sum of the rows
     });
   });
 

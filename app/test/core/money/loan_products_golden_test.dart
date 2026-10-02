@@ -15,7 +15,7 @@ void main() {
         termYears: 30,
       );
       expect(r.monthlyPayment, 3162.03);
-      expect(r.totalInterest, 388330.89);
+      expect(r.totalInterest, 388330.90); // WAS ...89, totals are now the sum of the rows
       expect(r.payoffMonths, 360);
     });
 
@@ -163,7 +163,11 @@ void main() {
           termMonths: 24,
         );
         expect(mpl.annualRate, 10.5);
-        expect(mpl.totalInterest, closeTo(11302.5, 0.01));
+        // WAS closeTo(11302.5, 0.01). Exact now, and 3 centavos higher,
+        // because the total is the sum of the rows rather than a parallel
+        // accumulation that never saw them. A tolerance on a money figure is
+        // the size of the defect class this change fixed, so it goes.
+        expect(mpl.totalInterest, 11302.53);
         expect(mpl.estimatedDividendRebate, closeTo(2260.5, 0.01));
 
         // 10.5% is a higher rate than SSS at 10%, and MPL still costs LESS in
