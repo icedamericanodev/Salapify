@@ -422,9 +422,20 @@ and `entriesFor` was flawless, and the defect lived in the gap between them.
 The concrete rule: after building any write path, list the screens a user would
 check to confirm it happened, and make the journey visit each one. If a screen
 cannot show it, that is a finding, not a fact of life. In this case the engine
-deliberately writes the payment with no accountId (tagging it would double
-debit the account), so the account link lives in the top level `payments`
-collection and the screen reads it from there. Display only, no stored change.
+deliberately leaves the TRANSACTION untagged by account (tagging it would
+double debit the account), so the account link lives on the payment row
+instead, as `DebtPayment.accountId`, and the screen reads it from there. It is
+stored: `debtPaymentToJson` writes `accountId`, and `debtKeys` declares
+`payments`.
+
+(Until 2026-10-02 this paragraph said the link lives in a "top level
+`payments` collection" and called it display only with no stored change. Both
+halves were wrong for `app/`, which has no such collection: `collectionKeys`
+in `snapshot.dart` does not list one and nothing in `app/lib` writes one. The
+collection it described is Salapify 2's, still in the archive at
+`archive/salapify-2-flutter/lib/money/debts.dart`. This is the third
+consecutive retrospective to find a false factual claim in these rules, so
+once more, read the codec rather than this paragraph.)
 
 ## Three Bash commands are refused by a hook, and why
 
@@ -453,9 +464,22 @@ commands gets switched off and is then absent for the real thing. `python3 -c`
 one-liners pass, any python that only reads passes, and `git checkout <branch>`,
 `git checkout -b`, and `git checkout origin/main` all pass. The discriminator for
 rule 2 is whether the argument EXISTS on disk, which is exactly what makes the
-command destructive; a ref is not a path. Rule 3 matches only an INVOCATION
-(command position on the first line), so a commit message or document that
-merely mentions the banned shape passes.
+command destructive; a ref is not a path. Rule 3 AIMS at an INVOCATION
+(command position on the first line), so an echo or a commit message that
+merely mentions the banned shape usually passes.
+
+Usually, not always, and this paragraph promised always until 2026-10-02.
+Rule 3 is a regex over the raw first line, not over parsed tokens, so a
+QUOTED STRING can supply all three parts by itself: `(^|[;&|])` is satisfied
+by an `&&` inside the quotes, `flutter[[:space:]]+test` by the words after it,
+and the trailing `\|` by any later pipe character, escaped or not. A read-only
+`grep` whose SEARCH PATTERN happens to contain all three is therefore refused,
+reproduced twice on 2026-10-02, once by accident and once by feeding the hook
+its own payload. The hook's own header states the principle that breaks: it is
+meant to under-block, because a guard that fires on ordinary work gets
+switched off. Nobody has lost work to it and the cost is a refused read, so it
+is written down here rather than loosened in a hurry. If it fires on something
+plainly harmless, that is this, and rewording the command around it is fine.
 
 Installed at the founder's explicit request. Worth knowing how it got here: two
 consecutive retrospectives concluded "nothing in this repository can observe how
