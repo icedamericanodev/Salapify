@@ -17,6 +17,7 @@ import '../../features/pan/pan_history.dart';
 import '../../features/pan/pan_sheet.dart';
 import '../../features/reminders/reminders_sheet.dart';
 import '../../features/settings/privacy_sheet.dart';
+import '../../features/settings/sample_data_sheet.dart';
 import '../../features/safe_to_spend/safe_to_spend_sheet.dart';
 import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
@@ -165,6 +166,38 @@ class HomeScreen extends StatelessWidget {
               onMove: () => _moveMoney(context, palette),
               onSplit: () => _splitBill(context, palette),
             ),
+
+            // THE WAY OUT OF THE EXAMPLE DATA, and it sits HERE rather than
+            // above the hero, which is where the first draft put it.
+            //
+            // Moving it down is a design correction, not a convenience. The
+            // only person who sees this chose "Look around with example data
+            // first" on the welcome, so the figures being examples is not
+            // news to them: they asked. A full width warning block above the
+            // app's main figure, on every visit, for somebody who asked, is
+            // precisely the standing banner the founder removed on
+            // 2026-09-19. The user panel's complaint was about people who
+            // never chose it, and the welcome means that can no longer
+            // happen.
+            //
+            // It is still ON Home and still one tap from gone, which was the
+            // panel's actual ask: the honest sentence in
+            // sample_data_sheet.dart had been two taps and a scroll behind a
+            // gear icon that their least technical archetype said plainly
+            // she would never open.
+            //
+            // The first draft also pushed Home's own shortcut row out of the
+            // built range in a short viewport, so eleven journeys could not
+            // find the Log button. A banner that displaces the controls it
+            // sits above is a wall, not a warning.
+            if (state.hasSampleData &&
+                state.loadStatus != LoadStatus.unreadable) ...<Widget>[
+              const SizedBox(height: Spacing.lg),
+              _ExampleDataBanner(
+                palette: palette,
+                onOpen: () => SampleDataSheet.show(context, state),
+              ),
+            ],
             const SizedBox(height: Spacing.lg),
             PanHeroCard(
               palette: palette,
@@ -507,6 +540,98 @@ class _CannotReadBanner extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown on Home while any of Salapify's own demo records are still present.
+///
+/// ## Why this one is allowed on Home
+///
+/// The founder removed the standing banners on 2026-09-19 because they sat in
+/// front of every screen on every visit. This is the opposite shape. It
+/// describes a state the person can end in one tap, it says so, and once
+/// ended it cannot come back: the sweep is one way and the put-it-back
+/// control is gated on a stored key, so a ledger that never had demo data
+/// cannot be given any.
+///
+/// ## Why it is a banner and not an info dot
+///
+/// The rule is that figures stay on screen and teaching goes behind the dot.
+/// Its stated exception is anything somebody needs in order not to reach a
+/// WRONG CONCLUSION, and this is the most expensive wrong conclusion the app
+/// can produce. Every figure above and below it belongs to nobody.
+///
+/// ## Why warning and not negative
+///
+/// `_CannotReadBanner` uses negative because it reports a fault. Nothing is
+/// broken here. Somebody chose to look around with example data and this is
+/// the way back out, so it reads as a note rather than an alarm, and a red
+/// block on a screen with nothing wrong with it would teach people to ignore
+/// the red block that matters.
+class _ExampleDataBanner extends StatelessWidget {
+  const _ExampleDataBanner({required this.palette, required this.onOpen});
+
+  final Palette palette;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = palette;
+    return Material(
+      color: p.warningSoft,
+      borderRadius: BorderRadius.circular(Radii.card),
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(Radii.card),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(Spacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: p.warning),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(Icons.science_outlined, size: 18, color: p.warning),
+              const SizedBox(width: Spacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'These figures are examples, not yours',
+                      style: AppType.rowTitle(p).copyWith(color: p.warning),
+                    ),
+                    const SizedBox(height: Spacing.xs),
+                    Text(
+                      // NAMES THE RISK IN ONE LINE, because the risk is the
+                      // point and the room is not free. The panel's worst
+                      // moment was a real entry landing beside a fake one,
+                      // and somebody who has not typed anything yet is
+                      // exactly who can still avoid it.
+                      //
+                      // Deliberately short. The first draft was a three line
+                      // card with its own button, and it pushed Home's
+                      // shortcut row far enough down that eleven journey
+                      // tests could no longer find the Log button at all. A
+                      // banner that displaces the app's own controls is not
+                      // a warning, it is a wall. The full explanation lives
+                      // in the sheet this opens, which has carried it for
+                      // weeks.
+                      'Clear them before you start, or your entries will sit '
+                      'beside them.',
+                      style: AppType.caption(p),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: p.warning),
+            ],
+          ),
         ),
       ),
     );

@@ -410,6 +410,10 @@ void _reachable() {
     // past it.
     final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
     await state.restore();
+    // The app opens on the welcome when nothing has been onboarded. This
+    // fixture is the seeded ledger, which is what the "look around with
+    // example data" path leaves behind, so it says so.
+    state.startWithExampleData();
     addTearDown(state.dispose);
 
     await tester.pumpWidget(SalapifyApp(state: state));
