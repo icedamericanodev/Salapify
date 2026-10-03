@@ -112,6 +112,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             DayGroup(
               palette: p,
               day: day,
+              state: widget.state,
               accounts: widget.state.accounts,
               now: widget.state.now,
             ),
