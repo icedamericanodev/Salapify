@@ -60,14 +60,10 @@ class _PaydaySheetState extends State<PaydaySheet> {
     _second = days.length > 1 ? days[1] : 30;
 
     _pay = TextEditingController(
-      // Whole pesos with no ".00", centavos with two places, which is what
-      // the box showed before. `centavos % 100 == 0` asks the question
-      // directly instead of comparing a double against its own rounding.
-      text: c.expectedIncome.isPositive
-          ? c.expectedIncome.pesos.toStringAsFixed(
-              c.expectedIncome.centavos % 100 == 0 ? 0 : 2,
-            )
-          : '',
+      // Whole pesos with no ".00", centavos with two places. The rule used to
+      // be spelled out here; it lives on Money as `plain` now, because the
+      // one sheet that spelled it out WRONG lost centavos.
+      text: c.expectedIncome.isPositive ? c.expectedIncome.plain : '',
     );
   }
 

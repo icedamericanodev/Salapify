@@ -42,7 +42,11 @@ class EditBudgetSheet extends StatefulWidget {
 
 class _EditBudgetSheetState extends State<EditBudgetSheet> {
   late final TextEditingController _limit = TextEditingController(
-    text: widget.row.limit.pesos.toStringAsFixed(0),
+    // `plain`, NOT toStringAsFixed(0). The rounded version turned a stored
+    // 3,500.55 into "3501" in the box, and saving without editing would then
+    // have written 3501 over it. Found by the founder on the emulator,
+    // 2026-10-03, running the centavo case.
+    text: widget.row.limit.plain,
   );
 
   @override

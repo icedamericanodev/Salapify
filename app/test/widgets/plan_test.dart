@@ -173,6 +173,68 @@ void main() {
       );
     });
 
+    testWidgets('a limit with CENTAVOS survives being saved and reopened', (
+      WidgetTester tester,
+    ) async {
+      // THE FOUNDER'S FIND, on the emulator, 2026-10-03. They typed 3500.55,
+      // saved, reopened the sheet, and the box read 3501.
+      //
+      // The money was never wrong: the row said "3,080.55 left" against 420
+      // spent, which is a stored limit of exactly 3,500.55. Only the BOX
+      // somebody types into rounded it, with `toStringAsFixed(0)`, so saving
+      // that box without touching it would have written 3501 over the real
+      // figure. The worst possible place for a rounding: the one control
+      // whose whole job is to show you what you are about to keep.
+      //
+      // Pre-existing, not caused by the Money migration, and carried forward
+      // by it unchanged. Three other sheets hand-rolled the same rule
+      // correctly; this one did not, which is why the rule now lives on
+      // Money as `plain`.
+      await openSegment(tester, 'Budgets');
+      final FinancialState state = storeOf(tester);
+
+      await tapAndSettle(tester, find.text('Transport & Commute'));
+      await typeIn(tester, 'budget-limit', '3500.55');
+      await tapAndSettle(tester, find.text('Save limit'));
+
+      // The store is the easy half and was never broken. Asserted anyway, so
+      // a future change that DOES break it cannot hide behind the box.
+      expect(
+        state.budgets
+            .firstWhere((b) => b.category == 'Transport & Commute')
+            .limit,
+        Money.of(3500, 55),
+        reason: 'the centavos did not reach the store at all',
+      );
+
+      // THE HALF THAT WAS BROKEN. Reopen and read the box.
+      await tapAndSettle(tester, find.text('Transport & Commute'));
+      expect(
+        find.widgetWithText(TextField, '3500.55'),
+        findsOneWidget,
+        reason:
+            'the edit box rounded the stored limit, so saving it again '
+            'without typing anything would write the rounded figure over '
+            'the real one',
+      );
+      expect(
+        find.widgetWithText(TextField, '3501'),
+        findsNothing,
+        reason: 'the rounded figure is still what the box offers',
+      );
+
+      // And the ROW adds up on screen, which it did not: it read
+      // "3,080.55 left of 3,501" beside 420.00 spent.
+      await tapAndSettle(tester, find.byIcon(Icons.close));
+      expect(
+        find.textContaining('left of ₱3,500.55'),
+        findsOneWidget,
+        reason:
+            'the row shows a rounded limit beside an exact remainder, so the '
+            'three figures on one row do not add up in front of the person',
+      );
+    });
+
     testWidgets('a limit below what is already spent warns before saving', (
       WidgetTester tester,
     ) async {

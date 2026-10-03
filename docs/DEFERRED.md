@@ -192,3 +192,33 @@ to Spend and everything derived from it across about a dozen test files.
 
 Put to the founder on 2026-10-01 and awaiting an answer. It is close to F5 and
 the review's Safe to Spend findings, so it may fold into P2.5.
+
+## The example data looks nearly empty in the first days of a month
+
+Found on 2026-10-03, by the founder, testing the Money batch on the emulator
+on the 3rd of October. Budgets showed four of seven categories at zero and a
+headline of 39,216 against the 25,425.25 the test vectors quote. Nothing was
+broken: the figures on screen were internally exact, and the test INSTRUCTIONS
+were wrong for quoting a pinned-clock figure to somebody on a real phone.
+
+The real finding is the one underneath it. `SeedData.transactions` dates every
+entry relative to today (one day ago, three days ago, fourteen days ago) and
+Budgets is a THIS MONTH window, so on the 3rd only the last two days of
+examples are inside it. The sample ledger is built to look lived-in, and for
+roughly the first week of every month it does not: a person who taps "Look
+around with example data first" on the 2nd sees a Budgets screen of empty
+bars.
+
+That matters more now than it used to. Since 2026-10-03 the welcome offers
+that path to everybody on their first launch, so it is a first impression for
+a public app, and D19 makes per-category limits a free core feature, which is
+the screen it lands worst on.
+
+NOT FIXED HERE, because it is a sample-data product decision rather than a
+defect, and it is outside the Money migration's scope. The options worth
+weighing when it is picked up: date the spending entries relative to the start
+of the current month rather than to today; or keep today-relative dates and
+have the sample data lean on the categories whose entries are recent; or leave
+it and accept that the demo is thinner early in a month. The first is the
+obvious one and is not obviously right, because it would move what "3 days
+ago" means on every other screen that reads the same entries.
