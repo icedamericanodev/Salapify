@@ -1,0 +1,48 @@
+{
+  // WHY THIS FILE EXISTS
+  //
+  // VS Code is opened at the REPOSITORY ROOT, and the root contains two Dart
+  // packages, not one:
+  //
+  //   app/                          the live Salapify 3 app
+  //   archive/salapify-2-flutter/   Salapify 2, archived and dead
+  //
+  // The Dart analysis server finds both and analyses both. The archived one
+  // has 613 Dart files and nobody runs `flutter pub get` in it, because it is
+  // archived, so every `package:` import in it is unresolved. That is where
+  // the several hundred red "Problems" came from. They are not about the app,
+  // nothing in them can break a build, and `flutter analyze` run from app/
+  // never saw a single one of them: it reports "No issues found".
+  //
+  // That is the real cost. A Problems panel with 798 entries in it is a panel
+  // nobody reads, so the ONE error that is actually about the live app is
+  // invisible in the noise. This file is here to make that panel mean
+  // something again.
+  //
+  // It changes nothing about how the app builds, tests, or ships. It is a
+  // VS Code editor setting and CI has never read it.
+  "dart.analysisExcludedFolders": [
+    "archive",
+    "mobile",
+    "google-ai-studio"
+  ],
+
+  // The same folders, hidden from search. Grepping for a widget name and
+  // getting the archived Salapify 2 copy of it back is how somebody ends up
+  // editing a file that does not ship.
+  "search.exclude": {
+    "archive/**": true,
+    "mobile/**": true,
+    "**/.dart_tool/**": true,
+    "**/build/**": true
+  },
+
+  // Format on save, matching `dart format`, which CI runs.
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  }
+}

@@ -1,146 +1,71 @@
-// The one money formatter every SCREEN uses, in plain Dart.
-//
-// It lived in screens/overview.dart, which imports Flutter, so anything that
-// had to stay Flutter-free could not reach it. The home screen tile is exactly
-// that: money/widget_tile.dart is pure Dart on purpose, so it reached for
-// formatMoneyText instead and printed a different number from Home for the
-// same instant. Home said the daily number was 412.50 and the tile said 413,
-// rounded UP, telling somebody they could spend more than the app did.
-//
-// So it moved here, where both can import it, and overview.dart re-exports it
-// so the thirty-odd screens that already import it from there keep working.
-// There are now two formatters in the codebase and the difference is a real
-// one, not an accident:
-//
-//   formatMoney      centavos, what every SCREEN shows a person.
-//   formatMoneyText  whole pesos, byte-locked to the RN app's own formatMoney
-//                    because it composes shared text (statements, reminders,
-//                    logged-payment messages) that the golden vectors compare
-//                    character for character.
-//
-// Anything a person reads as a figure on a screen or a tile takes this one.
+import 'package:intl/intl.dart';
 
-import 'currencies.dart' show baseCurrencySymbol;
+/// Peso formatting, ported from the prototype's src/utils/format.ts.
+/// The prototype uses toLocaleString('en-PH'), which groups in threes and
+/// shows two decimals by default, so that is what these mirror.
 
-/// The month names every short date in the app uses. Public because the home
-/// screen tile builds its own "as of" stamp from a DateTime rather than an ISO
-/// string, and a fourth copy of this list is exactly what the drift being
-/// fixed here was made of.
-const List<String> monthAbbrevs = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+// The locale is deliberately NOT named here. Passing 'en_PH' makes intl demand
+// initializeDateFormatting() before first use, and without it the very first
+// build of any screen showing a date throws LocaleDataException. The screenshot
+// harness caught exactly that on Home.
+//
+// Nothing is lost by leaving it off: en-PH groups in threes with a comma and
+// separates decimals with a dot, which is what these explicit patterns already
+// say. The pattern is the contract, not the locale name.
+final NumberFormat _withDecimals = NumberFormat('#,##0.00');
+final NumberFormat _noDecimals = NumberFormat('#,##0');
 
-/// An ISO date as a short human day, "Jul 27". Junk comes back unchanged.
-///
-/// Here for the same reason formatMoney is: it lived in overview.dart, which
-/// imports Flutter, so the home screen tile could not reach it and carried a
-/// private copy plus a third list of month names. A test claimed to compare
-/// the two "across a set of dates including junk" and in fact compared them on
-/// exactly one date, because its loop asserted `anyOf(isNotEmpty, equals(iso))`
-/// which every possible string satisfies. They did differ: "2026-7-4" read as
-/// "2026-7-4" on Home and "Jul 4" on the tile, unreachable only because
-/// paydays come from a formatter that pads.
-///
-/// One function means the comparison cannot drift, which is better than a test
-/// that watches two functions that can.
-String prettyDay(String iso) {
-  if (iso.length < 10) return iso;
-  final m = int.tryParse(iso.substring(5, 7));
-  final day = int.tryParse(iso.substring(8, 10));
-  if (m == null || day == null || m < 1 || m > 12) return iso;
-  return '${monthAbbrevs[m - 1]} $day';
+/// Always the absolute value, the way the prototype does it. The sign is a
+/// presentation decision the caller makes, not something baked into the number.
+String formatPeso(num amount, {bool showDecimals = true}) {
+  final String body = showDecimals
+      ? _withDecimals.format(amount.abs())
+      : _noDecimals.format(amount.abs());
+  return '₱$body';
 }
 
-/// A stored date as a month and year: "Dec 2026".
+/// A figure that can legitimately be NEGATIVE, with its minus sign kept.
 ///
-/// For a date far enough ahead that the day is noise. A savings goal is aimed at
-/// a month, not an afternoon, and the Goals screen printed the raw
-/// "by 2026-12-31" for its whole life.
+/// [formatPeso] drops the sign on purpose, because for most figures the sign
+/// is a presentation decision: a spend of 250 is drawn in red with a category
+/// beside it, not as minus 250. A net worth is the exception. It is a single
+/// number that can genuinely be below zero, and dropping the sign does not
+/// understate it, it REVERSES it.
 ///
-/// Third screen to carry that defect, after Insights and the utang list, and
-/// found the same way each time: by a machine reading what was actually drawn,
-/// once the screen was finally in the swept set. The day is deliberately dropped
-/// rather than shown, because "by Dec 31" invites somebody to read a deadline
-/// into what is an estimate.
-String prettyMonthYear(String iso) {
-  if (iso.length < 7) return iso;
-  final m = int.tryParse(iso.substring(5, 7));
-  final y = iso.substring(0, 4);
-  if (m == null || m < 1 || m > 12) return iso;
-  return '${monthAbbrevs[m - 1]} $y';
+/// This exists because Reports had its own private version of this line and
+/// Pan did not, so on a ledger with 100,000 held and 300,000 owed, Reports
+/// said minus 200,000 and Pan said 200,000 about the same store on the same
+/// afternoon. One shared function is what stops that happening again.
+String formatPesoWithSign(num amount, {bool showDecimals = true}) {
+  final String body = formatPeso(amount, showDecimals: showDecimals);
+  return amount < 0 ? '-$body' : body;
 }
 
-/// A figure the sentence around it already hedges: whole pesos, no centavos.
-///
-/// "About ₱26,525.25 a day" is a sentence arguing with itself. The word
-/// promises a rounded figure and the number then gives two decimal places, and
-/// on the Insights safe-to-spend card that exact string sat directly above
-/// another card reading "about ₱26,525 free to move": one number, one screen,
-/// two spellings. The convention already existed, Steady Pay and the Home pace
-/// line both round, it was simply applied at some call sites and not others.
-/// A named helper makes the intent readable at the call site, where a bare
-/// `.roundToDouble()` reads like somebody's stray edit.
-///
-/// Use it ONLY where the copy says "about", or for a pace figure produced by
-/// division. NEVER for a balance, a total, a logged amount, or anything the
-/// user typed: those are exact, the golden vectors pin them to the centavo,
-/// and a rounded balance is a wrong balance rather than a friendly one.
-///
-/// Rounds to NEAREST, deliberately. `formatMoneyText` rounds up, which is
-/// correct for the contexts it was built for and wrong here: rounding a
-/// spending figure up tells somebody they have more room than they do.
-String formatMoneyAbout(num value) {
-  // Non-finite and near-max values are handed straight to formatMoney, which
-  // already has the guards and the reasons for them. roundToDouble() on
-  // Infinity throws, so this order matters.
-  if (!value.isFinite) return formatMoney(value);
-  return formatMoney(value.roundToDouble());
-}
-
-/// Sign, currency symbol, comma-grouped pesos, and centavos when there are any.
-String formatMoney(num value) {
-  // A backup can smuggle near-max doubles whose SUMS overflow to Infinity.
-  // round() throws on non-finite, which would take down the whole screen,
-  // so render the raw word instead (the RN app shows the same garbage but
-  // stays alive, and staying alive is the contract here).
-  if (!value.isFinite) return '$baseCurrencySymbol$value';
-  final negative = value < 0;
-  // A FINITE value near max double still overflows when scaled by 100 for
-  // centavo rounding, and round() throws on the resulting Infinity. Same
-  // contract: render the raw number, stay alive.
-  final scaled = value.abs() * 100;
-  if (!scaled.isFinite) return '$baseCurrencySymbol$value';
-  final rounded = scaled.round() / 100;
-  // Same int64 saturation guard as formatMoneyText: floor() on a double past
-  // 2^53 clamps instead of overflowing, so a restored backup carrying 1e30
-  // rendered a precise and completely wrong peso figure rather than obvious
-  // garbage.
-  if (rounded >= 9007199254740992.0) return '$baseCurrencySymbol$value';
-  var whole = rounded.floor();
-  final cents = ((rounded - whole) * 100).round();
-  final digits = whole.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
-    buf.write(digits[i]);
+/// Income reads with a leading plus, spending reads plain.
+String formatSignedPeso(num amount, {bool isIncome = false}) {
+  final String formatted = formatPeso(amount.abs());
+  if (isIncome || amount > 0) {
+    return '+$formatted';
   }
-  final centsPart = cents > 0 ? '.${cents.toString().padLeft(2, '0')}' : '';
-  // Take the sign from the ROUNDED magnitude, not the raw input. A value in
-  // (-0.005, 0) is negative but rounds to a zero magnitude, and printing that
-  // as "-₱0" made the screen formatter disagree with formatMoneyText, which
-  // already derives its sign from the rounded integer. A balance a hair below
-  // zero from float drift should read "₱0", not a struck minus on nothing.
-  final showNeg = negative && !(whole == 0 && cents == 0);
-  return '${showNeg ? '-' : ''}$baseCurrencySymbol$buf$centsPart';
+  return formatted;
+}
+
+/// "Today", "Yesterday", or a short weekday date. Takes an ISO YYYY-MM-DD
+/// string and a clock, so a test can pin "today" instead of hoping.
+String formatDateLabel(String isoDate, {DateTime? now}) {
+  final DateTime? date = DateTime.tryParse(isoDate);
+  if (date == null) return isoDate;
+
+  final DateTime today = now ?? DateTime.now();
+  final DateTime yesterday = today.subtract(const Duration(days: 1));
+
+  bool sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  if (sameDay(date, today)) return 'Today';
+  if (sameDay(date, yesterday)) return 'Yesterday';
+
+  // Same reason as the number patterns above: no locale name, so no
+  // initializeDateFormatting() is required before the first screen builds.
+  return DateFormat('EEE, MMM d').format(date);
 }
