@@ -150,6 +150,17 @@ class Snapshot {
   /// build cannot quietly drop what a newer one wrote.
   static const int currentSchemaVersion = 1;
 
+  /// What a file with NO `schemaVersion` at all is taken to be.
+  ///
+  /// The oldest shape that has ever existed, which is also the only one so
+  /// far. Written down as its own constant rather than left implicit,
+  /// because the two numbers mean different things and will one day differ:
+  /// [currentSchemaVersion] moves every time the shape changes, this one
+  /// never does.
+  ///
+  /// See [readSchemaVersion] for why an absent key must not read as current.
+  static const int legacySchemaVersion = 1;
+
   /// Collection names, used as the keys of both the document and [Extras].
   static const String kAccounts = 'accounts';
   static const String kTransactions = 'transactions';
@@ -411,9 +422,59 @@ class Snapshot {
     return fromJson(Map<String, dynamic>.from(parsed));
   }
 
-  static Snapshot fromJson(Map<String, dynamic> m) {
+  /// The shape version a loaded document claims, as a number to compare.
+  ///
+  /// Two fence holes this closes. Both are harmless today, because only one
+  /// version has ever existed and [legacySchemaVersion] and
+  /// [currentSchemaVersion] are therefore the same number. Both become
+  /// unfindable bugs the day a second version ships.
+  ///
+  /// ABSENT MEANS THE OLDEST VERSION, never the current one. The old check
+  /// was `version is num && version > currentSchemaVersion`, so a file with
+  /// no `schemaVersion` at all simply fell past it with no objection, and
+  /// `looksLikeSalapify` deliberately admits such a file on one collection
+  /// key alone. The moment version 2 exists, an unversioned prototype backup
+  /// would be treated as already current and would never be carried forward.
+  /// Nothing would throw; every figure would just be read by the wrong
+  /// reader.
+  ///
+  /// NOT A NUMBER IS A REFUSAL, never a shrug. `"schemaVersion": "2"` is a
+  /// string, failed `is num`, and was read as if the file were current. The
+  /// same went for an explicit null and for a nested object. A version this
+  /// build cannot even compare is a file it has no business guessing at, so
+  /// it says so in a sentence rather than opening the file anyway.
+  ///
+  /// A whole double is accepted, because `jsonDecode` hands back `1.0` for a
+  /// `1.0` in the text and that is the same version. A fractional one is
+  /// not: there is no version 1.5 to dispatch on.
+  ///
+  /// [whenAbsent] exists so the absent rule can actually be PROVEN. While
+  /// only one version has ever existed, [legacySchemaVersion] and
+  /// [currentSchemaVersion] are the same number, so swapping the return
+  /// below for `currentSchemaVersion` produces no test failure at all and
+  /// the test then reads as proof while proving nothing. Passing a floor the
+  /// current version is not makes the deliberate break fail the way a break
+  /// is supposed to. Production never passes it.
+  static int readSchemaVersion(
+    Map<String, dynamic> m, {
+    int whenAbsent = legacySchemaVersion,
+  }) {
+    if (!m.containsKey('schemaVersion')) return whenAbsent;
     final Object? version = m['schemaVersion'];
-    if (version is num && version > currentSchemaVersion) {
+    if (version is int) return version;
+    if (version is double && version.isFinite && version % 1 == 0) {
+      return version.toInt();
+    }
+    throw SnapshotFormatException(
+      'The file says its format is "$version", which is not a whole number, '
+      'so Salapify cannot tell which version wrote it. Nothing has been '
+      'changed. Try another copy of your backup.',
+    );
+  }
+
+  static Snapshot fromJson(Map<String, dynamic> m) {
+    final int version = readSchemaVersion(m);
+    if (version > currentSchemaVersion) {
       throw SnapshotFormatException(
         'This file was written by a newer version of Salapify '
         '(format $version, this build reads $currentSchemaVersion). '

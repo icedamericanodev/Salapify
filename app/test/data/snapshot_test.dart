@@ -553,6 +553,137 @@ void main() {
     });
   });
 
+  // Two fence holes in the version check, closed before a second version
+  // exists rather than after. Both were one line reads today and unfindable
+  // bugs the day version 2 ships, because neither throws: a file simply gets
+  // opened by a reader that is wrong for it and every figure quietly means
+  // something else.
+  //
+  // The old check was a single line, `version is num && version >
+  // currentSchemaVersion`, and it let two shapes past: a file with no
+  // version key at all, and a version that is not a number.
+  group('the version on the file', () {
+    test('a version that is NOT A NUMBER is refused, not waved through', () {
+      // THE DIRECTIONAL HALF, and it is the whole test. The same document
+      // with a numeric 1 loads perfectly, below. If the refusal regressed,
+      // this file would load too, with `"2"` read as "no objection".
+      const String stringVersion =
+          '{"schemaVersion":"2","accounts":[],"transactions":[]}';
+
+      expect(
+        () => Snapshot.decode(stringVersion),
+        throwsA(isA<SnapshotFormatException>()),
+        reason:
+            'a file claiming a format this build cannot even compare was '
+            'read as if it were the current one',
+      );
+
+      // The silent half of the alarm. A genuine file is NOT caught by it.
+      expect(
+        Snapshot.decode('{"schemaVersion":1,"accounts":[],"transactions":[]}'),
+        isA<Snapshot>(),
+        reason: 'the new refusal swallowed an ordinary Salapify file',
+      );
+    });
+
+    test('every shape that is not a whole number is refused', () {
+      for (final Object? bad in <Object?>[
+        '1', // the shape that actually got past the old check
+        '2',
+        null, // present and empty is a broken file, not a silent one
+        true,
+        1.5, // there is no version one and a half to dispatch on
+        double.nan,
+        double.infinity,
+        <String, dynamic>{'major': 1},
+        <int>[1],
+      ]) {
+        expect(
+          () => Snapshot.readSchemaVersion(<String, dynamic>{
+            'schemaVersion': bad,
+          }),
+          throwsA(isA<SnapshotFormatException>()),
+          reason: 'a schemaVersion of $bad was accepted',
+        );
+      }
+    });
+
+    test('a whole number is read, however JSON spelled it', () {
+      // jsonDecode hands back a double for `1.0` in the text, and that is
+      // the same version as `1`. Refusing it would reject a file nothing is
+      // wrong with.
+      expect(
+        Snapshot.readSchemaVersion(<String, dynamic>{'schemaVersion': 1}),
+        1,
+      );
+      expect(
+        Snapshot.readSchemaVersion(<String, dynamic>{'schemaVersion': 1.0}),
+        1,
+      );
+      expect(
+        Snapshot.readSchemaVersion(
+          jsonDecode('{"schemaVersion":7.0}') as Map<String, dynamic>,
+        ),
+        7,
+      );
+    });
+
+    test('an ABSENT version means the oldest shape, never the current one', () {
+      // Why the floor is passed in rather than read from the constant:
+      // `legacySchemaVersion` and `currentSchemaVersion` are both 1 today,
+      // because only one version has ever existed. So the deliberate break
+      // for this rule, returning `currentSchemaVersion` from the absent
+      // branch, produces NO failure at all while the two agree, and a test
+      // asserting `readSchemaVersion({}) == legacySchemaVersion` would read
+      // as proof while proving nothing.
+      //
+      // Handing it a floor the current version is not is the only shape
+      // that actually reaches the branch the guard lives on.
+      expect(
+        Snapshot.readSchemaVersion(<String, dynamic>{}, whenAbsent: 7),
+        7,
+        reason:
+            'silence about the version was answered with something other '
+            'than the floor, which on the day version 2 ships means an '
+            'unversioned backup is treated as already current and is never '
+            'carried forward',
+      );
+
+      // And the production wiring, so the parameter cannot drift away from
+      // what the app actually passes.
+      expect(
+        Snapshot.readSchemaVersion(<String, dynamic>{}),
+        Snapshot.legacySchemaVersion,
+      );
+      expect(
+        Snapshot.legacySchemaVersion,
+        1,
+        reason:
+            'the oldest shape that ever existed is a historical fact, so '
+            'this number can never be edited, only compared against',
+      );
+    });
+
+    test('ONE VERSION HAS EVER EXISTED, and this fails the day that ends', () {
+      // A deliberate tripwire, not an assertion about correctness.
+      //
+      // Everything above is exercised against two constants that happen to
+      // be equal. The absent rule is therefore guarded in shape but has
+      // never been run against a real version 1 file opened by a version 2
+      // reader, because no such reader exists. When this expect fails,
+      // that is the day: write the fixture pair, prove the file is actually
+      // carried forward, and only then change this number.
+      expect(
+        Snapshot.currentSchemaVersion,
+        Snapshot.legacySchemaVersion,
+        reason:
+            'a second schema version now exists. The absent-means-oldest '
+            'rule has real consequences from today, so it needs a captured '
+            'version 1 fixture and a migration test, not just this group.',
+      );
+    });
+  });
+
   group('what an absent optional means', () {
     Map<String, dynamic> minimalTx() => <String, dynamic>{
       'id': 'tx_1',
