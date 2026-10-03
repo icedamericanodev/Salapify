@@ -20,6 +20,17 @@ import '../support/pinned_app.dart';
 /// perfectly from a test and is unreachable from Home is not a feature.
 void main() {
   Future<void> pumpHome(WidgetTester tester) async {
+    // A TALLER WINDOW than Flutter's 800 by 600 default, which is shorter
+    // than any phone. Home is a lazily built list, so a control below that
+    // fold is absent from the tree rather than merely off screen and
+    // ensureVisible throws "Bad state: No element" on a button that is fine
+    // on a real device. The Today row added under the hero on 2026-10-03 is
+    // what pushed the shortcut row past it. The WIDTH is untouched: these
+    // tests do not load the shipped font, so they cannot judge width.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(800, 1600);
+    addTearDown(tester.view.reset);
+
     await pumpSalapify(tester);
     await tester.pumpAndSettle();
   }

@@ -15,7 +15,19 @@ import 'package:salapify/core/money/money.dart';
 /// account's own history, with every money test green.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await pumpSalapify(tester);
+    final FinancialState state = await pumpSalapify(tester);
+
+    // THE REMINDER OFFER IS ALREADY ANSWERED in this fixture. From
+    // 2026-10-03 the first entry somebody ever makes themselves opens a one
+    // time dialog offering the daily nudge, which is where the notification
+    // permission is asked for. A scanned receipt is that first entry here, so
+    // the dialog would land on top of the screen this file is checking.
+    //
+    // Pre-enabling describes somebody who already said yes rather than
+    // suppressing the feature. The offer has its own tests.
+    state.updateReminderSettings(
+      state.reminderSettings.copyWith(phoneEnabled: true),
+    );
     await tester.pumpAndSettle();
   }
 

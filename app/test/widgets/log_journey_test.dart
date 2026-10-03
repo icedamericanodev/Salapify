@@ -22,7 +22,51 @@ import 'package:salapify/core/money/money.dart';
 /// auditor would look at, and every money test was green the whole time.
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await pumpSalapify(tester);
+    // A TALLER WINDOW, for this file only.
+    //
+    // Flutter's default test window is 800 by 600, shorter than any phone
+    // Salapify runs on. Home is a lazily built list, so a row below that
+    // short fold is genuinely absent from the element tree rather than merely
+    // off screen, and `ensureVisible` throws "Bad state: No element" on a
+    // control that is perfectly fine on a real device. Every card added above
+    // the shortcut row has cost this file a round of that: the example data
+    // banner, then the Today row.
+    //
+    // Pinned HERE rather than in the shared helper, which was tried and
+    // reverted. Taller means more of Home gets built, which turned two
+    // unrelated files red for reasons that had nothing to do with the change:
+    // nested chip rows made `scrollUntilVisible`'s default scrollable
+    // ambiguous, and a second account card appeared where a test expected
+    // one. The subject of THIS file is Home's own shortcut row, so this is
+    // where the short window actually gets in the way.
+    //
+    // The WIDTH is untouched. Narrowing it reported "overflowed by 45 pixels"
+    // in debt_beam_card.dart, which is a phantom: these tests do not load the
+    // real fonts, Flutter's default test font is wider than Plus Jakarta
+    // Sans, and the identical 45 pixel figure is already recorded in
+    // split_bill_journey_test as a false alarm from that same cause.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(800, 1600);
+    addTearDown(tester.view.reset);
+
+    final FinancialState state = await pumpSalapify(tester);
+
+    // THE REMINDER OFFER IS ALREADY ANSWERED in this fixture, so it cannot
+    // land on top of a journey that is about something else.
+    //
+    // From 2026-10-03 the first entry somebody ever makes themselves opens a
+    // one time dialog offering the daily nudge, which is where the Android
+    // notification permission is asked for. Every test in this file logs its
+    // first non-sample entry, so every one of them would meet it, and a modal
+    // over the screen the app just landed on is not what these are measuring.
+    //
+    // Pre-enabling is the honest fixture rather than a suppression: it
+    // describes somebody who has already said yes. The offer has its own
+    // tests, which assert it appears, that it does not appear twice, and that
+    // it says which answer the phone gave.
+    state.updateReminderSettings(
+      state.reminderSettings.copyWith(phoneEnabled: true),
+    );
   }
 
   FinancialState storeOf(WidgetTester tester) =>
