@@ -40,6 +40,8 @@ import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
+import 'package:salapify/features/onboarding/first_account_screen.dart';
+import 'package:salapify/features/onboarding/welcome_screen.dart';
 import 'package:salapify/screens/activity/transaction_detail_sheet.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/data/fx_service.dart';
@@ -1219,6 +1221,75 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
+
+  // The onboarding screens, for founder review BEFORE they are wired up.
+  //
+  // Nothing in lib/main.dart routes to either of these yet, deliberately: the
+  // design they implement depends on two founder-gated decisions (whether the
+  // demo data survives a fresh install, and one stored field so the app can
+  // remember it has introduced itself). Drawing them costs nothing and
+  // changes nothing; wiring them would change what a fresh install does.
+  //
+  // The first-account screen renders twice. Empty is what somebody meets, so
+  // it has to explain itself with nothing typed in it. Filled carries the
+  // figure and the live Done button, which is the half worth arguing over.
+  for (final ({String slug, bool filled}) shape
+      in <({String slug, bool filled})>[
+        (slug: 'onboarding_welcome', filled: false),
+        (slug: 'onboarding_account', filled: false),
+        (slug: 'onboarding_account_filled', filled: true),
+      ]) {
+    testWidgets('${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
+      final Palette palette = Palette.of(state.theme);
+      final bool welcome = shape.slug == 'onboarding_welcome';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: welcome
+              ? WelcomeScreen(palette: palette)
+              : FirstAccountScreen(palette: palette),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The brand mark is an ASSET, and an asset decodes asynchronously.
+      // testWidgets runs on a fake clock, so the decode never completes and
+      // the first render of this screen came out with a hole where the logo
+      // is. Same gotcha as the fonts, same fix: do the real IO inside
+      // runAsync, then pump.
+      if (welcome) {
+        await tester.runAsync(() async {
+          await precacheImage(
+            const AssetImage('assets/brand/salapify_logo.png'),
+            tester.element(find.byType(MaterialApp)),
+          );
+        });
+        await tester.pumpAndSettle();
+      }
+
+      if (shape.filled) {
+        // The second field is the balance; the first is the name.
+        await tester.enterText(find.byType(TextField).at(1), '5140');
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/${shape.slug}.png'),
       );
     });
   }
