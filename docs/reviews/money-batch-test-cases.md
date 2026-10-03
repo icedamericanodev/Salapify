@@ -7,8 +7,16 @@ Everything in this batch is meant to change NOTHING you can see. That is the
 test. A type migration that moves a figure has failed, so most of these cases
 are "open it and check the number is the same".
 
-Where a case says EXPECT, that is the pass condition. Where it says WATCH FOR,
-that is the specific way it could be broken.
+Two labels, and the second one caused real confusion on its first outing, so
+read this before the cases.
+
+**EXPECT** is the pass condition. This is what you should see.
+
+**FAILS IF** is the DEFECT. It is what would mean something is wrong, and not
+seeing it is the point. The first version of this page called it "WATCH FOR",
+which reads as an instruction to go and find the thing, so the founder
+correctly reported being unable to find a `0%` that was never supposed to be
+there. Not seeing a FAILS IF is a pass.
 
 ---
 
@@ -58,7 +66,7 @@ must equal the headline, **Left to spend this month**, to the centavo.
 **1c. Each row is self-consistent.** For any row with spending, the big figure
 on the right plus the "left" figure must equal that row's limit exactly.
 
-WATCH FOR: a sum that is a centavo or two off the headline. That is precisely
+FAILS IF: a sum that is a centavo or two off the headline. That is precisely
 what adding money up as decimals used to risk, and precisely what this change
 removes, so it is the most informative failure on this page.
 
@@ -80,7 +88,7 @@ has risen by EXACTLY 3,000 from the figure you wrote down. The change is
 3,000 whatever the starting figure was, because the limit went up by 3,000 and
 nothing was spent.
 
-WATCH FOR: the row changing while the headline does not, or a headline that
+FAILS IF: the row changing while the headline does not, or a headline that
 moves by 2,999.99 or 3,000.01. The first means the two are no longer reading
 the same figure; the second is the drift this change removes.
 
@@ -118,7 +126,7 @@ Meralco ₱2,840.00, Spotify ₱239.00, Home Credit ₱2,450.00, Sweldo Payday
 
 EXPECT: it appears at ₱1,234.56, and GOING OUT rises to ₱6,763.56.
 
-WATCH FOR: ₱1,234.55 or ₱1,234.57, or a going-out total that is a centavo off
+FAILS IF: ₱1,234.55 or ₱1,234.57, or a going-out total that is a centavo off
 the sum of the rows.
 
 4. Delete the test bill afterwards.
@@ -137,7 +145,7 @@ This is the one I nearly broke, so it is worth your time.
 EXPECT: the card now invites you to add the limit, something like "Add this
 card's limit". It must NOT show a used percentage.
 
-WATCH FOR: the card showing `0%` used, or a "Credit used" bar. That would mean
+FAILS IF: the card showing `0%` used, or a "Credit used" bar. That would mean
 an empty box was stored as a limit of zero, which is a claim nobody made.
 
 5. Put `40000` back.
@@ -153,7 +161,7 @@ an empty box was stored as a limit of zero, which is a claim nobody made.
 
 EXPECT: the box reads `20000.50`.
 
-WATCH FOR: `20000`, `20001` or `20000.5`. Any of those means the centavos did
+FAILS IF: `20000`, `20001` or `20000.5`. Any of those means the centavos did
 not survive the trip to storage and back.
 
 ## 7. The privacy receipt tells the truth about spare copies
@@ -168,7 +176,7 @@ EXPECT: it is headed "Your figures live in this phone's own storage" and says
 Salapify keeps **up to two spare copies**, naming what each one holds, and
 that Delete everything removes all of them.
 
-WATCH FOR: the old wording, "Your figures live in one file here". That was
+FAILS IF: the old wording, "Your figures live in one file here". That was
 false and is what this fixed.
 
 ## 8. Delete everything names the Pan conversation. DO THIS LAST.
@@ -184,7 +192,7 @@ EXPECT: the "Gone" screen lists what went, and the list now includes **your
 conversation with Pan** alongside your ledger, the spare copies and the saved
 exchange rates.
 
-WATCH FOR: the Pan conversation missing from that list. The app genuinely
+FAILS IF: the Pan conversation missing from that list. The app genuinely
 deletes that file, and the screen used not to say so, which matters most to
 somebody wiping before handing their phone to a repair shop.
 
@@ -218,3 +226,32 @@ to update the app.
 If any figure above is out by a centavo, stop and say which one. That is the
 exact defect this whole phase exists to prevent, and a single wrong centavo is
 more informative than everything else on this page.
+
+---
+
+## Results, 2026-10-03, founder on the emulator
+
+**Case 1, budgets: PASS.** Reported first as a failure, 39,216 against the
+25,425.25 this page quoted, and the page was wrong rather than the app. See
+case 0, which was written because of it. The screen was internally exact: the
+seven "left of" figures summed to the headline to the centavo, and all three
+categories with current-month entries matched the golden vectors exactly.
+
+**Case 5, the credit card: PASS, on both halves.** Clearing the limit box left
+the card reading "Add this card's limit to see how much of it you are using"
+with no percentage, so an empty box stored NO LIMIT rather than a limit of
+zero. Reopening the sheet then showed an empty box, which was not asked for
+and is the stronger of the two: the null survived a write to disk and a read
+back. That is the defect this batch nearly shipped.
+
+Reported as "cannot see the 0%", which was the label's fault and not the
+reader's. FAILS IF now says what WATCH FOR meant.
+
+### One observation from case 5, not a defect
+
+The credit limit box's placeholder is `40000`, which is also the sample card's
+real limit (`account_sheet.dart`, `hint: '40000'`). So a cleared box and a box
+holding 40,000 look nearly the same, and only the grey of the hint tells them
+apart. On a money field that is a poor placeholder, and it is exactly what
+made the screenshot ambiguous enough to need a second question. Worth changing
+to something no card would really hold, or to the currency alone.
