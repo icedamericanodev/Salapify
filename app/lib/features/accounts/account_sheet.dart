@@ -256,6 +256,10 @@ class _AccountSheetState extends State<AccountSheet> {
           ],
           const SizedBox(height: Spacing.lg),
           SheetField(
+            // KEYED, because the credit limit box below now shares this
+            // box's "0.00" hint and `widgetWithText` cannot tell them apart.
+            // Same convention the budget and goal sheets already use.
+            key: const Key('account-balance'),
             palette: p,
             label: _kind == AccountKind.credit
                 ? 'What you currently owe on it'
@@ -320,10 +324,20 @@ class _AccountSheetState extends State<AccountSheet> {
           if (_kind == AccountKind.credit) ...<Widget>[
             const SizedBox(height: Spacing.lg),
             SheetField(
+              key: const Key('account-credit-limit'),
               palette: p,
               label: 'Credit limit',
               controller: _limit,
-              hint: '40000',
+              // "40000" until 2026-10-03, which is EXACTLY the limit the
+              // sample card stores. A cleared box and a box holding 40,000
+              // then differed only by the grey of the hint, and a screenshot
+              // of this field could not be read without asking the founder
+              // which one it was. A placeholder that could be mistaken for a
+              // value is worse than no placeholder at all.
+              //
+              // "0.00" is what every other money box in the app uses, and a
+              // limit of zero is refused, so it can never be a real one.
+              hint: '0.00',
               prefix: '${currencySymbols[_currency]} ',
             ),
             const SizedBox(height: Spacing.xs),

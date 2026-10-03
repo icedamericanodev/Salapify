@@ -128,7 +128,16 @@ void main() {
       'Gadget Card',
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '0.00'), '5000');
+    // BY KEY, not by hint. A credit card sheet has two money boxes and both
+    // hint "0.00", so `widgetWithText` matches the balance and the credit
+    // limit and throws "Too many elements".
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('account-balance')),
+        matching: find.byType(TextField),
+      ),
+      '5000',
+    );
     await tester.pumpAndSettle();
     await tapAndSettle(tester, find.text('Add account'));
 
