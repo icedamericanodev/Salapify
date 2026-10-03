@@ -500,7 +500,7 @@ class FinancialState extends ChangeNotifier {
   /// storing an unusable rule. Somebody who set a payday by mistake needs a
   /// way back out, and leaving a half-built rule behind would show the
   /// screens a cycle that `isSet` calls true and the schedule cannot use.
-  void setPaydayRule({required List<int> daysOfMonth, double? expectedIncome}) {
+  void setPaydayRule({required List<int> daysOfMonth, Money? expectedIncome}) {
     final PaydaySchedule schedule = PaydaySchedule(daysOfMonth);
 
     if (!schedule.isUsable) {
@@ -512,7 +512,7 @@ class FinancialState extends ChangeNotifier {
     _payday = _payday.copyWith(
       paydayDays: schedule.daysOfMonth,
       cycleType: schedule.daysOfMonth.length > 1 ? 'semi_monthly' : 'monthly',
-      expectedIncome: expectedIncome ?? 0,
+      expectedIncome: expectedIncome ?? Money.zero,
     );
     notifyListeners();
   }
@@ -2020,7 +2020,7 @@ class FinancialState extends ChangeNotifier {
     final Transaction tx = Transaction(
       id: 'tx_bill_${DateTime.now().microsecondsSinceEpoch}',
       type: TransactionType.expense,
-      amount: Money.fromDouble(old.amount),
+      amount: old.amount,
       category: category ?? defaultCategoryFor(old),
       accountId: accountId,
       merchant: old.name,
@@ -2159,15 +2159,15 @@ class FinancialState extends ChangeNotifier {
         }
       }).toList();
 
-  double get totalInflows => profileUpcoming
+  Money get totalInflows => profileUpcoming
       .where((UpcomingItem u) => u.countsAsIncome)
-      .fold<double>(0, (double s, UpcomingItem u) => s + u.amount);
+      .fold<Money>(Money.zero, (Money s, UpcomingItem u) => s + u.amount);
 
-  double get totalOutflows => profileUpcoming
+  Money get totalOutflows => profileUpcoming
       .where((UpcomingItem u) => !u.countsAsIncome)
-      .fold<double>(0, (double s, UpcomingItem u) => s + u.amount);
+      .fold<Money>(Money.zero, (Money s, UpcomingItem u) => s + u.amount);
 
-  double get netMovement => totalInflows - totalOutflows;
+  Money get netMovement => totalInflows - totalOutflows;
 
   /// Everything a person owes, across unsettled debts pointing outward.
   double get debtsIOwe => debts

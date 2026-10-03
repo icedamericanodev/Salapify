@@ -142,7 +142,10 @@ _Teaser _teaserFor(PanFacts facts) {
 
   final List<BillItem> soon = _dueBeforePayday(facts);
   if (soon.isNotEmpty) {
-    final double total = soon.fold(0, (double s, BillItem b) => s + b.amount);
+    final double total = soon.fold(
+      0,
+      (double s, BillItem b) => s + b.amount.pesos,
+    );
     return _Teaser(
       '${formatPeso(total)} of bills land before your next payday',
       const <String>[

@@ -88,7 +88,7 @@ void main() {
         monogram: 'UB',
         currency: CurrencyCode.usd,
         profile: ProfileEntity.sideHustle,
-        creditLimit: 120000,
+        creditLimit: Money.pesos(120000),
         interestRate: 3.5,
         accountNumber: '**** 4291',
         dueDate: 'Oct 3',

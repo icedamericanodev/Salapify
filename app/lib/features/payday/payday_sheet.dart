@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/money.dart';
 import '../../core/money/payday_schedule.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -59,9 +60,12 @@ class _PaydaySheetState extends State<PaydaySheet> {
     _second = days.length > 1 ? days[1] : 30;
 
     _pay = TextEditingController(
-      text: c.expectedIncome > 0
-          ? c.expectedIncome.toStringAsFixed(
-              c.expectedIncome == c.expectedIncome.roundToDouble() ? 0 : 2,
+      // Whole pesos with no ".00", centavos with two places, which is what
+      // the box showed before. `centavos % 100 == 0` asks the question
+      // directly instead of comparing a double against its own rounding.
+      text: c.expectedIncome.isPositive
+          ? c.expectedIncome.pesos.toStringAsFixed(
+              c.expectedIncome.centavos % 100 == 0 ? 0 : 2,
             )
           : '',
     );
@@ -198,13 +202,16 @@ class _PaydaySheetState extends State<PaydaySheet> {
   }
 
   void _save() {
-    final double? pay = double.tryParse(_pay.text.replaceAll(',', '').trim());
+    final double? typed = double.tryParse(_pay.text.replaceAll(',', '').trim());
+    // tryFromDouble turns away a NaN, an Infinity and a figure too large to
+    // be a peso amount, so only a real number reaches the positive test.
+    final Money? pay = typed == null ? null : Money.tryFromDouble(typed);
 
     widget.state.setPaydayRule(
       daysOfMonth: _days,
       // A blank field is not zero income, it is no answer, and the engine
       // treats both the same way: it only counts expected income above zero.
-      expectedIncome: pay != null && pay > 0 ? pay : null,
+      expectedIncome: pay != null && pay.isPositive ? pay : null,
     );
     Navigator.of(context).pop();
   }

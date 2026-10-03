@@ -96,7 +96,7 @@ void main() {
           .map(
             (UpcomingItem u) => <String, Object?>{
               'id': u.id,
-              'amount': u.amount,
+              'amount': u.amount.pesos,
               'type': u.type.name,
               'isIncome': u.isIncome,
               'isPaid': u.isPaid,

@@ -132,7 +132,7 @@ class Account {
   /// nowhere in particular belongs everywhere, which is the right answer for
   /// a wallet somebody has not classified yet.
   final ProfileEntity? profile;
-  final double? creditLimit;
+  final Money? creditLimit;
   final double? interestRate;
   final String? accountNumber;
 
@@ -769,7 +769,7 @@ class UpcomingItem {
 
   final String id;
   final String name;
-  final double amount;
+  final Money amount;
 
   /// A human label such as "Today", "Sunday" or "Sep 18", exactly as the
   /// prototype stores it.
@@ -800,7 +800,7 @@ class PaydayCycle {
   final String lastPayday;
   final String nextPayday;
   final int daysToPayday;
-  final double expectedIncome;
+  final Money expectedIncome;
 
   /// The RULE: which days of the month the money lands on.
   ///
@@ -841,7 +841,7 @@ class PaydayCycle {
     lastPayday: '',
     nextPayday: '',
     daysToPayday: 0,
-    expectedIncome: 0,
+    expectedIncome: Money.zero,
   );
 
   /// True when nobody has told Salapify when they get paid.
@@ -852,7 +852,7 @@ class PaydayCycle {
     String? lastPayday,
     String? nextPayday,
     int? daysToPayday,
-    double? expectedIncome,
+    Money? expectedIncome,
     List<int>? paydayDays,
   }) => PaydayCycle(
     cycleType: cycleType ?? this.cycleType,
@@ -876,7 +876,7 @@ class BillItem {
 
   final String id;
   final String name;
-  final double amount;
+  final Money amount;
   final String dueDate;
   final bool isPaid;
 
@@ -1270,7 +1270,7 @@ class IncomeStream {
   final String id;
   final String name;
   final IncomeStreamType type;
-  final double expectedAmount;
+  final Money expectedAmount;
 }
 
 /// What computeSafeToSpend returns. Mirrors SafeToSpendAnalysis in types.ts.
@@ -1354,7 +1354,7 @@ class SubscriptionItem {
 
   final String id;
   final String name;
-  final double amount;
+  final Money amount;
   final BillingCycle cycle;
 
   /// ISO date, so it can be compared rather than only printed.
@@ -1372,7 +1372,14 @@ class SubscriptionItem {
   ///
   /// The prototype hardcodes its monthly total, and the hardcoded figure does
   /// not match its own list. Computing it is the fix.
-  double get monthlyCost => cycle == BillingCycle.annual ? amount / 12 : amount;
+  ///
+  /// A twelfth of an annual plan, rounded to the centavo with the prototype's
+  /// rule, which is the figure its own display worked out. Not [Money.split],
+  /// which would be the right tool if these twelve shares were being CHARGED
+  /// and had to sum back to the year exactly. They are not: this is one
+  /// month's share shown next to eleven identical ones.
+  Money get monthlyCost =>
+      cycle == BillingCycle.annual ? amount.times(1 / 12) : amount;
 }
 
 /// One habit in the Habits tracker.

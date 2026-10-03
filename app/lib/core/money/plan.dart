@@ -244,9 +244,9 @@ class UpcomingTotals {
   /// come to 5,529. Splitting the two is the divergence, and it is a
   /// presentation fix rather than a money one: no stored figure changes and
   /// both numbers are shown.
-  final double totalOut;
+  final Money totalOut;
 
-  final double totalIn;
+  final Money totalIn;
   final int billCount;
 }
 
@@ -259,10 +259,13 @@ UpcomingTotals computeUpcomingTotals(List<UpcomingItem> items) {
   );
 
   return UpcomingTotals(
-    totalOut: out.fold<double>(0, (double s, UpcomingItem u) => s + u.amount),
+    totalOut: out.fold<Money>(
+      Money.zero,
+      (Money s, UpcomingItem u) => s + u.amount,
+    ),
     totalIn: unpaid
         .where((UpcomingItem u) => u.countsAsIncome)
-        .fold<double>(0, (double s, UpcomingItem u) => s + u.amount),
+        .fold<Money>(Money.zero, (Money s, UpcomingItem u) => s + u.amount),
     billCount: out.length,
   );
 }

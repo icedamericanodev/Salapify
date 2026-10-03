@@ -344,7 +344,7 @@ HealthIndicator _payday(
     if (due == null) continue;
     if (due.isBefore(DateTime(now.year, now.month, now.day))) continue;
     if (due.isAfter(cutoff)) continue;
-    committed += b.amount;
+    committed += b.amount.pesos;
   }
 
   final double needed = m.dailyPace * days + committed;
@@ -403,8 +403,8 @@ HealthIndicator _promised(
   const String question = 'How much of my pay is already promised';
 
   // Monthly take-home, from what the person said they receive each payday.
-  final double monthly = payday.isSet && payday.expectedIncome > 0
-      ? payday.expectedIncome * (payday.cycleType == '15_30' ? 2 : 1)
+  final double monthly = payday.isSet && payday.expectedIncome.isPositive
+      ? payday.expectedIncome.pesos * (payday.cycleType == '15_30' ? 2 : 1)
       : 0;
 
   if (monthly <= 0) {

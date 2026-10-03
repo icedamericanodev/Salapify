@@ -671,7 +671,7 @@ class _Utilisation extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: Spacing.xs),
               child: Text(
-                'Limit ${formatCurrency(account.creditLimit!, account.currency)}',
+                'Limit ${formatCurrency(account.creditLimit!.pesos, account.currency)}',
                 style: AppType.caption(palette),
               ),
             ),
@@ -843,7 +843,7 @@ class _CardBack extends StatelessWidget {
       if (account.creditLimit != null)
         (
           'Credit limit',
-          formatCurrency(account.creditLimit!, account.currency),
+          formatCurrency(account.creditLimit!.pesos, account.currency),
         ),
       if (account.isForeign)
         ('Currency', currencyNames[account.currency] ?? account.currency.wire),

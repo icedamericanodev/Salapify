@@ -61,7 +61,7 @@ void main() {
     lastPayday: '2026-09-15',
     nextPayday: '2026-09-30',
     daysToPayday: 10,
-    expectedIncome: 20000,
+    expectedIncome: Money.pesos(20000),
   );
 
   HealthReport run({
@@ -246,21 +246,21 @@ void main() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: iso(-3),
             isPaid: false,
           ),
           BillItem(
             id: 'b2',
             name: 'Next month',
-            amount: 9000,
+            amount: Money.pesos(9000),
             dueDate: iso(-40),
             isPaid: false,
           ),
           BillItem(
             id: 'b3',
             name: 'Already paid',
-            amount: 500,
+            amount: Money.pesos(500),
             dueDate: iso(-2),
             isPaid: true,
           ),

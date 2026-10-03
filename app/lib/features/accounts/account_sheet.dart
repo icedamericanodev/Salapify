@@ -114,7 +114,7 @@ class _AccountSheetState extends State<AccountSheet> {
       text: e == null ? '' : _plain(e.balance.pesos),
     );
     _limit = TextEditingController(
-      text: e?.creditLimit == null ? '' : _plain(e!.creditLimit!),
+      text: e?.creditLimit == null ? '' : _plain(e!.creditLimit!.pesos),
     );
     _rate = TextEditingController(
       text: e?.interestRate == null ? '' : _plain(e!.interestRate!),
@@ -138,6 +138,23 @@ class _AccountSheetState extends State<AccountSheet> {
   /// zero.
   static String _plain(double v) =>
       v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+
+  /// The credit limit box as money, or null for "this card has no limit set".
+  ///
+  /// NULL IS NOT ZERO HERE, and keeping them apart is the whole reason this
+  /// is a getter rather than an expression at the call site. An empty box
+  /// means nobody has said what the limit is, and `creditUtilization`
+  /// returns null for that, so the account screen says it does not know
+  /// instead of drawing a percentage. A zero limit would be a claim. The
+  /// double parse already returned null for an empty box; this keeps that
+  /// true now that the field is a Money, and `tryFromDouble` turns away an
+  /// Infinity or a figure too large to be a real limit for free.
+  Money? get _typedCreditLimit {
+    final double? typed = double.tryParse(
+      _limit.text.trim().replaceAll(',', ''),
+    );
+    return typed == null ? null : Money.tryFromDouble(typed);
+  }
 
   @override
   void dispose() {
@@ -399,7 +416,7 @@ class _AccountSheetState extends State<AccountSheet> {
       currency: _currency,
       profile: _profile,
       creditLimit: _kind == AccountKind.credit
-          ? double.tryParse(_limit.text.trim().replaceAll(',', ''))
+          ? _typedCreditLimit
           : widget.existing?.creditLimit,
       interestRate: double.tryParse(_rate.text.trim().replaceAll(',', '')),
       // Clamped again HERE, not only at the keyboard. The formatter above

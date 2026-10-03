@@ -15,7 +15,7 @@ Account _a({
   String name = 'Test',
   CurrencyCode currency = CurrencyCode.php,
   ProfileEntity? profile,
-  double? creditLimit,
+  Money? creditLimit,
 }) => Account(
   id: id,
   name: name,
@@ -206,7 +206,7 @@ void main() {
             id: 'c',
             kind: AccountKind.credit,
             balance: 12000,
-            creditLimit: 40000,
+            creditLimit: Money.pesos(40000),
           ),
         ),
         30,
@@ -220,7 +220,7 @@ void main() {
             id: 'c',
             kind: AccountKind.credit,
             balance: 12000,
-            creditLimit: 40000,
+            creditLimit: Money.pesos(40000),
           ),
         ),
         isFalse,
@@ -231,7 +231,7 @@ void main() {
             id: 'c',
             kind: AccountKind.credit,
             balance: 12400,
-            creditLimit: 40000,
+            creditLimit: Money.pesos(40000),
           ),
         ),
         isTrue,
@@ -252,7 +252,12 @@ void main() {
       );
       expect(
         creditUtilization(
-          _a(id: 'c', kind: AccountKind.credit, balance: 1, creditLimit: 0),
+          _a(
+            id: 'c',
+            kind: AccountKind.credit,
+            balance: 1,
+            creditLimit: Money.pesos(0),
+          ),
         ),
         isNull,
         reason: 'a zero limit would divide by zero and print Infinity',
@@ -266,7 +271,7 @@ void main() {
             id: 'l',
             kind: AccountKind.loan,
             balance: 100000,
-            creditLimit: 200000,
+            creditLimit: Money.pesos(200000),
           ),
         ),
         isNull,

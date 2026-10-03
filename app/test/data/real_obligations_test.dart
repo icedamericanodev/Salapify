@@ -102,7 +102,7 @@ void main() {
           BillItem(
             id: 'bill_real',
             name: 'Meralco',
-            amount: 3000,
+            amount: Money.pesos(3000),
             dueDate: '2026-09-25',
           ),
         ],
@@ -135,7 +135,7 @@ void main() {
     expect(state.payday.isSet, isFalse);
     expect(
       state.payday.expectedIncome,
-      0,
+      Money.zero,
       reason:
           'the engine falls back to this when no income stream exists, so a '
           'non-zero default invents an income the person never declared',

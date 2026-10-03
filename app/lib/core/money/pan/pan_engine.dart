@@ -883,14 +883,14 @@ PanAnswer _due(PanFacts facts) {
   }
   final double total = unpaid.fold<double>(
     0,
-    (double s, BillItem b) => s + b.amount,
+    (double s, BillItem b) => s + b.amount.pesos,
   );
   final StringBuffer sb = StringBuffer(
     '${formatPeso(total)} is unpaid across ${unpaid.length} '
     '${unpaid.length == 1 ? 'bill' : 'bills'}:',
   );
   for (final BillItem b in unpaid.take(5)) {
-    sb.write('\n  ${b.name}: ${formatPeso(b.amount)}, due ${b.dueDate}');
+    sb.write('\n  ${b.name}: ${formatPeso(b.amount.pesos)}, due ${b.dueDate}');
   }
   if (unpaid.length > 5) sb.write('\n  and ${unpaid.length - 5} more.');
   sb.write(

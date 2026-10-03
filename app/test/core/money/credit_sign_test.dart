@@ -44,7 +44,7 @@ void main() {
     kind: AccountKind.credit,
     institution: 'BPI',
     balance: Money.pesos(4200),
-    creditLimit: 40000,
+    creditLimit: Money.pesos(40000),
     monogram: 'BPI',
   );
 
@@ -135,7 +135,7 @@ void main() {
         kind: AccountKind.credit,
         institution: 'BPI',
         balance: Money.pesos(-1500),
-        creditLimit: 40000,
+        creditLimit: Money.pesos(40000),
         monogram: 'OC',
       );
       expect(computePosition(<Account>[overpaid], null).netWorth, 1500);

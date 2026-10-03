@@ -290,11 +290,15 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
     final bool excluded =
         conservative && s.type == IncomeStreamType.thirteenthMonth;
 
+    // Mirrors safe_to_spend.dart's own haircut exactly, including that it
+    // works in pesos. This row EXPLAINS that engine, so it has to agree with
+    // it rather than be independently more precise; the two move together
+    // when the engine's outputs become Money.
     final double counted = excluded
         ? 0
         : halved
-        ? s.expectedAmount * 0.5
-        : s.expectedAmount;
+        ? s.expectedAmount.pesos * 0.5
+        : s.expectedAmount.pesos;
 
     return Container(
       padding: const EdgeInsets.all(Spacing.md),
@@ -341,7 +345,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
               child: Text(
                 excluded
                     ? 'Excluded: a year-end bonus does not help pace this fortnight'
-                    : 'Halved: ${formatPeso(s.expectedAmount)} expected, counted at 50% for volatility',
+                    : 'Halved: ${formatPeso(s.expectedAmount.pesos)} expected, counted at 50% for volatility',
                 style: AppType.caption(p).copyWith(color: p.textPrimary),
               ),
             ),

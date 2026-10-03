@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/money/money.dart';
 import '../../core/money/format.dart';
 import '../../core/money/plan.dart' show UpcomingTotals, computeUpcomingTotals;
 import '../../design/tokens.dart';
@@ -68,12 +69,19 @@ class _BillsSheetState extends State<BillsSheet> {
     super.dispose();
   }
 
-  double get _newAmount {
+  /// The typed amount as money, zero when the box holds nothing usable.
+  ///
+  /// Zero is the right fallback HERE, unlike the credit limit box, because
+  /// `_canAdd` below refuses a zero and the value never reaches a record.
+  /// The `isFinite` check the old version did by hand is now
+  /// `tryFromDouble`'s job, which also turns away a figure too large to be
+  /// a real amount.
+  Money get _newAmount {
     final double? v = double.tryParse(_amount.text.replaceAll(',', '').trim());
-    return v == null || !v.isFinite ? 0 : v;
+    return v == null ? Money.zero : Money.tryFromDouble(v) ?? Money.zero;
   }
 
-  bool get _canAdd => _name.text.trim().isNotEmpty && _newAmount > 0;
+  bool get _canAdd => _name.text.trim().isNotEmpty && _newAmount.isPositive;
 
   void _add() {
     if (!_canAdd) return;
@@ -208,14 +216,14 @@ class _BillsSheetState extends State<BillsSheet> {
             left: StatCard(
               palette: p,
               label: 'Going out',
-              value: formatPeso(t.totalOut),
+              value: formatPeso(t.totalOut.pesos),
               caption: t.billCount == 1 ? '1 bill' : '${t.billCount} bills',
               valueColor: p.negative,
             ),
             right: StatCard(
               palette: p,
               label: 'Coming in',
-              value: formatPeso(t.totalIn),
+              value: formatPeso(t.totalIn.pesos),
               caption: 'Payday and income',
               valueColor: p.positive,
             ),
@@ -393,7 +401,7 @@ class _BillRow extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.sm),
                 Text(
-                  formatPeso(item.amount),
+                  formatPeso(item.amount.pesos),
                   style: AppType.amountSmall(palette).copyWith(
                     color: item.isPaid
                         ? palette.textMuted

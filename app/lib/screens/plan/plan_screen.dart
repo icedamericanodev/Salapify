@@ -293,7 +293,7 @@ class _Overview extends StatelessWidget {
         if (totals.nearCount > 0) return '${totals.nearCount} to watch';
         return 'On track';
       case PlanSegment.bills:
-        return formatPeso(bills.totalOut, showDecimals: false);
+        return formatPeso(bills.totalOut.pesos, showDecimals: false);
       case PlanSegment.goals:
         final int done = goals.where((GoalStatus g) => g.isComplete).length;
         return '$done of ${goals.length} done';

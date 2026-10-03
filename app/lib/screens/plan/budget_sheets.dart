@@ -426,7 +426,18 @@ class _AddStreamSheetState extends State<AddStreamSheet> {
     super.dispose();
   }
 
-  double? get _value => parsePlanAmount(_amount.text);
+  /// The typed figure as money, or null when it is not a usable amount.
+  ///
+  /// `parsePlanAmount` already turns away nothing, a NaN, an Infinity and
+  /// anything at or below zero. `tryFromDouble` covers the one case it does
+  /// not: a figure that is finite and positive and still too large to be a
+  /// peso amount anybody holds. Null then disables Save rather than throwing
+  /// on a screen.
+  Money? get _value {
+    final double? typed = parsePlanAmount(_amount.text);
+    return typed == null ? null : Money.tryFromDouble(typed);
+  }
+
   bool get _canSave => _name.text.trim().isNotEmpty && _value != null;
 
   static String _label(IncomeStreamType t) => switch (t) {

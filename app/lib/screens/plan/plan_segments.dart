@@ -273,14 +273,14 @@ class BillsSegment extends StatelessWidget {
           left: StatCard(
             palette: palette,
             label: 'Going out',
-            value: formatPeso(t.totalOut),
+            value: formatPeso(t.totalOut.pesos),
             caption: t.billCount == 1 ? '1 bill' : '${t.billCount} bills',
             valueColor: palette.negative,
           ),
           right: StatCard(
             palette: palette,
             label: 'Coming in',
-            value: formatPeso(t.totalIn),
+            value: formatPeso(t.totalIn.pesos),
             caption: 'Payday and income',
             valueColor: palette.positive,
           ),
@@ -361,7 +361,7 @@ class _BillRow extends StatelessWidget {
           ),
           const SizedBox(width: Spacing.sm),
           Text(
-            formatPeso(item.amount),
+            formatPeso(item.amount.pesos),
             style: AppType.amountSmall(palette).copyWith(
               color: item.isPaid
                   ? palette.textMuted
@@ -574,7 +574,7 @@ class DecisionsSegment extends StatelessWidget {
                 BreakdownRow(
                   palette: palette,
                   label: s.name,
-                  value: formatPeso(s.expectedAmount),
+                  value: formatPeso(s.expectedAmount.pesos),
                 ),
               const SizedBox(height: Spacing.sm),
               PrimaryButton(
@@ -637,7 +637,7 @@ class TrackersSegment extends StatelessWidget {
     // counted as monthly is a fivefold error on that row alone.
     final double monthly = subs.fold<double>(
       0,
-      (double s, SubscriptionItem x) => s + x.monthlyCost,
+      (double s, SubscriptionItem x) => s + x.monthlyCost.pesos,
     );
     final int longest = habits.fold<int>(
       0,
@@ -760,7 +760,7 @@ class TrackersSegment extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: <Widget>[
                                 Text(
-                                  formatPeso(s.amount),
+                                  formatPeso(s.amount.pesos),
                                   style: AppType.amountSmall(palette),
                                 ),
                                 Text(

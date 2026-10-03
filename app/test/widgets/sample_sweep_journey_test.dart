@@ -191,7 +191,7 @@ void main() {
         id: 'mine',
         name: 'My freelance client',
         type: IncomeStreamType.freelance,
-        expectedAmount: 20000,
+        expectedAmount: Money.pesos(20000),
       ),
     );
 

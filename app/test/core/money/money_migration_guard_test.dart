@@ -23,13 +23,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// amnesty, and the count below would stop meaning anything.
 void main() {
   /// Money fields still held as a double. THIS LIST ONLY SHRINKS.
+  /// Every one left is an OUTPUT of `computeSafeToSpend`, which is the last
+  /// increment and moves as one piece: converting half an engine would mean
+  /// converting back inside it, which is the drift the type exists to remove.
   const Set<String> notYetMoney = <String>{
-    'amount',
     'amountReserved',
-    'creditLimit',
     'emergencyBuffer',
-    'expectedAmount',
-    'expectedIncome',
     'reservedBills',
     'reservedDebtMinimums',
     'reservedInstallments',
@@ -89,7 +88,7 @@ void main() {
     // prompt asked for.
     expect(
       notYetMoney.length,
-      14,
+      10,
       reason:
           'Fields left to migrate changed. Update this figure AND the P2.1 '
           'row in docs/PROGRESS.md in the same commit, so the two cannot '

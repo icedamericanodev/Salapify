@@ -477,7 +477,7 @@ ReminderResult evaluateReminders({
         'bill-${b.id}-${b.dueDate}-$today',
         ReminderKind.billDue,
         'Bill due: ${b.name}',
-        '${formatPeso(b.amount)} for ${b.name} '
+        '${formatPeso(b.amount.pesos)} for ${b.name} '
             '${_whenPhrase(days, b.dueDate)}.',
         daysAway: days,
       );
@@ -492,7 +492,7 @@ ReminderResult evaluateReminders({
         'upcoming-bill-${u.id}-${u.dueDate}-$today',
         ReminderKind.billDue,
         'Bill due: ${u.name}',
-        '${formatPeso(u.amount)} for ${u.name} '
+        '${formatPeso(u.amount.pesos)} for ${u.name} '
             '${_whenPhrase(days, u.dueDate)}.',
         daysAway: days,
       );
@@ -513,7 +513,7 @@ ReminderResult evaluateReminders({
         'subscription-${u.id}-${u.dueDate}-$today',
         ReminderKind.subscription,
         'Renews: ${u.name}',
-        '${formatPeso(u.amount)} for ${u.name} '
+        '${formatPeso(u.amount.pesos)} for ${u.name} '
             '${_whenPhrase(days, u.dueDate).replaceFirst('due', 'charged')}. '
             'Cancel before it renews if you are not using it.',
         daysAway: days,

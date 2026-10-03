@@ -28,18 +28,15 @@ void main() {
   BudgetStatus row(String category) =>
       budgets().firstWhere((BudgetStatus b) => b.category == category);
 
-  void closeTo(double actual, double expected, String what) {
-    expect(actual, moreOrLessEquals(expected, epsilon: 0.005), reason: what);
-  }
-
   /// A money figure against its golden, EXACTLY.
   ///
   /// The expected peso values below are untouched by the Money migration and
   /// must stay that way: they are the lock, not a reading of the code. What
-  /// changes is the comparison. The half centavo epsilon above existed
-  /// because a float sum of expenses could land a hair off, and it cannot
-  /// any more. Keeping an epsilon on an exact type would hide the single
-  /// thing this lock is for, which is a centavo moving.
+  /// changed is the comparison. Every assertion here used to allow half a
+  /// centavo either way, because a float sum of pesos could land a hair off
+  /// the figure the generator printed. It cannot any more, so the tolerance
+  /// is gone with the last double: keeping one on an exact type would hide
+  /// the single thing this lock exists for, which is a centavo moving.
   void exactly(Money actual, double expectedPesos, String what) {
     expect(actual, Money.fromDouble(expectedPesos), reason: what);
   }
@@ -358,8 +355,8 @@ void main() {
       final UpcomingTotals t = computeUpcomingTotals(
         SeedData.upcoming(testToday),
       );
-      closeTo(t.totalOut, 5529, 'totalOut');
-      closeTo(t.totalIn, 32500, 'totalIn');
+      exactly(t.totalOut, 5529, 'totalOut');
+      exactly(t.totalIn, 32500, 'totalIn');
       expect(t.billCount, 3);
     });
 
@@ -376,7 +373,7 @@ void main() {
         isNot(38029),
         reason: 'payday is being counted as a bill again',
       );
-      closeTo(
+      exactly(
         t.totalOut + t.totalIn,
         38029,
         'the two halves should still account for every row',
@@ -404,7 +401,7 @@ void main() {
       // subscription, which is worth recording: the assertion was wrong and
       // the engine was right, and a looser test would have agreed with me.
       final UpcomingTotals t = computeUpcomingTotals(items);
-      closeTo(t.totalOut, 2689, 'a paid bill is still being counted');
+      exactly(t.totalOut, 2689, 'a paid bill is still being counted');
       expect(t.billCount, 2);
     });
   });

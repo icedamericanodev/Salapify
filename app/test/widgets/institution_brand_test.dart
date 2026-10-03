@@ -163,7 +163,7 @@ void main() {
       CardTier tier = CardTier.regular,
       AccountKind kind = AccountKind.credit,
       double balance = 4200,
-      double? limit = 40000,
+      Money? limit = const Money.pesos(40000),
     }) => Account(
       id: 'acc_card',
       name: 'BPI Rewards Card',
@@ -301,7 +301,7 @@ void cardFlipTests() {
     balance: Money.pesos(4200),
     monogram: 'BP',
     accountNumber: '**** 8819',
-    creditLimit: 40000,
+    creditLimit: Money.pesos(40000),
     dueDate: 'Oct 3',
     statementDate: 'Sep 18',
     interestRate: 3.5,
