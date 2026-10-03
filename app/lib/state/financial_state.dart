@@ -23,6 +23,44 @@ import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 import '../core/money/money.dart';
 
+/// What happened when somebody asked to take an entry back from Activity.
+///
+/// Several of these are REFUSALS, and each one is a different refusal on
+/// purpose. "You cannot do that here" is not an answer when the person is
+/// looking at money that left their account; every value below that is not
+/// [done] names a screen where the real take-back lives, and the sheet turns
+/// it into that sentence.
+enum TakeBackOutcome {
+  /// Reversed. The entry stays in Activity marked Taken back, and stops
+  /// counting toward every total.
+  done,
+
+  /// It was already excluded, a duplicate, or taken back earlier, so there is
+  /// nothing left to reverse. Tapping again must not credit the money twice.
+  alreadyNotCounting,
+
+  /// The entry has gone since the sheet was opened.
+  gone,
+
+  /// A debt payment wrote it. Taking back the ledger row alone would put the
+  /// money back and leave the debt still claiming it was paid, which is the
+  /// half-landed state measured at 1,500.00 once already.
+  belongsToDebt,
+
+  /// An instalment payment wrote it, same reasoning.
+  belongsToPlan,
+
+  /// A reconciliation adjustment wrote it, and a record elsewhere says that
+  /// account was balanced by exactly this row.
+  belongsToReconciliation,
+
+  /// Marking a scheduled bill paid wrote it, and the bill is still ticked.
+  belongsToBill,
+
+  /// A split wrote it, and the receivables it created are still standing.
+  belongsToSplit,
+}
+
 /// The single store the screens read, standing in for the prototype's
 /// FinancialContext. It holds the ledger and derives everything else, so no
 /// screen ever computes money on its own.
@@ -1499,6 +1537,122 @@ class FinancialState extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  /// Takes one entry back out of every total, from Activity, at any time.
+  ///
+  /// This is the general answer to a question the app could only answer in
+  /// one doorway. An ordinary logged entry had a five second Undo on the
+  /// snackbar and nothing afterwards; everything else had nothing at all.
+  /// Five seconds is a safety net for a slip, not a correction route: a
+  /// person who notices on Tuesday that Saturday's lunch went out of the
+  /// wrong account was simply stuck.
+  ///
+  /// ## It MARKS, it does not delete
+  ///
+  /// The row stays in Activity, struck through and labelled Taken back, and
+  /// stops counting. That is deliberate and it is the founder's own ruling
+  /// from 2026-10-02, when `corrected` joined the exclusion list: somebody
+  /// keeping books needs the history to show what happened, including the
+  /// correction. A row that vanishes leaves a balance that moved for no
+  /// visible reason, which is the exact complaint that started this whole
+  /// batch.
+  ///
+  /// ## A companion record is a refusal, not a warning
+  ///
+  /// Reversing a ledger row touches the ACCOUNT and nothing else. When
+  /// Salapify wrote that row to explain something else, the something else
+  /// does not move with it, and the result is money back in the account with
+  /// a debt, a plan, a bill or a reconciliation elsewhere still saying it was
+  /// paid. Reconciliation offered exactly that once and it was measured at
+  /// 1,500.00.
+  ///
+  /// So this REFUSES anything with a companion, and the refusal names the
+  /// screen that owns the real take-back, because a dead end is not an answer
+  /// to somebody looking at their own money.
+  ///
+  /// ## Stored links first, id prefixes second, and the order is the point
+  ///
+  /// `DebtPayment.txId`, `PlanPayment.txId` and
+  /// `ReconciliationRecord.adjustmentTxId` are STORED. Those three are facts
+  /// and they survive a restored backup. The id prefixes
+  /// ([Transaction.isEnginePayment] and the two below) are a guess at a
+  /// string, which the model's own doc calls a stopgap, so they run second as
+  /// a backstop: an entry written by some older build whose register row did
+  /// not survive still gets refused on its id rather than waved through.
+  ///
+  /// The two that have ONLY the guess are bills and splits, because
+  /// `UpcomingItem` carries no transaction id and a split's link is a shared
+  /// timestamp inside two id strings. Both are named here rather than
+  /// quietly treated as ordinary, and both are the argument for storing the
+  /// link properly, which is a change to saved data and therefore the
+  /// founder's call rather than mine.
+  ///
+  /// The RAW lists are scanned, not the filtered getters. An archived debt or
+  /// plan still owns its payment rows, and missing one because it is archived
+  /// would wave through exactly the entry this method exists to refuse.
+  TakeBackOutcome takeBackEntry(String txId) {
+    final TakeBackOutcome route = takeBackPreview(txId);
+    if (route != TakeBackOutcome.done) return route;
+    setTransactionStatus(txId, TransactionStatus.corrected);
+    return TakeBackOutcome.done;
+  }
+
+  /// What [takeBackEntry] WOULD do, changing nothing.
+  ///
+  /// The sheet asks this before it draws, so a person is never invited to
+  /// confirm something that was always going to be refused. Confirming a
+  /// decision and then being told no is how an app teaches somebody that its
+  /// buttons do not mean anything.
+  ///
+  /// The two share this one body on purpose. An earlier shape had the screen
+  /// deciding whether to show the button and the store deciding whether to
+  /// act, which is a rule enforced at one entry point and not the other, the
+  /// single defect shape this feature area has now produced five times.
+  ///
+  /// [TakeBackOutcome.done] from here means "it would be taken back", not
+  /// that anything has been.
+  TakeBackOutcome takeBackPreview(String txId) {
+    final int i = _transactions.indexWhere((Transaction t) => t.id == txId);
+    if (i < 0) return TakeBackOutcome.gone;
+
+    final Transaction tx = _transactions[i];
+    // Already out of the totals. Reversing again would credit the money back
+    // a second time, which setTransactionStatus guards too; this is the
+    // earlier, clearer refusal, so the sheet can say why.
+    if (!tx.countsTowardTotals) return TakeBackOutcome.alreadyNotCounting;
+
+    for (final Debt d in _debts) {
+      for (final DebtPayment p in d.payments) {
+        if (p.txId == txId) return TakeBackOutcome.belongsToDebt;
+      }
+    }
+
+    // Covers prepayments too: applyExtraPayment writes a PlanPayment row
+    // beside the ExtraPayment, and the PlanPayment is the one carrying the
+    // link. ExtraPayment has no txId of its own.
+    for (final InstallmentPlan plan in _installments) {
+      for (final PlanPayment p in plan.payments) {
+        if (p.txId == txId) return TakeBackOutcome.belongsToPlan;
+      }
+    }
+
+    for (final ReconciliationRecord r in _reconciliations) {
+      if (r.adjustmentTxId == txId) {
+        return TakeBackOutcome.belongsToReconciliation;
+      }
+    }
+
+    // THE GUESSES, after the facts. See the doc above.
+    if (tx.isEnginePayment) {
+      return txId.startsWith('tx_debt_')
+          ? TakeBackOutcome.belongsToDebt
+          : TakeBackOutcome.belongsToPlan;
+    }
+    if (txId.startsWith('tx_bill_')) return TakeBackOutcome.belongsToBill;
+    if (txId.startsWith('tx_split_')) return TakeBackOutcome.belongsToSplit;
+
+    return TakeBackOutcome.done;
   }
 
   /// Adds an account the user just described.

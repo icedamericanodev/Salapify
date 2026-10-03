@@ -5,6 +5,7 @@ import '../../core/money/ledger.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
+import '../../state/financial_state.dart';
 import 'activity_screen.dart' show statusLabel, statusIsStruckThrough;
 import 'transaction_detail_sheet.dart';
 
@@ -15,12 +16,17 @@ class DayGroup extends StatelessWidget {
     super.key,
     required this.palette,
     required this.day,
+    required this.state,
     required this.accounts,
     required this.now,
   });
 
   final Palette palette;
   final LedgerDay day;
+
+  /// Passed through to the detail sheet, which can now take an entry back.
+  final FinancialState state;
+
   final List<Account> accounts;
   final DateTime now;
 
@@ -71,6 +77,7 @@ class DayGroup extends StatelessWidget {
                 TransactionRow(
                   palette: palette,
                   transaction: day.transactions[i],
+                  state: state,
                   accounts: accounts,
                   now: now,
                 ),
@@ -88,12 +95,17 @@ class TransactionRow extends StatelessWidget {
     super.key,
     required this.palette,
     required this.transaction,
+    required this.state,
     required this.accounts,
     required this.now,
   });
 
   final Palette palette;
   final Transaction transaction;
+
+  /// Passed through to the detail sheet this row opens.
+  final FinancialState state;
+
   final List<Account> accounts;
   final DateTime now;
 
@@ -126,6 +138,7 @@ class TransactionRow extends StatelessWidget {
         context,
         palette: palette,
         transaction: t,
+        state: state,
         accounts: accounts,
         now: now,
       ),

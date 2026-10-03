@@ -40,6 +40,7 @@ import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/screens/plan/plan_screen.dart';
 import 'package:salapify/screens/reports/reports_screen.dart';
 import 'package:salapify/screens/home/home_screen.dart';
+import 'package:salapify/screens/activity/transaction_detail_sheet.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
@@ -1220,6 +1221,78 @@ void main() {
         matchesGoldenFile('out/sheet_${shape.slug}.png'),
       );
     });
+  }
+
+  // The entry detail sheet, in its two new states.
+  //
+  // `takeable` is an ordinary logged entry, which now carries the control.
+  // `refused` is an entry Salapify wrote itself to explain a debt payment,
+  // which carries the sentence saying where the real take-back lives instead.
+  // Two shots because the second is the one worth arguing about: a refusal
+  // that reads as a dead end is a worse screen than no control at all.
+  for (final bool takeable in <bool>[true, false]) {
+    testWidgets(
+      'sheet entry detail ${takeable ? 'takeable' : 'refused'} renders',
+      (WidgetTester tester) async {
+        await tester.runAsync(loadRealFonts);
+
+        tester.view.physicalSize = const Size(1170, 3000);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final FinancialState state = FinancialState(
+          clock: DateTime(2026, 9, 18),
+        );
+        await state.restore();
+        final Palette palette = Palette.of(state.theme);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        late final Transaction subject;
+        if (takeable) {
+          subject = state.transactions.firstWhere(
+            (Transaction t) => t.id == 'tx_jollibee',
+          );
+        } else {
+          // A real payment through the real write path, so the refused shot
+          // is of a genuine engine entry rather than a lookalike.
+          final Debt d = state.debts.firstWhere(
+            (Debt x) => x.direction == DebtDirection.iOwe && !x.isSettled,
+          );
+          state.recordDebtPayment(d.id, 500, accountId: 'acc_gcash');
+          await tester.pumpAndSettle();
+          subject = state.transactions.firstWhere(
+            (Transaction t) => t.id.startsWith('tx_debt_'),
+          );
+        }
+
+        TransactionDetailSheet.show(
+          tester.element(find.byType(AppShell)),
+          palette: palette,
+          transaction: subject,
+          state: state,
+          accounts: state.accounts,
+          now: state.now,
+        );
+        await tester.pumpAndSettle();
+
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'out/sheet_entry_detail_${takeable ? 'takeable' : 'refused'}.png',
+          ),
+        );
+      },
+    );
   }
 
   // The confirmation and the undo, AFTER a split has been recorded.
