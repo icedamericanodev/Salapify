@@ -369,8 +369,8 @@ void main() {
     ) async {
       await openSegment(tester, 'Decisions');
       final FinancialState state = storeOf(tester);
-      final double before = state.safeToSpendAnalysis.safeToSpendToday;
-      final double inflowBefore = state.safeToSpendAnalysis.totalExpectedInflow;
+      final Money before = state.safeToSpendAnalysis.safeToSpendToday;
+      final Money inflowBefore = state.safeToSpendAnalysis.totalExpectedInflow;
 
       await tapAndSettle(tester, find.text('Add an income stream'));
       await typeIn(tester, 'stream-name', 'Weekend tutoring');

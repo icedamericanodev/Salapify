@@ -385,7 +385,7 @@ void main() {
       reason: 'paying it out did not settle it, so there is nothing to archive',
     );
 
-    final double safeBefore = store.safeToSpend;
+    final Money safeBefore = store.safeToSpend;
     final int liveBefore = store.installments.length;
 
     await reach(tester, find.text('Archive it').first);

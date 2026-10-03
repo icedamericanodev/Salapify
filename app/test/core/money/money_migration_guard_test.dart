@@ -23,21 +23,21 @@ import 'package:flutter_test/flutter_test.dart';
 /// amnesty, and the count below would stop meaning anything.
 void main() {
   /// Money fields still held as a double. THIS LIST ONLY SHRINKS.
-  /// Every one left is an OUTPUT of `computeSafeToSpend`, which is the last
-  /// increment and moves as one piece: converting half an engine would mean
+  /// EMPTY. P2.1 is done.
+  ///
+  /// Every money field in `lib/models/models.dart` is whole centavos in an
+  /// int. The last ten were the outputs of `computeSafeToSpend`, and they
+  /// moved as one piece because converting half an engine would have meant
   /// converting back inside it, which is the drift the type exists to remove.
-  const Set<String> notYetMoney = <String>{
-    'amountReserved',
-    'emergencyBuffer',
-    'reservedBills',
-    'reservedDebtMinimums',
-    'reservedInstallments',
-    'safeToSave',
-    'safeToSpendToday',
-    'safeToSpendUntilPayday',
-    'totalExpectedInflow',
-    'totalLiquidCash',
-  };
+  ///
+  /// THE LIST STAYS, rather than the file becoming a flat ban, and that is
+  /// deliberate. A flat ban is what this file would be if the only question
+  /// were "is anything left". The two tests below ask a different pair of
+  /// questions that still need asking after the migration: whether a NEW
+  /// double money field has appeared, and whether this list has stopped
+  /// telling the truth. An empty list answers the second trivially and the
+  /// first exactly as well as it did when it had twenty-eight names in it.
+  const Set<String> notYetMoney = <String>{};
 
   /// Doubles that are NOT money and never become [Money].
   ///
@@ -88,7 +88,7 @@ void main() {
     // prompt asked for.
     expect(
       notYetMoney.length,
-      10,
+      0,
       reason:
           'Fields left to migrate changed. Update this figure AND the P2.1 '
           'row in docs/PROGRESS.md in the same commit, so the two cannot '

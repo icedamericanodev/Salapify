@@ -65,13 +65,13 @@ void main() {
     expect(state.installments, isEmpty);
 
     final SafeToSpendAnalysis a = state.safeToSpendAnalysis;
-    expect(a.reservedBills, 0);
-    expect(a.reservedInstallments, 0);
+    expect(a.reservedBills, Money.zero);
+    expect(a.reservedInstallments, Money.zero);
 
     // The whole point. Before the fix this was 0.00 on exactly this fixture.
     expect(
       a.safeToSpendUntilPayday,
-      greaterThan(0),
+      greaterThan(Money.zero),
       reason:
           'somebody with ₱50,000 and no obligations is being told they can '
           'spend nothing, because the app reserved money against demo bills '
@@ -79,8 +79,11 @@ void main() {
     );
 
     // 50,000 less the 15% conservative buffer, then the 85% spend split.
-    expect(a.totalLiquidCash, 50000);
-    expect(a.safeToSpendUntilPayday, closeTo(36125, 1));
+    expect(a.totalLiquidCash, Money.pesos(50000));
+    // The one peso of slack stays. It is not absorbing float drift, which
+    // Money has removed; it is there because the comment above describes the
+    // calculation approximately and the exact figure is the engine's.
+    expect(a.safeToSpendUntilPayday.pesos, closeTo(36125, 1));
   });
 
   test('a real bill the user entered DOES reserve money', () async {
@@ -115,7 +118,10 @@ void main() {
     expect(state.bills.single.name, 'Meralco');
     expect(
       state.safeToSpendAnalysis.reservedBills,
-      closeTo(3300, 0.01),
+      // EXACTLY, not within a centavo. The tolerance was there because this
+      // was a double; the engine rounds this figure to a whole peso and
+      // always did, so there is nothing left for an epsilon to absorb.
+      Money.pesos(3300),
       reason: '3,000 times the 1.1 conservative multiplier',
     );
   });

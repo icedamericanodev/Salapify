@@ -93,7 +93,7 @@ class HeroPanel extends StatelessWidget {
                 _kickerRow(),
                 _toolRow(),
                 Text(
-                  formatPeso(state.safeToSpend),
+                  formatPeso(state.safeToSpend.pesos),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -216,7 +216,7 @@ class HeroPanel extends StatelessWidget {
   /// flatly, with no room for the caption that makes it honest.
   String _subtitle(SafeToSpendAnalysis analysis) {
     final String pace = state.payday.isSet
-        ? '${formatPeso(state.safeToSpendPerDay, showDecimals: false)} a day until payday.'
+        ? '${formatPeso(state.safeToSpendPerDay.pesos, showDecimals: false)} a day until payday.'
         : 'Set your payday to see a daily figure.';
 
     if (!analysis.runwayFromLoggedSpending) return pace;

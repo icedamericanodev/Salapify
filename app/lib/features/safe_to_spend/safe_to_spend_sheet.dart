@@ -110,14 +110,14 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           left: StatCard(
             palette: p,
             label: 'Safe to Spend Today',
-            value: formatPeso(a.safeToSpendToday),
+            value: formatPeso(a.safeToSpendToday.pesos),
             caption: 'Daily discretionary quota',
             valueColor: p.accent,
           ),
           right: StatCard(
             palette: p,
             label: 'Until Next Payday',
-            value: formatPeso(a.safeToSpendUntilPayday),
+            value: formatPeso(a.safeToSpendUntilPayday.pesos),
             // NOT a.daysToPayday, which is a DIVISOR and not a fact.
             //
             // The engine clamps it with max(1, ...) so the per-day figure
@@ -137,14 +137,14 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           left: StatCard(
             palette: p,
             label: 'Safe to Save',
-            value: formatPeso(a.safeToSave),
+            value: formatPeso(a.safeToSave.pesos),
             caption: 'Guilt-free, without starving the month',
             valueColor: p.positive,
           ),
           right: StatCard(
             palette: p,
             label: 'Must Remain Reserved',
-            value: formatPeso(a.amountReserved),
+            value: formatPeso(a.amountReserved.pesos),
             caption: 'Committed bills, debt and buffer',
             valueColor: p.warning,
           ),
@@ -211,28 +211,28 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
               BreakdownRow(
                 palette: p,
                 label: 'Upcoming bills before payday',
-                value: formatPeso(a.reservedBills),
+                value: formatPeso(a.reservedBills.pesos),
               ),
               BreakdownRow(
                 palette: p,
                 label: 'Debt minimums (borrowings and loans)',
-                value: formatPeso(a.reservedDebtMinimums),
+                value: formatPeso(a.reservedDebtMinimums.pesos),
               ),
               BreakdownRow(
                 palette: p,
                 label: 'Monthly installments (BNPL & SIP)',
-                value: formatPeso(a.reservedInstallments),
+                value: formatPeso(a.reservedInstallments.pesos),
               ),
               BreakdownRow(
                 palette: p,
                 label: 'Emergency buffer',
-                value: formatPeso(a.emergencyBuffer),
+                value: formatPeso(a.emergencyBuffer.pesos),
               ),
               Divider(height: Spacing.lg, color: p.border),
               BreakdownRow(
                 palette: p,
                 label: 'Total reserved',
-                value: formatPeso(a.amountReserved),
+                value: formatPeso(a.amountReserved.pesos),
                 valueColor: p.warning,
                 emphasis: true,
               ),
@@ -270,7 +270,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
             palette: p,
             label: 'Total expected inflow',
             value: formatPeso(
-              widget.state.safeToSpendAnalysis.totalExpectedInflow,
+              widget.state.safeToSpendAnalysis.totalExpectedInflow.pesos,
             ),
             valueColor: p.positive,
             emphasis: true,
@@ -385,7 +385,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           'Add up liquid cash',
           'Cash, GCash, Maya, banks and debit. Investments, receivables and '
               'anything you can borrow are left out.',
-          formatPeso(a.totalLiquidCash),
+          formatPeso(a.totalLiquidCash.pesos),
         ),
         _step(
           p,
@@ -394,21 +394,21 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           conservative
               ? 'Padded by 10% in the conservative scenario.'
               : 'Taken at face value in the optimistic scenario.',
-          formatPeso(a.reservedBills),
+          formatPeso(a.reservedBills.pesos),
         ),
         _step(
           p,
           '3',
           'Hold back debt minimums',
           'Estimated at 8% of what is still outstanding.',
-          formatPeso(a.reservedDebtMinimums),
+          formatPeso(a.reservedDebtMinimums.pesos),
         ),
         _step(
           p,
           '4',
           'Hold back installments',
           'Every active BNPL and investment plan instalment.',
-          formatPeso(a.reservedInstallments),
+          formatPeso(a.reservedInstallments.pesos),
         ),
         _step(
           p,
@@ -417,21 +417,25 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           conservative
               ? '15% of liquid cash in the conservative scenario.'
               : '5% of liquid cash in the optimistic scenario.',
-          formatPeso(a.emergencyBuffer),
+          formatPeso(a.emergencyBuffer.pesos),
         ),
         _step(
           p,
           '6',
           'What is left is uncommitted',
           'Liquid cash minus everything reserved above.',
-          formatPeso(a.safeToSpendUntilPayday + a.safeToSave),
+          // ADDED AS MONEY, then rendered. This line is the sheet's own
+          // arithmetic rather than the engine's, and it is the one figure
+          // here that is a sum of two others, so it is the one that could
+          // ever have drifted.
+          formatPeso((a.safeToSpendUntilPayday + a.safeToSave).pesos),
         ),
         _step(
           p,
           '7',
           'Split it 85 / 15',
           '85% is safe to spend, 15% is safe to save.',
-          '${formatPeso(a.safeToSpendUntilPayday)} + ${formatPeso(a.safeToSave)}',
+          '${formatPeso(a.safeToSpendUntilPayday.pesos)} + ${formatPeso(a.safeToSave.pesos)}',
         ),
         _step(
           p,
@@ -444,7 +448,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
               ? '${_days(a.daysToPayday)} left, so this is the daily figure.'
               : 'No payday set, so this divides by one day and the daily '
                     'figure is the whole amount.',
-          formatPeso(a.safeToSpendToday),
+          formatPeso(a.safeToSpendToday.pesos),
         ),
       ],
     );
@@ -522,7 +526,7 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
   /// into something, and the caption below already names it as typical
   /// rather than theirs.
   bool _runwayUnknown(SafeToSpendAnalysis a) =>
-      !a.runwayFromLoggedSpending && a.totalLiquidCash <= 0;
+      !a.runwayFromLoggedSpending && !a.totalLiquidCash.isPositive;
 
   Widget _card(Palette p, {required String title, required Widget child}) {
     return Container(

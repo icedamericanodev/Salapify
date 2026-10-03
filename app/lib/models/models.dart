@@ -1294,18 +1294,34 @@ class SafeToSpendAnalysis {
   });
 
   final DecisionScenario scenario;
-  final double safeToSpendToday;
-  final double safeToSpendUntilPayday;
-  final double safeToSave;
-  final double amountReserved;
+
+  // THE LAST TEN NAMES IN P2.1, and the only ones that were ever OUTPUTS
+  // rather than stored figures.
+  //
+  // Every one of these is already a WHOLE PESO before it gets here: the
+  // engine puts `jsRound` round each of them, because the prototype does,
+  // and the golden vectors are whole numbers for that reason. So moving them
+  // to Money is a change of TYPE and not of arithmetic. The engine keeps
+  // working in pesos internally and converts once, at its return, which is
+  // why every vector holds to the centavo across this change.
+  //
+  // What it buys: the ten figures a person reads first can no longer be
+  // added to a double by accident on the way to a screen.
+  final Money safeToSpendToday;
+  final Money safeToSpendUntilPayday;
+  final Money safeToSave;
+  final Money amountReserved;
   final int cashRunwayDays;
+
+  /// NOT money. A count of months, which is why it stays a double and keeps
+  /// its one decimal place.
   final double cashRunwayMonths;
-  final double reservedBills;
-  final double reservedDebtMinimums;
-  final double reservedInstallments;
-  final double emergencyBuffer;
-  final double totalLiquidCash;
-  final double totalExpectedInflow;
+  final Money reservedBills;
+  final Money reservedDebtMinimums;
+  final Money reservedInstallments;
+  final Money emergencyBuffer;
+  final Money totalLiquidCash;
+  final Money totalExpectedInflow;
   final int daysToPayday;
 
   /// Whether [cashRunwayDays] was measured from spending the person actually

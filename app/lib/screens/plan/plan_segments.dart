@@ -547,7 +547,7 @@ class DecisionsSegment extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  formatPeso(a.safeToSpendToday),
+                  formatPeso(a.safeToSpendToday.pesos),
                   style: AppType.hero(
                     palette,
                   ).copyWith(color: palette.positive),
@@ -555,7 +555,7 @@ class DecisionsSegment extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${formatPeso(a.amountReserved)} already spoken for',
+                '${formatPeso(a.amountReserved.pesos)} already spoken for',
                 style: AppType.caption(palette),
               ),
               const SizedBox(height: Spacing.sm),
