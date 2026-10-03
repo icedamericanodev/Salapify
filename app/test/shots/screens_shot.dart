@@ -1223,6 +1223,47 @@ void main() {
     });
   }
 
+  // Home with the demo data swept, which is what a stranger would meet if a
+  // fresh install started empty.
+  //
+  // ADDED ALONGSIDE the lived-in shots, never in place of them. This file's
+  // own history is the warning: every per-tab shot ran against an empty store
+  // for most of the harness's life, so sixteen images were all first-run
+  // screens and a crossed-out peso sign reached the founder's phone unseen.
+  // One deliberate empty shot answers a design question the lived-in ones
+  // cannot; replacing the lived-in ones with it would reopen that hole.
+  testWidgets('home swept renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2800);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    // The real sweep, not a hand-built empty store, so this is a picture of a
+    // state the app can genuinely be in rather than one only a test can reach.
+    state.removeSampleData();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_swept.png'),
+    );
+  });
+
   // The entry detail sheet, in its two new states.
   //
   // `takeable` is an ordinary logged entry, which now carries the control.
