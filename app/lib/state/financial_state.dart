@@ -746,6 +746,28 @@ class FinancialState extends ChangeNotifier {
     // a real ledger on the next launch rather than as a fresh install.
     _sampleRemovedAt = null;
 
+    // AND THE APP FORGETS THAT IT HAS INTRODUCED ITSELF, which it did not
+    // until 2026-10-03 and which left the wipe in a dead end.
+    //
+    // Clearing the ledger while keeping `onboardedAt` produced an app that was
+    // empty AND had no way back to anything. `needsWelcome` stayed false, so
+    // no welcome; `_sampleRemovedAt` is correctly null one line up, so the
+    // put-it-back control is correctly absent; and Settings simply read "There
+    // is no sample data on this phone" with no control beside it. Neither the
+    // example data nor the first run could be reached again by any route.
+    //
+    // It also made the wipe screen's own promise false. It says Salapify is
+    // empty and the comment above says the ledger is empty and NEW, and a
+    // phone that still remembers being introduced to somebody is not new. The
+    // person this matters most to is the one the wipe exists for: somebody
+    // handing the phone on, whose recipient would meet a blank app that had
+    // already decided it knew them.
+    //
+    // So a wiped phone meets the welcome again, and both paths are available
+    // from it, which is also the only honest way to offer the example data
+    // back to somebody who chose their own money and later wants to look.
+    _onboardedAt = null;
+
     // Extras ARE cleared, and that is deliberate the other way. They hold keys
     // from the person's own file that this build cannot read, so carrying them
     // through a wipe would write a piece of their data straight back into the
