@@ -684,6 +684,124 @@ void main() {
     });
   });
 
+  // Salapify 3 was rebuilt in Flutter from the Google AI Studio prototype in
+  // src/. The React Native app in mobile/ and Salapify 2 in archive/ are a
+  // SEPARATE branch of the family that was archived, not this app's parents.
+  // Both of those count their file shape to 12 while this one starts at 1,
+  // because the two numbers count two different shapes.
+  //
+  // So a backup from either arrived at Restore, hit the newer-than-me branch,
+  // and was refused with "Update the app rather than opening it here". That
+  // instruction cannot be followed, because Salapify 3 IS the newer app.
+  group('a backup from the OLD Salapify family', () {
+    // The archived apps keep what you owe and what you are owed in two
+    // separate top level lists. This app keeps both in `debts`.
+    String oldFamilyBackup() => jsonEncode(<String, dynamic>{
+      'schemaVersion': 12,
+      'accounts': <Map<String, dynamic>>[],
+      'transactions': <Map<String, dynamic>>[],
+      'receivables': <Map<String, dynamic>>[],
+      'people': <Map<String, dynamic>>[],
+      'categories': <Map<String, dynamic>>[],
+    });
+
+    test('it is refused, and NOT sent to update an app that is this one', () {
+      try {
+        Snapshot.decode(oldFamilyBackup());
+        fail('a Salapify 2 backup was read as a Salapify 3 ledger');
+      } on SnapshotFormatException catch (e) {
+        final String said = e.message.toLowerCase();
+        expect(said, contains('older salapify'));
+        expect(
+          said,
+          contains('nothing on this phone has been changed'),
+          reason:
+              'a refusal on the recovery screen that does not say the phone '
+              'is untouched is read as damage',
+        );
+        expect(
+          said,
+          isNot(contains('update the app')),
+          reason:
+              'the advice cannot be followed. There is no newer Salapify to '
+              'update to, because this build is it.',
+        );
+      }
+    });
+
+    test('the SHAPE refuses it, not the number on the file', () {
+      // A version number is a label and two unrelated counters could collide
+      // one day. `receivables` sitting next to `people` could not get here by
+      // accident, and it is the actual reason the file cannot be read.
+      expect(
+        () => Snapshot.decode(
+          '{"accounts":[],"transactions":[],"receivables":[],"people":[]}',
+        ),
+        throwsA(isA<SnapshotFormatException>()),
+        reason: 'the same file without its version number was let through',
+      );
+    });
+
+    test('a genuine Salapify 3 document is NOT caught by it', () {
+      // THE TRIPWIRE. If anybody ever adds a `people` collection to this app,
+      // this goes red and they read the comment on _oldFamilyKeys before
+      // shipping a build that refuses its own files.
+      expect(
+        Snapshot.looksLikeTheOldSalapify(seeded().toJson(at: at)),
+        isFalse,
+        reason: 'the old-family refusal swallowed our own file format',
+      );
+      expect(Snapshot.decode(seeded().encode(at: at)), isA<Snapshot>());
+    });
+
+    test('the PROTOTYPE this app came from is not caught by it either', () {
+      // src/components/SettingsModal.tsx exports these collection keys, with
+      // no schemaVersion and no receivables or people. It is Salapify 3's
+      // actual parent, so a check aimed at the archived apps must never
+      // touch it.
+      //
+      // Scope, stated rather than implied: this asserts the GATE lets the
+      // prototype's shape through. Whether every prototype RECORD decodes is
+      // a separate question and is not claimed here, which is why the
+      // collections are empty and themeMode is left off.
+      expect(
+        Snapshot.decode(
+          jsonEncode(<String, dynamic>{
+            'timestamp': '2026-10-03T00:00:00.000Z',
+            'transactions': <Map<String, dynamic>>[],
+            'accounts': <Map<String, dynamic>>[],
+            'debts': <Map<String, dynamic>>[],
+            'budgets': <Map<String, dynamic>>[],
+            'goals': <Map<String, dynamic>>[],
+            'upcoming': <Map<String, dynamic>>[],
+            'categories': <Map<String, dynamic>>[],
+          }),
+        ),
+        isA<Snapshot>(),
+        reason: 'the refusal aimed at the archived apps caught the prototype',
+      );
+    });
+
+    test('a genuinely newer Salapify 3 file STILL says update the app', () {
+      // The silent half of the alarm, and it is a real case rather than a
+      // theoretical one: store_test.dart points out that Shorebird can roll
+      // a patch back, so an older build opening a newer file happens. There,
+      // "update the app" is exactly the right advice, and narrowing the
+      // message for the archived apps must not have taken it away.
+      try {
+        Snapshot.decode(
+          jsonEncode(<String, dynamic>{
+            'schemaVersion': Snapshot.currentSchemaVersion + 1,
+            'accounts': <Map<String, dynamic>>[],
+          }),
+        );
+        fail('a file from the future was read anyway');
+      } on SnapshotFormatException catch (e) {
+        expect(e.message.toLowerCase(), contains('update the app'));
+      }
+    });
+  });
+
   group('what an absent optional means', () {
     Map<String, dynamic> minimalTx() => <String, dynamic>{
       'id': 'tx_1',

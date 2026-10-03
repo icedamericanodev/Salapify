@@ -474,11 +474,39 @@ which is why nobody has hit it.
 
 Do not "fix" it by lifting the gate. The v12 shape genuinely differs, carrying
 `receivables` and `people` where Salapify 3 carries `debts`, so lifting it
-would silently import a partial ledger, which is worse than refusing. The
-question is a product fork and it is the founder's: **does Salapify 3 promise
-to import Salapify 2 and RN data, or does it say so honestly and start
-clean?** Either answer is defensible. A false instruction on the recovery
-screen is not.
+would silently import a partial ledger, which is worse than refusing.
+
+### How big this actually is, after checking
+
+Smaller than the pass that found it said, and the check is worth writing down
+because the first report called it a product fork.
+
+`docs/DEFERRED.md:14` says release signing "blocks a Play submission entirely,
+so it has to happen before any public tester". Salapify 2 never reached the
+Play Store; it only ever went to the founder's own phone over the air, last
+build `f4.72`. So the entire population holding a v12 backup is the founder.
+There is no user base to migrate and no promise to break.
+
+It is also not this app's own past. Salapify 3 was rebuilt in Flutter from the
+AI Studio prototype in `src/`, which is what PR #473 is titled and what D24 in
+the working rules means by calling `src/` the source of truth for every
+calculation. `mobile/` and `archive/salapify-2-flutter/` are a separate branch
+that was archived. A v12 file arriving here is a file from a sibling, not an
+older version of this app, and refusing it is correct and always will be.
+
+What was genuinely wrong was one sentence. **Fixed, 2026-10-03.** The refusal
+is now chosen by SHAPE rather than by the number, because the shape is what
+makes the file unreadable: `receivables` beside `people` could not arrive by
+accident, while a version number is only a label and two unrelated counters
+could collide one day. The sentence now names the older app, says the phone
+was not changed, and tells the person to keep the file instead of sending
+them to update an app that is this one. The generic newer-file message stays
+for the case where it is true, which is the Shorebird rollback `store_test`
+already documents.
+
+The product question, whether Salapify 3 ever offers to carry v12 data across,
+stays open and is the founder's. It is no longer urgent, and nothing on the
+recovery screen lies while it waits.
 
 ## Landed, 2026-10-03
 

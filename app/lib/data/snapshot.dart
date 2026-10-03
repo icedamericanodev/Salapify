@@ -472,7 +472,52 @@ class Snapshot {
     );
   }
 
+  /// Collections only the OLD Salapify family ever wrote.
+  ///
+  /// Salapify 3 is not a continuation of those apps. It was rebuilt in
+  /// Flutter from the Google AI Studio prototype in `src/`, and the React
+  /// Native app in `mobile/` and Salapify 2 in `archive/` are a separate
+  /// branch of the family that was archived. They count their file shape to
+  /// 12 (`mobile/lib/backup.js:26`,
+  /// `archive/salapify-2-flutter/lib/data/backup.dart:22`) while this one
+  /// starts at 1, because the two numbers count two different shapes and not
+  /// one shape that went backwards.
+  ///
+  /// Both of them keep `receivables` and `people` as top level lists
+  /// (`backup.dart:522` and `:532`). Salapify 3 has neither and is not going
+  /// to: its `debts` collection carries BOTH directions on purpose, what you
+  /// owe and what you are owed, which is the first paragraph of the working
+  /// rules. The prototype this app actually came from writes neither either
+  /// (`src/components/SettingsModal.tsx` exports ten keys and that is all),
+  /// so this check cannot catch our own parent.
+  ///
+  /// It is a SHAPE check rather than a version check because the shape is
+  /// what makes the file unreadable here. The number is a label and could in
+  /// principle collide one day; `receivables` next to `people` could not get
+  /// here by accident. `snapshot_test.dart` asserts a genuine Salapify 3
+  /// document is not caught by it, which is the tripwire if anybody ever
+  /// does add a `people` collection to this app.
+  static const List<String> _oldFamilyKeys = <String>['receivables', 'people'];
+
+  static bool looksLikeTheOldSalapify(Map<String, dynamic> m) =>
+      _oldFamilyKeys.any((String key) => m[key] is List);
+
   static Snapshot fromJson(Map<String, dynamic> m) {
+    // BEFORE the version compare, because this file's problem is its shape
+    // and the version message would send somebody somewhere that does not
+    // exist. A format 12 file hitting the newer-than-me branch was told
+    // "Update the app rather than opening it here", which cannot be done,
+    // because THIS is the newer app.
+    if (looksLikeTheOldSalapify(m)) {
+      throw const SnapshotFormatException(
+        'This backup is from the older Salapify, the one that kept what you '
+        'owe and what you are owed in two separate lists. This app keeps '
+        'them together, so reading the file here would bring across only '
+        'part of your records. Nothing on this phone has been changed. Keep '
+        'the file somewhere safe rather than deleting it.',
+      );
+    }
+
     final int version = readSchemaVersion(m);
     if (version > currentSchemaVersion) {
       throw SnapshotFormatException(
