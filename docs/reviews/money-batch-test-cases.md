@@ -330,3 +330,24 @@ holding 40,000 look nearly the same, and only the grey of the hint tells them
 apart. On a money field that is a poor placeholder, and it is what made the
 screenshot ambiguous enough to need a second question. Worth changing to a
 figure no card would really hold, or to the currency alone.
+
+### The full run, confirmed by the founder
+
+All eight cases PASS on `claude/flutter-final` at `9a3195f`.
+
+| Case | Result |
+|---|---|
+| 1. Budgets add up | PASS, after case 0 was written. The page was wrong, not the app |
+| 2. Changing a limit moves the row and the headline | PASS |
+| 3. A limit with centavos survives | FAILED, then PASS after the fix in `1999b23` |
+| 4. Bills and payables | PASS |
+| 5. A credit card with no limit says so | PASS, both halves |
+| 6. Expected income survives a restart | PASS |
+| 7. The privacy receipt | PASS |
+| 8. Delete everything names Pan | PASS |
+
+Case 3 is the one that earned this whole page. It is the only defect of the
+eight, 1,678 tests passed over it, and no automated test in the repository
+reopened an edit sheet to read what the box offers back. The fix and the guard
+are in `1999b23`; whether that guard should cover every money input in the app
+rather than budgets alone is a question for the retrospective, not for here.
