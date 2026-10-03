@@ -38,6 +38,14 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.runAsync(loadRealFonts);
+    // A TALLER WINDOW than the 800 by 600 default, which is shorter than any
+    // phone. The Today row added under the hero on 2026-10-03 pushed Home's
+    // cards past that fold, and a lazily built list does not build what is
+    // below it. Width untouched: this file does not load the shipped font.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(800, 1600);
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
   }

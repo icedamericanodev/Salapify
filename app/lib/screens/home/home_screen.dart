@@ -5,6 +5,7 @@ import '../../design/type.dart';
 import '../../data/store.dart' show LoadStatus;
 import '../../core/money/format.dart';
 import '../../core/money/health_check.dart';
+import '../../core/money/money.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/accounts/move_money_sheet.dart';
 import '../../features/bills/bills_sheet.dart';
@@ -150,6 +151,30 @@ class HomeScreen extends StatelessWidget {
               // safe amount" would only delay the numbers that answer it.
               onInfo: () => SafeToSpendSheet.show(context, state),
             ),
+
+            // TODAY, directly under the hero, and it is the door into the one
+            // action that matters in a first session.
+            //
+            // Safe to Spend answers "what can I spend", which is a plan.
+            // Budget Pulse answers "how is the month going", which is a
+            // review. Neither answers "what have I spent since I woke up",
+            // which is the question a person actually has while standing at a
+            // counter, and nothing on this screen answered it.
+            //
+            // It carries a FIGURE, so it belongs on the screen under the house
+            // rule rather than behind a dot. Its empty state is the exception
+            // the rule allows and the reason it sits this high: the habit the
+            // whole app depends on is logging, and the only thing in a first
+            // session that moves a number somebody recognises as theirs is
+            // their own first entry.
+            const SizedBox(height: Spacing.md),
+            _TodayRow(
+              palette: palette,
+              state: state,
+              onLog: onOpenLog,
+              onSeeAll: () => onOpenTab(kActivityTab),
+            ),
+
             const SizedBox(height: Spacing.md),
             BudgetPulseCard(
               state: state,
@@ -630,6 +655,114 @@ class _ExampleDataBanner extends StatelessWidget {
                 ),
               ),
               Icon(Icons.chevron_right, size: 18, color: p.warning),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// What today holds, and the way to add to it.
+///
+/// ## Two states, and the empty one is the point
+///
+/// With nothing logged it reads "Nothing logged yet today" and the whole row
+/// is a door into the Log sheet. That is the first real action a new person
+/// can take, and it is the only one in a first session that changes a figure
+/// they recognise as their own: a balance moving because of something they
+/// typed. Every other screen in the app is a report on data that does not
+/// exist yet.
+///
+/// With something logged it reads the figure, which is a plain answer to a
+/// question no other card on Home answers. Safe to Spend is a plan and Budget
+/// Pulse is a month. Neither says what has left today.
+///
+/// ## Why it is not a nag
+///
+/// It never asks, congratulates, or counts a streak. It states a figure and
+/// stops, and on a day somebody has not spent anything it says so rather than
+/// implying they should. An empty state that reads as a reproach is how a
+/// money app becomes one more thing to avoid opening.
+class _TodayRow extends StatelessWidget {
+  const _TodayRow({
+    required this.palette,
+    required this.state,
+    required this.onLog,
+    required this.onSeeAll,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final VoidCallback onLog;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = palette;
+    final int count = state.loggedTodayCount;
+    final bool empty = count == 0;
+    final Money spent = state.spentToday;
+
+    return Material(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(Radii.card),
+      child: InkWell(
+        // The empty row goes to Log, because there is nothing to look at. A
+        // row with figures on it goes to the list those figures came from,
+        // which is where somebody who just read a number wants to go next.
+        onTap: empty ? onLog : onSeeAll,
+        borderRadius: BorderRadius.circular(Radii.card),
+        child: Container(
+          padding: const EdgeInsets.all(Spacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: p.border),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: p.iconTile,
+                  // Concentric: the card is 24 and this sits inside 16 of
+                  // padding, so it takes the small radius rather than
+                  // repeating the card's.
+                  borderRadius: BorderRadius.circular(Radii.tile),
+                ),
+                child: Icon(
+                  empty ? Icons.add : Icons.today_outlined,
+                  size: 18,
+                  color: p.accent,
+                ),
+              ),
+              const SizedBox(width: Spacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('TODAY', style: AppType.kicker(p)),
+                    const SizedBox(height: Spacing.xs),
+                    Text(
+                      empty ? 'Nothing logged yet' : formatPeso(spent.pesos),
+                      style: empty
+                          ? AppType.rowTitle(p)
+                          : AppType.amount(p).copyWith(color: p.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              if (empty)
+                Text('Log one', style: AppType.button(p, color: p.accent))
+              else
+                Text(
+                  count == 1 ? '1 entry' : '$count entries',
+                  style: AppType.caption(p),
+                ),
+              const SizedBox(width: Spacing.xs),
+              Icon(Icons.chevron_right, size: 18, color: p.textMuted),
             ],
           ),
         ),

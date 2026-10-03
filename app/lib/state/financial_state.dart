@@ -2376,6 +2376,42 @@ class FinancialState extends ChangeNotifier {
 
   String? _onboardedAt;
 
+  /// What the person has spent today, from entries that count.
+  ///
+  /// Counts only entries the PERSON made. A demo ledger dated by offsets from
+  /// today would otherwise put a stranger's lunch in a row that says "today",
+  /// which is the whole defect class the first run work exists to close.
+  ///
+  /// Transfers are excluded with income, because neither is spending: moving
+  /// money between your own accounts is not a day's outlay and counting it
+  /// would make the figure jump for a reason nobody could see.
+  Money get spentToday {
+    final String today = isoDate(now);
+    Money total = Money.zero;
+    for (final Transaction t in _transactions) {
+      if (t.isSample) continue;
+      if (t.date != today) continue;
+      if (!t.countsTowardTotals) continue;
+      if (t.type != TransactionType.expense) continue;
+      total = total + t.amount;
+    }
+    return total;
+  }
+
+  /// How many entries today's figure is made of, so a screen can say so.
+  int get loggedTodayCount {
+    final String today = isoDate(now);
+    return _transactions
+        .where(
+          (Transaction t) =>
+              !t.isSample &&
+              t.date == today &&
+              t.countsTowardTotals &&
+              t.type == TransactionType.expense,
+        )
+        .length;
+  }
+
   /// Whether the welcome still has to be shown.
   ///
   /// TWO QUESTIONS, not one, and the second is what makes this safe. The

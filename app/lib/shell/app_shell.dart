@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../core/money/format.dart';
+import '../core/money/reminders.dart';
 import '../design/tokens.dart';
+import '../design/type.dart';
 import '../features/log/log_sheet.dart';
+import '../features/payday/payday_sheet.dart';
 import '../models/models.dart';
 import '../screens/accounts/accounts_screen.dart';
 import '../screens/activity/activity_screen.dart';
@@ -237,6 +240,201 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       );
+
+    // AFTER the confirmation, and at most one of them.
+    //
+    // `context` is checked rather than assumed: the Log sheet was awaited
+    // above, so this method has already crossed an async gap and the widget
+    // that opened it can have gone.
+    if (!context.mounted) return;
+    await _offerWhatThisEntryEarns(context, palette, logged);
+  }
+
+  /// One latch PER QUESTION, not one for both.
+  ///
+  /// A single shared flag reads as tidier and is wrong: the first entry spends
+  /// it on the reminder, and the payday question can then never be asked at
+  /// all, in any session where somebody logs a spend before their salary. The
+  /// two are different questions and neither answers the other.
+  ///
+  /// Not stored, deliberately. Both are self limiting by the ledger itself: a
+  /// first entry happens once, and a payday stops being unset the moment it is
+  /// set. A flag on disk that could disagree with the ledger is a second
+  /// source of truth for a question the ledger already answers. These only
+  /// stop the same run asking twice, for instance after somebody takes an
+  /// entry back and logs it again.
+  bool _offeredReminder = false;
+  bool _askedPayday = false;
+
+  /// The one thing worth asking for, immediately after an entry lands.
+  ///
+  /// AT MOST ONE, and the order is the ranking from the onboarding design:
+  /// the reminder is the single lever on whether there is a second session,
+  /// so it wins when both are due. The payday ask is not lost by waiting,
+  /// because income entries recur and it stays unset until somebody sets it.
+  Future<void> _offerWhatThisEntryEarns(
+    BuildContext context,
+    Palette palette,
+    Transaction logged,
+  ) async {
+    if (logged.isSample) return;
+
+    final FinancialState s = widget.state;
+
+    // THE FIRST ENTRY SOMEBODY EVER MADE THEMSELVES. Counted off the ledger
+    // rather than remembered, so it cannot drift from what is actually there.
+    final bool firstEver =
+        s.transactions.where((Transaction t) => !t.isSample).length == 1;
+
+    if (firstEver && !_offeredReminder && !s.reminderSettings.phoneEnabled) {
+      _offeredReminder = true;
+      await _offerDailyReminder(context, palette);
+      return;
+    }
+
+    if (logged.type == TransactionType.income &&
+        !_askedPayday &&
+        !s.payday.isSet) {
+      _askedPayday = true;
+      await _askPayday(context, palette);
+    }
+  }
+
+  /// The notification permission, attached to something the person just did.
+  ///
+  /// NEVER AT INSTALL, and `ReminderSettings.phoneEnabled` already explains
+  /// why in its own doc: the Android dialog has no second chance, and after a
+  /// denial the only route back is a settings screen nobody finds. Asking
+  /// here satisfies the two things that decide whether somebody says yes.
+  /// They have just performed the exact behaviour the reminder supports, so
+  /// the benefit is concrete rather than promised, and they asked for it, so
+  /// the system dialog reads as confirmation of their own choice rather than
+  /// as an interruption.
+  ///
+  /// It is also an implementation intention in one tap, "when 8pm comes I
+  /// will log", which predicts repetition better than the notification does.
+  ///
+  /// THE TIME IS READ FROM THE SETTINGS, never written into this sentence. A
+  /// hardcoded "9pm" here would disagree with the Reminders screen the moment
+  /// either changed, and a promise about when a phone will buzz is exactly
+  /// the kind a person checks.
+  Future<void> _offerDailyReminder(
+    BuildContext context,
+    Palette palette,
+  ) async {
+    final ReminderSettings r = widget.state.reminderSettings;
+    final String at = _clockLabel(r.dailyExpenseHour, r.dailyExpenseMinute);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('That is one entry', style: AppType.title(palette)),
+        content: Text(
+          'The hard part is remembering, not the typing. Salapify can nudge '
+          'you once a day at $at.\n\n'
+          'Your phone will ask for permission. Nothing leaves this phone '
+          'either way.',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Not now', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Remind me at $at', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes != true) return;
+
+    final bool granted = await widget.state.enablePhoneReminders();
+    if (!mounted) return;
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            // SAYS WHICH ANSWER THE PHONE GAVE. A refusal that looked like a
+            // success would leave somebody waiting for a nudge that is never
+            // coming, and blaming the app when they forget to log.
+            granted
+                ? 'Set. Salapify will nudge you at $at.'
+                : 'Your phone said no to notifications. You can turn them on '
+                      'later under Reminders.',
+            style: TextStyle(color: palette.onAccent),
+          ),
+          backgroundColor: palette.accent,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  /// The payday, asked on the day somebody was thinking about it anyway.
+  ///
+  /// NOT AT INSTALL, which was the whole finding. A dropdown on the first
+  /// screen spends the moment money is salient weeks before it pays off, and
+  /// several figures on Home are weak without a payday, so the temptation to
+  /// ask early is real.
+  ///
+  /// This is an INFERENCE CONFIRMED rather than a form filled: one question,
+  /// prefilled with the cycle most of this app's audience is actually on,
+  /// answerable with a single yes. Anything else opens the real editor.
+  Future<void> _askPayday(BuildContext context, Palette palette) async {
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text('When do you get paid?', style: AppType.title(palette)),
+        content: Text(
+          'Salapify can count the days to your next payday and work out what '
+          'is safe to spend until then. It needs to know your cycle.\n\n'
+          'Most are paid on the 15th and the 30th.',
+          style: AppType.body(palette),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: Text('Not now', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Different days', style: AppType.body(palette)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Yes, 15th and 30th', style: AppType.body(palette)),
+          ),
+        ],
+      ),
+    );
+
+    if (yes == null || !context.mounted) return;
+
+    if (yes) {
+      // Through the same rule setter the editor uses, so the cycle is built
+      // by the one piece of code that knows how, rather than by a second
+      // copy here that could drift from it.
+      widget.state.setPaydayRule(daysOfMonth: <int>[15, 30]);
+      return;
+    }
+    await PaydaySheet.show(context, widget.state);
+  }
+
+  /// "8pm", "9:30pm", "12am", from a 24 hour clock.
+  String _clockLabel(int hour, int minute) {
+    final int h12 = hour % 12 == 0 ? 12 : hour % 12;
+    final String suffix = hour < 12 ? 'am' : 'pm';
+    return minute == 0
+        ? '$h12$suffix'
+        : '$h12:${minute.toString().padLeft(2, '0')}$suffix';
   }
 }
 
