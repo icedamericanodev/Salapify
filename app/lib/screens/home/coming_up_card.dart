@@ -223,8 +223,11 @@ class ComingUpCard extends StatelessWidget {
                   palette: palette,
                   icon: Icons.south_west,
                   label: 'Income',
-                  value: state.totalInflows > 0
-                      ? formatSignedPeso(state.totalInflows, isIncome: true)
+                  value: state.totalInflows.isPositive
+                      ? formatSignedPeso(
+                          state.totalInflows.pesos,
+                          isIncome: true,
+                        )
                       : formatPeso(0),
                   valueColor: palette.positive,
                   selected: state.movementFilter == MovementFilter.inflow,
@@ -241,7 +244,7 @@ class ComingUpCard extends StatelessWidget {
                   palette: palette,
                   icon: Icons.north_east,
                   label: 'Reserved',
-                  value: formatPeso(state.totalOutflows),
+                  value: formatPeso(state.totalOutflows.pesos),
                   valueColor: palette.negative,
                   selected: state.movementFilter == MovementFilter.outflow,
                   onTap: () => state.setMovementFilter(
@@ -255,14 +258,17 @@ class ComingUpCard extends StatelessWidget {
               Expanded(
                 child: _StatBox(
                   palette: palette,
-                  icon: state.netMovement >= 0
+                  icon: !state.netMovement.isNegative
                       ? Icons.trending_up
                       : Icons.trending_down,
                   label: 'Remaining',
-                  value: state.netMovement >= 0
-                      ? formatSignedPeso(state.netMovement, isIncome: true)
-                      : formatPeso(state.netMovement),
-                  valueColor: state.netMovement >= 0
+                  value: !state.netMovement.isNegative
+                      ? formatSignedPeso(
+                          state.netMovement.pesos,
+                          isIncome: true,
+                        )
+                      : formatPeso(state.netMovement.pesos),
+                  valueColor: !state.netMovement.isNegative
                       ? palette.positive
                       : palette.negative,
                   selected: state.movementFilter == MovementFilter.all,
@@ -383,8 +389,8 @@ class ComingUpCard extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Text(
             isIncome
-                ? formatSignedPeso(item.amount, isIncome: true)
-                : formatPeso(item.amount),
+                ? formatSignedPeso(item.amount.pesos, isIncome: true)
+                : formatPeso(item.amount.pesos),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,

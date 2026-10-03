@@ -294,7 +294,7 @@ door fails it:
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | Goal, InstallmentPlan, the LEDGER, DEBT and ACCOUNT BALANCES migrated; 15 names left on the guard list |
+| P2.1 | `Money` type in integer centavos (F1) | IN PROGRESS | every STORED money field migrated (ledger, debts, balances, budget limits, credit limits, bill and upcoming amounts, expected income, income streams); 10 names left, all outputs of computeSafeToSpend |
 | P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
 | P2.3 | Protected accounts (F3) | todo | |
 | P2.4 | Debt types and minimums (F4) | todo | |

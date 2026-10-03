@@ -329,7 +329,7 @@ Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
   'monogram': a.monogram,
   'currency': currencyWire.encode(a.currency),
   if (a.profile != null) 'profile': profileWire.encode(a.profile!),
-  if (a.creditLimit != null) 'creditLimit': a.creditLimit,
+  if (a.creditLimit != null) 'creditLimit': a.creditLimit!.pesos,
   if (a.interestRate != null) 'interestRate': a.interestRate,
   if (a.accountNumber != null) 'accountNumber': a.accountNumber,
   if (a.dueDate != null) 'dueDate': a.dueDate,
@@ -355,7 +355,10 @@ Account accountFromJson(Map<String, dynamic> m) {
     currency:
         currencyWire.decodeOptional(m, 'currency', what) ?? CurrencyCode.php,
     profile: profileWire.decodeOptional(m, 'profile', what),
-    creditLimit: _optNum(m, 'creditLimit'),
+    // STILL NULLABLE after the move. Absent means "this account has no
+    // limit", which is a different fact from a limit of zero, and
+    // Money.zero cannot say the difference.
+    creditLimit: _optMoney(m, 'creditLimit'),
     interestRate: _optNum(m, 'interestRate'),
     accountNumber: _optStr(m, 'accountNumber'),
     dueDate: _optStr(m, 'dueDate'),
@@ -602,14 +605,14 @@ const Set<String> budgetKeys = <String>{
 
 Map<String, dynamic> budgetToJson(Budget b) => <String, dynamic>{
   'category': b.category,
-  'limit': b.limit,
+  'limit': b.limit.pesos,
   'emoji': b.emoji,
   if (b.isSample) 'isSample': true,
 };
 
 Budget budgetFromJson(Map<String, dynamic> m) => Budget(
   category: _reqStr(m, 'category', 'budget'),
-  limit: _reqNum(m, 'limit', 'budget'),
+  limit: Money.fromDouble(_reqNum(m, 'limit', 'budget')),
   emoji: _optStr(m, 'emoji') ?? '',
   isSample: _optBool(m, 'isSample'),
 );
@@ -662,7 +665,7 @@ const Set<String> upcomingKeys = <String>{
 Map<String, dynamic> upcomingToJson(UpcomingItem u) => <String, dynamic>{
   'id': u.id,
   'name': u.name,
-  'amount': u.amount,
+  'amount': u.amount.pesos,
   'dueDate': u.dueDate,
   'type': upcomingTypeWire.encode(u.type),
   'isIncome': u.isIncome,
@@ -676,7 +679,7 @@ UpcomingItem upcomingFromJson(Map<String, dynamic> m) {
   return UpcomingItem(
     id: _reqStr(m, 'id', what),
     name: _reqStr(m, 'name', what),
-    amount: _reqNum(m, 'amount', what),
+    amount: Money.fromDouble(_reqNum(m, 'amount', what)),
     dueDate: _optStr(m, 'dueDate') ?? '',
     type: upcomingTypeWire.decodeRequired(m, 'type', what),
     isIncome: _optBool(m, 'isIncome'),
@@ -698,7 +701,7 @@ Map<String, dynamic> incomeStreamToJson(IncomeStream s) => <String, dynamic>{
   'id': s.id,
   'name': s.name,
   'type': incomeStreamTypeWire.encode(s.type),
-  'expectedAmount': s.expectedAmount,
+  'expectedAmount': s.expectedAmount.pesos,
   if (s.isSample) 'isSample': true,
 };
 
@@ -708,7 +711,7 @@ IncomeStream incomeStreamFromJson(Map<String, dynamic> m) {
     id: _reqStr(m, 'id', what),
     name: _reqStr(m, 'name', what),
     type: incomeStreamTypeWire.decodeRequired(m, 'type', what),
-    expectedAmount: _reqNum(m, 'expectedAmount', what),
+    expectedAmount: Money.fromDouble(_reqNum(m, 'expectedAmount', what)),
     isSample: _optBool(m, 'isSample'),
   );
 }
@@ -1002,7 +1005,7 @@ const Set<String> billKeys = <String>{
 Map<String, dynamic> billToJson(BillItem b) => <String, dynamic>{
   'id': b.id,
   'name': b.name,
-  'amount': b.amount,
+  'amount': b.amount.pesos,
   'dueDate': b.dueDate,
   'isPaid': b.isPaid,
   if (b.isSample) 'isSample': true,
@@ -1011,7 +1014,7 @@ Map<String, dynamic> billToJson(BillItem b) => <String, dynamic>{
 BillItem billFromJson(Map<String, dynamic> m) => BillItem(
   id: _reqStr(m, 'id', 'bill'),
   name: _reqStr(m, 'name', 'bill'),
-  amount: _reqNum(m, 'amount', 'bill'),
+  amount: Money.fromDouble(_reqNum(m, 'amount', 'bill')),
   dueDate: _reqStr(m, 'dueDate', 'bill'),
   isPaid: _optBool(m, 'isPaid'),
   isSample: _optBool(m, 'isSample'),
@@ -1038,7 +1041,7 @@ Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
   'lastPayday': p.lastPayday,
   'nextPayday': p.nextPayday,
   'daysToPayday': p.daysToPayday,
-  'expectedIncome': p.expectedIncome,
+  'expectedIncome': p.expectedIncome.pesos,
   // The rule, and the only one of these six that is still true tomorrow.
   //
   // The countdown and the two labels above are written as well, and stay
@@ -1063,7 +1066,7 @@ PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
   // The clamp is not cosmetic. daysToPayday is the divisor for the per-day
   // figure on Home, and a negative would read as "minus three days to payday".
   daysToPayday: (_optNum(m, 'daysToPayday') ?? 0).round().clamp(0, 400),
-  expectedIncome: _optNum(m, 'expectedIncome') ?? 0,
+  expectedIncome: Money.fromDouble(_optNum(m, 'expectedIncome') ?? 0),
   // Absent in every backup written before the payday editor existed, and in
   // every prototype export. Empty then means "no rule recorded", which the
   // state reads as leave the stored countdown alone, so an old file keeps

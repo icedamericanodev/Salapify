@@ -133,6 +133,52 @@ void main() {
     );
   });
 
+  test('the wipe NAMES every kind of file it actually removes', () {
+    // The Pan conversation was deleted by `filesToDeleteInOrder` and missing
+    // from the done screen's list of what went. Nothing could see it: the
+    // deletion had a test, the sentence had a test, and no test connected
+    // the two. This guard is about the CONNECTION, which is where the false
+    // sentence lived, on the one screen somebody reads just before handing
+    // their phone to somebody else.
+    //
+    // COMMENTS ARE STRIPPED, for the same reason the encrypted-backup guard
+    // below strips them: this very comment says "Pan", and a guard a comment
+    // can satisfy is not a guard. What a person reads is a string literal.
+    String codeOf(String path) => File(path)
+        .readAsLinesSync()
+        .where((String line) => !line.trimLeft().startsWith('//'))
+        .join('\n');
+
+    // Only the wipe's own list, not the whole file, so the condition below
+    // is real: drop a file from the list and the guard correctly stops
+    // demanding the word.
+    final String store = codeOf('lib/data/store.dart');
+    final int from = store.indexOf('filesToDeleteInOrder() async {');
+    expect(from, isNot(-1), reason: 'the wipe list was renamed or moved');
+    final String list = store.substring(from, store.indexOf('\n  }', from));
+
+    final String sheet = codeOf('lib/features/settings/wipe_sheet.dart');
+
+    // What the list deletes, against the words somebody must then see.
+    const Map<String, String> owed = <String, String>{
+      'panHistoryFileName': 'conversation with Pan',
+      'salapify_fx_cache.json': 'exchange rates',
+      '_preImportFile': 'spare copies',
+    };
+
+    for (final MapEntry<String, String> e in owed.entries) {
+      if (!list.contains(e.key)) continue;
+      expect(
+        sheet.contains(e.value),
+        isTrue,
+        reason:
+            'the wipe deletes ${e.key} and the done screen never says '
+            '"${e.value}". That screen is a receipt, and a receipt leaving '
+            'out a file is how somebody sells a phone believing it is empty.',
+      );
+    }
+  });
+
   test('no source file promises an encrypted backup', () {
     // The prototype's knowledge base tells people they "can export an
     // encrypted JSON backup file". The export is JsonEncoder.withIndent, which

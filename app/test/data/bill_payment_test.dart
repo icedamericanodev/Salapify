@@ -45,11 +45,8 @@ void main() {
       // Directional, not conservational. "Net worth fell" is the invariant
       // here rather than a conservation, so it CAN fail by inaction, but the
       // per-account figure is what names which money moved.
-      expect(
-        balanceOf(s, 'acc_cash'),
-        cashBefore - Money.fromDouble(bill.amount),
-      );
-      expect(netWorthOf(s), worthBefore - bill.amount);
+      expect(balanceOf(s, 'acc_cash'), cashBefore - bill.amount);
+      expect(netWorthOf(s), worthBefore - bill.amount.pesos);
     });
 
     test('the entry is findable, and says what it was for', () {
@@ -89,10 +86,7 @@ void main() {
       );
 
       expect(second, isNull);
-      expect(
-        balanceOf(s, 'acc_cash'),
-        cashBefore - Money.fromDouble(bill.amount),
-      );
+      expect(balanceOf(s, 'acc_cash'), cashBefore - bill.amount);
     });
   });
 
@@ -167,7 +161,7 @@ void main() {
         const UpcomingItem(
           id: 'up_stored',
           name: 'Something',
-          amount: 100,
+          amount: Money.pesos(100),
           dueDate: 'Sep 20',
           type: UpcomingItemType.subscription,
           category: 'Groceries',
@@ -296,7 +290,7 @@ void main() {
         const UpcomingItem(
           id: 'up_new',
           name: 'Converge Fibre',
-          amount: 1699,
+          amount: Money.pesos(1699),
           dueDate: 'Sep 25',
           type: UpcomingItemType.bill,
           category: 'Bills & Utilities',

@@ -58,11 +58,22 @@ class PrivacySheet extends StatelessWidget {
           _Line(
             palette: palette,
             icon: Icons.folder_outlined,
-            title: 'Your figures live in one file here',
+            // "Your figures live in ONE file here" until 2026-10-03, which
+            // was false and had been since the pre-import copy was added.
+            // store.dart's own comment says it plainly: somebody who
+            // restored a backup once is carrying a complete second ledger,
+            // other people's names included, "that no screen in the app
+            // mentions". This is the screen whose whole job is to be an
+            // accurate receipt, so it is the screen that has to mention it.
+            title: 'Your figures live in this phone\'s own storage',
             body:
-                'Everything you type goes into a file in Salapify\'s own '
-                'private storage on this phone. Android does not let other '
-                'apps read that folder.',
+                'Everything you type goes into Salapify\'s private storage '
+                'on this phone, and Android does not let other apps read '
+                'that folder. Salapify keeps up to two spare copies there so '
+                'a mistake can be put right: the version from just before '
+                'your last change, and, only if you have ever restored a '
+                'backup, what was on the phone just before that restore. '
+                'Delete everything removes all of them.',
           ),
           // ADDED when Pan started keeping a conversation, 2026-09-20. A
           // receipt that lists six files and not the seventh is not a

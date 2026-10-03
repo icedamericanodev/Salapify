@@ -1084,7 +1084,7 @@ void qaRegressions() {
       kind: AccountKind.credit,
       institution: 'BPI',
       balance: Money.fromDouble(balance),
-      creditLimit: 40000,
+      creditLimit: Money.pesos(40000),
       monogram: 'BPI',
     );
 

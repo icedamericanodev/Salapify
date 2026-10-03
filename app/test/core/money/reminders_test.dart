@@ -28,7 +28,7 @@ void main() {
   BillItem bill({String? due, bool paid = false}) => BillItem(
     id: 'b1',
     name: 'Meralco',
-    amount: 2840,
+    amount: Money.pesos(2840),
     dueDate: due ?? iso(2),
     isPaid: paid,
   );
@@ -335,7 +335,7 @@ void main() {
     }) => UpcomingItem(
       id: 'u1',
       name: type == UpcomingItemType.subscription ? 'Spotify' : 'Globe',
-      amount: type == UpcomingItemType.subscription ? 194 : 1699,
+      amount: Money.pesos(type == UpcomingItemType.subscription ? 194 : 1699),
       dueDate: due ?? iso(1),
       type: type,
       isPaid: paid,
@@ -543,7 +543,7 @@ void planningTests() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: '2026-09-24',
           ),
         ],
@@ -569,7 +569,7 @@ void planningTests() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: '2026-09-24',
           ),
         ],
@@ -597,7 +597,7 @@ void planningTests() {
       final BillItem late = BillItem(
         id: 'b1',
         name: 'Meralco',
-        amount: 2840,
+        amount: Money.pesos(2840),
         dueDate: '2026-09-12',
       );
 
@@ -637,7 +637,7 @@ void planningTests() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: '2026-09-10',
           ),
         ],
@@ -714,7 +714,7 @@ void planningTests() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: '2026-09-20',
           ),
         ],
@@ -726,7 +726,7 @@ void planningTests() {
           BillItem(
             id: 'b1',
             name: 'Meralco',
-            amount: 2840,
+            amount: Money.pesos(2840),
             dueDate: '2026-09-20',
           ),
         ],
@@ -754,7 +754,7 @@ void planningTests() {
             BillItem(
               id: 'b1',
               name: 'Meralco',
-              amount: 2840,
+              amount: Money.pesos(2840),
               dueDate: '2026-09-20',
             ),
           ],

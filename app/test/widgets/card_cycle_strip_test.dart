@@ -33,7 +33,7 @@ void main() {
     institution: 'BPI',
     balance: Money.fromDouble(balance),
     monogram: 'BPI',
-    creditLimit: 40000,
+    creditLimit: Money.pesos(40000),
     dueDate: due,
     statementDate: cutoff,
   );

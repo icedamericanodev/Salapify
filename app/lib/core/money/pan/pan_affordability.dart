@@ -74,7 +74,10 @@ AffordVerdict judgeAffordability(double amount, PanFacts facts) {
   final double paceAfter = days > 0 ? after / days : 0;
 
   final List<BillItem> due = _billsBeforePayday(facts);
-  final double dueTotal = due.fold(0, (double s, BillItem b) => s + b.amount);
+  final double dueTotal = due.fold(
+    0,
+    (double s, BillItem b) => s + b.amount.pesos,
+  );
 
   Afford status;
   if (after < 0) {

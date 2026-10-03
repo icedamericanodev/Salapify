@@ -425,6 +425,64 @@ void main() {
         reason: 'an edit must not create a second account',
       );
     });
+
+    testWidgets('clearing a credit limit stores NO LIMIT, never a zero one', (
+      WidgetTester tester,
+    ) async {
+      // Written because moving creditLimit to Money nearly lost this. The
+      // field is nullable and the two states are different facts: null says
+      // "nobody has told Salapify what this card's limit is", and
+      // `creditUtilization` returns null for it so the card says so instead
+      // of drawing a percentage. A zero would be a CLAIM, and a claim this
+      // app would then have to divide by.
+      //
+      // The near miss was one character. Parsing an empty box gives null,
+      // and `Money.tryFromDouble(parsed ?? 0)` turns that null into
+      // Money.zero on the way past.
+      final FinancialState state = await pumpSalapify(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined).last);
+      await tester.pumpAndSettle();
+
+      Account card() => state.accounts.firstWhere(
+        (Account a) => a.name == 'BPI Rewards Card',
+      );
+
+      // The fixture has a limit before the edit, so clearing it is a real
+      // change rather than a no-op that would pass either way.
+      expect(
+        card().creditLimit,
+        Money.pesos(40000),
+        reason: 'the seed card has no limit to clear, so this proves nothing',
+      );
+
+      // The sheet is opened directly rather than tapped to through the
+      // Accounts list. What is under test is the SHEET'S save path, and the
+      // card sits on the liabilities half below the fold, so routing through
+      // the list would add a scroll and a tap target that have nothing to do
+      // with the rule being guarded.
+      AccountSheet.show(
+        tester.element(find.byType(AccountsScreen)),
+        palette: Palette.of(state.theme),
+        state: state,
+        existing: card(),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AccountSheet), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextField, '40000'), '');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Save changes'));
+
+      expect(
+        card().creditLimit,
+        isNull,
+        reason:
+            'an empty limit box was stored as a limit of zero, so the card '
+            'now claims a limit nobody set and the utilisation percentage '
+            'divides by it',
+      );
+    });
   });
 }
 

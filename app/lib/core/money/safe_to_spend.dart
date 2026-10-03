@@ -35,7 +35,12 @@ SafeToSpendAnalysis computeSafeToSpend({
   // 2. Bills still owed this cycle.
   final double totalBillsAmount = bills
       .where((BillItem b) => !b.isPaid)
-      .fold<double>(0, (double sum, BillItem b) => sum + b.amount);
+      // Read as pesos rather than summed as Money, DELIBERATELY. Every
+      // figure this engine produces is still a double, so folding in
+      // centavos here would only convert back two lines later and change
+      // the arithmetic of a golden-locked engine for no gain. The engine
+      // moves whole, with its outputs, in the next increment.
+      .fold<double>(0, (double sum, BillItem b) => sum + b.amount.pesos);
 
   // 3. Active installment obligations.
   final double totalInstallmentsObligation = installments
@@ -55,12 +60,12 @@ SafeToSpendAnalysis computeSafeToSpend({
   //    a haircut on money that is not guaranteed.
   double totalExpectedInflow = 0;
   for (final IncomeStream stream in incomeStreams) {
-    double amountToAdd = stream.expectedAmount;
+    double amountToAdd = stream.expectedAmount.pesos;
 
     if (scenario == DecisionScenario.conservative) {
       if (stream.type == IncomeStreamType.freelance ||
           stream.type == IncomeStreamType.irregular) {
-        amountToAdd = stream.expectedAmount * 0.5;
+        amountToAdd = stream.expectedAmount.pesos * 0.5;
       } else if (stream.type == IncomeStreamType.thirteenthMonth) {
         // A year-end bonus does not help pace this fortnight.
         amountToAdd = 0;
@@ -71,8 +76,8 @@ SafeToSpendAnalysis computeSafeToSpend({
   }
 
   // Fall back to the declared payday income when no streams are set up.
-  if (totalExpectedInflow == 0 && payday.expectedIncome > 0) {
-    totalExpectedInflow = payday.expectedIncome;
+  if (totalExpectedInflow == 0 && payday.expectedIncome.isPositive) {
+    totalExpectedInflow = payday.expectedIncome.pesos;
   }
 
   // 6. Emergency buffer held back from spendable cash.

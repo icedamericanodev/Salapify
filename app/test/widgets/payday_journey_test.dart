@@ -108,7 +108,7 @@ void main() {
 
     // 1. The store holds the RULE, not a countdown somebody typed.
     expect(state.payday.paydayDays, <int>[10, 25]);
-    expect(state.payday.expectedIncome, 20000);
+    expect(state.payday.expectedIncome, Money.pesos(20000));
 
     // 2. And the countdown is derived from it. On 11 September the next
     //    payday under a 10th and 25th rule is the 25th, fourteen days out.
@@ -131,7 +131,10 @@ void main() {
     WidgetTester tester,
   ) async {
     final FinancialState state = fresh();
-    state.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    state.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
     await pump(tester, state);
 
     await tester.tap(find.text('DETAILS'));
@@ -159,7 +162,10 @@ void main() {
       reason: 'the first question is not the one this test is about',
     );
 
-    state.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    state.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
     await tester.pumpAndSettle();
 
     before = state.healthReport;
@@ -183,11 +189,17 @@ void main() {
     final FinancialState monday = FinancialState(
       clock: DateTime(2026, 9, 11, 9),
     );
-    monday.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    monday.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
     final FinancialState later = FinancialState(
       clock: DateTime(2026, 9, 18, 9),
     );
-    later.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    later.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
 
     expect(monday.payday.daysToPayday, 14);
     expect(
@@ -204,7 +216,10 @@ void main() {
     WidgetTester tester,
   ) async {
     final FinancialState state = fresh();
-    state.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    state.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
     await pump(tester, state);
 
     expect(find.text('14 days to payday'), findsOneWidget);
@@ -218,7 +233,7 @@ void main() {
     expect(state.payday.paydayDays, isEmpty);
     expect(
       state.payday.expectedIncome,
-      0,
+      Money.zero,
       reason:
           'the expected income outlived the payday, so Safe to Spend is '
           'still counting money that nothing says is coming',
@@ -260,12 +275,15 @@ void main() {
     // The rule is the stored half, so a restore that dropped it would leave
     // a countdown that freezes again the moment the app restarts.
     final FinancialState state = fresh();
-    state.setPaydayRule(daysOfMonth: <int>[10, 25], expectedIncome: 20000);
+    state.setPaydayRule(
+      daysOfMonth: <int>[10, 25],
+      expectedIncome: Money.pesos(20000),
+    );
 
     final String file = state.snapshot().encode(at: state.now);
     final Snapshot back = Snapshot.decode(file);
 
     expect(back.payday.paydayDays, <int>[10, 25]);
-    expect(back.payday.expectedIncome, 20000);
+    expect(back.payday.expectedIncome, Money.pesos(20000));
   });
 }

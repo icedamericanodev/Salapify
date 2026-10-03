@@ -26,12 +26,16 @@ class BudgetStatus {
 
   final String category;
   final String emoji;
-  final double limit;
-  final double spent;
+
+  // All three in whole centavos, with Budget.limit. A status whose limit was
+  // exact and whose spent was a float sum put the two sides of "are you over"
+  // on different footings, which is the comparison this card exists to make.
+  final Money limit;
+  final Money spent;
 
   /// Can go NEGATIVE, unlike the prototype's display which clamps the bar.
   /// Somebody 1,200 over their food budget needs to see the 1,200.
-  final double remaining;
+  final Money remaining;
 
   /// 0 to 100, capped. The prototype caps it so the progress bar cannot
   /// overflow its track; [isOver] is what actually says you went past.
@@ -41,7 +45,7 @@ class BudgetStatus {
   /// mystery: one big shop and ten small ones look identical.
   final int entryCount;
 
-  bool get isOver => remaining < 0;
+  bool get isOver => remaining.isNegative;
 
   /// Close enough to matter but not past it. The prototype's threshold.
   bool get isNear => percent >= 80 && !isOver;
@@ -102,16 +106,19 @@ List<BudgetStatus> computeBudgets({
         )
         .toList();
 
-    final double spent = mine.fold<double>(
-      0,
-      (double s, Transaction t) => s + t.amount.pesos,
+    final Money spent = mine.fold<Money>(
+      Money.zero,
+      (Money s, Transaction t) => s + t.amount,
     );
 
     // Guard the divide. A zero limit is not reachable through the UI today,
     // and a budget screen is not worth an Infinity on somebody's phone.
-    final int percent = b.limit <= 0
+    //
+    // The percentage divides CENTAVOS by CENTAVOS, which is the same ratio
+    // as pesos by pesos and avoids two conversions on the way.
+    final int percent = !b.limit.isPositive
         ? 0
-        : (spent / b.limit * 100).round().clamp(0, 100);
+        : (spent.centavos / b.limit.centavos * 100).round().clamp(0, 100);
 
     return BudgetStatus(
       category: b.category,
@@ -135,13 +142,13 @@ class BudgetTotals {
     required this.nearCount,
   });
 
-  final double totalLimit;
-  final double totalSpent;
+  final Money totalLimit;
+  final Money totalSpent;
 
   /// Floored at zero, which is the prototype's. The headline answers "how
   /// much have I got left", and a negative answer to that question is better
   /// said by the per-budget rows that are actually over.
-  final double leftToSpend;
+  final Money leftToSpend;
 
   final int overCount;
   final int nearCount;
@@ -150,18 +157,18 @@ class BudgetTotals {
 }
 
 BudgetTotals computeBudgetTotals(List<BudgetStatus> rows) {
-  final double limit = rows.fold<double>(
-    0,
-    (double s, BudgetStatus b) => s + b.limit,
+  final Money limit = rows.fold<Money>(
+    Money.zero,
+    (Money s, BudgetStatus b) => s + b.limit,
   );
-  final double spent = rows.fold<double>(
-    0,
-    (double s, BudgetStatus b) => s + b.spent,
+  final Money spent = rows.fold<Money>(
+    Money.zero,
+    (Money s, BudgetStatus b) => s + b.spent,
   );
   return BudgetTotals(
     totalLimit: limit,
     totalSpent: spent,
-    leftToSpend: (limit - spent) < 0 ? 0 : limit - spent,
+    leftToSpend: (limit - spent).isNegative ? Money.zero : limit - spent,
     overCount: rows.where((BudgetStatus b) => b.isOver).length,
     nearCount: rows.where((BudgetStatus b) => b.isNear).length,
   );
@@ -237,9 +244,9 @@ class UpcomingTotals {
   /// come to 5,529. Splitting the two is the divergence, and it is a
   /// presentation fix rather than a money one: no stored figure changes and
   /// both numbers are shown.
-  final double totalOut;
+  final Money totalOut;
 
-  final double totalIn;
+  final Money totalIn;
   final int billCount;
 }
 
@@ -252,10 +259,13 @@ UpcomingTotals computeUpcomingTotals(List<UpcomingItem> items) {
   );
 
   return UpcomingTotals(
-    totalOut: out.fold<double>(0, (double s, UpcomingItem u) => s + u.amount),
+    totalOut: out.fold<Money>(
+      Money.zero,
+      (Money s, UpcomingItem u) => s + u.amount,
+    ),
     totalIn: unpaid
         .where((UpcomingItem u) => u.countsAsIncome)
-        .fold<double>(0, (double s, UpcomingItem u) => s + u.amount),
+        .fold<Money>(Money.zero, (Money s, UpcomingItem u) => s + u.amount),
     billCount: out.length,
   );
 }
@@ -292,12 +302,17 @@ List<Goal> applyGoalContribution(
 /// A limit of zero or less is REFUSED rather than stored. It would make every
 /// percentage meaningless and reads as "I have no budget for this", which is
 /// deleting the budget, a different action with different consequences.
+///
+/// The `isFinite` guard that used to stand here is GONE, and that is not a
+/// loosening: [Money] cannot hold a NaN or an Infinity at all, because
+/// `Money.fromDouble` refuses one at the boundary where a typed figure or a
+/// backup becomes money. The check moved rather than disappeared.
 List<Budget> applyBudgetLimit(
   List<Budget> budgets,
   String category,
-  double limit,
+  Money limit,
 ) {
-  if (!limit.isFinite || limit <= 0) return budgets;
+  if (!limit.isPositive) return budgets;
   return budgets.map((Budget b) {
     if (b.category != category) return b;
     return Budget(category: b.category, limit: limit, emoji: b.emoji);

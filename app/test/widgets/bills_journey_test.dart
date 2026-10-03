@@ -130,10 +130,10 @@ void main() {
 
       expect(
         balanceOf(state, 'acc_gcash'),
-        gcashBefore - Money.fromDouble(meralco.amount),
+        gcashBefore - meralco.amount,
         reason: 'the chosen account did not fall by the bill',
       );
-      expect(netWorthOf(state), worthBefore - meralco.amount);
+      expect(netWorthOf(state), worthBefore - meralco.amount.pesos);
     });
 
     testWidgets('cancelling the dialog pays nothing', (
@@ -401,7 +401,7 @@ void main() {
       await payWith(tester, 'GCash');
       expect(
         balanceOf(state, 'acc_gcash'),
-        gcashBefore - Money.fromDouble(meralco.amount),
+        gcashBefore - meralco.amount,
         reason: 'the Coming Up tick ticked off without moving money',
       );
     });

@@ -344,7 +344,7 @@ HealthIndicator _payday(
     if (due == null) continue;
     if (due.isBefore(DateTime(now.year, now.month, now.day))) continue;
     if (due.isAfter(cutoff)) continue;
-    committed += b.amount;
+    committed += b.amount.pesos;
   }
 
   final double needed = m.dailyPace * days + committed;
@@ -403,8 +403,8 @@ HealthIndicator _promised(
   const String question = 'How much of my pay is already promised';
 
   // Monthly take-home, from what the person said they receive each payday.
-  final double monthly = payday.isSet && payday.expectedIncome > 0
-      ? payday.expectedIncome * (payday.cycleType == '15_30' ? 2 : 1)
+  final double monthly = payday.isSet && payday.expectedIncome.isPositive
+      ? payday.expectedIncome.pesos * (payday.cycleType == '15_30' ? 2 : 1)
       : 0;
 
   if (monthly <= 0) {
@@ -603,7 +603,9 @@ HealthIndicator _limits(
   const String id = 'limits';
   const String question = 'Am I inside the limits I set';
 
-  final List<Budget> real = budgets.where((Budget b) => b.limit > 0).toList();
+  final List<Budget> real = budgets
+      .where((Budget b) => b.limit.isPositive)
+      .toList();
 
   if (real.isEmpty) {
     return HealthIndicator.unmeasured(
@@ -626,7 +628,13 @@ HealthIndicator _limits(
 
   BudgetStatus? worst;
   for (final BudgetStatus b in status) {
-    if (worst == null || b.spent / b.limit > worst.spent / worst.limit) {
+    // Cross multiplied rather than divided, so the comparison that picks the
+    // worst category is exact integer arithmetic instead of two divisions
+    // whose last bits decide a tie. Both limits are positive here, because
+    // `real` filtered on that above, so the inequality keeps its direction.
+    if (worst == null ||
+        b.spent.centavos * worst.limit.centavos >
+            worst.spent.centavos * b.limit.centavos) {
       worst = b;
     }
   }
@@ -639,7 +647,8 @@ HealthIndicator _limits(
     );
   }
 
-  final int percent = ((worst.spent / worst.limit) * 100).round();
+  final int percent = ((worst.spent.centavos / worst.limit.centavos) * 100)
+      .round();
   final HealthTone tone = percent > 100
       ? HealthTone.tight
       : percent >= 80
@@ -650,7 +659,8 @@ HealthIndicator _limits(
     id: id,
     question: question,
     reading: percent > 100
-        ? '${worst.category} is over by ${formatPeso(worst.spent - worst.limit)}'
+        ? '${worst.category} is over by '
+              '${formatPeso((worst.spent - worst.limit).pesos)}'
         : 'Closest is ${worst.category}, at $percent% of its limit',
     detail: '${status.length} ${status.length == 1 ? 'limit' : 'limits'} set.',
     tone: tone,

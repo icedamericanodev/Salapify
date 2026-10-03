@@ -66,7 +66,7 @@ Future<Transaction?> payBillFlow(
     ..showSnackBar(
       SnackBar(
         content: Text(
-          '${formatPeso(item.amount)} left '
+          '${formatPeso(item.amount.pesos)} left '
           '${state.accounts.firstWhere((Account a) => a.id == choice.accountId).name}.',
         ),
         // The way back from a mis-tap. A tick that moves real money sits on a
@@ -154,7 +154,7 @@ class _PayBillDialogState extends State<_PayBillDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(
-              '${formatPeso(widget.item.amount)} will leave the account you '
+              '${formatPeso(widget.item.amount.pesos)} will leave the account you '
               'pick, and the payment will show up in Activity.',
               style: AppType.body(p),
             ),

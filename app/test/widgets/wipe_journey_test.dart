@@ -172,6 +172,20 @@ void main() {
 
     // Half two: a person can SEE it. Walk out of the sheet to Home.
     expect(find.text('Gone'), findsOneWidget);
+
+    // And the receipt NAMES the Pan conversation, which it did not until
+    // 2026-10-03 although the wipe genuinely deleted it. This is the
+    // rendered half of the guard in truthful_claims_test: that one reads
+    // the source, this one reads the screen, because a string can be
+    // present in the file and never reach a person.
+    expect(
+      find.textContaining('conversation with Pan'),
+      findsOneWidget,
+      reason:
+          'the done screen lists what was removed and leaves out the file '
+          'holding sentences somebody typed in their own words, which is '
+          'what they are wiping before they hand the phone over',
+    );
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.close).first);

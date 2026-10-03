@@ -150,6 +150,17 @@ class Snapshot {
   /// build cannot quietly drop what a newer one wrote.
   static const int currentSchemaVersion = 1;
 
+  /// What a file with NO `schemaVersion` at all is taken to be.
+  ///
+  /// The oldest shape that has ever existed, which is also the only one so
+  /// far. Written down as its own constant rather than left implicit,
+  /// because the two numbers mean different things and will one day differ:
+  /// [currentSchemaVersion] moves every time the shape changes, this one
+  /// never does.
+  ///
+  /// See [readSchemaVersion] for why an absent key must not read as current.
+  static const int legacySchemaVersion = 1;
+
   /// Collection names, used as the keys of both the document and [Extras].
   static const String kAccounts = 'accounts';
   static const String kTransactions = 'transactions';
@@ -411,9 +422,104 @@ class Snapshot {
     return fromJson(Map<String, dynamic>.from(parsed));
   }
 
-  static Snapshot fromJson(Map<String, dynamic> m) {
+  /// The shape version a loaded document claims, as a number to compare.
+  ///
+  /// Two fence holes this closes. Both are harmless today, because only one
+  /// version has ever existed and [legacySchemaVersion] and
+  /// [currentSchemaVersion] are therefore the same number. Both become
+  /// unfindable bugs the day a second version ships.
+  ///
+  /// ABSENT MEANS THE OLDEST VERSION, never the current one. The old check
+  /// was `version is num && version > currentSchemaVersion`, so a file with
+  /// no `schemaVersion` at all simply fell past it with no objection, and
+  /// `looksLikeSalapify` deliberately admits such a file on one collection
+  /// key alone. The moment version 2 exists, an unversioned prototype backup
+  /// would be treated as already current and would never be carried forward.
+  /// Nothing would throw; every figure would just be read by the wrong
+  /// reader.
+  ///
+  /// NOT A NUMBER IS A REFUSAL, never a shrug. `"schemaVersion": "2"` is a
+  /// string, failed `is num`, and was read as if the file were current. The
+  /// same went for an explicit null and for a nested object. A version this
+  /// build cannot even compare is a file it has no business guessing at, so
+  /// it says so in a sentence rather than opening the file anyway.
+  ///
+  /// A whole double is accepted, because `jsonDecode` hands back `1.0` for a
+  /// `1.0` in the text and that is the same version. A fractional one is
+  /// not: there is no version 1.5 to dispatch on.
+  ///
+  /// [whenAbsent] exists so the absent rule can actually be PROVEN. While
+  /// only one version has ever existed, [legacySchemaVersion] and
+  /// [currentSchemaVersion] are the same number, so swapping the return
+  /// below for `currentSchemaVersion` produces no test failure at all and
+  /// the test then reads as proof while proving nothing. Passing a floor the
+  /// current version is not makes the deliberate break fail the way a break
+  /// is supposed to. Production never passes it.
+  static int readSchemaVersion(
+    Map<String, dynamic> m, {
+    int whenAbsent = legacySchemaVersion,
+  }) {
+    if (!m.containsKey('schemaVersion')) return whenAbsent;
     final Object? version = m['schemaVersion'];
-    if (version is num && version > currentSchemaVersion) {
+    if (version is int) return version;
+    if (version is double && version.isFinite && version % 1 == 0) {
+      return version.toInt();
+    }
+    throw SnapshotFormatException(
+      'The file says its format is "$version", which is not a whole number, '
+      'so Salapify cannot tell which version wrote it. Nothing has been '
+      'changed. Try another copy of your backup.',
+    );
+  }
+
+  /// Collections only the OLD Salapify family ever wrote.
+  ///
+  /// Salapify 3 is not a continuation of those apps. It was rebuilt in
+  /// Flutter from the Google AI Studio prototype in `src/`, and the React
+  /// Native app in `mobile/` and Salapify 2 in `archive/` are a separate
+  /// branch of the family that was archived. They count their file shape to
+  /// 12 (`mobile/lib/backup.js:26`,
+  /// `archive/salapify-2-flutter/lib/data/backup.dart:22`) while this one
+  /// starts at 1, because the two numbers count two different shapes and not
+  /// one shape that went backwards.
+  ///
+  /// Both of them keep `receivables` and `people` as top level lists
+  /// (`backup.dart:522` and `:532`). Salapify 3 has neither and is not going
+  /// to: its `debts` collection carries BOTH directions on purpose, what you
+  /// owe and what you are owed, which is the first paragraph of the working
+  /// rules. The prototype this app actually came from writes neither either
+  /// (`src/components/SettingsModal.tsx` exports ten keys and that is all),
+  /// so this check cannot catch our own parent.
+  ///
+  /// It is a SHAPE check rather than a version check because the shape is
+  /// what makes the file unreadable here. The number is a label and could in
+  /// principle collide one day; `receivables` next to `people` could not get
+  /// here by accident. `snapshot_test.dart` asserts a genuine Salapify 3
+  /// document is not caught by it, which is the tripwire if anybody ever
+  /// does add a `people` collection to this app.
+  static const List<String> _oldFamilyKeys = <String>['receivables', 'people'];
+
+  static bool looksLikeTheOldSalapify(Map<String, dynamic> m) =>
+      _oldFamilyKeys.any((String key) => m[key] is List);
+
+  static Snapshot fromJson(Map<String, dynamic> m) {
+    // BEFORE the version compare, because this file's problem is its shape
+    // and the version message would send somebody somewhere that does not
+    // exist. A format 12 file hitting the newer-than-me branch was told
+    // "Update the app rather than opening it here", which cannot be done,
+    // because THIS is the newer app.
+    if (looksLikeTheOldSalapify(m)) {
+      throw const SnapshotFormatException(
+        'This backup is from the older Salapify, the one that kept what you '
+        'owe and what you are owed in two separate lists. This app keeps '
+        'them together, so reading the file here would bring across only '
+        'part of your records. Nothing on this phone has been changed. Keep '
+        'the file somewhere safe rather than deleting it.',
+      );
+    }
+
+    final int version = readSchemaVersion(m);
+    if (version > currentSchemaVersion) {
       throw SnapshotFormatException(
         'This file was written by a newer version of Salapify '
         '(format $version, this build reads $currentSchemaVersion). '

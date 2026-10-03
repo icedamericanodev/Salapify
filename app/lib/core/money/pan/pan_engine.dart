@@ -782,8 +782,11 @@ PanAnswer _budgets(PanFacts facts) {
   };
   final List<String> over = <String>[];
   for (final Budget b in facts.budgets) {
-    final double used = spent[b.category] ?? 0;
-    if (b.limit > 0 && used > b.limit) over.add(b.category);
+    // `spendingByCategory` is still a peso double, so it is converted here
+    // rather than compared across types. It moves to Money with the rest of
+    // the facts record; until then this is the one boundary.
+    final Money used = Money.fromDouble(spent[b.category] ?? 0);
+    if (b.limit.isPositive && used > b.limit) over.add(b.category);
   }
   return PanAnswer(
     topic: 'budgets',
@@ -880,14 +883,14 @@ PanAnswer _due(PanFacts facts) {
   }
   final double total = unpaid.fold<double>(
     0,
-    (double s, BillItem b) => s + b.amount,
+    (double s, BillItem b) => s + b.amount.pesos,
   );
   final StringBuffer sb = StringBuffer(
     '${formatPeso(total)} is unpaid across ${unpaid.length} '
     '${unpaid.length == 1 ? 'bill' : 'bills'}:',
   );
   for (final BillItem b in unpaid.take(5)) {
-    sb.write('\n  ${b.name}: ${formatPeso(b.amount)}, due ${b.dueDate}');
+    sb.write('\n  ${b.name}: ${formatPeso(b.amount.pesos)}, due ${b.dueDate}');
   }
   if (unpaid.length > 5) sb.write('\n  and ${unpaid.length - 5} more.');
   sb.write(

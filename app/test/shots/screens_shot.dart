@@ -495,7 +495,10 @@ void main() {
       final Palette palette = Palette.of(state.theme);
       state.removeSampleData();
       if (shape.days.isNotEmpty) {
-        state.setPaydayRule(daysOfMonth: shape.days, expectedIncome: 20000);
+        state.setPaydayRule(
+          daysOfMonth: shape.days,
+          expectedIncome: Money.pesos(20000),
+        );
       }
 
       await tester.pumpWidget(
@@ -2262,7 +2265,7 @@ void _cardFaceShots() {
     balance: Money.of(12480, 50),
     monogram: 'BP',
     accountNumber: '**** 8819',
-    creditLimit: 40000,
+    creditLimit: Money.pesos(40000),
     dueDate: 'Oct 3',
     statementDate: 'Sep 18',
     interestRate: 3.5,
@@ -2278,7 +2281,7 @@ void _cardFaceShots() {
     balance: Money.pesos(6200),
     monogram: 'MB',
     accountNumber: '4127 8890 2211 4402',
-    creditLimit: 150000,
+    creditLimit: Money.pesos(150000),
     dueDate: 'Oct 12',
     statementDate: 'Sep 26',
     interestRate: 2.0,

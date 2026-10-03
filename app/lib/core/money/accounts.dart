@@ -157,10 +157,12 @@ List<AccountGroup> groupLiabilities(List<Account> accounts) {
 /// instead of guessing.
 int? creditUtilization(Account account) {
   if (account.kind != AccountKind.credit) return null;
-  final double? limit = account.creditLimit;
-  if (limit == null || limit <= 0) return null;
+  final Money? limit = account.creditLimit;
+  if (limit == null || !limit.isPositive) return null;
+  // Converted through pesos because the FX rate is a double, so the result
+  // is a double either way. The round back to centavos is what Money is for.
   final Money limitInPhp = Money.fromDouble(
-    convertToPhp(limit, account.currency),
+    convertToPhp(limit.pesos, account.currency),
   );
   if (!limitInPhp.isPositive) return null;
   return (account.balanceInPhp.centavos / limitInPhp.centavos * 100).round();
