@@ -42,7 +42,7 @@ class EditBudgetSheet extends StatefulWidget {
 
 class _EditBudgetSheetState extends State<EditBudgetSheet> {
   late final TextEditingController _limit = TextEditingController(
-    text: widget.row.limit.toStringAsFixed(0),
+    text: widget.row.limit.pesos.toStringAsFixed(0),
   );
 
   @override
@@ -51,10 +51,19 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
     super.dispose();
   }
 
-  double? get _value => parsePlanAmount(_limit.text);
+  /// The typed limit as money, or null when the box holds nothing usable.
+  ///
+  /// `tryFromDouble`, not `fromDouble`: this is read on every keystroke, and
+  /// a half typed figure must not throw on a screen somebody is looking at.
+  /// It is also the boundary where a typed number becomes money, which is
+  /// the only place a NaN or an Infinity can be turned away.
+  Money? get _value {
+    final double? typed = parsePlanAmount(_limit.text);
+    return typed == null ? null : Money.tryFromDouble(typed);
+  }
 
   void _save() {
-    final double? v = _value;
+    final Money? v = _value;
     if (v == null) return;
     widget.state.setBudgetLimit(widget.row.category, v);
     Navigator.of(context).pop();
@@ -63,12 +72,12 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
   @override
   Widget build(BuildContext context) {
     final Palette p = Palette.of(widget.state.theme);
-    final double? v = _value;
+    final Money? v = _value;
 
     // What the NEW limit means against what is ALREADY spent. Raising a limit
     // to something you have already passed is a thing people do by accident,
     // and the only moment to notice is before saving.
-    final double? remaining = v == null ? null : v - widget.row.spent;
+    final Money? remaining = v == null ? null : v - widget.row.spent;
 
     return SheetScaffold(
       palette: p,
@@ -97,17 +106,17 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
           BreakdownRow(
             palette: p,
             label: 'Already spent this month',
-            value: formatPeso(widget.row.spent),
+            value: formatPeso(widget.row.spent.pesos),
           ),
           if (remaining != null)
             BreakdownRow(
               palette: p,
-              label: remaining < 0 ? 'Would be over by' : 'Would leave',
-              value: formatPeso(remaining.abs()),
+              label: remaining.isNegative ? 'Would be over by' : 'Would leave',
+              value: formatPeso(remaining.abs.pesos),
               emphasis: true,
-              valueColor: remaining < 0 ? p.negative : p.positive,
+              valueColor: remaining.isNegative ? p.negative : p.positive,
             ),
-          if (remaining != null && remaining < 0) ...<Widget>[
+          if (remaining != null && remaining.isNegative) ...<Widget>[
             const SizedBox(height: Spacing.xs),
             Text(
               'This limit is below what you have already spent, so the budget '

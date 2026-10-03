@@ -32,6 +32,18 @@ void main() {
     expect(actual, moreOrLessEquals(expected, epsilon: 0.005), reason: what);
   }
 
+  /// A money figure against its golden, EXACTLY.
+  ///
+  /// The expected peso values below are untouched by the Money migration and
+  /// must stay that way: they are the lock, not a reading of the code. What
+  /// changes is the comparison. The half centavo epsilon above existed
+  /// because a float sum of expenses could land a hair off, and it cannot
+  /// any more. Keeping an epsilon on an exact type would hide the single
+  /// thing this lock is for, which is a centavo moving.
+  void exactly(Money actual, double expectedPesos, String what) {
+    expect(actual, Money.fromDouble(expectedPesos), reason: what);
+  }
+
   group('budgets, this month, excluded entries ignored', () {
     test('every line', () {
       const Map<String, (double spent, double limit, int percent, int n)>
@@ -47,8 +59,8 @@ void main() {
 
       expected.forEach((String category, (double, double, int, int) want) {
         final BudgetStatus b = row(category);
-        closeTo(b.spent, want.$1, '$category spent');
-        closeTo(b.limit, want.$2, '$category limit');
+        exactly(b.spent, want.$1, '$category spent');
+        exactly(b.limit, want.$2, '$category limit');
         expect(b.percent, want.$3, reason: '$category percent');
         expect(b.entryCount, want.$4, reason: '$category entry count');
       });
@@ -61,7 +73,7 @@ void main() {
       // at 5,680 of 6,500 and into "watch closely" on a bill the person has
       // already said is not theirs.
       final BudgetStatus bills = row('Bills & Utilities');
-      closeTo(bills.spent, 2840, 'the excluded duplicate was counted');
+      exactly(bills.spent, 2840, 'the excluded duplicate was counted');
       expect(bills.entryCount, 1, reason: 'both Meralco charges were counted');
       expect(bills.health, BudgetHealth.onTrack);
 
@@ -97,7 +109,7 @@ void main() {
         now: now,
       ).firstWhere((BudgetStatus b) => b.category == 'Food & Dining');
 
-      closeTo(food.spent, 465, 'August spending reached a September budget');
+      exactly(food.spent, 465, 'August spending reached a September budget');
       expect(food.isOver, isFalse);
     });
 
@@ -124,7 +136,7 @@ void main() {
     test('over budget keeps a real negative remaining, not a clamped zero', () {
       final BudgetStatus debt = row('Debt & Loan Servicing');
       expect(debt.isOver, isTrue);
-      closeTo(debt.remaining, -450, 'remaining');
+      exactly(debt.remaining, -450, 'remaining');
       // The PERCENT is capped so a progress bar cannot overflow its track.
       // The remaining is not, because somebody 450 over needs the 450.
       expect(debt.percent, 100);
@@ -132,9 +144,9 @@ void main() {
 
     test('totals', () {
       final BudgetTotals t = computeBudgetTotals(budgets());
-      closeTo(t.totalLimit, 42000, 'totalLimit');
-      closeTo(t.totalSpent, 16574.75, 'totalSpent');
-      closeTo(t.leftToSpend, 25425.25, 'leftToSpend');
+      exactly(t.totalLimit, 42000, 'totalLimit');
+      exactly(t.totalSpent, 16574.75, 'totalSpent');
+      exactly(t.leftToSpend, 25425.25, 'leftToSpend');
       expect(t.overCount, 1);
       expect(t.nearCount, 0);
       expect(t.allOnTrack, isFalse);
@@ -145,20 +157,20 @@ void main() {
         const BudgetStatus(
           category: 'Food & Dining',
           emoji: 'x',
-          limit: 1000,
-          spent: 5000,
-          remaining: -4000,
+          limit: Money.pesos(1000),
+          spent: Money.pesos(5000),
+          remaining: Money.pesos(-4000),
           percent: 100,
           entryCount: 1,
         ),
       ];
-      closeTo(computeBudgetTotals(broke).leftToSpend, 0, 'leftToSpend');
+      exactly(computeBudgetTotals(broke).leftToSpend, 0, 'leftToSpend');
     });
 
     test('a zero limit does not produce infinity or NaN', () {
       final List<BudgetStatus> rows = computeBudgets(
         budgets: const <Budget>[
-          Budget(category: 'Food & Dining', limit: 0, emoji: 'x'),
+          Budget(category: 'Food & Dining', limit: Money.zero, emoji: 'x'),
         ],
         transactions: SeedData.transactions(testToday),
         now: now,
@@ -278,33 +290,66 @@ void main() {
       final List<Budget> after = applyBudgetLimit(
         SeedData.budgets,
         'Food & Dining',
-        12000,
+        Money.pesos(12000),
       );
-      closeTo(
+      exactly(
         after.firstWhere((Budget b) => b.category == 'Food & Dining').limit,
         12000,
         'the new limit did not land',
       );
-      closeTo(
+      exactly(
         after.firstWhere((Budget b) => b.category == 'Groceries').limit,
         8000,
         'changing one limit changed another',
       );
     });
 
-    test('refuses zero, negative, and nonsense', () {
-      for (final double bad in <double>[0, -1, double.nan, double.infinity]) {
+    test('refuses zero and negative', () {
+      for (final Money bad in <Money>[
+        Money.zero,
+        Money.pesos(-1),
+        const Money(-1), // one centavo under, not one peso under
+      ]) {
         final List<Budget> after = applyBudgetLimit(
           SeedData.budgets,
           'Food & Dining',
           bad,
         );
-        closeTo(
+        exactly(
           after.firstWhere((Budget b) => b.category == 'Food & Dining').limit,
           9000,
-          'a limit of $bad was stored',
+          'a limit of ${bad.centavos} centavos was stored',
         );
       }
+    });
+
+    test('nonsense is refused EARLIER now, and cannot reach the engine', () {
+      // This test used to hand `applyBudgetLimit` a NaN and an Infinity and
+      // check it shrugged them off. It cannot any more, and that is the
+      // point rather than a gap: a Money has no way to BE one, so the
+      // refusal moved to the boundary where a typed figure becomes money.
+      // Asserting it here keeps the rule guarded after the guard moved,
+      // which is otherwise exactly how a check gets quietly deleted.
+      for (final double nonsense in <double>[
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+      ]) {
+        expect(
+          Money.tryFromDouble(nonsense),
+          isNull,
+          reason: '$nonsense became a usable amount of money',
+        );
+      }
+
+      // And the engine's own refusal still stands for everything that CAN
+      // be money, which the test above covers. Together they are the pair
+      // the single old test used to be.
+      expect(
+        applyBudgetLimit(SeedData.budgets, 'Food & Dining', Money.zero),
+        same(SeedData.budgets),
+        reason: 'a refused limit should return the list untouched',
+      );
     });
   });
 

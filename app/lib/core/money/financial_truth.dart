@@ -169,28 +169,32 @@ List<ControlCenterAlert> runControlCenterScan({
     // good. That was already wrong for the two older states; it becomes
     // visible with the third, because taking a payment back and watching the
     // warning stay is the obvious thing a person would notice.
-    final double spent = transactions
+    final Money spent = transactions
         .where(
           (Transaction t) =>
               t.countsTowardTotals &&
               t.type == TransactionType.expense &&
               t.category.toLowerCase() == b.category.toLowerCase(),
         )
-        .fold<double>(0, (double s, Transaction t) => s + t.amount.pesos);
+        // FOLDED IN CENTAVOS, not pesos. Every term is already exact, and
+        // adding them as doubles was the one place drift could creep into a
+        // comparison that decides whether somebody is told they overspent.
+        .fold<Money>(Money.zero, (Money s, Transaction t) => s + t.amount);
 
-    if (spent > b.limit * 1.15) {
+    if (spent > b.limit.times(1.15)) {
       alerts.add(
         ControlCenterAlert(
           id: 'alert_drift_${b.category}',
           type: AlertType.categoryDrift,
           title: 'Category Drift: ${b.category}',
           description:
-              'Spent ₱${_n(spent)} which is ${((spent / b.limit) * 100).round()}% '
-              'of your ₱${_n(b.limit)} budget limit.',
-          severity: spent > b.limit * 1.3
+              'Spent ₱${_n(spent.pesos)} which is '
+              '${((spent.pesos / b.limit.pesos) * 100).round()}% '
+              'of your ₱${_n(b.limit.pesos)} budget limit.',
+          severity: spent > b.limit.times(1.3)
               ? AlertSeverity.high
               : AlertSeverity.medium,
-          amount: spent - b.limit,
+          amount: (spent - b.limit).pesos,
           suggestedAction:
               'Pace daily expenses or temporarily reallocate limit from discretionary categories.',
         ),
@@ -261,26 +265,28 @@ List<ControlCenterAlert> runControlCenterScan({
   }
 
   // 9. Total spending past total budget.
-  final double totalExpenses = expenses.fold<double>(
-    0,
-    (double s, Transaction t) => s + t.amount.pesos,
+  // Both sides in centavos, so the comparison that raises this alert cannot
+  // turn on a fraction neither figure really has.
+  final Money totalExpenses = expenses.fold<Money>(
+    Money.zero,
+    (Money s, Transaction t) => s + t.amount,
   );
-  final double totalBudgeted = budgets.fold<double>(
-    0,
-    (double s, Budget b) => s + b.limit,
+  final Money totalBudgeted = budgets.fold<Money>(
+    Money.zero,
+    (Money s, Budget b) => s + b.limit,
   );
 
-  if (totalBudgeted > 0 && totalExpenses > totalBudgeted) {
+  if (totalBudgeted.isPositive && totalExpenses > totalBudgeted) {
     alerts.add(
       ControlCenterAlert(
         id: 'alert_forecast_variance',
         type: AlertType.forecastVariance,
         title: 'Forecast Variance',
         description:
-            'Total spending of ₱${_n(totalExpenses)} exceeds the '
-            '₱${_n(totalBudgeted)} budgeted across all categories.',
+            'Total spending of ₱${_n(totalExpenses.pesos)} exceeds the '
+            '₱${_n(totalBudgeted.pesos)} budgeted across all categories.',
         severity: AlertSeverity.high,
-        amount: totalExpenses - totalBudgeted,
+        amount: (totalExpenses - totalBudgeted).pesos,
         suggestedAction:
             'Re-forecast the remaining cycle or reallocate between category limits.',
       ),

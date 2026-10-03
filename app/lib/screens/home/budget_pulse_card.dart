@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/js_round.dart';
+import '../../core/money/money.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
@@ -26,33 +27,44 @@ class BudgetPulseCard extends StatelessWidget {
     final List<Budget> budgets = state.budgets;
     if (budgets.isEmpty) return const SizedBox.shrink();
 
-    double limitSum = 0;
-    double spentSum = 0;
+    Money limitSum = Money.zero;
+    Money spentSum = Money.zero;
     int watchCount = 0;
 
     for (final Budget b in budgets) {
       // The prototype matches the category case-insensitively.
-      final double spent = state.transactions
+      final Money spent = state.transactions
           .where(
             (Transaction t) =>
                 t.type == TransactionType.expense &&
                 t.category.toLowerCase() == b.category.toLowerCase(),
           )
-          .fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
+          .fold<Money>(
+            Money.zero,
+            (Money sum, Transaction t) => sum + t.amount,
+          );
 
-      final double remaining = b.limit - spent;
-      final int percent = math.min(100, jsRound((spent / b.limit) * 100));
-      final bool isOver = remaining < 0;
-      final bool isNear = percent >= 80 && remaining >= 0;
+      final Money remaining = b.limit - spent;
+      // GUARDED, which it was not. A limit of zero divided straight through
+      // to an Infinity and then into jsRound, on a card that sits on Home.
+      // `plan.dart` has always guarded the same divide; this copy of the
+      // arithmetic never did.
+      final int percent = b.limit.isPositive
+          ? math.min(100, jsRound((spent.centavos / b.limit.centavos) * 100))
+          : 0;
+      final bool isOver = remaining.isNegative;
+      final bool isNear = percent >= 80 && !remaining.isNegative;
       if (isOver || isNear) watchCount++;
 
       limitSum += b.limit;
       spentSum += spent;
     }
 
-    final double totalRemaining = math.max(0, limitSum - spentSum);
-    final int percentTotal = limitSum > 0
-        ? math.min(100, jsRound((spentSum / limitSum) * 100))
+    final Money totalRemaining = (limitSum - spentSum).isNegative
+        ? Money.zero
+        : limitSum - spentSum;
+    final int percentTotal = limitSum.isPositive
+        ? math.min(100, jsRound((spentSum.centavos / limitSum.centavos) * 100))
         : 0;
 
     return SectionCard(
@@ -104,7 +116,7 @@ class BudgetPulseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      formatPeso(totalRemaining),
+                      formatPeso(totalRemaining.pesos),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

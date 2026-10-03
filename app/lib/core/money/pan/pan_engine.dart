@@ -782,8 +782,11 @@ PanAnswer _budgets(PanFacts facts) {
   };
   final List<String> over = <String>[];
   for (final Budget b in facts.budgets) {
-    final double used = spent[b.category] ?? 0;
-    if (b.limit > 0 && used > b.limit) over.add(b.category);
+    // `spendingByCategory` is still a peso double, so it is converted here
+    // rather than compared across types. It moves to Money with the rest of
+    // the facts record; until then this is the one boundary.
+    final Money used = Money.fromDouble(spent[b.category] ?? 0);
+    if (b.limit.isPositive && used > b.limit) over.add(b.category);
   }
   return PanAnswer(
     topic: 'budgets',

@@ -156,11 +156,11 @@ void main() {
       // Half one: the store moved, and only that budget moved.
       expect(
         state.budgets.firstWhere((b) => b.category == 'Food & Dining').limit,
-        12000,
+        Money.pesos(12000),
       );
       expect(
         state.budgets.firstWhere((b) => b.category == 'Groceries').limit,
-        8000,
+        Money.pesos(8000),
         reason: 'changing one limit changed another',
       );
 
@@ -197,7 +197,7 @@ void main() {
 
       expect(
         state.budgets.firstWhere((b) => b.category == 'Groceries').limit,
-        8000,
+        Money.pesos(8000),
         reason:
             'a zero limit was stored, which makes every percent meaningless',
       );

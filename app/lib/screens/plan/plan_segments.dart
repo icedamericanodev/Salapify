@@ -108,7 +108,7 @@ class BudgetsSegment extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  formatPeso(totals.leftToSpend),
+                  formatPeso(totals.leftToSpend.pesos),
                   style: AppType.hero(palette).copyWith(
                     color: totals.overCount > 0
                         ? palette.warning
@@ -199,7 +199,7 @@ class _BudgetRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    formatPeso(row.spent),
+                    formatPeso(row.spent.pesos),
                     style: AppType.amountSmall(palette),
                   ),
                 ],
@@ -222,9 +222,9 @@ class _BudgetRow extends StatelessWidget {
                       row.isOver
                           // The amount OVER, not a clamped zero. Somebody 450
                           // past their limit needs the 450.
-                          ? '${formatPeso(-row.remaining)} over limit'
-                          : '${formatPeso(row.remaining)} left of '
-                                '${formatPeso(row.limit, showDecimals: false)}',
+                          ? '${formatPeso((-row.remaining).pesos)} over limit'
+                          : '${formatPeso(row.remaining.pesos)} left of '
+                                '${formatPeso(row.limit.pesos, showDecimals: false)}',
                       style: AppType.caption(palette).copyWith(
                         color: row.isOver
                             ? palette.negative

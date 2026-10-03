@@ -699,7 +699,15 @@ class Budget {
   final bool isSample;
 
   final String category;
-  final double limit;
+
+  /// The monthly cap for this category, in whole centavos.
+  ///
+  /// A cap is compared against a running total of real spending, so holding
+  /// it as a double meant the comparison that decides whether somebody is
+  /// over budget was a float comparison. The stored shape is still pesos:
+  /// `json_codec.dart` is the only boundary, so a backup written here still
+  /// opens in a build that has not migrated.
+  final Money limit;
   final String emoji;
 }
 

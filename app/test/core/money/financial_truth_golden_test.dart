@@ -230,7 +230,7 @@ void main() {
         accounts: const <Account>[],
         debts: const <Debt>[],
         budgets: const <Budget>[
-          Budget(category: 'Food', limit: 10000, emoji: 'F'),
+          Budget(category: 'Food', limit: Money.pesos(10000), emoji: 'F'),
         ],
       );
 
@@ -332,7 +332,7 @@ void main() {
         ],
         debts: const <Debt>[],
         budgets: const <Budget>[
-          Budget(category: 'Food', limit: 10000, emoji: 'F'),
+          Budget(category: 'Food', limit: Money.pesos(10000), emoji: 'F'),
         ],
       );
       expect(

@@ -1887,7 +1887,7 @@ class FinancialState extends ChangeNotifier {
   /// The decision about what is a valid limit lives in applyBudgetLimit, in
   /// core/money/plan.dart, which is vector-locked. This method decides WHEN,
   /// never WHAT, which is the same split every other write on this store uses.
-  void setBudgetLimit(String category, double limit) {
+  void setBudgetLimit(String category, Money limit) {
     final List<Budget> next = applyBudgetLimit(_budgets, category, limit);
     if (identical(next, _budgets)) return;
     _budgets = next;

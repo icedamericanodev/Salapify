@@ -354,7 +354,7 @@ class _SummaryCard extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                formatPeso(totals.leftToSpend),
+                formatPeso(totals.leftToSpend.pesos),
                 style: AppType.hero(palette).copyWith(
                   color: totals.overCount > 0
                       ? palette.warning
@@ -364,8 +364,8 @@ class _SummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${formatPeso(totals.totalSpent)} of '
-              '${formatPeso(totals.totalLimit)} used',
+              '${formatPeso(totals.totalSpent.pesos)} of '
+              '${formatPeso(totals.totalLimit.pesos)} used',
               style: AppType.caption(palette),
             ),
           ],

@@ -602,14 +602,14 @@ const Set<String> budgetKeys = <String>{
 
 Map<String, dynamic> budgetToJson(Budget b) => <String, dynamic>{
   'category': b.category,
-  'limit': b.limit,
+  'limit': b.limit.pesos,
   'emoji': b.emoji,
   if (b.isSample) 'isSample': true,
 };
 
 Budget budgetFromJson(Map<String, dynamic> m) => Budget(
   category: _reqStr(m, 'category', 'budget'),
-  limit: _reqNum(m, 'limit', 'budget'),
+  limit: Money.fromDouble(_reqNum(m, 'limit', 'budget')),
   emoji: _optStr(m, 'emoji') ?? '',
   isSample: _optBool(m, 'isSample'),
 );

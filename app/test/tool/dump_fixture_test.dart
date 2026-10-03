@@ -75,7 +75,10 @@ void main() {
           .map(
             (Budget b) => <String, Object?>{
               'category': b.category,
-              'limit': b.limit,
+              // PESOS, because this dump feeds the prototype's own TypeScript
+              // generator and that is the shape it reads. The stored file is
+              // pesos too, so the fixture still matches what is on disk.
+              'limit': b.limit.pesos,
             },
           )
           .toList(),

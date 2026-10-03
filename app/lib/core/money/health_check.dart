@@ -603,7 +603,9 @@ HealthIndicator _limits(
   const String id = 'limits';
   const String question = 'Am I inside the limits I set';
 
-  final List<Budget> real = budgets.where((Budget b) => b.limit > 0).toList();
+  final List<Budget> real = budgets
+      .where((Budget b) => b.limit.isPositive)
+      .toList();
 
   if (real.isEmpty) {
     return HealthIndicator.unmeasured(
@@ -626,7 +628,13 @@ HealthIndicator _limits(
 
   BudgetStatus? worst;
   for (final BudgetStatus b in status) {
-    if (worst == null || b.spent / b.limit > worst.spent / worst.limit) {
+    // Cross multiplied rather than divided, so the comparison that picks the
+    // worst category is exact integer arithmetic instead of two divisions
+    // whose last bits decide a tie. Both limits are positive here, because
+    // `real` filtered on that above, so the inequality keeps its direction.
+    if (worst == null ||
+        b.spent.centavos * worst.limit.centavos >
+            worst.spent.centavos * b.limit.centavos) {
       worst = b;
     }
   }
@@ -639,7 +647,8 @@ HealthIndicator _limits(
     );
   }
 
-  final int percent = ((worst.spent / worst.limit) * 100).round();
+  final int percent = ((worst.spent.centavos / worst.limit.centavos) * 100)
+      .round();
   final HealthTone tone = percent > 100
       ? HealthTone.tight
       : percent >= 80
@@ -650,7 +659,8 @@ HealthIndicator _limits(
     id: id,
     question: question,
     reading: percent > 100
-        ? '${worst.category} is over by ${formatPeso(worst.spent - worst.limit)}'
+        ? '${worst.category} is over by '
+              '${formatPeso((worst.spent - worst.limit).pesos)}'
         : 'Closest is ${worst.category}, at $percent% of its limit',
     detail: '${status.length} ${status.length == 1 ? 'limit' : 'limits'} set.',
     tone: tone,

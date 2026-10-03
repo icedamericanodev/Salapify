@@ -588,4 +588,4 @@ Goal _goal({required double saved}) => Goal(
 );
 
 Budget _budget(String category, double limit) =>
-    Budget(category: category, limit: limit, emoji: '🍔');
+    Budget(category: category, limit: Money.fromDouble(limit), emoji: '🍔');
