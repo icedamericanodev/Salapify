@@ -160,6 +160,7 @@ enum InfoTopic {
   claimableExpenses,
   bonusSplit,
   businessChecklist,
+  openingBalance,
 }
 
 class InfoPoint {
@@ -968,6 +969,40 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'bank, fund or app you use is your decision, and an app that '
             'named one would be recommending a product rather than helping '
             'you plan.',
+      ),
+    ],
+  ),
+  InfoTopic.openingBalance: InfoContent(
+    title: 'The balance you start from',
+    subtitle: 'Why Salapify asks for a figure it cannot check',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.flag_outlined,
+        title: 'It is a starting line, not a claim',
+        body:
+            'Salapify has no connection to your bank and never will, so it '
+            'cannot look this up. Whatever you type is taken as true and '
+            'everything after it is counted from there. Type what the app or '
+            'the passbook shows you right now, to the centavo if you can.',
+      ),
+      InfoPoint(
+        icon: Icons.rule,
+        title: 'You have just done a reconciliation',
+        body:
+            'Comparing what a record says against what the bank actually '
+            'shows, and closing the gap, is the oldest control in '
+            'bookkeeping. Salapify runs it again whenever you want under '
+            'Reports, Check, and it is the thing this app does that most '
+            'trackers skip. Today it is one number, because there is nothing '
+            'yet to disagree with it.',
+      ),
+      InfoPoint(
+        icon: Icons.edit_outlined,
+        title: 'Getting it wrong costs you nothing',
+        body:
+            'You can correct the balance from the Accounts screen, and you '
+            'can reconcile any time to bring it back in line. Nothing is '
+            'locked by what you type here.',
       ),
     ],
   ),

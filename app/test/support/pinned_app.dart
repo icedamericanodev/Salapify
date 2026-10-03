@@ -50,10 +50,27 @@ import 'test_clock.dart';
 Future<FinancialState> pumpSalapify(
   WidgetTester tester, {
   DateTime? clock,
+  bool onboarded = true,
 }) async {
   final FinancialState state = FinancialState(clock: clock ?? testToday);
   await state.restore();
   addTearDown(state.dispose);
+
+  // ALREADY ONBOARDED, by default, and that default is the honest fixture
+  // rather than a convenience.
+  //
+  // From 2026-10-03 a first launch opens on the welcome instead of the app,
+  // so a store holding only the seed is a phone nobody has introduced
+  // themselves to yet. Every caller of this helper wants the app as somebody
+  // ALREADY USING IT, and the seeded ledger they then assert against is
+  // exactly what the "look around with example data" path leaves behind. So
+  // the fixture says that in one line instead of pretending the question was
+  // never asked.
+  //
+  // Pass `onboarded: false` to get the first launch itself. Nothing else in
+  // the helper changes, so a test of the welcome pins its clock the same way
+  // everything else does.
+  if (onboarded) state.startWithExampleData();
 
   await tester.pumpWidget(SalapifyApp(state: state));
   await tester.pumpAndSettle();

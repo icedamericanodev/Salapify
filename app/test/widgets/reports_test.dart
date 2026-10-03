@@ -27,14 +27,16 @@ void main() {
   final DateTime fixtureToday = DateTime(2026, 9, 18, 12);
 
   Future<void> openReports(WidgetTester tester) async {
-    await tester.pumpWidget(
-      SalapifyApp(
-        state: FinancialState(
-          clock: fixtureToday,
-          store: MemorySnapshotStore(),
-        ),
-      ),
+    final FinancialState state = FinancialState(
+      clock: fixtureToday,
+      store: MemorySnapshotStore(),
     );
+    // The app opens on the welcome when nothing has been onboarded. This
+    // fixture is the seeded ledger, which is what the "look around with
+    // example data" path leaves behind, so it says so.
+    state.startWithExampleData();
+
+    await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.insert_chart_outlined));
     await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import 'data/store.dart';
 import 'design/app_theme.dart';
 import 'design/scroll_behavior.dart';
 import 'design/tokens.dart';
+import 'features/onboarding/onboarding_flow.dart';
 import 'shell/app_shell.dart';
 import 'state/financial_state.dart';
 
@@ -99,7 +100,13 @@ class _SalapifyAppState extends State<SalapifyApp> {
       // Drops Android's stretch overscroll. See scroll_behavior.dart for why.
       scrollBehavior: const SalapifyScrollBehavior(),
       theme: salapifyTheme(palette, _state.theme),
-      home: AppShell(state: _state),
+      // THE FIRST LAUNCH FORK, and it reads the store rather than a flag this
+      // widget keeps. The shell listens to the same store, so the moment
+      // either onboarding path writes, `needsWelcome` goes false and the next
+      // frame is the app. One decision, one place, nothing to get out of step.
+      home: _state.needsWelcome
+          ? OnboardingFlow(palette: palette, state: _state)
+          : AppShell(state: _state),
     );
   }
 }

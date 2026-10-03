@@ -37,6 +37,12 @@ void main() {
       store: store,
     );
     await state.restore();
+    // The app opens on the welcome when nothing has been onboarded, and these
+    // tests are about what a storage problem looks like TO SOMEBODY ALREADY
+    // USING the app. An unreadable file never reaches the welcome anyway, by
+    // design: a cheerful first run over a ledger that merely could not be
+    // parsed is the worst screen this app could show.
+    state.startWithExampleData();
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
   }
@@ -131,6 +137,7 @@ void main() {
         store: store,
       );
       await state.restore();
+      state.startWithExampleData();
       await tester.pumpWidget(SalapifyApp(state: state));
       await tester.pumpAndSettle();
 
@@ -203,6 +210,12 @@ void exportGuardTests() {
       store: MemorySnapshotStore('{ not json'),
     );
     await state.restore();
+    // The app opens on the welcome when nothing has been onboarded, and these
+    // tests are about what a storage problem looks like TO SOMEBODY ALREADY
+    // USING the app. An unreadable file never reaches the welcome anyway, by
+    // design: a cheerful first run over a ledger that merely could not be
+    // parsed is the worst screen this app could show.
+    state.startWithExampleData();
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
 
@@ -245,6 +258,12 @@ void exportGuardTests() {
       store: MemorySnapshotStore(),
     );
     await state.restore();
+    // The app opens on the welcome when nothing has been onboarded, and these
+    // tests are about what a storage problem looks like TO SOMEBODY ALREADY
+    // USING the app. An unreadable file never reaches the welcome anyway, by
+    // design: a cheerful first run over a ledger that merely could not be
+    // parsed is the worst screen this app could show.
+    state.startWithExampleData();
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
 

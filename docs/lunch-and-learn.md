@@ -10,6 +10,495 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-10-03, session 47: a seven step test plan sent for code that was not on the branch the emulator reads, a manual case that needed a button that had been gone five seconds, a refusal that states a fact it never checked and sends the person somewhere that changes nothing, and the fifth consecutive false claim in CLAUDE.md
+
+**What we believed / What was true.**
+
+1. GROUND TRUTH IS NOT A STAMP, for the third entry running, and the reason is
+   unchanged. `app/` has no publisher, no Shorebird app id, no `updateStamp`
+   and no delivery row; `docs/delivery-log.md` still ends at Salapify 2's
+   `f4.72`. Ground truth here is the founder running
+   `origin/claude/flutter-final` on their Android emulator through
+   `tools/dev-sync.sh`, whose default mode watches `origin/<the branch they
+   have checked out>`, stated in its own header. Nothing in this entry is a
+   delivery finding, because there is no delivery.
+
+2. GROUND TRUTH FOR THE INCIDENT IS THE FOUNDER'S SCREENSHOT, and it is
+   conclusive rather than suggestive. The footer in that screenshot read
+   "Editing an entry, receipts and comments are later migration steps. Nothing
+   here can be changed yet." That sentence exists at
+   `app/lib/screens/activity/transaction_detail_sheet.dart:206` in `58bd7ab`,
+   and `fe388ed` deletes its second half. I checked the same file at `58bd7ab`
+   for the string "Take this back" and it appears ZERO times. So the emulator
+   was running `58bd7ab`, the tip of `origin/claude/flutter-final` at that
+   moment, and the feature the founder was told to test could not have been on
+   the screen whatever they tapped.
+
+3. WHAT WE BELIEVED: that a message saying "checks are running, I will merge
+   once they are green" followed in the same breath by "test steps 1 to 7 on
+   your emulator" described one coherent situation. It described two, a future
+   act of mine and an immediate act of theirs, and nothing ordered them.
+
+4. NOTHING WAS BROKEN. No defect, no data loss, no wrong figure. The entire
+   cost was the founder's time, spent hunting a button that was fifteen minutes
+   and one merge away.
+
+5. THE BATCH ITSELF IS SOUND, and that is not a courtesy sentence. Every
+   break-then-prove claim put to this session survived a check against the
+   commits, the three features behave as described, and two of session 46's
+   open lessons were genuinely closed with automated guards rather than quietly
+   dropped. The findings below are about how the work was ANNOUNCED, and about
+   one refusal sentence, not about whether the work is right.
+
+6. VERIFIED INDEPENDENTLY, not read off the commit messages. I ran
+   `test/data/take_back_routing_test.dart` (14 pass) and
+   `test/docs/claude_md_paths_test.dart` (2 pass) at the tip, read
+   `takeBackPreview` line by line, and measured the proposed dev-sync guard
+   against the real refs rather than describing it.
+
+**Timeline, with evidence.** Times UTC, from the GitHub API and `git log`.
+
+- `0efc4de` (#486), merged 2026-10-02. An instalment plan can be removed:
+  delete when no payment register exists, archive when settled, refuse
+  between. Work commit `8ea3a3a`.
+- `58bd7ab` (#487), merged 2026-10-02 16:29:07Z. Split Bill gained a pre-tap
+  sentence naming the account and the amount, a confirmation, and an
+  all-or-nothing five second undo. Work commit `ee8a1b4`.
+- 2026-10-03 07:39:33Z. `fe388ed` pushed to `claude/review-build`. The general
+  "Take this back" on the Activity entry detail sheet, with five refusal
+  routes for entries Salapify wrote itself.
+- 07:40:08Z. PR #488 opened, head `claude/review-build`, base
+  `claude/flutter-final`.
+- 07:43:44Z and 07:44:34Z. "Analyze and test" and "Android build" both report
+  `success` on `fe388ed`. From this moment the merge was unblocked, and the
+  only thing standing between the founder and the code was the act of merging.
+- Somewhere in the next ten minutes. The message goes out carrying both the
+  promise and the test plan. The founder tests. Their emulator is pulling
+  `origin/claude/flutter-final`, whose tip is `58bd7ab`. They find no button
+  and send the screenshot.
+- 07:54:45Z. `693a68f`, the merge of #488. Ten minutes and eleven seconds after
+  the checks went green.
+
+So this is not a race that was narrowly lost. The checks were green for over
+ten minutes while the founder looked for something that was one command away,
+and the ordering was never close: a seven step tap-by-tap plan takes minutes to
+execute and a merge takes seconds, so the founder was guaranteed to start
+first.
+
+**Root cause.** Three layers, and only the third is structural.
+
+1. NOT THE SURFACE ONE. "I forgot to merge" is not a root cause, because its
+   fix is "remember harder", which fails the first time anything else is
+   happening.
+
+2. NOT THE NEXT ONE EITHER, and this is the part worth sitting with. The rule
+   already existed, in two places, and BOTH were present on the day. CLAUDE.md's
+   "Finished means delivered" section says, in these words: "If a pull request
+   is open with finished work in it, merge it or say out loud, to the founder,
+   why it is waiting. Never silently move on", and "The founder should never
+   have to tap 'check for update' to discover whether something was finished.
+   If they are asking, the reporting already failed." On top of that,
+   `.claude/hooks/watch-created-pr.sh` is a PostToolUse hook that fires on every
+   PR creation and injects, verbatim, "keep watching (drive-to-green: push fixes
+   or reply with the blocker) until it is merged or closed". A written rule and
+   a hook-injected instruction, both aimed at exactly this, both insufficient.
+   An injected sentence is a rule with better timing, not a machine. Adding a
+   third sentence would be the weakest possible response to two sentences
+   failing.
+
+3. THE STRUCTURAL ONE. THE INVITATION TO TEST NAMES NO COMMIT, AND NOTHING
+   JOINS IT TO WHAT THE DEVICE CAN REACH. Two facts decided this outcome and
+   they live in two places with no observer between them: the commit carrying
+   the feature (`fe388ed`, on `origin/claude/review-build`) and the branch the
+   emulator reads (`origin/claude/flutter-final`, tip `58bd7ab`). The join is a
+   one line boolean, `git merge-base --is-ancestor fe388ed
+   origin/claude/flutter-final`, and nobody and nothing computed it, because
+   nothing in the system asks that question at the moment an invitation is
+   written.
+
+**Is a machine possible here. Answered concretely, because the brief asked.**
+
+NO MACHINE IN THIS REPOSITORY CAN READ A CHAT MESSAGE, so no machine can refuse
+the sentence "test steps 1 to 7". That limit is real and I am not going to
+pretend around it; it is the same limit session 15 recorded for "never say a
+version number before its delivery row exists".
+
+But the sentence is not the only place to stand. The founder's own terminal
+knows BOTH facts the sentence got wrong, and it is already running while they
+test. That is where the machine goes. The finding that makes this concrete, and
+it is the most useful thing in this entry:
+
+THE GUARD FOR THIS ALREADY EXISTS AND IS POINTED THE OTHER WAY.
+`tools/dev-sync.sh` carries a block headed "THE FAILURE THIS CATCHES: watching a
+branch nobody is pushing to", written on 2026-10-01 after the mirror image of
+today: four MERGED commits sat on `claude/flutter-final` while the founder's
+checkout was on something else, and they were told twice to look at a screen
+that could not have changed. Its candidate list is one hardcoded name, `for
+OTHER in claude/flutter-final`, and the loop's first line is `[ "$OTHER" =
+"$BRANCH" ] && continue`. The founder is ON `claude/flutter-final`. So the
+warning was not missed, not disabled and not wrong. It was structurally
+incapable of firing in this direction, because it was built to answer "is the
+integration branch ahead of me" and today's question was "is there unmerged work
+that has not reached the integration branch yet".
+
+**Lessons, each with its guard and the guard's strength.**
+
+LESSON 1. WORK WAS OFFERED FOR TESTING THAT WAS NOT ON THE BRANCH THE DEVICE
+SYNCS FROM, and no component in the system was in a position to notice.
+GUARD, PRIMARY, NOT YET BUILT, so this lesson is OPEN. Widen the dev-sync block
+above so it can see this direction, with three filters rather than one name:
+every `refs/remotes/origin/*` ref that (a) is AHEAD of HEAD, (b) differs from
+HEAD under `app/`, and (c) has a tip commit NEWER than the commit the emulator
+is running. Filter (c) is not decoration, it is the whole difference between an
+alarm and noise, and I measured it rather than assuming it. With HEAD pinned at
+`58bd7ab`, filters (a) and (b) alone fire on SEVEN dead branches from July and
+August (`claude/phase-2-durable-store`, `feat/insights-v2-overview`,
+`claude/context7-mcp-setup-w5g71s` and four more), which is precisely the
+cry-wolf the script's own comments say killed the first version of this warning
+within a day. Adding (c) fires on `fe388ed` and on nothing else. Two further
+details that are part of the guard and not polish: it has to run inside the
+fifteen second poll loop as well as at startup, because today the block runs
+once before the loop and a founder who was already watching gets nothing; and
+it must print once per newly seen tip, not every cycle.
+STRENGTH: strongest class. Automated, unattended, on the founder's own machine,
+at the exact moment they would otherwise waste time. ONE LIMIT, said plainly:
+it protects the founder's TIME and not the truth of my sentence. It cannot stop
+the message being written. It can only make their terminal contradict me within
+fifteen seconds, which turns a ten minute hunt into a ten second one. That is a
+large cut in cost and zero cut in the chance of the mistake, and nobody reading
+this later should mistake the first for the second.
+
+LESSON 1B. THE SAME FAILURE, ATTACKED AT THE CAUSE RATHER THAN THE COST.
+GUARD, NOT YET BUILT, so this is OPEN too: `tools/can-they-test.sh`, which takes
+a commit and answers one boolean, is this reachable from the branch the device
+syncs from. The body is `git merge-base --is-ancestor "$SHA"
+"origin/claude/flutter-final"` plus a loud message naming what the branch tip
+actually is, so a failure reads "the emulator can reach 58bd7ab, your work is
+fe388ed, it is NOT on that branch" rather than a bare exit code.
+STRENGTH: medium, and the grade is honest rather than modest. The computation is
+a machine and the decision to run it is a rule. What it removes is JUDGEMENT,
+which is the thing that failed; what it cannot remove is the step of asking. It
+is worth building anyway, because a one command answer is far more likely to get
+asked than a procedure is to be followed.
+
+LESSON 1C. A THIRD OPTION, GRADED LOWEST ON PURPOSE so nobody mistakes it for
+the answer. A Stop hook could check for a PR this session created that is still
+open and whose head is not an ancestor of `origin/claude/flutter-final`, and
+inject that fact, exactly the pattern `.claude/hooks/watch-created-pr.sh`
+already uses. Its limit is precise: it fires AFTER the message is written, so it
+cannot prevent the sentence, only shorten the correction from "the founder
+discovers it by testing" to "the next turn opens with the fact". And it is a
+sentence injector, the same class as the hook that was present and insufficient
+today.
+STRENGTH: medium, and third of three. Build lesson 1 first.
+
+LESSON 2. A MANUAL TEST STEP REQUIRED A CONTROL THAT HAD BEEN GONE FIVE SECONDS,
+and the reframing is where the value is. The Split Bill plan's case 3 asked the
+founder to record a split, go to the Debts screen, record a payment against one
+of the new debts, come back and tap Undo to see the refusal. The Undo lives in a
+snackbar with `duration: const Duration(seconds: 5)`
+(`app/lib/screens/home/home_screen.dart:353`), so it is long gone before anyone
+could navigate anywhere. I caught it myself when the founder asked for
+navigation steps, before they spent time on it, and said so. It was still
+written and sent.
+WHAT IT ACTUALLY REVEALS, which is more than a typo: the refusal branch that case
+was trying to exercise is UNREACHABLE BY ANY HUMAN. `undoSplitBill` refuses
+whole when any of the split's debts has a payment against it
+(`app/lib/state/financial_state.dart:1798`), the only caller is that snackbar
+action, and five seconds is not enough to create the condition. The branch is
+correct, well tested, proven to fail by deliberate break, and defensive only. I
+did not write a bad instruction about a good feature. I wrote a TRUE description
+of a code path nobody can walk.
+GUARD: the weakest useful version is a rule about checking affordances, and I am
+not proposing that, because it is a sentence answering a sentence. The version
+worth building is to make the TEST carry the reachability: the split refusal
+test keeps its assertion and gains a name and a reason saying the branch is
+defensive only, unreachable through the UI while its single caller is a five
+second snackbar. Anyone deriving a manual case from it then reads why before
+writing the step.
+STRENGTH: medium, and here is why it is not strongest. It is an automated test,
+but the part doing the work is prose inside it, so it depends on being read.
+There is a stronger shape available, a test asserting the only caller of
+`undoSplitBill` is that snackbar action, which would redden if a durable route
+were ever added and the reason string went stale. I am naming it and NOT
+recommending it: it guards a call graph rather than a behaviour, and this
+repository has enough tests that defend their own wording.
+THE REAL FIX is lesson 3's, and part of it is founder-gated.
+
+LESSON 3. NEW, NOT IN THE BRIEF, AND THE MOST VALUABLE THING THIS SESSION FOUND.
+The Activity refusal for a split states a fact the code never checked, and the
+instruction it gives leads somewhere that changes nothing.
+THE CODE: `takeBackPreview` ends with two pure id prefix tests, and the split one
+is unconditional, `app/lib/state/financial_state.dart:1653`:
+
+    if (txId.startsWith('tx_split_')) return TakeBackOutcome.belongsToSplit;
+
+THE COPY, `app/lib/screens/activity/transaction_detail_sheet.dart:342-346`: "A
+split bill wrote this entry, and the debts it created are still standing. Taking
+back only the money would leave people owing you for a bill that no longer
+exists. Remove those debts from the Debts screen first."
+THE PROOF IT IS UNCONDITIONAL IS ALREADY IN THE SUITE, which is what makes this
+worth an entry rather than a note. `app/test/data/take_back_routing_test.dart`
+line 357 is named "a split entry is refused, because its debts are still
+standing" and its fixture passes NO DEBTS AT ALL, only the transaction. The test
+name asserts a precondition its own fixture explicitly contradicts, and it
+passes, because the routing never looks at the debts. I ran the file this
+session: 14 of 14 green, including that one.
+WHAT IT COSTS A PERSON: follow the instruction exactly. Delete every debt the
+split created on the Debts screen, which the work in #483 and #486 now makes
+possible. Return to Activity. The same refusal appears with the same sentence,
+now plainly false, and the split expense has no route back at all once its five
+seconds are up. The screen sends somebody to do a thing and then does not honour
+it, which is the dead end this whole batch was built to remove.
+THE CONTRAST IS THE DIAGNOSIS, and it is kinder to the design than it sounds.
+The three STORED routes self-clear: `belongsToDebt`, `belongsToPlan` and
+`belongsToReconciliation` match on `DebtPayment.txId`, `PlanPayment.txId` and
+`ReconciliationRecord.adjustmentTxId`, so when the companion goes the refusal
+goes with it. `belongsToBill` makes the same unchecked assertion ("the bill is
+still ticked") and gets away with it, because its instruction works regardless:
+`undoUpcomingPaid` (`financial_state.dart:1990`) reverses the tick and the
+ledger row together. The split is the only one of the five where the sentence is
+unchecked AND the exit it names does nothing. The code's own doc comment
+(`:1584-1589`) already names bills and splits as having only the guess and routes
+storing the link properly to the founder, which is correct and honest. What it
+did not catch is that the USER-FACING SENTENCE went further than the code and
+promised a way out.
+GUARD, NOT YET BUILT, so this lesson is OPEN. Three options in increasing order,
+and the first two need no founder decision:
+  (a) Make the copy say only what the code knows. Something like "Salapify
+      cannot tell which debts this split created, so it will not reverse the
+      money on its own." Stops the dead end by not promising an exit. Weakest
+      of the three and still an improvement, because a refusal that admits a
+      limit is not a dead end, while a refusal that sends you on an errand is.
+  (b) Check the shared timestamp the id scheme already encodes, and refuse only
+      while a matching debt survives. Still inside the guess, no stored data
+      change, and it makes the sentence true.
+  (c) Store the link, which is a change to saved data and therefore the
+      founder's call, already flagged as such in the code.
+And the test must change shape either way: rename it so it stops claiming a
+precondition it does not set up, and add the companion case, a split entry whose
+debts are all gone, asserting whatever behaviour is chosen. A test whose name
+states a condition its fixture omits is the same defect class as session 46's
+lesson 3, in a third costume.
+STRENGTH when built: strongest, both halves automated.
+
+LESSON 4. CLAUDE.md'S FACTUAL CLAIMS, re-read against the repository as a step
+rather than as a favour. One NEW false claim, one carried false claim, and one
+contradiction. This is the FIFTH consecutive retrospective to find a false
+factual claim in that file.
+(a) NEW AND FALSE. The Flutter rebuild section, rule 6, says "`.githooks/pre-push`
+runs the identical check locally, one push earlier, before the round trip to CI
+and back". It does not. The file was retired on 2026-09-18 with the Salapify 2
+archive; its header says so in line 2, and its entire body is `exit 0`
+(`.githooks/pre-push:27`). It runs no check of any kind. Session 45's guard,
+`app/test/docs/claude_md_paths_test.dart`, is in place and green (I ran it, 2
+pass), and it structurally CANNOT catch this, because the path exists exactly
+where CLAUDE.md says it does. The claim is about behaviour, not location.
+THE IRONY IS WORTH RECORDING rather than enjoyed: that same hook's header warns
+about precisely this shape, "A guard that exits 0 while its subject has moved
+reads exactly like a guard that ran and passed", and CLAUDE.md two directories
+away describes it as running.
+IN FAIRNESS, and this matters: the archive section does say every flutter/
+delivery rule is "DORMANT, not repealed", so a careful reader reaches the right
+conclusion. The sentence is still false in the present tense, which this project
+has already decided is worse than silence, because it is read with authority.
+(b) CARRIED AND STILL FALSE, session 46 item 4. CLAUDE.md:331 says
+`palette_contrast_test.dart` measures "all sixteen palettes". The live app has
+two. Unfixed.
+(c) A CONTRADICTION rather than a falsity, and reported as such. The merge rules
+list a QA row in `docs/qa-log.md` among conditions "ALL of which must hold
+before the merge", while the archive section lists "the QA row" among the rules
+that are dormant. In practice the log's last row is `app-c37`, written
+2026-09-19, and FIFTEEN merges have landed on `origin/claude/flutter-final`
+since, including all three in this batch. I am not calling that a violation,
+because the dormancy sentence is right there in the same file. I am calling it
+two sections of one document disagreeing, which someone should settle, because
+it is exactly the kind of ambiguity a busy session resolves in whichever
+direction is cheaper.
+GUARD, NOT YET BUILT, for (a) and its family: extend
+`claude_md_paths_test.dart` so that for any path CLAUDE.md describes in the
+present tense as running or checking something, it reads the file's first lines
+and reddens on a RETIRED, DISABLED or no-op marker. `.githooks/pre-push`
+announces its own retirement in line 2, so this instance is a cheap grep away.
+STRENGTH: medium to strong, and bounded honestly. It catches the specific and
+recurring shape of a file that outlived its function while keeping its name. It
+does not catch a wrong number, a wrong trigger, or a wrong description of
+behaviour that no marker word announces. The path test raised the floor; this
+raises it one step and still does not reach the ceiling.
+
+**Where this batch simply went well, said plainly and checked rather than
+assumed.**
+
+- BREAK-THEN-PROVE WAS RUN ON EVERY GUARD AND THE FAILURE LINES ARE IN THE
+  COMMITS. Three on `fe388ed`, including the SILENCE half, which is the half
+  that usually gets skipped: refusing a transfer that should be ordinary,
+  caught as `Expected: done / Actual: belongsToBill`. Two on `ee8a1b4`,
+  including the refusal that would otherwise have put 1,200 back into an
+  account while a 600 repayment still stood in the ledger with nothing left to
+  repay.
+- THE BREAK THAT FAILED TO FAIL WAS HANDLED EXACTLY AS THE RULE DEMANDS, and
+  this is the strongest single piece of evidence in the entry that the rules
+  are working rather than being recited. Deleting the plan copier's
+  `archivedAt` carry left all thirteen tests green. Rather than shrugging, or
+  breaking something else until something went red, the commit worked out which
+  branch the tests actually reached (every archived-plan write they exercised
+  was a take-back that un-settles, which `_unarchiveIfLive` un-archives on
+  purpose) and rewrote the test into the only shape that reaches the guard's
+  branch, a take-back whose stored row says the plan was ALREADY settled. The
+  new failure line is in `8ea3a3a`: "an ordinary engine write dropped the
+  archive, so the plan reappeared on the Plans list on its own". That is
+  CLAUDE.md's "Prove a new test can fail" section followed to the letter,
+  including the part most likely to be skipped.
+- ROUTING WAS BUILT ON STORED LINKS, with an honest refinement to the claim.
+  Three of the five refusals route off stored ids and survive a restored
+  backup. Two, bills and splits, have only the id prefix guess, and the code
+  says so explicitly in its own doc comment rather than leaving it to be
+  discovered, and routes the durable fix to the founder because it changes
+  saved data. That is the right call, and it is also the soil lesson 3 grew in.
+- THE RAW LISTS ARE SCANNED, NOT THE FILTERED GETTERS, with a test for it
+  (`take_back_routing_test.dart:194`, "an ARCHIVED debt still owns its payment
+  rows"). An archived debt is invisible on every screen and its payment entries
+  are not, so reading the filtered getter would have waved through exactly the
+  entry the refusal exists for. That is last session's lesson applied forward
+  rather than re-learned.
+- EXPERT REPORTS WERE TREATED AS LEADS. Two passes were run and every
+  load-bearing claim was checked against the code before acting; one claim,
+  "there is no undo anywhere", did not survive the check and was corrected to
+  the founder rather than quietly dropped.
+- SESSION 46'S TWO HIGHEST PRIORITY OPEN LESSONS ARE CLOSED, verified at the tip
+  rather than taken from a commit message, and this is the retrospective loop
+  actually working. The live-and-archived invariant is enforced and guarded for
+  both debts and plans (`debt_removal_test.dart:251`,
+  `plan_removal_test.dart:295`, both with the reason written out in full),
+  shipped as `8a495ff` under #484 with its proof of fire quoted. And the hollow
+  test is no longer hollow: `debt_removal_test.dart:194` is now "an archived
+  debt survives a save and a GENUINE reload", building a SECOND
+  `FinancialState` over the same store and calling `restore()`, with the
+  previous version's failure written into the test as a comment so nobody
+  simplifies it back.
+
+**Open lessons carried forward.**
+
+1. NEW, from lesson 1, and the highest priority item here. `tools/dev-sync.sh`
+   cannot see unmerged work on another branch. The widening is specified above
+   and the freshness filter is measured, not guessed.
+2. NEW, from lesson 1B. No `tools/can-they-test.sh` exists.
+3. NEW, from lesson 3. The split refusal states an unchecked fact and sends the
+   person to an errand that changes nothing. Live on the branch the founder is
+   running. Not data loss, and it is a dead end.
+4. NEW, from lesson 4a. CLAUDE.md says `.githooks/pre-push` runs a check it has
+   not run since 2026-09-18, and the path test cannot catch a behaviour claim.
+5. NEW, from lesson 4c. Two sections of CLAUDE.md disagree about whether an
+   `app/` merge needs a `docs/qa-log.md` row. Last row `app-c37`, 2026-09-19,
+   fifteen merges ago.
+6. CARRIED from session 46 item 3, re-checked and STILL OPEN. The Debts empty
+   state's archived clause (`debt_screen.dart:133-136`) has no test. I checked
+   for one this session: nothing anywhere in `app/test` asserts on "You owe
+   nobody anything" or "Nobody owes you anything", so deleting the clause that
+   keeps the only way back reachable still reddens nothing.
+7. CARRIED from session 46 item 4, still open. CLAUDE.md:331, sixteen palettes,
+   two exist.
+8. CARRIED from sessions 45 and 46, still open. `stored_shape_test.dart` guards
+   the sidecar class with a hand typed list of key names, which cannot fail for
+   a field that does not exist yet.
+9. CARRIED from sessions 45 and 46, still open. Nested payment rows
+   (`debtPaymentToJson` and its siblings) have no key set and no sidecar.
+10. CARRIED, and the number is still going one way.
+    `git rev-list --left-right --count origin/main...origin/claude/flutter-final`
+    returns `1 157`. Session 46 recorded 146 yesterday and session 45 recorded
+    140. Not a retrospective's decision to make, and worth a sentence every
+    time it is measured.
+
+**For the founder, in plain English.**
+
+The three things you tested are in good shape, and the time you lost was my
+fault in a way that had nothing to do with the code.
+
+You can now remove an instalment plan, which you could not do by any route
+before. Splitting a bill now tells you which account the money is coming out of
+BEFORE you tap, confirms what it did afterwards, and gives you five seconds to
+take the whole thing back, all of it or none of it. And any entry in Activity
+can now be taken back, with the ones Salapify wrote for a reason refusing and
+telling you where the real undo lives instead.
+
+Here is what went wrong, and I want to be exact about it, because it cost you
+real time.
+
+When you look at Salapify on your emulator, a small program on your Mac is
+watching one branch on GitHub, which is a named line of work, and pulling
+anything new from it. The branch it watches is called claude/flutter-final. I
+had finished the Take this back feature and put it on a DIFFERENT branch, in a
+pull request, which is a request to copy work from one branch onto another. I
+told you the checks were running, said I would merge once they went green, and
+in the same message gave you seven steps to try. You started on step one. The
+code was not on your branch and could not be, so there was nothing to find. I
+merged it ten minutes later.
+
+Nothing was broken. The screenshot you sent proved that beyond doubt, because
+the small grey line at the bottom of that screen still said "Nothing here can
+be changed yet", and that sentence is one of the things the new code deletes.
+So the picture told me exactly which version you were running, and it was the
+old one.
+
+Why it happened, rather than who did it. The message mixed something I was
+GOING to do with something you should do NOW, and nothing in the whole system
+puts those two in order. Worse, a seven step tap-through takes you minutes and
+merging takes me seconds, so you were always going to start first. The rule
+against this already exists, written down twice, and it did not help, because a
+rule is a sentence and a sentence cannot check anything.
+
+What now makes it much harder. The program watching your emulator already warns
+you when it is pointed at the wrong branch. It was added last week after the
+opposite mistake. It only ever looks in one direction, though, and today's
+mistake came from the other one, so it sat there silently. The fix is to widen
+it so it also says, loudly, "there is new work on another branch that has not
+reached yours yet", with a date filter so it does not nag you about branches
+nobody has touched since July. I checked that filter against your real
+situation: with it, it would have fired on exactly the right branch and on
+nothing else. That puts a contradiction in front of you within fifteen seconds
+instead of ten minutes.
+
+I will be straight about what that does and does not fix. It protects your
+time. It does not stop me writing the wrong sentence. Nothing in this project
+can read a chat message, so nothing can refuse one, and I would rather say that
+than imply the hole is closed.
+
+Two more things worth your time.
+
+First, a small one that you nearly paid for. When I wrote you the test steps for
+the split bill undo, one of them asked you to record a split, go to the Debts
+screen, record a payment, then come back and press Undo. That is impossible,
+because the Undo button only lives on screen for five seconds. I noticed when
+you asked how to navigate, and stopped you before you tried. The interesting
+part is what it revealed: the thing that step was trying to test is a safety
+check nobody can actually reach, because five seconds is not long enough to set
+it up. The check is correct and the app is safer for having it. It is just not
+something a person can ever see.
+
+Second, a real one I found today, inside the feature you just tested. If you
+split a bill and then, later, open that entry in Activity and tap through to
+take it back, Salapify refuses and tells you to remove the debts it created
+from the Debts screen first. If you do exactly that, and come back, it refuses
+again with the same sentence, which is now untrue. Salapify never actually
+checks whether those debts are still there. Nothing is lost and no figure is
+wrong. But the screen sends you to do something and then does not honour it,
+and that is the exact dead end this whole batch was built to remove. It needs
+fixing, and the smallest honest version is just changing the words so they stop
+promising an exit that is not there.
+
+What it costs if these guards are removed. The invariant tests on debts and
+plans are the ones to protect above everything: delete them and a debt or a
+plan can go back to being live and archived at the same time, which means a
+real thing you owe sits in no total anywhere and the app quietly shows you a
+smaller number than the truth. The reload test is the next one: without it, a
+debt you deliberately brought back out of the archive can file itself away
+again on its own the next time you open the app. And if the dev-sync warning is
+ever narrowed back to one branch name, you are back to today: me telling you to
+test something that cannot be there, and you believing me, which is the most
+expensive kind of wrong this project has.
+
+---
+
 ## 2026-10-02, session 46: a batch that passed six manual cases and deserved to, a manual test case that dropped the one step its own automated test was built around, a test whose name promises a reload it never performs, and a two-tap route from the Archived section into the exact design the founder turned down
 
 **What we believed / What was true.**

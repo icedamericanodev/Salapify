@@ -247,6 +247,7 @@ class FinancialState extends ChangeNotifier {
     _reminderSettings = s.reminderSettings;
     _payday = s.payday;
     _sampleRemovedAt = s.sampleDataRemovedAt;
+    _onboardedAt = s.onboardedAt;
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
@@ -270,6 +271,7 @@ class FinancialState extends ChangeNotifier {
     reminderSettings: _reminderSettings,
     payday: payday,
     sampleDataRemovedAt: _sampleRemovedAt,
+    onboardedAt: _onboardedAt,
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
@@ -1649,8 +1651,40 @@ class FinancialState extends ChangeNotifier {
           ? TakeBackOutcome.belongsToDebt
           : TakeBackOutcome.belongsToPlan;
     }
+    // A bill needs no survival check, and the asymmetry below is the reason.
+    // `undoUpcomingPaid` takes the transaction and calls
+    // `undoLoggedTransaction`, so un-ticking the bill REMOVES this entry
+    // outright. Follow the refusal's instruction and there is nothing left to
+    // refuse, so the route clears itself the way the three stored links do.
     if (txId.startsWith('tx_bill_')) return TakeBackOutcome.belongsToBill;
-    if (txId.startsWith('tx_split_')) return TakeBackOutcome.belongsToSplit;
+
+    // A SPLIT DOES NEED ONE, and shipping it without was a dead end.
+    //
+    // The refusal tells somebody "the debts it created are still standing,
+    // remove those debts from the Debts screen first". The first version of
+    // this line returned on the id prefix alone, unconditionally, so they
+    // could do exactly that and come back to the identical sentence, now
+    // false, with the expense still unreachable forever. Nothing else in the
+    // app could take it back either: the five second snackbar was long gone.
+    //
+    // The test that was supposed to guard this proved the defect instead. It
+    // was named "a split entry is refused, because its debts are still
+    // standing" and its fixture passed NO DEBTS AT ALL, so it asserted the
+    // refusal in precisely the state where the refusal is wrong.
+    //
+    // The debts carry the link in their ids: `tx_split_<stamp>` writes
+    // `debt_split_<stamp>_<seq>`. That is the same guess the prefix itself is,
+    // with the same limit (an older build's ids, a restored backup), and it is
+    // what there is until the link is stored properly.
+    if (txId.startsWith('tx_split_')) {
+      final String stamp = txId.substring('tx_split_'.length);
+      final String born = 'debt_split_${stamp}_';
+      // ANY, not all. One receivable left standing is still a person who
+      // owes for a bill that would no longer exist.
+      if (_debts.any((Debt d) => d.id.startsWith(born))) {
+        return TakeBackOutcome.belongsToSplit;
+      }
+    }
 
     return TakeBackOutcome.done;
   }
@@ -2339,6 +2373,119 @@ class FinancialState extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   String? _sampleRemovedAt;
+
+  String? _onboardedAt;
+
+  /// Whether the welcome still has to be shown.
+  ///
+  /// TWO QUESTIONS, not one, and the second is what makes this safe. The
+  /// stored flag answers "has this app introduced itself on this phone".
+  /// On its own it would march somebody through a first run they finished
+  /// months ago the moment they restored a backup taken before the field
+  /// existed, because that file honestly says null.
+  ///
+  /// So a ledger that already holds records the person made is treated as
+  /// onboarded whatever the flag says. Somebody with their own accounts and
+  /// their own entries has plainly met this app before, and asking them where
+  /// their money is would be the app forgetting them.
+  ///
+  /// `hasSampleData` is deliberately NOT part of this. A phone holding only
+  /// the demo has not started, which is exactly the state the welcome is for.
+  bool get needsWelcome {
+    // NEVER OVER AN UNREADABLE FILE, and this is a safety rule rather than a
+    // tidiness one. A ledger Salapify cannot parse still shows the SEED in
+    // memory, so every test below would say "nothing here, introduce
+    // yourself" to somebody whose real book is sitting on the disk intact and
+    // merely unread. They would meet a cheerful welcome instead of the banner
+    // that tells them their data could not be read, and the one thing they
+    // must not do in that state is start typing a replacement.
+    //
+    // Saving is already off in this state, so nothing they did could land.
+    // That makes the welcome worse, not better: it would be a first run that
+    // silently discards itself.
+    if (_loadStatus == LoadStatus.unreadable) return false;
+
+    if (_onboardedAt != null) return false;
+    if (_accounts.any((Account a) => !a.isSample)) return false;
+    if (_transactions.any((Transaction t) => !t.isSample)) return false;
+    if (_debts.any((Debt d) => !d.isSample)) return false;
+    return true;
+  }
+
+  /// The person chose to start with their own money.
+  ///
+  /// EVERY DEMO RECORD GOES, and the payday with it. That last part is the
+  /// one worth naming: `SeedData.payday` is not merely absent on a fresh
+  /// install, it is FABRICATED, carrying a 15th and 30th cycle, a next payday
+  /// and 32,500 of expected income. The hero draws a countdown off it, so an
+  /// untouched install counts down to somebody else's sweldo. Starting real
+  /// and leaving that behind would be the same defect this whole path exists
+  /// to remove.
+  ///
+  /// The sweep is reused rather than reimplemented. It already knows every
+  /// rule: which collections carry `isSample`, that the payday and the income
+  /// streams are Salapify's too, and that a demo account the person has
+  /// already used gets ADOPTED rather than deleted. Writing a second emptier
+  /// here would be a second copy of all of that, and the copies would drift.
+  ///
+  /// Nothing has been typed yet at this point, so there is nothing to adopt
+  /// and the sweep simply clears the lot.
+  void startWithOwnMoney({
+    required String accountName,
+    required Money opening,
+  }) {
+    removeSampleData();
+
+    // The sweep records a removal, and here that is false: nothing was ever
+    // taken away from this person, so the put-it-back control must not
+    // appear. `canRestoreSampleData` reads this, and offering somebody who
+    // chose their own money a button that injects a stranger's payroll is
+    // precisely the mixing this path exists to prevent.
+    _sampleRemovedAt = null;
+
+    addAccount(
+      Account(
+        id: 'acc_${now.microsecondsSinceEpoch}',
+        name: accountName,
+        kind: AccountKind.cash,
+        institution: '',
+        monogram: _monogramOf(accountName),
+        balance: opening,
+      ),
+    );
+
+    _onboardedAt = isoDate(now);
+    notifyListeners();
+  }
+
+  /// The person chose to look around first. The demo stays exactly as it is.
+  ///
+  /// Home then carries a permanent one line exit from it, which is the whole
+  /// bargain: the demo is allowed to exist because somebody asked for it and
+  /// because leaving is one tap from the screen they are looking at.
+  void startWithExampleData() {
+    _onboardedAt = isoDate(now);
+    notifyListeners();
+  }
+
+  /// Two letters for an account with no institution behind it.
+  ///
+  /// The account sheet derives these from a brand when it knows one. This one
+  /// is typed by a person on their first screen, so there is no brand to
+  /// look up and the name itself is all there is.
+  String _monogramOf(String name) {
+    final List<String> words = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((String w) => w.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return 'SA';
+    if (words.length == 1) {
+      final String w = words.first;
+      return (w.length == 1 ? w : w.substring(0, 2)).toUpperCase();
+    }
+    return '${words[0][0]}${words[1][0]}'.toUpperCase();
+  }
 
   /// True while any record on this phone is still Salapify's own demo data.
   bool get hasSampleData =>

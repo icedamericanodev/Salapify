@@ -44,6 +44,7 @@ class Snapshot {
     this.reminderSettings = ReminderSettings.defaults,
     required this.payday,
     this.sampleDataRemovedAt,
+    this.onboardedAt,
     required this.theme,
     required this.scenario,
     this.activeProfile,
@@ -89,6 +90,28 @@ class Snapshot {
   /// key and no sample flags, so the button is simply not there and cannot
   /// inject demo money into somebody's real book.
   final String? sampleDataRemovedAt;
+
+  /// When the app finished introducing itself, or null if it never has.
+  ///
+  /// Founder decision, 2026-10-03, approving the onboarding design. One
+  /// nullable string, modelled on [sampleDataRemovedAt] directly above,
+  /// because that field already proved the shape: a scalar beside the
+  /// collections, absent from a file written before it existed, and read back
+  /// as null rather than as a default that pretends to know something.
+  ///
+  /// NULL IS THE CORRECT ANSWER FOR AN OLD BACKUP, and that is the whole
+  /// reason it is nullable rather than a bool. A ledger exported before this
+  /// existed, or imported from the prototype, genuinely never saw the welcome,
+  /// and saying so is honest. What stops that being annoying is that the
+  /// routing asks a SECOND question, whether the person already has real
+  /// records, so somebody restoring a full backup is not marched through a
+  /// first run they finished months ago on another phone.
+  ///
+  /// It deliberately does NOT record WHICH path was taken. That is derivable:
+  /// demo records carry `isSample`, so `hasSampleData` already answers it, and
+  /// a second stored field that can disagree with the first is a defect
+  /// waiting to be written.
+  final String? onboardedAt;
 
   final ThemeMode2 theme;
   final DecisionScenario scenario;
@@ -182,6 +205,7 @@ class Snapshot {
     'reminderSettings',
     'payday',
     'sampleDataRemovedAt',
+    'onboardedAt',
     kGuideSteps,
   };
 
@@ -265,6 +289,7 @@ class Snapshot {
       'payday': merged('payday', 'payday', paydayToJson(payday)),
       if (sampleDataRemovedAt != null)
         'sampleDataRemovedAt': sampleDataRemovedAt,
+      if (onboardedAt != null) 'onboardedAt': onboardedAt,
       // SORTED, so that ticking the same two boxes always produces the same
       // bytes. A Set's iteration order is its insertion order, which would
       // make two identical checklists encode differently and every diff of a
@@ -509,6 +534,9 @@ class Snapshot {
       payday: _readPayday(m['payday'], extras),
       sampleDataRemovedAt: m['sampleDataRemovedAt'] is String
           ? m['sampleDataRemovedAt'] as String
+          : null,
+      onboardedAt: m['onboardedAt'] is String
+          ? m['onboardedAt'] as String
           : null,
       theme:
           themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??

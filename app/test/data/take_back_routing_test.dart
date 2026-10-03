@@ -354,19 +354,86 @@ void main() {
       expect(s.accounts.single.balance, Money.pesos(10000));
     });
 
-    test(
-      'a split entry is refused, because its debts are still standing',
-      () async {
-        final FinancialState s = await storeWith(
-          transactions: <Transaction>[expense('tx_split_1759400000000')],
-        );
-        expect(
-          s.takeBackEntry('tx_split_1759400000000'),
-          TakeBackOutcome.belongsToSplit,
-        );
-        expect(s.accounts.single.balance, Money.pesos(10000));
-      },
-    );
+    // The split route, in all three states, because the first version of this
+    // group had ONE test, named "a split entry is refused, because its debts
+    // are still standing", whose fixture passed no debts at all. It asserted
+    // the refusal in exactly the state where the refusal is wrong, so the
+    // test that was meant to guard the behaviour proved the defect instead.
+    //
+    // The dead end it hid: follow the refusal's own instruction, remove the
+    // debts, come back, and meet the identical sentence, now false, with the
+    // expense unreachable forever because the five second snackbar is gone.
+
+    /// A split's expense and the receivables it wrote, sharing a stamp.
+    ///
+    /// Built the way `_save` builds them so the id link under test is the
+    /// real one and not a shape invented for the test.
+    List<Debt> splitDebts(String stamp, int count) => <Debt>[
+      for (int i = 0; i < count; i++)
+        Debt(
+          id: 'debt_split_${stamp}_$i',
+          person: 'Carla $i',
+          direction: DebtDirection.owedToMe,
+          totalAmount: Money.pesos(600),
+          paidAmount: Money.zero,
+          isSettled: false,
+          notes: 'Split: Barkada lunch',
+        ),
+    ];
+
+    test('refused while even ONE of its receivables is standing', () async {
+      final FinancialState s = await storeWith(
+        transactions: <Transaction>[expense('tx_split_1759400000000')],
+        debts: splitDebts('1759400000000', 1),
+      );
+      expect(
+        s.takeBackEntry('tx_split_1759400000000'),
+        TakeBackOutcome.belongsToSplit,
+      );
+      expect(s.accounts.single.balance, Money.pesos(10000));
+    });
+
+    test('still refused when SOME were removed and others were not', () async {
+      // Two were created, one deleted by hand. The remaining one is still a
+      // person who owes for a bill that would otherwise stop existing.
+      final FinancialState s = await storeWith(
+        transactions: <Transaction>[expense('tx_split_1759400000000')],
+        debts: <Debt>[splitDebts('1759400000000', 2).last],
+      );
+      expect(
+        s.takeBackEntry('tx_split_1759400000000'),
+        TakeBackOutcome.belongsToSplit,
+      );
+    });
+
+    test('ALLOWED once every one of them is gone', () async {
+      // THE DEAD END, and the whole reason this group was rewritten. The
+      // refusal says "remove those debts from the Debts screen first". This
+      // is the state a person reaches by obeying that sentence, and until
+      // 2026-10-03 they met the same refusal again with nothing left to do.
+      final FinancialState s = await storeWith(
+        transactions: <Transaction>[expense('tx_split_1759400000000')],
+      );
+
+      expect(s.takeBackPreview('tx_split_1759400000000'), TakeBackOutcome.done);
+      expect(s.takeBackEntry('tx_split_1759400000000'), TakeBackOutcome.done);
+      expect(
+        s.accounts.single.balance,
+        Money.pesos(10500),
+        reason: 'the expense is still unreachable after its debts were removed',
+      );
+    });
+
+    test('another split debts do not hold this one hostage', () async {
+      // A DIFFERENT stamp. Matching on the bare 'debt_split_' prefix instead
+      // of the full stamp would make any surviving split anywhere refuse
+      // every other split's expense forever.
+      final FinancialState s = await storeWith(
+        transactions: <Transaction>[expense('tx_split_1759400000000')],
+        debts: splitDebts('1759499999999', 1),
+      );
+      expect(s.takeBackPreview('tx_split_1759400000000'), TakeBackOutcome.done);
+    });
 
     test('a transfer between the person OWN accounts is ordinary', () async {
       // tx_move_ is NOT refused and should not be. A transfer writes one row
