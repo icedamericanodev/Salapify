@@ -22,43 +22,69 @@ Do case 8 LAST. It erases everything.
 
 ---
 
-## 1. Budgets still add up
+## 0. Why this page does not quote a spending total
 
-The figures below are locked by test vectors, so they are what the screen must
-show to the centavo.
+Written after the first run of case 1 reported a "wrong" figure that was
+correct. The first version of that case quoted ₱25,425.25 left to spend,
+copied from the golden vectors. It is the right figure IN THE TESTS, which pin
+the clock to 18 September, and it is wrong on a real phone on almost every
+other day.
+
+The sample entries are dated RELATIVE TO TODAY: one day ago, three days ago,
+fourteen days ago. Budgets are a THIS MONTH limit. So on the 3rd of a month,
+only the entries from the last two days are inside the window and most
+categories correctly read zero. On the 20th, nearly all of them are inside it.
+The figure moves every day, by design, and no number written on this page can
+survive that.
+
+So every case below checks an INVARIANT, something that cannot be false
+whatever the date, or a figure that genuinely does not depend on one. A test
+instruction that rots is worse than no test instruction, because it sends
+somebody to look for a defect that is not there.
+
+## 1. Budgets add up, whatever today is
 
 1. Open the **Plan** tab.
 2. Tap **Budgets**.
 
-EXPECT, exactly:
+Three checks, all true on any date:
 
-| Where | Figure |
-|---|---|
-| Left to spend this month | ₱25,425.25 |
-| Under it | 1 over, 0 to watch |
-| Debt & Loan Servicing | ₱6,450.00, and ₱450.00 over limit |
-| Groceries | ₱3,250.75, 41%, ₱4,749.25 left of ₱8,000 |
-| Food & Dining | ₱465.00, 5%, ₱8,535.00 left of ₱9,000 |
+**1a. The limits never move.** Each row says "left of ₱X". Those should read
+₱9,000, ₱3,500, ₱6,500, ₱8,000, ₱4,000, ₱5,000 and ₱6,000, one per category.
 
-WATCH FOR: a figure a centavo out, or a percentage off by one. Those are the
-only shapes this change could have broken.
+**1b. The parts sum to the whole.** Add up every row's "left of" figure. It
+must equal the headline, **Left to spend this month**, to the centavo.
+
+**1c. Each row is self-consistent.** For any row with spending, the big figure
+on the right plus the "left" figure must equal that row's limit exactly.
+
+WATCH FOR: a sum that is a centavo or two off the headline. That is precisely
+what adding money up as decimals used to risk, and precisely what this change
+removes, so it is the most informative failure on this page.
+
+NOT A DEFECT: a category reading ₱0.00 with 0 entries. That means its sample
+entries fall in a previous month. Early in a month most of them will.
 
 ## 2. Changing a budget limit moves the row AND the headline
 
 1. **Plan**, then **Budgets**.
-2. Tap **Food & Dining**.
-3. Clear the box and type `12000`.
-4. Before saving, read the line under the box. It should say what the new
+2. WRITE DOWN the headline figure before you touch anything.
+3. Tap **Food & Dining**.
+4. Clear the box and type `12000`.
+5. Before saving, read the line under the box. It should say what the new
    limit would leave you.
-5. Tap **Save limit**.
+6. Tap **Save limit**.
 
-EXPECT: Food & Dining now reads `₱8,535.00 left of ₱12,000`, and the headline
-at the top has risen by exactly 3,000, from ₱25,425.25 to ₱28,425.25.
+EXPECT: the Food & Dining row now reads `left of ₱12,000`, and the headline
+has risen by EXACTLY 3,000 from the figure you wrote down. The change is
+3,000 whatever the starting figure was, because the limit went up by 3,000 and
+nothing was spent.
 
-WATCH FOR: the row changing while the headline does not. That means the two
-are no longer reading the same figure.
+WATCH FOR: the row changing while the headline does not, or a headline that
+moves by 2,999.99 or 3,000.01. The first means the two are no longer reading
+the same figure; the second is the drift this change removes.
 
-5. Set it back to `9000` when you are done.
+7. Set it back to `9000` when you are done.
 
 ## 3. A budget limit with centavos
 
@@ -76,18 +102,26 @@ EXPECT: the box reads `3500.55`, not `3500.54`, `3500.56` or `3500.5`.
 
 1. **Plan**, then **Bills and payables**.
 
+These figures ARE safe to quote, unlike the budget totals above, and the
+difference is worth knowing: bills are "what is due next", with no month
+window on them at all, so nothing here drops out as the calendar moves. Only
+the DUE LABELS change ("Due Today", "Due Sunday"), never the amounts.
+
 EXPECT: `GOING OUT ₱5,529.00` over `3 bills`, and `COMING IN ₱32,500.00`.
 Meralco ₱2,840.00, Spotify ₱239.00, Home Credit ₱2,450.00, Sweldo Payday
 ₱32,500.00.
 
-2. Scroll down and add a bill: name it `Test centavos`, amount `1234.56`.
+2. Check the invariant as well as the figures: the three bill amounts must add
+   up to GOING OUT exactly.
+
+3. Scroll down and add a bill: name it `Test centavos`, amount `1234.56`.
 
 EXPECT: it appears at ₱1,234.56, and GOING OUT rises to ₱6,763.56.
 
 WATCH FOR: ₱1,234.55 or ₱1,234.57, or a going-out total that is a centavo off
 the sum of the rows.
 
-3. Delete the test bill afterwards.
+4. Delete the test bill afterwards.
 
 ## 5. A credit card with no limit says so, rather than claiming zero
 
