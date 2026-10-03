@@ -183,9 +183,16 @@ class _WipeSheetState extends State<WipeSheet> {
           Text(
             // The count, not a claim. A file that refused to delete is not
             // reported as a success.
+            // The Pan conversation was MISSING from this list until
+            // 2026-10-03, while filesToDeleteInOrder genuinely deleted it.
+            // The privacy sheet calls it the most sensitive of the
+            // non-ledger files, because it holds sentences somebody typed in
+            // their own words, and somebody wiping before handing the phone
+            // over is wiping that above all. A receipt that does not name it
+            // is not telling them the one thing they came here for.
             '$_removed ${_removed == 1 ? 'file' : 'files'} removed from this '
-            'phone: your ledger, the spare copies Salapify kept, and the '
-            'saved exchange rates.',
+            'phone: your ledger, the spare copies Salapify kept, your '
+            'conversation with Pan, and the saved exchange rates.',
             style: AppType.body(p),
           ),
           const SizedBox(height: Spacing.md),
