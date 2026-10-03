@@ -1649,8 +1649,40 @@ class FinancialState extends ChangeNotifier {
           ? TakeBackOutcome.belongsToDebt
           : TakeBackOutcome.belongsToPlan;
     }
+    // A bill needs no survival check, and the asymmetry below is the reason.
+    // `undoUpcomingPaid` takes the transaction and calls
+    // `undoLoggedTransaction`, so un-ticking the bill REMOVES this entry
+    // outright. Follow the refusal's instruction and there is nothing left to
+    // refuse, so the route clears itself the way the three stored links do.
     if (txId.startsWith('tx_bill_')) return TakeBackOutcome.belongsToBill;
-    if (txId.startsWith('tx_split_')) return TakeBackOutcome.belongsToSplit;
+
+    // A SPLIT DOES NEED ONE, and shipping it without was a dead end.
+    //
+    // The refusal tells somebody "the debts it created are still standing,
+    // remove those debts from the Debts screen first". The first version of
+    // this line returned on the id prefix alone, unconditionally, so they
+    // could do exactly that and come back to the identical sentence, now
+    // false, with the expense still unreachable forever. Nothing else in the
+    // app could take it back either: the five second snackbar was long gone.
+    //
+    // The test that was supposed to guard this proved the defect instead. It
+    // was named "a split entry is refused, because its debts are still
+    // standing" and its fixture passed NO DEBTS AT ALL, so it asserted the
+    // refusal in precisely the state where the refusal is wrong.
+    //
+    // The debts carry the link in their ids: `tx_split_<stamp>` writes
+    // `debt_split_<stamp>_<seq>`. That is the same guess the prefix itself is,
+    // with the same limit (an older build's ids, a restored backup), and it is
+    // what there is until the link is stored properly.
+    if (txId.startsWith('tx_split_')) {
+      final String stamp = txId.substring('tx_split_'.length);
+      final String born = 'debt_split_${stamp}_';
+      // ANY, not all. One receivable left standing is still a person who
+      // owes for a bill that would no longer exist.
+      if (_debts.any((Debt d) => d.id.startsWith(born))) {
+        return TakeBackOutcome.belongsToSplit;
+      }
+    }
 
     return TakeBackOutcome.done;
   }
