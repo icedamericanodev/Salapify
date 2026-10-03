@@ -10,6 +10,495 @@ about delivery, and beliefs are what these sessions audit.
 
 ---
 
+## 2026-10-03, session 48: a deliberate break that failed to fail and then failed properly, one latch asked to answer two questions, a default test window no phone has ever had, and twenty one committed screenshots nobody can see
+
+**What we believed / What was true.**
+
+1. GROUND TRUTH IS NOT A STAMP, for the fourth entry running, and the reason
+   has not changed. `app/` has no publisher, no Shorebird app id, no
+   `updateStamp` and no delivery row; `docs/delivery-log.md` still ends at
+   Salapify 2's `f4.72`. Ground truth here is the founder running
+   `origin/claude/flutter-final` on their Android emulator through
+   `tools/dev-sync.sh`. They walked the full first run and said "okay it
+   works". Nothing in this entry is a delivery finding, because there is no
+   delivery.
+
+2. THE FOUNDER COULD ACTUALLY REACH WHAT THEY WERE ASKED TO TEST, which is
+   worth checking rather than assuming given last session.
+   `origin/claude/flutter-final` is at `1d0453f`, and all three commits in
+   this batch are ancestors of it. Session 47's failure did not repeat, and
+   the margin is measurable: the checks on `498115d` reported `success` at
+   09:27:29Z and 09:28:09Z and the merge landed at 09:28:25Z, sixteen seconds
+   later; `960e88e` went green at 10:11:55Z and 10:12:18Z and merged at
+   10:12:36Z. Session 47's gap was ten minutes and eleven seconds. This one is
+   under a minute both times.
+
+3. NOTHING ON THE PHONE WAS WRONG. No defect reached the founder, no figure is
+   wrong, no data was lost. Every finding below is about the test suite's
+   shape, the documentation, and one bug the suite caught before anybody saw
+   it. A clean confirmation is a real outcome and it is this one.
+
+4. EVERY LOAD-BEARING CLAIM HERE WAS RE-RUN, not read off a commit message. I
+   removed `firstEver` from `app_shell.dart:289` myself and watched six tests
+   pass and the seventh fail. I removed the window pin from
+   `log_journey_test.dart` myself and watched all twenty one fail. I ran the
+   render harness exactly as CLAUDE.md writes the command (116 shots, 42
+   seconds, exit 0). I counted the committed renders against the page that
+   embeds them, file by file. Two of those experiments changed what I
+   recommend.
+
+**Timeline, with evidence.** Times UTC, from the GitHub API and `git log`.
+
+- `cde0f29`, 2026-10-03. The onboarding design, written before any code.
+  `docs/reviews/onboarding-design.md` says so in its own third line and
+  records that two specialist passes were run and verified against the code
+  rather than trusted.
+- `b9f3523`. A render of Home with the demo data swept, a state nobody had
+  ever looked at.
+- `1f14153`. The split expense refusal fix. This CLOSES session 47's lesson 3,
+  found and shipped on the same day it was recorded.
+- `b55fc39`. The onboarding screens, drawn and deliberately NOT wired to
+  anything, so a fresh install still behaved exactly as before while the
+  founder reviewed the pictures.
+- `498115d`, PR #489, merged 09:28:25Z. The first run fork itself: a stored
+  `onboardedAt`, `startWithOwnMoney`, `startWithExampleData`, the welcome
+  routed from `main.dart` on `needsWelcome`, and the example data exit on
+  Home.
+- `960e88e`, PR #490, merged 10:12:36Z. The Today row under the hero, the
+  payday asked at the first income entry, and the daily nudge offered on the
+  first entry somebody ever makes themselves.
+- The founder walks the first run on the emulator and confirms.
+- `443a021`, after the confirmation. A wiped phone starts over, which it did
+  not. Committed locally and NOT pushed as this entry is written, so
+  `origin/claude/flutter-final` does not carry it and the emulator cannot
+  reach it yet. See lesson 6.
+
+**Root cause.** There is no single incident here, and manufacturing one would
+be dishonest. There are two real defects and both have the same shape: a
+condition that is true in the only environment the tests ever built. The
+shared latch was invisible because every test ran one app once. The displaced
+shortcut row was invisible because every test ran on a window no phone has.
+Neither is a lapse of attention and both have structural answers.
+
+**Lessons, each with its guard and the guard's strength.**
+
+LESSON 1. THE BREAK THAT FAILED TO FAIL. THE PROCEDURE ALREADY COVERS THIS AND
+WAS FOLLOWED, and I am saying that plainly rather than minting a guard to make
+the session look productive.
+WHAT HAPPENED, reproduced by me rather than quoted. Removing `firstEver` from
+the reminder offer at `app_shell.dart:289` leaves six of the seven tests in
+`first_entry_offers_journey_test.dart` green. The seventh fails:
+
+    Expected: no matching candidates
+      Actual: Found 1 widget with text "That is one entry"
+    a new run offered the nudge again to somebody who had already declined it,
+    which is a nag rather than an offer
+
+THE DIAGNOSIS GENERALISES even though the lesson mostly does not. Two
+conditions sat in one `if` and covered for each other: `firstEver` is derived
+from the ledger and spans runs, `_offeredReminder` is a field on a `State` and
+dies with the widget. Inside one run the latch makes the ledger condition
+unobservable, so a single-run test cannot distinguish them by construction. Any
+gate meaning ONCE EVER, as opposed to once per run, is therefore untestable in
+one pump, and nothing about care or coverage changes that. CLAUDE.md already
+says what to do when a break does not go red, and the comment at
+`first_entry_offers_journey_test.dart:283-296` is the required work actually
+done: it names the branch the six tests reach and why only a second app over
+the same store reaches the other one.
+THE ONE TRANSFERABLE ARTEFACT, and it is a shape rather than a lesson. This is
+the THIRD time in three sessions that the only test able to see a defect was a
+SECOND object built over the SAME store: `debt_removal_test.dart:194` ("an
+archived debt survives a save and a GENUINE reload"), the import undo cold
+start in `app-c37`, and now this. Three independent arrivals at one shape is a
+shape worth making cheap.
+GUARD: a `pumpSecondRun(store)` helper in `app/test/support/`, so the expensive
+shape becomes the short path. The precedent and the argument are already
+written in this repository, in `pinned_app.dart`'s own header: pinning "is
+three lines that are easy to leave out and impossible to notice missing. A
+helper makes the pinned path the SHORT path."
+STRENGTH: MEDIUM, and the grade is the honest part. A helper nobody calls
+guards nothing; it lowers a cost, it does not fail loudly. The loud half of
+this lesson is the break-then-prove procedure, which is a rule, was followed,
+and produced exactly the result it exists to produce. No new rule is proposed
+here, because a second sentence about a sentence that worked is noise.
+
+LESSON 2. ONE LATCH ASKED TO ANSWER TWO QUESTIONS, and the honest answer to
+"was anything cheaper than a test available" is NO. CLOSED, because the guard
+is already in the suite.
+THE DEFECT. A single session flag gated both offers. The first entry somebody
+makes is usually a spend, which spent the flag on the reminder, so the payday
+question could never be asked at all in any run where a spend came before a
+salary. That is most runs.
+THE FIX: two flags named for their two questions, `_offeredReminder` and
+`_askedPayday` (`app_shell.dart:266-267`), with the reasoning written beside
+them.
+WHY NOTHING CHEAPER WOULD HAVE CAUGHT IT. Three candidates, each rejected for a
+reason rather than for taste. The type system cannot help: both questions want
+a `bool` and Dart has nothing to say about what a `bool` means. Naming helps a
+little and is worth doing, since a flag named `_offeredReminder` reads wrong at
+the payday call site, but the original was named for neither question, which is
+precisely how it happened. The only structural candidate is to delete the
+latches entirely and derive both answers from the ledger, which is nearly true
+already (`!s.reminderSettings.phoneEnabled` and `!s.payday.isSet` are both
+derived), and the comment at `app_shell.dart:260-265` explains the residue they
+cover: a same-run repeat after somebody takes an entry back and logs it again.
+So the flag is small and real, and nothing but an executed sequence could see
+it misbehave.
+GUARD, ALREADY IN PLACE: `first_entry_offers_journey_test.dart:232`, "the
+payday is asked at the first income, not at install", logs an EXPENSE first,
+answers the nudge, and only then logs income. That ordering is the whole guard.
+A test that logged income first would have passed with the shared flag intact.
+STRENGTH: STRONGEST. Automated, in the suite, and it caught this before the
+founder. The transferable rule, specific enough to be usable: when two offers
+compete for one moment, one test must run the sequence where the first offer
+fires and the second is still due.
+
+LESSON 3. THE DEFAULT TEST WINDOW IS NOT A PHONE, AND IT MAKES TWO OPPOSITE
+MISTAKES LOOK IDENTICAL. This is the most useful thing in the entry.
+THE MEASUREMENT, taken rather than assumed. Flutter's default test window is
+800 by 600 logical pixels, which is shorter than any phone the app will ever
+run on. Adding the Today row pushed Home's shortcut row below that fold. I
+removed the window pin from `log_journey_test.dart` and re-ran the file: 21 of
+21 tests fail, every one of them with
+
+    Bad state: No element
+
+which reads exactly like a missing button, not like a window too short to
+build one.
+THE PART THAT IS NOT ABOUT WINDOWS. This batch produced BOTH possible answers
+to that same symptom, hours apart, and both were correct:
+  - The example data banner was first placed ABOVE the hero, displaced the
+    shortcut row, and eleven journeys could not find the Log button. The test
+    failure was a DESIGN signal. The banner was wrong on the merits as well, a
+    permanent full width warning shown to somebody who deliberately chose the
+    demo, which is the standing banner shape the founder removed on
+    2026-09-19. It now sits below the shortcut row with the reasoning written
+    at `home_screen.dart:195-217`.
+  - The Today row displaced the same control for a completely different
+    reason, and the design was right. The FIXTURE was wrong.
+So "a test failure that is really a design signal" is a real category and it is
+NOT actionable as a rule, because the rule would have to be "suspect the
+design" and this batch contains one case where that is right and one where it
+is wrong. What separates them is a single question: would the displacement also
+happen on a real handset? The banner displaces the shortcut row on any phone.
+The Today row does not. A test window that no phone has makes that question
+unanswerable, which is the moment somebody reaches for `findsWidgets` instead
+of `findsOneWidget`. That nearly happened here and was caught and refused.
+WHAT WAS DONE, and why it is not the guard. The window was first widened in the
+SHARED helper `test/support/pinned_app.dart`, which reddened two unrelated
+files: nested chip rows made `scrollUntilVisible`'s default scrollable
+ambiguous in `home_layout_test.dart`, and a second `BankCard` was built where
+`accounts_test.dart` expected one. That change was reverted and the taller
+window pinned in the four files that needed it. Reverting under time pressure
+was right. Leaving it there is not, because those four files are now the only
+places in the suite that run on something phone shaped.
+GUARD, NOT YET BUILT, so this lesson is OPEN. `pumpSalapify` grows a window
+parameter whose DEFAULT is a real handset, exactly the way it already carries
+the clock and the `onboarded` flag. The two files that broke get FIXED and
+never accommodated: name the scrollable in `home_layout_test`, and work out
+whether a second `BankCard` appearing is a defect or a correct consequence of
+more of the screen being built, because "a second account card appeared" is a
+sentence that deserves an answer rather than a narrower assertion.
+STRENGTH when built: STRONGEST class, and it is work rather than a one line
+change. Measured so nobody mistakes the cheaper variant for this one: 35 of the
+56 files in `app/test/widgets` already pin a window and 21 do not, so a
+discipline test demanding every file declare one would flag 21 files today. The
+default is what is wrong, not the 21 files.
+
+LESSON 4. A LAYOUT TEST THAT MEASURES IN A FONT THE APP DOES NOT SHIP.
+Discovered while measuring lesson 3, not reported to me.
+`home_layout_test.dart:63-76` asserts "nothing on Home overflows its width at
+320dp" and never calls `loadRealFonts`. CLAUDE.md names this exact shape and
+names the exact precedent (`segmented_test.dart` demanded a stacked picker that
+only stacks in the test font), and this batch met its consequence again: the
+suite reported "A RenderFlex overflowed by 45 pixels" in `debt_beam_card.dart`,
+and the identical 45 is already recorded at
+`split_bill_journey_test.dart:398-401` as a phantom from the same cause.
+I CHECKED WHETHER IT IS LIVE RATHER THAN ASSUMING. Adding `loadRealFonts` to
+that test changes nothing today; it passes either way. So this is latent, not a
+live false pass, and it is still wrong, because the test judges a font nobody
+will see and its failures cannot be trusted in either direction.
+GUARD, NOT YET BUILT: a source reading discipline test in the shape this
+repository already uses three times (`clock_discipline_test.dart` reads test
+sources, `main_wiring_test.dart` reads `main.dart`, `truthful_claims_test.dart`
+reads what the app claims): any file under `app/test` that sets
+`tester.view.physicalSize` must also call `loadRealFonts`.
+STRENGTH: STRONGEST class, and the noise is measured rather than hoped for. 35
+of the 38 files that set a window already load the fonts. Exactly three do not:
+`home_layout_test.dart`, `info_sheet_test.dart` and `log_journey_test.dart`.
+HONEST LIMIT: it cannot tell a test that MEASURES from one that merely wants
+room, so those three gain fonts they may not strictly need, at a cost of
+milliseconds.
+
+LESSON 5. TWENTY ONE COMMITTED RENDERS NOBODY CAN SEE, which is a rule being
+routed around rather than broken.
+THE COUNT, taken file by file. `docs/migration/screens/` holds 116 committed
+PNGs. `docs/migration/README.md`, the page that embeds them so GitHub renders
+them, references 95. The 21 that are committed and invisible include
+`import-preview.png` and `import-confirm.png`, which are the visual evidence
+for the destructive import in `app-c37`, plus the three toolkit screens, three
+Pan sheets, `settings.png` and `home-no-banners.png`.
+WHY THIS IS A FINDING AND NOT A TIDINESS NOTE. CLAUDE.md records the founder
+asking "how can I view these screens on GitHub" while twenty four were already
+committed, and the rule written in response was that the page embeds every
+render, "because a picture nobody can open proves nothing". The folder has
+silently re-accumulated the same condition, at 21 files.
+THIS BATCH ADDED FOUR RENDERS TO NEITHER, and I am recording that without
+inflating it: `onboarding_welcome`, `onboarding_account`,
+`onboarding_account_filled` and the demo swept Home were rendered and shown to
+the founder in chat, who reviewed them and approved the two gated decisions, so
+route one worked and the cost today is zero. The cost is later. The next change
+to the first run, the screen every new user meets, has no committed before
+picture to compare against.
+GUARD, NOT YET BUILT: a test asserting every `.png` in `docs/migration/screens`
+is referenced by `docs/migration/README.md`.
+STRENGTH: STRONGEST class and almost free, in the same source reading shape as
+the rest. It STARTS RED at 21 files, and that is the finding rather than an
+obstacle; the fix is 21 rows in an existing table. HONEST LIMIT: it cannot make
+anybody render a screen, and it cannot tell that an embed actually displays. It
+only makes a committed render that nobody linked impossible to leave.
+
+LESSON 6. A NEW LIFECYCLE FLAG CREATED A DEAD END IN AN OLD DESTRUCTIVE PATH,
+found after the founder had already confirmed the batch.
+`onboardedAt` is the right design and it gave the wipe a state it had never
+had. Clearing the ledger while keeping `onboardedAt` produced an app that was
+empty AND had no way back to anything: `needsWelcome` stayed false so no
+welcome, `_sampleRemovedAt` is correctly null after a wipe so the put it back
+control is correctly absent, and Settings read "There is no sample data on this
+phone" with no control beside it. Neither the first run nor the example data
+was reachable by any route. The person this costs most is the one the wipe
+exists for, somebody handing the phone on, whose recipient meets a blank app
+that has already decided it knows them. Fixed at `443a021`, with a journey test
+that pins its fixture in the right direction before proving anything.
+THE NEAR MISS BESIDE IT, which is the part worth keeping. `onboardedAt` was
+declared in `Snapshot._ownTopKeys` (`snapshot.dart:208`) at the moment it was
+introduced. Had it not been, the unknown key sidecar would have preserved the
+old value and the wipe's clearing would have been undone on the next load,
+which is exactly the resurrection class sessions 45, 46 and 47 each recorded in
+a different costume. It was right because somebody was careful, not because
+anything checked.
+GUARD, NOT YET BUILT: a DERIVED property test, that after a wipe the stored map
+contains no key beyond the minimum a fresh install writes, asserted over the
+decoded map's own keys rather than over a list of field names somebody typed.
+STRENGTH: STRONGEST, and this is the only guard proposed this session that
+covers a field nobody has written yet. That is precisely what carried open
+lessons 13 and 14 below keep asking for, and it is why this one should be built
+before the cosmetic ones.
+
+LESSON 7. CLAUDE.md'S FACTUAL CLAIMS, re-read against the repository as a step
+rather than as a favour. This is the SIXTH consecutive retrospective to find a
+false factual claim in that file, and the new one was found by running a
+command rather than by reading one.
+(a) NEW AND MISLEADING FOR `app/`. The Flutter rule 5 paragraph says the local
+SDK "lives at /opt/flutter (add /opt/flutter/bin to PATH)" and tells a session
+to verify against the pin. On this box `/opt/flutter` is Flutter 3.44.6, while
+the LIVE app's CI pins `3.47.4`, twice, at `.github/workflows/app-check.yml:71`
+and `:172`, a workflow file CLAUDE.md never names anywhere. The pinned SDK is
+on the box at `/opt/f3474/flutter`, not at the documented
+`/opt/flutter-<version>`. I demonstrated the cost by walking into it: running
+the suite through `/opt/flutter` rewrote `app/pubspec.lock` DOWNWARD
+(`code_assets` 2.1.0 to 1.2.1, `hooks` 2.2.0 to 2.0.2), the exact sharp edge
+that same paragraph warns about, in the opposite direction from the one it
+describes. I restored the file.
+NOT A SHIPPING RISK, and saying so is part of the finding:
+`app-check.yml:78-87` runs "pub get on the pinned SDK leaves the tree clean"
+and reddens on precisely that drift. The cost is a wasted CI round trip, the
+same cost class rule 6 of that section already records for stamps.
+CHECKED AND NOT A CONTRADICTION, because I looked instead of assuming:
+`pages.yml` pins 3.44.6, and its Flutter step builds
+`archive/salapify-2-flutter`, so it is correctly on the archive's pin.
+(b) CARRIED AND STILL FALSE, from sessions 46 and 47. CLAUDE.md says
+`palette_contrast_test.dart` measures "all sixteen palettes". Two exist,
+`Barako.hapon` and `Barako.gabi` (`tokens.dart:73` and `:110`), and the test's
+own registry assertion reads `greaterThanOrEqualTo(2)`
+(`palette_contrast_test.dart:274`).
+(c) CARRIED AND STILL FALSE, from session 47. `.githooks/pre-push` is described
+as running the stamp check. Its body is `exit 0`.
+(d) CARRIED CONTRADICTION, and the number moved. The merge rules list a
+`docs/qa-log.md` row among conditions "ALL of which must hold before the
+merge"; the archive section lists the QA row among the rules that are dormant.
+The log's last row is still `app-c37`, 2026-09-19, and there are now SEVENTEEN
+merges on `origin/claude/flutter-final` since, including all three of this
+batch's. Two sections of one document disagreeing is still the finding.
+(e) WHAT STILL MATCHES, reported because the brief says to report it either way
+and because five sessions of naming only failures would misrepresent the file.
+The render command runs exactly as written, `cd app && flutter test
+test/shots/screens_shot.dart --update-goldens`: 116 shots, 42 seconds, exit 0.
+`info_dot.dart` and `info_sheet.dart` are where it says, and
+`info_sheet_test.dart` really does iterate `InfoTopic.values` (lines 27, 43 and
+76). `screens_shot.dart` carries no `_test` suffix, as described and for the
+stated reason. The committed review surface exists.
+(f) A GAP RATHER THAN A FALSITY, newly created by this batch and worth knowing
+before somebody trusts a picture. The shot harness pumps `AppShell` DIRECTLY
+(`screens_shot.dart:181` and its siblings), not `SalapifyApp`, so it bypasses
+`main.dart` and the renders cannot show the new first run routing at all. The
+tab shots are therefore still the lived-in phone CLAUDE.md promises, which is
+the good half. The bad half is that no render can prove the welcome appears.
+The tests do cover it: `pinned_app.dart` pumps the real `SalapifyApp` and takes
+`onboarded: false`, and `first_run_journey_test.dart` uses it. I ran that file
+alongside the other new one: 14 tests, all green.
+
+**Where this batch simply went well, checked rather than repeated.**
+
+- THE DESIGN WAS AGREED IN WRITING BEFORE ANY CODE, and the order is in the git
+  history rather than in a claim: `cde0f29` (the design) precedes `b55fc39`
+  (screens drawn, nothing wired) precedes `498115d` (the wiring).
+  `docs/reviews/onboarding-design.md` records that two specialist passes were
+  run and that every load-bearing claim in both was verified by reading code.
+- ONE OF THOSE VERIFICATIONS FOUND SOMETHING NOBODY HAD NOTICED IN MONTHS.
+  `SeedData.payday` is FABRICATED, not merely absent: `cycleType: '15_30'`,
+  `nextPayday: 'Sep 15'`, `expectedIncome: 32500` (`seed_data.dart:952`), and
+  the hero draws a countdown off it, so every untouched install was counting
+  down to a stranger's sweldo. `removeSampleData` clears it with the reason
+  written beside it, "The seed's payday is Salapify's, not theirs"
+  (`financial_state.dart:2632`).
+- THE SCREENS WERE SHOWN BEFORE THEY WERE WIRED, so a fresh install's behaviour
+  did not change until the founder had seen the pictures and approved the two
+  gated decisions. That is the "show it while it is still cheap to change" rule
+  used for its actual purpose rather than as a report.
+- `onboardedAt` IS NULLABLE WITH A SECOND QUESTION BEHIND IT. `needsWelcome`
+  also returns false when any non-sample account, transaction or debt exists
+  (`financial_state.dart:2445-2448`), so a restored backup written before the
+  field existed is never marched through a first run, and
+  `first_run_journey_test.dart:179` is a test for exactly that case.
+- THE UNREADABLE LEDGER CASE WAS CAUGHT, and it is a genuine near miss.
+  `needsWelcome` returns false when `_loadStatus` is `unreadable`
+  (`financial_state.dart:2443`). Without it, somebody whose real book is on the
+  disk intact and merely unparsed would meet a cheerful welcome, start typing a
+  replacement, and have none of it saved, because saving is already off in that
+  state. A first run that silently discards itself is the worst screen this app
+  could draw. It was found while fixing test failures rather than designed up
+  front, which is worth saying out loud.
+- SESSION 47'S LESSON 3 WAS CLOSED THE SAME DAY IT WAS WRITTEN, with the
+  strongest evidence class this repository can produce quoted in the commit.
+  The test that had to change for the fix to pass was ASSERTING THE BUG: it was
+  named "a split entry is refused, because its debts are still standing" and
+  its fixture passed NO DEBTS AT ALL. Four tests replace it, both halves were
+  broken on purpose, and both failure lines are in `1f14153`, including the
+  silence half ("Expected: belongsToSplit / Actual: done").
+- THE MERGE FOLLOWED THE GREEN CHECK BY SECONDS, twice. That is session 47's
+  lesson applied forward rather than re-learned, and it is the reason this
+  entry has no ordering incident in it.
+
+**Open lessons carried forward.**
+
+1. NEW, from lesson 6, and the highest priority item here because it covers a
+   field nobody has written yet. No derived "a wipe leaves a fresh install"
+   property test exists. Also: `443a021` is committed locally and NOT on
+   `origin/claude/flutter-final`, so the wipe dead end is still live on the
+   branch the emulator reads.
+2. NEW, from lesson 3. `pumpSalapify` has no window parameter and the default
+   800 by 600 window is shorter than any phone. Four files pin a real one by
+   hand; 21 of 56 widget test files pin nothing.
+3. NEW, from lesson 4. Three files measure layout without the shipped font and
+   the discipline test does not exist.
+4. NEW, from lesson 5. 21 committed renders are not on the page that displays
+   them, and this batch's four renders are in neither the folder nor the page.
+5. NEW, from lesson 7a. CLAUDE.md points a session at `/opt/flutter`, which on
+   this box is a different SDK from the one `app-check.yml` pins, and never
+   names `app-check.yml` at all.
+6. NEW, from lesson 1, graded as a convenience rather than a guard. No
+   `pumpSecondRun` helper exists; the shape has now been hand written three
+   times.
+7. CARRIED from session 47 item 1, re-checked and STILL OPEN.
+   `tools/dev-sync.sh:238` still reads `for OTHER in claude/flutter-final`, one
+   hardcoded name, so it still cannot see unmerged work on another branch.
+8. CARRIED from session 47 item 2, still open. `tools/` contains exactly one
+   file, `dev-sync.sh`. There is no `can-they-test.sh`.
+9. CARRIED from session 47 item 4, still open. The `.githooks/pre-push` claim.
+10. CARRIED from session 47 item 5, still open and moving. The qa-log
+    contradiction, now seventeen merges past the last row.
+11. CARRIED from sessions 46 and 47, still open. The Debts empty state's
+    archived clause has no test. The strings "You owe nobody anything" and
+    "Nobody owes you anything" appear exactly once in the repository, at
+    `debt_screen.dart:1048`, and nowhere in `app/test`.
+12. CARRIED from sessions 46 and 47, still open. CLAUDE.md's sixteen palettes.
+13. CARRIED from sessions 45 to 47, still open. `stored_shape_test.dart` guards
+    the sidecar with a hand typed list of key names. Noted this session: the
+    top level version of that hazard was LIVE in this batch and survived on
+    care alone, which is what lesson 6's guard is for.
+14. CARRIED from sessions 45 to 47, still open. Nested payment rows have no key
+    set and no sidecar: `json_codec.dart` declares `debtKeys` and
+    `installmentKeys` and nothing named for payments.
+15. CARRIED, and the number is still going one way.
+    `git rev-list --left-right --count origin/main...origin/claude/flutter-final`
+    returns `1 165`. Session 47 recorded 157 yesterday, session 46 recorded 146
+    and session 45 recorded 140. Not a retrospective's decision to make, and
+    worth a sentence every time it is measured.
+
+CLOSED this session: session 47's lesson 3, the split refusal that stated an
+unchecked fact and sent the person on an errand that changed nothing. Verified
+at the tip rather than taken from the commit message.
+
+**For the founder, in plain English.**
+
+The first run works, you confirmed it, and nothing reached you broken. This is
+a good news session with four pieces of homework, and all four are about the
+tools rather than about the app.
+
+What you now have. A brand new phone opens on a welcome screen instead of
+dropping you into somebody else's money. If you choose to start with your own
+money, every demo record goes, including one nobody had spotted: the example
+data had a FAKE PAYDAY in it, a 15th and 30th cycle with 32,500 of expected
+income, and the big number at the top of Home was counting down to it. So an
+untouched install was telling you when a stranger's salary arrives. That is
+gone on the real start path. If you choose to look around with the examples
+first, they stay, and there is a one tap way out sitting on Home. There is also
+a Today row under the hero, the payday question is now asked at the moment you
+first record money coming in rather than in a form on day one, and the daily
+reminder is offered once, after your first entry, which is also when the phone
+asks permission to send it.
+
+Three things worth knowing about how this was built, because they are the
+reason it works.
+
+First, something I did right, described precisely rather than proudly. Before
+trusting a new test, the rule here is to break the code on purpose and watch
+the test go red. I did that, and the test did NOT go red, which usually means
+the test is wrong. It was. The app has two separate memories of "have we
+already asked this", one that lasts only while the app is open and one that
+reads your actual records, and inside a single run they hide each other. I
+wrote one more test that closes the app and opens it again over the same saved
+file, and that one failed immediately: without the fix, the app would offer you
+the reminder again on the next launch, and the one after that, forever. An
+offer becomes a nag, and people learn to tap past it without reading. The
+procedure caught it, so there is nothing to add to the procedure.
+
+Second, a bug of mine that the tests caught before you did. I used ONE flag for
+TWO different questions, the reminder and the payday. Your first entry is
+usually something you spent, that entry spent the flag on the reminder, and so
+the payday question could never be asked at all. A test that logs a spend first
+and income second is what found it, because the order is the whole bug. That
+test is in the suite and stays there.
+
+Third, the thing that cost the most time and has the least to do with you.
+Flutter's tests run against a pretend screen 800 by 600, which is shorter than
+any real phone. The new Today row pushed Home's row of shortcut buttons below
+that pretend fold, and twenty one tests then failed saying "No element", which
+reads exactly like a missing button. The deeper problem is that the SAME
+failure happened earlier in the batch for the opposite reason: the example data
+banner was in the wrong place and really was pushing your buttons off the
+screen, on any phone. One symptom, two opposite correct answers, and a pretend
+screen no phone has makes them impossible to tell apart. The fix is to make the
+test screen phone shaped once, in one place, which is on the homework list.
+
+The homework, in priority order, so you can hold me to it. One, a check that
+wiping the phone truly returns it to new; I found and fixed a case where wiping
+left the app empty with no way back to anything, which matters most to somebody
+handing their phone on, and that fix is NOT yet on the branch your emulator
+reads. Two, the phone shaped test screen. Three, twenty one screenshots that
+are committed to the repository but are not on the page that displays them,
+including the pictures of the import screens, so they prove nothing to you
+today. Four, two small factual errors in my own working rules file.
+
+What it costs if these are dropped. The wipe check is the only one with real
+money behind it: without it, the next field somebody adds to the saved file can
+quietly survive a wipe again, and the person who finds out is the one who gave
+their phone away. The others cost time and trust in the tests, which is slower
+and just as expensive in the end.
+
+---
+
 ## 2026-10-03, session 47: a seven step test plan sent for code that was not on the branch the emulator reads, a manual case that needed a button that had been gone five seconds, a refusal that states a fact it never checked and sends the person somewhere that changes nothing, and the fifth consecutive false claim in CLAUDE.md
 
 **What we believed / What was true.**

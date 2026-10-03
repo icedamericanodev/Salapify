@@ -2522,6 +2522,27 @@ class FinancialState extends ChangeNotifier {
   /// bargain: the demo is allowed to exist because somebody asked for it and
   /// because leaving is one tap from the screen they are looking at.
   void startWithExampleData() {
+    // THE EXAMPLES HAVE TO ACTUALLY BE THERE, which this method assumed and
+    // did not check until a founder tapped the button and reported that
+    // nothing happened.
+    //
+    // It only set the flag, which is correct on a genuinely fresh install
+    // because the constructor seeds and the welcome stands in front of that
+    // seed. It is wrong after a WIPE: every collection is empty, so setting
+    // the flag dismissed the welcome and landed somebody on an empty app. The
+    // button promised example data and delivered a blank screen, which from
+    // the outside is indistinguishable from a dead button.
+    //
+    // That gap was opened by the wipe fix shipped the same day. Making the
+    // welcome come back after a wipe without making this path work from that
+    // state turned one dead end into another.
+    //
+    // `restoreSampleData` is reused rather than reimplemented, for the reason
+    // `startWithOwnMoney` reuses the sweep: it already knows every collection,
+    // the payday, the income streams, and to skip any id already present so
+    // it can never write over a record somebody made.
+    if (!hasSampleData) restoreSampleData();
+
     _onboardedAt = isoDate(now);
     notifyListeners();
   }
@@ -2714,6 +2735,9 @@ class FinancialState extends ChangeNotifier {
         .map((InstallmentPlan p) => p.id)
         .toSet();
     final Set<String> billIds = _bills.map((BillItem b) => b.id).toSet();
+    final Set<String> streamIds = _incomeStreams
+        .map((IncomeStream s) => s.id)
+        .toSet();
     final Set<String> categories = _budgets
         .map((Budget b) => b.category)
         .toSet();
@@ -2761,6 +2785,30 @@ class FinancialState extends ChangeNotifier {
       ..._bills,
       for (final BillItem b in SeedData.bills(now))
         if (!billIds.contains(b.id)) b,
+    ];
+
+    // THE INCOME STREAMS, which this method forgot until 2026-10-03 while the
+    // sweep had been removing them since the day it learned to.
+    //
+    // The asymmetry was invisible because nothing on screen lists an income
+    // stream by name. What reads them is Safe to Spend, so a person who
+    // removed the examples and put them back got a demo ledger whose most
+    // prominent figure was computed without the demo salary, and no screen
+    // anywhere could explain the difference. That is the same shape as the
+    // defect recorded on the sweep's own side, pointing the other way.
+    // THE INCOME STREAMS, which this method forgot until 2026-10-03 while the
+    // sweep had been removing them since the day it learned to.
+    //
+    // The asymmetry was invisible because nothing on screen lists an income
+    // stream by name. What reads them is Safe to Spend, so a person who
+    // removed the examples and put them back got a demo ledger whose most
+    // prominent figure was computed without the demo salary, and no screen
+    // anywhere could explain the difference. That is the same shape as the
+    // defect recorded on the sweep's own side, pointing the other way.
+    _incomeStreams = <IncomeStream>[
+      ..._incomeStreams,
+      for (final IncomeStream s in SeedData.incomeStreams)
+        if (!streamIds.contains(s.id)) s,
     ];
 
     _payday = SeedData.payday;
