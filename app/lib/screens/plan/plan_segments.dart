@@ -223,8 +223,13 @@ class _BudgetRow extends StatelessWidget {
                           // The amount OVER, not a clamped zero. Somebody 450
                           // past their limit needs the 450.
                           ? '${formatPeso((-row.remaining).pesos)} over limit'
+                          // The limit drops its ".00" ONLY when it has no
+                          // centavos. Dropping them unconditionally made the
+                          // row fail to add up in front of the person:
+                          // "₱3,080.55 left of ₱3,501" beside ₱420.00 spent,
+                          // where the real limit was 3,500.55.
                           : '${formatPeso(row.remaining.pesos)} left of '
-                                '${formatPeso(row.limit.pesos, showDecimals: false)}',
+                                '${formatPeso(row.limit.pesos, showDecimals: !row.limit.isWholePesos)}',
                       style: AppType.caption(palette).copyWith(
                         color: row.isOver
                             ? palette.negative

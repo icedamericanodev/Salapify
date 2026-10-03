@@ -101,6 +101,30 @@ class Money implements Comparable<Money> {
   /// Pesos, for formatting and for the one boundary that writes the file.
   double get pesos => centavos / 100;
 
+  /// The figure for an INPUT BOX: no commas, no currency, and centavos only
+  /// when there are centavos. "3500.55" and "3500", never "3500.00".
+  ///
+  /// This exists because its absence lost somebody's centavos. The budget
+  /// sheet pre-filled its box with `limit.pesos.toStringAsFixed(0)`, so a
+  /// stored 3,500.55 came back as "3501", and saving that box without
+  /// touching it would have written 3501 over the real figure. The money was
+  /// right everywhere else on the screen; only the box somebody types into
+  /// rounded it, which is the worst place for it.
+  ///
+  /// Three other sheets each hand-rolled the same rule
+  /// (`v == v.roundToDouble() ? ... : ...`) and got it right. One did not,
+  /// and a rule copied four times is a rule that will be copied wrong a
+  /// fifth. It lives here now.
+  ///
+  /// NOT for display. A figure a person reads goes through `formatPeso`,
+  /// which groups thousands and adds the sign.
+  String get plain =>
+      isWholePesos ? pesos.toStringAsFixed(0) : pesos.toStringAsFixed(2);
+
+  /// True when there are no centavos, so a screen can drop the ".00" without
+  /// dropping a real figure.
+  bool get isWholePesos => centavos % 100 == 0;
+
   bool get isZero => centavos == 0;
   bool get isNegative => centavos < 0;
   bool get isPositive => centavos > 0;
