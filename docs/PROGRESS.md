@@ -628,7 +628,62 @@ too. Writing centavos to disk fails it with the damage spelled out:
     Expected: <1053.5>
       Actual: <105350>
 
-## Phase 3 to 7
+## Phase 3: P3.2, onboarding, done OUT OF ORDER
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| P3.2 | First run and onboarding for an empty ledger | DONE | founder direction, 2026-10-03 |
+
+Taken ahead of the rest of Phase 2 on founder direction, after a review pass
+on the founder's own emulator found the defect it closes. This table says so
+rather than quietly renumbering, because a roadmap that hides its own
+reordering stops being useful for working out what is actually left.
+
+**What it closes.** A fresh install opened straight onto SAMPLE data: a 48,500
+payroll, a housing loan, a GCash wallet, a debt to a person called Sarah, with
+nothing anywhere saying it was fake. That was item 1 of the ten trust breakers
+in `docs/reviews/2026-10-expert-review.md`.
+
+**The design was agreed in writing first**, in `docs/reviews/onboarding-design.md`,
+per the brainstorming gate. Two specialist passes were run and every
+load-bearing claim in both was verified by reading the code.
+
+**One of those verifications found something nobody had noticed.**
+`SeedData.payday` is not merely absent on a fresh install, it is FABRICATED: a
+15th and 30th cycle, a next payday, 32,500 of expected income, with the hero
+drawing a countdown off it. Every untouched install was counting down to a
+stranger's sweldo.
+
+**What shipped**, across `2d03574` and `1d0453f`:
+
+- A welcome that asks once, in two taps, with no typing and nothing personal.
+- `startWithOwnMoney`, which seeds NOTHING, reusing the existing sweep rather
+  than reimplementing it so the rules about `isSample`, the payday, the income
+  streams and adopting a used demo account stay in one place.
+- `startWithExampleData`, which keeps the demo and puts its one line exit on
+  Home, under the shortcut row, where the honest sentence from
+  `sample_data_sheet.dart` had been two taps and a scroll behind a gear.
+- One stored field, `onboardedAt`, nullable and modelled on
+  `sampleDataRemovedAt`, with a SECOND question (do real records exist) so a
+  restored backup is never marched through a first run it finished elsewhere.
+- `needsWelcome` false on an unreadable file, found while fixing test failures
+  rather than designed up front, and a near miss worth recording: a cheerful
+  first run over a ledger that merely could not be parsed, with saving already
+  off, would have been a first run that silently discarded itself.
+- The Today row under the hero, which is the only thing on Home that answers
+  what has left since this morning, and the door into a first entry.
+- The payday asked at the first income entry, as a yes or no.
+- The daily nudge, and with it the Android notification permission, offered
+  once on the first entry somebody ever made themselves.
+
+**Two bugs the tests found, both in the offers.** One session latch was used
+for two different questions, so the first entry spent it on the reminder and
+the payday could never be asked at all. And a deliberate break FAILED TO FAIL:
+removing `firstEver` left six tests green because the session latch covered for
+it, and the branch it really protects is a second app run. A seventh test now
+reaches that branch by pumping a second app over the file the first one wrote.
+
+## Phase 3 to 7, the rest
 
 Not started. Tracked in the sprint prompt; this table grows as each phase
 begins.

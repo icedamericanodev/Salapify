@@ -214,6 +214,59 @@ void main() {
     expect(state.hasSampleData, isFalse);
   });
 
+  testWidgets('a wiped phone starts over, welcome and all', (
+    WidgetTester tester,
+  ) async {
+    // THE WIPE HAS TO FORGET THE INTRODUCTION TOO, and until 2026-10-03 it
+    // did not, which left the whole thing in a dead end.
+    //
+    // Everything else was cleared and `onboardedAt` survived, so the app came
+    // back empty with `needsWelcome` false: no welcome, and no example data
+    // either, because `_sampleRemovedAt` is correctly null after a wipe and
+    // that is what gates the put-it-back control. Settings read "There is no
+    // sample data on this phone" with no control beside it, and neither the
+    // first run nor the examples could be reached again by any route.
+    //
+    // It also made the wipe screen's own promise false. A phone that still
+    // remembers being introduced to somebody is not empty and new, and the
+    // person this matters most to is the one the wipe exists for: somebody
+    // handing the phone on, whose recipient would meet a blank app that had
+    // already decided it knew them.
+    bigPhone(tester);
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 19, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+    state.startWithExampleData();
+    await state.flushWrites();
+
+    await pump(tester, state);
+    expect(
+      state.needsWelcome,
+      isFalse,
+      reason:
+          'the fixture starts at the welcome, so the wipe below proves '
+          'nothing about having come back to it',
+    );
+
+    await openWipe(tester);
+    await tester.tap(find.text('Delete everything').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yes, erase it'));
+    await tester.pumpAndSettle();
+
+    expect(state.needsWelcome, isTrue);
+    expect(
+      find.text('Start with my own money'),
+      findsOneWidget,
+      reason:
+          'a wiped phone did not come back to the welcome, so there is '
+          'no route to the example data or to a first run',
+    );
+    expect(find.text('Look around with example data first'), findsOneWidget);
+  });
+
   testWidgets('the app is still saving afterwards', (
     WidgetTester tester,
   ) async {
@@ -277,11 +330,19 @@ void emptyAppTests() {
       store: MemorySnapshotStore(),
     );
     await state.restore();
-    // The app opens on the welcome when nothing has been onboarded. This
-    // fixture is the seeded ledger, which is what the "look around with
-    // example data" path leaves behind, so it says so.
     state.startWithExampleData();
     await state.deleteEverything();
+
+    // PAST THE WELCOME AGAIN, and the order of these two lines is the whole
+    // point of the fixture.
+    //
+    // A wipe now clears `onboardedAt` as well, so a wiped phone genuinely
+    // starts over and meets the welcome. That is correct, and it is not what
+    // this test is about: the subject here is every TAB surviving an empty
+    // ledger, which is a state somebody reaches by being introduced and
+    // simply not having typed anything yet. Marking it after the wipe says
+    // that, where marking it before said something the app no longer does.
+    state.startWithExampleData();
 
     await tester.runAsync(loadRealFonts);
     await tester.pumpWidget(SalapifyApp(state: state));
