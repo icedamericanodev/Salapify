@@ -238,4 +238,82 @@ void main() {
           'run it had already finished',
     );
   });
+
+  testWidgets('looking around AFTER A WIPE actually produces examples', (
+    WidgetTester tester,
+  ) async {
+    // THE FOUNDER'S BUG REPORT, in one sentence: "nothing happens when I
+    // clicked Look around with example data first".
+    //
+    // It was not a dead button. `startWithExampleData` only set the flag,
+    // which is correct on a genuinely fresh install because the constructor
+    // seeds and the welcome stands in front of that seed. After a WIPE every
+    // collection is empty, so the flag dismissed the welcome and landed them
+    // on a blank app, which from the outside is indistinguishable from a tap
+    // that did nothing.
+    //
+    // The gap was opened by the wipe fix shipped the same day: making the
+    // welcome come back after a wipe without making this path work from that
+    // state turned one dead end into another.
+    final FinancialState state = await freshInstall(tester);
+    await tapIt(tester, find.text('Look around with example data first'));
+    await state.deleteEverything();
+    await tester.pumpAndSettle();
+
+    expect(
+      state.needsWelcome,
+      isTrue,
+      reason:
+          'the wipe did not bring the welcome back, so the tap below is '
+          'not the one the founder made',
+    );
+    expect(state.accounts, isEmpty);
+
+    await tapIt(tester, find.text('Look around with example data first'));
+
+    // DIRECTIONAL, and naming the collections rather than asking whether a
+    // flag moved. The flag moved last time too; that was the whole problem.
+    expect(
+      state.hasSampleData,
+      isTrue,
+      reason: 'the button that promises example data produced none',
+    );
+    expect(state.accounts, isNotEmpty);
+    expect(state.transactions, isNotEmpty);
+    expect(find.byType(QuickActions), findsOneWidget);
+  });
+
+  testWidgets('putting the examples back brings the SALARY back with them', (
+    WidgetTester tester,
+  ) async {
+    // A SECOND GAP, older than today and invisible for the same reason: no
+    // screen anywhere lists an income stream by name.
+    //
+    // The sweep removes them, correctly, because they are Salapify's. For
+    // months `restoreSampleData` did not put them back, so a person who
+    // removed the examples and restored them got a demo ledger whose most
+    // prominent figure, Safe to Spend, was computed without the demo salary,
+    // and nothing on any screen could explain the difference.
+    final FinancialState state = await freshInstall(tester);
+    await tapIt(tester, find.text('Look around with example data first'));
+
+    final int before = state.incomeStreams.length;
+    expect(
+      before,
+      greaterThan(0),
+      reason: 'the seed has no income streams, so this proves nothing',
+    );
+
+    state.removeSampleData();
+    expect(state.incomeStreams, isEmpty);
+
+    state.restoreSampleData();
+    expect(
+      state.incomeStreams.length,
+      before,
+      reason:
+          'the salary did not come back with the rest of the examples, so '
+          'Safe to Spend is computed without it',
+    );
+  });
 }
