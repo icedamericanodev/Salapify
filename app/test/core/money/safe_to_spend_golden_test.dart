@@ -70,23 +70,23 @@ void main() {
     final SafeToSpendAnalysis a = run(scenario: DecisionScenario.conservative);
 
     test('headline figures', () {
-      expect(a.safeToSpendToday, 9604);
-      expect(a.safeToSpendUntilPayday, 38414);
-      expect(a.safeToSave, 6779);
-      expect(a.amountReserved, 65528);
+      expect(a.safeToSpendToday, Money.pesos(9604));
+      expect(a.safeToSpendUntilPayday, Money.pesos(38414));
+      expect(a.safeToSave, Money.pesos(6779));
+      expect(a.amountReserved, Money.pesos(65528));
       expect(a.daysToPayday, 4);
     });
 
     test('reserved breakdown', () {
-      expect(a.reservedBills, 41184);
-      expect(a.reservedDebtMinimums, 1388);
-      expect(a.reservedInstallments, 6348);
-      expect(a.emergencyBuffer, 16608);
+      expect(a.reservedBills, Money.pesos(41184));
+      expect(a.reservedDebtMinimums, Money.pesos(1388));
+      expect(a.reservedInstallments, Money.pesos(6348));
+      expect(a.emergencyBuffer, Money.pesos(16608));
     });
 
     test('totals and runway', () {
-      expect(a.totalLiquidCash, 110721);
-      expect(a.totalExpectedInflow, 46750);
+      expect(a.totalLiquidCash, Money.pesos(110721));
+      expect(a.totalExpectedInflow, Money.pesos(46750));
       expect(a.cashRunwayDays, 119);
       expect(a.cashRunwayMonths, 4);
     });
@@ -96,19 +96,19 @@ void main() {
     final SafeToSpendAnalysis b = run(scenario: DecisionScenario.optimistic);
 
     test('optimistic frees up more and reserves less', () {
-      expect(b.safeToSpendToday, 12752);
-      expect(b.safeToSpendUntilPayday, 51007);
-      expect(b.safeToSave, 9001);
-      expect(b.amountReserved, 50712);
+      expect(b.safeToSpendToday, Money.pesos(12752));
+      expect(b.safeToSpendUntilPayday, Money.pesos(51007));
+      expect(b.safeToSave, Money.pesos(9001));
+      expect(b.amountReserved, Money.pesos(50712));
     });
 
     test('the buffer drops to 5 percent and bills lose the 10 percent pad', () {
-      expect(b.emergencyBuffer, 5536);
-      expect(b.reservedBills, 37440);
+      expect(b.emergencyBuffer, Money.pesos(5536));
+      expect(b.reservedBills, Money.pesos(37440));
     });
 
     test('the 13th month counts only in the optimistic scenario', () {
-      expect(b.totalExpectedInflow, 121000);
+      expect(b.totalExpectedInflow, Money.pesos(121000));
     });
   });
 
@@ -161,9 +161,9 @@ void main() {
       expect(c.cashRunwayMonths, 9.2);
 
       // Everything upstream of the runway is untouched by logged spending.
-      expect(c.safeToSpendToday, 9604);
-      expect(c.safeToSpendUntilPayday, 38414);
-      expect(c.amountReserved, 65528);
+      expect(c.safeToSpendToday, Money.pesos(9604));
+      expect(c.safeToSpendUntilPayday, Money.pesos(38414));
+      expect(c.amountReserved, Money.pesos(65528));
     });
 
     test('and the answer SAYS it measured them', () {
@@ -239,7 +239,7 @@ void main() {
         scenario: DecisionScenario.conservative,
       );
       // 38414 + 6779 = 45193, the uncommitted cash, to the peso.
-      expect(a.safeToSpendUntilPayday + a.safeToSave, 45193);
+      expect(a.safeToSpendUntilPayday + a.safeToSave, Money.pesos(45193));
     });
 
     test('a day rate never exceeds the whole period', () {

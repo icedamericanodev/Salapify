@@ -216,7 +216,7 @@ void main() {
           plan(settled: true, paid: 12),
           plan(id: 'p2'),
         ]);
-        final double before = s.safeToSpend;
+        final Money before = s.safeToSpend;
 
         expect(s.archivePlan('p1'), isTrue);
 
@@ -416,7 +416,7 @@ void main() {
       final FinancialState s = await stateWith(<InstallmentPlan>[
         plan(sample: true),
       ]);
-      final double withPlan = s.safeToSpend;
+      final Money withPlan = s.safeToSpend;
 
       s.payInstallment('p1');
       s.takeBackPlanPayment('p1');
