@@ -316,8 +316,17 @@ void main() {
     test('nonsense gets an honest miss that says what Pan can do', () {
       final PanAnswer a = askPan('qwertyuiop', facts());
       expect(a.topic, 'unknown');
-      expect(a.text, contains('no AI model'));
+      // .display: the explanation moved into points, which is the whole
+      // of the wordiness fix. The demand is unchanged.
+      expect(a.display, contains('No AI model'));
       expect(a.followUps, isNotEmpty);
+      expect(
+        a.text,
+        'Pan did not recognise that one.',
+        reason:
+            'the miss itself has to be the first thing read, not the third '
+            'sentence of an essay about how the matcher works',
+      );
     });
   });
 
@@ -947,11 +956,58 @@ void main() {
       // still has to name the course and say where it is.
       final PanAnswer a = askPan('what is wealth', facts());
       expect(a.topic, startsWith('academy:'));
+      // The POINTING is now the lead itself, which is stronger than it
+      // was: it used to be the third paragraph.
       expect(a.text, contains('on the Plan tab'));
       expect(
-        a.text,
+        a.display,
         contains('does not read that lesson out here'),
         reason: 'Pan went quiet instead of pointing somewhere useful',
+      );
+      expect(
+        a.actions.any((PanAction x) => x.id == 'academy'),
+        isTrue,
+        reason:
+            'naming a course with no way to open it is a dead end dressed '
+            'as an answer',
+      );
+    });
+
+    test('an unquotable course gives up its AIMS, never its takeaways', () {
+      // The two branches say different things on purpose: one answers the
+      // question, the other declines and points at the course. The first
+      // draft of the points rewrite emitted both, which widens what Pan
+      // says about exactly the courses it has decided not to read out.
+      // Every takeaway passes safeForPan on its own, so this is not about
+      // unsafe text escaping, it is about the branch keeping its meaning.
+      final PanAnswer a = askPan('what is wealth', facts());
+      expect(a.topic, startsWith('academy:'));
+      expect(
+        a.text,
+        contains('on the Plan tab'),
+        reason:
+            'this fixture must reach the UNQUOTABLE branch to prove '
+            'anything, and it stops doing so if the filter changes',
+      );
+
+      expect(
+        a.points,
+        isNotEmpty,
+        reason:
+            'declining with nothing at all is the dead end the pointing '
+            'branch exists to avoid',
+      );
+      expect(
+        a.points.any((String p) => p.contains('Understand what the')),
+        isTrue,
+        reason: 'the objectives are what this branch is allowed to show',
+      );
+      expect(
+        a.points.any((String p) => p.contains('multiple MP2 accounts')),
+        isFalse,
+        reason:
+            'a key takeaway from a course Pan will not read out came back '
+            'in the answer that declines to read it out',
       );
     });
 
@@ -963,13 +1019,31 @@ void main() {
       // would be false on top of unnecessary.
       final PanAnswer a = askPan('what is a trademark', facts());
       expect(a.topic, startsWith('academy:'));
+
+      // The notice is the BADGE now, which renders above the body, so it is
+      // read first structurally rather than by string order.
+      //
+      // The old assertion compared indexOf('General knowledge') inside
+      // a.text against the lesson text. Once the notice left that string
+      // indexOf returned -1, which is less than every index, so the test
+      // passed VACUOUSLY and would have passed with the notice deleted.
+      expect(a.badge, isNotNull);
       expect(
-        a.text.indexOf('General knowledge'),
-        lessThan(a.text.indexOf('rademark')),
+        a.badge,
+        contains('general knowledge'),
         reason:
             'a notice under a passage records that we knew, it does not '
             'change what the reader read first',
       );
+      expect(
+        a.badge,
+        contains('not tax, legal or investment advice'),
+        reason:
+            'the standing trailer says "not advice about your own money"; '
+            'these lessons cover BIR filing and government savings '
+            'programmes, so the specific wording is doing separate work',
+      );
+      expect(a.text, contains('rademark'));
     });
 
     test('questions that ask Pan to vouch for a product get the boundary', () {
