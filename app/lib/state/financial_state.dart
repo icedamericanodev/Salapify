@@ -2234,7 +2234,21 @@ class FinancialState extends ChangeNotifier {
   );
 
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
-    accounts: accounts,
+    // CONVERTED ON THE WAY IN. The engine is a line-for-line port of a
+    // prototype with no currency field, so it sums `balance` raw and has to
+    // keep doing so to stay golden-locked. Converting here instead means
+    // every surface answers "how much liquid cash" with the same number.
+    //
+    // Before this, Pan read the converted total while the engine read the
+    // raw one, and Pan's own explanation stopped adding up: on 20,000 pesos
+    // plus 1,000 dollars it said "Safe to Spend is 15,173, it starts from
+    // the 78,500 you can reach and holds back 3,150", three figures that
+    // cannot all be true at once. A sentence whose whole job is to show its
+    // working is the worst place in the app for an inconsistency.
+    //
+    // Peso-only ledgers are bit for bit unchanged, which is why the golden
+    // vectors do not move.
+    accounts: accountsInPhp(accounts),
     transactions: _transactions,
     // _bills and _installments, NOT the seed. Both read the frozen seed list
     // until now, and the comment below about incomeStreams describes exactly
