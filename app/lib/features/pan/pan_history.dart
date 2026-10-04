@@ -51,10 +51,29 @@ class PanStoredMessage {
     required this.text,
     this.points = const <String>[],
     this.badge,
+    this.aboutMoney = false,
   });
 
   final bool fromPan;
   final String text;
+
+  /// Whether this answer carries the standing "general information, not
+  /// advice" line.
+  ///
+  /// STORED, because the alternative is that it disappears. The flag used
+  /// to live only on PanAnswer, and a restored message has no PanAnswer
+  /// behind it by design, so reopening the app showed every past money
+  /// answer with its disclaimer silently gone. The answer most likely to be
+  /// re-read days later, the one refusing to advise on an investment, was
+  /// exactly the one that lost it.
+  ///
+  /// Defaults to false so a history file written before this field existed
+  /// decodes cleanly and behaves as it does today. Those old messages stay
+  /// trailer-less, which is the current behaviour rather than a regression,
+  /// and the file is capped at 24 messages so it self-heals within a dozen
+  /// exchanges. No migration, because this is the chat cache and not the
+  /// ledger.
+  final bool aboutMoney;
 
   /// The short lines under the lead. Kept, so a restored message looks like
   /// the one that was there before the app closed rather than a headline
@@ -68,6 +87,7 @@ class PanStoredMessage {
     'text': text,
     if (points.isNotEmpty) 'points': points,
     if (badge != null) 'badge': badge,
+    if (aboutMoney) 'aboutMoney': true,
   };
 
   static PanStoredMessage? fromJson(Object? raw) {
@@ -85,6 +105,7 @@ class PanStoredMessage {
           if (p is String) p,
       ],
       badge: raw['badge'] is String ? raw['badge'] as String : null,
+      aboutMoney: raw['aboutMoney'] == true,
     );
   }
 }
