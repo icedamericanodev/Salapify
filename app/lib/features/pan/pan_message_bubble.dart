@@ -20,15 +20,21 @@ class PanMessage {
     : fromPan = false,
       answer = null,
       badge = null,
+      aboutMoney = false,
       points = const <String>[];
-  const PanMessage.pan(this.text, {this.badge, this.points = const <String>[]})
-    : fromPan = true,
-      answer = null;
+  const PanMessage.pan(
+    this.text, {
+    this.badge,
+    this.points = const <String>[],
+    this.aboutMoney = false,
+  }) : fromPan = true,
+       answer = null;
   PanMessage.answer(PanAnswer a)
     : fromPan = true,
       answer = a,
       badge = a.badge,
       points = a.points,
+      aboutMoney = a.aboutMoney,
       // The LEAD, not the display. display concatenates the lead, the
       // bullets, the More text and the trailer into one string for the
       // content guards to scan, and using it here printed every one of them
@@ -50,6 +56,15 @@ class PanMessage {
   /// deliberately: recomputing yesterday's figures today would print a stale
   /// peso amount that looks exactly like a current one.
   final String? badge;
+
+  /// Whether to draw the standing "general information, not advice" line.
+  ///
+  /// On the MESSAGE, for the same reason as [badge] and [points]: it used
+  /// to be read off [answer], which a restored message does not have, so
+  /// reopening the app stripped the disclaimer from every past money
+  /// answer. The one most likely to be re-read later, a refusal to advise
+  /// on an investment, was the one that lost it.
+  final bool aboutMoney;
 }
 
 class PanMessageBubble extends StatefulWidget {
@@ -174,7 +189,10 @@ class _PanMessageBubbleState extends State<PanMessageBubble> {
             ],
             // The trailer, small and last, rather than another paragraph in
             // the body. It has to be on screen and it is not the answer.
-            if (a != null && a.aboutMoney) ...<Widget>[
+            // Off the MESSAGE, not off `a`. A restored message has no
+            // PanAnswer, so reading the flag from `a` meant the disclaimer
+            // survived exactly as long as the app stayed open.
+            if (widget.message.aboutMoney) ...<Widget>[
               const SizedBox(height: Spacing.md),
               Text(PanAnswer.trailer, style: AppType.caption(palette)),
             ],

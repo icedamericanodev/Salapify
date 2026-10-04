@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/pan/pan_engine.dart' show PanAnswer;
 import 'package:salapify/data/store.dart';
 import 'package:salapify/features/pan/pan_history.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
@@ -81,6 +82,73 @@ void main() {
           'they read as the app answering something nobody just asked',
     );
   });
+
+  testWidgets('the advice disclaimer survives a restart', (
+    WidgetTester tester,
+  ) async {
+    // The whole defect is invisible without the second opening: the trailer
+    // was read off PanAnswer, which a restored message does not have, so it
+    // was correct in the session that produced it and gone in every one
+    // after. The answer most likely to be re-read days later, a refusal to
+    // advise on an investment, was exactly the one that lost it.
+    final FinancialState state = await ready();
+    final MemoryPanHistoryStore history = MemoryPanHistoryStore();
+
+    await pumpPan(tester, state, history);
+    await tester.enterText(find.byType(TextField), 'should i invest in stocks');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    // Directional. Without this the test passes on a build where the
+    // answer never rendered a trailer at all, in either session.
+    expect(
+      find.text(PanAnswer.trailer),
+      findsOneWidget,
+      reason: 'the disclaimer was missing before the restart, not after it',
+    );
+
+    // A second opening, the way a restarted app does it.
+    await pumpPan(tester, state, history);
+
+    expect(
+      find.text('should i invest in stocks'),
+      findsOneWidget,
+      reason: 'the conversation did not come back, so this proves nothing',
+    );
+    expect(
+      find.text(PanAnswer.trailer),
+      findsOneWidget,
+      reason:
+          'a restored refusal to give investment advice came back without '
+          'the line saying it is general information and not advice',
+    );
+  });
+
+  testWidgets(
+    'the disclaimer does NOT appear on answers that are not about money',
+    (WidgetTester tester) async {
+      // The other half. A disclaimer on every message is wallpaper within two
+      // days, and then it is not there for the one that matters.
+      final FinancialState state = await ready();
+      final MemoryPanHistoryStore history = MemoryPanHistoryStore();
+
+      await pumpPan(tester, state, history);
+      await tester.enterText(find.byType(TextField), 'how much do i have');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      await pumpPan(tester, state, history);
+
+      expect(find.text('how much do i have'), findsOneWidget);
+      expect(
+        find.text(PanAnswer.trailer),
+        findsNothing,
+        reason:
+            'a balance answer is not advice, and stamping the disclaimer on '
+            'everything is how it stops being read on the answer that needs it',
+      );
+    },
+  );
 
   testWidgets('Start fresh empties it, on screen AND on disk', (
     WidgetTester tester,
