@@ -962,12 +962,32 @@ class SeedData {
   // the bell counts its own tray now. A placeholder that renders is not a
   // placeholder, it is a claim.
 
+  /// The sample pay cycle, WITH the rule its own cycle type always claimed.
+  ///
+  /// Founder decision D26, 2026-10-04. `paydayDays` was empty here, and it is
+  /// only ever written when somebody sets their payday inside the app
+  /// (`financial_state.dart:515`), so the sample ledger never had one. Without
+  /// it the cycle cannot recompute, so it claimed four days to a payday on 15
+  /// September while anchored to 18 September, three days PAST it, and said
+  /// exactly that on every date forever.
+  ///
+  /// That was not a quiet defect. Since 2026-10-03 the welcome offers "Look
+  /// around with example data" to everybody on first launch, so a wrong payday
+  /// date was a first impression for a public app on most days of the year.
+  ///
+  /// The three fields under the rule are a SNAPSHOT OF A MOMENT and are now
+  /// overridden on every read: `FinancialState.payday` recomputes the
+  /// countdown and both labels from the rule whenever `hasRule` is true. They
+  /// stay because the constructor requires them and because a cycle restored
+  /// from an older backup still arrives with no rule and keeps whatever it
+  /// had, rather than having one guessed for it.
   static const PaydayCycle payday = PaydayCycle(
     cycleType: '15_30',
     lastPayday: 'Sep 1',
     nextPayday: 'Sep 15',
     daysToPayday: 4,
     expectedIncome: Money.pesos(32500),
+    paydayDays: <int>[15, 30],
   );
 
   static List<BillItem> bills(DateTime now) => <BillItem>[

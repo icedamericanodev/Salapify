@@ -80,12 +80,22 @@ void main() {
     );
     await pump(tester, state);
 
+    // TWELVE, NOT FOUR, since founder decision D26 on 2026-10-04 gave the
+    // sample ledger the payday rule its own cycle type always claimed. The
+    // old 4 was not a different correct answer, it was a frozen number: the
+    // cycle could not recompute, so it claimed four days to a payday on 15
+    // September while anchored to 18 September, three days PAST it.
+    //
+    // From the 18th, the next payday under the [15, 30] rule is the 30th,
+    // which is twelve days away. This literal is now derived from a rule
+    // rather than copied from a snapshot, so it moves only when the rule or
+    // the pinned clock does.
     expect(
       state.payday.daysToPayday,
-      4,
+      12,
       reason: 'the fixture cutoff moved, so the literal below is stale',
     );
-    expect(find.text('4 days left in cutoff'), findsOneWidget);
+    expect(find.text('12 days left in cutoff'), findsOneWidget);
   });
 
   testWidgets('the last day before payday says one day, not 1 days', (

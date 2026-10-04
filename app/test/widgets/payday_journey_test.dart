@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/data/snapshot.dart';
+import 'package:salapify/data/store.dart';
 import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
@@ -22,6 +25,36 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 /// It also closes the gap this whole feature came from: three surfaces asked
 /// for a payday and none of them could accept one.
 void main() {
+  /// A snapshot carrying the sample ledger's OLD pay cycle, with or without
+  /// the day-of-month rule.
+  ///
+  /// Round-tripped through the real codec rather than built by hand, because
+  /// the thing under test is what happens to a cycle that came off DISK. A
+  /// hand-made object would prove the getter behaves, not that a restored
+  /// backup survives.
+  Future<FinancialState> restoredWithCycle({required bool withRule}) async {
+    final DateTime clock = DateTime(2026, 9, 18, 9);
+    final Map<String, dynamic> json = FinancialState(
+      clock: clock,
+    ).snapshot().toJson(at: clock);
+    json['payday'] = <String, dynamic>{
+      'cycleType': '15_30',
+      'lastPayday': 'Sep 1',
+      'nextPayday': 'Sep 15',
+      'daysToPayday': 4,
+      'expectedIncome': 32500,
+      // The absence of `paydayDays` IS the legacy fixture. Every backup
+      // written before the payday editor existed looks exactly like this.
+      if (withRule) 'paydayDays': <int>[15, 30],
+    };
+    final FinancialState state = FinancialState(
+      clock: clock,
+      store: MemorySnapshotStore(jsonEncode(json)),
+    );
+    await state.restore();
+    return state;
+  }
+
   Future<void> pump(WidgetTester tester, FinancialState state) async {
     await tester.runAsync(loadRealFonts);
     tester.view.physicalSize = const Size(1170, 3600);
@@ -248,16 +281,26 @@ void main() {
     // Every backup written before the editor existed, and every prototype
     // import, carries a countdown and two labels and NO rule. Guessing a
     // rule for those would quietly rewrite a stored cycle into one nobody
-    // chose. The seed is exactly such a cycle, which is what makes this
-    // testable at all.
-    final FinancialState state = FinancialState(
-      clock: DateTime(2026, 9, 18, 9),
-    );
+    // chose.
+    //
+    // THE FIXTURE IS BUILT HERE RATHER THAN BORROWED FROM THE SEED, and the
+    // old version of this test predicted why in its own failure message: "the
+    // seed grew a rule, so this no longer tests the legacy path". It did, on
+    // 2026-10-04, by founder decision D26. A guard that depends on sample
+    // data staying in one shape is a guard with an expiry date on it, so the
+    // legacy cycle is now constructed in the test that needs it.
+    //
+    // LOADED FROM A STORE, which is not a convenience: it is exactly the path
+    // a restored backup takes, so the fixture is the real thing rather than a
+    // hand-made object that resembles it. (importSnapshot is the wrong tool
+    // here and correctly refuses: with nothing on disk it cannot keep its
+    // promise to preserve a copy first, so it declines and changes nothing.)
+    final FinancialState state = await restoredWithCycle(withRule: false);
 
     expect(
       state.payday.hasRule,
       isFalse,
-      reason: 'the seed grew a rule, so this no longer tests the legacy path',
+      reason: 'the fixture must genuinely be a cycle with no rule',
     );
     expect(
       state.payday.daysToPayday,
@@ -267,6 +310,17 @@ void main() {
           'shows a payday its owner never entered',
     );
     expect(state.payday.nextPayday, 'Sep 15');
+
+    // DIRECTIONAL companion. "Nothing was rewritten" also holds on a build
+    // where the recompute never runs at all, so the same state must still
+    // recompute a cycle that DOES carry a rule.
+    final FinancialState withRule = await restoredWithCycle(withRule: true);
+    expect(withRule.payday.hasRule, isTrue);
+    expect(
+      withRule.payday.daysToPayday,
+      isNot(4),
+      reason: 'a cycle WITH a rule must be recomputed against today',
+    );
   });
 
   testWidgets('it survives being saved and read back', (
