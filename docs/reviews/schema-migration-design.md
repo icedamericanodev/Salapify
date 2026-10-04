@@ -512,11 +512,33 @@ recovery screen lies while it waits.
 
 Both questions this document left open were put to the founder and answered.
 
-**P2.2: close it as not yet.** The migration chain is deliberately not built.
-The trigger above stands, both halves required: a change that a tolerant
-reader provably cannot absorb, AND the app already public. The two real
-defects are fixed and shipped, and the tripwire reddens the day a second
-version exists, so this is a decision rather than an oversight.
+**P2.2: DEFERRED TO LAUNCH PREP, not abandoned.** The migration chain is
+deliberately not built yet.
+
+The word "close" was used in the chat and it misled, so the reasoning is
+written out here properly. Pre-launch, the data shape can change FREELY,
+because the only phone carrying Salapify 3 is the founder's and the worst
+case is a test ledger that looks odd. Migration machinery exists to buy
+exactly that freedom back once it is gone. Building it now spends five to
+seven hours purchasing a freedom the project already has for nothing, and it
+cannot be honestly tested until there is a real migration to put in it.
+
+So the trigger is anchored to LAUNCH, and it is the earlier of:
+
+1. **Launch prep.** It belongs in the public-readiness phase alongside the
+   privacy policy, Play data safety, app lock, and backup and restore. It
+   must exist BEFORE the first shape change that lands on a phone nobody can
+   reach, not after.
+2. **A change a tolerant reader provably cannot absorb** (a semantic
+   reinterpretation, or a record-identity change such as a Budget re-key),
+   arriving while the app is already public.
+
+Until then, shape changes need no migration at all, which is how protected
+accounts shipped with a new stored field and no migration.
+
+The two real defects are fixed and shipped, and the tripwire reddens the day
+a second version exists, so this is a decision with a date attached rather
+than an oversight.
 
 **The v12 files: leave them refused.** Salapify 3 will not import a Salapify 2
 backup. The refusal is already chosen by SHAPE rather than by version number,
