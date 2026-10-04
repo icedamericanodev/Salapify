@@ -304,6 +304,85 @@ void main() {
     );
   });
 
+  /// The founder set an account aside on the emulator, it saved correctly,
+  /// and NO MESSAGE APPEARED. Nothing structural was found: the bar renders
+  /// above the navigation bar, measured rather than eyeballed. But the hunt
+  /// turned up a real defect next door, which this pins.
+  ///
+  /// `_sayWhatChanged` used to return early when the figure did not move. The
+  /// intent was not to announce a change that did not happen. The effect was
+  /// total silence after a deliberate tap on any ledger whose Safe to Spend
+  /// is already zero, so the person gets no confirmation their choice
+  /// registered at all.
+  testWidgets('a change that cannot move the figure STILL confirms itself', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    // One wallet, and bills that reserve more than it holds, so Safe to Spend
+    // is pinned at zero and setting money aside cannot move it.
+    final MemorySnapshotStore store = MemorySnapshotStore('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "a_only", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 3000, "monogram": "GC"}
+  ],
+  "transactions": [], "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [],
+  "bills": [{"id": "b1", "name": "Rent", "amount": 90000,
+             "dueDate": "2026-09-25"}],
+  "onboardedAt": "2026-08-01"
+}
+''');
+    final FinancialState s = FinancialState(clock: testToday, store: store);
+    await s.restore();
+    addTearDown(s.dispose);
+    await tester.pumpWidget(SalapifyApp(state: s));
+    await tester.pumpAndSettle();
+
+    final Money before = s.safeToSpendAnalysis.safeToSpendToday;
+    expect(
+      before,
+      Money.zero,
+      reason: 'the fixture has to pin the figure, or this tests nothing',
+    );
+
+    AccountSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette: Palette.of(s.theme),
+      state: s,
+      existing: s.accounts.single,
+    );
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.byKey(const Key('account-purpose')));
+    await tapIt(tester, find.text('Set aside'));
+    await tapIt(tester, find.text('Save changes'));
+
+    // It really did save, and the figure really could not move.
+    expect(s.accounts.single.purpose, AccountPurpose.protected);
+    expect(s.safeToSpendAnalysis.safeToSpendToday, before);
+
+    // AND THE PERSON IS STILL TOLD.
+    expect(
+      find.byType(SnackBar),
+      findsOneWidget,
+      reason:
+          'a deliberate tap saved with no confirmation of any kind, so the '
+          'person cannot tell whether it worked',
+    );
+    expect(find.textContaining('is now set aside'), findsOneWidget);
+    expect(
+      find.textContaining('does not change'),
+      findsOneWidget,
+      reason: 'it has to say WHY no figure moved, not just stay quiet',
+    );
+  });
+
   // -------------------------------------------------------------------------
   // CASE 3: it still says so afterwards.
   // -------------------------------------------------------------------------
