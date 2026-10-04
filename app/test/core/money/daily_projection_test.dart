@@ -96,9 +96,97 @@ void main() {
   });
 
   group('the arithmetic has to foot', () {
-    test('opening plus every in, less every out, equals closing', () {
-      // A projection that does not foot is not a projection. This is the one
-      // assertion that cannot be satisfied by a plausible-looking bug.
+    /// Sum every outflow the ledger contains, so the engine can be held to it.
+    Money sourceOutflow({
+      List<BillItem> bills = const <BillItem>[],
+      List<UpcomingItem> upcoming = const <UpcomingItem>[],
+      List<InstallmentPlan> installments = const <InstallmentPlan>[],
+      List<Debt> debts = const <Debt>[],
+    }) {
+      Money total = Money.zero;
+      for (final BillItem b in bills.where((BillItem b) => !b.isPaid)) {
+        total += b.amount;
+      }
+      for (final UpcomingItem u in upcoming.where(
+        (UpcomingItem u) => !u.isPaid && !u.countsAsIncome,
+      )) {
+        total += u.amount;
+      }
+      for (final InstallmentPlan i in installments.where(
+        (InstallmentPlan i) => !i.isSettled,
+      )) {
+        total += minMoney(i.installmentAmount, i.runningBalance);
+      }
+      for (final Debt d in debts.where(
+        (Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe,
+      )) {
+        final Money? m = d.monthlyMinimum;
+        if (m != null) total += m;
+      }
+      return total;
+    }
+
+    test('EVERY eligible peso has a home: a day, or a named bucket', () {
+      // THE REAL FOOTING CHECK, and the reason the old one was replaced.
+      //
+      // The obvious assertion, opening plus every inflow less every outflow
+      // equals closing, is an IDENTITY: both sides come out of the same
+      // accumulator loop, so it passes with every input list deleted. It
+      // restated the loop instead of testing it. Found by the controller
+      // review, and it was right.
+      //
+      // This one compares the engine against the LEDGER, which is a different
+      // number and can genuinely disagree. It did: 8,840 of overdue bills on
+      // the sample ledger were excluded and counted nowhere.
+      final List<BillItem> bills = <BillItem>[
+        bill('Overdue', 3000, '2026-09-01'),
+        bill('Soon', 2000, '2026-10-09'),
+        bill('Unreadable', 1500, 'when I can'),
+        bill('Far off', 4000, '2027-06-01'),
+      ];
+
+      final DailyProjection p = run(bills: bills);
+
+      expect(
+        p.accountedOutflow,
+        sourceOutflow(bills: bills),
+        reason:
+            'a peso the person entered is missing from the day grid AND from '
+            'every bucket, so a clean projection is hiding an obligation',
+      );
+
+      // DIRECTIONAL, per bucket, because the identity above is satisfied by
+      // four empty buckets and an empty day grid.
+      expect(p.overdueTotal, const Money.pesos(3000));
+      expect(p.overdueCount, 1);
+      expect(p.undatedTotal, const Money.pesos(1500));
+      expect(p.undatedCount, 1);
+      expect(p.beyondHorizonTotal, const Money.pesos(4000));
+      expect(p.beyondHorizonCount, 1);
+      expect(p.closingBalance, const Money.pesos(8000));
+    });
+
+    test('a bill due on the LAST day of the window stays in it', () {
+      // 21 Nov 2026 is 45 days out and is a Saturday, so the banking shift
+      // moves it to the Monday, offset 47. It used to fall off the end and be
+      // counted nowhere at all: closing unchanged, undated zero, count zero.
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Tuition', 5000, '2026-11-21')],
+      );
+      expect(
+        p.closingBalance,
+        const Money.pesos(5000),
+        reason:
+            'the person entered it inside the window they asked about, and a '
+            'bank holiday is not a reason for it to disappear',
+      );
+      expect(p.beyondHorizonCount, 0);
+    });
+
+    test('the OLD assertion, kept, and labelled as the identity it is', () {
+      // Retained because it still guards the accumulator against an
+      // arithmetic slip inside the loop. It is NOT evidence that the engine
+      // read the ledger, which is what it was mistaken for.
       final DailyProjection p = run(
         bills: <BillItem>[
           bill('Meralco', 2000, '2026-10-09'),
@@ -237,6 +325,29 @@ void main() {
       ];
       // 20 Oct is 13 days out, 20 Nov is 44.
       expect(paydayOffsets, <int>[13, 44]);
+    });
+
+    test('a DENSE payday rule does not lose the last one to a loop guard', () {
+      // Six paydays a month, which a commission earner or a small-shop
+      // worker genuinely has. The walk used to stop after eight iterations
+      // and silently drop the ninth, at offset 44, which is 5,000 of real
+      // income the projection never added. The two-day rule above cannot
+      // reach the guard, so nothing caught it.
+      final DailyProjection p = run(
+        payday: const PaydayCycle(
+          cycleType: 'weekly',
+          lastPayday: '2026-10-05',
+          nextPayday: '2026-10-10',
+          daysToPayday: 3,
+          expectedIncome: Money.pesos(5000),
+          paydayDays: <int>[5, 10, 15, 20, 25, 30],
+        ),
+      );
+      final List<int> offsets = <int>[
+        for (int i = 0; i < p.days.length; i++)
+          if (p.days[i].moneyIn.isPositive) i,
+      ];
+      expect(offsets, <int>[3, 8, 13, 18, 23, 29, 34, 39, 44]);
     });
   });
 

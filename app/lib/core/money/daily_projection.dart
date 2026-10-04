@@ -78,6 +78,10 @@ class DailyProjection {
     required this.days,
     required this.undatedTotal,
     required this.undatedCount,
+    this.overdueTotal = Money.zero,
+    this.overdueCount = 0,
+    this.beyondHorizonTotal = Money.zero,
+    this.beyondHorizonCount = 0,
   });
 
   /// Spendable cash at the start, NOT total cash.
@@ -97,6 +101,42 @@ class DailyProjection {
   /// because the person reads a clean projection and believes it is complete.
   final Money undatedTotal;
   final int undatedCount;
+
+  /// Unpaid, dated, and already in the past.
+  ///
+  /// Excluding these from the day grid is deliberate: an overdue bill is a
+  /// problem but it is not a FUTURE movement, and putting it on today claims
+  /// money leaves today that may have left weeks ago. The first version of
+  /// this engine made that decision and then said nothing, which is the same
+  /// silent drop the undated bucket exists to prevent. On the shipped sample
+  /// ledger it was hiding 8,840.
+  final Money overdueTotal;
+  final int overdueCount;
+
+  /// Dated, not overdue, and past the end of the window.
+  ///
+  /// Also a deliberate exclusion that used to be silent. Worse than the
+  /// overdue case, because an item the person entered INSIDE the window could
+  /// leave it: a bill due on the last day that lands on a Saturday is shifted
+  /// to the Monday and fell off the end, counted nowhere. The horizon is now
+  /// judged on the date the person wrote, not the date the bank moves it.
+  final Money beyondHorizonTotal;
+  final int beyondHorizonCount;
+
+  /// Every eligible peso, wherever it ended up.
+  ///
+  /// THE REAL FOOTING CHECK. The obvious one, opening plus every inflow less
+  /// every outflow equals closing, is an identity: both sides are computed
+  /// from the same accumulator loop, so it passes with every input list
+  /// deleted. It restates the loop rather than testing it. This is the sum
+  /// that can actually disagree with the ledger.
+  Money get accountedOutflow {
+    Money placed = Money.zero;
+    for (final ProjectedDay d in days) {
+      placed += d.moneyOut;
+    }
+    return placed + undatedTotal + overdueTotal + beyondHorizonTotal;
+  }
 
   Money get closingBalance =>
       days.isEmpty ? openingBalance : days.last.balanceAfter;
@@ -155,6 +195,10 @@ DailyProjection projectDailyCash({
   final Map<int, List<ProjectedEvent>> byOffset = <int, List<ProjectedEvent>>{};
   Money undated = Money.zero;
   int undatedCount = 0;
+  Money overdue = Money.zero;
+  int overdueCount = 0;
+  Money beyond = Money.zero;
+  int beyondCount = 0;
 
   void place(String label, Money amount, String? dueDate, bool isIncome) {
     if (!amount.isPositive) return;
@@ -168,8 +212,22 @@ DailyProjection projectDailyCash({
     }
     // Already gone. A bill due last week that is still unpaid is a problem,
     // but it is not a FUTURE movement and putting it on today would claim
-    // money leaves today that may have left already.
-    if (days < 0) return;
+    // money leaves today that may have left already. COUNTED, not dropped.
+    if (days < 0) {
+      overdue += amount;
+      overdueCount += 1;
+      return;
+    }
+
+    // JUDGED ON THE DATE THE PERSON WROTE, before any banking shift. A bill
+    // due on the last day of the window that happens to fall on a Saturday
+    // would otherwise be shifted past the end and vanish, counted nowhere, on
+    // a window the person themselves chose.
+    if (days > horizonDays) {
+      beyond += amount;
+      beyondCount += 1;
+      return;
+    }
 
     final DateTime due = today.add(Duration(days: days));
 
@@ -179,8 +237,10 @@ DailyProjection projectDailyCash({
         ? (date: due, moved: false, reason: '')
         : nextBankingDay(due);
 
-    final int offset = when.date.difference(today).inDays;
-    if (offset > horizonDays) return;
+    // The banking shift can push the last day or two of the window past its
+    // end. That is kept rather than dropped: the person entered it inside the
+    // window, so it belongs on the grid, and the grid runs to horizonDays.
+    final int offset = when.date.difference(today).inDays.clamp(0, horizonDays);
 
     byOffset
         .putIfAbsent(offset, () => <ProjectedEvent>[])
@@ -262,7 +322,13 @@ DailyProjection projectDailyCash({
       // debt minimum P2.4 just removed: a plausible guess standing in for
       // something the app was actually told.
       DateTime cursor = today;
-      for (int guard = 0; guard < 8; guard++) {
+      // SIZED TO THE HORIZON, not to a number somebody liked. A bare 8
+      // silently dropped a real payday: with a rule of the 5th, 10th, 15th,
+      // 20th, 25th and 30th, which a commission earner genuinely has, the
+      // walk stopped at offset 39 and never placed the one at 44. The loop
+      // already has its true exit two lines down; this bound exists only so
+      // a pathological rule cannot spin forever.
+      for (int guard = 0; guard <= horizonDays + 2; guard++) {
         final PaydayPoints? points = schedule.pointsFrom(cursor);
         if (points == null) break;
         final int offset = points.next.difference(today).inDays;
@@ -308,5 +374,9 @@ DailyProjection projectDailyCash({
     days: days,
     undatedTotal: undated,
     undatedCount: undatedCount,
+    overdueTotal: overdue,
+    overdueCount: overdueCount,
+    beyondHorizonTotal: beyond,
+    beyondHorizonCount: beyondCount,
   );
 }
