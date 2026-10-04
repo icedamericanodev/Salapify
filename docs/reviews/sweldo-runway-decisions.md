@@ -107,7 +107,7 @@ the headline has to survive.
 ### The options
 
 **A. "The day you run short."** The design document's own line: *Tightest day:
-Friday 12 Oct, short 1,840.* Direct, and the first figure in Salapify a person
+Monday 12 Oct, short 1,840.* Direct, and the first figure in Salapify a person
 can act on. It has nothing to say on the seed, and nothing to say for anyone
 whose money is fine, which is most people most of the time. A card that is
 blank or says "you are fine" nine visits out of ten is a card people stop
@@ -121,14 +121,53 @@ tightest one, with the number that matters on that day:
 
 > **Tightest day: Monday 26 Oct.** You still have 73,081 then.
 
-> **Tightest day: Friday 12 Oct.** You are 1,840 short that day.
+> **Tightest day: Monday 12 Oct.** You are 1,840 short that day.
 
-### Recommendation: C
+### Recommendation: C, and it was OVERTURNED on the count
 
-The sentence is in the same place, about the same thing, every time, so a
-person learns to read one line rather than two different cards. It is never
-blank. And when it does turn into a shortfall, it turns into one in the place
-they are already looking, which is the whole value of a date.
+C is the right SHAPE and the wrong number of states. A UX review ran the
+engine over the seed and found that my comfortable sentence is a fake
+insight, which I confirmed by reading `tightestDay` at
+`daily_projection.dart:144-152`:
+
+```dart
+if (d.balanceAfter < worst.balanceAfter) worst = d;
+```
+
+A STRICT less-than, so it returns the EARLIEST day at the minimum. On the
+seed there is no income at all after 22 September, so the balance only ever
+falls and then sits flat. 26 October is therefore not a trough; it is simply
+the last day anything was scheduled, and the line is flat across the
+remaining seven days of the window. "Tightest day: 26 Oct, you still have
+73,081 then" is really saying "at the end of your projection you have
+73,081", dressed up with a date that carries no information.
+
+And it is not an accident of this ledger. Whenever a projection has no income
+after its last outflow, the tightest day IS the end of the window, by
+construction. That is every person who has not stored a payday rule, which is
+the seed and every brand new install.
+
+The discriminator needs no engine change and no new field:
+
+```dart
+final bool recovers = p.closingBalance > p.tightestDay!.balanceAfter;
+```
+
+When the balance climbs back after the low point, "tightest day" is a real
+insight and C's sentence is exactly right. When it does not, the low point is
+the end of the window and the sentence has to say so instead. So: C's shape,
+confirmed. C's two states, overturned. **Six, with the guards in order and
+first match wins:** brand new install (the row does not render), nothing
+dated, short TODAY, runs short later, a real trough that recovers, and flat
+or declining to the end.
+
+### A correction to this document
+
+Every earlier draft of the example sentence said "Friday 12 Oct". **12 October
+2026 is a Monday**, and so are 26 October and 2 November. Checked by running
+`DateTime.weekday`, not by counting. The wrong weekday came from
+`sweldo-runway-design.md:11` and was copied forward twice without being
+checked, which is exactly the shape of error that ends up pasted into code.
 
 ### One thing that must stay on the screen whatever is chosen
 

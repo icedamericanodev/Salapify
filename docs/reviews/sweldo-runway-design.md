@@ -8,7 +8,7 @@ pass's claims were corrected on the way.
 
 Every other figure in Salapify is an AMOUNT. This one is a DATE.
 
-> Tightest day: Friday 12 Oct, short ₱1,840.
+> Tightest day: Monday 12 Oct, short ₱1,840.
 
 That is the first thing in this app a person can act on today: move the Meralco
 bill to the 17th, or bring ₱2,000 back from the account you set aside, because
