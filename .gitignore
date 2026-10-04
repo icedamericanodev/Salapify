@@ -25,3 +25,13 @@ flutter/test/golden/failures/
 # a rule that has already been missed twice in one session.
 app/test/zz_*
 app/tool/_tmp_*
+
+# THE PATTERN ABOVE WAS TOO NARROW, and it let one through on 2026-10-04.
+#
+# A recovery-review agent wrote `app/test/recovery_probe_test.dart` while it
+# measured something, and a `git add -A` in this session swept it into a
+# commit. `zz_*` did not match it, so the guard that exists precisely for this
+# did nothing. Matching on the word `probe` anywhere in the name is what the
+# comment above was always trying to say.
+app/test/*probe*
+app/test/*_scratch*
