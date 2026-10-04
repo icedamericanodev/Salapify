@@ -138,14 +138,34 @@ class RunwayRow extends StatelessWidget {
                         onTap: onSetPayday,
                       ),
                     ],
-                    if (r.notCounted != null) ...<Widget>[
+                    // ONE divider for all the notices, never one each.
+                    // Three dividers turn a card into a form.
+                    if (r.hasNotice) ...<Widget>[
                       const SizedBox(height: Spacing.sm),
                       Divider(height: 1, color: p.border),
                       const SizedBox(height: Spacing.sm),
-                      Text(
-                        r.notCounted!,
-                        key: const Key('runway-not-counted'),
-                        style: AppType.caption(p),
+                    ],
+                    if (r.notCounted != null)
+                      _Notice(
+                        palette: p,
+                        noticeKey: const Key('runway-not-counted'),
+                        label: 'Not counted: ',
+                        body: r.notCounted!,
+                      ),
+                    // ITS OWN LINE, not appended to the one above, and the
+                    // reason is logical rather than spatial: a duplicated
+                    // outflow IS counted, twice. Hanging it off a sentence
+                    // that opens with the words "Not counted" would make
+                    // that sentence lie about its own subject, and that holds
+                    // however short the clause is.
+                    if (r.countedOnce != null) ...<Widget>[
+                      if (r.notCounted != null)
+                        const SizedBox(height: Spacing.xs),
+                      _Notice(
+                        palette: p,
+                        noticeKey: const Key('runway-counted-once'),
+                        label: 'Counted once: ',
+                        body: r.countedOnce!,
                       ),
                     ],
                   ],
@@ -170,6 +190,7 @@ class _Runway {
     required this.tone,
     this.paydayNote,
     this.notCounted,
+    this.countedOnce,
   });
 
   /// The bold clause: the ANSWER, which is a day.
@@ -186,6 +207,11 @@ class _Runway {
 
   /// What is real, owed, and deliberately not in the figure above.
   final String? notCounted;
+
+  /// Income left out because the payday rule already described it.
+  final String? countedOnce;
+
+  bool get hasNotice => notCounted != null || countedOnce != null;
 
   Color border(Palette p) => tone == _Tone.bad ? p.negative : p.border;
   Color tile(Palette p) => switch (tone) {
@@ -217,6 +243,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
   if (nothingAtAll) return null;
 
   final String? aside = _notCounted(p);
+  final String? once = _countedOnce(p);
   final String? payday = state.payday.hasRule
       ? null
       : 'Only one payday is counted, because Salapify does not know your '
@@ -233,6 +260,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       // No accent. A blank state drawn in the alert colour reads as an alert.
       tone: _Tone.quiet,
       notCounted: aside,
+      countedOnce: once,
     );
   }
 
@@ -250,6 +278,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       icon: Icons.priority_high,
       tone: _Tone.bad,
       notCounted: aside,
+      countedOnce: once,
     );
   }
 
@@ -276,6 +305,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       // goes behind the dot.
       paydayNote: payday,
       notCounted: aside,
+      countedOnce: once,
     );
   }
 
@@ -307,6 +337,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       // that matters.
       tone: _Tone.warn,
       notCounted: aside,
+      countedOnce: once,
     );
   }
 
@@ -322,6 +353,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
     icon: Icons.check_circle_outline,
     tone: _Tone.ok,
     notCounted: aside,
+    countedOnce: once,
   );
 }
 
@@ -347,24 +379,118 @@ String? _notCounted(DailyProjection p) {
     );
   }
   if (p.undatedOutflowCount > 0) {
-    parts.add(
-      '${formatPeso(p.undatedOutflow.pesos)} with no due date Salapify could '
-      'read',
-    );
+    // "Salapify could read" was cut on 2026-10-04. Those four words bought
+    // the entire third line of this block on the founder's own ledger, and
+    // the lesson they carry is already written in full behind the "i" dot,
+    // under "Only dates Salapify can read". The card was paying a line to
+    // repeat its own explainer, which is exactly what the 2026-09-18 rule
+    // says to stop doing: a figure and the line needed to READ it stay, what
+    // TEACHES goes behind the dot.
+    parts.add('${formatPeso(p.undatedOutflow.pesos)} with no due date');
   }
 
-  // D27's other half. The founder's answer was count it once AND say so, and
-  // this is the saying. Somebody with a genuine second income of the same
-  // size in the same month has it dropped by that rule, and this sentence is
-  // the only thing between that and silence.
-  final String? doubled = p.duplicateIncomeLabels.isEmpty
-      ? null
-      : '${p.duplicateIncomeLabels.first} is in Upcoming and in your payday '
-            'rule, so it is counted once.';
+  if (parts.isEmpty) return null;
+  return 'Not counted: ${parts.join(', and ')}.';
+}
 
-  if (parts.isEmpty) return doubled;
-  final String line = 'Not counted: ${parts.join(', and ')}.';
-  return doubled == null ? line : '$line $doubled';
+/// D27's other half: the income this projection deliberately left out of a
+/// total because something else already described it.
+///
+/// THE FIGURE LEADS, and that is the correction rather than a style choice.
+/// This sentence used to carry no peso amount at all. Judge it on the case it
+/// exists for: somebody genuinely paid 32,500 twice in one month, hunting for
+/// a missing 32,500. The one line standing between them and silence did not
+/// contain a number, while every other exclusion on this card leads with its
+/// figure.
+///
+/// "COMING UP", NOT "UPCOMING". It said "in Upcoming" for a day, and no
+/// screen in Salapify is called Upcoming: the Home card is "Coming Up" and
+/// the sheet is "Bills". `UpcomingItem` is a class name, and printing a class
+/// name at somebody sends them nowhere.
+///
+/// NAMES ARE DE-DUPLICATED. A day-of-month income date recurs, so one sweldo
+/// written down twice produces two suppressed occurrences carrying the SAME
+/// label, and the two-item wording would have read "Sweldo and Sweldo". The
+/// count comes from the occurrences, the names from the distinct set.
+String? _countedOnce(DailyProjection p) {
+  if (!p.suppressedIncome.isPositive) return null;
+
+  final List<String> names = p.duplicateIncomeLabels.toSet().toList();
+  final String figure = formatPeso(p.suppressedIncome.pesos);
+  const String places = 'in Coming Up and in your payday rule';
+
+  if (names.length == 1 && p.duplicateIncomeLabels.length == 1) {
+    return 'Counted once: $figure. ${names.first} is $places.';
+  }
+  if (names.length == 2) {
+    return 'Counted once: $figure. ${names.first} and ${names[1]} are $places.';
+  }
+  // One name arriving several times, or more than two names: lean on the
+  // total and the count rather than listing.
+  return 'Counted once: $figure across ${p.duplicateIncomeLabels.length} '
+      'items that are $places.';
+}
+
+/// One exclusion notice: a bold label, then the figures.
+///
+/// THE SPLIT COSTS NOTHING AND BUYS EVERYTHING. A user panel read the old
+/// single grey paragraph and two of three archetypes said they would never
+/// read it, at any visit. It was three lines of the faintest text on Home,
+/// under a divider, below a bold sentence that already sounded like a
+/// complete answer, so it was formatted like fine print and treated like
+/// fine print. The same words with a bold lead scan in a second.
+///
+/// DELIBERATELY NOT TAPPABLE. There is nowhere to send anybody: `BillsSheet`
+/// reads `state.upcoming` and nothing else, so a tap on a notice about a
+/// debt minimum or an instalment lands on a sheet that shows ONE HALF of what
+/// the notice named. The person counts one row and concludes the app is
+/// wrong, which is a manufactured wrong conclusion bought with a tap target.
+/// It becomes tappable when a day view exists.
+///
+/// NO WARNING TINT. Nothing here is wrong, and a warning colour on a screen
+/// with nothing wrong with it teaches people to ignore the warning colour
+/// that matters. Both tokens used here are already on this card, so the
+/// palette contrast sweep covers them in all sixteen moods with no new pair.
+class _Notice extends StatelessWidget {
+  const _Notice({
+    required this.palette,
+    required this.noticeKey,
+    required this.label,
+    required this.body,
+  });
+
+  final Palette palette;
+  final Key noticeKey;
+  final String label;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    // The body arrives carrying its own label, because the engine-facing
+    // helpers build whole sentences. Strip it so the label can be drawn
+    // bold without being printed twice.
+    final String rest = body.startsWith(label)
+        ? body.substring(label.length)
+        : body;
+    return Text.rich(
+      // Text.rich, never RichText: RichText renders a style with no family
+      // and draws boxes in the shot harness. See the headline above.
+      TextSpan(
+        style: AppType.caption(palette),
+        children: <InlineSpan>[
+          TextSpan(
+            text: label,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: palette.textSecondary,
+            ),
+          ),
+          TextSpan(text: rest),
+        ],
+      ),
+      key: noticeKey,
+    );
+  }
 }
 
 /// A small tappable pill, 44 tall so it clears the touch-target floor.

@@ -87,11 +87,38 @@ void main() {
   testWidgets('S5: a line that only falls says so, and names the window end', (
     WidgetTester tester,
   ) async {
-    // The discriminator, from the other side. Clearing the payday rule
-    // removes every recovery, so the balance declines to the end of the
-    // window and the tightest day becomes the last scheduled day.
+    // The discriminator, from the other side: a ledger with NO income at all,
+    // so the balance declines to the end of the window and the tightest day
+    // becomes the last scheduled day.
+    //
+    // Built from an empty store rather than by clearing the seed's payday
+    // rule, which is how this fixture used to work and stopped working on
+    // 2026-10-04. The seed's sweldo moved from a past date to the 15th so the
+    // "counted once" notice could fire, and a recorded income item arrives
+    // whether or not a payday RULE exists. Clearing the rule no longer
+    // removes the recovery, so the old fixture was quietly testing S4 while
+    // claiming to test S5.
     final FinancialState s = FinancialState(clock: DateTime.utc(2026, 9, 18));
-    s.setPaydayRule(daysOfMonth: const <int>[]);
+    await s.deleteEverything();
+    s.addAccount(
+      const Account(
+        id: 'a1',
+        name: 'GCash',
+        kind: AccountKind.gcash,
+        institution: 'GCash',
+        balance: Money.pesos(20000),
+        monogram: 'GC',
+      ),
+    );
+    s.addUpcoming(
+      UpcomingItem(
+        id: 'u1',
+        name: 'Rent',
+        amount: const Money.pesos(5000),
+        dueDate: '2026-09-30',
+        type: UpcomingItemType.rent,
+      ),
+    );
     await pump(tester, s);
 
     expect(find.textContaining('Nothing dated runs you short'), findsOneWidget);
@@ -154,7 +181,10 @@ void main() {
     final Finder line = find.byKey(const Key('runway-not-counted'));
     expect(line, findsOneWidget);
 
-    final String text = tester.widget<Text>(line).data!;
+    // The notice is a Text.rich now, so `data` is null and the words live in
+    // the span. Reading the span is also closer to what the phone draws.
+    final Text w = tester.widget<Text>(line);
+    final String text = w.data ?? w.textSpan!.toPlainText();
     expect(
       text,
       contains('10,487.80'),
@@ -187,5 +217,82 @@ void main() {
     await pump(tester, s);
 
     expect(find.textContaining('NEXT 45 DAYS'), findsNothing);
+  });
+
+  testWidgets('a sweldo written down twice is named, with its amount', (
+    WidgetTester tester,
+  ) async {
+    // D27's other half. The sentence used to carry NO peso figure at all,
+    // which is the one thing it needed: somebody genuinely paid the same
+    // amount twice in a month is hunting for a missing number, and this is
+    // the only line standing between them and silence.
+    //
+    // The sample ledger reaches this state since the founder moved the
+    // sweldo to the 15th on 2026-10-04. Before that it was dated three days
+    // in the past on every clock, so it sat in the overdue-income bucket and
+    // the dedupe could never see it: swept across a full year, the notice
+    // fired on none of 365 days.
+    final FinancialState s = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    await pump(tester, s);
+
+    final Finder line = find.byKey(const Key('runway-counted-once'));
+    expect(line, findsOneWidget);
+
+    final Text w = tester.widget<Text>(line);
+    final String text = w.data ?? w.textSpan!.toPlainText();
+
+    expect(
+      text,
+      contains('₱'),
+      reason: 'the figure is the whole point of this line',
+    );
+    expect(
+      text,
+      contains('Coming Up'),
+      reason:
+          'no screen in Salapify is called "Upcoming". UpcomingItem is a '
+          'class name, and printing a class name at somebody sends them '
+          'nowhere',
+    );
+    expect(text, isNot(contains('in Upcoming')));
+    expect(text, contains('payday rule'));
+  });
+
+  testWidgets('one sweldo arriving twice is never named twice', (
+    WidgetTester tester,
+  ) async {
+    // A SEPARATE CLOCK, and that is the finding rather than a detail. At
+    // 18 September only ONE of the sweldo occurrences falls inside the
+    // forty-five day window, so there is nothing to de-duplicate and an
+    // assertion about it passes with the de-duplication deleted. Proven by
+    // deleting it. From 4 October the window reaches past two fifteenths,
+    // which is the only shape that reaches this branch.
+    //
+    // A day-of-month income date RECURS, so one sweldo written down twice
+    // produces two suppressed occurrences carrying the SAME name, and the
+    // two-item wording would otherwise read "Sweldo and Sweldo".
+    final FinancialState s = FinancialState(clock: DateTime.utc(2026, 10, 4));
+    await pump(tester, s);
+
+    final Text w = tester.widget<Text>(
+      find.byKey(const Key('runway-counted-once')),
+    );
+    final String text = w.data ?? w.textSpan!.toPlainText();
+
+    // AT MOST once. Zero is the correct answer here and is what the code
+    // does: with one name arriving twice the copy drops the list entirely and
+    // leans on the figure and the count, because naming it would repeat it.
+    expect(
+      'Sweldo'.allMatches(text).length,
+      lessThanOrEqualTo(1),
+      reason: 'the same name was printed twice',
+    );
+    expect(
+      text,
+      contains('2 items'),
+      reason:
+          'with one name arriving twice the copy leans on the count, because '
+          'listing it would repeat the name',
+    );
   });
 }

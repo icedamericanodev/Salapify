@@ -99,7 +99,15 @@ void main() {
     expect(byId['up_meralco'], 'Today');
     expect(byId['up_homecredit'], 'Today');
     expect(byId['up_spotify'], 'Sunday');
-    expect(byId['up_payday'], 'Sep 15');
+    // '15', not a date offset, since the founder decision of 2026-10-04.
+    // Dated three days in the past it sat in the overdue-income bucket, which
+    // the projection excludes from the grid, so the "counted once" notice
+    // could never fire on the sample ledger at any clock. A day of the month
+    // is readable by `daysUntil`, matches the stored payday rule exactly, and
+    // is what a person actually types. An offset of two to six would have
+    // produced a WEEKDAY NAME, which `daysUntil` cannot read, so the obvious
+    // fix would have moved the item from one invisible bucket to another.
+    expect(byId['up_payday'], '15');
     expect(
       byId.values,
       isNot(contains('Monday, Sep 15')),
