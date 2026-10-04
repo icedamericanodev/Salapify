@@ -27,6 +27,7 @@ import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/features/health/health_check_sheet.dart';
 import 'package:salapify/features/log/scan_receipt_sheet.dart';
 import 'package:salapify/features/payday/payday_sheet.dart';
+import 'package:salapify/screens/home/runway_row.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
@@ -1456,8 +1457,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // SCROLLED TO, not merely ensureVisible'd. Home's list builds lazily, so
+    // a widget below the viewport is not built at all and `find.text` matches
+    // nothing: ensureVisible then throws "Bad state: No element" rather than
+    // scrolling. Adding the runway row to Home pushed Quick Actions about
+    // 88dp down, which was enough. The same class of breakage once took out
+    // eleven journey tests when another card landed above it.
     final Finder door = find.text('Split');
-    await tester.ensureVisible(door.first);
+    await tester.scrollUntilVisible(
+      door,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(door.first);
     await tester.pumpAndSettle();
@@ -1854,6 +1865,61 @@ void main() {
   // own, because the defect it closes was invisible by definition: a figure
   // typed as "1.5.0" used to save as NO minimum at all, with no message, and
   // the only evidence was a reservation of zero on a screen two taps away.
+  // The runway row in the state the seed cannot reach: actually running
+  // short. The sample ledger is comfortable, so without this the founder only
+  // ever sees the quiet version of a card whose whole reason to exist is the
+  // loud one.
+  testWidgets('home runway short renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 900);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    // DRAINED BEFORE THE PUMP, not after. RunwayRow is stateless and reads
+    // the projection once per build, so a mutation after pumping changes the
+    // store and never reaches the pixels. The first version of this shot did
+    // exactly that and photographed the comfortable state while claiming to
+    // show the loud one, which is a screenshot that proves the opposite of
+    // what it says.
+    for (final Account a
+        in state.accounts.where((Account a) => a.isSpendable).toList()) {
+      state.updateAccount(a.copyWith(balance: const Money.pesos(500)));
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: Padding(
+            padding: const EdgeInsets.all(Spacing.lg),
+            child: RunwayRow(
+              state: state,
+              onSeeDue: () {},
+              onSetPayday: () {},
+              onInfo: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_runway_short.png'),
+    );
+  });
+
   testWidgets('sheet add debt minimum problem renders', (
     WidgetTester tester,
   ) async {

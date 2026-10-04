@@ -19,6 +19,7 @@ import '../core/money/pan/pan_context.dart';
 import '../core/money/plan.dart';
 import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
+import '../core/money/daily_projection.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 import '../core/money/money.dart';
@@ -2232,6 +2233,51 @@ class FinancialState extends ChangeNotifier {
     payday: payday,
     now: now,
   );
+
+  DailyProjection? _projection;
+  int _projectionStamp = -1;
+
+  /// The Sweldo Runway: what the balance DOES between now and the horizon.
+  ///
+  /// A different question from [safeToSpendAnalysis] over a different window,
+  /// and the two must never be merged. Safe to Spend answers how much may be
+  /// spent. This answers which DAY gets tight, which is the first figure in
+  /// Salapify somebody can act on rather than only obey.
+  ///
+  /// MEMOISED, because it walks forty-five days and Home rebuilds on every
+  /// notifyListeners. The stamp is a cheap shape of the inputs rather than a
+  /// deep compare: the point is to skip the walk between repaints of an
+  /// unchanged ledger, and anything that actually moves money changes one of
+  /// these counts or totals. A stamp that misses a change costs a stale card
+  /// for one frame, so it deliberately includes the balances rather than only
+  /// the lengths.
+  DailyProjection get dailyProjection {
+    final int stamp = Object.hash(
+      _accounts.length,
+      accountsTotalPhp(_accounts.where((Account a) => a.isSpendable)),
+      _bills.length,
+      _upcoming.length,
+      _installments.length,
+      _debts.length,
+      _payday,
+      now.day,
+      now.month,
+      now.year,
+      _debts.fold<int>(0, (int a, Debt d) => a + d.remaining.centavos),
+      _bills.fold<int>(0, (int a, BillItem b) => a + b.amount.centavos),
+    );
+    if (_projection != null && _projectionStamp == stamp) return _projection!;
+    _projectionStamp = stamp;
+    return _projection = projectDailyCash(
+      accounts: _accounts,
+      bills: _bills,
+      upcoming: _upcoming,
+      installments: _installments,
+      debts: _debts,
+      payday: payday,
+      now: now,
+    );
+  }
 
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
     // CONVERTED ON THE WAY IN. The engine is a line-for-line port of a

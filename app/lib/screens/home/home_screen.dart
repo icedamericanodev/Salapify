@@ -33,6 +33,7 @@ import 'home_header.dart';
 import 'latest_transactions.dart';
 import 'quick_actions.dart';
 import 'reminders_banner.dart';
+import 'runway_row.dart';
 
 /// Home, the prototype's first tab.
 ///
@@ -173,6 +174,26 @@ class HomeScreen extends StatelessWidget {
               state: state,
               onLog: onOpenLog,
               onSeeAll: () => onOpenTab(kActivityTab),
+            ),
+
+            // THE RUNWAY, and it sits HERE for a reason. The reading order
+            // becomes hero (how much), Today (what has gone today), Runway
+            // (which day gets tight), Budget Pulse (how the month is going).
+            // That is now, today, ahead, month, which is a sentence rather
+            // than a pile.
+            //
+            // Deliberately NOT above the Today row, which is tempting because
+            // the runway is the forward-looking twin of the hero. The Today
+            // row sits directly under the hero as the door into the only
+            // action a first session has, and demoting it to make room for a
+            // card that is useless in a first session is a regression dressed
+            // as a layout tweak.
+            const SizedBox(height: Spacing.md),
+            RunwayRow(
+              state: state,
+              onSeeDue: () => _bills(context, palette),
+              onSetPayday: () => PaydaySheet.show(context, state),
+              onInfo: () => InfoSheet.show(context, palette, InfoTopic.runway),
             ),
 
             const SizedBox(height: Spacing.md),
