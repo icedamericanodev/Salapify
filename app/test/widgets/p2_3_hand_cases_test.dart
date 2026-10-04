@@ -23,7 +23,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
-import 'package:salapify/data/snapshot.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/features/accounts/account_sheet.dart';
