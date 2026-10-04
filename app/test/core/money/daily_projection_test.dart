@@ -271,6 +271,157 @@ void main() {
     });
   });
 
+  group('a window of a month and a half holds a monthly bill TWICE', () {
+    // The engine placed every bill, every debt minimum and every instalment
+    // exactly ONCE while the payday walk looped, so over forty-five days it
+    // counted outgoings for one month and income for one and a half. That is
+    // optimistic BY CONSTRUCTION, and optimistic is the one direction a
+    // runway must never be wrong in: it tells somebody they are fine on the
+    // day they are not.
+
+    test('a bill on the 15th falls twice in forty-five days', () {
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Meralco', 3000, '15')],
+      );
+      final List<int> on = <int>[
+        for (final ProjectedDay d in p.days)
+          if (d.events.isNotEmpty) d.date.day,
+      ];
+      expect(on, <int>[15, 16]);
+      expect(
+        p.closingBalance,
+        const Money.pesos(4000),
+        reason: '10,000 less two months of a 3,000 bill',
+      );
+    });
+
+    test('a bill written as ONE DATE still falls once', () {
+      // The recurrence is read, never assumed. "2026-10-15" names one day
+      // and is then over, and inventing a second one would be the same sin
+      // in the other direction.
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Tuition', 3000, '2026-10-15')],
+      );
+      expect(p.closingBalance, const Money.pesos(7000));
+    });
+
+    test('a monthly minimum is monthly whatever shape its date is in', () {
+      // The seed phone plan carries an ISO due date, so the day-of-month
+      // rule above cannot reach it, and the field is literally called
+      // monthlyMinimum. The date says WHEN in the month; the name says how
+      // often.
+      final DailyProjection p = run(
+        debts: <Debt>[
+          Debt(
+            id: 'd1',
+            person: 'Home Credit',
+            direction: DebtDirection.iOwe,
+            totalAmount: const Money.pesos(14700),
+            paidAmount: const Money.pesos(7350),
+            isSettled: false,
+            schedule: DebtSchedule.scheduled,
+            installmentCurrent: 3,
+            installmentTotal: 6,
+            dueDate: '2026-10-15',
+          ),
+        ],
+      );
+      expect(p.closingBalance, const Money.pesos(5100));
+    });
+
+    test('and the LAST month takes only what is left', () {
+      // A card with 3,000 on it and a 2,000 minimum pays 2,000 this month
+      // and 1,000 next, not 2,000 twice. Running past the balance would
+      // invent an obligation, which is the eight percent rule P2.4 removed,
+      // made with a calendar instead of a percentage.
+      //
+      // The earlier version of this test used a plan with ONE instalment
+      // left, which passed with the cap deleted: the running total hit zero
+      // after a single pass either way, so the cap was never reached. A
+      // remainder smaller than the minimum is the only shape that reaches
+      // it.
+      final DailyProjection p = run(
+        debts: <Debt>[
+          Debt(
+            id: 'd1',
+            person: 'Nearly done',
+            direction: DebtDirection.iOwe,
+            totalAmount: const Money.pesos(60000),
+            paidAmount: const Money.pesos(57000),
+            isSettled: false,
+            minimumPayment: const Money.pesos(2000),
+            dueDate: '2026-10-15',
+          ),
+        ],
+      );
+      expect(
+        p.closingBalance,
+        const Money.pesos(7000),
+        reason: '10,000 less the whole 3,000 that is left, never 4,000',
+      );
+    });
+  });
+
+  group('a payment plan has a date, and this engine now reads it', () {
+    // The comment here used to say instalments "have no due date of their
+    // own in this model". That was never true: nextInstallmentDate derives
+    // one from the start date, the instalments paid and the frequency, and
+    // the reminder engine has used it all along. So Salapify told somebody
+    // in the notification tray when the Home Credit payment was due, and the
+    // cash projection over the same ledger called it undatable.
+
+    InstallmentPlan plan({
+      String start = '2026-07-10',
+      int paid = 3,
+      Money balance = const Money.pesos(18000),
+    }) => InstallmentPlan(
+      id: 'p1',
+      name: 'Phone',
+      provider: 'Home Credit',
+      principal: const Money.pesos(24000),
+      interestRate: 0,
+      interestRateType: InterestRateType.fixed,
+      totalInterest: Money.zero,
+      totalPayable: const Money.pesos(24000),
+      termMonths: 12,
+      installmentAmount: const Money.pesos(2000),
+      paidInstallments: paid,
+      totalInstallments: 12,
+      runningBalance: balance,
+      principalRemaining: balance,
+      interestRemaining: Money.zero,
+      startDate: start,
+      maturityDate: '2027-07-10',
+    );
+
+    test('every instalment inside the window is placed, by date', () {
+      final DailyProjection p = run(installments: <InstallmentPlan>[plan()]);
+      expect(p.undatedCount, 0, reason: 'the app knows exactly when these are');
+      expect(
+        <String>[
+          for (final ProjectedDay d in p.days)
+            if (d.events.isNotEmpty) d.date.toIso8601String().substring(0, 10),
+        ],
+        <String>['2026-10-12', '2026-11-10'],
+        reason:
+            'the 10th of October is a Saturday, so the money leaves on the '
+            'Monday; the 10th of November is an ordinary weekday',
+      );
+      expect(p.closingBalance, const Money.pesos(6000));
+    });
+
+    test('a plan whose start date cannot be read is still COUNTED', () {
+      final DailyProjection p = run(
+        installments: <InstallmentPlan>[
+          plan(start: 'sometime', paid: 0, balance: const Money.pesos(6000)),
+        ],
+      );
+      expect(p.undatedTotal, const Money.pesos(2000));
+      expect(p.undatedCount, 1);
+      expect(p.closingBalance, const Money.pesos(10000));
+    });
+  });
+
   group('what it refuses to guess', () {
     test('an unreadable due date is COUNTED, never dropped', () {
       final DailyProjection p = run(

@@ -851,6 +851,46 @@ void dateReadingTests() {
         );
       }
     });
+
+    test('a month that does not exist is refused, not normalised', () {
+      // `DateTime(2026, 13, 45)` is quietly the 14th of February 2027, 133
+      // days out, which is an ordinary enough distance that the absurd-day
+      // guard waves it straight through. The tray then named a confident
+      // date for a bill nobody ever wrote.
+      expect(daysUntil('2026-13-45', at), isNull);
+      expect(daysUntil('2026-00-10', at), isNull);
+      // And every real month still reads.
+      expect(daysUntil('2026-12-19', at), 91);
+    });
+  });
+
+  group('a day that month does not have is LATE, which costs money', () {
+    // `_onDayOf` has clamped the bare-day branch all along, and its comment
+    // says exactly why: a reminder that slips into the next month is always
+    // late, and late is the one direction that costs money. The ISO and
+    // named-month branches built their DateTime directly and did the thing
+    // that comment forbids.
+
+    test('"sep 31" is the 30th of September, not the 1st of October', () {
+      expect(daysUntil('sep 31', at), daysUntil('2026-09-30', at));
+    });
+
+    test('"Feb 29" in a year without one is the 28th', () {
+      // 2027 is not a leap year, so this used to land on the 1st of March.
+      expect(daysUntil('Feb 29, 2027', at), daysUntil('2027-02-28', at));
+      expect(daysUntil('Feb 29', at), daysUntil('2027-02-28', at));
+    });
+
+    test('"2026-02-31" is the 28th of February, not the 3rd of March', () {
+      expect(daysUntil('2026-02-31', at), daysUntil('2026-02-28', at));
+    });
+
+    test('a day the month DOES have is untouched', () {
+      // The clamp must not move an ordinary date by so much as a day.
+      expect(daysUntil('Oct 31', at), daysUntil('2026-10-31', at));
+      expect(daysUntil('2026-10-31', at), 42);
+      expect(daysUntil('Dec 25', at), daysUntil('2026-12-25', at));
+    });
   });
 
   group('payment plan dates land in the right month', () {

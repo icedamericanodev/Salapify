@@ -200,16 +200,10 @@ DailyProjection projectDailyCash({
   Money beyond = Money.zero;
   int beyondCount = 0;
 
-  void place(String label, Money amount, String? dueDate, bool isIncome) {
+  /// Put one movement on one day, given how many days away it is.
+  void placeOn(String label, Money amount, int days, bool isIncome) {
     if (!amount.isPositive) return;
 
-    final int? days = daysUntil(dueDate, today);
-    if (days == null) {
-      // Could not be read as a date. Counted separately, never dropped.
-      undated += amount;
-      undatedCount += 1;
-      return;
-    }
     // Already gone. A bill due last week that is still unpaid is a problem,
     // but it is not a FUTURE movement and putting it on today would claim
     // money leaves today that may have left already. COUNTED, not dropped.
@@ -255,6 +249,59 @@ DailyProjection projectDailyCash({
         );
   }
 
+  /// Put a dated obligation on the grid, EVERY TIME IT FALLS in the window.
+  ///
+  /// A forty-five day window is a month and a half, so a bill on the 15th
+  /// falls twice in it and the payday rule that produced both falls three
+  /// times. Until 2026-10-04 this placed each bill, each debt minimum and
+  /// each instalment exactly ONCE while the payday walk looped, which made
+  /// the projection optimistic by construction: roughly half a month of
+  /// outgoings missing from the closing balance and from the shortfall date,
+  /// every time, and always in the direction that tells somebody they are
+  /// fine.
+  ///
+  /// THE RECURRENCE IS READ, NEVER ASSUMED. Only a day-of-month due date
+  /// repeats, because only that shape says so: "15" and "10th of the month"
+  /// name a day that comes round again, while "2026-10-15" and "Sep 25" name
+  /// one day and are then over. [monthlyDayOf] is the single place that
+  /// distinction lives, and it reads with the same pattern [daysUntil] does
+  /// so the two can never disagree.
+  void place(String label, Money amount, String? dueDate, bool isIncome) {
+    if (!amount.isPositive) return;
+
+    final int? days = daysUntil(dueDate, today);
+    if (days == null) {
+      // Could not be read as a date. Counted separately, never dropped.
+      undated += amount;
+      undatedCount += 1;
+      return;
+    }
+
+    final int? repeatsOn = monthlyDayOf(dueDate);
+    if (repeatsOn == null) {
+      placeOn(label, amount, days, isIncome);
+      return;
+    }
+
+    // Walk the month boundary rather than adding thirty days, so the 31st
+    // lands on the last day of a short month exactly as `_onDayOf` does for
+    // the first occurrence.
+    DateTime when = today.add(Duration(days: days));
+    // One more step than the window can hold, so the loop is bounded by
+    // arithmetic rather than by a number somebody liked.
+    for (int step = 0; step <= horizonDays ~/ 28 + 1; step++) {
+      final int offset = when.difference(today).inDays;
+      if (offset > horizonDays) break;
+      placeOn(label, amount, offset, isIncome);
+      final int lastDay = DateTime(when.year, when.month + 2, 0).day;
+      when = DateTime(
+        when.year,
+        when.month + 1,
+        repeatsOn < lastDay ? repeatsOn : lastDay,
+      );
+    }
+  }
+
   for (final BillItem b in bills.where((BillItem b) => !b.isPaid)) {
     place(b.name, b.amount, b.dueDate, false);
   }
@@ -263,15 +310,50 @@ DailyProjection projectDailyCash({
     place(u.name, u.amount, u.dueDate, u.countsAsIncome);
   }
 
-  // Instalments have no due date of their own in this model, so they are
-  // counted as undated rather than guessed onto a day. Saying "I know you owe
-  // this but not when" is honest; putting it on the 1st because that is
-  // tidy is not.
+  // Payment plans ARE DATED, and this comment used to say the opposite.
+  //
+  // It read "instalments have no due date of their own in this model", which
+  // was never true: `nextInstallmentDate` in reminders.dart derives one from
+  // the start date, the instalments already paid and the frequency, and the
+  // reminder engine has used it all along. So Salapify knew when the Home
+  // Credit payment was due, told the person so in the tray, and the cash
+  // projection over the same ledger called it undatable. That is exactly the
+  // two-readings-of-one-ledger problem this file's own header warns about,
+  // and it left the projected balance 2,000 too high for most of the window
+  // on a plan the app could place to the day.
+  //
+  // Every instalment inside the window is placed, not just the next one, for
+  // the reason written on `place` above. A plan whose start date cannot be
+  // read is still counted as undated, which is the honest answer when the
+  // app genuinely does not know.
   for (final InstallmentPlan i in installments.where(
     (InstallmentPlan i) => !i.isSettled,
   )) {
-    undated += minMoney(i.installmentAmount, i.runningBalance);
-    undatedCount += 1;
+    Money left = i.runningBalance;
+    bool placedAny = false;
+    for (int skip = 0; left.isPositive; skip++) {
+      final DateTime? due = nextInstallmentDate(i, skip: skip);
+      if (due == null) break;
+      final int offset = _midnight(due).difference(today).inDays;
+      if (offset > horizonDays) break;
+      final Money each = minMoney(i.installmentAmount, left);
+      if (!each.isPositive) break;
+      placeOn(i.name, each, offset, false);
+      left -= each;
+      placedAny = true;
+    }
+    if (!placedAny) {
+      // Either the start date is unreadable or the next instalment falls
+      // past the window. Counted, never dropped.
+      final Money each = minMoney(i.installmentAmount, i.runningBalance);
+      if (nextInstallmentDate(i) == null) {
+        undated += each;
+        undatedCount += 1;
+      } else {
+        beyond += each;
+        beyondCount += 1;
+      }
+    }
   }
 
   // Debt minimums ride on their own due date where the debt carries one.
@@ -288,12 +370,53 @@ DailyProjection projectDailyCash({
   // `flexible` and `monthlyMinimum` returns null for those. It would have
   // surfaced the first time somebody recorded "Kuya Mark owes me 12,000 over
   // six instalments". Found by the money review, not by the suite.
+  //
+  // A MONTHLY MINIMUM IS MONTHLY, whatever shape the due date is written in.
+  // `place` above only repeats a day-of-month date, which is right for a bill
+  // (a bill written "2026-10-15" is one bill) and wrong here: the field is
+  // called monthlyMinimum, so the date says WHEN IN THE MONTH and the name
+  // says how often. The seed's Home Credit phone plan carries an ISO date
+  // and was therefore counted once in a forty-five day window, which is half
+  // of what it really costs over that window.
+  //
+  // BOUNDED BY WHAT IS ACTUALLY OWED, so a plan with one instalment left is
+  // placed once and not twice. Running past the balance would invent an
+  // obligation, which is the same mistake as the eight percent rule P2.4
+  // removed, just made with a calendar instead of a percentage.
   for (final Debt d in debts.where(
     (Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe,
   )) {
     final Money? min = d.monthlyMinimum;
     if (min == null) continue;
-    place(d.person, min, d.dueDate, false);
+
+    final int? firstIn = daysUntil(d.dueDate, today);
+    if (firstIn == null) {
+      undated += min;
+      undatedCount += 1;
+      continue;
+    }
+
+    Money left = d.remaining;
+    DateTime when = today.add(Duration(days: firstIn));
+    for (int step = 0; left.isPositive; step++) {
+      final int offset = when.difference(today).inDays;
+      if (offset > horizonDays) {
+        if (step == 0) {
+          beyond += min;
+          beyondCount += 1;
+        }
+        break;
+      }
+      final Money each = min > left ? left : min;
+      placeOn(d.person, each, offset, false);
+      left -= each;
+      final int lastDay = DateTime(when.year, when.month + 2, 0).day;
+      when = DateTime(
+        when.year,
+        when.month + 1,
+        when.day < lastDay ? when.day : lastDay,
+      );
+    }
   }
 
   // Payday, from the stored rule. NOTHING IS INVENTED: if the person has not
