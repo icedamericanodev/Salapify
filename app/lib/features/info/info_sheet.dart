@@ -216,6 +216,19 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'everywhere, so it can never quietly disappear from a filter.',
       ),
       InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'Money set aside stops funding today',
+        body:
+            'Tick "Set aside" on an account and Safe to Spend stops counting '
+            'it, which is what you want for an emergency fund or ipon kept in '
+            'GSave, Maya or a digital bank. It still counts in your net '
+            'worth, you can still pay from it, and it still counts toward how '
+            'long you would last if your income stopped, because that is '
+            'exactly the money that answers that question. Salapify never '
+            'guesses this for you: a wallet called Savings may be the one you '
+            'spend from every day.',
+      ),
+      InfoPoint(
         icon: Icons.credit_card_outlined,
         title: 'A credit card balance is what you OWE',
         body:

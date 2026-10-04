@@ -28,9 +28,26 @@ SafeToSpendAnalysis computeSafeToSpend({
   final int nowMs = (now ?? DateTime.now()).millisecondsSinceEpoch;
 
   // 1. Liquid cash. Investments and credit limits are excluded on purpose.
+  //
+  // TWO figures now, where the prototype has one, and the split is the whole
+  // of P2.3. `totalLiquidCash` keeps its old meaning, every liquid account
+  // whether or not it is set aside, because step 9 below needs it. The
+  // SPENDABLE subset is what steps 6 and 8 use.
+  //
+  // This does not break the port. The prototype has no concept of purpose, so
+  // against a ledger where nothing is protected the two figures are equal to
+  // the centavo and every golden vector computes exactly as it did before.
+  // The parity test pins that by running the fixture with everything
+  // spendable, which is the only state the TypeScript can represent.
   final double totalLiquidCash = accounts
       .where((Account a) => a.isLiquid)
       .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
+
+  final double spendableCash = accounts
+      .where((Account a) => a.isSpendable)
+      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
+
+  final double protectedCash = totalLiquidCash - spendableCash;
 
   // 2. Bills still owed this cycle.
   final double totalBillsAmount = bills
@@ -84,7 +101,11 @@ SafeToSpendAnalysis computeSafeToSpend({
   final double bufferRate = scenario == DecisionScenario.conservative
       ? 0.15
       : 0.05;
-  final double emergencyBuffer = totalLiquidCash * bufferRate;
+  // SPENDABLE, not total. The buffer is a slice held back from the money you
+  // were going to spend; charging a percentage of an untouched emergency fund
+  // would reserve the same peso twice, once by being set aside and once by
+  // being buffered against itself.
+  final double emergencyBuffer = spendableCash * bufferRate;
 
   // 7. Everything that must stay put.
   final double reservedBills = scenario == DecisionScenario.conservative
@@ -99,7 +120,9 @@ SafeToSpendAnalysis computeSafeToSpend({
   // 8. What is genuinely free to spend, split 85 / 15 between spending and
   //    saving.
   final int daysToPayday = math.max(1, payday.daysToPayday);
-  final double uncommittedCash = math.max(0, totalLiquidCash - amountReserved);
+  // SPENDABLE, not total. This is the line that actually fixes the defect:
+  // money set aside stops being offered back as this fortnight's spending.
+  final double uncommittedCash = math.max(0, spendableCash - amountReserved);
 
   final double safeToSpendUntilPayday = jsRound(
     uncommittedCash * 0.85,
@@ -142,6 +165,16 @@ SafeToSpendAnalysis computeSafeToSpend({
       : (monthlyLivingExpenseOverride ?? 28000);
 
   final double dailyBurnRate = math.max(100, baselineMonthlyExpense / 30);
+
+  // TOTAL, DELIBERATELY, and this is the one line in P2.3 most likely to be
+  // "fixed" by somebody tidying up. The runway asks "if my income stopped,
+  // how long would I last", and an emergency fund is precisely the money that
+  // answers that question. Excluding it would cut a careful saver on the
+  // sample ledger from about 4.0 months to 2.5 and punish them for saving, in
+  // the one app that exists to encourage it.
+  //
+  // So protected money leaves the headline and stays in the runway. Both are
+  // correct, because they are answers to different questions.
   final int cashRunwayDays = jsRound(totalLiquidCash / dailyBurnRate);
   final double cashRunwayMonths = jsRound1(cashRunwayDays / 30);
 
@@ -178,5 +211,6 @@ SafeToSpendAnalysis computeSafeToSpend({
     totalLiquidCash: whole(totalLiquidCash),
     totalExpectedInflow: whole(totalExpectedInflow),
     daysToPayday: daysToPayday,
+    protectedCash: whole(protectedCash),
   );
 }

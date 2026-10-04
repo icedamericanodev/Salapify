@@ -211,9 +211,17 @@ class _Measures {
   final List<InstallmentPlan> installments;
   final DateTime now;
 
-  /// Money that can actually be spent. A credit limit is not money you have.
+  /// Money that can actually be spent. A credit limit is not money you have,
+  /// and neither is money the person has set aside.
+  ///
+  /// `isSpendable` rather than `isLiquid`, because the only indicator that
+  /// reads this is "will I make it to payday", and that question means
+  /// "without raiding my emergency fund". Somebody who scrapes through only
+  /// by spending their ipon has not made it to payday, they have borrowed
+  /// from themselves, and an indicator that calls that fine is the reason the
+  /// fund gets spent.
   late final double liquid = accounts
-      .where((Account a) => a.isLiquid)
+      .where((Account a) => a.isSpendable)
       .fold<double>(0, (double s, Account a) => s + a.balanceInPhp.pesos);
 
   late final List<Transaction> _counted = transactions

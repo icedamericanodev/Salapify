@@ -77,6 +77,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
             children: <Widget>[
               _NetWorthCard(palette: p, summary: summary, profile: profile),
               const SizedBox(height: Spacing.md),
+              // ASKED ONCE, EVER, and never on a brand new phone. The rule
+              // for when it appears lives in the store, as
+              // `shouldOfferSetAsideReview`, because it reads the ledger and
+              // a screen should not be the thing that decides.
+              if (widget.state.shouldOfferSetAsideReview) ...<Widget>[
+                _SetAsideReviewCard(
+                  palette: p,
+                  state: widget.state,
+                  onDone: () => setState(() {}),
+                ),
+                const SizedBox(height: Spacing.md),
+              ],
               _ViewPicker(
                 palette: p,
                 current: _view,
@@ -150,6 +162,161 @@ class _AccountsScreenState extends State<AccountsScreen> {
       existing: existing,
     );
     if (mounted) setState(() {});
+  }
+}
+
+/// The one-time card that asks which accounts hold money set aside.
+///
+/// This exists because the fix it belongs to is SILENT. `Account.purpose`
+/// defaults to spendable and the app never infers it, which is the right call
+/// (see the note on that field), but the consequence is that an existing
+/// ledger goes on counting somebody's ipon as this fortnight's pocket money
+/// until they say otherwise, and nobody goes hunting for a setting whose
+/// absence they cannot see.
+///
+/// Three things it deliberately is NOT:
+///
+///   - It does not pre-tick anything. Every account starts off exactly as it
+///     is today, and the person ticks what they want. A card that arrives
+///     with guesses already applied is the silent reclassification this whole
+///     design refused.
+///   - It does not block. There is no modal, no overlay, and both buttons
+///     leave. It sits in the list and can be ignored forever.
+///   - It does not come back. "Not now" and "none of them" are the same
+///     instruction, and the flag that records it is stored in the backup, not
+///     held in memory, so reinstalling from a backup does not re-ask.
+class _SetAsideReviewCard extends StatefulWidget {
+  const _SetAsideReviewCard({
+    required this.palette,
+    required this.state,
+    required this.onDone,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final VoidCallback onDone;
+
+  @override
+  State<_SetAsideReviewCard> createState() => _SetAsideReviewCardState();
+}
+
+class _SetAsideReviewCardState extends State<_SetAsideReviewCard> {
+  /// Ticked here, written on Save. Nothing moves while the person is still
+  /// deciding, so backing out really does change nothing.
+  final Set<String> _picked = <String>{};
+
+  void _save() {
+    for (final String id in _picked) {
+      widget.state.setAccountPurpose(id, AccountPurpose.protected);
+    }
+    widget.state.markSetAsideReviewed();
+    widget.onDone();
+  }
+
+  void _notNow() {
+    widget.state.markSetAsideReviewed();
+    widget.onDone();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = widget.palette;
+    final List<Account> liquid = widget.state.accounts
+        .where((Account a) => a.isLiquid)
+        .toList();
+
+    return Container(
+      key: const Key('set-aside-review'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.lg),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: p.accent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Any of these money set aside?',
+                  style: AppType.section(p),
+                ),
+              ),
+              InfoDot(
+                color: p.textMuted,
+                semanticLabel: 'What money set aside means',
+                onTap: () => InfoSheet.show(context, p, InfoTopic.accounts),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          Text(
+            'Salapify counts all of these as money you can spend. Tick '
+            'anything that is really an emergency fund or ipon, and it will '
+            'stop counting toward Safe to Spend. It stays in your net worth '
+            'and you can still pay from it.',
+            style: AppType.caption(p),
+          ),
+          const SizedBox(height: Spacing.md),
+          // EACH TILE IN ITS OWN TRANSPARENT MATERIAL. A ListTile paints its
+          // background and ink splash on the nearest Material ancestor, and
+          // this card is a DecoratedBox with a colour, so without this the
+          // taps have no visible ripple and Flutter asserts about it in
+          // debug. Found by the journey test rather than by eye.
+          ...liquid.map(
+            (Account a) => Material(
+              type: MaterialType.transparency,
+              child: CheckboxListTile(
+                key: Key('set-aside-${a.id}'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                dense: true,
+                value: _picked.contains(a.id),
+                onChanged: (bool? on) => setState(() {
+                  if (on ?? false) {
+                    _picked.add(a.id);
+                  } else {
+                    _picked.remove(a.id);
+                  }
+                }),
+                title: Text(a.name, style: AppType.body(p)),
+                subtitle: Text(
+                  formatPeso(a.balanceInPhp.pesos),
+                  style: AppType.caption(p),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Row(
+            children: <Widget>[
+              TextButton(
+                key: const Key('set-aside-not-now'),
+                onPressed: _notNow,
+                child: Text(
+                  'Not now',
+                  style: AppType.button(p, color: p.textMuted),
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                key: const Key('set-aside-save'),
+                onPressed: _save,
+                child: Text(
+                  // Says what it will do, not "OK". The person is about to
+                  // change a figure on another tab and should know it.
+                  _picked.isEmpty ? 'None of these' : 'Set aside',
+                  style: AppType.button(p, color: p.accent),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -665,6 +832,12 @@ class _AccountRow extends StatelessWidget {
       // scrolled past; this is present at the moment somebody reads the
       // balance, which is where the three week trap actually springs.
       if (account.isSample) 'Sample',
+      // Right after Sample and before the kind, because this is the fact
+      // that explains why the Safe to Spend figure does not match what the
+      // person can see sitting in their accounts. Without it, the only place
+      // the setting is visible is inside the edit sheet, and somebody
+      // comparing two numbers does not think to go looking there.
+      if (account.purpose == AccountPurpose.protected) 'Set aside',
       _kindLabel(account.kind),
       account.institution,
       if (account.interestRate != null) '${account.interestRate}% a year',

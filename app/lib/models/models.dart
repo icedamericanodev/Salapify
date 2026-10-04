@@ -32,6 +32,31 @@ const Set<AccountKind> liquidKinds = <AccountKind>{
   AccountKind.debit,
 };
 
+/// What the money in an account is FOR, which is a different question from
+/// what kind of account it is.
+///
+/// [liquidKinds] above answers "could money leave this account today", and it
+/// is the only question the app used to ask. That is wrong for this audience:
+/// an emergency fund kept in GSave, Maya Savings, SeaBank or Tonik is a
+/// `gcash`, `maya` or `bank` account, so the app counted somebody's ipon as
+/// this fortnight's pocket money and told them they could spend it. Two of the
+/// eleven sample accounts are literally named Savings and had the same defect.
+///
+/// Deliberately TWO values and not three. Paluwagan money held for the group
+/// is not protected, it is not yours, and it belongs in the debt model in the
+/// `iOwe` direction, because calling it protected would leave it inside net
+/// worth. A wallet that is part spending money and part ipon is a partial
+/// amount, which no label can express, and the real answer there is a second
+/// account and a transfer, which is also exactly what GSave already is.
+enum AccountPurpose {
+  /// Money meant for spending. The default, always, and never inferred.
+  spendable,
+
+  /// Money set aside. Still the person's, still in their net worth, still
+  /// payable from, but it stops funding today's spending.
+  protected,
+}
+
 enum DebtDirection { iOwe, owedToMe }
 
 /// Which side of a person's life a row belongs to. The prototype INFERS this
@@ -93,7 +118,24 @@ class Account {
     this.cardTier = CardTier.regular,
     this.notes,
     this.isSample = false,
+    this.purpose = AccountPurpose.spendable,
   });
+
+  /// What this money is for. See [AccountPurpose].
+  ///
+  /// DEFAULTS TO SPENDABLE AND IS NEVER INFERRED, which is a deliberate
+  /// product decision and not laziness. Guessing from the name is unsafe in
+  /// both directions: "Maya Savings" is the literal product name of a wallet
+  /// millions of people spend from every day, and GSave lives inside GCash so
+  /// the account may be named "GCash" with both pots mixed. Guessing from the
+  /// kind is worse, because every one of [liquidKinds] is used both ways.
+  ///
+  /// The cost of a wrong guess was measured on the sample ledger: protecting
+  /// the two savings-named accounts drops Safe to Spend until payday from
+  /// 38,414 to 9,838. A silent 74 percent fall in the figure somebody reads
+  /// first, with no action of theirs to explain it, is indistinguishable from
+  /// the app losing their money. So the app never moves this on its own.
+  final AccountPurpose purpose;
 
   /// True for a record Salapify put there itself, so the screens are not blank
   /// on a brand new phone. NEVER true for anything the person entered.
@@ -148,6 +190,28 @@ class Account {
 
   bool get isLiquid => liquidKinds.contains(kind);
 
+  /// Whether this money should fund TODAY'S spending.
+  ///
+  /// [isLiquid] and this are not the same question, and conflating them is the
+  /// defect P2.3 exists to fix. `isLiquid` asks "can money leave this account",
+  /// which is what every pay-from picker needs and what the history filter
+  /// needs. This asks "should this money inflate Safe to Spend", which is what
+  /// the engine, the payday indicator and the cash shortfall alert need.
+  ///
+  /// Only those last three kinds of caller move to this getter. Everything
+  /// that stays on [isLiquid] therefore provably cannot change behaviour,
+  /// which is why the split is a new predicate rather than a redefinition of
+  /// the old one.
+  bool get isSpendable => isLiquid && purpose != AccountPurpose.protected;
+
+  /// True only for an account where [purpose] means anything.
+  ///
+  /// A credit card, a loan, a mortgage, an investment or a receivable is never
+  /// spendable cash in the first place, so marking one "set aside" would be
+  /// inert, and a control that does nothing teaches people the controls do
+  /// nothing. The account sheet does not render the picker for these.
+  bool get purposeApplies => isLiquid;
+
   /// The peso value of this balance, for anything that adds accounts up.
   /// This balance in pesos, for anything that adds accounts together.
   ///
@@ -177,25 +241,34 @@ class Account {
   /// account into the user's own. The sweep handles that case properly
   /// instead: an account a real entry points at is KEPT, with its seeded
   /// opening balance subtracted, rather than deleted underneath the entry.
-  Account copyWith({Money? balance, bool? isSample}) => Account(
-    id: id,
-    name: name,
-    kind: kind,
-    institution: institution,
-    balance: balance ?? this.balance,
-    monogram: monogram,
-    currency: currency,
-    profile: profile,
-    creditLimit: creditLimit,
-    interestRate: interestRate,
-    accountNumber: accountNumber,
-    dueDate: dueDate,
-    statementDate: statementDate,
-    cardNetwork: cardNetwork,
-    cardTier: cardTier,
-    notes: notes,
-    isSample: isSample ?? this.isSample,
-  );
+  /// [purpose] is carried through, like [isSample], and that is load bearing.
+  ///
+  /// This is the copy the ledger makes every time a balance moves. Leaving
+  /// `purpose` off the list would mean logging one expense from a protected
+  /// account silently un-protected it, and the person's Safe to Spend would
+  /// jump back up with nothing on any screen to explain why. A test in
+  /// `test/core/money/protected_accounts_test.dart` holds this.
+  Account copyWith({Money? balance, bool? isSample, AccountPurpose? purpose}) =>
+      Account(
+        id: id,
+        name: name,
+        kind: kind,
+        institution: institution,
+        balance: balance ?? this.balance,
+        monogram: monogram,
+        currency: currency,
+        profile: profile,
+        creditLimit: creditLimit,
+        interestRate: interestRate,
+        accountNumber: accountNumber,
+        dueDate: dueDate,
+        statementDate: statementDate,
+        cardNetwork: cardNetwork,
+        cardTier: cardTier,
+        notes: notes,
+        isSample: isSample ?? this.isSample,
+        purpose: purpose ?? this.purpose,
+      );
 }
 
 /// What the ledger believes about an entry, from src/types.ts.
@@ -1291,7 +1364,22 @@ class SafeToSpendAnalysis {
     required this.totalExpectedInflow,
     required this.daysToPayday,
     this.runwayFromLoggedSpending = true,
+    this.protectedCash = Money.zero,
   });
+
+  /// Liquid money the person has marked as set aside, and which therefore did
+  /// NOT feed [safeToSpendToday].
+  ///
+  /// It is here because the Safe to Spend sheet's first step used to read
+  /// "Cash, GCash, Maya, banks and debit", which goes false the moment anybody
+  /// protects an account. Under the house rule that a figure and the one line
+  /// needed to read it stay on the screen, the amount left out is itself a
+  /// figure, so the step shows both and the lesson goes behind the dot.
+  ///
+  /// Not part of [totalLiquidCash], which keeps its old meaning of every
+  /// liquid account, protected or not, so the cash runway below can go on
+  /// counting it.
+  final Money protectedCash;
 
   final DecisionScenario scenario;
 
