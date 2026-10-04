@@ -517,6 +517,107 @@ void main() {
     });
   });
 
+  group('one sweldo is counted once', () {
+    // Founder decision D27, 2026-10-04. The asymmetry is the rule: counting a
+    // BILL twice makes somebody cautious, counting a SALARY twice hands them
+    // money that is not coming.
+
+    UpcomingItem sweldo(
+      String due, {
+      int amount = 32500,
+      String name = 'Sweldo',
+    }) => UpcomingItem(
+      id: 'u_$name$due',
+      name: name,
+      amount: Money.pesos(amount),
+      dueDate: due,
+      type: UpcomingItemType.payday,
+    );
+
+    // `nextPayday` and `daysToPayday` MUST be filled, and the reason is a
+    // trap worth writing down: `PaydayCycle.isSet` reads those two snapshot
+    // fields, not `hasRule`, so a cycle carrying a perfectly good rule and
+    // empty labels reads as "nobody has said when they are paid" and the
+    // engine places no income at all. In the app that cannot happen, because
+    // `FinancialState.payday` fills both from the rule on every read. In a
+    // direct engine call it silently produces a projection with no sweldo in
+    // it, which is exactly what this fixture did on its first run.
+    const PaydayCycle rule = PaydayCycle(
+      cycleType: '15_30',
+      lastPayday: 'Sep 30',
+      nextPayday: 'Oct 15',
+      daysToPayday: 8,
+      expectedIncome: Money.pesos(32500),
+      paydayDays: <int>[15, 30],
+    );
+
+    test('a salary in two registers lands on the grid once', () {
+      // Measured before the fix: 65,000 on one day, and a closing balance
+      // half as big again as the real one.
+      final DailyProjection p = run(
+        upcoming: <UpcomingItem>[sweldo('2026-10-15')],
+        payday: rule,
+      );
+
+      expect(
+        p.accountedInflow,
+        const Money.pesos(97500),
+        reason: 'three paydays in the window, never four',
+      );
+      expect(p.suppressedIncome, const Money.pesos(32500));
+      expect(p.duplicateIncomeLabels, <String>['Sweldo']);
+    });
+
+    test('it is caught across the MONTH, not only on the same day', () {
+      // The seed's own duplicate pair sits three days apart in two
+      // registers, so a same-day rule would report nothing at all.
+      final DailyProjection p = run(
+        upcoming: <UpcomingItem>[sweldo('2026-10-12')],
+        payday: rule,
+      );
+      expect(p.suppressedIncome, const Money.pesos(32500));
+      expect(p.accountedInflow, const Money.pesos(97500));
+    });
+
+    test('a DIFFERENT income of a different size is never touched', () {
+      // The guard that keeps this from eating real money. Somebody with a
+      // retainer as well as a salary must keep both.
+      final DailyProjection p = run(
+        upcoming: <UpcomingItem>[
+          sweldo('2026-10-15', amount: 18500, name: 'Retainer'),
+        ],
+        payday: rule,
+      );
+      expect(p.suppressedIncome, Money.zero);
+      expect(p.duplicateIncomeLabels, isEmpty);
+      expect(
+        p.accountedInflow,
+        const Money.pesos(116000),
+        reason: '97,500 of salary plus the 18,500 retainer, all of it kept',
+      );
+    });
+
+    test('an OUTFLOW in two registers is still counted twice', () {
+      // The other half of the asymmetry, and the reason this is one decision
+      // rather than two conventions. A bill described twice stays described
+      // twice, because being told you are tighter than you are costs nothing.
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Meralco', 3000, '2026-10-15')],
+        upcoming: <UpcomingItem>[
+          UpcomingItem(
+            id: 'u_meralco',
+            name: 'Meralco',
+            amount: const Money.pesos(3000),
+            dueDate: '2026-10-15',
+            type: UpcomingItemType.bill,
+          ),
+        ],
+      );
+      expect(p.accountedOutflow, const Money.pesos(6000));
+      expect(p.suppressedIncome, Money.zero);
+    });
+  });
+
   group('what it refuses to guess', () {
     test('an unreadable due date is COUNTED, never dropped', () {
       final DailyProjection p = run(
