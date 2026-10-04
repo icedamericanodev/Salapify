@@ -670,9 +670,14 @@ class FinancialState extends ChangeNotifier {
       liabilities: accountsTotalPhp(liabilitiesOf(_accounts)),
       owed: debtsIOwe,
       owedToMe: debtsOwedToMe,
-      safeToSpendUntilPayday: s.safeToSpendUntilPayday,
-      safeToSpendPerDay: s.safeToSpendToday,
-      amountReserved: s.amountReserved,
+      // READ AS PESOS, deliberately, and this is the line where P2.1 stops.
+      // PanFacts is a separate record with its own double fields feeding a
+      // whole engine, so converting it belongs to its own increment rather
+      // than being dragged along by this one. The guard list P2.1 is measured
+      // against covers `lib/models/models.dart`, and this is not in it.
+      safeToSpendUntilPayday: s.safeToSpendUntilPayday.pesos,
+      safeToSpendPerDay: s.safeToSpendToday.pesos,
+      amountReserved: s.amountReserved.pesos,
       cashRunwayMonths: s.cashRunwayMonths,
       runwayFromLoggedSpending: s.runwayFromLoggedSpending,
       monthIn: totals.totalIn,
@@ -2234,8 +2239,8 @@ class FinancialState extends ChangeNotifier {
     now: clock,
   );
 
-  double get safeToSpend => safeToSpendAnalysis.safeToSpendUntilPayday;
-  double get safeToSpendPerDay => safeToSpendAnalysis.safeToSpendToday;
+  Money get safeToSpend => safeToSpendAnalysis.safeToSpendUntilPayday;
+  Money get safeToSpendPerDay => safeToSpendAnalysis.safeToSpendToday;
 
   /// The account's short name, the way the prototype labels a ledger row:
   /// the first word only, so "BPI Preferred Payroll" reads as "BPI".

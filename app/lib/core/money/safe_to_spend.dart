@@ -145,21 +145,38 @@ SafeToSpendAnalysis computeSafeToSpend({
   final int cashRunwayDays = jsRound(totalLiquidCash / dailyBurnRate);
   final double cashRunwayMonths = jsRound1(cashRunwayDays / 30);
 
+  // THE ONE BOUNDARY, and the reason every golden vector survives P2.1's last
+  // increment untouched.
+  //
+  // Everything above stays in pesos, exactly as the prototype computes it,
+  // because this file says in its own header that nothing was improved on the
+  // way across. Working in centavos internally would be MORE precise and
+  // therefore WRONG: it would round differently from
+  // src/utils/safeToSpendEngine.ts in the cases the vectors do not cover, and
+  // the port would stop being a port.
+  //
+  // Each figure is already a whole peso by the time it reaches here, since
+  // every one of them goes through `jsRound` first. `Money.pesos` says that
+  // out loud and refuses to compile if it ever stops being true, where
+  // `Money.fromDouble` would silently accept a fraction and hide the day the
+  // engine's contract changed.
+  Money whole(double pesos) => Money.pesos(jsRound(pesos));
+
   return SafeToSpendAnalysis(
     scenario: scenario,
-    safeToSpendToday: safeToSpendToday,
-    safeToSpendUntilPayday: safeToSpendUntilPayday,
-    safeToSave: safeToSave,
-    amountReserved: amountReserved,
+    safeToSpendToday: whole(safeToSpendToday),
+    safeToSpendUntilPayday: whole(safeToSpendUntilPayday),
+    safeToSave: whole(safeToSave),
+    amountReserved: whole(amountReserved),
     cashRunwayDays: cashRunwayDays,
     cashRunwayMonths: cashRunwayMonths,
     runwayFromLoggedSpending: measuredBurn,
-    reservedBills: jsRound(reservedBills).toDouble(),
-    reservedDebtMinimums: jsRound(reservedDebt).toDouble(),
-    reservedInstallments: jsRound(reservedInstallments).toDouble(),
-    emergencyBuffer: jsRound(emergencyBuffer).toDouble(),
-    totalLiquidCash: jsRound(totalLiquidCash).toDouble(),
-    totalExpectedInflow: jsRound(totalExpectedInflow).toDouble(),
+    reservedBills: whole(reservedBills),
+    reservedDebtMinimums: whole(reservedDebt),
+    reservedInstallments: whole(reservedInstallments),
+    emergencyBuffer: whole(emergencyBuffer),
+    totalLiquidCash: whole(totalLiquidCash),
+    totalExpectedInflow: whole(totalExpectedInflow),
     daysToPayday: daysToPayday,
   );
 }
