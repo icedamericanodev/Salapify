@@ -2334,6 +2334,24 @@ class FinancialState extends ChangeNotifier {
       }
       _apply(incoming);
       _saveEnabled = true;
+
+      // AND THE WARNINGS COME DOWN, which this branch forgot to do while the
+      // ordinary branch below has always done it.
+      //
+      // The rescue worked, so every sentence the app was showing about the
+      // old file is now false, and they were strong sentences: Home said
+      // "These figures are not yours ... nothing you type now is being
+      // saved", Settings said entries were NOT being saved, and the export
+      // row offered "the file Salapify cannot read" and named the download
+      // salapify-unreadable. All of it over the person's own correctly
+      // restored money, until the app was next restarted.
+      //
+      // That is worse than cosmetic. Somebody told their rescue failed will
+      // restore again, or wipe, or uninstall, and uninstalling at that moment
+      // deletes the real, correct, saved file this method just wrote.
+      _loadStatus = LoadStatus.loaded;
+      _loadProblem = null;
+
       await _writeNow();
       notifyListeners();
       return true;
