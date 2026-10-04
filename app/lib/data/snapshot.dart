@@ -44,6 +44,7 @@ class Snapshot {
     this.reminderSettings = ReminderSettings.defaults,
     required this.payday,
     this.sampleDataRemovedAt,
+    this.setAsideReviewedAt,
     this.onboardedAt,
     required this.theme,
     required this.scenario,
@@ -90,6 +91,24 @@ class Snapshot {
   /// key and no sample flags, so the button is simply not there and cannot
   /// inject demo money into somebody's real book.
   final String? sampleDataRemovedAt;
+
+  /// When the person answered, or dismissed, the one-time "which of these is
+  /// set aside" card. Null until they do either.
+  ///
+  /// P2.3 needs this because the defect it fixes is SILENT: an account's
+  /// purpose defaults to spendable and is never inferred, which is right, but
+  /// it means a ledger that already exists keeps the old behaviour until
+  /// somebody goes and sets it. A control nobody opens fixes nothing.
+  ///
+  /// Modelled on [onboardedAt] below, same shape and same reasons: a nullable
+  /// scalar beside the collections, absent from a file written before it
+  /// existed, read back as null rather than as a default pretending to know.
+  ///
+  /// It records that the card was ANSWERED OR DISMISSED, not what was chosen.
+  /// What was chosen lives on the accounts themselves, as `purpose`, which is
+  /// the only place it can be true, and a second field that could disagree
+  /// with the first would be a defect waiting to happen.
+  final String? setAsideReviewedAt;
 
   /// When the app finished introducing itself, or null if it never has.
   ///
@@ -216,6 +235,7 @@ class Snapshot {
     'reminderSettings',
     'payday',
     'sampleDataRemovedAt',
+    'setAsideReviewedAt',
     'onboardedAt',
     kGuideSteps,
   };
@@ -300,6 +320,7 @@ class Snapshot {
       'payday': merged('payday', 'payday', paydayToJson(payday)),
       if (sampleDataRemovedAt != null)
         'sampleDataRemovedAt': sampleDataRemovedAt,
+      if (setAsideReviewedAt != null) 'setAsideReviewedAt': setAsideReviewedAt,
       if (onboardedAt != null) 'onboardedAt': onboardedAt,
       // SORTED, so that ticking the same two boxes always produces the same
       // bytes. A Set's iteration order is its insertion order, which would
@@ -640,6 +661,9 @@ class Snapshot {
       payday: _readPayday(m['payday'], extras),
       sampleDataRemovedAt: m['sampleDataRemovedAt'] is String
           ? m['sampleDataRemovedAt'] as String
+          : null,
+      setAsideReviewedAt: m['setAsideReviewedAt'] is String
+          ? m['setAsideReviewedAt'] as String
           : null,
       onboardedAt: m['onboardedAt'] is String
           ? m['onboardedAt'] as String

@@ -142,4 +142,38 @@ void main() {
           'an internal rounding detail, it is a wrong sentence about money',
     );
   });
+
+  // The two rules meet here. P2.3 made this getter count only SPENDABLE
+  // accounts, and this change made it CONVERT them; `isSpendable` is a strict
+  // subset of `isLiquid`, so the two compose. A merge that kept one side's
+  // intent and dropped the other's would still pass everything above, which
+  // is exactly why this case exists.
+  test('a protected dollar account is set aside AND converted', () async {
+    const Account dollarEmergencyFund = Account(
+      id: 'usd_3',
+      name: 'Emergency fund USD',
+      kind: AccountKind.bank,
+      institution: 'BPI',
+      balance: Money.pesos(2000),
+      currency: CurrencyCode.usd,
+      purpose: AccountPurpose.protected,
+      monogram: 'BPI',
+    );
+
+    final FinancialState state = await restoredFrom(
+      emptyBut(const <Account>[pesoWallet, dollarPayroll, dollarEmergencyFund]),
+    );
+
+    // Still 78,500. The 2,000 dollar fund is liquid and foreign, so it would
+    // move this number under EITHER rule alone: a raw sum that respected
+    // purpose reads 21,000, a converted sum that ignored purpose reads
+    // 195,500, and only both rules together read 78,500.
+    expect(
+      state.totalLiquidCash,
+      closeTo(78500, 0.01),
+      reason:
+          'money the person set aside is not money they can reach today, '
+          'whatever currency it sits in',
+    );
+  });
 }

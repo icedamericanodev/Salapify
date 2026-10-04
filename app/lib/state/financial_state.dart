@@ -248,6 +248,7 @@ class FinancialState extends ChangeNotifier {
     _payday = s.payday;
     _sampleRemovedAt = s.sampleDataRemovedAt;
     _onboardedAt = s.onboardedAt;
+    _setAsideReviewedAt = s.setAsideReviewedAt;
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
@@ -272,6 +273,7 @@ class FinancialState extends ChangeNotifier {
     payday: payday,
     sampleDataRemovedAt: _sampleRemovedAt,
     onboardedAt: _onboardedAt,
+    setAsideReviewedAt: _setAsideReviewedAt,
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
@@ -2194,18 +2196,26 @@ class FinancialState extends ChangeNotifier {
     return dated.isEmpty ? null : dated.first;
   }
 
-  /// Liquid cash only. This is NOT net worth: it leaves out investments,
-  /// receivables and every borrowing line on purpose.
+  /// Spendable cash only. This is NOT net worth: it leaves out investments,
+  /// receivables, every borrowing line, and money the person has set aside.
   ///
-  /// Summed through [accountsTotalPhp], which converts each balance first.
-  /// This used to fold `a.balance.pesos`, the RAW stored figure, so an OFW
-  /// with a dollar payroll account had dollars added to pesos and the total
-  /// labelled pesos. It fed Pan's "You can reach X today", which is the one
-  /// sentence in the app a person acts on directly. The two lines beside it
-  /// in [panFacts] already converted; this one did not, and a peso-only
-  /// fixture cannot tell the difference.
+  /// Two rules, from two changes, and they compose rather than compete.
+  /// `isSpendable` is a strict subset of `isLiquid`, so WHICH accounts count
+  /// and HOW their balances are added are independent questions:
+  ///
+  ///  1. WHICH: `isSpendable`, because the one thing that reads this is
+  ///     `PanFacts.liquidCash`, which Pan says out loud as "you can reach X
+  ///     today". An emergency fund is not money you can reach today in any
+  ///     sense Pan means, and a mascot cheerfully counting somebody's ipon
+  ///     into their spending money is the defect at its most embarrassing.
+  ///  2. HOW: through [accountsTotalPhp], which converts each balance first.
+  ///     This used to fold `a.balance.pesos`, the RAW stored figure, so an
+  ///     OFW with a dollar payroll account had dollars added to pesos and the
+  ///     total labelled pesos. Same sentence of Pan's, wrong for a different
+  ///     reason. The two lines beside it in [panFacts] already converted;
+  ///     this one did not, and a peso-only fixture cannot tell the difference.
   double get totalLiquidCash =>
-      accountsTotalPhp(accounts.where((Account a) => a.isLiquid));
+      accountsTotalPhp(accounts.where((Account a) => a.isSpendable));
 
   /// The five-question health check, from one place.
   ///
@@ -2409,6 +2419,66 @@ class FinancialState extends ChangeNotifier {
   String? _sampleRemovedAt;
 
   String? _onboardedAt;
+
+  String? _setAsideReviewedAt;
+
+  // -------------------------------------------------------------------------
+  // P2.3, the one-time "which of these is set aside" card
+  // -------------------------------------------------------------------------
+
+  /// Whether to offer the card that asks which accounts are money set aside.
+  ///
+  /// The defect this closes is silent: `Account.purpose` defaults to spendable
+  /// and the app never guesses, which is correct, but it means an existing
+  /// ledger keeps counting somebody's ipon as pocket money until they go and
+  /// say otherwise. Nobody goes looking for a setting whose absence they
+  /// cannot see, so the app asks once.
+  ///
+  /// ASKS. It does not pre-tick anything, and it is not a nag:
+  ///
+  ///   - once answered OR dismissed it never returns, because
+  ///     [_setAsideReviewedAt] is stored in the backup and not in memory;
+  ///   - it needs at least TWO liquid accounts, since the question is
+  ///     meaningless to somebody with one wallet and it would be the first
+  ///     thing a brand new user saw;
+  ///   - it needs one real account, so a demo ledger nobody owns is never
+  ///     interrogated about money that is not theirs;
+  ///   - and it stays away while the file is unreadable, where nothing the
+  ///     person does can be saved.
+  bool get shouldOfferSetAsideReview {
+    if (_loadStatus == LoadStatus.unreadable) return false;
+    if (_setAsideReviewedAt != null) return false;
+    if (_accounts.where((Account a) => a.isLiquid).length < 2) return false;
+    if (!_accounts.any((Account a) => a.isLiquid && !a.isSample)) return false;
+    // Somebody who has already set one is plainly aware of the feature.
+    if (_accounts.any((Account a) => a.purpose == AccountPurpose.protected)) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Record that the card has been answered or dismissed, either way.
+  ///
+  /// Deliberately one method for both outcomes. "Not now" and "none of them"
+  /// are the same instruction as far as this app is concerned, and offering
+  /// to ask again later is how a one-time card becomes a weekly one.
+  void markSetAsideReviewed() {
+    if (_setAsideReviewedAt != null) return;
+    _setAsideReviewedAt = isoDate(now);
+    notifyListeners();
+  }
+
+  /// Set, or clear, the protected flag on one account.
+  ///
+  /// Goes through [updateAccount] rather than writing the list directly, so
+  /// the review card and the account sheet take exactly the same path into
+  /// the store and cannot drift in what they persist.
+  void setAccountPurpose(String id, AccountPurpose purpose) {
+    final int i = _accounts.indexWhere((Account a) => a.id == id);
+    if (i < 0) return;
+    if (_accounts[i].purpose == purpose) return;
+    updateAccount(_accounts[i].copyWith(purpose: purpose));
+  }
 
   /// What the person has spent today, from entries that count.
   ///

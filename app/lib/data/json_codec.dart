@@ -234,6 +234,21 @@ final Wire<CardTier> cardTierWire = _makeWire(<CardTier, String>{
   CardTier.custom: 'custom',
 });
 
+/// What the money in an account is for. See [AccountPurpose].
+///
+/// An unknown value THROWS rather than falling back to spendable, which is
+/// what `decodeOptional` does with a present but unreadable field and is the
+/// right behaviour here: a future build might add a third purpose, and
+/// quietly reading it as "spend this" would hand somebody their emergency
+/// fund back as pocket money. Absent is a different fact from unreadable, and
+/// only absent defaults.
+final Wire<AccountPurpose> accountPurposeWire = _makeWire(
+  <AccountPurpose, String>{
+    AccountPurpose.spendable: 'spendable',
+    AccountPurpose.protected: 'protected',
+  },
+);
+
 final Wire<DebtDirection> debtDirectionWire = _makeWire(<DebtDirection, String>{
   DebtDirection.iOwe: 'i_owe',
   DebtDirection.owedToMe: 'owed_to_me',
@@ -318,6 +333,7 @@ const Set<String> accountKeys = <String>{
   'cardTier',
   'notes',
   'isSample',
+  'purpose',
 };
 
 Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
@@ -338,6 +354,10 @@ Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
   'cardTier': cardTierWire.encode(a.cardTier),
   if (a.notes != null) 'notes': a.notes,
   if (a.isSample) 'isSample': true,
+  // WRITTEN ONLY WHEN PROTECTED, the same shape as `isSample` above. A backup
+  // from a ledger where nobody has touched this is therefore byte for byte
+  // what it was before P2.3, and an older build opening it sees nothing new.
+  if (a.purpose == AccountPurpose.protected) 'purpose': 'protected',
 };
 
 Account accountFromJson(Map<String, dynamic> m) {
@@ -370,6 +390,12 @@ Account accountFromJson(Map<String, dynamic> m) {
         cardTierWire.decodeOptional(m, 'cardTier', what) ?? CardTier.regular,
     notes: _optStr(m, 'notes'),
     isSample: _optBool(m, 'isSample'),
+    // Absent means spendable, which covers every backup written before P2.3
+    // and every account nobody has set aside. That default is the whole
+    // reason this field is additive: no migration and no schema bump.
+    purpose:
+        accountPurposeWire.decodeOptional(m, 'purpose', what) ??
+        AccountPurpose.spendable,
   );
 }
 

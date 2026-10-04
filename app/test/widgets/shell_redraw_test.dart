@@ -53,8 +53,15 @@ void main() {
     // The sample data's own safe-to-spend figure, on screen before anything
     // is changed. Without this the test below would pass on an app that
     // never showed the figure at all.
+    //
+    // 27,359 AND NOT 38,414 since P2.3, and the change is the seed's rather
+    // than this test's. `acc_maya` ships marked set aside, so 15,300 no
+    // longer funds today's spending and the headline the demo opens on is
+    // lower by design. The vectors behind both figures were generated from
+    // the prototype's own TypeScript; see vector D in
+    // test/core/money/safe_to_spend_golden_test.dart.
     expect(
-      find.textContaining('38,414'),
+      find.textContaining('27,359'),
       findsWidgets,
       reason: 'the fixture stopped showing the figure this test watches',
     );
@@ -65,7 +72,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('38,414'),
+      find.textContaining('27,359'),
       findsNothing,
       reason:
           'the screen is still showing a figure the store no longer holds, '
