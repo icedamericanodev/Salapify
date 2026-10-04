@@ -2258,6 +2258,9 @@ class FinancialState extends ChangeNotifier {
     // real 50,000 peso account gave a Safe to Spend of 0.00.
     bills: _bills,
     debtsIOwe: debtsIOwe,
+    // What the debts REALLY cost each month, instead of the prototype's eight
+    // percent of the balance. See Debt.monthlyMinimum.
+    declaredDebtMinimums: monthlyDebtMinimums(debts).pesos,
     installments: _installments,
     // _incomeStreams, NOT the seed. This read the frozen seed list until Plan
     // let somebody add a stream, at which point the new stream would have been

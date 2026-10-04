@@ -558,6 +558,12 @@ const Set<String> debtKeys = <String>{
   // the next launch. A liability silently vanishing off the Debts screen is
   // the exact failure paidBeforeSettle already demonstrated once.
   'archivedAt',
+  // FOUR, declared for the same reason as the three above even though nothing
+  // clears it today. A person who enters a minimum and then removes it is
+  // clearing a field, and an undeclared key would let the sidecar hand the
+  // old figure back on the next launch, quietly reserving money against a
+  // debt they had just told the app not to.
+  'minimumPayment',
 };
 
 Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
@@ -584,6 +590,10 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   // Written only while the debt is actually put away, so a live debt's row is
   // byte for byte what it always was.
   if (d.archivedAt != null) 'archivedAt': d.archivedAt,
+  // Written only when the person actually entered one, so a debt nobody has
+  // touched is byte for byte what it always was, and an older build reading
+  // this file ignores a key it does not know.
+  if (d.minimumPayment != null) 'minimumPayment': d.minimumPayment!.pesos,
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -615,6 +625,11 @@ Debt debtFromJson(Map<String, dynamic> m) {
     // Absent means live, which is the right answer for every debt written
     // before this key existed.
     archivedAt: _optStr(m, 'archivedAt'),
+    // ABSENT MEANS NULL, NOT ZERO, which is right for every debt written
+    // before this key existed and for every debt nobody has set one on. Null
+    // reserves nothing; a stored zero means the person said it genuinely
+    // costs nothing a month, and the two must stay distinguishable.
+    minimumPayment: _optMoney(m, 'minimumPayment'),
   );
 }
 

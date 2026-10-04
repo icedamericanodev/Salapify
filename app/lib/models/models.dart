@@ -576,7 +576,62 @@ class Debt {
     this.paidBeforeSettle,
     this.payments = const <DebtPayment>[],
     this.archivedAt,
+    this.minimumPayment,
   });
+
+  /// What this debt costs every month, when the person has said so.
+  ///
+  /// NULL IS NOT ZERO, and the difference is the whole point of the field.
+  /// Null means "nobody has told Salapify what this costs", which is the
+  /// normal state of a debt to a relative. Zero would mean "it genuinely
+  /// costs nothing a month", which is a different and much rarer claim.
+  /// [monthlyMinimum] below reserves nothing for a null and respects an
+  /// explicit zero, and `Money.zero` could not express that difference.
+  ///
+  /// Optional on purpose. Salapify never asks for it and never infers it from
+  /// a percentage: see [monthlyMinimum] for why.
+  final Money? minimumPayment;
+
+  /// What to hold back for this debt each month, or null to hold back nothing.
+  ///
+  /// THE RULE, in the order it is applied:
+  ///
+  ///   1. the minimum the person entered;
+  ///   2. otherwise, for a SCHEDULED debt that carries instalment numbers,
+  ///      what is left divided by the instalments still to run;
+  ///   3. otherwise NOTHING.
+  ///
+  /// Step 3 is the correction this field exists for. The prototype reserves
+  /// eight percent of every outstanding debt
+  /// (`src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is
+  /// not a monthly payment. It is wrong in both directions, which reading the
+  /// sample ledger showed rather than the review:
+  ///
+  ///   - too SMALL for a short loan. The seed's two debts are both scheduled
+  ///     and really cost 4,950 a month between them, where eight percent of
+  ///     their 17,350 balance is 1,388;
+  ///   - too LARGE for a debt that has no schedule. "Utang kay nanay 20,000"
+  ///     has no monthly minimum and never did, and charging 1,600 a cycle
+  ///     against it invents an obligation the person never agreed to.
+  ///
+  /// Founder decision, 2026-10-04: a debt with no minimum and no schedule
+  /// reserves nothing. Salapify never assumes a percentage.
+  Money? get monthlyMinimum {
+    if (isSettled) return null;
+    if (minimumPayment != null) return minimumPayment;
+    if (schedule != DebtSchedule.scheduled) return null;
+
+    final int? total = installmentTotal;
+    final int current = installmentCurrent ?? 0;
+    if (total == null || total <= 0) return null;
+
+    // Instalments STILL TO RUN. `installmentCurrent` is how many have been
+    // paid, so the remainder is what the rest of the balance is spread over.
+    // Clamped at one so the final instalment reserves the whole remainder
+    // rather than dividing by zero.
+    final int left = total - current;
+    return remaining.split(left < 1 ? 1 : left).first;
+  }
 
   /// The day this debt was put away, as an ISO date. Null means it is live.
   ///

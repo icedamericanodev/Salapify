@@ -54,14 +54,20 @@ void main() {
     // is changed. Without this the test below would pass on an app that
     // never showed the figure at all.
     //
-    // 27,359 AND NOT 38,414 since P2.3, and the change is the seed's rather
-    // than this test's. `acc_maya` ships marked set aside, so 15,300 no
-    // longer funds today's spending and the headline the demo opens on is
-    // lower by design. The vectors behind both figures were generated from
-    // the prototype's own TypeScript; see vector D in
-    // test/core/money/safe_to_spend_golden_test.dart.
+    // 24,332, and it has moved TWICE for reasons that are the seed's and the
+    // engine's rather than this test's. It was 38,414.
+    //
+    //   P2.3 took it to 27,359: `acc_maya` ships marked set aside, so 15,300
+    //   stopped funding today's spending.
+    //   P2.4 took it to 24,332: the engine now reserves what the seed's two
+    //   loans REALLY cost each month, 4,950, instead of the prototype's eight
+    //   percent of their balance, 1,388. It was under-reserving by 3,562.
+    //
+    // Both figures are generated rather than chosen; see vector D in
+    // test/core/money/safe_to_spend_golden_test.dart and the measurement in
+    // test/core/money/debt_minimums_test.dart.
     expect(
-      find.textContaining('27,359'),
+      find.textContaining('24,332'),
       findsWidgets,
       reason: 'the fixture stopped showing the figure this test watches',
     );
@@ -72,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('27,359'),
+      find.textContaining('24,332'),
       findsNothing,
       reason:
           'the screen is still showing a figure the store no longer holds, '

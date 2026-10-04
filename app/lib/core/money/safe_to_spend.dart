@@ -15,6 +15,13 @@ SafeToSpendAnalysis computeSafeToSpend({
   required List<Transaction> transactions,
   required List<BillItem> bills,
   required double debtsIOwe,
+
+  /// What the debts actually cost each month, from `monthlyDebtMinimums`.
+  ///
+  /// Null means "not worked out", which is true only of the golden vectors.
+  /// Every caller in the app passes it. See step 4 for why the prototype's
+  /// percentage survives underneath it.
+  double? declaredDebtMinimums,
   required List<InstallmentPlan> installments,
   required List<IncomeStream> incomeStreams,
   required PaydayCycle payday,
@@ -90,7 +97,25 @@ SafeToSpendAnalysis computeSafeToSpend({
       );
 
   // 4. Debt minimums, estimated at 8 percent of what is outstanding.
-  final double debtMinimums = math.max(0, debtsIOwe * 0.08);
+  // WHAT THE DEBTS REALLY COST, when the caller knows, and the prototype's
+  // estimate only when it does not.
+  //
+  // `debtsIOwe * 0.08` is the prototype's own rule and it is wrong in both
+  // directions, because a percentage of a BALANCE is not a monthly payment:
+  // too small for a short loan (the seed's two debts really cost 4,950 a
+  // month where eight percent of their balance is 1,388) and too large for a
+  // debt with no schedule, where it invents an obligation nobody agreed to.
+  //
+  // The real rule needs the debt LIST, and this engine is a line-for-line
+  // port that must not grow domain logic, so the work happens in
+  // `monthlyDebtMinimums` and arrives here already summed. The 8 percent
+  // stays as the fallback for exactly one caller: the parity vectors, which
+  // pass `debtsIOwe` alone because that is the only input the TypeScript can
+  // express. Keeping it reachable is what lets those vectors go on proving
+  // the port rather than proving a fixture.
+  final double debtMinimums = declaredDebtMinimums != null
+      ? math.max(0, declaredDebtMinimums)
+      : math.max(0, debtsIOwe * 0.08);
 
   // 5. Expected inflow before the next payday. The conservative scenario takes
   //    a haircut on money that is not guaranteed.
