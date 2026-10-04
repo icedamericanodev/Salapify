@@ -1,7 +1,10 @@
 /// Pan, the money assistant. See the class docs below for the full contract.
 library;
 
+import 'dart:math' as math;
+
 import '../../../data/academy_data.dart';
+import '../accounts.dart' show accountsTotalPhp;
 import 'pan_knowledge.dart';
 import '../../../models/academy.dart';
 import '../../../models/models.dart';
@@ -652,17 +655,61 @@ PanAnswer _oneAccount(Account a, PanFacts facts) {
 
 PanAnswer _cash(PanFacts facts) {
   if (facts.isEmpty) return _nothingYet('how much you have');
+
+  // THE COUNT MUST MATCH THE FIGURE. This said `facts.accounts.length`,
+  // which is EVERY account, while the figure beside it counts only the
+  // spendable ones. On the shipped sample data that read "You can reach
+  // 86,470.50 across 11 accounts", where 5 accounts produced the figure and
+  // the eleven included a housing loan, a credit card and an MP2 fund. The
+  // very next sentence then promised it had excluded exactly those. Counting
+  // the same list the figure is summed from is the only way the two cannot
+  // drift apart again.
+  final List<Account> counted = facts.accounts
+      .where((Account a) => a.isSpendable)
+      .toList();
+
+  // Liquid money the person deliberately set aside. It is left out of the
+  // figure, correctly, but saying nothing about it leaves somebody staring
+  // at a total with their savings missing and no explanation. Only mentioned
+  // when there IS some, because for most people this clause is noise.
+  final List<Account> setAside = facts.accounts
+      .where((Account a) => a.isLiquid && !a.isSpendable)
+      .toList();
+  final double setAsideTotal = accountsTotalPhp(setAside);
+
+  final String where = counted.isEmpty
+      ? 'right now'
+      : 'across ${counted.length} '
+            '${counted.length == 1 ? 'account' : 'accounts'}';
+
+  // ONE LEAD, THEN SCANNABLE LINES, which is what [points] is for. This was
+  // a single prose blob of up to five sentences, and the founder's standing
+  // complaint about Pan being wordy (2026-09-20, repeated 2026-10-04) is
+  // answered structurally rather than by deleting the teaching: every clause
+  // below survives, it is just no longer a paragraph somebody has to read to
+  // find the one line that is new to them. Prose on a phone is skipped, a
+  // list is scanned.
+  //
+  // Nothing moves to [more] here. All four lines are one line each, and
+  // [more] is not persisted across a restart (see PanStoredMessage), so it
+  // suits read-once teaching rather than the standing caveats on a figure.
+  //
   // Signed for the same reason as net worth: an overdrawn set of accounts
   // reads as money held if the minus is dropped.
   return PanAnswer(
     topic: 'cash',
-    text:
-        'You can reach ${formatPesoWithSign(facts.liquidCash)} today across '
-        '${facts.accounts.length} '
-        '${facts.accounts.length == 1 ? 'account' : 'accounts'}. That counts '
-        'cash, bank and e-wallet balances. A credit limit is not in there, '
-        'because money you can borrow is not money you have.'
-        '${facts.hasSampleData ? ' Some of this is still Salapify\'s sample data, which you can remove in Settings.' : ''}',
+    text: 'You can reach ${formatPesoWithSign(facts.liquidCash)} today $where.',
+    points: <String>[
+      'Cash, bank and e-wallet balances.',
+      if (setAside.isNotEmpty)
+        'The ${formatPeso(setAsideTotal)} you set aside is not in here. '
+            'That is the point of setting it aside.',
+      'A credit limit is not in here. Money you can borrow is not money '
+          'you have.',
+      if (facts.hasSampleData)
+        'Some of this is still Salapify sample data. You can remove it in '
+            'Settings.',
+    ],
     figures: <PanFigure>[
       PanFigure(
         label: 'Reachable today',
@@ -679,17 +726,43 @@ PanAnswer _cash(PanFacts facts) {
 
 PanAnswer _safeToSpend(PanFacts facts) {
   if (facts.isEmpty) return _nothingYet('what is safe to spend');
+
+  // The engine's own step: what is left after everything spoken for, before
+  // the 85 / 15 split. Guarded the same way computeSafeToSpend guards it, so
+  // a ledger reserving more than it holds says nothing rather than quoting a
+  // negative "left".
+  final double uncommitted = math.max(
+    0,
+    facts.liquidCash - facts.amountReserved,
+  );
+
   return PanAnswer(
     topic: 'safeToSpend',
     text:
-        'Safe to Spend is ${formatPeso(facts.safeToSpendUntilPayday)}, which '
-        'is ${formatPeso(facts.safeToSpendPerDay)} a day until your next '
-        'payday.\n\n'
-        'It starts from the ${formatPeso(facts.liquidCash)} you can reach and '
-        'holds back ${formatPeso(facts.amountReserved)} that is already '
-        'spoken for: unpaid bills, payment plan instalments, a minimum '
-        'against what you owe, and a buffer. What is left is what is really '
-        'yours to spend.',
+        '${formatPeso(facts.safeToSpendUntilPayday)} is yours to spend '
+        'before your next payday.',
+    // THE AUDIT TRAIL, AND IT NOW CLOSES. The old prose ended "what is left
+    // is what is really yours to spend", which was false: what is left is
+    // the figure on the third line, and only 85 percent of it is the
+    // headline. Somebody checking with a calculator landed 5,545.50 out on
+    // the founder's own ledger with nothing on screen to explain the gap.
+    // The Safe to Spend sheet has always disclosed the split as its step 7;
+    // Pan was the one surface hiding it. No money math changed here, the
+    // engine always did this, the sentence just did not say so.
+    //
+    // These stay in [points] rather than [more] DELIBERATELY: [more] is not
+    // persisted by PanStoredMessage, and an audit trail that vanishes when
+    // the app restarts is not an audit trail.
+    points: <String>[
+      'Starts from ${formatPeso(facts.liquidCash)}, the cash you can '
+          'actually reach.',
+      'Holds back ${formatPeso(facts.amountReserved)} already spoken for: '
+          'unpaid bills, payment plan instalments, a minimum against what '
+          'you owe, and a buffer.',
+      if (uncommitted > 0)
+        'Of the ${formatPeso(uncommitted)} left, 85 percent is the figure '
+            'above and 15 percent is kept as Safe to Save.',
+    ],
     figures: <PanFigure>[
       PanFigure(
         label: 'Until payday',

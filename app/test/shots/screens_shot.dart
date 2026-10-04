@@ -929,6 +929,11 @@ void main() {
         (name: 'reminders_rules', openWith: 'remindersRules'),
         (name: 'privacy', openWith: 'privacy'),
         (name: 'pan', openWith: 'pan'),
+        // The cash answer was reviewed only from a founder's phone
+        // screenshot, which is how "across 11 accounts" survived: the count
+        // said 11 and the figure summed 5, and no render in this harness
+        // had ever shown that sentence.
+        (name: 'pan_cash', openWith: 'panCash'),
         (name: 'pan_lesson', openWith: 'panLesson'),
         (name: 'pan_afford', openWith: 'panAfford'),
         (name: 'pan_health', openWith: 'panHealth'),
@@ -980,6 +985,7 @@ void main() {
         case 'privacy':
           PrivacySheet.show(context, palette);
         case 'pan':
+        case 'panCash':
         case 'panLesson':
         case 'panAfford':
         case 'panHealth':
@@ -1013,6 +1019,7 @@ void main() {
       // back with "Pan did not recognise that one" while the course shipped
       // in the same build.
       const Map<String, String> panTyped = <String, String>{
+        'panCash': 'how much do i have',
         'panLesson': 'what is MP2',
         // The two answers that carry a badge, stat rows AND buttons, which is
         // the whole of the new bubble in one picture.

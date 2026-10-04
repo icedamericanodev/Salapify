@@ -108,12 +108,30 @@ void main() {
       final PanAnswer a = askPan('what is safe to spend?', facts());
       expect(a.topic, 'safeToSpend');
       expect(a.text, contains('12,000'));
+
+      // The explanation moved from the prose blob into `points`, which is
+      // the whole of the 2026-09-20 wordiness fix: same content, scannable
+      // lines instead of a paragraph. So this reads the ANSWER rather than
+      // one field of it. The demand is unchanged and is the original one.
+      final String shown = <String>[a.text, ...a.points].join('\n');
       expect(
-        a.text,
+        shown,
         contains('11,400'),
         reason:
             'a headline figure with no explanation of what was reserved is '
             'the number people distrust most in this app',
+      );
+
+      // The step the old sentence left out. It ended "what is left is what
+      // is really yours to spend", which was false: the headline is 85
+      // percent of what is left, so anybody checking the subtraction landed
+      // short with nothing on screen to explain it.
+      expect(
+        shown,
+        contains('85 percent'),
+        reason:
+            'Pan states a derivation the user can check, so every step of '
+            'it has to be on screen, not just the two that are easy to say',
       );
     });
 
