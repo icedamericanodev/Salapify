@@ -35,3 +35,12 @@ app/tool/_tmp_*
 # comment above was always trying to say.
 app/test/*probe*
 app/test/*_scratch*
+
+# AND AT THE app/ ROOT, which is where the next one landed.
+#
+# A QA agent wrote `app/zz_probe.dart` on 2026-10-04, outside both lib/ and
+# test/, so neither the pattern above nor the one for test/ matched it. The
+# rule keeps being written one directory too narrow, so this pair is anchored
+# on the NAME rather than the place.
+app/zz_*
+app/*probe*.dart
