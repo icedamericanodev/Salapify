@@ -216,7 +216,21 @@ DailyProjection projectDailyCash({
 
   // Debt minimums ride on their own due date where the debt carries one.
   // P2.4 made these real figures rather than eight percent of a balance.
-  for (final Debt d in debts) {
+  // `iOwe` ONLY, and the filter is not decoration.
+  //
+  // The first version of this loop iterated every Debt, so a scheduled debt
+  // owed TO the person reduced THEIR runway: money somebody else has to find
+  // came off this person's balance. `monthlyDebtMinimums` in debt.dart has
+  // filtered on direction all along, so the two readings of one ledger
+  // disagreed, which is exactly what this file's own header warns about.
+  //
+  // The seed hid it completely, because both of its receivables are
+  // `flexible` and `monthlyMinimum` returns null for those. It would have
+  // surfaced the first time somebody recorded "Kuya Mark owes me 12,000 over
+  // six instalments". Found by the money review, not by the suite.
+  for (final Debt d in debts.where(
+    (Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe,
+  )) {
     final Money? min = d.monthlyMinimum;
     if (min == null) continue;
     place(d.person, min, d.dueDate, false);

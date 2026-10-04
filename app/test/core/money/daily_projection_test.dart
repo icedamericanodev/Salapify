@@ -240,6 +240,45 @@ void main() {
     });
   });
 
+  test('a debt owed TO you never reduces YOUR runway', () {
+    // Found by the money review, and it was a real bug in the first version
+    // of this engine: the debt loop iterated every Debt and placed every
+    // minimum as an outflow, while `monthlyDebtMinimums` has filtered to the
+    // `iOwe` direction all along. Two readings of one ledger, disagreeing.
+    //
+    // The seed hid it completely, because both of its receivables are
+    // `flexible`, so `monthlyMinimum` returns null and nothing is placed. It
+    // would have appeared the first time a real person recorded "Kuya Mark
+    // owes me 12,000, six instalments", at which point THEIR shortfall date
+    // moves for somebody else's debt.
+    const Debt owedToMe = Debt(
+      id: 'd_kuya',
+      person: 'Kuya Mark',
+      direction: DebtDirection.owedToMe,
+      totalAmount: Money.pesos(12000),
+      paidAmount: Money.zero,
+      isSettled: false,
+      schedule: DebtSchedule.scheduled,
+      installmentCurrent: 0,
+      installmentTotal: 6,
+      dueDate: '2026-10-09',
+    );
+
+    final DailyProjection p = run(debts: <Debt>[owedToMe]);
+
+    expect(
+      p.closingBalance,
+      p.openingBalance,
+      reason: 'somebody else debt moved this person own balance',
+    );
+    expect(p.days.every((ProjectedDay d) => d.moneyOut.isZero), isTrue);
+    expect(
+      p.undatedTotal,
+      Money.zero,
+      reason: 'it is not undated either, it is simply not theirs to pay',
+    );
+  });
+
   group('the two answers a screen needs', () {
     test('the tightest day, and the first day it goes short', () {
       final DailyProjection p = run(
