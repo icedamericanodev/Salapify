@@ -41,6 +41,7 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
   final TextEditingController _notes = TextEditingController();
   final TextEditingController _installments = TextEditingController(text: '6');
   final TextEditingController _rate = TextEditingController(text: '0');
+  final TextEditingController _minimum = TextEditingController();
 
   DebtDirection _direction = DebtDirection.iOwe;
   bool _scheduled = false;
@@ -53,7 +54,37 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
     _notes.dispose();
     _installments.dispose();
     _rate.dispose();
+    _minimum.dispose();
     super.dispose();
+  }
+
+  /// Whether to ask what this debt costs every month.
+  ///
+  /// ONLY for money you owe, and only when it has no instalment schedule.
+  ///
+  /// Not for a debt owed TO you, because that is not an obligation you have
+  /// to find money for. Not for a scheduled debt either, because the months
+  /// already answer the question: `Debt.monthlyMinimum` divides what is left
+  /// by the instalments left, and asking a second time invites two answers
+  /// that disagree.
+  ///
+  /// What is left is exactly the case the field exists for: a credit card or
+  /// a revolving loan, which has a real monthly minimum and no fixed end. And
+  /// family utang, which has neither, where leaving it empty is the right
+  /// answer and the caption says so.
+  bool get _asksMinimum => _direction == DebtDirection.iOwe && !_scheduled;
+
+  /// Null when the box is empty, which is NOT the same as zero.
+  ///
+  /// Empty means nobody has said, and nothing is reserved. A typed zero means
+  /// this genuinely costs nothing a month, and is respected. See
+  /// `Debt.minimumPayment`.
+  Money? get _minimumValue {
+    if (!_asksMinimum) return null;
+    final String raw = _minimum.text.replaceAll(',', '').trim();
+    if (raw.isEmpty) return null;
+    final double? parsed = double.tryParse(raw);
+    return parsed == null ? null : Money.fromDouble(parsed);
   }
 
   double get _amountValue =>
@@ -95,6 +126,9 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
         installmentCurrent: _scheduled && _termMonths > 0 ? 0 : null,
         installmentTotal: _scheduled && _termMonths > 0 ? _termMonths : null,
         notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+        // Null unless the person typed one, so a debt to a relative reserves
+        // nothing against Safe to Spend. See Debt.monthlyMinimum.
+        minimumPayment: _minimumValue,
       ),
     );
   }
@@ -168,6 +202,34 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
             ],
             onSelect: (bool s) => setState(() => _scheduled = s),
           ),
+          // WHAT IT COSTS EACH MONTH, asked only where the answer does
+          // something. See `_asksMinimum`.
+          if (_asksMinimum) ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            SheetField(
+              key: const Key('debt-minimum'),
+              palette: p,
+              label: 'What you must pay each month (optional)',
+              controller: _minimum,
+              hint: '0.00',
+              prefix: '₱ ',
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: Spacing.xs),
+            Text(
+              // BOTH SENTENCES MATTER. The first tells somebody with a credit
+              // card why they would fill it in. The second tells somebody
+              // with family utang that empty is the right answer, which is
+              // the whole point: Salapify used to hold back eight percent of
+              // every debt, so money owed to a relative quietly cost them
+              // spending money every cycle for an obligation that does not
+              // exist.
+              'For a credit card or a loan with a monthly minimum. Leave it '
+              'empty for money you owe family or friends, and Salapify will '
+              'hold nothing back for it.',
+              style: AppType.caption(p),
+            ),
+          ],
           if (_scheduled) ...<Widget>[
             const SizedBox(height: Spacing.md),
             Row(

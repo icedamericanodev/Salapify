@@ -1802,6 +1802,54 @@ void main() {
     );
   });
 
+  // P2.4's field: what a debt costs each month. It renders only for money you
+  // owe that has no instalment schedule, which is the default state of the
+  // sheet, so no tapping is needed to reach it.
+  testWidgets('sheet add debt minimum renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AddDebtSheet.show(tester.element(find.byType(AppShell)), palette);
+    await tester.pumpAndSettle();
+
+    // Filled in, because the picture exists to show the field in use rather
+    // than to prove an empty form renders.
+    await tester.enterText(find.byType(TextField).first, 'BPI Rewards Card');
+    await tester.enterText(find.byType(TextField).at(1), '18000');
+    await tester.enterText(find.byKey(const Key('debt-minimum')), '1500');
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_add_debt_minimum.png'),
+    );
+  });
+
   // The one-time review card. It needs a ledger the card would actually
   // appear on: two real liquid accounts, nothing protected yet, which is
   // exactly the shape every existing user is in on the day this ships.
