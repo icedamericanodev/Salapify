@@ -191,4 +191,101 @@ void main() {
           'the one the engine used',
     );
   });
+
+  group('a figure the app cannot read is never saved as nothing', () {
+    testWidgets('an unreadable minimum blocks Save and says why', (
+      WidgetTester tester,
+    ) async {
+      final FinancialState s = await pumpApp(tester);
+      await openAddDebt(tester);
+
+      await tester.enterText(find.byType(TextField).first, 'BPI Card');
+      await tester.enterText(find.byType(TextField).at(1), '18000');
+      await tester.enterText(find.byKey(const Key('debt-minimum')), '1.5.0');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('debt-minimum-problem')),
+        findsOneWidget,
+        reason:
+            'this used to save as NO minimum, with no error, under a caption '
+            'promising Salapify would hold nothing back. The person believes '
+            'they entered a figure and Salapify reserves zero, forever',
+      );
+
+      await tapIt(tester, find.text('Save debt'));
+      expect(
+        s.debts.where((Debt d) => d.person == 'BPI Card'),
+        isEmpty,
+        reason: 'Save must be refused while the box holds something unreadable',
+      );
+
+      // DIRECTIONAL companion, because "nothing was saved" also passes when
+      // the whole sheet is broken: writing the same figure in a shape the
+      // app can read clears the message and saves, with the minimum on it.
+      await tester.enterText(find.byKey(const Key('debt-minimum')), '150');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('debt-minimum-problem')), findsNothing);
+      await tapIt(tester, find.text('Save debt'));
+      expect(
+        s.debts.firstWhere((Debt d) => d.person == 'BPI Card').minimumPayment,
+        const Money.pesos(150),
+      );
+    });
+
+    testWidgets('the money keypad cannot type a figure that throws', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      await openAddDebt(tester);
+
+      // Fourteen nines is one slip of a thumb, and Money.fromDouble throws
+      // above about ninety trillion pesos. The throw escaped the Save
+      // button's onTap, so the sheet stayed open with no message at all and
+      // tapping Save again did nothing, forever.
+      await tester.enterText(
+        find.byKey(const Key('debt-minimum')),
+        '99999999999999',
+      );
+      await tester.pumpAndSettle();
+
+      final TextField box = tester.widget<TextField>(
+        find.descendant(
+          of: find.byKey(const Key('debt-minimum')),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(
+        box.controller!.text,
+        '9999999999999',
+        reason:
+            'the length cap is what keeps the figure inside what a double '
+            'can still count in centavos',
+      );
+    });
+
+    testWidgets('a minus sign cannot be typed into a money box', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      await openAddDebt(tester);
+
+      await tester.enterText(find.byKey(const Key('debt-minimum')), '-5000');
+      await tester.pumpAndSettle();
+
+      final TextField box = tester.widget<TextField>(
+        find.descendant(
+          of: find.byKey(const Key('debt-minimum')),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(
+        box.controller!.text,
+        '5000',
+        reason:
+            'a negative minimum netted off every OTHER debt real minimum, '
+            'because the total is summed and only the total is clamped',
+      );
+    });
+  });
 }

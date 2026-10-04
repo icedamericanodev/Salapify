@@ -237,6 +237,85 @@ void main() {
     });
   });
 
+  group('a monthly cost cannot be bigger than the debt, or smaller than '
+      'nothing', () {
+    test('an entered minimum is capped at what is actually left', () {
+      // Reachable with no file editing at all: add a card with a 3,000
+      // minimum, then pay it down with the payment sheet until 500 is left.
+      // Before this cap Salapify held back the full 3,000 against a 500
+      // debt, told the person they ran short on the 15th, and took 2,500 off
+      // Safe to Spend that was really theirs to use.
+      final Debt nearlyPaid = owed(
+        total: const Money.pesos(60000),
+        paid: const Money.pesos(59500),
+        minimum: const Money.pesos(3000),
+      );
+      expect(nearlyPaid.remaining, const Money.pesos(500));
+      expect(nearlyPaid.monthlyMinimum, const Money.pesos(500));
+    });
+
+    test("a NEGATIVE minimum cannot net off another debt's real one", () {
+      // monthlyDebtMinimums SUMS, and computeSafeToSpend clamps only the
+      // total, so it could never see one debt cancelling another. A single
+      // minus sign typed into one card silenced every other debt's reserve.
+      final Money sum = monthlyDebtMinimums(<Debt>[
+        owed(id: 'real', minimum: const Money.pesos(5000)),
+        owed(id: 'typo', minimum: const Money.pesos(-5000)),
+      ]);
+      expect(sum, const Money.pesos(5000));
+    });
+
+    test('an ABSENT instalment counter is read off the payments, not '
+        'assumed to be zero', () {
+      // debtToJson writes installmentCurrent only when it is not null, so a
+      // debt restored from a backup written before the key existed comes
+      // back with real payments and no counter. Reading that as "none have
+      // run" spread the last 2,000 of a 12,000 plan over all six
+      // instalments and reserved 333.34, a sixth of the true cost, forever,
+      // because the null round-trips straight back into the next backup.
+      final Debt restored = owed(
+        total: const Money.pesos(12000),
+        paid: const Money.pesos(10000),
+        schedule: DebtSchedule.scheduled,
+        totalInstalments: 6,
+      );
+      expect(restored.installmentCurrent, isNull);
+      expect(restored.monthlyMinimum, const Money.pesos(2000));
+    });
+
+    test('a NEGATIVE counter does not stretch the plan past its own '
+        'term', () {
+      // Without the clamp this spreads 12,000 over NINE instalments of a six
+      // month plan and reserves 1,333.34 a month for a debt that really
+      // costs 2,000. Only a corrupted or hand-edited file reaches it.
+      final Debt corrupt = owed(
+        total: const Money.pesos(12000),
+        schedule: DebtSchedule.scheduled,
+        totalInstalments: 6,
+        current: -3,
+      );
+      expect(corrupt.monthlyMinimum, const Money.pesos(2000));
+    });
+
+    test('a counter past the end of its own term reserves the arrears', () {
+      // DOCUMENTS behaviour rather than guarding the upper clamp, and the
+      // difference is the point: deleting that clamp does not change this
+      // answer, because the `left < 1 ? 1` floor already absorbs a negative
+      // divisor. Said plainly here rather than left as a test that passes
+      // whatever the code does.
+      //
+      // The term has run out with 12,000 still on it, so the whole remainder
+      // really is due now.
+      final Debt corrupt = owed(
+        total: const Money.pesos(12000),
+        schedule: DebtSchedule.scheduled,
+        totalInstalments: 6,
+        current: 9,
+      );
+      expect(corrupt.monthlyMinimum, const Money.pesos(12000));
+    });
+  });
+
   group('the stored shape', () {
     test('a minimum survives a round trip', () {
       final Debt back = debtFromJson(

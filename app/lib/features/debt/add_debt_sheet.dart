@@ -84,7 +84,24 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
     final String raw = _minimum.text.replaceAll(',', '').trim();
     if (raw.isEmpty) return null;
     final double? parsed = double.tryParse(raw);
-    return parsed == null ? null : Money.fromDouble(parsed);
+    // tryFromDouble, NOT fromDouble. The strict one throws on a figure no
+    // peso balance can reach, and the throw escaped this sheet's Save button
+    // with no message at all. See `moneyInput` in sheet_scaffold.dart.
+    return parsed == null ? null : Money.tryFromDouble(parsed);
+  }
+
+  /// True when the box has something in it that is not a figure.
+  ///
+  /// SILENCE WAS THE BUG. This used to resolve to null, which means "nobody
+  /// said a minimum", so a debt typed as "1.500.00" saved with no minimum at
+  /// all, no error, and the caption the person had just read promising that
+  /// Salapify would hold nothing back. They believe they entered 1,500 a
+  /// month; Salapify reserves zero, for as long as the debt exists. Save is
+  /// now refused and the reason is on the screen.
+  bool get _minimumUnreadable {
+    if (!_asksMinimum) return false;
+    if (_minimum.text.trim().isEmpty) return false;
+    return _minimumValue == null;
   }
 
   double get _amountValue =>
@@ -93,8 +110,11 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
   double get _rateValue => double.tryParse(_rate.text.trim()) ?? 0;
 
   /// Save is refused until there is a name and a positive amount. A debt with
-  /// neither is a row that can never be reconciled against anything.
-  bool get _canSave => _person.text.trim().isNotEmpty && _amountValue > 0;
+  /// neither is a row that can never be reconciled against anything. It is
+  /// also refused while the minimum box holds something unreadable, rather
+  /// than saving it as nothing: see [_minimumUnreadable].
+  bool get _canSave =>
+      _person.text.trim().isNotEmpty && _amountValue > 0 && !_minimumUnreadable;
 
   void _save() {
     if (!_canSave) return;
@@ -215,6 +235,17 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
               prefix: '₱ ',
               onChanged: (_) => setState(() {}),
             ),
+            // The refusal is SHOWN, not just enforced. Save greying out with
+            // no reason beside it is the same silence in a different shape.
+            if (_minimumUnreadable) ...<Widget>[
+              const SizedBox(height: Spacing.xs),
+              Text(
+                'That is not an amount Salapify can read. Use digits and one '
+                'dot, like 1500 or 1500.50.',
+                key: const Key('debt-minimum-problem'),
+                style: AppType.caption(p).copyWith(color: p.negative),
+              ),
+            ],
             const SizedBox(height: Spacing.xs),
             Text(
               // BOTH SENTENCES MATTER. The first tells somebody with a credit
