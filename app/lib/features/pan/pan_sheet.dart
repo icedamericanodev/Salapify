@@ -116,7 +116,7 @@ class _PanSheetState extends State<PanSheet> {
   @override
   void initState() {
     super.initState();
-    _messages.add(const PanMessage.pan(_opening));
+    _messages.add(_opening);
     _loadHistory();
     final String? first = widget.openWith;
     if (first != null && first.trim().isNotEmpty) {
@@ -134,16 +134,37 @@ class _PanSheetState extends State<PanSheet> {
     super.dispose();
   }
 
-  static const String _opening =
-      'I am Pan, the money assistant built into Salapify. I read the figures '
-      'you have typed into this phone and do arithmetic on them, matching '
-      'what you ask against a set of built-in answers. There is no AI model '
-      'and nothing leaves your phone, so I work with no signal at all.\n\n'
-      'I can tell you what you hold, what is safe to spend, where the month '
-      'went, what you owe and what is owed to you, and how any part of '
-      'Salapify works. What I cannot do is tell you what to do with your '
-      'money: that is not general information, and Salapify is not licensed '
-      'to give it.';
+  /// The first thing anybody sees, every single time they open Pan.
+  ///
+  /// It was two paragraphs, about thirteen lines on a phone, delivered
+  /// BEFORE the user has asked anything. That made it the worst instance of
+  /// the problem the founder has now raised twice (2026-09-20 and
+  /// 2026-10-04): a lecture where a list belongs. It is also the message
+  /// with the least excuse for length, because it never changes, so after
+  /// the first visit it is pure obstacle between somebody and the question
+  /// they came to ask.
+  ///
+  /// Split into a lead and three lines, same content, nothing cut. The two
+  /// that carry weight are kept VISIBLE rather than shortened away: the
+  /// offline and no-AI claim, which is the product's whole promise and the
+  /// thing a privacy-minded user is looking for, and the cannot-advise
+  /// line, which is a licensing boundary in the Philippines and not a
+  /// stylistic choice.
+  static const String _openingLead =
+      'I am Pan. I read the figures on this phone and do arithmetic on them.';
+
+  static const List<String> _openingPoints = <String>[
+    'No AI model, nothing leaves your phone, and I work with no signal.',
+    'Ask what you hold, what is safe to spend, where the month went, what '
+        'you owe, or how any part of Salapify works.',
+    'I cannot tell you what to do with your money. That is not general '
+        'information, and Salapify is not licensed to give it.',
+  ];
+
+  static const PanMessage _opening = PanMessage.pan(
+    _openingLead,
+    points: _openingPoints,
+  );
 
   void _ask(String question) {
     final String q = question.trim();
@@ -216,7 +237,7 @@ class _PanSheetState extends State<PanSheet> {
     setState(() {
       _messages
         ..clear()
-        ..add(const PanMessage.pan(_opening));
+        ..add(_opening);
       _restored = false;
     });
   }

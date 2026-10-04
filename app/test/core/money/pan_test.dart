@@ -108,12 +108,30 @@ void main() {
       final PanAnswer a = askPan('what is safe to spend?', facts());
       expect(a.topic, 'safeToSpend');
       expect(a.text, contains('12,000'));
+
+      // The explanation moved from the prose blob into `points`, which is
+      // the whole of the 2026-09-20 wordiness fix: same content, scannable
+      // lines instead of a paragraph. So this reads the ANSWER rather than
+      // one field of it. The demand is unchanged and is the original one.
+      final String shown = <String>[a.text, ...a.points].join('\n');
       expect(
-        a.text,
+        shown,
         contains('11,400'),
         reason:
             'a headline figure with no explanation of what was reserved is '
             'the number people distrust most in this app',
+      );
+
+      // The step the old sentence left out. It ended "what is left is what
+      // is really yours to spend", which was false: the headline is 85
+      // percent of what is left, so anybody checking the subtraction landed
+      // short with nothing on screen to explain it.
+      expect(
+        shown,
+        contains('85 percent'),
+        reason:
+            'Pan states a derivation the user can check, so every step of '
+            'it has to be on screen, not just the two that are easy to say',
       );
     });
 
@@ -123,10 +141,22 @@ void main() {
         facts(assets: 50000, liabilities: 200000),
       );
       expect(a.topic, 'netWorth');
-      expect(a.text, contains('50,000'));
-      expect(a.text, contains('200,000'));
+      // The held and owed figures moved OUT of the prose, which repeated
+      // them, and now live only in the figure rows. The test name is still
+      // exactly right: they must be kept apart, never summed into one
+      // number that hides which half is moving. So this reads the rows.
+      final Map<String, String> rows = <String, String>{
+        for (final PanFigure f in a.figures) f.label: f.value,
+      };
+      expect(rows['Held'], contains('50,000'));
+      expect(rows['Owed'], contains('200,000'));
       expect(
-        a.text,
+        rows['Net worth'],
+        contains('150,000'),
+        reason: 'the figure a person came for has to be one of the rows',
+      );
+      expect(
+        a.display,
         contains('housing'),
         reason:
             'a net worth of minus 150,000 with no explanation is alarm with '
@@ -172,10 +202,11 @@ void main() {
     test('where the month went, largest first', () {
       final PanAnswer a = askPan('where did my money go this month', facts());
       expect(a.topic, 'spending');
-      expect(a.text, contains('Food & Dining'));
+      expect(a.display, contains('Food & Dining'));
       expect(
-        a.text.indexOf('Food & Dining'),
-        lessThan(a.text.indexOf('Transport')),
+        a.display.indexOf('Food & Dining'),
+        lessThan(a.display.indexOf('Transport')),
+        reason: 'largest first is the whole point of the ordering',
       );
     });
 
@@ -204,9 +235,9 @@ void main() {
       );
 
       final PanAnswer mine = askPan('who do i owe', f);
-      expect(mine.text, contains('Ana'));
+      expect(mine.display, contains('Ana'));
       expect(
-        mine.text,
+        mine.display,
         isNot(contains('Mark')),
         reason:
             'money owed TO you appeared in the answer about what you owe, '
@@ -215,8 +246,8 @@ void main() {
       );
 
       final PanAnswer theirs = askPan('who owes me money', f);
-      expect(theirs.text, contains('Mark'));
-      expect(theirs.text, isNot(contains('Ana')));
+      expect(theirs.display, contains('Mark'));
+      expect(theirs.display, isNot(contains('Ana')));
     });
 
     test('an empty ledger says so rather than inventing a zero', () {
@@ -297,10 +328,18 @@ void main() {
 
       // Four things, all required. A refusal that leaves somebody less
       // informed sends them to a Facebook group, which is worse.
-      expect(a.text, contains('Money you might need within a few days'));
-      expect(a.text, contains('not something Salapify can work out'));
-      expect(a.text, contains('Pan cannot see'));
-      expect(a.text, contains('goal'));
+      expect(a.display, contains('Money you might need within a few days'));
+      expect(a.display, contains('not something Salapify can work out'));
+      expect(a.display, contains('Pan cannot see'));
+      expect(a.display, contains('goal'));
+
+      // The refusal and the SEC check must be in the part a reader cannot
+      // skip, never behind the More tap. more is not persisted, so a
+      // restored conversation would show this answer with its refusal
+      // missing, and a licensing boundary that depends on a tap is not one.
+      final String unskippable = <String>[a.text, ...a.points].join('\n');
+      expect(unskippable, contains('not something Salapify can work out'));
+      expect(unskippable, contains('SEC'));
     });
 
     test('it ends on something to do, never on the refusal', () {
@@ -323,6 +362,77 @@ void main() {
       // an assistant that answers nothing.
       expect(askPan('how much do i have', facts()).topic, 'cash');
       expect(askPan('what is due soon', facts()).topic, 'due');
+    });
+
+    test(
+      'a borrowing question gets the LENDING check, not the investing one',
+      () {
+        // The SEC sentence used to be unconditional while everything around
+        // it branched, so "should I get a loan" was answered with how to
+        // verify a licence to take INVESTMENT money. Wrong register, and it
+        // displaced the check that protects a borrower.
+        final PanAnswer loan = askPan('should i get a loan', facts());
+        expect(loan.topic, 'boundary');
+        final String loanShown = <String>[loan.text, ...loan.points].join('\n');
+        expect(loanShown, contains('authority from the SEC to lend'));
+        expect(
+          loanShown,
+          isNot(contains('take investment money')),
+          reason:
+              'a borrower checking whether a lender may take investment money '
+              'has been sent to look up the wrong register entirely',
+        );
+
+        final PanAnswer invest = askPan('should i invest in stocks', facts());
+        final String investShown = <String>[
+          invest.text,
+          ...invest.points,
+        ].join('\n');
+        expect(investShown, contains('take investment money'));
+        expect(investShown, isNot(contains('authority from the SEC to lend')));
+
+        // Both branches must close the "licensed therefore safe" inference,
+        // which the SEC's own advisories exist to contradict. A beginner
+        // completes "check it is licensed" as "approved, so it is fine".
+        expect(loanShown, contains('not that the terms are fair'));
+        expect(investShown, contains('not that the investment is safe'));
+      },
+    );
+
+    test('a bill due date is never shown the way it is stored', () {
+      // "due 2026-09-15" reached the founder's own render. A stored date
+      // shown raw is a defect class this repo already screens the main
+      // screens for; Pan had simply never been in that sweep.
+      final PanAnswer a = askPan(
+        'what is due soon',
+        facts(
+          bills: <BillItem>[
+            BillItem(
+              id: 'b1',
+              name: 'Meralco',
+              amount: const Money.pesos(2840),
+              dueDate: '2026-09-15',
+              isPaid: false,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        a.display,
+        isNot(contains('2026-09-15')),
+        reason:
+            'nobody reads a date in the shape it is stored in, and the '
+            'formatter that fixes it has existed the whole time',
+      );
+      // Directional. Without this the assertion passes on an answer that
+      // dropped the bill, or the date, entirely.
+      expect(a.display, contains('Meralco'));
+      expect(
+        a.display,
+        contains('Sep 15'),
+        reason: 'the date still has to be THERE, just readable',
+      );
     });
 
     test('the trailer is on money answers and off the rest', () {

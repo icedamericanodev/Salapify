@@ -61,7 +61,29 @@ void main() {
     await pump(tester, await ready());
     await openPan(tester);
 
-    expect(find.textContaining('no AI model'), findsOneWidget);
+    // Case-insensitive on purpose. The opening moved from one paragraph to
+    // a lead plus bullets, so this clause now STARTS a line and reads "No
+    // AI model" rather than "no AI model" mid-sentence. The claim is what
+    // matters here, not where the capital falls, and a case-sensitive
+    // finder turned a pure layout change into a red build.
+    expect(
+      find.textContaining(RegExp('no AI model', caseSensitive: false)),
+      findsOneWidget,
+      reason:
+          'the offline and no-model claim is the product promise, and it '
+          'has to be on screen before anybody has asked anything',
+    );
+
+    // The licensing boundary, which must stay VISIBLE rather than being
+    // shortened away or hidden behind the More tap when this message is
+    // restructured again.
+    expect(
+      find.textContaining('not licensed to give it'),
+      findsOneWidget,
+      reason:
+          'telling somebody what to do with their money is a licensing '
+          'question in the Philippines, not a stylistic one',
+    );
     expect(
       find.text('General info, not financial advice'),
       findsOneWidget,

@@ -1,7 +1,10 @@
 /// Pan, the money assistant. See the class docs below for the full contract.
 library;
 
+import 'dart:math' as math;
+
 import '../../../data/academy_data.dart';
+import '../accounts.dart' show accountsTotalPhp;
 import 'pan_knowledge.dart';
 import '../../../models/academy.dart';
 import '../../../models/models.dart';
@@ -478,39 +481,91 @@ bool _looksLikeAdviceRequest(String q) {
 /// the outcome the scam warnings exist to prevent. So the education always
 /// comes first and the last thing on screen is never the refusal.
 PanAnswer _boundary(String q, PanFacts facts) {
-  final String opener = _has(q, investingWords)
-      ? 'Investing means putting money somewhere it can grow and can also '
-            'fall. The two things that decide whether any of it fits you are '
-            'when you would need the money back, and what it would cost you '
-            'to have it locked away on the month something goes wrong.'
-      : _has(q, borrowingWords)
-      ? 'Borrowing costs more than the amount you borrow, and how much more '
-            'depends on the rate, the term, and the fees, which are often '
-            'quoted separately. The Debt register and the loan calculators '
-            'here will show you the total cost of an arrangement once you '
-            'type its actual numbers in.'
-      : 'Money you might need within a few days behaves differently from '
-            'money you can leave alone for years. That difference, rather '
-            'than the name of any particular place to put it, is what '
-            'usually decides the answer.';
+  final bool investing = _has(q, investingWords);
+  final bool borrowing = !investing && _has(q, borrowingWords);
 
+  final String opener = investing
+      ? 'Investing means putting money somewhere it can grow and can also '
+            'fall.'
+      : borrowing
+      ? 'Borrowing always costs more than the amount you borrow.'
+      : 'Money you might need within a few days behaves differently from '
+            'money you can leave alone for years.';
+
+  final String detail = investing
+      ? 'What decides whether any of it fits you is when you would need the '
+            'money back, and what it would cost to have it locked away on '
+            'the month something goes wrong.'
+      : borrowing
+      ? 'How much more depends on the rate, the term and the fees, which are '
+            'often quoted separately. Type an arrangement\'s real numbers '
+            'into the Debt register or a loan calculator here and it shows '
+            'the total cost.'
+      : 'That difference, rather than the name of any particular place to '
+            'put it, is what usually decides the answer.';
+
+  // THE CHECK BRANCHES TOO, and it did not before. The SEC sentence was
+  // unconditional while the lead and the detail branched, so "should I get
+  // a loan" was answered with advice about verifying a licence to take
+  // INVESTMENT money. Wrong register, and it displaced the check that would
+  // actually protect a borrower: a lender needs its own authority to lend,
+  // which is a different lookup with different consequences. The mismatch
+  // predates this rewrite; promoting the sentence to a visible bullet is
+  // what made it obvious.
+  //
+  // Both branches end on the same clause, and that clause is the point: a
+  // beginner reads "licensed" as "approved, therefore safe", and the SEC's
+  // own advisories say the opposite. Saying only "check it is licensed"
+  // leaves the dangerous half of the inference to the reader.
+  //
+  // No URL on purpose. A government link can rot, and a lookalike domain
+  // for this exact portal already exists.
+  final String check = borrowing
+      ? 'In the Philippines a lender needs its own authority from the SEC '
+            'to lend, separate from being a registered company, and the SEC '
+            'publishes which online lending apps hold it. Authority means '
+            'there is a regulator to complain to, not that the terms are '
+            'fair.'
+      : 'In the Philippines you can check on the SEC\'s own website whether '
+            'a company is licensed to take investment money. A certificate '
+            'of incorporation is only a business birth certificate, not '
+            'permission to take your savings. A licence means there is a '
+            'regulator to complain to, not that the investment is safe or '
+            'approved.';
+
+  // THE LONGEST ANSWER IN THE FILE, four paragraphs, and the priority was
+  // upside down: the SEC check, the one sentence here that can stop
+  // somebody losing money to an investment scam, sat in paragraph four
+  // where the reviews agree nobody reaches it. It is a visible line now.
+  //
+  // THE REFUSAL STAYS VISIBLE TOO, which is a deliberate departure from the
+  // content review's advice to move it behind the More tap. Two reasons,
+  // and both are about this being a licensing boundary rather than copy:
+  // `more` is not persisted by PanStoredMessage, so a restored conversation
+  // would show the answer with the refusal silently missing; and a refusal
+  // to give advice only does its work if it is read, which a collapsed
+  // section cannot guarantee. The trailer that `aboutMoney` renders is a
+  // standing disclaimer, not a substitute for saying plainly that Salapify
+  // cannot answer the question that was asked.
+  //
+  // "Which one suits you" became "What suits you": in the generic branch
+  // no options are ever named, so "which one" referred to nothing.
   return PanAnswer(
     topic: 'boundary',
     aboutMoney: true,
-    text:
-        '$opener\n\n'
-        'Which one suits you is not something Salapify can work out. It turns '
-        'on things Pan cannot see: when you would need the money, what else '
-        'you owe, and how it would feel to have it tied up at the wrong '
-        'moment.\n\n'
-        'What Salapify can do is the arithmetic. Set a goal with the date you '
-        'would need the money by, and it shows what you would have to set '
-        'aside each payday to get there.\n\n'
-        'One thing worth knowing whoever you ask: in the Philippines you can '
-        'check whether a company is actually licensed to take investment '
-        'money on the SEC\'s own website. A certificate of incorporation is '
-        'only a business birth certificate, not permission to take your '
-        'savings.',
+    badge: 'What Salapify can and cannot say',
+    text: opener,
+    points: <String>[
+      detail,
+      'What suits you is not something Salapify can work out. It turns on '
+          'things Pan cannot see: when you would need the money, what else '
+          'you owe, and how it would feel to have it tied up at the wrong '
+          'moment.',
+      check,
+      'What Salapify can do is the arithmetic. Set a goal with the date you '
+          'would need the money by, and it shows what to set aside each '
+          'payday to get there.',
+    ],
     followUps: <String>[
       'How do goals work?',
       'What is safe to spend?',
@@ -652,17 +707,61 @@ PanAnswer _oneAccount(Account a, PanFacts facts) {
 
 PanAnswer _cash(PanFacts facts) {
   if (facts.isEmpty) return _nothingYet('how much you have');
+
+  // THE COUNT MUST MATCH THE FIGURE. This said `facts.accounts.length`,
+  // which is EVERY account, while the figure beside it counts only the
+  // spendable ones. On the shipped sample data that read "You can reach
+  // 86,470.50 across 11 accounts", where 5 accounts produced the figure and
+  // the eleven included a housing loan, a credit card and an MP2 fund. The
+  // very next sentence then promised it had excluded exactly those. Counting
+  // the same list the figure is summed from is the only way the two cannot
+  // drift apart again.
+  final List<Account> counted = facts.accounts
+      .where((Account a) => a.isSpendable)
+      .toList();
+
+  // Liquid money the person deliberately set aside. It is left out of the
+  // figure, correctly, but saying nothing about it leaves somebody staring
+  // at a total with their savings missing and no explanation. Only mentioned
+  // when there IS some, because for most people this clause is noise.
+  final List<Account> setAside = facts.accounts
+      .where((Account a) => a.isLiquid && !a.isSpendable)
+      .toList();
+  final double setAsideTotal = accountsTotalPhp(setAside);
+
+  final String where = counted.isEmpty
+      ? 'right now'
+      : 'across ${counted.length} '
+            '${counted.length == 1 ? 'account' : 'accounts'}';
+
+  // ONE LEAD, THEN SCANNABLE LINES, which is what [points] is for. This was
+  // a single prose blob of up to five sentences, and the founder's standing
+  // complaint about Pan being wordy (2026-09-20, repeated 2026-10-04) is
+  // answered structurally rather than by deleting the teaching: every clause
+  // below survives, it is just no longer a paragraph somebody has to read to
+  // find the one line that is new to them. Prose on a phone is skipped, a
+  // list is scanned.
+  //
+  // Nothing moves to [more] here. All four lines are one line each, and
+  // [more] is not persisted across a restart (see PanStoredMessage), so it
+  // suits read-once teaching rather than the standing caveats on a figure.
+  //
   // Signed for the same reason as net worth: an overdrawn set of accounts
   // reads as money held if the minus is dropped.
   return PanAnswer(
     topic: 'cash',
-    text:
-        'You can reach ${formatPesoWithSign(facts.liquidCash)} today across '
-        '${facts.accounts.length} '
-        '${facts.accounts.length == 1 ? 'account' : 'accounts'}. That counts '
-        'cash, bank and e-wallet balances. A credit limit is not in there, '
-        'because money you can borrow is not money you have.'
-        '${facts.hasSampleData ? ' Some of this is still Salapify\'s sample data, which you can remove in Settings.' : ''}',
+    text: 'You can reach ${formatPesoWithSign(facts.liquidCash)} today $where.',
+    points: <String>[
+      'Cash, bank and e-wallet balances.',
+      if (setAside.isNotEmpty)
+        'The ${formatPeso(setAsideTotal)} you set aside is not in here. '
+            'That is the point of setting it aside.',
+      'A credit limit is not in here. Money you can borrow is not money '
+          'you have.',
+      if (facts.hasSampleData)
+        'Some of this is still Salapify sample data. You can remove it in '
+            'Settings.',
+    ],
     figures: <PanFigure>[
       PanFigure(
         label: 'Reachable today',
@@ -679,17 +778,43 @@ PanAnswer _cash(PanFacts facts) {
 
 PanAnswer _safeToSpend(PanFacts facts) {
   if (facts.isEmpty) return _nothingYet('what is safe to spend');
+
+  // The engine's own step: what is left after everything spoken for, before
+  // the 85 / 15 split. Guarded the same way computeSafeToSpend guards it, so
+  // a ledger reserving more than it holds says nothing rather than quoting a
+  // negative "left".
+  final double uncommitted = math.max(
+    0,
+    facts.liquidCash - facts.amountReserved,
+  );
+
   return PanAnswer(
     topic: 'safeToSpend',
     text:
-        'Safe to Spend is ${formatPeso(facts.safeToSpendUntilPayday)}, which '
-        'is ${formatPeso(facts.safeToSpendPerDay)} a day until your next '
-        'payday.\n\n'
-        'It starts from the ${formatPeso(facts.liquidCash)} you can reach and '
-        'holds back ${formatPeso(facts.amountReserved)} that is already '
-        'spoken for: unpaid bills, payment plan instalments, a minimum '
-        'against what you owe, and a buffer. What is left is what is really '
-        'yours to spend.',
+        '${formatPeso(facts.safeToSpendUntilPayday)} is yours to spend '
+        'before your next payday.',
+    // THE AUDIT TRAIL, AND IT NOW CLOSES. The old prose ended "what is left
+    // is what is really yours to spend", which was false: what is left is
+    // the figure on the third line, and only 85 percent of it is the
+    // headline. Somebody checking with a calculator landed 5,545.50 out on
+    // the founder's own ledger with nothing on screen to explain the gap.
+    // The Safe to Spend sheet has always disclosed the split as its step 7;
+    // Pan was the one surface hiding it. No money math changed here, the
+    // engine always did this, the sentence just did not say so.
+    //
+    // These stay in [points] rather than [more] DELIBERATELY: [more] is not
+    // persisted by PanStoredMessage, and an audit trail that vanishes when
+    // the app restarts is not an audit trail.
+    points: <String>[
+      'Starts from ${formatPeso(facts.liquidCash)}, the cash you can '
+          'actually reach.',
+      'Holds back ${formatPeso(facts.amountReserved)} already spoken for: '
+          'unpaid bills, payment plan instalments, a minimum against what '
+          'you owe, and a buffer.',
+      if (uncommitted > 0)
+        'Of the ${formatPeso(uncommitted)} left, 85 percent is the figure '
+            'above and 15 percent is kept as Safe to Save.',
+    ],
     figures: <PanFigure>[
       PanFigure(
         label: 'Until payday',
@@ -707,22 +832,26 @@ PanAnswer _netWorth(PanFacts facts) {
   final double net = facts.netWorth;
   // The assets and the liabilities stay APART in the sentence, never summed
   // into one figure that hides which half is which.
-  final String shape = net < 0
-      ? 'That is below zero, which sounds alarming and often is not: a '
-            'housing or vehicle loan alone can do it, because the whole '
-            'balance sits against you while the thing it bought is not '
-            'counted here.'
-      : 'Assets and what you owe are kept apart on purpose, because one '
-            'number hides which half is moving.';
   return PanAnswer(
     topic: 'netWorth',
     // formatPesoWithSign, NOT formatPeso. formatPeso drops the sign, which for
     // a net worth does not understate it, it reverses it: minus 200,000 read
     // as 200,000 while Reports showed the minus for the same store.
-    text:
-        'Your net worth is ${formatPesoWithSign(net)}. That is '
-        '${formatPeso(facts.assets)} held, less ${formatPeso(facts.liabilities)} '
-        'owed on your accounts.\n\n$shape',
+    text: 'Your net worth is ${formatPesoWithSign(net)}.',
+    // The held-and-owed breakdown is GONE from the prose because the two
+    // figure rows below say it better, and the old sentence "assets and
+    // what you owe are kept apart on purpose" went with it: asserting what
+    // the layout already demonstrates is the definition of padding.
+    //
+    // The below-zero explanation stays, and only appears when it applies.
+    // It is rare, specific and genuinely reassuring, which is the opposite
+    // of the sentence it replaced.
+    points: <String>[
+      if (net < 0)
+        'Below zero sounds alarming and often is not. A housing or vehicle '
+            'loan alone can do it, because the whole balance sits against '
+            'you while the thing it bought is not counted here.',
+    ],
     figures: <PanFigure>[
       PanFigure(label: 'Net worth', value: formatPesoWithSign(net)),
       PanFigure(label: 'Held', value: formatPeso(facts.assets)),
@@ -739,22 +868,20 @@ PanAnswer _spending(PanFacts facts) {
   final List<({String category, double amount})> top = facts.spendingByCategory
       .take(3)
       .toList();
-  final StringBuffer b = StringBuffer(
-    'This month ${formatPeso(facts.monthOut)} went out and '
-    '${formatPeso(facts.monthIn)} came in.\n\nThe largest were:',
-  );
-  for (final ({String category, double amount}) c in top) {
-    b.write('\n  ${c.category}: ${formatPeso(c.amount)}');
-  }
-  if (facts.monthOut > facts.monthIn && facts.monthIn > 0) {
-    b.write(
-      '\n\nMore left than arrived this month. That is a fact about this '
-      'month rather than a verdict: a yearly payment or a one-off can do it.',
-    );
-  }
+  // The list was hand-rolled into the prose with '\n  ' indentation while a
+  // bullet renderer sat unused in the same bubble. Five answers did this.
   return PanAnswer(
     topic: 'spending',
-    text: b.toString(),
+    text:
+        'This month ${formatPeso(facts.monthOut)} went out and '
+        '${formatPeso(facts.monthIn)} came in.',
+    points: <String>[
+      for (final ({String category, double amount}) c in top)
+        '${c.category}: ${formatPeso(c.amount)}',
+      if (facts.monthOut > facts.monthIn && facts.monthIn > 0)
+        'More left than arrived this month. That is a fact about this month '
+            'rather than a verdict: a yearly payment or a one-off can do it.',
+    ],
     figures: <PanFigure>[
       PanFigure(label: 'Out', value: formatPeso(facts.monthOut)),
       PanFigure(label: 'In', value: formatPeso(facts.monthIn)),
@@ -813,21 +940,22 @@ PanAnswer _owed(PanFacts facts) {
       followUps: <String>['Who owes me money?', 'What is due soon?'],
     );
   }
-  final StringBuffer b = StringBuffer(
-    'You owe ${formatPeso(facts.owed)} across ${mine.length} '
-    '${mine.length == 1 ? 'debt' : 'debts'}:',
-  );
-  for (final Debt d in mine.take(5)) {
-    b.write('\n  ${d.person}: ${formatPeso(d.remaining.pesos)}');
-  }
-  if (mine.length > 5) b.write('\n  and ${mine.length - 5} more.');
-  b.write(
-    '\n\nRecording a payment lowers the debt and the account it came from '
-    'together, so your net worth does not move.',
-  );
   return PanAnswer(
     topic: 'owed',
-    text: b.toString(),
+    text:
+        'You owe ${formatPeso(facts.owed)} across ${mine.length} '
+        '${mine.length == 1 ? 'debt' : 'debts'}.',
+    points: <String>[
+      for (final Debt d in mine.take(5))
+        '${d.person}: ${formatPeso(d.remaining.pesos)}',
+      if (mine.length > 5) 'and ${mine.length - 5} more.',
+    ],
+    // Read once and then never again, which is exactly what `more` is for.
+    // It is real double-entry teaching and worth keeping, but it does not
+    // need to sit between somebody and their list of debts on every visit.
+    more:
+        'Recording a payment lowers the debt and the account it came from '
+        'together, so your net worth does not move.',
     figures: <PanFigure>[
       PanFigure(label: 'You owe', value: formatPeso(facts.owed)),
     ],
@@ -846,20 +974,20 @@ PanAnswer _owedToMe(PanFacts facts) {
       followUps: <String>['Who do I owe?'],
     );
   }
-  final StringBuffer b = StringBuffer(
-    '${formatPeso(facts.owedToMe)} is owed to you, across ${theirs.length} '
-    '${theirs.length == 1 ? 'person' : 'people'}:',
-  );
-  for (final Debt d in theirs.take(5)) {
-    b.write('\n  ${d.person}: ${formatPeso(d.remaining.pesos)}');
-  }
-  b.write(
-    '\n\nSalapify keeps this as a record for you. It never contacts anybody '
-    'and never chases a payment on your behalf.',
-  );
   return PanAnswer(
     topic: 'owedToMe',
-    text: b.toString(),
+    text:
+        '${formatPeso(facts.owedToMe)} is owed to you, across '
+        '${theirs.length} '
+        '${theirs.length == 1 ? 'person' : 'people'}.',
+    points: <String>[
+      for (final Debt d in theirs.take(5))
+        '${d.person}: ${formatPeso(d.remaining.pesos)}',
+      if (theirs.length > 5) 'and ${theirs.length - 5} more.',
+    ],
+    more:
+        'Salapify keeps this as a record for you. It never contacts anybody '
+        'and never chases a payment on your behalf.',
     figures: <PanFigure>[
       PanFigure(label: 'Owed to you', value: formatPeso(facts.owedToMe)),
     ],
@@ -885,24 +1013,41 @@ PanAnswer _due(PanFacts facts) {
     0,
     (double s, BillItem b) => s + b.amount.pesos,
   );
-  final StringBuffer sb = StringBuffer(
-    '${formatPeso(total)} is unpaid across ${unpaid.length} '
-    '${unpaid.length == 1 ? 'bill' : 'bills'}:',
-  );
-  for (final BillItem b in unpaid.take(5)) {
-    sb.write('\n  ${b.name}: ${formatPeso(b.amount.pesos)}, due ${b.dueDate}');
-  }
-  if (unpaid.length > 5) sb.write('\n  and ${unpaid.length - 5} more.');
-  sb.write(
-    '\n\nAll of it is already held back from Safe to Spend, so you are not '
-    'counting it twice.',
-  );
   return PanAnswer(
     topic: 'due',
-    text: sb.toString(),
+    text:
+        '${formatPeso(total)} is unpaid across ${unpaid.length} '
+        '${unpaid.length == 1 ? 'bill' : 'bills'}.',
+    points: <String>[
+      // formatDateLabel, not the raw stored string. This printed "due
+      // 2026-09-15" on the founder's own fixture, and a stored date shown
+      // raw is a defect class this repo already screens the main screens
+      // for; Pan was simply never in that sweep. facts.now is the injected
+      // clock, so "Today" and "Tomorrow" stay testable.
+      for (final BillItem b in unpaid.take(5))
+        '${b.name}: ${formatPeso(b.amount.pesos)}, due '
+            '${formatDateLabel(b.dueDate, now: facts.now)}',
+      if (unpaid.length > 5) 'and ${unpaid.length - 5} more.',
+      // STAYS VISIBLE, not moved to `more`. It prevents a real mental
+      // double count: somebody reading "6,200 unpaid" right after reading
+      // their Safe to Spend figure will subtract it again unless told not
+      // to. A caveat that only works if it is read cannot go behind a tap.
+      'All of it is already held back from Safe to Spend, so you are not '
+          'counting it twice.',
+    ],
     figures: <PanFigure>[PanFigure(label: 'Unpaid', value: formatPeso(total))],
     followUps: <String>['What is safe to spend?', 'How do reminders work?'],
   );
+}
+
+/// One goal as a scannable line. A goal already past its target reads "0.00
+/// to go" rather than a negative, which would say the person owes their own
+/// savings account money.
+String _goalLine(Goal g) {
+  final Money gap = g.targetAmount - g.currentAmount;
+  final Money left = gap.isNegative ? Money.zero : gap;
+  return '${g.name}: ${formatPeso(g.currentAmount.pesos)} of '
+      '${formatPeso(g.targetAmount.pesos)}, ${formatPeso(left.pesos)} to go';
 }
 
 PanAnswer _goals(PanFacts facts) {
@@ -918,22 +1063,16 @@ PanAnswer _goals(PanFacts facts) {
       followUps: <String>['How much do I have right now?'],
     );
   }
-  final StringBuffer b = StringBuffer(
-    'You have ${facts.goals.length} '
-    '${facts.goals.length == 1 ? 'goal' : 'goals'}:',
-  );
-  for (final Goal g in facts.goals.take(4)) {
-    final Money gap = g.targetAmount - g.currentAmount;
-    final Money left = gap.isNegative ? Money.zero : gap;
-    b.write(
-      '\n  ${g.name}: ${formatPeso(g.currentAmount.pesos)} of '
-      '${formatPeso(g.targetAmount.pesos)}, ${formatPeso(left.pesos)} to go',
-    );
-  }
   return PanAnswer(
     topic: 'goals',
     aboutMoney: true,
-    text: b.toString(),
+    text:
+        'You have ${facts.goals.length} '
+        '${facts.goals.length == 1 ? 'goal' : 'goals'}.',
+    points: <String>[
+      for (final Goal g in facts.goals.take(4)) _goalLine(g),
+      if (facts.goals.length > 4) 'and ${facts.goals.length - 4} more.',
+    ],
     followUps: <String>['What is safe to spend?'],
   );
 }
