@@ -1,3 +1,4 @@
+import 'currencies.dart' show formatCurrency;
 import 'debt.dart' show outstanding;
 import 'money.dart';
 import 'dart:math' as math;
@@ -148,11 +149,27 @@ List<ControlCenterAlert> runControlCenterScan({
           id: 'alert_neg_bal_${acc.id}',
           type: AlertType.balanceMismatch,
           title: 'Negative Balance in ${acc.name}',
+          // The SYMBOL follows the account, and the AMOUNT is converted.
+          // Two different fixes for two different readers.
+          //
+          // The description used a hardcoded peso sign on the raw stored
+          // figure, so a dollar account overdrawn by 200 read "negative
+          // balance of ₱-200" when the hole is ₱11,700. Showing it in the
+          // account's own currency is what the Accounts screen already
+          // does for a foreign balance, and it is the honest figure: it is
+          // the number on that bank's statement, which is what somebody
+          // reconciling will be holding.
+          //
+          // `amount` is the opposite case. Nothing reads it as a currency,
+          // every other alert in this file puts a peso figure there, and a
+          // caller ranking alerts by size would sort a dollar against
+          // pesos. So that one converts.
           description:
-              'Account has a negative balance of ₱${_n(acc.balance.pesos)}. '
+              'Account has a negative balance of '
+              '${formatCurrency(acc.balance.pesos, acc.currency)}. '
               'A reconciliation adjustment is needed.',
           severity: AlertSeverity.high,
-          amount: acc.balance.abs.pesos,
+          amount: acc.balanceInPhp.abs.pesos,
           relatedAccountId: acc.id,
           suggestedAction:
               'Reconcile account balance against actual mobile banking / e-wallet statement.',
@@ -221,7 +238,25 @@ List<ControlCenterAlert> runControlCenterScan({
                 a.kind == AccountKind.maya) &&
             a.purpose != AccountPurpose.protected,
       )
-      .fold<double>(0, (double s, Account a) => s + a.balance.pesos);
+      // CONVERTED, unlike the sibling fold in safe_to_spend.dart, and the
+      // difference is deliberate rather than an inconsistency.
+      //
+      // safe_to_spend.dart is parity with a prototype whose Account type
+      // has NO currency field at all, so converting in there would change
+      // a golden-locked engine against a design that cannot express
+      // foreign money. This prototype is different: src/types.ts:30 gives
+      // Account an optional `currency`, and financialTruthEngine.ts simply
+      // ignores it. That is a defect in the prototype, not a constraint,
+      // so matching it would mean porting the bug on purpose.
+      //
+      // Converting in the engine rather than at the caller, also
+      // deliberately: runControlCenterScan has no caller in lib/ yet, so
+      // there is no boundary to convert at, and leaving it raw would mean
+      // the first caller inherits the defect silently.
+      //
+      // Every golden vector is peso-only, where balanceInPhp returns
+      // balance untouched, so none of them move.
+      .fold<double>(0, (double s, Account a) => s + a.balanceInPhp.pesos);
 
   if (liquidCash < 5000) {
     alerts.add(
