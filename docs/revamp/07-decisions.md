@@ -1116,3 +1116,43 @@ accident: its payday item sits in the past and its cycle is the frozen one.
 Answering D26 with A is what starts this happening in the demo, which is also
 what teaches people to record a sweldo as an Upcoming item in the first place.
 The two decisions were taken together for that reason.
+
+## D28. The sample ledger KEEPS its Home Credit duplicate. ANSWERED 2026-10-04
+
+Founder answer: keep it, so the notice shows.
+
+The question arose because two specialists pointed opposite ways. The
+controller pass recommended removing the sample ledger's three duplicate pairs,
+on the ground that a demo contradicting itself in three places teaches the
+double count to every new user. The UX pass then pointed out that the Home
+Credit pair is the only proof case the feature has: remove it and nobody who
+taps "Look around with example data" ever sees the notice work.
+
+The founder kept it. The reasoning that makes this right rather than merely
+convenient: the duplicate is no longer SILENT. Once the card names it, the
+sample ledger stops teaching "Salapify double counts" and starts teaching
+"Salapify notices when you write one payment down twice", which is the more
+useful lesson and the one a new user cannot otherwise discover.
+
+WHAT MAKES THE PAIR A GOOD FIXTURE, and it is worth keeping on purpose:
+
+  Debt `debt_homecredit`, person "Home Credit (Phone)", monthlyMinimum 2,450
+  Upcoming `up_homecredit`, name "Home Credit Installment", 2,450
+
+The LABELS DIFFER. An exact name match would miss the founder's own duplicate,
+so the fixture forces the detector to be built on a loose name overlap rather
+than on string equality. A fixture that passed trivially would have hidden
+that.
+
+STILL OPEN, and not covered by this answer: the Meralco pair (a Bill, an
+Upcoming item three days apart, AND a confirmed Transaction already inside the
+opening balance) and the BPI gadget loan pair (a liability Account and a Debt).
+Those are a different shape from Home Credit and were not what the founder
+ruled on.
+
+THE RISK, stated rather than left implied: a demo that contains a duplicate on
+purpose is one keystroke from teaching that recording something twice is
+normal. The notice is what keeps that from happening, so the notice is not
+optional polish on this decision, it is the half that makes it safe. If the
+notice is ever removed or hidden, this decision has to be revisited in the
+same change.
