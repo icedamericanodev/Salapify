@@ -92,16 +92,34 @@ class HeroPanel extends StatelessWidget {
               children: <Widget>[
                 _kickerRow(),
                 _toolRow(),
-                Text(
-                  formatPeso(state.safeToSpend.pesos),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 36,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.8,
-                    color: HeroColors.inkStrong,
+                // SHRUNK TO FIT, NEVER CUT OFF, and for a money figure the
+                // difference is not cosmetic.
+                //
+                // This was maxLines 1 with an ellipsis, and at 320dp with the
+                // system font at 1.5x it rendered the app's headline figure
+                // as "P24,33...". That is not merely hard to read, it is
+                // AMBIGUOUS: it could be 24,330 or 24,339.99, and the one
+                // number the whole screen exists to state became a number
+                // nobody can state. Small text can be squinted at; a
+                // truncated peso figure cannot be recovered at all.
+                //
+                // FittedBox keeps the full 36pt whenever it fits, so every
+                // ordinary phone is pixel for pixel unchanged, and only
+                // shrinks on the narrow-plus-large combination that could not
+                // fit it either way.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatPeso(state.safeToSpend.pesos),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 36,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      color: HeroColors.inkStrong,
+                    ),
                   ),
                 ),
                 const SizedBox(height: Spacing.xs),

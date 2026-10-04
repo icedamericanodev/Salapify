@@ -617,6 +617,142 @@ void main() {
   // its own. Founder direction moved the teaching off the screens and behind
   // these dots, and a picture of the emptied screen without a picture of
   // where the words went only shows half the trade.
+  // The runway explainer, reached the way a person reaches it: by tapping the
+  // dot on the card itself. Opening the sheet directly would photograph a
+  // sheet that renders, which is not the same as a dot that works.
+  // Home on the hardest phone it has to survive: 320dp wide AND 1.5x system
+  // font at once. The readability sweep already asserts nothing overflows or
+  // truncates there, which is a different question from whether it reads
+  // well, and only an eye answers the second one.
+  testWidgets('home runway narrow large renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(960, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: MediaQuery(
+          // Built fresh rather than copied off the view, which has no
+          // MediaQuery ancestor this early. Same shape the readability sweep
+          // uses at screen_readability_test.dart:307.
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+          child: AppShell(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_runway_narrow_large.png'),
+    );
+  });
+
+  testWidgets('info sheet runway renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(RunwayRow),
+        matching: find.byType(InfoDot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(InfoSheet),
+      findsOneWidget,
+      reason: 'the dot on the runway card did not open an explainer',
+    );
+    expect(find.text('Runway'), findsWidgets);
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/info_sheet_runway.png'),
+    );
+  });
+
+  // The capped minimum, which is the fix most likely to be costing the
+  // founder real money today. A card entered with a 3,000 monthly minimum and
+  // paid down until 500 is left must reserve 500, not 3,000.
+  testWidgets('safe to spend capped minimum renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    state.addDebt(
+      Debt(
+        id: 'debt_nearly_paid',
+        person: 'BPI Rewards Card',
+        direction: DebtDirection.iOwe,
+        totalAmount: const Money.pesos(60000),
+        paidAmount: const Money.pesos(59500),
+        isSettled: false,
+        minimumPayment: const Money.pesos(3000),
+        dueDate: '15',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('DETAILS'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/safe_to_spend_capped_minimum.png'),
+    );
+  });
+
   testWidgets('info sheet renders', (WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
 
