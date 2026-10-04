@@ -28,6 +28,17 @@ SafeToSpendAnalysis computeSafeToSpend({
   final int nowMs = (now ?? DateTime.now()).millisecondsSinceEpoch;
 
   // 1. Liquid cash. Investments and credit limits are excluded on purpose.
+  //
+  // READS THE RAW `balance`, NOT `balanceInPhp`, AND THAT STAYS. Everywhere
+  // else that sums accounts goes through accountsTotalPhp, because adding a
+  // dollar balance to a peso one gives a number that is wrong in a way no
+  // peso-only fixture can see; FinancialState.totalLiquidCash was fixed for
+  // exactly that. This line is the deliberate exception: it is line-for-line
+  // parity with src/utils/safeToSpendEngine.ts, which has no currency field
+  // at all, and the parity is golden-locked by
+  // test/core/money/safe_to_spend_golden_test.dart. "Fixing" it would change
+  // a golden-locked engine's output, which is a money-meaning change and
+  // needs founder sign-off, not a tidy-up. Leave it.
   final double totalLiquidCash = accounts
       .where((Account a) => a.isLiquid)
       .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);

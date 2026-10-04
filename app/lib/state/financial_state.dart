@@ -2196,9 +2196,16 @@ class FinancialState extends ChangeNotifier {
 
   /// Liquid cash only. This is NOT net worth: it leaves out investments,
   /// receivables and every borrowing line on purpose.
-  double get totalLiquidCash => accounts
-      .where((Account a) => a.isLiquid)
-      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
+  ///
+  /// Summed through [accountsTotalPhp], which converts each balance first.
+  /// This used to fold `a.balance.pesos`, the RAW stored figure, so an OFW
+  /// with a dollar payroll account had dollars added to pesos and the total
+  /// labelled pesos. It fed Pan's "You can reach X today", which is the one
+  /// sentence in the app a person acts on directly. The two lines beside it
+  /// in [panFacts] already converted; this one did not, and a peso-only
+  /// fixture cannot tell the difference.
+  double get totalLiquidCash =>
+      accountsTotalPhp(accounts.where((Account a) => a.isLiquid));
 
   /// The five-question health check, from one place.
   ///
