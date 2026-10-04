@@ -44,7 +44,11 @@ QUICK=0
 
 STATE_DIR="${TMPDIR:-/tmp}/salapify-self-check"
 mkdir -p "$STATE_DIR"
-LAST="$STATE_DIR/last-summary"
+# ONE STATE FILE PER MODE. A --quick run has no render fields in its summary,
+# so sharing a file with the full run made every alternation look like a
+# change and every change look like noise. Found by running the two back to
+# back, which is what a loop will do.
+LAST="$STATE_DIR/last-summary-$([ "${1:-}" = '--quick' ] && echo quick || echo full)"
 
 problems=()
 summary=""
@@ -117,7 +121,22 @@ if [ "$QUICK" -eq 0 ]; then
     problems+=("$(echo "$shot_out" | grep -B2 -A6 'EXCEPTION\|Error' | head -20)")
   else
     shots="$(ls test/shots/out/*.png 2>/dev/null | wc -l | tr -d ' ')"
-    summary="$summary shots=$shots"
+
+    # A FINGERPRINT OF THE PIXELS, not just how many files there are.
+    #
+    # The count alone reported NO CHANGE on 2026-10-04 after a merge that
+    # visibly redrew every institution logo on the Accounts screen. For a
+    # check whose entire purpose is "render the screens and notice", saying
+    # nothing moved when the screens moved is the one failure it cannot
+    # afford.
+    #
+    # REPORTED, NEVER FAILED. A pixel difference is information, not a defect,
+    # and CLAUDE.md is explicit that a cross-environment pixel diff must never
+    # gate a push. This runs in one environment against a deterministic
+    # harness, so the digest is stable, and when it moves the line says to go
+    # and LOOK rather than to go and fix.
+    look="$(cat test/shots/out/*.png 2>/dev/null | md5sum | cut -c1-8)"
+    summary="$summary shots=$shots px=$look"
   fi
 fi
 
