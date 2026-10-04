@@ -894,6 +894,26 @@ the founder, and it replaces STOP condition 9's first clause in the autonomy
 section above. Do not stop and ask for a merge; merge, and report what
 happened.
 
+RESTATED AND WIDENED, founder direction 2026-10-04, verbatim: "always merge
+after checking and fixing issues, do now always ask permission unless its
+really needed". Two things that settles:
+
+1. The merge is not a separate step to raise. Check, fix what the check found,
+   merge, report. A session that finishes the work and then asks "shall I
+   merge?" has added a round trip the founder has now removed twice.
+2. ASKING ITSELF IS THE THING BEING RATIONED, not just the merge. The founder
+   has made this point three ways in one session: use the expert agents rather
+   than them, decide for yourself, and now do not ask permission unless it is
+   really needed. Routine engineering inside approved work is not a question.
+
+What "really needed" still covers is unchanged and is written in full above:
+the founder-gated categories in STOP conditions 1 to 8, anything that could
+permanently lose user data, and a real product fork. Those are not permission
+requests, they are decisions only the founder can take, and they stop the WORK
+before it is done rather than the merge at the end. Everything in the merge
+conditions below also still binds: a red or unfinished check is still a stop,
+and "the founder said merge" has never been a waiver for one.
+
 Everything else in this section is UNCHANGED and still binds. The conditions
 below were the bar for presenting a PR; they are now the bar for merging one,
 and every one of them still has to hold. The founder removed the approval step,
