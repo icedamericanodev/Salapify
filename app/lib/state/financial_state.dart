@@ -2199,14 +2199,23 @@ class FinancialState extends ChangeNotifier {
   /// Spendable cash only. This is NOT net worth: it leaves out investments,
   /// receivables, every borrowing line, and money the person has set aside.
   ///
-  /// `isSpendable`, because the one thing that reads this is `PanFacts
-  /// .liquidCash`, which Pan says out loud as "you can reach X today". An
-  /// emergency fund is not money you can reach today in any sense Pan means,
-  /// and a mascot cheerfully counting somebody's ipon into their spending
-  /// money is the defect at its most embarrassing.
-  double get totalLiquidCash => accounts
-      .where((Account a) => a.isSpendable)
-      .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);
+  /// Two rules, from two changes, and they compose rather than compete.
+  /// `isSpendable` is a strict subset of `isLiquid`, so WHICH accounts count
+  /// and HOW their balances are added are independent questions:
+  ///
+  ///  1. WHICH: `isSpendable`, because the one thing that reads this is
+  ///     `PanFacts.liquidCash`, which Pan says out loud as "you can reach X
+  ///     today". An emergency fund is not money you can reach today in any
+  ///     sense Pan means, and a mascot cheerfully counting somebody's ipon
+  ///     into their spending money is the defect at its most embarrassing.
+  ///  2. HOW: through [accountsTotalPhp], which converts each balance first.
+  ///     This used to fold `a.balance.pesos`, the RAW stored figure, so an
+  ///     OFW with a dollar payroll account had dollars added to pesos and the
+  ///     total labelled pesos. Same sentence of Pan's, wrong for a different
+  ///     reason. The two lines beside it in [panFacts] already converted;
+  ///     this one did not, and a peso-only fixture cannot tell the difference.
+  double get totalLiquidCash =>
+      accountsTotalPhp(accounts.where((Account a) => a.isSpendable));
 
   /// The five-question health check, from one place.
   ///
@@ -2225,7 +2234,21 @@ class FinancialState extends ChangeNotifier {
   );
 
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
-    accounts: accounts,
+    // CONVERTED ON THE WAY IN. The engine is a line-for-line port of a
+    // prototype with no currency field, so it sums `balance` raw and has to
+    // keep doing so to stay golden-locked. Converting here instead means
+    // every surface answers "how much liquid cash" with the same number.
+    //
+    // Before this, Pan read the converted total while the engine read the
+    // raw one, and Pan's own explanation stopped adding up: on 20,000 pesos
+    // plus 1,000 dollars it said "Safe to Spend is 15,173, it starts from
+    // the 78,500 you can reach and holds back 3,150", three figures that
+    // cannot all be true at once. A sentence whose whole job is to show its
+    // working is the worst place in the app for an inconsistency.
+    //
+    // Peso-only ledgers are bit for bit unchanged, which is why the golden
+    // vectors do not move.
+    accounts: accountsInPhp(accounts),
     transactions: _transactions,
     // _bills and _installments, NOT the seed. Both read the frozen seed list
     // until now, and the comment below about incomeStreams describes exactly

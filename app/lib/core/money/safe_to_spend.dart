@@ -39,6 +39,25 @@ SafeToSpendAnalysis computeSafeToSpend({
   // the centavo and every golden vector computes exactly as it did before.
   // The parity test pins that by running the fixture with everything
   // spendable, which is the only state the TypeScript can represent.
+  //
+  // BOTH FOLDS READ THE RAW `balance`, NOT `balanceInPhp`, AND THAT STAYS.
+  // This engine is line-for-line parity with src/utils/safeToSpendEngine.ts,
+  // which has no currency field at all, and the parity is golden-locked by
+  // test/core/money/safe_to_spend_golden_test.dart. Converting in here would
+  // change a golden-locked engine's output. Leave it.
+  //
+  // THE CONVERSION HAPPENS IN THE CALLER instead: FinancialState hands this
+  // engine `accountsInPhp(accounts)`, so by the time a balance arrives here
+  // it is already pesos and summing it raw is correct. Anything else calling
+  // this engine directly owes it the same courtesy, or it will add dollars
+  // to pesos. There is no in-engine guard against that, deliberately, because
+  // adding one is the change the golden lock forbids.
+  //
+  // DO NOT read `currency` anywhere in this file. The converted accounts the
+  // caller builds keep their original currency code, so a conversion in here
+  // would be a SECOND one. test/data/liquid_cash_currency_test.dart scans
+  // this file and reddens on the identifier, so the trap is checked rather
+  // than remembered.
   final double totalLiquidCash = accounts
       .where((Account a) => a.isLiquid)
       .fold<double>(0, (double sum, Account a) => sum + a.balance.pesos);

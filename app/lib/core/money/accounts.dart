@@ -45,6 +45,27 @@ double accountsTotalPhp(Iterable<Account> accounts) => accounts.fold<double>(
   (double sum, Account a) => sum + a.balanceInPhp.pesos,
 );
 
+/// The same accounts with every balance ALREADY CONVERTED to pesos.
+///
+/// For handing to an engine that cannot convert for itself. `safe_to_spend`
+/// is the case this was written for: it is a line-for-line port of
+/// src/utils/safeToSpendEngine.ts, which has no currency field at all, so it
+/// reads `balance` raw and must keep doing so to stay golden-locked. The
+/// conversion therefore happens HERE, on the way in, rather than inside it.
+/// Peso-only ledgers are untouched: `balanceInPhp` returns `balance`
+/// unchanged when the account is not foreign, so every golden vector, all of
+/// which are peso-only, computes exactly as before.
+///
+/// THE TRAP, and the reason this is a named function rather than an inline
+/// map: `copyWith` carries `currency` through, so a returned account can read
+/// USD while its balance is already pesos. That is harmless only for as long
+/// as the consumer never converts again. `safe_to_spend.dart` reads `balance`
+/// and nothing else, which is checked by a test rather than remembered. Any
+/// engine that DOES read `currency` must be given the originals instead.
+List<Account> accountsInPhp(Iterable<Account> accounts) => accounts
+    .map((Account a) => a.isForeign ? a.copyWith(balance: a.balanceInPhp) : a)
+    .toList();
+
 /// The prototype's filter: entity first, then the asset or liability slice.
 ///
 /// A null [profile] means "all entities". An account whose own profile is
