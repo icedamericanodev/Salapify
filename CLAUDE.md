@@ -879,6 +879,30 @@ is tested, rendered, green and ready to open on their emulator. Progress
 narration between those two points is noise: the branch is pushed, dev-sync
 restarts their app, and the screens are in the review folder either way.
 
+**Spin them by default, and then BUILD what they said.** Founder direction
+2026-10-04, verbatim: "always spin the relevant agents, review and the do their
+suggestions". Three things that settles:
+
+1. ALWAYS, not when stuck. Convening the fitting lens is the first step of a
+   piece of work, not a move kept for hard cases. The founder has now said
+   this three times in one session from three angles.
+2. REVIEW is still mandatory and is not a formality. "Review and then do"
+   means verify first, then build what survives, and the paragraph above is
+   the reason: every expert pass in session 36 contained at least one claim
+   that did not survive a check. Session 37 was the same. A UX review
+   correctly overturned a recommendation by running the engine; in the same
+   batch a figure it inherited was wrong by 32,500. Doing an agent's
+   suggestion without reading the code first is not following this direction,
+   it is skipping the word "review" in it.
+3. THEN DO IT. A verified finding is not a report to relay, it is work. The
+   failure this closes is the batch where three specialists ran, the founder
+   was told what they said, and nothing was built because each suggestion
+   quietly became a question back to them.
+
+Pick the lenses the DECISION needs, not a menu of ten, per the brainstorming
+skill. Two or three tightly scoped agents beat six broad ones, and an agent
+whose answer could not change what gets built should not be convened at all.
+
 What still reaches the founder, unchanged by this: the STOP conditions in the
 autonomy section, anything that could permanently lose user data, and a real
 product fork where reasonable people would build two different apps. "Major"
