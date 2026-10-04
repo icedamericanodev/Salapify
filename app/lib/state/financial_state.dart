@@ -2187,15 +2187,15 @@ class FinancialState extends ChangeNotifier {
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.owedToMe)
       .fold<double>(0, (double sum, Debt d) => sum + d.remaining.pesos);
 
-  /// The soonest unsettled debt carrying a due date.
-  Debt? get nextDueDebt {
-    final List<Debt> dated =
-        debts.where((Debt d) => !d.isSettled && d.dueDate != null).toList()
-          ..sort(
-            (Debt a, Debt b) => (a.dueDate ?? '').compareTo(b.dueDate ?? ''),
-          );
-    return dated.isEmpty ? null : dated.first;
-  }
+  /// The soonest unsettled debt the person actually has to pay.
+  ///
+  /// Delegates to [nextPaymentDue] rather than sorting here, because this
+  /// getter had its own private idea of what a due date is and it was wrong:
+  /// it compared the free-text date as a STRING, so "Oct 11" sorted before
+  /// "Oct 4" and Home named a debt a week away instead of the one due today.
+  /// `daysUntil` is the one correct reader of that field and the tray and
+  /// the runway already used it.
+  Debt? get nextDueDebt => nextPaymentDue(debts, now);
 
   /// Spendable cash only. This is NOT net worth: it leaves out investments,
   /// receivables, every borrowing line, and money the person has set aside.

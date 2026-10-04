@@ -21,6 +21,38 @@ import 'money.dart';
 import 'ph_calendar.dart';
 import 'reminders.dart';
 
+/// Which register an event came out of.
+///
+/// `fromRule` below says WHETHER machinery generated an occurrence. This says
+/// WHICH machinery, and the card needs the second one: "in Coming Up and
+/// Debts" is a sentence a bool cannot write.
+///
+/// The two words the card actually prints are deliberately fewer than the
+/// five values here. `bill`, `upcoming` and `installment` all live behind
+/// Coming Up on screen, and `debtMinimum` behind Debts, so four registers
+/// collapse to two place names a person can go and look at. See [whereSeen].
+enum EventSource {
+  bill,
+  upcoming,
+  installment,
+  debtMinimum,
+  paydayRule;
+
+  /// The place a person would go to find this, in the app's own words.
+  ///
+  /// NOT the model's words. The card said "in Upcoming" for a day, and no
+  /// screen in Salapify is called Upcoming: the Home card is "Coming Up" and
+  /// the sheet is "Bills". `UpcomingItem` is a class name, and printing a
+  /// class name at somebody is sending them nowhere.
+  String get whereSeen => switch (this) {
+    EventSource.bill => 'Coming Up',
+    EventSource.upcoming => 'Coming Up',
+    EventSource.installment => 'Coming Up',
+    EventSource.debtMinimum => 'Debts',
+    EventSource.paydayRule => 'your payday rule',
+  };
+}
+
 /// One thing that moves money on one day.
 class ProjectedEvent {
   const ProjectedEvent({
@@ -30,7 +62,11 @@ class ProjectedEvent {
     this.movedFrom,
     this.movedReason = '',
     this.fromRule = false,
+    this.source = EventSource.bill,
   });
+
+  /// The register this came out of. See [EventSource].
+  final EventSource source;
 
   final String label;
   final Money amount;
@@ -335,7 +371,13 @@ DailyProjection projectDailyCash({
   }
 
   /// Put one movement on one day, given how many days away it is.
-  void placeOn(String label, Money amount, int days, bool isIncome) {
+  void placeOn(
+    String label,
+    Money amount,
+    int days,
+    bool isIncome,
+    EventSource source,
+  ) {
     if (!amount.isPositive) return;
 
     // Already gone. A bill due last week that is still unpaid is a problem,
@@ -375,6 +417,7 @@ DailyProjection projectDailyCash({
             label: label,
             amount: amount,
             isIncome: isIncome,
+            source: source,
             movedFrom: when.moved ? due : null,
             movedReason: when.reason,
           ),
@@ -398,7 +441,13 @@ DailyProjection projectDailyCash({
   /// one day and are then over. [monthlyDayOf] is the single place that
   /// distinction lives, and it reads with the same pattern [daysUntil] does
   /// so the two can never disagree.
-  void place(String label, Money amount, String? dueDate, bool isIncome) {
+  void place(
+    String label,
+    Money amount,
+    String? dueDate,
+    bool isIncome,
+    EventSource source,
+  ) {
     if (!amount.isPositive) return;
 
     final int? days = daysUntil(dueDate, today);
@@ -410,7 +459,7 @@ DailyProjection projectDailyCash({
 
     final int? repeatsOn = monthlyDayOf(dueDate);
     if (repeatsOn == null) {
-      placeOn(label, amount, days, isIncome);
+      placeOn(label, amount, days, isIncome, source);
       return;
     }
 
@@ -423,7 +472,7 @@ DailyProjection projectDailyCash({
     for (int step = 0; step <= horizonDays ~/ 28 + 1; step++) {
       final int offset = when.difference(today).inDays;
       if (offset > horizonDays) break;
-      placeOn(label, amount, offset, isIncome);
+      placeOn(label, amount, offset, isIncome, source);
       final int lastDay = DateTime(when.year, when.month + 2, 0).day;
       when = DateTime(
         when.year,
@@ -434,11 +483,11 @@ DailyProjection projectDailyCash({
   }
 
   for (final BillItem b in bills.where((BillItem b) => !b.isPaid)) {
-    place(b.name, b.amount, b.dueDate, false);
+    place(b.name, b.amount, b.dueDate, false, EventSource.bill);
   }
 
   for (final UpcomingItem u in upcoming.where((UpcomingItem u) => !u.isPaid)) {
-    place(u.name, u.amount, u.dueDate, u.countsAsIncome);
+    place(u.name, u.amount, u.dueDate, u.countsAsIncome, EventSource.upcoming);
   }
 
   // Payment plans ARE DATED, and this comment used to say the opposite.
@@ -469,7 +518,7 @@ DailyProjection projectDailyCash({
       if (offset > horizonDays) break;
       final Money each = minMoney(i.installmentAmount, left);
       if (!each.isPositive) break;
-      placeOn(i.name, each, offset, false);
+      placeOn(i.name, each, offset, false, EventSource.installment);
       left -= each;
       placedAny = true;
     }
@@ -535,7 +584,7 @@ DailyProjection projectDailyCash({
         break;
       }
       final Money each = min > left ? left : min;
-      placeOn(d.person, each, offset, false);
+      placeOn(d.person, each, offset, false, EventSource.debtMinimum);
       left -= each;
       final int lastDay = DateTime(when.year, when.month + 2, 0).day;
       when = DateTime(
@@ -600,6 +649,7 @@ DailyProjection projectDailyCash({
               amount: payday.expectedIncome,
               isIncome: true,
               fromRule: true,
+              source: EventSource.paydayRule,
             ),
           );
     }
