@@ -288,6 +288,27 @@ Money outstanding(List<Debt> debts, DebtDirection direction) => sumMoney(
       .map((Debt d) => d.remaining),
 );
 
+/// What every debt you owe costs you in a month, added up.
+///
+/// This is what Safe to Spend holds back at step 4, and it REPLACES the
+/// prototype's `debtsIOwe * 0.08`. See [Debt.monthlyMinimum] for the rule and
+/// for the measurement that shows the percentage is wrong in both directions.
+///
+/// Deliberately returns a figure that can be ZERO, and zero is a real answer
+/// rather than a missing one: a person whose only debt is money owed to a
+/// relative, with no schedule, genuinely has no monthly obligation to reserve
+/// against, and the app inventing one for them is the defect this closes.
+///
+/// Only the `iOwe` direction. Money owed TO you is not something you have to
+/// find every month, and counting it here would reserve your own spending
+/// money against somebody else's debt.
+Money monthlyDebtMinimums(List<Debt> debts) => sumMoney(
+  debts
+      .where((Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe)
+      .map((Debt d) => d.monthlyMinimum)
+      .whereType<Money>(),
+);
+
 /// The two halves of the beam on Home and on the Debt screen.
 ///
 /// Clamped to between 10 and 90 percent, the prototype's own rule, so the

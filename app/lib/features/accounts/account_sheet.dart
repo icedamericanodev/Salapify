@@ -536,20 +536,48 @@ class _AccountSheetState extends State<AccountSheet> {
     if (saved.purpose == was) return;
 
     final Money after = widget.state.safeToSpendAnalysis.safeToSpendToday;
-    if (after == before) return;
-
     final bool nowProtected = saved.purpose == AccountPurpose.protected;
-    final String headline = nowProtected
-        ? '${formatPeso(saved.balanceInPhp.pesos)} is now set aside, so Safe '
-              'to Spend today goes from ${formatPeso(before.pesos)} to '
-              '${formatPeso(after.pesos)}.'
-        : '${formatPeso(saved.balanceInPhp.pesos)} is back in your spending '
-              'money, so Safe to Spend today goes from '
-              '${formatPeso(before.pesos)} to ${formatPeso(after.pesos)}.';
+    final String amount = formatPeso(saved.balanceInPhp.pesos);
+
+    // UNCONDITIONAL ONCE THE PURPOSE CHANGED, and the early return that used
+    // to sit here is gone.
+    //
+    // It read `if (after == before) return;`, meaning to avoid announcing a
+    // change that did not happen. What it actually did was stay completely
+    // silent after a deliberate tap whenever the figure could not move, which
+    // is every ledger whose Safe to Spend is already at zero. The person then
+    // has no confirmation their choice registered at all, and the one thing
+    // worse than an alarming message is no message.
+    //
+    // So the two-figure sentence is now the case where there ARE two figures
+    // worth naming, and the no-movement case says so plainly rather than
+    // saying nothing.
+    final String headline;
+    if (after == before) {
+      headline = nowProtected
+          ? '$amount is now set aside. Safe to Spend today does not change, '
+                'because none of it was being counted as spendable anyway.'
+          : '$amount is back in your spending money. Safe to Spend today does '
+                'not change, because everything you have is already reserved.';
+    } else {
+      headline = nowProtected
+          ? '$amount is now set aside, so Safe to Spend today goes from '
+                '${formatPeso(before.pesos)} to ${formatPeso(after.pesos)}.'
+          : '$amount is back in your spending money, so Safe to Spend today '
+                'goes from ${formatPeso(before.pesos)} to '
+                '${formatPeso(after.pesos)}.';
+    }
 
     messenger.showSnackBar(
       SnackBar(
-        duration: const Duration(seconds: 6),
+        // TEN SECONDS, not six. The founder saved a real change on the
+        // emulator and never saw this bar. Nothing structural was found (it
+        // renders above the navigation bar, measured rather than eyeballed),
+        // so the likeliest answer is simply that it came and went while their
+        // eye was on the sheet closing. A message that only works if it is
+        // caught is not carrying this on its own, which is why the Accounts
+        // row and the Safe to Spend audit both say it permanently.
+        duration: const Duration(seconds: 10),
         content: Text(
           '$headline Your net worth has not changed and you can still pay '
           'from this account.',

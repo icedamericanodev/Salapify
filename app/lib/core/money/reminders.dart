@@ -152,6 +152,32 @@ String _iso(DateTime d) =>
 
 /// Whole days from today to [dueDate], or null when it cannot be read.
 ///
+/// The day of the month a due date REPEATS on, or null when it does not.
+///
+/// This is the one shape in the free text field that carries a recurrence.
+/// "15", "15th", "every 10th" and "10th of the month" all mean a day that
+/// comes round again; "2026-10-15" and "Sep 25" name one day and then are
+/// over. [daysUntil] answers "when is the next one", which is all a reminder
+/// needs, and loses the difference. A cash projection over a window longer
+/// than a month needs it back: a bill on the 15th falls twice in forty-five
+/// days and a bill on 15 October falls once.
+///
+/// The pattern is the same one [daysUntil] reads with, deliberately, so the
+/// two can never disagree about what counts as a day of the month.
+int? monthlyDayOf(String? dueDate) {
+  if (dueDate == null) return null;
+  final RegExpMatch? m = _dayOfMonthPattern.firstMatch(dueDate.trim());
+  if (m == null) return null;
+  final int day = int.parse(m.group(1)!);
+  return day < 1 || day > 31 ? null : day;
+}
+
+final RegExp _dayOfMonthPattern = RegExp(
+  r'^(?:every\s+|the\s+)?(\d{1,2})(?:st|nd|rd|th)?'
+  r'(?:\s+of\s+(?:the|each|every)\s+month)?$',
+  caseSensitive: false,
+);
+
 /// Understands the four shapes the prototype does, because a due date in this
 /// app comes from a free text field and people write all of them: `2026-09-21`,
 /// `today`, `tomorrow`, and a bare day of the month like `15` or `15th`, which
@@ -184,9 +210,21 @@ int? _daysUntil(String? dueDate, DateTime now) {
     r'^(\d{4})-(\d{1,2})-(\d{1,2})$',
   ).firstMatch(raw);
   if (isoMatch != null) {
-    final DateTime target = DateTime(
+    final int month = int.parse(isoMatch.group(2)!);
+    // A MONTH THAT DOES NOT EXIST is not a date read wrong, it is a date
+    // nobody wrote. `DateTime(2026, 13, 45)` is quietly the 14th of February
+    // 2027 and comes back as a confident 133 days away, which the absurd-day
+    // guard cannot see because 133 days is a perfectly ordinary distance.
+    // (That guard's own comment used to cite this very string as something it
+    // rejected. It never did. Corrected where it is written.)
+    if (month < 1 || month > 12) return null;
+    // CLAMPED, like every other branch. `DateTime(2026, 2, 31)` is quietly
+    // the 3rd of March, so a bill written "2026-02-31" reminded three days
+    // LATE, in the wrong month. See [_onDayOf] for why late is the one
+    // direction that costs money.
+    final DateTime target = _onDayOf(
       int.parse(isoMatch.group(1)!),
-      int.parse(isoMatch.group(2)!),
+      month,
       int.parse(isoMatch.group(3)!),
     );
     return target.difference(today).inDays;
@@ -201,11 +239,7 @@ int? _daysUntil(String? dueDate, DateTime now) {
   // read. A card cutoff IS a repeating day, so "every 10th" and "10th of
   // each month" are the natural way to write one and all of them mean the
   // same thing.
-  final RegExpMatch? dayMatch = RegExp(
-    r'^(?:every\s+|the\s+)?(\d{1,2})(?:st|nd|rd|th)?'
-    r'(?:\s+of\s+(?:the|each|every)\s+month)?$',
-    caseSensitive: false,
-  ).firstMatch(raw);
+  final RegExpMatch? dayMatch = _dayOfMonthPattern.firstMatch(raw);
   if (dayMatch != null) {
     final int day = int.parse(dayMatch.group(1)!);
     DateTime target = _onDayOf(now.year, now.month, day);
@@ -247,10 +281,14 @@ int? _daysUntil(String? dueDate, DateTime now) {
     final int? statedYear = named.group(3) == null
         ? null
         : int.parse(named.group(3)!);
+    // CLAMPED, for the same reason the ISO branch above is. "Sep 31" landed
+    // on the 1st of October, a day late and in the wrong month, and "Feb 29"
+    // written in a year that has no 29th of February landed on the 1st of
+    // March. The bare-day branch has clamped all along; these two did not.
     if (statedYear != null) {
-      return DateTime(statedYear, m + 1, day).difference(today).inDays;
+      return _onDayOf(statedYear, m + 1, day).difference(today).inDays;
     }
-    DateTime target = DateTime(now.year, m + 1, day);
+    DateTime target = _onDayOf(now.year, m + 1, day);
     // ROLLS FORWARD once it is well past, which the bare-day branch above
     // already did and this one did not.
     //
@@ -266,7 +304,7 @@ int? _daysUntil(String? dueDate, DateTime now) {
     // stay loud through a full cycle and short enough that it stops before it
     // becomes furniture.
     if (target.difference(today).inDays < -60) {
-      target = DateTime(now.year + 1, m + 1, day);
+      target = _onDayOf(now.year + 1, m + 1, day);
     }
     return target.difference(today).inDays;
   }
@@ -294,10 +332,17 @@ DateTime _onDayOf(int year, int month, int day) {
 /// How far a stored date may be from today before it is treated as unreadable.
 ///
 /// A bill cannot genuinely be two thousand years overdue. `DateTime` accepts
-/// `0000-00-00` and `2026-13-45` without complaint and normalises them, so a
-/// hand-edited or imported file produced "was due 740275 days ago" in the
-/// tray. That is not a reminder, it is a defect with a peso sign in front of
-/// it, and saying nothing is better.
+/// `0000-00-00` without complaint and normalises it, so a hand-edited or
+/// imported file produced "was due 740275 days ago" in the tray. That is not
+/// a reminder, it is a defect with a peso sign in front of it, and saying
+/// nothing is better.
+///
+/// IT IS A DISTANCE GUARD AND NOTHING ELSE, which this comment used to
+/// obscure by citing `2026-13-45` as an example of something it rejects. It
+/// never rejected that one: `DateTime` normalises it to the 14th of February
+/// 2027, which is 133 days away, and 133 days is an ordinary distance. A
+/// month outside one to twelve is now refused where it is parsed, in the ISO
+/// branch, rather than hoped to be caught here.
 const int _absurdDayCount = 3650;
 
 /// How a due date reads in a sentence.
@@ -529,12 +574,16 @@ ReminderResult evaluateReminders({
 /// Stepping from the start by whole periods is a calendar derivation and
 /// changes no money: the amount, the balance and the term all come from the
 /// plan exactly as stored.
-DateTime? nextInstallmentDate(InstallmentPlan p) {
+/// [skip] looks PAST the next one, so a cash projection can place the second
+/// and third instalments of a plan that falls inside its window. Zero is the
+/// next unpaid one, which is what every existing caller wants.
+DateTime? nextInstallmentDate(InstallmentPlan p, {int skip = 0}) {
   final DateTime? start = DateTime.tryParse(p.startDate);
   if (start == null) return null;
-  if (p.paidInstallments >= p.totalInstallments) return null;
+  if (skip < 0) return null;
+  if (p.paidInstallments + skip >= p.totalInstallments) return null;
 
-  final int n = p.paidInstallments;
+  final int n = p.paidInstallments + skip;
   switch (p.paymentFrequency) {
     case PaymentFrequency.monthly:
       return _monthsOn(start, n);

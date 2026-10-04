@@ -1053,3 +1053,66 @@ which is the whole reason this note exists.
 The wider lesson is the one worth keeping: **AI Studio's sync writes outside
 `src/`.** It edited a folder `CLAUDE.md` calls frozen. Do not assume a sync
 commit only touches the prototype.
+
+## D26. The sample payday cycle gets the rule it already claims. ANSWERED 2026-10-04
+
+Founder answer: **A**, give the sample ledger `paydayDays: [15, 30]`.
+
+The frozen cycle was never the neutral option. `SeedData.payday` stored
+`cycleType: '15_30'` and no `paydayDays`, and `paydayDays` is only ever
+written when somebody sets their payday inside the app
+(`financial_state.dart:515`), so the sample data never had one. With no rule
+the cycle cannot recompute, so it claimed four days to a payday on 15
+September while anchored to 18 September, three days PAST it, and said that on
+every date forever.
+
+That reached people. Since 2026-10-03 the welcome offers "Look around with
+example data" to everybody on first launch, so a wrong payday date was a first
+impression for a public app on most days of the year.
+
+It also made the new cash projection place exactly ONE payday in a forty-five
+day window instead of three, so the demo showed Salapify at its most
+pessimistic. That is the correct answer to a ledger that never said when
+payday is, and it is the state every new user is in before they answer.
+
+ACCEPTED COST, stated before the decision rather than discovered after: Safe
+to Spend is derived from the payday cycle, so the demo's headline money figure
+moves and the test files holding pinned figures move with it. No real person's
+stored money changes. Only example data does.
+
+Option B, asking for the payday rule during first run, was not rejected. It is
+deferred to its own piece of work, because it puts a question in front of
+somebody ten seconds into the app and that is a first-run design decision
+rather than a data fix.
+
+## D27. Income that two registers describe is counted ONCE. ANSWERED 2026-10-04
+
+Founder answer: **A**, count it once and say so on the card.
+
+Measured before the decision: one salary of 32,500 held both in the payday
+rule and as an income `UpcomingItem` places 65,000 on a single day, and a
+closing balance of 97,500 for somebody who earns 32,500 on the 15th.
+
+THE ASYMMETRY IS THE WHOLE DECISION, and it is why this rule differs from the
+one for money going out. Counting a BILL twice is safe: the person is told
+they are tighter than they are, and nobody bounces a payment because Salapify
+was too careful. Counting a SALARY twice tells somebody they have cash that is
+not coming, which is the exact failure a cash runway exists to prevent. So
+outflows are counted twice and flagged, and income is counted once and
+flagged. Two rules, one stated reason.
+
+A warning alone was rejected for income. Disclosure is enough when the error
+makes somebody cautious; it is not enough when the error hands them money that
+does not exist, because the figure on the screen is still too big and the
+person who skips one line of small print is exactly who this protects.
+
+THE RISK, and it is real: somebody with a genuine second income of the same
+amount in the same month has it quietly dropped. The line on the card is what
+keeps that from being silent, so that line is not optional polish, it is the
+other half of this decision.
+
+NOTE THE INTERACTION WITH D26. The sample ledger escapes this today only by
+accident: its payday item sits in the past and its cycle is the frozen one.
+Answering D26 with A is what starts this happening in the demo, which is also
+what teaches people to record a sweldo as an Upcoming item in the first place.
+The two decisions were taken together for that reason.

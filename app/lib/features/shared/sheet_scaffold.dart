@@ -460,6 +460,37 @@ class PrimaryButton extends StatelessWidget {
 
 /// A labelled text field. Numeric by default, because almost every field in
 /// these sheets is money.
+/// What a money box will accept: digits, a dot, a comma, and nothing else.
+///
+/// WHY IT HAS TO EXIST, measured on 2026-10-04 and reproduced before the fix.
+/// Every money field in these sheets ends at `Money.fromDouble`, which THROWS
+/// rather than guesses on a figure no peso balance can reach. Two ordinary
+/// things reached it:
+///
+///   - leaning on the keypad. Thirteen nines is fine, fourteen throws, and
+///     fourteen digits is one slip of a thumb. The throw escaped the Save
+///     button's `onTap`, so the sheet stayed open, nothing saved, and no
+///     message appeared. On a release build the person taps Save again and
+///     again and the app simply never responds.
+///   - a paste. `double.tryParse` accepts "Infinity", "NaN" and "1e999" in
+///     Dart, all three of which the keypad cannot type but the clipboard can
+///     supply, and all three of which throw the same way.
+///
+/// The length cap is thirteen characters, which is at most ten trillion
+/// pesos and comfortably inside what a double can still count in centavos.
+/// It is a cap on NONSENSE, not on wealth.
+///
+/// A minus sign is deliberately not in the set. Salapify takes the direction
+/// of money from the field it was typed into, never from a sign in front of
+/// it, and a negative that slipped into a debt's monthly minimum netted off
+/// every OTHER debt's real minimum before this. [Debt.monthlyMinimum] now
+/// refuses a negative too, because a filter is a convenience and a model
+/// rule is a guarantee.
+final List<TextInputFormatter> moneyInput = <TextInputFormatter>[
+  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+  LengthLimitingTextInputFormatter(13),
+];
+
 class SheetField extends StatelessWidget {
   const SheetField({
     super.key,
@@ -488,7 +519,28 @@ class SheetField extends StatelessWidget {
   /// Restricts what can be TYPED, for the fields where the stored value has to
   /// be narrower than the label implies. The card number field is the reason
   /// this exists: see account_sheet.dart.
+  ///
+  /// Left unset, a field on the MONEY KEYPAD gets [moneyInput] and a field
+  /// that asked for a text keyboard gets nothing. See [_formatters].
   final List<TextInputFormatter>? inputFormatters;
+
+  /// What a field is allowed to receive when its owner did not say.
+  ///
+  /// A sheet that takes the numeric keypad is, in this app, always asking for
+  /// a figure, so it gets the figure filter. A sheet that asked for the text
+  /// keyboard (a name, a note, a due date written as "Sep 25") gets nothing,
+  /// because filtering those would be a different bug.
+  ///
+  /// The default is here rather than on each of the thirty-odd money fields
+  /// because the defect it closes was never specific to one of them. See
+  /// [moneyInput].
+  List<TextInputFormatter>? get _formatters {
+    if (inputFormatters != null) return inputFormatters;
+    if (keyboardType == const TextInputType.numberWithOptions(decimal: true)) {
+      return moneyInput;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -500,7 +552,7 @@ class SheetField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
+          inputFormatters: _formatters,
           onChanged: onChanged,
           style: AppType.rowTitle(palette).copyWith(fontSize: 15),
           decoration: InputDecoration(

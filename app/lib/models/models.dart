@@ -576,7 +576,106 @@ class Debt {
     this.paidBeforeSettle,
     this.payments = const <DebtPayment>[],
     this.archivedAt,
+    this.minimumPayment,
   });
+
+  /// What this debt costs every month, when the person has said so.
+  ///
+  /// NULL IS NOT ZERO, and the difference is the whole point of the field.
+  /// Null means "nobody has told Salapify what this costs", which is the
+  /// normal state of a debt to a relative. Zero would mean "it genuinely
+  /// costs nothing a month", which is a different and much rarer claim.
+  /// [monthlyMinimum] below reserves nothing for a null and respects an
+  /// explicit zero, and `Money.zero` could not express that difference.
+  ///
+  /// Optional on purpose. Salapify never asks for it and never infers it from
+  /// a percentage: see [monthlyMinimum] for why.
+  final Money? minimumPayment;
+
+  /// What to hold back for this debt each month, or null to hold back nothing.
+  ///
+  /// THE RULE, in the order it is applied:
+  ///
+  ///   1. the minimum the person entered;
+  ///   2. otherwise, for a SCHEDULED debt that carries instalment numbers,
+  ///      what is left divided by the instalments still to run;
+  ///   3. otherwise NOTHING.
+  ///
+  /// Step 3 is the correction this field exists for. The prototype reserves
+  /// eight percent of every outstanding debt
+  /// (`src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is
+  /// not a monthly payment. It is wrong in both directions, which reading the
+  /// sample ledger showed rather than the review:
+  ///
+  ///   - too SMALL for a short loan. The seed's two debts are both scheduled
+  ///     and really cost 4,950 a month between them, where eight percent of
+  ///     their 17,350 balance is 1,388;
+  ///   - too LARGE for a debt that has no schedule. "Utang kay nanay 20,000"
+  ///     has no monthly minimum and never did, and charging 1,600 a cycle
+  ///     against it invents an obligation the person never agreed to.
+  ///
+  /// Founder decision, 2026-10-04: a debt with no minimum and no schedule
+  /// reserves nothing. Salapify never assumes a percentage.
+  ///
+  /// EVERY ANSWER IS PUT THROUGH [_withinWhatIsOwed]. A monthly cost that is
+  /// bigger than the whole remaining balance is not a monthly cost, and a
+  /// negative one is not a cost at all. Both were reachable before
+  /// 2026-10-04: a card entered with a 3,000 minimum and paid down to 500
+  /// left reserved 3,000 against it, which told the person they ran short on
+  /// the 15th and took 2,500 off Safe to Spend that was really theirs; and a
+  /// minimum typed with a minus in front netted off every OTHER debt's real
+  /// minimum, because [monthlyDebtMinimums] sums them and
+  /// `computeSafeToSpend` only clamps the total.
+  Money? get monthlyMinimum {
+    if (isSettled) return null;
+    if (minimumPayment != null) return _withinWhatIsOwed(minimumPayment!);
+    if (schedule != DebtSchedule.scheduled) return null;
+
+    final int? total = installmentTotal;
+    if (total == null || total <= 0) return null;
+
+    // Instalments STILL TO RUN. The counter is how many have been paid, so
+    // the remainder is what the rest of the balance is spread over. Clamped
+    // at one so the final instalment reserves the whole remainder rather
+    // than dividing by zero, and so does a plan whose term has run out with
+    // a balance still on it: that money really is all due now.
+    final int left = total - _instalmentsRun(total);
+    return _withinWhatIsOwed(remaining.split(left < 1 ? 1 : left).first);
+  }
+
+  /// A monthly figure held between zero and what is actually still owed.
+  Money _withinWhatIsOwed(Money m) {
+    if (m.centavos < 0) return Money.zero;
+    return m > remaining ? remaining : m;
+  }
+
+  /// How many instalments of this plan have already run.
+  ///
+  /// The stored counter is a HINT and the payment ledger is the truth. Two
+  /// ways the hint goes wrong, both measured on 2026-10-04:
+  ///
+  ///   - it is ABSENT. `debtToJson` writes `installmentCurrent` only when it
+  ///     is not null, and a debt restored from a backup written before the
+  ///     key existed comes back with real payments and a null counter.
+  ///     Reading that as "none have run" spread a 12,000 plan's last 2,000
+  ///     over all six instalments and reserved 333.34, a sixth of the real
+  ///     monthly cost, permanently, because the null round-trips into the
+  ///     next backup. So when it is absent the count is read off what has
+  ///     been PAID against the plan's own instalment size.
+  ///   - it is OUT OF RANGE. A hand-edited or corrupted file can say nine of
+  ///     six, which made `left` negative. Clamped into the term.
+  int _instalmentsRun(int total) {
+    final int? stored = installmentCurrent;
+    if (stored != null) {
+      if (stored < 0) return 0;
+      return stored > total ? total : stored;
+    }
+    final Money each = totalAmount.split(total).first;
+    if (!each.isPositive) return 0;
+    final int run = paidAmount.centavos ~/ each.centavos;
+    if (run < 0) return 0;
+    return run > total ? total : run;
+  }
 
   /// The day this debt was put away, as an ISO date. Null means it is live.
   ///
