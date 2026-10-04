@@ -508,6 +508,27 @@ The product question, whether Salapify 3 ever offers to carry v12 data across,
 stays open and is the founder's. It is no longer urgent, and nothing on the
 recovery screen lies while it waits.
 
+## FOUNDER DECISION, 2026-10-04
+
+Both questions this document left open were put to the founder and answered.
+
+**P2.2: close it as not yet.** The migration chain is deliberately not built.
+The trigger above stands, both halves required: a change that a tolerant
+reader provably cannot absorb, AND the app already public. The two real
+defects are fixed and shipped, and the tripwire reddens the day a second
+version exists, so this is a decision rather than an oversight.
+
+**The v12 files: leave them refused.** Salapify 3 will not import a Salapify 2
+backup. The refusal is already chosen by SHAPE rather than by version number,
+and its wording already names the older app, says the phone was not changed,
+and tells the person to keep the file. The entire population holding such a
+file is the founder, because Salapify 2 never reached the Play Store, so an
+importer would be real work serving one person who can re-enter what matters.
+
+Neither answer is permanent. What makes them safe to revisit is that both are
+written down WITH their trigger, so a future session does not rediscover the
+question and quietly answer it differently.
+
 ## Landed, 2026-10-03
 
 The two fence holes, in commit `7d8b25f`. No stored-shape change.
