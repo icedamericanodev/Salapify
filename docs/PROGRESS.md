@@ -296,7 +296,7 @@ door fails it:
 |---|---|---|---|
 | P2.1 | `Money` type in integer centavos (F1) | DONE | Every money field in lib/models/models.dart is whole centavos in an int. The guard list is empty and stays as a guard against a NEW double money field. Stored shape unchanged throughout: json_codec.dart writes pesos, so a backup crosses builds either way. |
 | P2.2 | Schema version and migration on load (F2) | FOUNDER GATED | stored data, and the one change that can lose records |
-| P2.3 | Protected accounts (F3) | todo | |
+| P2.3 | Protected accounts (F3) | DONE | `Account.purpose`, spendable or protected. Additive on the wire, written only when protected, so no migration and no schema bump. A new `isSpendable` predicate is asked by the four sites that mean "should this fund today" (the engine, `totalLiquidCash`, the payday indicator, and `financial_truth`'s cash shortfall alarm, which hand-rolls its own liquid set and was nearly missed). The other seven stay on `isLiquid`, so every pay-from picker and the history filter provably cannot change. The cash runway deliberately keeps counting protected money. Seed ships `acc_maya` protected; vector D generated from the prototype's own TypeScript. Founder tested on the emulator: saved correctly, row label correct. One defect found by that test and fixed, a set-aside that could not move the figure confirmed nothing at all. |
 | P2.4 | Debt types and minimums (F4) | todo | |
 | P2.5 | Bills before payday only (F5) | todo | blocked behind the payday rule question in DEFERRED.md |
 | P2.6 | Single FX source (F7) | todo | |
