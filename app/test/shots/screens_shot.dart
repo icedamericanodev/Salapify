@@ -934,6 +934,11 @@ void main() {
         // said 11 and the figure summed 5, and no render in this harness
         // had ever shown that sentence.
         (name: 'pan_cash', openWith: 'panCash'),
+        // The refusal answer, which is a licensing boundary and the longest
+        // answer in the file, and a long list answer, which is where the
+        // bullet rendering either holds up or does not.
+        (name: 'pan_boundary', openWith: 'panBoundary'),
+        (name: 'pan_due', openWith: 'panDue'),
         (name: 'pan_lesson', openWith: 'panLesson'),
         (name: 'pan_afford', openWith: 'panAfford'),
         (name: 'pan_health', openWith: 'panHealth'),
@@ -986,6 +991,8 @@ void main() {
           PrivacySheet.show(context, palette);
         case 'pan':
         case 'panCash':
+        case 'panBoundary':
+        case 'panDue':
         case 'panLesson':
         case 'panAfford':
         case 'panHealth':
@@ -1020,6 +1027,8 @@ void main() {
       // in the same build.
       const Map<String, String> panTyped = <String, String>{
         'panCash': 'how much do i have',
+        'panBoundary': 'should i invest in stocks',
+        'panDue': 'what is due soon',
         'panLesson': 'what is MP2',
         // The two answers that carry a badge, stat rows AND buttons, which is
         // the whole of the new bubble in one picture.
