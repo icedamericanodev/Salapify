@@ -50,6 +50,27 @@ String formatSignedPeso(num amount, {bool isIncome = false}) {
   return formatted;
 }
 
+/// "Today", "Tomorrow", or a weekday with its date: "Monday 26 Oct".
+///
+/// For a date AHEAD, where [formatDateLabel] below reads backwards. The runway
+/// names the day a person's money gets tight, and "Short today" is a different
+/// sentence from "Short on Friday 18 Sep": one of them is something to do
+/// now.
+///
+/// Same no-locale-name discipline as everything else in this file. Naming the
+/// locale makes intl demand initializeDateFormatting() before first use, and
+/// without it the first build of any screen showing a date throws.
+String formatDayAndDate(DateTime date, {DateTime? now}) {
+  final DateTime today = now ?? DateTime.now();
+  final DateTime t = DateTime(today.year, today.month, today.day);
+  final DateTime d = DateTime(date.year, date.month, date.day);
+  final int days = d.difference(t).inDays;
+
+  if (days == 0) return 'today';
+  if (days == 1) return 'tomorrow';
+  return DateFormat('EEEE d MMM').format(d);
+}
+
 /// "Today", "Yesterday", or a short weekday date. Takes an ISO YYYY-MM-DD
 /// string and a clock, so a test can pin "today" instead of hoping.
 String formatDateLabel(String isoDate, {DateTime? now}) {

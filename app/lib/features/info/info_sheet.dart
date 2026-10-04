@@ -161,6 +161,7 @@ enum InfoTopic {
   bonusSplit,
   businessChecklist,
   openingBalance,
+  runway,
 }
 
 class InfoPoint {
@@ -982,6 +983,65 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'bank, fund or app you use is your decision, and an app that '
             'named one would be recommending a product rather than helping '
             'you plan.',
+      ),
+    ],
+  ),
+  InfoTopic.runway: InfoContent(
+    title: 'Runway',
+    subtitle: 'What your balance does between now and 45 days from now',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.calendar_today_outlined,
+        title: 'It is a calendar, not a budget',
+        body:
+            'Safe to Spend answers how much you may spend. This answers which '
+            'DAY gets tight. Same money, two questions, and they are worked '
+            'out by two different engines on purpose so neither can quietly '
+            'correct the other.',
+      ),
+      InfoPoint(
+        icon: Icons.event_outlined,
+        title: 'Only dates Salapify can read',
+        body:
+            'Due dates in Salapify are free text. "15", "Sep 25" and '
+            '"2026-10-15" are all read. Anything else is counted in the '
+            'not-counted line rather than dropped, because a clean projection '
+            'that quietly left a bill out is worse than one that admits it.',
+      ),
+      InfoPoint(
+        icon: Icons.account_balance_outlined,
+        title: 'Bills wait for a banking day',
+        body:
+            'A payment due on a Sunday or a holiday leaves on the next '
+            'banking day, because that is when the bank actually moves it. '
+            'Salary is not shifted. Money credited on a Saturday is there on '
+            'Saturday.',
+      ),
+      InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'It starts from spendable cash',
+        body:
+            'Money on an account you ticked "Set aside" is not counted here, '
+            'the same way Safe to Spend does not count it. It is still yours '
+            'and you can still pay from it.',
+      ),
+      InfoPoint(
+        icon: Icons.payments_outlined,
+        title: 'It never invents income',
+        body:
+            'If you have not told Salapify your payday days, only the one '
+            'payday it already knows about appears, so the line reads tighter '
+            'than your real life. Set your payday days and the window fills '
+            'in properly. And a salary that sits in Upcoming AND in your '
+            'payday rule is counted once, not twice.',
+      ),
+      InfoPoint(
+        icon: Icons.visibility_off_outlined,
+        title: '45 days is where it stops',
+        body:
+            'Anything dated after that is counted separately and is not in '
+            'the figure. It is a cap on how far ahead the app will guess, not '
+            'a claim about what happens next.',
       ),
     ],
   ),
