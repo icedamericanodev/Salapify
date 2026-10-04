@@ -76,12 +76,18 @@ class DailyProjection {
   const DailyProjection({
     required this.openingBalance,
     required this.days,
-    required this.undatedTotal,
-    required this.undatedCount,
-    this.overdueTotal = Money.zero,
-    this.overdueCount = 0,
-    this.beyondHorizonTotal = Money.zero,
-    this.beyondHorizonCount = 0,
+    required this.undatedOutflow,
+    required this.undatedOutflowCount,
+    this.undatedInflow = Money.zero,
+    this.undatedInflowCount = 0,
+    this.overdueOutflow = Money.zero,
+    this.overdueOutflowCount = 0,
+    this.overdueInflow = Money.zero,
+    this.overdueInflowCount = 0,
+    this.beyondHorizonOutflow = Money.zero,
+    this.beyondHorizonOutflowCount = 0,
+    this.beyondHorizonInflow = Money.zero,
+    this.beyondHorizonInflowCount = 0,
   });
 
   /// Spendable cash at the start, NOT total cash.
@@ -99,8 +105,16 @@ class DailyProjection {
   /// some of them genuinely cannot be read. An app that silently leaves an
   /// undated bill out of a cash projection is worse than one that says it did,
   /// because the person reads a clean projection and believes it is complete.
-  final Money undatedTotal;
-  final int undatedCount;
+  /// NAMED BY DIRECTION, and the rename is the fix rather than decoration.
+  /// These were `undatedTotal`, `overdueTotal` and `beyondHorizonTotal`, and
+  /// each one silently folded income in with money going out. See
+  /// [overdueOutflow] for what that cost.
+  final Money undatedOutflow;
+  final int undatedOutflowCount;
+
+  /// Income that could not be dated. Counted apart, never added to the above.
+  final Money undatedInflow;
+  final int undatedInflowCount;
 
   /// Unpaid, dated, and already in the past.
   ///
@@ -110,8 +124,30 @@ class DailyProjection {
   /// this engine made that decision and then said nothing, which is the same
   /// silent drop the undated bucket exists to prevent. On the shipped sample
   /// ledger it was hiding 8,840.
-  final Money overdueTotal;
-  final int overdueCount;
+  ///
+  /// SPLIT BY DIRECTION, because the single figure was wrong on the shipped
+  /// sample ledger by more than three quarters of itself. `placeOn` tested
+  /// "is it in the past" before it ever tested "is it income", so an overdue
+  /// SALARY landed in a bucket named "unpaid, dated, already in the past" and
+  /// [accountedOutflow] then added it as money leaving. Measured on the seed
+  /// at 18 September 2026: 42,987.80 across four items, of which the Sweldo
+  /// Payday item was 32,500. The real overdue outflow is 10,487.80.
+  ///
+  /// This figure was about to go ON the runway card, as the one line that
+  /// must stay on screen so a person does not draw a wrong conclusion from a
+  /// comfortable balance beside it. A line placed there to prevent a wrong
+  /// conclusion would have been causing one, and the person it misleads most
+  /// is the one who is genuinely behind on bills.
+  final Money overdueOutflow;
+  final int overdueOutflowCount;
+
+  /// Income that was due and has not been recorded as arriving.
+  ///
+  /// Kept rather than discarded, because it is a real thing to tell somebody:
+  /// a sweldo the ledger still expects is either late or already in the
+  /// account and never ticked off. It is never added to any outflow.
+  final Money overdueInflow;
+  final int overdueInflowCount;
 
   /// Dated, not overdue, and past the end of the window.
   ///
@@ -120,8 +156,14 @@ class DailyProjection {
   /// leave it: a bill due on the last day that lands on a Saturday is shifted
   /// to the Monday and fell off the end, counted nowhere. The horizon is now
   /// judged on the date the person wrote, not the date the bank moves it.
-  final Money beyondHorizonTotal;
-  final int beyondHorizonCount;
+  final Money beyondHorizonOutflow;
+  final int beyondHorizonOutflowCount;
+
+  /// Income dated past the end of the window. Same split, same reason: an
+  /// income item dated two months out produced a `beyondHorizonTotal` of
+  /// 50,000 that [accountedOutflow] counted as money leaving.
+  final Money beyondHorizonInflow;
+  final int beyondHorizonInflowCount;
 
   /// Every eligible peso, wherever it ended up.
   ///
@@ -135,7 +177,20 @@ class DailyProjection {
     for (final ProjectedDay d in days) {
       placed += d.moneyOut;
     }
-    return placed + undatedTotal + overdueTotal + beyondHorizonTotal;
+    return placed + undatedOutflow + overdueOutflow + beyondHorizonOutflow;
+  }
+
+  /// The mirror of [accountedOutflow], and it exists so the income side can
+  /// be checked at all.
+  ///
+  /// Nothing measured the inflow side before, which is how an overdue salary
+  /// spent a day being counted as money leaving the account.
+  Money get accountedInflow {
+    Money placed = Money.zero;
+    for (final ProjectedDay d in days) {
+      placed += d.moneyIn;
+    }
+    return placed + undatedInflow + overdueInflow + beyondHorizonInflow;
   }
 
   Money get closingBalance =>
@@ -193,12 +248,51 @@ DailyProjection projectDailyCash({
   );
 
   final Map<int, List<ProjectedEvent>> byOffset = <int, List<ProjectedEvent>>{};
-  Money undated = Money.zero;
-  int undatedCount = 0;
-  Money overdue = Money.zero;
-  int overdueCount = 0;
-  Money beyond = Money.zero;
-  int beyondCount = 0;
+  // SIX BUCKETS, NOT THREE. Each exclusion is kept per direction, because
+  // folding a salary in with money going out is what the single-figure
+  // version did. See [DailyProjection.overdueOutflow].
+  Money undatedOut = Money.zero;
+  int undatedOutCount = 0;
+  Money undatedIn = Money.zero;
+  int undatedInCount = 0;
+  Money overdueOut = Money.zero;
+  int overdueOutCount = 0;
+  Money overdueIn = Money.zero;
+  int overdueInCount = 0;
+  Money beyondOut = Money.zero;
+  int beyondOutCount = 0;
+  Money beyondIn = Money.zero;
+  int beyondInCount = 0;
+
+  /// File an amount the grid cannot take, on the correct side of the ledger.
+  void excluded(Money amount, bool isIncome, String bucket) {
+    switch (bucket) {
+      case 'undated':
+        if (isIncome) {
+          undatedIn += amount;
+          undatedInCount += 1;
+        } else {
+          undatedOut += amount;
+          undatedOutCount += 1;
+        }
+      case 'overdue':
+        if (isIncome) {
+          overdueIn += amount;
+          overdueInCount += 1;
+        } else {
+          overdueOut += amount;
+          overdueOutCount += 1;
+        }
+      default:
+        if (isIncome) {
+          beyondIn += amount;
+          beyondInCount += 1;
+        } else {
+          beyondOut += amount;
+          beyondOutCount += 1;
+        }
+    }
+  }
 
   /// Put one movement on one day, given how many days away it is.
   void placeOn(String label, Money amount, int days, bool isIncome) {
@@ -208,8 +302,7 @@ DailyProjection projectDailyCash({
     // but it is not a FUTURE movement and putting it on today would claim
     // money leaves today that may have left already. COUNTED, not dropped.
     if (days < 0) {
-      overdue += amount;
-      overdueCount += 1;
+      excluded(amount, isIncome, 'overdue');
       return;
     }
 
@@ -218,8 +311,7 @@ DailyProjection projectDailyCash({
     // would otherwise be shifted past the end and vanish, counted nowhere, on
     // a window the person themselves chose.
     if (days > horizonDays) {
-      beyond += amount;
-      beyondCount += 1;
+      excluded(amount, isIncome, 'beyond');
       return;
     }
 
@@ -272,8 +364,7 @@ DailyProjection projectDailyCash({
     final int? days = daysUntil(dueDate, today);
     if (days == null) {
       // Could not be read as a date. Counted separately, never dropped.
-      undated += amount;
-      undatedCount += 1;
+      excluded(amount, isIncome, 'undated');
       return;
     }
 
@@ -347,11 +438,9 @@ DailyProjection projectDailyCash({
       // past the window. Counted, never dropped.
       final Money each = minMoney(i.installmentAmount, i.runningBalance);
       if (nextInstallmentDate(i) == null) {
-        undated += each;
-        undatedCount += 1;
+        excluded(each, false, 'undated');
       } else {
-        beyond += each;
-        beyondCount += 1;
+        excluded(each, false, 'beyond');
       }
     }
   }
@@ -391,8 +480,7 @@ DailyProjection projectDailyCash({
 
     final int? firstIn = daysUntil(d.dueDate, today);
     if (firstIn == null) {
-      undated += min;
-      undatedCount += 1;
+      excluded(min, false, 'undated');
       continue;
     }
 
@@ -402,8 +490,7 @@ DailyProjection projectDailyCash({
       final int offset = when.difference(today).inDays;
       if (offset > horizonDays) {
         if (step == 0) {
-          beyond += min;
-          beyondCount += 1;
+          excluded(min, false, 'beyond');
         }
         break;
       }
@@ -495,11 +582,17 @@ DailyProjection projectDailyCash({
   return DailyProjection(
     openingBalance: opening,
     days: days,
-    undatedTotal: undated,
-    undatedCount: undatedCount,
-    overdueTotal: overdue,
-    overdueCount: overdueCount,
-    beyondHorizonTotal: beyond,
-    beyondHorizonCount: beyondCount,
+    undatedOutflow: undatedOut,
+    undatedOutflowCount: undatedOutCount,
+    undatedInflow: undatedIn,
+    undatedInflowCount: undatedInCount,
+    overdueOutflow: overdueOut,
+    overdueOutflowCount: overdueOutCount,
+    overdueInflow: overdueIn,
+    overdueInflowCount: overdueInCount,
+    beyondHorizonOutflow: beyondOut,
+    beyondHorizonOutflowCount: beyondOutCount,
+    beyondHorizonInflow: beyondIn,
+    beyondHorizonInflowCount: beyondInCount,
   );
 }

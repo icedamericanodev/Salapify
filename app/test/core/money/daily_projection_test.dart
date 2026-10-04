@@ -157,13 +157,100 @@ void main() {
 
       // DIRECTIONAL, per bucket, because the identity above is satisfied by
       // four empty buckets and an empty day grid.
-      expect(p.overdueTotal, const Money.pesos(3000));
-      expect(p.overdueCount, 1);
-      expect(p.undatedTotal, const Money.pesos(1500));
-      expect(p.undatedCount, 1);
-      expect(p.beyondHorizonTotal, const Money.pesos(4000));
-      expect(p.beyondHorizonCount, 1);
+      expect(p.overdueOutflow, const Money.pesos(3000));
+      expect(p.overdueOutflowCount, 1);
+      expect(p.undatedOutflow, const Money.pesos(1500));
+      expect(p.undatedOutflowCount, 1);
+      expect(p.beyondHorizonOutflow, const Money.pesos(4000));
+      expect(p.beyondHorizonOutflowCount, 1);
       expect(p.closingBalance, const Money.pesos(8000));
+    });
+
+    test('the footing is over OCCURRENCES, not over records', () {
+      // THE OLD FOOTING TEST WAS A STATEMENT ABOUT ITS FIXTURE. Its helper
+      // added each obligation exactly ONCE, which matched the engine only
+      // because every date in the fixture was a one-off ISO date. The
+      // recurrence change of 2026-10-04 made the engine place a day-of-month
+      // bill once per occurrence, so the two definitions quietly disagreed
+      // by a whole month's outgoings, and the test passed with the entire
+      // recurrence walk deleted.
+      //
+      // Stated in occurrences it is falsifiable: a 3,000 bill on the 20th in
+      // a 45 day window opened on 7 October falls on 20 October and 20
+      // November, so six thousand is accounted for and not three.
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Meralco', 3000, '20')],
+      );
+
+      expect(
+        <String>[
+          for (final ProjectedDay d in p.days)
+            if (d.events.isNotEmpty) d.date.toIso8601String().substring(0, 10),
+        ],
+        <String>['2026-10-20', '2026-11-20'],
+        reason: 'the engine must place the occurrences, not the record',
+      );
+      expect(p.accountedOutflow, const Money.pesos(6000));
+    });
+
+    test('an overdue SALARY is never counted as money leaving', () {
+      // The single worst figure this engine produced, and it was about to go
+      // on the card as the one line that must stay on screen so a person does
+      // not read a comfortable balance and draw a wrong conclusion.
+      //
+      // `placeOn` asked "is this in the past" before it ever asked "is this
+      // income", so an overdue sweldo landed in a bucket named "unpaid,
+      // dated, already in the past" and accountedOutflow added it as money
+      // going out. On the shipped seed at 18 September 2026 the figure read
+      // 42,987.80 across four items, of which 32,500 was the Sweldo Payday
+      // item. The real overdue outflow is 10,487.80.
+      final DailyProjection p = run(
+        bills: <BillItem>[bill('Meralco', 3000, '2026-09-30')],
+        upcoming: <UpcomingItem>[
+          UpcomingItem(
+            id: 'u_sweldo',
+            name: 'Sweldo',
+            amount: const Money.pesos(32500),
+            dueDate: '2026-09-30',
+            type: UpcomingItemType.payday,
+          ),
+        ],
+      );
+
+      expect(
+        p.overdueOutflow,
+        const Money.pesos(3000),
+        reason: 'only the bill is money leaving',
+      );
+      expect(p.overdueOutflowCount, 1);
+
+      // DIRECTIONAL: the salary is not dropped either, it is filed on the
+      // other side. Without this the test passes on an engine that throws
+      // overdue income away, which is the opposite defect.
+      expect(p.overdueInflow, const Money.pesos(32500));
+      expect(p.overdueInflowCount, 1);
+      expect(
+        p.accountedOutflow,
+        const Money.pesos(3000),
+        reason: 'the footing sum must not carry a salary in it',
+      );
+    });
+
+    test('and the same split holds past the end of the window', () {
+      final DailyProjection p = run(
+        upcoming: <UpcomingItem>[
+          UpcomingItem(
+            id: 'u_bonus',
+            name: '13th month',
+            amount: const Money.pesos(50000),
+            dueDate: '2026-12-20',
+            type: UpcomingItemType.payday,
+          ),
+        ],
+      );
+      expect(p.beyondHorizonOutflow, Money.zero);
+      expect(p.beyondHorizonInflow, const Money.pesos(50000));
+      expect(p.accountedOutflow, Money.zero);
     });
 
     test('a bill due on the LAST day of the window stays in it', () {
@@ -180,7 +267,7 @@ void main() {
             'the person entered it inside the window they asked about, and a '
             'bank holiday is not a reason for it to disappear',
       );
-      expect(p.beyondHorizonCount, 0);
+      expect(p.beyondHorizonOutflowCount, 0);
     });
 
     test('the OLD assertion, kept, and labelled as the identity it is', () {
@@ -267,7 +354,11 @@ void main() {
         bills: <BillItem>[bill('Old', 500, '2026-09-01')],
       );
       expect(p.days.first.moneyOut, Money.zero);
-      expect(p.undatedCount, 0, reason: 'overdue is dated, just behind us');
+      expect(
+        p.undatedOutflowCount,
+        0,
+        reason: 'overdue is dated, just behind us',
+      );
     });
   });
 
@@ -396,7 +487,11 @@ void main() {
 
     test('every instalment inside the window is placed, by date', () {
       final DailyProjection p = run(installments: <InstallmentPlan>[plan()]);
-      expect(p.undatedCount, 0, reason: 'the app knows exactly when these are');
+      expect(
+        p.undatedOutflowCount,
+        0,
+        reason: 'the app knows exactly when these are',
+      );
       expect(
         <String>[
           for (final ProjectedDay d in p.days)
@@ -416,8 +511,8 @@ void main() {
           plan(start: 'sometime', paid: 0, balance: const Money.pesos(6000)),
         ],
       );
-      expect(p.undatedTotal, const Money.pesos(2000));
-      expect(p.undatedCount, 1);
+      expect(p.undatedOutflow, const Money.pesos(2000));
+      expect(p.undatedOutflowCount, 1);
       expect(p.closingBalance, const Money.pesos(10000));
     });
   });
@@ -430,8 +525,8 @@ void main() {
           bill('Meralco', 2000, '2026-10-09'),
         ],
       );
-      expect(p.undatedTotal, const Money.pesos(1500));
-      expect(p.undatedCount, 1);
+      expect(p.undatedOutflow, const Money.pesos(1500));
+      expect(p.undatedOutflowCount, 1);
       expect(
         p.closingBalance,
         p.openingBalance - const Money.pesos(2000),
@@ -535,7 +630,7 @@ void main() {
     );
     expect(p.days.every((ProjectedDay d) => d.moneyOut.isZero), isTrue);
     expect(
-      p.undatedTotal,
+      p.undatedOutflow,
       Money.zero,
       reason: 'it is not undated either, it is simply not theirs to pay',
     );
@@ -656,6 +751,6 @@ void main() {
 
     // The seed has instalments, which carry no due date, so the engine must
     // be reporting them as undated rather than quietly skipping them.
-    expect(p.undatedCount, greaterThan(0));
+    expect(p.undatedOutflowCount, greaterThan(0));
   });
 }
