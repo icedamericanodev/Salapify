@@ -225,7 +225,15 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
               ),
               BreakdownRow(
                 palette: p,
-                label: 'Emergency buffer',
+                // "SURPRISE", NOT "EMERGENCY", and the rename is the point.
+                // This is the engine's synthetic 5 or 15 percent holdback,
+                // which exists whether or not the person has saved anything.
+                // Now that an account can genuinely be set aside as an
+                // emergency fund, calling both of them the emergency buffer
+                // showed two different things under one name on one screen.
+                // The golden-locked field keeps its name; only the label
+                // moves.
+                label: 'Surprise buffer',
                 value: formatPeso(a.emergencyBuffer.pesos),
               ),
               Divider(height: Spacing.lg, color: p.border),
@@ -379,14 +387,51 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
           style: AppType.body(p),
         ),
         const SizedBox(height: Spacing.lg),
-        _step(
-          p,
-          '1',
-          'Add up liquid cash',
-          'Cash, GCash, Maya, banks and debit. Investments, receivables and '
-              'anything you can borrow are left out.',
-          formatPeso(a.totalLiquidCash.pesos),
-        ),
+        // STEP 1 CHANGES SHAPE when anything is set aside, because the old
+        // sentence becomes false. It used to end at "Cash, GCash, Maya,
+        // banks and debit", which stops being the whole story the moment a
+        // person protects an account, and a step that quietly lies is worse
+        // than one that is long.
+        //
+        // The second figure is a FIGURE, so under the house rule it stays on
+        // the screen rather than going behind the dot. What goes behind the
+        // dot is why protected money still counts in the runway.
+        if (a.protectedCash.isZero)
+          _step(
+            p,
+            '1',
+            'Add up spendable cash',
+            'Cash, GCash, Maya, banks and debit. Investments, receivables '
+                'and anything you can borrow are left out.',
+            formatPeso(a.totalLiquidCash.pesos),
+          )
+        else ...<Widget>[
+          _step(
+            p,
+            '1',
+            'Add up spendable cash',
+            'Cash, GCash, Maya, banks and debit, minus '
+                '${formatPeso(a.protectedCash.pesos)} you have set aside. '
+                'Investments, receivables and anything you can borrow are '
+                'left out.',
+            formatPeso((a.totalLiquidCash - a.protectedCash).pesos),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(
+              left: Spacing.xl,
+              bottom: Spacing.sm,
+            ),
+            child: Text(
+              // Reassurance, on the screen and not behind the dot, for the
+              // same reason the save confirmation carries it: somebody
+              // looking at a figure that dropped is not in the mood to go
+              // hunting for the explanation.
+              'Money set aside is still yours and still in your net worth. '
+              'It just does not fund today.',
+              style: AppType.caption(p),
+            ),
+          ),
+        ],
         _step(
           p,
           '2',
@@ -413,17 +458,22 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
         _step(
           p,
           '5',
-          'Hold back an emergency buffer',
+          'Hold back a surprise buffer',
           conservative
-              ? '15% of liquid cash in the conservative scenario.'
-              : '5% of liquid cash in the optimistic scenario.',
+              ? '15% of spendable cash in the conservative scenario.'
+              : '5% of spendable cash in the optimistic scenario.',
           formatPeso(a.emergencyBuffer.pesos),
         ),
         _step(
           p,
           '6',
           'What is left is uncommitted',
-          'Liquid cash minus everything reserved above.',
+          // "Spendable", matching step 1. It said "liquid cash", which was
+          // the same word step 1 used before P2.3 and became wrong with it:
+          // the figure on this row is spendable cash less the reserves, and
+          // a person checking the arithmetic would find step 1's number did
+          // not match the words on step 6.
+          'Spendable cash minus everything reserved above.',
           // ADDED AS MONEY, then rendered. This line is the sheet's own
           // arithmetic rather than the engine's, and it is the one figure
           // here that is a sum of two others, so it is the one that could

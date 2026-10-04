@@ -140,6 +140,19 @@ class SeedData {
       monogram: 'MY',
       interestRate: 6.0,
       isSample: true,
+      // THE ONE PROTECTED ACCOUNT IN THE DEMO, and one is deliberate.
+      //
+      // The sample ledger has two savings-named accounts. Protecting both
+      // takes Safe to Spend until payday from 38,414 to 9,838, a 74 percent
+      // fall, which to somebody who installed the app ten seconds ago reads
+      // as a broken app rather than as a lesson. This one alone teaches the
+      // idea at 29 percent.
+      //
+      // MariBank Digital Savings below is left spendable ON PURPOSE, as a
+      // live example that Salapify does not guess this for you: two accounts
+      // with Savings in the name, sitting side by side, one set aside and one
+      // not, because the person decides and not the app.
+      purpose: AccountPurpose.protected,
     ),
     Account(
       id: 'acc_bpi',

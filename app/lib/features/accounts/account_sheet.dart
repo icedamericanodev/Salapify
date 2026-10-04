@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/money/accounts.dart';
 import '../../core/money/currencies.dart';
+import '../../core/money/format.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -62,6 +63,7 @@ class _AccountSheetState extends State<AccountSheet> {
   late final TextEditingController _statement;
 
   late AccountKind _kind;
+  late AccountPurpose _purpose;
   late String _institution;
   late CurrencyCode _currency;
   late ProfileEntity? _profile;
@@ -105,6 +107,11 @@ class _AccountSheetState extends State<AccountSheet> {
   bool get _isEditing => widget.existing != null;
   bool get _isCard => _kind == AccountKind.credit || _kind == AccountKind.debit;
 
+  /// Whether "what this money is for" means anything for the kind now picked.
+  /// Mirrors `Account.purposeApplies`, read off the live picker rather than
+  /// off a saved account, because the kind can change inside this sheet.
+  bool get _purposeApplies => liquidKinds.contains(_kind);
+
   @override
   void initState() {
     super.initState();
@@ -130,6 +137,10 @@ class _AccountSheetState extends State<AccountSheet> {
     _profile = e?.profile ?? ProfileEntity.personal;
     _network = e?.cardNetwork ?? CardNetwork.none;
     _tier = e?.cardTier ?? CardTier.regular;
+    // SPENDABLE for anything new, always, and never guessed from the name or
+    // the kind. See the note on Account.purpose for why: "Maya Savings" is
+    // the product name of a wallet millions spend from daily.
+    _purpose = e?.purpose ?? AccountPurpose.spendable;
   }
 
   /// A balance in the box the way somebody would type it, without the grouping
@@ -268,6 +279,40 @@ class _AccountSheetState extends State<AccountSheet> {
             hint: '0.00',
             prefix: '${currencySymbols[_currency]} ',
           ),
+          // WHAT THIS MONEY IS FOR, and only where the answer does anything.
+          //
+          // A credit card, a loan, a mortgage, an investment or a receivable
+          // is never spendable cash to begin with, so the control would be
+          // inert there, and a control that does nothing teaches people the
+          // controls do nothing.
+          if (_purposeApplies) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            _Label(palette: p, text: 'What this money is for'),
+            SegmentedChoice<AccountPurpose>(
+              key: const Key('account-purpose'),
+              palette: p,
+              options: const <(AccountPurpose, String)>[
+                (AccountPurpose.spendable, 'Spending'),
+                // "Set aside", NOT "Savings". Half this audience keeps their
+                // payroll in a product with Savings in the name, and would
+                // tick the wrong one reading the word rather than the
+                // meaning.
+                (AccountPurpose.protected, 'Set aside'),
+              ],
+              selected: _purpose,
+              onSelect: (AccountPurpose v) => setState(() => _purpose = v),
+            ),
+            const SizedBox(height: Spacing.xs),
+            Text(
+              // Both halves matter. The first is the point of the feature;
+              // the second is what stops it reading as "the app took my
+              // money away", which is exactly how a silent drop in the
+              // headline lands.
+              'Money set aside still counts in your net worth, but it stops '
+              'counting as Safe to Spend.',
+              style: AppType.caption(p),
+            ),
+          ],
           if (_isCard) ...<Widget>[
             const SizedBox(height: Spacing.lg),
             // FOUR DIGITS, ENFORCED, not merely requested.
@@ -446,7 +491,16 @@ class _AccountSheetState extends State<AccountSheet> {
       cardNetwork: _isCard ? _network : CardNetwork.none,
       cardTier: _isCard ? _tier : CardTier.regular,
       notes: widget.existing?.notes,
+      // Forced back to spendable when the kind cannot hold the idea, so
+      // switching an account from GCash to Credit cannot leave an invisible
+      // "set aside" behind that comes back if it is switched to GCash again.
+      purpose: _purposeApplies ? _purpose : AccountPurpose.spendable,
     );
+
+    // CAPTURED BEFORE THE WRITE, because the getter recomputes on every read
+    // and will already be the new figure a line later.
+    final Money before = widget.state.safeToSpendAnalysis.safeToSpendToday;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
 
     if (_isEditing) {
       widget.state.updateAccount(account);
@@ -454,7 +508,54 @@ class _AccountSheetState extends State<AccountSheet> {
       widget.state.addAccount(account);
     }
 
+    _sayWhatChanged(messenger, account, before);
+
     Navigator.of(context).pop();
+  }
+
+  /// Tell the person their headline just moved, and why, and what did not.
+  ///
+  /// A drop of a quarter or more in the one figure somebody reads first,
+  /// arriving at the exact moment they did something sensible, is
+  /// indistinguishable from the app losing their money. It was measured on
+  /// the sample ledger at 29 percent for one account and 74 percent for two.
+  ///
+  /// So the rule from CLAUDE.md applies at its strongest here: a figure, and
+  /// the line needed to read it, stay on the screen. Both numbers go in, and
+  /// so does the reassurance, in the same breath rather than behind a dot,
+  /// because somebody alarmed does not go hunting for comfort.
+  void _sayWhatChanged(
+    ScaffoldMessengerState messenger,
+    Account saved,
+    Money before,
+  ) {
+    // Only when the person actually changed this. Editing a name should not
+    // lecture anybody about Safe to Spend.
+    final AccountPurpose was =
+        widget.existing?.purpose ?? AccountPurpose.spendable;
+    if (saved.purpose == was) return;
+
+    final Money after = widget.state.safeToSpendAnalysis.safeToSpendToday;
+    if (after == before) return;
+
+    final bool nowProtected = saved.purpose == AccountPurpose.protected;
+    final String headline = nowProtected
+        ? '${formatPeso(saved.balanceInPhp.pesos)} is now set aside, so Safe '
+              'to Spend today goes from ${formatPeso(before.pesos)} to '
+              '${formatPeso(after.pesos)}.'
+        : '${formatPeso(saved.balanceInPhp.pesos)} is back in your spending '
+              'money, so Safe to Spend today goes from '
+              '${formatPeso(before.pesos)} to ${formatPeso(after.pesos)}.';
+
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Text(
+          '$headline Your net worth has not changed and you can still pay '
+          'from this account.',
+        ),
+      ),
+    );
   }
 }
 

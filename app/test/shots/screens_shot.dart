@@ -1731,6 +1731,158 @@ void main() {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // P2.3, protected accounts. Three surfaces, none of which any existing
+  // shot reaches.
+  // ---------------------------------------------------------------------
+
+  // The "what this money is for" picker. It needs its own shot because it
+  // sits BELOW the balance field, and `sheet_add_account_plain` stops at
+  // the balance: the one picture anybody reviews would not contain the
+  // control being reviewed.
+  testWidgets('sheet account purpose renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Opened on the account that actually carries the flag, so the picture
+    // shows the control in its SET state rather than its default. A shot of
+    // a control nobody has touched proves only that it renders.
+    AccountSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette: palette,
+      state: state,
+      existing: state.accounts.firstWhere((Account a) => a.id == 'acc_maya'),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -900),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_account_purpose.png'),
+    );
+  });
+
+  // The one-time review card. It needs a ledger the card would actually
+  // appear on: two real liquid accounts, nothing protected yet, which is
+  // exactly the shape every existing user is in on the day this ships.
+  testWidgets('accounts set aside review renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await state.deleteEverything();
+    await tester.pumpAndSettle();
+    state.addAccount(
+      const Account(
+        id: 'own_gcash',
+        name: 'GCash',
+        kind: AccountKind.gcash,
+        institution: 'GCash',
+        balance: Money.pesos(4200),
+        monogram: 'GC',
+      ),
+    );
+    state.addAccount(
+      const Account(
+        id: 'own_gsave',
+        name: 'GSave',
+        kind: AccountKind.gcash,
+        institution: 'GCash',
+        balance: Money.pesos(60000),
+        monogram: 'GS',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Accounts').last);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/accounts_set_aside_review.png'),
+    );
+  });
+
+  // Step 1 of the Safe to Spend audit, which is the sentence that goes
+  // FALSE the day anything is set aside. It lives behind the sheet's own
+  // Audit & Math tab and below the fold, so no existing shot reaches it.
+  testWidgets('sheet safe_to_spend audit renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    SafeToSpendSheet.show(tester.element(find.byType(AppShell)), state);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Audit & Math'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_safe_to_spend_audit.png'),
+    );
+  });
+
   // The debt register, both directions, at both brightnesses. It is a pushed
   // screen rather than a tab, so the harness reaches it the way a person does:
   // through the beam on Home.

@@ -205,13 +205,21 @@ List<ControlCenterAlert> runControlCenterScan({
   // 7. Liquid cash under 5,000. Note this set is NOT the same as the Safe to
   //    Spend engine's liquid set: it leaves out debit accounts. The difference
   //    is the prototype's and is preserved.
+  //
+  //    AND money the person has SET ASIDE is left out too, which is P2.3.
+  //    This file does not call `isLiquid`, it types the kinds out again, so
+  //    it was the one place the protected-accounts fix could have been missed
+  //    entirely. It drives the loudest alarm the app has: without this line,
+  //    somebody with 50,000 in GSave and 400 in their spending wallet gets no
+  //    shortfall warning at all, because the app can see 50,400 of "cash".
   final double liquidCash = accounts
       .where(
         (Account a) =>
-            a.kind == AccountKind.cash ||
-            a.kind == AccountKind.bank ||
-            a.kind == AccountKind.gcash ||
-            a.kind == AccountKind.maya,
+            (a.kind == AccountKind.cash ||
+                a.kind == AccountKind.bank ||
+                a.kind == AccountKind.gcash ||
+                a.kind == AccountKind.maya) &&
+            a.purpose != AccountPurpose.protected,
       )
       .fold<double>(0, (double s, Account a) => s + a.balance.pesos);
 
