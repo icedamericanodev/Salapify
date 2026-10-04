@@ -1409,67 +1409,73 @@ _academyFor(String q) {
 /// their situation, which is the thing Salapify is not licensed to give.
 /// Keep it that way: no facts parameter, ever.
 PanAnswer _lesson(CourseModule course, List<LessonSection> ranked) {
-  const String frame =
-      'Here is how the Salapify Academy explains it. General knowledge, not '
-      'regulated tax, legal or investment advice.';
-
   final LessonSection? usable = ranked
       .where((LessonSection s) => safeForPan(s.content))
       .firstOrNull;
 
-  final List<String> takeaways = course.keyTakeaways
-      .where(safeForPan)
-      .take(3)
-      .toList();
+  // TAKEAWAYS ONLY WHEN A PASSAGE COULD BE QUOTED, objectives only when it
+  // could not, and never both. The two branches say different things on
+  // purpose: one is answering the question, the other is declining to and
+  // pointing at the course instead.
+  //
+  // Mixing them is a regression in caution rather than a tidy-up, and the
+  // first draft of this rewrite did exactly that. Each takeaway passes
+  // safeForPan on its own, so nothing unsafe escapes, but the unquotable
+  // branch exists BECAUSE that course names particular places to put money
+  // and quotes rates of return. Emitting its takeaways there widens what
+  // Pan says about precisely the courses it has decided not to read out.
+  final List<String> takeaways = usable == null
+      ? const <String>[]
+      : course.keyTakeaways.where(safeForPan).take(3).toList();
 
-  final StringBuffer b = StringBuffer(frame);
+  final List<String> aims = usable != null
+      ? const <String>[]
+      : course.objectives.where(safeForPan).take(2).toList();
 
-  if (usable != null) {
-    b.write('\n\n${usable.content}');
-    if (takeaways.isNotEmpty) {
-      b.write('\n\nWorth remembering:');
-      for (final String t in takeaways) {
-        b.write('\n  $t');
-      }
-    }
-    b.write(
-      '\n\nThat is from the course "${course.title}", on the Plan tab. It '
-      'runs about ${course.durationMinutes} minutes.',
-    );
-  } else {
-    // Nothing in the course can be read out. Point at it rather than go
-    // quiet: the course still answers the question, in a place where the
-    // reader gets the whole chapter and the notice above it.
-    b.write(
-      '\n\nThe Academy covers this in "${course.title}", on the Plan tab, in '
-      'about ${course.durationMinutes} minutes.',
-    );
-    final List<String> aims = course.objectives
-        .where(safeForPan)
-        .take(2)
-        .toList();
-    if (aims.isNotEmpty) {
-      b.write('\n\nWhat it sets out to do:');
-      for (final String o in aims) {
-        b.write('\n  $o');
-      }
-    }
-    b.write(
-      '\n\nPan does not read that lesson out here, because parts of it name '
-      'particular places to put money and quote rates of return. Those '
-      'belong in the lesson, with the rest of the chapter around them, not '
-      'in a one line answer.',
-    );
-  }
-
+  // The lesson CONTENT leads, where the frame sentence used to. The course
+  // text was buried under a disclaimer paragraph and then followed by a
+  // hand-rolled list, so an answer to "what is MP2" opened with two
+  // sentences about what the answer is not.
+  //
+  // THE DISCLAIMER IS STILL FIRST ON SCREEN, as the badge, which renders
+  // above the body. It is deliberately NOT thinned to match the standing
+  // trailer below it, even though the two overlap and a content review
+  // called that duplication. The trailer says "not advice about your own
+  // money"; this one names tax, legal and investment specifically, and
+  // these lessons cover BIR filing and government savings programmes.
+  // Narrowing a tax and legal disclaimer is a call for the policy lens,
+  // not a tidy-up, so the overlap stays until somebody with that lens
+  // says otherwise.
   return PanAnswer(
     topic: 'academy:${course.id}',
+    badge: 'Academy, general knowledge, not tax, legal or investment advice',
+    text:
+        usable?.content ??
+        'The Academy covers this in "${course.title}", on the Plan tab, in '
+            'about ${course.durationMinutes} minutes.',
+    points: <String>[
+      ...takeaways,
+      ...aims,
+      // Attribution stays VISIBLE rather than going behind the More tap.
+      // It is one line, it is what lets somebody judge where the answer
+      // came from, and `more` does not survive a restart.
+      if (usable != null)
+        'From the course "${course.title}", on the Plan tab, about '
+            '${course.durationMinutes} minutes.',
+    ],
+    // Read once and then never again: Salapify explaining its own content
+    // filter to somebody who asked what an emergency fund is.
+    more: usable != null
+        ? null
+        : 'Pan does not read that lesson out here, because parts of it name '
+              'particular places to put money and quote rates of return. '
+              'Those belong in the lesson, with the rest of the chapter '
+              'around them, not in a one line answer.',
     // Every lesson touches money, so every one carries the trailer. That is
     // not wallpaper here: a person reading an explanation of a government
     // savings programme is exactly who needs to know it is not a nudge to
     // use one.
     aboutMoney: true,
-    text: b.toString(),
     // The way to the lesson itself, and it matters most in the case where
     // nothing could be quoted. Telling somebody what Pan will not read out,
     // with no way to go and read it, is a dead end dressed as an answer.
@@ -1775,15 +1781,25 @@ PanAnswer _nothingYet(String what) => PanAnswer(
 /// It says what Pan IS rather than only what it is not, because "I do not
 /// understand" from an assistant reads as a broken app, and because the real
 /// answer is usually one of a short list a person has not thought to ask for.
+/// Twelve lines of prose for "I did not understand you", and the second
+/// paragraph was a list of things Pan can answer, written out in prose,
+/// directly above four TAPPABLE chips offering the same thing. A list you
+/// cannot tap, competing with a list you can, is the clearest case in the
+/// file of words doing work the layout already does.
+///
+/// The failure itself is the one moment a person is most likely to give up
+/// on an assistant, so what they need is the shortest possible route back
+/// to something that works, not an essay about how the matcher works.
 PanAnswer _dontKnow(PanFacts facts) => PanAnswer(
   topic: 'unknown',
-  text:
-      'Pan did not recognise that one. It works by matching what you ask '
-      'against a set of built-in answers and doing arithmetic on the figures '
-      'you have typed in. There is no AI model and nothing leaves your phone, '
-      'which is also why it can be a bit literal.\n\n'
-      'It can tell you what you hold, what is safe to spend, where the month '
-      'went, what you owe and what is owed to you, what is due, how your '
-      'goals and budgets stand, and how any part of Salapify works.',
+  text: 'Pan did not recognise that one.',
+  points: <String>[
+    'It matches what you ask against built-in answers and does arithmetic '
+        'on the figures you typed in. No AI model, nothing leaves your '
+        'phone, which is also why it can be a bit literal.',
+    'Try one of the questions below, or ask what you hold, what is safe to '
+        'spend, what you owe, what is due, or how any part of Salapify '
+        'works.',
+  ],
   followUps: panStarters.take(4).toList(),
 );
