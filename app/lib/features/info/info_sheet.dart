@@ -1009,6 +1009,17 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'that quietly left a bill out is worse than one that admits it.',
       ),
       InfoPoint(
+        icon: Icons.history_toggle_off_outlined,
+        title: 'Money already late is not on the calendar',
+        body:
+            'This card looks forward, so a bill whose due date has passed has '
+            'no day left to sit on. It is not forgotten and it is not paid: '
+            'it moves to the not-counted line, with its amount, so you can '
+            'see that your real position is tighter than the day-by-day '
+            'figure above. Give it a new due date and it rejoins the '
+            'calendar.',
+      ),
+      InfoPoint(
         icon: Icons.account_balance_outlined,
         title: 'Bills wait for a banking day',
         body:
