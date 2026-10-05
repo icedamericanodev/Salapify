@@ -1,3 +1,4 @@
+import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/format.dart';
@@ -90,11 +91,6 @@ void main() {
   Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balance.pesos,
-  );
-
   testWidgets('logging a spend moves the money AND shows up where a person '
       'would look for it', (WidgetTester tester) async {
     await pumpApp(tester);
@@ -177,7 +173,7 @@ void main() {
       await pumpApp(tester);
       final FinancialState state = storeOf(tester);
 
-      final double netBefore = netWorthOf(state);
+      final Money netBefore = netWorthOf(state);
       final Money bpiBefore = balanceOf(state, 'acc_bpi');
       final Money gcashBefore = balanceOf(state, 'acc_gcash');
 

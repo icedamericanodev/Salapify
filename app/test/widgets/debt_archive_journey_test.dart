@@ -1,3 +1,5 @@
+import 'package:salapify/core/money/money.dart';
+import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/models/models.dart';
@@ -51,10 +53,6 @@ void main() {
       tester.widget<DebtScreen>(find.byType(DebtScreen)).state;
 
   /// Same shape the bills journey uses, so the two agree on the word.
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balance.pesos,
-  );
 
   testWidgets('a debt with money against it offers no delete, and the card '
       'stays clean', (WidgetTester tester) async {
@@ -270,7 +268,7 @@ void main() {
 
     final double owedBefore = store.debtsIOwe;
     final int entriesBefore = store.transactions.length;
-    final double netBefore = netWorthOf(store);
+    final Money netBefore = netWorthOf(store);
 
     await reach(tester, find.text('Archive it').first);
     await tapAndSettle(tester, find.text('Archive it').first);

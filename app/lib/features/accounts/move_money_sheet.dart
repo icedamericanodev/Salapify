@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/money/format.dart';
-import '../../core/money/reports.dart' show assetKinds;
+import '../../core/money/reports.dart' show assetKinds, liabilityKinds;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -102,16 +102,50 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   ///
   /// Receivables come out as well. Money owed TO you is not somewhere you can
   /// send money, and recording a repayment is the Debt screen's job too.
-  List<Account> get _movable => widget.state.accounts
+  /// WHERE MONEY CAN LEAVE FROM. Unchanged: things you own, minus
+  /// receivables.
+  List<Account> get _sources => widget.state.accounts
       .where(
         (Account a) =>
             assetKinds.contains(a.kind) && a.kind != AccountKind.receivable,
       )
       .toList();
 
+  /// WHERE MONEY CAN ARRIVE. The sources, plus everything you OWE.
+  ///
+  /// This is how a credit card finally gets paid, and it opened on 2026-10-05
+  /// rather than earlier because until then the engine would have got it
+  /// backwards. `signedDelta` now reads the account's kind on both legs, so a
+  /// transfer into a liability subtracts from what is owed, which is what the
+  /// person meant all along. All one hundred source-to-destination pairs are
+  /// asserted in `test/core/money/balance_direction_test.dart`.
+  ///
+  /// RECEIVABLES STAY OUT OF BOTH ENDS, and that half of the old rule is
+  /// still true: money owed TO you is not somewhere you can send money, and
+  /// recording a repayment is the Debt screen's job.
+  ///
+  /// Derived from `liabilityKinds` rather than typed out, for the reason the
+  /// source list already gives: a typed list is a second copy of a decision
+  /// and the two drift.
+  List<Account> get _destinations => widget.state.accounts
+      .where(
+        (Account a) =>
+            (assetKinds.contains(a.kind) && a.kind != AccountKind.receivable) ||
+            liabilityKinds.contains(a.kind),
+      )
+      .toList();
+
   Account? get _from =>
-      _movable.where((Account a) => a.id == _fromId).firstOrNull;
-  Account? get _to => _movable.where((Account a) => a.id == _toId).firstOrNull;
+      _sources.where((Account a) => a.id == _fromId).firstOrNull;
+  Account? get _to =>
+      _destinations.where((Account a) => a.id == _toId).firstOrNull;
+
+  /// True when this move is a payment against something owed rather than a
+  /// move between two pockets. It changes the words, never the arithmetic.
+  bool get _paysDebt {
+    final Account? to = _to;
+    return to != null && liabilityKinds.contains(to.kind);
+  }
 
   @override
   void initState() {
@@ -119,7 +153,10 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
     // The store's clock, not DateTime.now(), so a test can pin today and so
     // the date shown here agrees with every other date in the app.
     _date = widget.state.now;
-    final List<Account> accounts = _movable;
+    // The default DESTINATION comes from the sources, not from every
+    // possible destination: opening the sheet already pointing at a credit
+    // card would make paying one the default move, which it is not.
+    final List<Account> accounts = _sources;
     _fromId = accounts.isNotEmpty ? accounts.first.id : null;
     _toId = accounts.length > 1 ? accounts[1].id : null;
   }
@@ -204,6 +241,26 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   String? get _warning {
     final Account? from = _from;
     if (from == null || _value <= 0) return null;
+
+    // PAYING MORE THAN IS OWED, which became reachable the day this sheet
+    // started offering liabilities. A warning and never a refusal, for the
+    // reason the paragraph above gives: somebody whose stored balance is
+    // stale, or who is recording a payment that already left their bank, has
+    // every right to record it.
+    //
+    // The extra is not an error to round away. A card in credit is real
+    // money the bank is holding, and `Money` keeps the sign, so the figure
+    // stays correct even though it is unusual.
+    final Account? to = _to;
+    if (to != null &&
+        liabilityKinds.contains(to.kind) &&
+        Money.fromDouble(_value) > to.balance) {
+      return 'That is '
+          '${formatPeso((Money.fromDouble(_value) - to.balance).pesos)} more '
+          'than you owe on ${to.name}. The extra stays on the card as money '
+          'the bank is holding for you.';
+    }
+
     if (from.kind == AccountKind.cash) return null;
     if (from.balance >= Money.fromDouble(_value)) return null;
     return 'This takes ${from.name} below zero, to '
@@ -267,9 +324,13 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   @override
   Widget build(BuildContext context) {
     final Palette p = widget.palette;
-    final List<Account> accounts = _movable;
+    // THE EMPTY STATE IS JUDGED ON DESTINATIONS, which is wider than sources
+    // now. Somebody holding one bank account and one credit card can pay the
+    // card, so this sheet has work to do for them, where before it would have
+    // told them to go and add a second account.
+    final List<Account> accounts = _destinations;
 
-    if (accounts.length < 2) {
+    if (accounts.length < 2 || _sources.isEmpty) {
       return SheetScaffold(
         palette: p,
         icon: Icons.swap_horiz,
@@ -312,37 +373,50 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
           _AccountPicker(
             palette: p,
             label: 'Money leaves',
-            accounts: accounts,
+            accounts: _sources,
             selected: _fromId,
             onChanged: (String v) => setState(() {
               _fromId = v;
             }),
           ),
           const SizedBox(height: Spacing.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Semantics(
-              button: true,
-              label: 'Swap the two accounts',
-              child: InkWell(
-                onTap: _swap,
-                borderRadius: BorderRadius.circular(Radii.control),
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
+          // THE SWAP DISAPPEARS WHEN THE DESTINATION IS SOMETHING YOU OWE,
+          // because the reverse of paying a card is taking a cash advance on
+          // it, and Salapify does not record one. A cash advance carries its
+          // own fee and its own interest clock, usually from the day it is
+          // taken rather than from the statement date, and an app that let
+          // somebody log one as a plain transfer would be quietly
+          // understating what it costs. A control that produces a wrong entry
+          // is worse than no control.
+          if (!_paysDebt) ...<Widget>[
+            Align(
+              alignment: Alignment.centerRight,
+              child: Semantics(
+                button: true,
+                label: 'Swap the two accounts',
+                child: InkWell(
+                  onTap: _swap,
+                  borderRadius: BorderRadius.circular(Radii.control),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(Icons.swap_vert, size: 20, color: p.accent),
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(Icons.swap_vert, size: 20, color: p.accent),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: Spacing.xs),
+            const SizedBox(height: Spacing.xs),
+          ] else
+            const SizedBox(height: Spacing.sm),
           _AccountPicker(
             palette: p,
-            label: 'Money arrives',
-            accounts: accounts,
+            // The label carries the whole difference. "Money arrives" is
+            // wrong for a card: nothing arrives anywhere, a debt gets smaller.
+            label: _paysDebt ? 'Pays down' : 'Money arrives',
+            accounts: _destinations,
             selected: _toId,
             onChanged: (String v) => setState(() {
               _toId = v;
@@ -432,8 +506,10 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
           const SizedBox(height: Spacing.lg),
           PrimaryButton(
             palette: p,
-            label: 'Move it',
-            icon: Icons.swap_horiz,
+            // "Pay it", never "Pay it off", which promises the balance
+            // reaches zero and is wrong for every partial payment.
+            label: _paysDebt ? 'Pay it' : 'Move it',
+            icon: _paysDebt ? Icons.credit_score : Icons.swap_horiz,
             onTap: blocker == null ? _save : null,
           ),
           const SizedBox(height: Spacing.sm),
@@ -450,6 +526,17 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
             // rather than left to wonder whether it saved.
             blocker != null && !blocker.isMistake
                 ? blocker.message
+                : _paysDebt
+                // BOTH HALVES STOP A WRONG CONCLUSION, so both stay on the
+                // screen rather than going behind a dot. The first answers
+                // "am I poorer now", which somebody sending 5,000 away
+                // reasonably wonders. The second answers "why did my spending
+                // not go up", which they will check next. Paying a debt is
+                // the one money movement that feels like spending and is not:
+                // less cash and less owed, by exactly the same amount.
+                ? 'Your net worth does not change. Less cash, and less owed '
+                      'by exactly the same amount. This is not spending, so '
+                      'it will not appear in what you spent this month.'
                 : 'Your net worth does not change. This is not spending, so '
                       'it will not appear in what you spent this month.',
             style: AppType.caption(p),

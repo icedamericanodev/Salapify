@@ -9,6 +9,7 @@
 // in Activity to explain anything. Every test was green the whole time,
 // because every test asked whether the flag flipped.
 
+import '../support/net_worth.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,11 +42,6 @@ void main() {
 
   Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
-
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balance.pesos,
-  );
 
   Future<void> openBills(WidgetTester tester) async {
     await tapIt(
@@ -122,7 +118,7 @@ void main() {
         (UpcomingItem u) => u.name.contains('Meralco'),
       );
       final Money gcashBefore = balanceOf(state, 'acc_gcash');
-      final double worthBefore = netWorthOf(state);
+      final Money worthBefore = netWorthOf(state);
 
       await openBills(tester);
       await tapIt(tester, payTick(meralco.id));
@@ -133,7 +129,7 @@ void main() {
         gcashBefore - meralco.amount,
         reason: 'the chosen account did not fall by the bill',
       );
-      expect(netWorthOf(state), worthBefore - meralco.amount.pesos);
+      expect(netWorthOf(state), worthBefore - meralco.amount);
     });
 
     testWidgets('cancelling the dialog pays nothing', (
@@ -145,7 +141,7 @@ void main() {
       final UpcomingItem meralco = state.upcoming.firstWhere(
         (UpcomingItem u) => u.name.contains('Meralco'),
       );
-      final double worthBefore = netWorthOf(state);
+      final Money worthBefore = netWorthOf(state);
       final int rowsBefore = state.transactions.length;
 
       await openBills(tester);
@@ -281,7 +277,7 @@ void main() {
       WidgetTester tester,
     ) async {
       final FinancialState state = await pumpApp(tester);
-      final double worthBefore = netWorthOf(state);
+      final Money worthBefore = netWorthOf(state);
 
       await openBills(tester);
       await tapIt(tester, find.text('Schedule a bill'));

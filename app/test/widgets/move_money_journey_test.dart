@@ -13,6 +13,7 @@
 // statement. Every invariant below is paired with a DIRECTIONAL one naming
 // which account went down and which went up.
 
+import '../support/net_worth.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,11 +48,6 @@ void main() {
 
   Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
-
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balance.pesos,
-  );
 
   Future<void> openMove(WidgetTester tester) async {
     await tapIt(
@@ -145,7 +141,7 @@ void main() {
     ) async {
       final FinancialState state = await pumpApp(tester);
 
-      final double worthBefore = netWorthOf(state);
+      final Money worthBefore = netWorthOf(state);
       final Money cashBefore = balanceOf(state, 'acc_cash');
       final Money gcashBefore = balanceOf(state, 'acc_gcash');
       final int rowsBefore = state.transactions.length;
@@ -243,7 +239,7 @@ void main() {
       // leaves net worth and arrives nowhere. Same-account is the reachable
       // cousin of that, and it has to be impossible from here.
       final FinancialState state = await pumpApp(tester);
-      final double worthBefore = netWorthOf(state);
+      final Money worthBefore = netWorthOf(state);
       final int rowsBefore = state.transactions.length;
 
       await openMove(tester);
@@ -407,6 +403,190 @@ void main() {
         find.textContaining(card.name),
         findsNothing,
         reason: 'a credit card was offered as a place money can move',
+      );
+    });
+  });
+
+  group('paying a credit card', () {
+    // THE DOOR THAT DID NOT EXIST UNTIL 2026-10-05. Both pickers filtered to
+    // things you own, so a card balance could only ever go UP: every charge
+    // raised it and nothing in the app could bring it down. The engine was
+    // ready first, in the batch that fixed the sign, and this is the sheet
+    // catching up.
+
+    testWidgets('a card is offered as a destination and never as a source', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      await openMove(tester);
+
+      // The SOURCE list must not have gained it. Taking money OUT of a card
+      // is a cash advance, which carries its own fee and its own interest
+      // clock, and recording one as a plain transfer would understate it.
+      await tapIt(tester, dropdown(moneyLeaves));
+      expect(
+        find.textContaining('Rewards Card'),
+        findsNothing,
+        reason: 'a credit card appeared as somewhere money can leave FROM',
+      );
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await tapIt(tester, dropdown(moneyArrives));
+      expect(
+        find.textContaining('Rewards Card'),
+        findsWidgets,
+        reason: 'a credit card is not offered as somewhere money can go',
+      );
+    });
+
+    testWidgets('net worth holds, AND the card and the bank both really '
+        'moved', (WidgetTester tester) async {
+      final FinancialState state = await pumpApp(tester);
+
+      final Money worthBefore = netWorthOf(state);
+      final Money cardBefore = balanceOf(state, 'acc_bpi_cc');
+      final Money bankBefore = balanceOf(state, 'acc_bpi');
+      final int rowsBefore = state.transactions.length;
+
+      await openMove(tester);
+      await pickAccount(tester, moneyLeaves, 'Preferred Payroll');
+      await pickAccount(tester, moneyArrives, 'Rewards Card');
+      await typeAmount(tester, '1500');
+      await tapIt(tester, find.text('Pay it'));
+
+      // THE INVARIANT. Paying a debt cannot change what you are worth: an
+      // asset falls and a liability falls by the same amount. Exact, in
+      // centavos, because both sides are integers.
+      expect(
+        netWorthOf(state),
+        worthBefore,
+        reason:
+            'paying a card changed net worth. An asset fell and a liability '
+            'fell by the same amount, so it cannot',
+      );
+
+      // THE DIRECTIONAL COMPANION, and it is mandatory rather than thorough.
+      // The assertion above is a conservation statement, so it passes
+      // perfectly when the payment did nothing at all. These three are the
+      // only shape inaction cannot satisfy.
+      expect(
+        balanceOf(state, 'acc_bpi'),
+        bankBefore - const Money.pesos(1500),
+        reason: 'the bank account did not fall',
+      );
+      expect(
+        balanceOf(state, 'acc_bpi_cc'),
+        cardBefore - const Money.pesos(1500),
+        reason:
+            'what is owed on the card did not fall. If this rose instead, '
+            'the destination leg is reading the account kind backwards',
+      );
+      expect(state.transactions.length, rowsBefore + 1);
+    });
+
+    testWidgets('and a person can FOLLOW it afterwards', (
+      WidgetTester tester,
+    ) async {
+      // THE HALF THIS REPOSITORY KEEPS LOSING. A debt payment was once
+      // written perfectly and was invisible in the account's own history,
+      // with every money test green the whole time. The money being right is
+      // half the job; the other half is that somebody who goes looking can
+      // find it.
+      final FinancialState state = await pumpApp(tester);
+
+      await openMove(tester);
+      await pickAccount(tester, moneyLeaves, 'Preferred Payroll');
+      await pickAccount(tester, moneyArrives, 'Rewards Card');
+      await typeAmount(tester, '1500');
+      await tapIt(tester, find.text('Pay it'));
+
+      // Screen one: Activity. The entry exists and names both ends.
+      await tapIt(tester, find.byIcon(Icons.menu_book_outlined));
+      expect(
+        find.textContaining('Rewards Card'),
+        findsWidgets,
+        reason: 'the payment is not in Activity at all',
+      );
+
+      // Screen two: Accounts. The card itself shows the lower figure, which
+      // is where somebody actually checks whether a payment landed.
+      await tapIt(tester, find.byIcon(Icons.account_balance_wallet_outlined));
+      expect(
+        balanceOf(state, 'acc_bpi_cc'),
+        const Money.pesos(2700),
+        reason: '4,200 owed less a 1,500 payment',
+      );
+      // SCROLLED TO, not merely searched for. The card sits well down a list
+      // of eleven accounts, and Flutter does not BUILD an off-screen row, so
+      // `find.text` matches nothing whether the figure is right or wrong. A
+      // finder that cannot fail for the reason it claims is not a check.
+      await tester.scrollUntilVisible(
+        find.text('₱2,700.00'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('₱2,700.00'), findsWidgets);
+    });
+
+    testWidgets('overpaying warns, and still lets you record it', (
+      WidgetTester tester,
+    ) async {
+      // A WARNING AND NEVER A REFUSAL, the rule this sheet already applies to
+      // an overdraft. Somebody whose stored balance is stale, or who is
+      // recording a payment that already left their bank, has every right to
+      // record it. The extra is real money the bank is holding for them.
+      final FinancialState state = await pumpApp(tester);
+
+      await openMove(tester);
+      await pickAccount(tester, moneyLeaves, 'Preferred Payroll');
+      await pickAccount(tester, moneyArrives, 'Rewards Card');
+      await typeAmount(tester, '5000');
+
+      expect(
+        find.textContaining('more than you owe'),
+        findsOneWidget,
+        reason: 'paying 5,000 against 4,200 owed said nothing',
+      );
+
+      await tapIt(tester, find.text('Pay it'));
+      expect(
+        balanceOf(state, 'acc_bpi_cc'),
+        const Money.pesos(-800),
+        reason:
+            'the card should go INTO credit by 800, not clamp at zero. '
+            'Rounding the extra away would lose money the bank is holding',
+      );
+    });
+
+    testWidgets('the words change, because the act is different', (
+      WidgetTester tester,
+    ) async {
+      await pumpApp(tester);
+      await openMove(tester);
+
+      // Between two of your own pockets.
+      await pickAccount(tester, moneyLeaves, 'Preferred Payroll');
+      await pickAccount(tester, moneyArrives, 'GCash');
+      expect(find.text('Move it'), findsOneWidget);
+      expect(find.text('Money arrives'), findsOneWidget);
+
+      // Against something you owe. Nothing "arrives" anywhere: a debt gets
+      // smaller.
+      await pickAccount(tester, moneyArrives, 'Rewards Card');
+      expect(find.text('Pay it'), findsOneWidget);
+      expect(find.text('Pays down'), findsOneWidget);
+      // AN AMOUNT FIRST. The caption under the button carries the unfinished
+      // reason while there is one, and "enter how much to move" is an
+      // unfinished reason, so the sentence below only exists once the form
+      // has nothing left to ask for.
+      await typeAmount(tester, '1500');
+      expect(
+        find.textContaining('Less cash, and less owed'),
+        findsOneWidget,
+        reason:
+            'the one sentence that stops somebody concluding they are poorer '
+            'after paying a card',
       );
     });
   });

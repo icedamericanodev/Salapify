@@ -15,6 +15,7 @@
 // the tap did nothing at all. So every one of them is paired with a
 // DIRECTIONAL assertion naming the figure that had to move.
 
+import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
@@ -44,11 +45,6 @@ void main() {
     await tester.tap(find.text('Accounts').last);
     await tester.pumpAndSettle();
   }
-
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balanceInPhp.pesos,
-  );
 
   Account accountOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id);
@@ -133,7 +129,7 @@ void main() {
       // MariBank is the seed's deliberately-unprotected savings account, so
       // it is the one a person would plausibly set aside themselves.
       const String id = 'acc_seabank';
-      final double worthBefore = netWorthOf(s);
+      final Money worthBefore = netWorthOf(s);
       final Money spendBefore = s.safeToSpendAnalysis.safeToSpendToday;
       final Money balance = accountOf(s, id).balance;
       expect(accountOf(s, id).purpose, AccountPurpose.spendable);

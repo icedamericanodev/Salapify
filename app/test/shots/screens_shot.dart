@@ -1329,6 +1329,12 @@ void main() {
       in <({String slug, bool filled})>[
         (slug: 'move_money', filled: false),
         (slug: 'move_money_working', filled: true),
+        // THE CARD PAYMENT, which is a different sheet in everything but
+        // layout: the destination label, the button, the icon, the missing
+        // swap control and the closing sentence all change. None of that is
+        // visible in either shot above, because until 2026-10-05 a card could
+        // not be a destination at all.
+        (slug: 'move_money_card', filled: true),
       ]) {
     testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);
@@ -1359,6 +1365,18 @@ void main() {
         state: state,
       );
       await tester.pumpAndSettle();
+
+      if (shape.slug == 'move_money_card') {
+        // Point the destination at the credit card. Index 1 is where money
+        // arrives; the dropdowns are driven by POSITION rather than by their
+        // floating labels, for the reason the move money journey records at
+        // length (a filled field floats its label into a corner where the
+        // decoration receives the pointer, and tap only WARNS about that).
+        await tester.tap(find.byType(DropdownButtonFormField<String>).at(1));
+        await tester.pumpAndSettle();
+        await tester.tap(find.textContaining('Rewards Card').last);
+        await tester.pumpAndSettle();
+      }
 
       if (shape.filled) {
         // 1,200 out of the pitaka, which it can cover. The first version of
