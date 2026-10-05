@@ -1240,3 +1240,68 @@ once" cannot come back quietly.
 WHAT IS STILL OPEN, and the founder has not ruled on it: whether three
 notices on one card is too many in total. This amendment changes one label.
 It does not answer the question that prompted it.
+
+## D29. Salapify 3 ships BESIDE Salapify 2, not over it. ANSWERED 2026-10-05
+
+Founder answer: B, "do as you recommended".
+
+The question had to be asked because the roadmap's Phase 2 promised something
+that never happened. It said the new Flutter project would carry the SAME
+applicationId as the old app and a versionCode one higher, so it would install
+over the top. Measured from the files on 2026-10-05, neither half is true:
+
+| | applicationId | version |
+|---|---|---|
+| Salapify 1, `archive/salapify-1-react-native/` | `com.icedamericanodev.salapify` | React Native |
+| Salapify 2, `archive/salapify-2-flutter/` | `dev.icedamericano.salapify` | 0.9.5+20 |
+| Salapify 3, `app/` | `dev.icedamericano.salapify3` | 1.0.0+1 |
+
+Android isolates stored data BY applicationId. There is no permission that
+grants an app access to another applicationId's sandbox and no way to ask for
+one. So the roadmap's Phase 4 exit, "data found in place", was never reachable
+from where the code actually stood.
+
+THE TWO WAYS OUT, and why the founder took the second.
+
+Option A, take over the old app: change `app/` to `dev.icedamericano.salapify`
+and set the version to `1.0.0+21`. One install, which replaces Salapify 2 in
+place, and Salapify 3 then finds Salapify 2's files inside its own sandbox.
+
+Option B, ship beside it: keep `dev.icedamericano.salapify3`. Both apps sit on
+the phone with different icons. Data moves by EXPORT from Salapify 2 and
+IMPORT into Salapify 3.
+
+THE REASON FOR B IS NARROW AND IT IS THE WHOLE REASON. Option A's safety rests
+on one assumption: that Salapify 3 can READ what Salapify 2 left behind, in
+place, byte for byte. NOTHING HAS EVER TESTED THAT. They are different apps
+with different schema histories, and the day the old app is replaced is the
+wrong day to discover the answer. Option A puts an irreversible step first and
+finds out afterwards. Option B reaches the same destination through a file the
+founder can see, keep, and import again if it goes wrong.
+
+WHAT B COSTS, stated so nobody is surprised later: two Salapify icons on the
+phone at once until the founder uninstalls the old one; a manual export and
+import rather than an automatic carry-over; and the home screen widget has to
+be re-pointed deliberately instead of inheriting.
+
+WHAT MAKES B CHEAP TO ADOPT, which is worth recording because it inverts the
+usual direction of risk: B IS ALREADY THE STATE OF THE CODE.
+`app/android/app/build.gradle.kts` line 25 already reads
+`applicationId = "dev.icedamericano.salapify3"`. Choosing B changes nothing and
+breaks nothing. Choosing A would have been the edit, and the edit would have
+been the irreversible one.
+
+A IS STILL AVAILABLE LATER, and the asymmetry is the point. Going from B to A
+is one reinstall. Going from A back to B, after a migration that ate the
+ledger, is a restore from a backup that may not exist.
+
+OPEN, NOT DECIDED HERE. The `namespace` in the same file, line 8, is still
+`dev.icedamericano.salapify`, the OLD app's id, while the applicationId beside
+it is `salapify3`. That is legal, because namespace only names the generated
+`BuildConfig` and `R` classes and has nothing to do with install identity, so
+it changes nothing about this decision. It is recorded because a reader
+comparing the two lines would reasonably think the app had two identities.
+
+WHAT THIS UNBLOCKS: the publisher and the cutover, both designed in
+`docs/reviews/publisher-and-cutover-design.md`, which said in as many words
+that nothing below part 1 was to be built until this was answered.
