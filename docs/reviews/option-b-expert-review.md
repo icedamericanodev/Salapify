@@ -1,9 +1,30 @@
-# Option B, under expert review
+# The Option B review, and the framing error it was built on
 
-2026-10-05. Three independent reviews of
-`docs/reviews/publisher-and-cutover-design.md` after the founder answered B
-(recorded as D29). Every finding below was re-checked against the source
-before it was acted on, and two did not survive that check.
+2026-10-05. Three independent reviews of the publisher and cutover design.
+
+## WITHDRAWN IN PART, SAME DAY
+
+The CUTOVER half of this review is withdrawn. The founder stopped it: "we are
+building the Salapify from scratch right using the google ai studio prototype
+why you mix it up to Salapify 2". There is no cutover. Salapify 3 is a NEW
+APP, it inherits nothing, and no data has to move for it to be finished.
+
+The error was inherited, not invented. `docs/revamp/05-roadmap.md` Phase 4 was
+titled "Cutover" and promised "data found in place". It was adopted
+2026-09-11, a week before D24 made app/ a rebuild from the prototype, and was
+never updated. That roadmap line is now rewritten, which is the real fix.
+
+SO THE HEADLINE BELOW, "Salapify 3 cannot read a Salapify 2 backup", IS NOT A
+DEFECT. It is correct and expected behaviour for an app that was rebuilt from
+scratch. It is kept below because the investigation was real and because the
+refusal MESSAGE was a genuine problem worth fixing on its own terms.
+
+WHAT SURVIVES UNCHANGED: the signing key finding, which has nothing to do with
+Salapify 2 and is the most urgent item in the whole review; and the four fixes
+that were built, every one of which stands on its own.
+
+---
+
 
 ## THE HEADLINE, and it invalidates the plan I wrote
 

@@ -1305,3 +1305,51 @@ comparing the two lines would reasonably think the app had two identities.
 WHAT THIS UNBLOCKS: the publisher and the cutover, both designed in
 `docs/reviews/publisher-and-cutover-design.md`, which said in as many words
 that nothing below part 1 was to be built until this was answered.
+
+### AMENDED the same day, 2026-10-05: there was never a fork here
+
+Founder, on being shown the two options: "why we do need to post Salapify 2,
+we are building the sALAPIFY FROM SCRATCH RIGHT using the google ai studio
+prototype why you mix it up to Salapify 2???"
+
+They are right, and the decision above is sound in its conclusion and wrong in
+its framing. Both halves matter, so both are recorded.
+
+SOUND: `app/` keeps `dev.icedamericano.salapify3`. Nothing changes in the code.
+
+WRONG: it was presented as a CHOICE between taking over Salapify 2 and
+shipping beside it, with a cutover to follow. There was no choice. D24,
+2026-09-18, made `app/` a rebuild from the AI Studio prototype, and Salapify 2
+was archived the same day. A rebuilt app does not take over its predecessor's
+install and does not inherit its data. Salapify 3 keeps its own applicationId
+because that is what a new app has, not because an option won.
+
+WHERE THE ERROR CAME FROM, written down because it was inherited rather than
+invented. `docs/revamp/05-roadmap.md` Phase 4 was titled "Cutover" and said
+"Base APK installed by the founder over the old app; data found in place". That
+document was adopted 2026-09-11, a WEEK before D24, and was never rewritten
+when D24 landed. A session read it as current and designed a migration on top
+of it. The roadmap's Phase 4 is now rewritten, which is the actual fix: the
+stale sentence was the defect, not the reading of it.
+
+WHAT THE EPISODE PRODUCED THAT IS WORTH KEEPING. The review commissioned to
+check the migration found two things that have nothing to do with Salapify 2
+and would have bitten anyway:
+
+1. `app/android/app/build.gradle.kts` signs RELEASE builds with the DEBUG key.
+   A debug keystore is generated per machine, so two base APKs built on two CI
+   runs carry different signatures and Android refuses the second install in
+   place. The only route out is uninstall, which deletes everything. It is
+   invisible on the first install and bites on the first native change. This
+   must be fixed before any installable build reaches a phone, and it is in the
+   rewritten Phase 4 as its own numbered step.
+2. `checkImportFile` told anyone feeding it an older Salapify export that their
+   file "is not a Salapify backup". Nothing was written either way, so no tap
+   could lose data, but that sentence invites somebody to delete a file. Fixed:
+   it now names the app the file came from and says to keep it. Still correct
+   under the new framing, because Salapify 1 had testers and Salapify 3 is
+   public, so an old export can still arrive at that screen.
+
+WHAT IS WITHDRAWN: part 3 of `docs/reviews/publisher-and-cutover-design.md`, the
+seven step cutover, in full. Nothing in it is to be executed. It is kept
+unedited as the record.

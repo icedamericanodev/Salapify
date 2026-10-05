@@ -1,8 +1,42 @@
 # The publisher, and getting Salapify 3 onto the phone
 
-Design, 2026-10-05. Nothing in here is built. One decision in part 1 has to be
-the founder's before any of the rest can be written, because it is the one
-that decides whether their data moves by itself or by hand.
+Design, 2026-10-05.
+
+## WITHDRAWN IN PART, SAME DAY. Read this before anything below it.
+
+**Part 3, THE CUTOVER, is withdrawn in full. Part 1's fork was a false
+choice.** The founder stopped it on sight: "we are building the Salapify from
+scratch right using the google ai studio prototype why you mix it up to
+Salapify 2". They were right, and the error is traceable rather than random.
+
+`docs/revamp/05-roadmap.md` Phase 4 was titled "Cutover" and said "Base APK
+installed by the founder over the old app; data found in place". That document
+was adopted 2026-09-11. D24, which made `app/` a rebuild from the AI Studio
+prototype, is 2026-09-18, and Salapify 2 was archived the same day. Phase 4 was
+never rewritten to match, and this design read it as current.
+
+THERE IS NO CUTOVER. Salapify 3 is a NEW APP. It does not replace Salapify 2,
+it does not inherit from it, and no data has to move for it to be finished.
+Salapify 2 is archived history, not a predecessor waiting to be migrated. The
+roadmap's Phase 4 has been rewritten accordingly.
+
+What that makes of part 1: the "fork" between taking over the old app and
+shipping beside it was never a real decision, because taking over a rebuilt
+app's predecessor was never the plan after D24. The applicationId stays
+`dev.icedamericano.salapify3` because that is what a new app has, not because
+it won a trade-off. D29 is amended to say so.
+
+WHAT SURVIVES, and is still worth building: PART 2, THE PUBLISHER. Salapify 3
+needs a way to reach a phone whatever else is true, and every mechanism in
+part 2 was audited line by line and stands on its own. The signing key finding
+is the urgent one and has nothing to do with Salapify 2: `app/` signs release
+builds with the debug key today, which is generated per machine, so a second
+base APK cannot install over the first.
+
+Part 3 below is kept unedited as the record of what was designed and
+withdrawn. Do not execute any of it.
+
+---
 
 ## 1. THE FINDING THAT CHANGES THE PLAN
 

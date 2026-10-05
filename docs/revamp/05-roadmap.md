@@ -79,18 +79,41 @@ Exit: the founder side-loads app/ on their phone next to the old app and
 uses only v3 for one week without needing the old one. Anything they reach
 for that is missing goes on the Phase 5 list, not into Phase 3.
 
-## Phase 4. Cutover
+## Phase 4. First delivery
+
+REWRITTEN 2026-10-05. This phase was called "Cutover" and described
+installing Salapify 3 OVER Salapify 2 and finding the old data already in
+place. That was written on 2026-09-11, a week before D24 (2026-09-18) made
+app/ a rebuild from the AI Studio prototype and the same day Salapify 2 was
+archived. It was never updated, and on 2026-10-05 it was read as current and
+an entire migration design was built on it before the founder stopped it:
+"we are building the Salapify from scratch right using the google ai studio
+prototype why you mix it up to Salapify 2".
+
+THERE IS NO CUTOVER. Salapify 3 is a new app with its own applicationId,
+`dev.icedamericano.salapify3`. It does not replace anything, it does not
+inherit anything, and nothing has to be moved out of Salapify 2 for it to be
+finished. Salapify 2 is archived history in archive/, not a predecessor
+waiting to be migrated.
 
 Do:
 1. Publisher workflow for app/ (build, Shorebird release, delivery log).
-2. Base APK installed by the founder over the old app; data found in place;
-   backup restore tested as the fallback.
-3. Home screen widget re-pointed at v3's data.
-4. flutter/ and mobile/ deleted from the working tree (founder decision),
-   old workflows removed, CLAUDE.md rewritten for the single app.
+2. A real signing key for app/ before the first installable build, because
+   release currently signs with the debug key and a debug key is generated
+   per machine, so a second base APK cannot install over the first.
+3. Base APK installed by the founder. It installs as a NEW app. Nothing is
+   found in place and nothing needs to be.
+4. archive/ deleted from the working tree (founder decision under D5), old
+   workflows removed, CLAUDE.md rewritten for the single app.
 
-Exit: docs/delivery-log.md has a row for s3.xx and the founder confirms the
-stamp on the phone. The old app is uninstalled.
+Exit: docs/delivery-log.md has a row for the first app/ stamp and the founder
+confirms it on the phone.
+
+NOT in this phase, and both were in the old version: re-pointing a home
+screen widget (app/ has none, so it is a feature to build or a thing
+Salapify 2 keeps until it is uninstalled), and uninstalling Salapify 2, which
+is the founder's to do whenever they like and is not a step anything waits
+on.
 
 ## Phase 5. Features, one at a time
 
