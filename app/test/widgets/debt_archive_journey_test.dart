@@ -2,7 +2,6 @@ import 'package:salapify/core/money/money.dart';
 import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/debt/debt_screen.dart';
 import 'package:salapify/screens/home/debt_beam_card.dart';
 import 'package:salapify/state/financial_state.dart';
