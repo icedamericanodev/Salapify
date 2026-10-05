@@ -4,7 +4,7 @@ import '../../models/models.dart';
 import 'js_round.dart';
 import 'money.dart';
 
-/// Safe to Spend, ported line for line from src/utils/safeToSpendEngine.ts.
+/// Safe to Spend, ported line for line from archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts.
 ///
 /// The numbering in the comments matches the numbered steps in the prototype
 /// so the two can be read side by side. Nothing here was "improved" on the way
@@ -48,7 +48,7 @@ SafeToSpendAnalysis computeSafeToSpend({
   // spendable, which is the only state the TypeScript can represent.
   //
   // BOTH FOLDS READ THE RAW `balance`, NOT `balanceInPhp`, AND THAT STAYS.
-  // This engine is line-for-line parity with src/utils/safeToSpendEngine.ts,
+  // This engine is line-for-line parity with archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts,
   // which has no currency field at all, and the parity is golden-locked by
   // test/core/money/safe_to_spend_golden_test.dart. Converting in here would
   // change a golden-locked engine's output. Leave it.
@@ -229,7 +229,7 @@ SafeToSpendAnalysis computeSafeToSpend({
   // because this file says in its own header that nothing was improved on the
   // way across. Working in centavos internally would be MORE precise and
   // therefore WRONG: it would round differently from
-  // src/utils/safeToSpendEngine.ts in the cases the vectors do not cover, and
+  // archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts in the cases the vectors do not cover, and
   // the port would stop being a port.
   //
   // Each figure is already a whole peso by the time it reaches here, since

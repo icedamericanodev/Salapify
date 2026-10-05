@@ -1,5 +1,5 @@
 /// The Smart Text Notes Calculator, from the prototype's
-/// `parseNotesCalculator` in `src/components/PhilippineFeaturesModal.tsx`.
+/// `parseNotesCalculator` in `archive/prototype-google-ai-studio/src/components/PhilippineFeaturesModal.tsx`.
 ///
 /// Somebody types their day as notes, one line each, and the app adds it up:
 ///

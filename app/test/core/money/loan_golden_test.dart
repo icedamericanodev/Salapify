@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/loan.dart';
 
 /// Golden vectors for the loan port, produced by running
-/// src/utils/loanCalculators.ts under bun. Every figure below came out of the
+/// archive/prototype-google-ai-studio/src/utils/loanCalculators.ts under bun. Every figure below came out of the
 /// prototype; none was computed by hand from an amortization formula.
 ///
 /// ## SIX FIGURES NOW DIVERGE FROM THE PROTYPE, DELIBERATELY (2026-10-02)

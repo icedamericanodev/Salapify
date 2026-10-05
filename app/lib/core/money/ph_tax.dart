@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'format.dart';
 import 'js_round.dart';
 
-/// Philippine payroll and income tax, ported from src/utils/philippineFinances.ts.
+/// Philippine payroll and income tax, ported from archive/prototype-google-ai-studio/src/utils/philippineFinances.ts.
 ///
 /// Every rate, floor, ceiling and bracket below is the prototype's. Nothing was
 /// rounded differently, re-derived from the BIR tables, or "corrected" on the

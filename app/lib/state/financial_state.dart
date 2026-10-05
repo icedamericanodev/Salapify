@@ -1938,7 +1938,7 @@ class FinancialState extends ChangeNotifier {
 
   /// Schedules a new bill or expected payment.
   ///
-  /// Ported from addUpcoming in src/context/FinancialContext.tsx. No money
+  /// Ported from addUpcoming in archive/prototype-google-ai-studio/src/context/FinancialContext.tsx. No money
   /// moves: scheduling something is a note about the future, and the balance
   /// only changes when it is marked paid.
   void addUpcoming(UpcomingItem item) {
@@ -2079,7 +2079,7 @@ class FinancialState extends ChangeNotifier {
   }
 
   /// Which profile an upcoming row belongs to, ported from getItemProfile in
-  /// src/components/ComingUpCard.tsx. The prototype does not store this, it
+  /// archive/prototype-google-ai-studio/src/components/ComingUpCard.tsx. The prototype does not store this, it
   /// reads the name, so the keyword lists are the behaviour rather than a
   /// convenience.
   ProfileEntity profileOf(UpcomingItem item) =>

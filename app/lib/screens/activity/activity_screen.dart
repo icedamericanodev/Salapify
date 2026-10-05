@@ -9,7 +9,7 @@ import '../../state/financial_state.dart';
 import 'day_group.dart';
 import 'ledger_summary_card.dart';
 
-/// Activity, the prototype's second tab, from src/components/LedgerScreen.tsx.
+/// Activity, the prototype's second tab, from archive/prototype-google-ai-studio/src/components/LedgerScreen.tsx.
 ///
 /// Every figure on this screen comes out of core/money/ledger.dart, which is
 /// locked to vectors generated from the prototype's own code. This file
@@ -434,7 +434,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// The badge wording from src/data/categories.ts, kept identical so the two
+/// The badge wording from archive/prototype-google-ai-studio/src/data/categories.ts, kept identical so the two
 /// apps describe the same row the same way.
 String statusLabel(TransactionStatus s) => switch (s) {
   TransactionStatus.confirmed => 'Confirmed',

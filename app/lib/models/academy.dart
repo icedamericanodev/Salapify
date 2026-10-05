@@ -1,4 +1,4 @@
-// The Academy curriculum's shape, from src/data/academyData.ts.
+// The Academy curriculum's shape, from archive/prototype-google-ai-studio/src/data/academyData.ts.
 //
 // Separate from models.dart because the curriculum is CONTENT rather than
 // money: nothing here is summed, compared or reconciled, and mixing it in

@@ -1,4 +1,4 @@
-// The core data model, ported from the prototype's src/types.ts.
+// The core data model, ported from the prototype's archive/prototype-google-ai-studio/src/types.ts.
 // Only the types the app actually reads today are here. The rest arrive with
 // the tabs that need them, so nothing sits unused.
 
@@ -89,7 +89,7 @@ enum ProfileEntity { personal, household, business, sideHustle }
 enum DecisionScenario { conservative, optimistic }
 
 /// The seven income shapes the prototype recognises. The names map one to one
-/// onto src/types.ts, so a value can never silently mean something else.
+/// onto archive/prototype-google-ai-studio/src/types.ts, so a value can never silently mean something else.
 enum IncomeStreamType {
   weeklyIncome,
   semimonthlySalary,
@@ -210,7 +210,7 @@ class Account {
   /// adds dollars to pesos and reports the total as pesos.
   final CurrencyCode currency;
 
-  /// Which entity this account belongs to, from src/types.ts.
+  /// Which entity this account belongs to, from archive/prototype-google-ai-studio/src/types.ts.
   ///
   /// NULLABLE on purpose, and the null is meaningful rather than lazy. Reports
   /// filters with `!a.profile || a.profile === activeProfile`, so an account
@@ -321,7 +321,7 @@ class Account {
       );
 }
 
-/// What the ledger believes about an entry, from src/types.ts.
+/// What the ledger believes about an entry, from archive/prototype-google-ai-studio/src/types.ts.
 ///
 /// Only two of these change a number: `excluded` and `duplicate` are left OUT
 /// of the in and out totals, everything else counts. That is the prototype's
@@ -653,7 +653,7 @@ class Debt {
   ///
   /// Step 3 is the correction this field exists for. The prototype reserves
   /// eight percent of every outstanding debt
-  /// (`src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is
+  /// (`archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is
   /// not a monthly payment. It is wrong in both directions, which reading the
   /// sample ledger showed rather than the review:
   ///

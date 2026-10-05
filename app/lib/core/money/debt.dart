@@ -1,5 +1,5 @@
-/// The debt register's engine, ported from src/context/FinancialContext.tsx
-/// (`recordDebtPayment`, `toggleDebtSettled`) and src/components/DebtScreen.tsx.
+/// The debt register's engine, ported from archive/prototype-google-ai-studio/src/context/FinancialContext.tsx
+/// (`recordDebtPayment`, `toggleDebtSettled`) and archive/prototype-google-ai-studio/src/components/DebtScreen.tsx.
 ///
 /// Debt here means BOTH DIRECTIONS: what you owe, and what is owed to you.
 /// That is the product's whole point, and it is why nothing in this file

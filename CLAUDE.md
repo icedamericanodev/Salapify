@@ -211,7 +211,7 @@ whether silence would mislead.
 
 The machinery is already built: `InfoDot` in app/lib/features/info/info_dot.dart
 and the topic-keyed explainer in info_sheet.dart, ported from the prototype's
-own src/components/SectionInfoModal.tsx. Adding a topic means adding an enum
+own archive/prototype-google-ai-studio/src/components/SectionInfoModal.tsx. Adding a topic means adding an enum
 value AND an entry in `infoContent`; `test/widgets/info_sheet_test.dart`
 iterates the enum and reddens if either is missing, because InfoSheet reads the
 map with a `!` and a missing entry is a crash on a screen somebody tapped
@@ -675,7 +675,7 @@ first so the enhancement lands on what exists instead of beside it.
    preview channel using the EXPO_TOKEN repo secret. This runs on
    GitHub's free runners and does NOT use the EAS CI/CD minute allowance
    (the old .eas workflow did, and ran it out). Bump the Update stamp row
-   in mobile/app/(tabs)/more.js on every push so the founder can verify on
+   in archive/salapify-1-react-native/app/(tabs)/more.js on every push so the founder can verify on
    the phone which bundle arrived.
 5. Native changes (new native modules, app.json plugin or version changes)
    need a full APK rebuild on EAS and a version bump to isolate runtimes.

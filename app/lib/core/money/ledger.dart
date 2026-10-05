@@ -1,5 +1,5 @@
 /// The Ledger's filtering, totals and grouping, ported from
-/// src/components/LedgerScreen.tsx.
+/// archive/prototype-google-ai-studio/src/components/LedgerScreen.tsx.
 ///
 /// It lives here rather than in the screen for the reason every engine in this
 /// folder does: a figure a person can read off a screen has to be checkable
@@ -241,7 +241,7 @@ List<({String category, double amount})> categorySpending(
 // ------------------------------------------------------------------- writing
 
 /// Applies a newly logged entry to the account balances, ported from
-/// addTransaction in src/context/FinancialContext.tsx.
+/// addTransaction in archive/prototype-google-ai-studio/src/context/FinancialContext.tsx.
 ///
 /// The rules, all of them the prototype's:
 ///   expense   the source account falls

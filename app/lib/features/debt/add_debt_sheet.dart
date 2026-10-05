@@ -9,7 +9,7 @@ import '../../models/models.dart';
 import '../shared/sheet_scaffold.dart';
 import 'amortization_table.dart';
 
-/// Add a debt, ported from src/components/AddDebtModal.tsx, with the payoff
+/// Add a debt, ported from archive/prototype-google-ai-studio/src/components/AddDebtModal.tsx, with the payoff
 /// schedule from BankAmortizationTable.tsx folded in.
 ///
 /// The prototype keeps these apart: you record a debt in one modal and look at

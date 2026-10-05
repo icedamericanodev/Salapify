@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// with it. Flutter turns that on by default through MaterialScrollBehavior,
 /// so it arrives without anyone asking for it.
 ///
-/// It is wrong for this app for two reasons. The prototype in src/ is a web
+/// It is wrong for this app for two reasons. The prototype in archive/prototype-google-ai-studio/src/ is a web
 /// build that simply stops at the end, so the stretch is a behaviour the
 /// Flutter app invented rather than migrated. And a ledger is a document: a
 /// person reading a column of money does not expect the numbers to deform

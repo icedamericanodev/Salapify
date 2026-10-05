@@ -2,7 +2,7 @@ import '../../models/models.dart';
 import 'reports.dart' show validLedgerEntries;
 import 'money.dart';
 
-/// The Plan engine, ported from src/components/PlanScreen.tsx.
+/// The Plan engine, ported from archive/prototype-google-ai-studio/src/components/PlanScreen.tsx.
 ///
 /// Budgets, goals and upcoming bills. Small arithmetic, and all of it feeds
 /// numbers a person makes decisions on, so it is vector-locked like every

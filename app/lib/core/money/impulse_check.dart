@@ -1,5 +1,5 @@
 /// The Money Mindset check, from the prototype's `handleEvaluateMindset` in
-/// `src/components/PhilippineFeaturesModal.tsx`.
+/// `archive/prototype-google-ai-studio/src/components/PhilippineFeaturesModal.tsx`.
 ///
 /// Three questions about a thing somebody wants to buy, scored out of 100, and
 /// a verdict. The point is not the arithmetic, it is the pause: the questions

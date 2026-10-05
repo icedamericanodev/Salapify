@@ -9,7 +9,7 @@ import '../info/info_dot.dart';
 import '../info/info_sheet.dart';
 import '../shared/sheet_scaffold.dart';
 
-/// The bell, ported from `src/components/RemindersModal.tsx`.
+/// The bell, ported from `archive/prototype-google-ai-studio/src/components/RemindersModal.tsx`.
 ///
 /// Three tabs, the prototype's own: the tray of what has been raised, the
 /// rules that decide what gets raised, and a test that puts one message in the

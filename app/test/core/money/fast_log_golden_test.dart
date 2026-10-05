@@ -4,7 +4,7 @@ import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 /// Golden vectors for the fast-log parser, produced by RUNNING
-/// src/utils/fastlog.ts under bun on these exact lines. Every expectation
+/// archive/prototype-google-ai-studio/src/utils/fastlog.ts under bun on these exact lines. Every expectation
 /// below is copied from that output. If Dart disagrees, the port is wrong.
 void main() {
   void vector(

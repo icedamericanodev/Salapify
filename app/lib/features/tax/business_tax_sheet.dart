@@ -7,7 +7,7 @@ import '../../design/type.dart';
 import '../shared/sheet_scaffold.dart';
 
 /// The business tax simulator, ported from
-/// src/components/BusinessTaxSimulatorModal.tsx.
+/// archive/prototype-google-ai-studio/src/components/BusinessTaxSimulatorModal.tsx.
 ///
 /// It compares EVERY regime at once rather than only the one selected. A
 /// simulator that shows one answer makes somebody guess which to try; showing

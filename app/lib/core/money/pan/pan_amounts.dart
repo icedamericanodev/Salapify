@@ -1,6 +1,6 @@
 /// Pulling a peso amount out of a sentence somebody typed.
 ///
-/// Ported from `extractCurrencyAmount` in src/utils/panAiEngine.ts, with its
+/// Ported from `extractCurrencyAmount` in archive/prototype-google-ai-studio/src/utils/panAiEngine.ts, with its
 /// bugs fixed rather than carried over. The prototype's regex has no anchor
 /// and no word boundary on the currency branch, so it matches the FIRST run
 /// of digits anywhere in the sentence: "can I afford 2 tickets at 800 each"

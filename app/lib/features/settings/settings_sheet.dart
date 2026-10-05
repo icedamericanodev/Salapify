@@ -17,7 +17,7 @@ import 'privacy_sheet.dart';
 import 'sample_data_sheet.dart';
 import 'wipe_sheet.dart';
 
-/// Settings, from `src/components/SettingsModal.tsx`.
+/// Settings, from `archive/prototype-google-ai-studio/src/components/SettingsModal.tsx`.
 ///
 /// The gear in the header opened a "coming soon" toast until now. It holds the
 /// things the prototype's own Settings holds and that this build actually has:

@@ -4,7 +4,7 @@ import 'package:salapify/core/money/currencies.dart';
 /// Golden vectors for the multi-currency port.
 ///
 /// Every number and every string below was PRINTED BY THE PROTOTYPE, by
-/// running src/utils/currencies.ts under bun via app/tool/gen_currency_vectors.ts.
+/// running archive/prototype-google-ai-studio/src/utils/currencies.ts under bun via app/tool/gen_currency_vectors.ts.
 /// None of it was worked out by hand, which is the whole point: a figure I
 /// derive myself can agree with my own misreading of the source.
 void main() {

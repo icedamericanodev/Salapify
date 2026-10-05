@@ -15,7 +15,7 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 
 import '../support/pinned_app.dart';
 
-/// The sheets ported from src/components, tested by tapping the same controls
+/// The sheets ported from archive/prototype-google-ai-studio/src/components, tested by tapping the same controls
 /// a person taps rather than by constructing them directly. A sheet that opens
 /// perfectly from a test and is unreachable from Home is not a feature.
 void main() {

@@ -3,7 +3,7 @@ import 'package:salapify/core/money/ph_tax.dart';
 
 /// Golden vectors for the Philippine tax port.
 ///
-/// Produced by running src/utils/philippineFinances.ts itself under bun, not by
+/// Produced by running archive/prototype-google-ai-studio/src/utils/philippineFinances.ts itself under bun, not by
 /// working the brackets out by hand and not by reading the Dart back. Where a
 /// figure carries floating point residue (1030.0004999999996) it is asserted
 /// with a tight tolerance rather than tidied up, because tidying it would hide

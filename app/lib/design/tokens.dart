@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// The two Salapify themes, named the way the prototype names them.
 /// Hapon is daylight, Gabi is night. Every colour here was lifted from the
-/// React prototype in src/, so the Flutter app and the prototype agree.
+/// React prototype in archive/prototype-google-ai-studio/src/, so the Flutter app and the prototype agree.
 enum ThemeMode2 { hapon, gabi }
 
 /// One palette. Both themes fill in the same slots, so a widget never asks

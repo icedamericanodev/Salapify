@@ -1,6 +1,6 @@
 /// Splitting a bill between people, ported from the prototype.
 ///
-/// Source: `calculateSplitShares` in `src/utils/collaborationEngine.ts`.
+/// Source: `calculateSplitShares` in `archive/prototype-google-ai-studio/src/utils/collaborationEngine.ts`.
 /// Ported on founder direction, 2026-10-01 ("do the Split Bill").
 ///
 /// ## The numbers came from RUNNING it, not reading it

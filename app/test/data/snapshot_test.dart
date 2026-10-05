@@ -211,7 +211,7 @@ void main() {
   });
 
   group('the wire spelling matches the prototype', () {
-    // These are not style. src/types.ts spells the multi word values with
+    // These are not style. archive/prototype-google-ai-studio/src/types.ts spells the multi word values with
     // underscores, and `.name` would have written camelCase. A side hustle
     // read back as personal is money filed in the wrong books, silently.
     test('multi word enum values are snake_case, never camelCase', () {
@@ -247,7 +247,7 @@ void main() {
         json['scheduleType'],
         'scheduled',
         reason:
-            'src/types.ts calls this field scheduleType. Writing it as '
+            'archive/prototype-google-ai-studio/src/types.ts calls this field scheduleType. Writing it as '
             '"schedule" means the prototype reads nothing and every debt '
             'silently becomes flexible, which removes its due date.',
       );
@@ -297,7 +297,7 @@ void main() {
     test('the document uses the prototype export\'s own top level names', () {
       final Map<String, dynamic> doc =
           jsonDecode(seeded().encode(at: at)) as Map<String, dynamic>;
-      // From src/components/SettingsModal.tsx, handleExportData.
+      // From archive/prototype-google-ai-studio/src/components/SettingsModal.tsx, handleExportData.
       for (final String key in <String>[
         'timestamp',
         'themeMode',
@@ -685,7 +685,7 @@ void main() {
   });
 
   // Salapify 3 was rebuilt in Flutter from the Google AI Studio prototype in
-  // src/. The React Native app in mobile/ and Salapify 2 in archive/ are a
+  // src/. The React Native app in archive/salapify-1-react-native/ and Salapify 2 in archive/ are a
   // SEPARATE branch of the family that was archived, not this app's parents.
   // Both of those count their file shape to 12 while this one starts at 1,
   // because the two numbers count two different shapes.
@@ -755,7 +755,7 @@ void main() {
     });
 
     test('the PROTOTYPE this app came from is not caught by it either', () {
-      // src/components/SettingsModal.tsx exports these collection keys, with
+      // archive/prototype-google-ai-studio/src/components/SettingsModal.tsx exports these collection keys, with
       // no schemaVersion and no receivables or people. It is Salapify 3's
       // actual parent, so a check aimed at the archived apps must never
       // touch it.

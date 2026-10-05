@@ -14,7 +14,7 @@ import 'academy_segment.dart';
 import 'bonus_allocator_card.dart';
 import 'plan_segments.dart';
 
-/// Plan, the prototype's fourth tab, from src/components/PlanScreen.tsx.
+/// Plan, the prototype's fourth tab, from archive/prototype-google-ai-studio/src/components/PlanScreen.tsx.
 ///
 /// A HUB rather than a screen: eight segments reached from a grid of tiles.
 /// The prototype uses the same shape, and it is the right one, because the

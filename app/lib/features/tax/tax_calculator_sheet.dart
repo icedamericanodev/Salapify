@@ -6,7 +6,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../shared/sheet_scaffold.dart';
 
-/// The tax calculator, ported from src/components/TaxCalculatorModal.tsx.
+/// The tax calculator, ported from archive/prototype-google-ai-studio/src/components/TaxCalculatorModal.tsx.
 ///
 /// Three tabs over the engine in core/money/ph_tax.dart: an employee's
 /// take-home, the 13th month, and the freelancer's 8% against graduated

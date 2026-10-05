@@ -1,6 +1,6 @@
 import '../../models/models.dart';
 
-/// The fast-log parser, ported from src/utils/fastlog.ts.
+/// The fast-log parser, ported from archive/prototype-google-ai-studio/src/utils/fastlog.ts.
 ///
 /// Type "Jollibee 500" and it works out that this is a 500 peso expense at
 /// Jollibee under Food & Dining. It understands Taglish, because that is how
@@ -229,7 +229,7 @@ const Map<String, String> fastLogCategoryKeywords = <String, String>{
   // Measured before fixing: 37 of 60 common English money words were absent,
   // and every one of them landed on Food & Dining.
   //
-  // This is a DIVERGENCE from src/, deliberately. Everything above is the
+  // This is a DIVERGENCE from archive/prototype-google-ai-studio/src/, deliberately. Everything above is the
   // prototype's map, extracted rather than retyped; everything below is ours.
   // Keeping the two blocks separate is what lets a future re-extraction of
   // the prototype's list replace the top half without silently deleting this.

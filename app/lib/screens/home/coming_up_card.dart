@@ -7,7 +7,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
 
-/// Coming Up, ported from src/components/ComingUpCard.tsx.
+/// Coming Up, ported from archive/prototype-google-ai-studio/src/components/ComingUpCard.tsx.
 ///
 /// The card answers one question: what is going to happen to my money before
 /// the next payday. Profile tabs narrow it, the three boxes total it, and the

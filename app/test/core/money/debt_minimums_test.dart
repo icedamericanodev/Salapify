@@ -11,7 +11,7 @@ import '../../support/test_clock.dart';
 /// P2.4, what a debt really costs each month.
 ///
 /// The engine held back `debtsIOwe * 0.08`, the prototype's own rule
-/// (`src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is not
+/// (`archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts:57`), and a percentage of a BALANCE is not
 /// a monthly payment. It is wrong in BOTH directions, which reading the sample
 /// ledger showed rather than the review:
 ///

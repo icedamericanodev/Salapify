@@ -7,7 +7,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 
-/// The Category Manager, ported from src/components/CategoryManager.tsx.
+/// The Category Manager, ported from archive/prototype-google-ai-studio/src/components/CategoryManager.tsx.
 ///
 /// Search, filter by kind, expand a category to see its sub-categories, and
 /// add one. Deleting is offered but REFUSED when entries are tagged with the

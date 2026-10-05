@@ -10,7 +10,7 @@ import '../../models/models.dart';
 ///
 /// ## What the prototype does, and why none of it is here
 ///
-/// `markUpcomingPaid` in src/context/FinancialContext.tsx writes
+/// `markUpcomingPaid` in archive/prototype-google-ai-studio/src/context/FinancialContext.tsx writes
 /// `subcategory: 'Electricity (Meralco)'` on EVERY bill it pays. Paying
 /// Spotify files it under electricity. That is not a category scheme, it is
 /// the first example somebody wrote while testing.

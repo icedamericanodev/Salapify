@@ -35,7 +35,7 @@ Future<void> main() async {
   runApp(SalapifyApp(state: state));
 }
 
-/// Salapify, rebuilt in Flutter from the Google AI Studio prototype in src/.
+/// Salapify, rebuilt in Flutter from the Google AI Studio prototype in archive/prototype-google-ai-studio/src/.
 ///
 /// Everything a person types stays on the device. There is no account and no
 /// server of ours.

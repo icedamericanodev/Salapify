@@ -11,7 +11,7 @@ import '../../state/financial_state.dart';
 
 /// Registering a business in the Philippines, as a checklist you can tick.
 ///
-/// Ported from `src/components/PHBusinessStartupGuide.tsx`, the `checklist`
+/// Ported from `archive/prototype-google-ai-studio/src/components/PHBusinessStartupGuide.tsx`, the `checklist`
 /// tab, on founder direction 2026-09-22. The card on the Academy tab had been
 /// promising this ("Being ported next, with the two guides behind it").
 ///

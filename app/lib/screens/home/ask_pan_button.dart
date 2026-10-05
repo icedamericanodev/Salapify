@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../design/tokens.dart';
 
-/// The floating Ask Pan button, ported from src/components/PanFloatingButton.tsx.
+/// The floating Ask Pan button, ported from archive/prototype-google-ai-studio/src/components/PanFloatingButton.tsx.
 ///
 /// It rides above the scrolling content and sits clear of the tab bar, so the
 /// assistant is reachable from anywhere on Home without taking a card slot.

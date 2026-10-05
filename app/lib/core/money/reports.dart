@@ -2,7 +2,7 @@ import 'duplicate_balances.dart';
 import 'money.dart';
 import '../../models/models.dart';
 
-/// The Reports engine, ported from src/components/ReportsScreen.tsx.
+/// The Reports engine, ported from archive/prototype-google-ai-studio/src/components/ReportsScreen.tsx.
 ///
 /// The prototype computes all of this inline inside the component, in about
 /// two hundred lines of `useMemo`. Pulling it out is not tidiness: it is the
@@ -21,7 +21,7 @@ import '../../models/models.dart';
 /// so it is its own batch with its own journey tests, rather than a fourth
 /// tab bolted onto three read-only ones.
 
-/// The periods the prototype offers, from src/types.ts.
+/// The periods the prototype offers, from archive/prototype-google-ai-studio/src/types.ts.
 ///
 /// `custom` is in the prototype's type and is never selectable in its UI, so
 /// it is not here. Adding an enum value nothing can produce is how a switch

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Who an account is WITH, drawn as that institution's own mark.
 ///
 /// The prototype resolves these from the internet, through
-/// `https://www.google.com/s2/favicons?domain=...` in `src/utils/logos.ts`.
+/// `https://www.google.com/s2/favicons?domain=...` in `archive/prototype-google-ai-studio/src/utils/logos.ts`.
 /// That is not ported, for two reasons that both matter more than the pixels:
 ///
 ///  1. A logo that only appears with signal is a logo that vanishes on the

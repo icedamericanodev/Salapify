@@ -10,8 +10,8 @@ import 'package:salapify/core/money/money.dart';
 ///
 /// These numbers were NOT worked out by hand and they were not copied from the
 /// Dart code. They came out of the prototype's own TypeScript
-/// (src/utils/safeToSpendEngine.ts), run under bun against the prototype's own
-/// fixture (src/data/initialData.ts). If a figure here ever disagrees with the
+/// (archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts), run under bun against the prototype's own
+/// fixture (archive/prototype-google-ai-studio/src/data/initialData.ts). If a figure here ever disagrees with the
 /// prototype, the port is wrong, not the vector.
 void main() {
   // The vectors were generated with this exact instant pinned.
@@ -277,7 +277,7 @@ void main() {
   /// Vectors for the SHIPPED seed, in which `acc_maya` is set aside.
   ///
   /// These were generated the same way as every figure above: by executing
-  /// `src/utils/safeToSpendEngine.ts` under bun against `src/data/
+  /// `archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts` under bun against `archive/prototype-google-ai-studio/src/data/
   /// initialData.ts`, on 2026-10-04. Nothing here was worked out by hand or
   /// read off the Dart.
   ///

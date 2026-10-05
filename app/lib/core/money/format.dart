@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-/// Peso formatting, ported from the prototype's src/utils/format.ts.
+/// Peso formatting, ported from the prototype's archive/prototype-google-ai-studio/src/utils/format.ts.
 /// The prototype uses toLocaleString('en-PH'), which groups in threes and
 /// shows two decimals by default, so that is what these mirror.
 

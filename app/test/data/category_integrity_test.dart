@@ -69,7 +69,7 @@ void main() {
   test('the list carries the prototype\'s 21 categories, both sides and a '
       'transfer', () {
     // A count alone would pass on 21 wrong names, so the three that were
-    // actually wrong are named. src/data/categories.ts is the source of truth.
+    // actually wrong are named. archive/prototype-google-ai-studio/src/data/categories.ts is the source of truth.
     expect(SeedData.categories.length, 21);
     for (final String required in <String>[
       'Health & Medical',

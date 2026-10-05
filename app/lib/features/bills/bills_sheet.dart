@@ -13,7 +13,7 @@ import 'pay_bill_flow.dart';
 
 /// Bills and scheduled payments, from Home's shortcut row.
 ///
-/// Ported from the list half of `src/components/BillsModal.tsx` on founder
+/// Ported from the list half of `archive/prototype-google-ai-studio/src/components/BillsModal.tsx` on founder
 /// direction, 2026-10-01 ("Migrate bills and move quick actions"), which
 /// replaces the "Bills is not migrated yet" placeholder.
 ///

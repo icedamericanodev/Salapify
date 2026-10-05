@@ -7,7 +7,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 
-/// Safe to Spend Details, ported from src/components/SafeToSpendModal.tsx.
+/// Safe to Spend Details, ported from archive/prototype-google-ai-studio/src/components/SafeToSpendModal.tsx.
 ///
 /// Three tabs, and the third is the reason the sheet exists. Outputs says what
 /// the number is. Streams says what income it assumed. AUDIT says how it got

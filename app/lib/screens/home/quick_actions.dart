@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../design/tokens.dart';
 
 /// The five shortcuts. Four of them are ported from
-/// src/components/QuickActions.tsx.
+/// archive/prototype-google-ai-studio/src/components/QuickActions.tsx.
 ///
 /// Log, Debt, Bills, Move, in that order, with Log filled in the accent. An
 /// earlier pass guessed this set and got it wrong; the order and the wording
