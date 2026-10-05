@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/store.dart';
+import '../../main.dart' show updateStamp;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
@@ -231,6 +232,28 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   'Built in the Philippines. Offline by default, and yours.',
               onTap: null,
             ),
+            // THE UPDATE STAMP ROW, and it is here so the founder can answer
+            // one question: which build am I running.
+            //
+            // They read it against the last row of docs/delivery-log.md. That
+            // comparison is the only real proof a build reached the phone, and
+            // it is the one check nobody but the founder can perform: every
+            // other signal in the pipeline can be green while the phone runs
+            // last week's build.
+            //
+            // maxLines is the SECOND of two guards, and both are needed. The
+            // test caps what can be written; this caps what can be rendered.
+            // On Salapify 2 the stamp grew into forty lines filling the whole
+            // screen, and the row it lived in was a Text with no limit, so
+            // nothing pushed back until somebody looked at their phone.
+            _Row(
+              palette: p,
+              icon: Icons.sync,
+              title: 'Update stamp',
+              subtitle: updateStamp,
+              subtitleMaxLines: 3,
+              onTap: null,
+            ),
           ],
         ),
       ),
@@ -441,6 +464,7 @@ class _Row extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.subtitleMaxLines,
   });
 
   final Palette palette;
@@ -448,6 +472,20 @@ class _Row extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
+
+  /// Cap the subtitle's height, for a row whose text is not written by hand.
+  ///
+  /// Null, the default, keeps every existing row exactly as it was: these
+  /// subtitles are fixed copy somebody chose, and clipping them would hide
+  /// words on a large font setting for no reason.
+  ///
+  /// The Update stamp row sets it, because its text changes every build and
+  /// is written under time pressure. On Salapify 2 the stamp reached roughly
+  /// forty lines and filled the founder's whole screen, and the row rendering
+  /// it had no limit, so nothing pushed back until they looked at the phone.
+  /// A test caps what can be WRITTEN and this caps what can be RENDERED;
+  /// either one alone would have let that through.
+  final int? subtitleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -472,7 +510,14 @@ class _Row extends StatelessWidget {
                     children: <Widget>[
                       Text(title, style: AppType.rowTitle(palette)),
                       const SizedBox(height: 2),
-                      Text(subtitle, style: AppType.caption(palette)),
+                      Text(
+                        subtitle,
+                        style: AppType.caption(palette),
+                        maxLines: subtitleMaxLines,
+                        overflow: subtitleMaxLines == null
+                            ? null
+                            : TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),

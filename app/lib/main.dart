@@ -9,6 +9,50 @@ import 'features/onboarding/onboarding_flow.dart';
 import 'shell/app_shell.dart';
 import 'state/financial_state.dart';
 
+/// Which build is this, in one line, readable on the phone.
+///
+/// ## What it is for, and it is exactly one thing
+///
+/// The founder opens Settings and compares this against the last row of
+/// `docs/delivery-log.md`. That comparison is the ONLY real proof that a build
+/// reached the phone, and it is the one check nobody but the founder can
+/// perform. Everything else in the pipeline can be green while the phone runs
+/// a build from last week.
+///
+/// `appVersion` in `settings_sheet.dart` cannot do this job. It is
+/// "3.0.0 early access" and changes when somebody decides it does, so it
+/// answers "which release line is this" and never "which build am I running".
+///
+/// ## KEEP IT SHORT. One line, high level, what changed and nothing else.
+///
+/// On Salapify 2 this grew into roughly forty lines filling the founder's
+/// whole screen, because each build appended the previous build's notes
+/// instead of replacing them. The detail belongs in the pull request and in
+/// `docs/delivery-log.md`, which is a record of what shipped rather than a
+/// changelog. The limit is enforced by `test/update_stamp_test.dart`, not by
+/// good intentions, and that test exists because good intentions already
+/// failed once here.
+///
+/// ## The `s` prefix
+///
+/// Salapify 2's stamps were `f0.01` through `f4.72` and they are still in
+/// `docs/delivery-log.md`, which `app/` shares rather than forking. One file,
+/// because CLAUDE.md's three command delivery check reads exactly that path
+/// and a second file is a second place to forget to look. The different
+/// prefix is what keeps the two apps' rows apart, both for a human reading
+/// the table and for the publisher, which finds the previous stamp by
+/// pattern and would otherwise read `f4.72` as this app's last delivery.
+///
+/// ## Nothing has shipped yet
+///
+/// `app/` has no publisher, so no stamp has ever reached a phone and
+/// `docs/delivery-log.md` has no `s` row. This constant and its guards are
+/// deliberately inert until the publisher lands: they prove themselves on
+/// ordinary branch pushes, which is the cheapest possible time to find out
+/// the cap is wrong.
+const String updateStamp =
+    's0.01 · First build signed with its own key. Nothing new to use yet.';
+
 Future<void> main() async {
   // path_provider needs the bindings up before it can be asked anything.
   WidgetsFlutterBinding.ensureInitialized();

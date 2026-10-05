@@ -3060,6 +3060,59 @@ void settingsShots() {
       matchesGoldenFile('out/settings.png'),
     );
   });
+
+  // The BOTTOM of Settings, which had never been rendered.
+  //
+  // The shot above captures the sheet from the top and the sheet is taller
+  // than the frame, so everything from "Philippine tax" downward has only ever
+  // been read as code. The About section lives down there, and the Update
+  // stamp row now lives in About: the one row whose entire purpose is to be
+  // LOOKED AT on a phone. Shipping it without a picture of it would be a
+  // special kind of silly.
+  testWidgets('settings at the bottom renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+    );
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          body: SettingsSheet(state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    // NOT find.text(...).first. A Finder narrowed with .first throws
+    // "Bad state: No element" inside scrollUntilVisible when the match is not
+    // on screen yet, which is every time, because the whole point is that it
+    // is further down.
+    await tester.scrollUntilVisible(
+      find.text('Update stamp'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(SettingsSheet),
+      matchesGoldenFile('out/settings_bottom.png'),
+    );
+  });
 }
 
 /// "Mark settled" now asks first, and the question is the whole feature.
