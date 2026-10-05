@@ -81,6 +81,18 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("preview")
+
+            // R8 runs on release and does NOT run on debug, which is why this
+            // was never needed until CI started building release. See
+            // proguard-rules.pro: the ML Kit text recognition plugin names
+            // option classes for four scripts whose artifacts it does not
+            // pull, and without these rules `:app:minifyReleaseWithR8` fails
+            // outright. The release build had never once succeeded before
+            // 2026-10-05 because nothing had ever attempted one.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
