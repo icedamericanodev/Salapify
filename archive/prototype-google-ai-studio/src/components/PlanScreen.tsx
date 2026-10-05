@@ -21,6 +21,7 @@ import {
   BookOpen,
   Calendar,
   Trash2,
+  Gift,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso } from '../utils/format';
@@ -105,6 +106,23 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
   const [streamType, setStreamType] = useState<IncomeStreamType>('semimonthly_salary');
   const [streamAmount, setStreamAmount] = useState('');
   const [streamDate, setStreamDate] = useState('');
+
+  // 13th Month & Year-End Bonus Allocator State (TRAIN Law RA 10963)
+  const [bonusAmountInput, setBonusAmountInput] = useState<string>('50000');
+  const [bonusEmergencyPercent, setBonusEmergencyPercent] = useState<number>(50);
+  const [bonusDebtPercent, setBonusDebtPercent] = useState<number>(30);
+  const [bonusTreatsPercent, setBonusTreatsPercent] = useState<number>(20);
+
+  const bonusAmount = Math.max(0, parseFloat(bonusAmountInput) || 0);
+  const TRAIN_TAX_EXEMPT_CEILING = 90000;
+  const taxExemptBonus = Math.min(bonusAmount, TRAIN_TAX_EXEMPT_CEILING);
+  const taxableBonus = Math.max(0, bonusAmount - TRAIN_TAX_EXEMPT_CEILING);
+  const estimatedTaxOnBonus = Math.round(taxableBonus * 0.20);
+  const netBonusTakeHome = bonusAmount - estimatedTaxOnBonus;
+
+  const allocatedEmergency = Math.round((netBonusTakeHome * bonusEmergencyPercent) / 100);
+  const allocatedDebt = Math.round((netBonusTakeHome * bonusDebtPercent) / 100);
+  const allocatedTreats = Math.round((netBonusTakeHome * bonusTreatsPercent) / 100);
 
   // Calculate spent per budget category
   const budgetStats = useMemo(() => {
@@ -343,6 +361,158 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
                 <p className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">Financial literacy</p>
               </div>
             </button>
+          </div>
+
+          {/* 13th Month Pay & Year-End Bonus Allocator Card */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Gift size={18} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                    13th Month &amp; Bonus Allocator
+                  </h3>
+                  <p className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
+                    TRAIN Law ₱90k tax-free ceiling &amp; intentional windfall distribution
+                  </p>
+                </div>
+              </div>
+
+              {onOpenTaxCalculator && (
+                <button
+                  type="button"
+                  onClick={onOpenTaxCalculator}
+                  className="self-start sm:self-auto text-xs font-bold text-[#B03C09] dark:text-[#FF9A52] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Calculator size={13} />
+                  <span>BIR Tax Modeler &rarr;</span>
+                </button>
+              )}
+            </div>
+
+            {/* Bonus Input Field with Quick Presets */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-[#5A5148] dark:text-[#C6B8AC]">
+                <span>Estimated 13th Month / Bonus Amount</span>
+                <span className="text-[11px] text-[#16643F] dark:text-[#5FCB8E]">
+                  {bonusAmount <= TRAIN_TAX_EXEMPT_CEILING ? '100% Tax-Exempt' : 'Partially Taxable'}
+                </span>
+              </div>
+
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-[#6B6156] dark:text-[#AC9E92] font-bold text-sm">
+                  ₱
+                </span>
+                <input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  value={bonusAmountInput}
+                  onChange={(e) => setBonusAmountInput(e.target.value)}
+                  className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-[#FFEEDF]/30 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029] text-[#15120F] dark:text-[#F6EFE8] font-bold text-base focus:outline-none focus:border-[#B03C09]"
+                  placeholder="50,000"
+                />
+              </div>
+
+              {/* Quick preset chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+                {['25000', '50000', '75000', '90000', '120000'].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setBonusAmountInput(val)}
+                    className={`px-2.5 py-1 rounded-lg font-semibold border transition-all cursor-pointer shrink-0 ${
+                      bonusAmountInput === val
+                        ? 'bg-[#B03C09] dark:bg-[#FF9A52] text-white dark:text-[#1E0E03] border-transparent'
+                        : 'bg-white dark:bg-[#27201A] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029]'
+                    }`}
+                  >
+                    ₱{Number(val).toLocaleString()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* TRAIN Law Tax Shield Gauge */}
+            <div className="p-3.5 rounded-xl bg-[#FFEEDF]/30 dark:bg-[#14100D]/50 border border-[#F3DFCD] dark:border-[#383029] space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-[#5A5148] dark:text-[#C6B8AC]">
+                  Tax-Exempt Ceiling (TRAIN Law):
+                </span>
+                <span className="text-[#16643F] dark:text-[#5FCB8E] tabular-nums">
+                  {formatPeso(taxExemptBonus)} / ₱90,000.00
+                </span>
+              </div>
+
+              {/* Gauge */}
+              <div className="w-full h-2 rounded-full bg-[#FFEEDF] dark:bg-[#383029] overflow-hidden">
+                <div
+                  className="h-full bg-[#16643F] dark:bg-[#5FCB8E] rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, (taxExemptBonus / TRAIN_TAX_EXEMPT_CEILING) * 100)}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-[#6B6156] dark:text-[#AC9E92] pt-0.5">
+                <span>
+                  {taxableBonus > 0
+                    ? `Taxable excess: ${formatPeso(taxableBonus)} (~${formatPeso(estimatedTaxOnBonus)} withholding)`
+                    : '₱0 taxable excess · fully tax-shielded!'}
+                </span>
+                <span className="font-bold text-[#15120F] dark:text-[#F6EFE8]">
+                  Net Take-Home: {formatPeso(netBonusTakeHome)}
+                </span>
+              </div>
+            </div>
+
+            {/* 50 / 30 / 20 Allocation Preview */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#5A5148] dark:text-[#C6B8AC] block">
+                Recommended Filipino Windfall Allocation
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                {/* 50% Emergency & High Yield */}
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-emerald-800 dark:text-emerald-300">
+                    <span>🛡️ Ipon &amp; Emergency (50%)</span>
+                  </div>
+                  <div className="text-base font-extrabold text-emerald-900 dark:text-emerald-200 tabular-nums">
+                    {formatPeso(allocatedEmergency)}
+                  </div>
+                  <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80">
+                    SeaBank, Maya, or Pag-IBIG MP2
+                  </p>
+                </div>
+
+                {/* 30% Debt Prepayment */}
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-amber-800 dark:text-amber-300">
+                    <span>⚡ Debt Snowball (30%)</span>
+                  </div>
+                  <div className="text-base font-extrabold text-amber-900 dark:text-amber-200 tabular-nums">
+                    {formatPeso(allocatedDebt)}
+                  </div>
+                  <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80">
+                    Prepay credit cards or pahiram
+                  </p>
+                </div>
+
+                {/* 20% Guilt-Free Treats */}
+                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1">
+                  <div className="flex items-center justify-between font-bold text-purple-800 dark:text-purple-300">
+                    <span>🎉 Pamasko &amp; Treats (20%)</span>
+                  </div>
+                  <div className="text-base font-extrabold text-purple-900 dark:text-purple-200 tabular-nums">
+                    {formatPeso(allocatedTreats)}
+                  </div>
+                  <p className="text-[10px] text-purple-700/80 dark:text-purple-300/80">
+                    Gifts &amp; guilt-free holiday joy
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

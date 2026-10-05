@@ -210,7 +210,7 @@ export const ComingUpCard: React.FC<ComingUpCardProps> = ({ onSeeAll, onOpenBill
     <>
       <section
         id="section-coming-up-obligations"
-        className="flex flex-col gap-3 rounded-3xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] p-4 sm:p-5 shadow-xs transition-all"
+        className="flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] p-4 sm:p-5 shadow-xs transition-all"
       >
         {/* 1. Header with Sweldo Cadence & Info Trigger */}
         <div className="flex items-center justify-between gap-2">

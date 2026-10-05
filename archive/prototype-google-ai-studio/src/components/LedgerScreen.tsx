@@ -26,6 +26,7 @@ import {
   ChevronUp,
   Check,
   Sparkles,
+  Receipt,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { formatPeso, formatDateLabel } from '../utils/format';
@@ -134,10 +135,12 @@ export const LedgerScreen: React.FC = () => {
             Math.abs(t.amount - queryNum) < 0.01;
         }
 
-        // 4. Tags matching
+        // 4. Tags and Reference/TIN matching
         const matchTags = t.tags && t.tags.some((tag) => tag.toLowerCase().includes(rawQ));
+        const matchRef = t.taxTinOrRef ? t.taxTinOrRef.toLowerCase().includes(rawQ) : false;
+        const matchAttachment = t.attachmentName ? t.attachmentName.toLowerCase().includes(rawQ) : false;
 
-        if (!matchDescription && !matchCategory && !matchAmount && !matchTags) {
+        if (!matchDescription && !matchCategory && !matchAmount && !matchTags && !matchRef && !matchAttachment) {
           return false;
         }
       }
@@ -737,7 +740,17 @@ export const LedgerScreen: React.FC = () => {
                                   )}
 
                                   {tx.attachmentUrl && (
-                                    <Paperclip size={11} className="text-[#B03C09] dark:text-[#FF9A52]" />
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#FFEEDF] dark:bg-[#383029] text-[#B03C09] dark:text-[#FF9A52] border border-[#F3DFCD] dark:border-[#4A3E34]">
+                                      <Receipt size={10} strokeWidth={2.4} />
+                                      <span>Receipt</span>
+                                    </span>
+                                  )}
+
+                                  {tx.isTaxDeductible && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                      <ShieldCheck size={10} strokeWidth={2.4} />
+                                      <span>BIR Claimable</span>
+                                    </span>
                                   )}
 
                                   {hasHistory && (

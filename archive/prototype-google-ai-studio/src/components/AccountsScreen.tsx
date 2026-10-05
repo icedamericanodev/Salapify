@@ -14,6 +14,10 @@ import {
   PiggyBank,
   Receipt,
   Layers,
+  Clock,
+  Sparkles,
+  AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import { useFinancial } from '../context/FinancialContext';
 import { InvestmentsView } from './InvestmentsView';
@@ -66,6 +70,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
   const [creditLimitStr, setCreditLimitStr] = useState('');
   const [interestRateStr, setInterestRateStr] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [statementDate, setStatementDate] = useState('');
 
   
 
@@ -156,6 +161,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
     setCreditLimitStr(acc.creditLimit ? String(acc.creditLimit) : '');
     setInterestRateStr(acc.interestRate ? String(acc.interestRate) : '');
     setDueDate(acc.dueDate || '');
+    setStatementDate(acc.statementDate || '');
     setAccountNumber(acc.accountNumber || '');
     setCardNetwork(acc.cardNetwork || 'none');
     setCardTier(acc.cardTier || 'regular');
@@ -169,6 +175,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
     setCreditLimitStr('');
     setInterestRateStr('');
     setDueDate('');
+    setStatementDate('');
     setAccountNumber('');
     setCardNetwork('none');
     setCardTier('regular');
@@ -198,6 +205,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
       creditLimit,
       interestRate,
       dueDate: dueDate.trim() || undefined,
+      statementDate: statementDate.trim() || undefined,
       monogram,
       accountNumber: accountNumber.trim() || undefined,
       cardNetwork: cardNetwork !== 'none' ? cardNetwork : undefined,
@@ -216,6 +224,74 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
     setCreditLimitStr('');
     setInterestRateStr('');
     setDueDate('');
+    setStatementDate('');
+  };
+
+  const getCardCutoffAdvice = (acc: Account) => {
+    const today = new Date();
+    const currentDay = today.getDate();
+
+    let cutoffDay = 15;
+    if (acc.statementDate) {
+      const match = acc.statementDate.match(/\d+/);
+      if (match) cutoffDay = parseInt(match[0], 10);
+    } else if (acc.dueDate) {
+      const match = acc.dueDate.match(/\d+/);
+      if (match) {
+        const d = parseInt(match[0], 10);
+        cutoffDay = d > 20 ? d - 20 : (d + 10);
+      }
+    }
+
+    let dueDay = (cutoffDay + 21) > 30 ? (cutoffDay + 21 - 30) : (cutoffDay + 21);
+    if (acc.dueDate) {
+      const match = acc.dueDate.match(/\d+/);
+      if (match) dueDay = parseInt(match[0], 10);
+    }
+
+    let daysUntilCutoff = cutoffDay - currentDay;
+    if (daysUntilCutoff < 0) daysUntilCutoff += 30;
+
+    let daysUntilDue = dueDay - currentDay;
+    if (daysUntilDue < 0) daysUntilDue += 30;
+
+    if (daysUntilDue <= 4 && daysUntilDue >= 0) {
+      return {
+        type: 'due_soon',
+        badge: `Due in ${daysUntilDue === 0 ? 'Today' : `${daysUntilDue}d`}`,
+        text: `Payment due on day ${dueDay}. Pay full balance to avoid 3% finance charge.`,
+        theme: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
+        icon: 'alert' as const,
+      };
+    }
+
+    if (daysUntilCutoff <= 3 && daysUntilCutoff >= 0) {
+      return {
+        type: 'cutoff_soon',
+        badge: `Statement in ${daysUntilCutoff === 0 ? 'Today' : `${daysUntilCutoff}d`}`,
+        text: `Cutoff day ${cutoffDay}. Delay heavy swipes until after cutoff to push to next cycle.`,
+        theme: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20',
+        icon: 'clock' as const,
+      };
+    }
+
+    if (currentDay > cutoffDay && currentDay <= cutoffDay + 7) {
+      return {
+        type: 'safe_swipe',
+        badge: 'Safe to Swipe',
+        text: `Statement generated on day ${cutoffDay}! Up to 50 days interest-free grace period.`,
+        theme: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/20',
+        icon: 'sparkles' as const,
+      };
+    }
+
+    return {
+      type: 'neutral',
+      badge: `Cutoff: ${cutoffDay}th · Due: ${dueDay}th`,
+      text: `Statement cuts on day ${cutoffDay}, payment due on day ${dueDay}.`,
+      theme: 'bg-[#FFEEDF]/40 dark:bg-[#14100D] text-[#6B6156] dark:text-[#AC9E92] border-[#F3DFCD] dark:border-[#383029]',
+      icon: 'calendar' as const,
+    };
   };
 
   const getAccountIcon = (k: AccountKind) => {
@@ -546,6 +622,7 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                 const logoUrl = getLogoUrl(acc.institution);
 
                 if (acc.kind === 'credit') {
+                  const advice = getCardCutoffAdvice(acc);
                   return (
                     <div key={acc.id} className="p-3" onClick={() => openEditModal(acc)}>
                       <BankCard account={acc} />
@@ -573,6 +650,22 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                           </div>
                         </div>
                       )}
+
+                      {/* Cutoff & Payment Due Tracker Badge */}
+                      <div className={`mt-2.5 mx-1 p-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${advice.theme}`}>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {advice.icon === 'alert' && <AlertCircle size={13} className="shrink-0 text-rose-600 dark:text-rose-400" />}
+                          {advice.icon === 'clock' && <Clock size={13} className="shrink-0 text-amber-600 dark:text-amber-400" />}
+                          {advice.icon === 'sparkles' && <Sparkles size={13} className="shrink-0 text-emerald-600 dark:text-emerald-400" />}
+                          {advice.icon === 'calendar' && <Calendar size={13} className="shrink-0 text-[#6B6156] dark:text-[#AC9E92]" />}
+                          <span className="text-[11px] font-semibold truncate leading-tight">
+                            {advice.text}
+                          </span>
+                        </div>
+                        <span className="shrink-0 font-bold text-[10px] px-2 py-0.5 rounded-md bg-white/40 dark:bg-black/20 border border-current/20 whitespace-nowrap">
+                          {advice.badge}
+                        </span>
+                      </div>
                     </div>
                   );
                 }
@@ -890,9 +983,9 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                 </div>
               )}
 
-              {/* Specific fields for credit or loans */}
+              {/* Specific fields for credit cards */}
               {kind === 'credit' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
                       Credit Limit
@@ -907,13 +1000,25 @@ export const AccountsScreen: React.FC<AccountsScreenProps> = ({ onOpenDebt }) =>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
-                      Statement Due Date
+                      Cutoff Day (e.g. 15th)
+                    </label>
+                    <input
+                      type="text"
+                      value={statementDate}
+                      onChange={(e) => setStatementDate(e.target.value)}
+                      placeholder="e.g. 15th"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-[#5A5148] dark:text-[#C6B8AC] mb-1 block">
+                      Payment Due Day (e.g. 5th)
                     </label>
                     <input
                       type="text"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
-                      placeholder="e.g. 15th"
+                      placeholder="e.g. 5th"
                       className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] text-xs font-medium text-[#15120F] dark:text-[#F6EFE8] focus:outline-none"
                     />
                   </div>

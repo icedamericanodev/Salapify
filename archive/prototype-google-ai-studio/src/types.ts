@@ -39,6 +39,8 @@ export interface Transaction {
   note?: string;
   attachmentUrl?: string; // Receipt or document
   attachmentName?: string;
+  isTaxDeductible?: boolean; // BIR-deductible business/freelance expense
+  taxTinOrRef?: string; // BIR TIN or official receipt reference number
   date: string; // ISO date format YYYY-MM-DD
   createdAt: number;
   status?: TransactionStatus;
