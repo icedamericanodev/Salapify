@@ -212,7 +212,30 @@ class RunwayRow extends StatelessWidget {
                         _Notice(
                           palette: p,
                           noticeKey: const Key('runway-counted-once'),
-                          label: 'Counted once: ',
+                          // "COUNTED ONCE" ALONE WAS MISREAD THREE WAYS, and
+                          // by all three archetypes on a user panel, none of
+                          // whom read it as the reassurance it is. One asked
+                          // why a non-problem was on their home screen. One
+                          // read it as the app taking credit for doing its
+                          // job. The third, and the reason these four words
+                          // exist, read "counted once" as an unfinished
+                          // count and went looking for what happened to the
+                          // other one.
+                          //
+                          // There is no other one. ", not twice" says so in
+                          // three characters of line, keeps the pairing with
+                          // the "Counted twice" line below it, and matches
+                          // the explainer behind the dot word for word,
+                          // which already read "is counted once, not twice".
+                          //
+                          // Founder decision of 2026-10-05, taken against a
+                          // panel recommendation to delete the line
+                          // outright: the line stays, because D27 records in
+                          // writing that it is "not optional polish, it is
+                          // the other half of this decision". It is what
+                          // stops a genuine second income of the same amount
+                          // in the same month being dropped in silence.
+                          label: 'Counted once, not twice: ',
                           body: r.countedOnce!,
                         ),
                       ],
