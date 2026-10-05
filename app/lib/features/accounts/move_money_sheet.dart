@@ -74,13 +74,24 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   /// EVERY LIABILITY IS EXCLUDED FROM BOTH ENDS, and this is a divergence
   /// from the prototype, which offers every account in both dropdowns.
   ///
-  /// On a credit card, a loan or a mortgage, `balance` is what is OWED rather
-  /// than what is held. So "move 5,000 from GCash to the credit card" and
-  /// "pay 5,000 off the credit card" are the same sentence to a person and
-  /// opposite instructions to `applyToBalances`, which would ADD 5,000 to
-  /// what is owed and call it an arrival. Paying one down belongs on the Debt
-  /// screen, where the direction is unambiguous and the payment is recorded
-  /// against the debt itself.
+  /// THE ARITHMETIC REASON FOR THIS IS GONE, and the rest of this comment
+  /// used to be it. It said that "move 5,000 from GCash to the credit card"
+  /// and "pay 5,000 off the credit card" were opposite instructions to
+  /// `applyToBalances`, which "would ADD 5,000 to what is owed and call it an
+  /// arrival". That was true and is now false: `signedDelta` reads the
+  /// account's kind on both legs, so a transfer INTO a liability subtracts
+  /// from what is owed, which is exactly what the person meant. The engine
+  /// pays a card down correctly today and every one of the hundred
+  /// source-to-destination pairs is asserted in
+  /// `test/core/money/balance_direction_test.dart`.
+  ///
+  /// WHAT KEEPS THE FILTER IS NOW A PRODUCT DECISION, not a defence against
+  /// the engine. Opening this dropdown to liabilities is how a credit card
+  /// finally becomes payable, and it needs its own copy, an overpayment
+  /// warning, and an answer to what a card payment does to the Financing
+  /// section of Cash flow, which reads `type == expense` and would show zero.
+  /// Until that is designed the door stays shut, and this paragraph exists so
+  /// nobody reopens it believing the sums are still wrong.
   ///
   /// This started as `kind != credit`, which left the loan and the mortgage
   /// in. The journey test found it by accident: `find.textContaining('BPI')`

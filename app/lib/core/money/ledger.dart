@@ -9,6 +9,7 @@ library;
 
 import '../../models/models.dart';
 import 'money.dart';
+import 'reports.dart' show liabilityKinds;
 
 /// The type tabs above the list. `all` is not a type, it is the absence of the
 /// filter, which is why this is separate from TransactionType.
@@ -256,20 +257,85 @@ List<({String category, double amount})> categorySpending(
 /// worse error. The defence is that the UI must make it unreachable: a
 /// destination is picked from the account list and cannot be the source. If a
 /// caller ever manages to produce it, that is a bug in the caller.
+/// Money ARRIVING at an account, in the direction that account stores it.
+///
+/// THE ONE PLACE THE SIGN IS DECIDED, and it exists because it used not to.
+/// Both of the functions below switched on the transaction TYPE alone and
+/// never looked at the account's kind, which is right for everything you own
+/// and backwards for everything you owe. A credit card stores what you OWE as
+/// a positive number (`test/core/money/credit_sign_test.dart` pins that and
+/// four engines read it), so subtracting on an expense made the debt smaller:
+/// 1,000 charged to a card moved net worth from 19,200 to 20,200 and dropped
+/// the card from 4,200 to 3,200. Wrong by twice the amount, every time.
+///
+/// WHY A LIABILITY SIMPLY FLIPS. There are only two things that can happen to
+/// an account, money arrives or money leaves, and an expense, a transfer out
+/// and a reversed income are all the same event. On something you own,
+/// arriving means more. On something you owe, arriving means a payment
+/// against it, so the stored figure falls. One sign flip covers every case
+/// rather than ten.
+///
+/// NET WORTH IS UNAFFECTED BY THE FLIP, which is the part worth holding on
+/// to: spending 1,000 lowers what you are worth by 1,000 whether you paid
+/// with cash you had or credit you did not. What changes is only which side
+/// of the sheet moved. `test/core/money/balance_direction_test.dart` asserts
+/// both figures for every combination of type, leg and kind, and reddened on
+/// six of them the day it was written.
+///
+/// THE LEG IS PART OF THE RULE, not a detail of the caller. The first version
+/// of this took only a type and a kind, so neither balance function could ask
+/// it about the RECEIVING end of a transfer and both reached past it to an
+/// inlined helper instead. The rule was then written in three places while
+/// this comment claimed it was written in one, and the one path that bypassed
+/// it was also the one path no test covered.
+enum TxLeg {
+  /// The account the transaction is tagged against.
+  source,
+
+  /// A transfer's destination.
+  destination,
+}
+
+/// What one transaction does to one account's stored balance.
+///
+/// Two independent facts and nothing else: does money ARRIVE at this account,
+/// and does this account store what you own or what you owe.
+Money signedDelta(
+  TransactionType type,
+  TxLeg leg,
+  AccountKind kind,
+  Money amount,
+) {
+  final bool arrives = switch ((type, leg)) {
+    (TransactionType.income, _) => true,
+    (TransactionType.expense, _) => false,
+    (TransactionType.transfer, TxLeg.source) => false,
+    (TransactionType.transfer, TxLeg.destination) => true,
+  };
+  // Arriving at something you own raises it. Arriving at something you owe
+  // pays it down, so the stored figure falls.
+  return arrives == liabilityKinds.contains(kind) ? -amount : amount;
+}
+
 List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
   if (!tx.countsTowardTotals) return accounts;
 
   return accounts.map((Account a) {
     if (a.id == tx.accountId) {
-      final Money delta = switch (tx.type) {
-        TransactionType.income => tx.amount,
-        TransactionType.expense => -tx.amount,
-        TransactionType.transfer => -tx.amount,
-      };
-      return a.copyWith(balance: a.balance + delta);
+      return a.copyWith(
+        balance:
+            a.balance + signedDelta(tx.type, TxLeg.source, a.kind, tx.amount),
+      );
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance + tx.amount);
+      // The receiving end. A transfer INTO something you owe is a payment
+      // against it, which is how a credit card gets paid off, so this has to
+      // read the kind too rather than always adding.
+      return a.copyWith(
+        balance:
+            a.balance +
+            signedDelta(tx.type, TxLeg.destination, a.kind, tx.amount),
+      );
     }
     return a;
   }).toList();
@@ -292,17 +358,26 @@ List<Account> applyToBalances(List<Account> accounts, Transaction tx) {
 List<Account> reverseFromBalances(List<Account> accounts, Transaction tx) {
   if (!tx.countsTowardTotals) return accounts;
 
+  // THE EXACT MIRROR of apply, by subtracting the same figure rather than by
+  // restating the rule with the signs swapped. The restated version is how
+  // the two drifted apart in the first place: both were wrong about
+  // liabilities, identically, so every round trip balanced and no test could
+  // see it. Reverse runs on a take-back, an edit and on marking an entry
+  // excluded, so a kind that applies correctly and reverses wrongly leaves a
+  // balance permanently out by twice the amount.
   return accounts.map((Account a) {
     if (a.id == tx.accountId) {
-      final Money delta = switch (tx.type) {
-        TransactionType.income => -tx.amount,
-        TransactionType.expense => tx.amount,
-        TransactionType.transfer => tx.amount,
-      };
-      return a.copyWith(balance: a.balance + delta);
+      return a.copyWith(
+        balance:
+            a.balance - signedDelta(tx.type, TxLeg.source, a.kind, tx.amount),
+      );
     }
     if (tx.type == TransactionType.transfer && a.id == tx.toAccountId) {
-      return a.copyWith(balance: a.balance - tx.amount);
+      return a.copyWith(
+        balance:
+            a.balance -
+            signedDelta(tx.type, TxLeg.destination, a.kind, tx.amount),
+      );
     }
     return a;
   }).toList();
