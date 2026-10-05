@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/bir_claims.dart';
 import '../../core/money/format.dart';
+import '../../core/money/duplicate_balances.dart';
+import '../../core/money/money.dart';
 import '../../core/money/reports.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -402,6 +404,20 @@ class _PositionView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        // ABOVE THE FIGURE, NOT BESIDE IT, and the placement is the whole
+        // design. A user panel found that a caveat sitting NEXT TO a headline
+        // made one archetype distrust the headline itself. Above it, with the
+        // reassurance in the same breath, says "read this first, then read
+        // the number" instead of "this number is suspect".
+        //
+        // Nothing renders at all when the books are clean. No green tick, no
+        // "all balanced" badge: a permanent reassurance nobody asked for
+        // teaches people to read this whole area as decoration, which is
+        // exactly what the 2026-09-18 rule rules out.
+        if (report.duplicateBalances.isNotEmpty) ...<Widget>[
+          _DoubleCountCard(palette: palette, flags: report.duplicateBalances),
+          const SizedBox(height: Spacing.md),
+        ],
         _SectionCard(
           palette: palette,
           // NOT "Net worth" WHEN IT IS NEGATIVE, on founder decision of
@@ -1084,6 +1100,125 @@ class _SectionCard extends StatelessWidget {
           ),
           SizedBox(height: topic == null ? Spacing.sm : 0),
           child,
+        ],
+      ),
+    );
+  }
+}
+
+/// One obligation counted twice on the balance sheet, named rather than fixed.
+///
+/// IT NEVER SUBTRACTS ANYTHING. Every total on this screen stays whole, which
+/// is the same policy the runway card uses for duplicated outflows and for
+/// the same reason: removing a side would mean the app deciding which record
+/// the person meant. An account is the right home for a loan you watch a
+/// balance on; a debt row is the right home for one you make payments
+/// against. Only they know which they intended.
+///
+/// OUTLINED, NOT FILLED. A filled warning panel the width of the screen above
+/// a net worth figure is a klaxon, and nothing here is an emergency: the
+/// money is fine and the bookkeeping has a duplicate in it.
+class _DoubleCountCard extends StatelessWidget {
+  const _DoubleCountCard({required this.palette, required this.flags});
+
+  final Palette palette;
+  final List<SuspectedDuplicateBalance> flags;
+
+  @override
+  Widget build(BuildContext context) {
+    Money total = Money.zero;
+    for (final SuspectedDuplicateBalance f in flags) {
+      total += f.amount;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: palette.warning),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.content_copy_outlined,
+                size: 16,
+                color: palette.warning,
+              ),
+              const SizedBox(width: Spacing.xs),
+              Expanded(
+                child: Text(
+                  'COUNTED TWICE',
+                  style: AppType.kicker(
+                    palette,
+                  ).copyWith(color: palette.warning),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          // THE FIGURE, so the person can tell whether this matters at all.
+          // 200 pesos recorded twice is a shrug; 16,250 is the difference
+          // between two different pictures of somebody's finances.
+          Text(formatPeso(total.pesos), style: AppType.amount(palette)),
+          const SizedBox(height: 2),
+          // WHICH SIDE, when both are affected, and this is a
+          // wrong-conclusion stopper rather than detail. The two sides pull
+          // net worth in OPPOSITE directions: on the sample ledger 10,000 of
+          // what you owe and 6,250 of what you are owed are each counted
+          // twice, so the headline figure is out by the difference, 3,750,
+          // and not by the 16,250 printed above. Somebody who reads one
+          // figure and subtracts it from the other gets a worse answer than
+          // if the card had said nothing.
+          Text(() {
+            Money owed = Money.zero;
+            Money owedToYou = Money.zero;
+            for (final SuspectedDuplicateBalance f in flags) {
+              if (f.isLiability) {
+                owed += f.amount;
+              } else {
+                owedToYou += f.amount;
+              }
+            }
+            if (owed.isPositive && owedToYou.isPositive) {
+              return 'is on this page twice: ${formatPeso(owed.pesos)} of '
+                  'what you owe, and ${formatPeso(owedToYou.pesos)} of what '
+                  'you are owed. They pull in opposite directions, so the '
+                  'figure below is out by the difference, not by the total.';
+            }
+            return flags.length == 1
+                ? 'is on this page twice.'
+                : 'is on this page twice, across ${flags.length} entries.';
+          }(), style: AppType.caption(palette)),
+          const SizedBox(height: Spacing.sm),
+          // NAMED, every one. A figure with no name sends somebody hunting
+          // through two screens for it, and the whole value of this card is
+          // that they can go and look.
+          for (final SuspectedDuplicateBalance f in flags)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                '${f.accountName} is also recorded as '
+                '${f.debtNames.length == 1 ? f.debtNames.first : "${f.debtNames.length} debts"}.',
+                style: AppType.caption(palette),
+              ),
+            ),
+          const SizedBox(height: Spacing.xs),
+          // THE WRONG CONCLUSION THIS STOPS, and it is the reason the card
+          // says anything at all rather than quietly netting the figures off.
+          // Somebody who sees a total they did not expect concludes the app
+          // is broken. The honest sentence is that the app counted exactly
+          // what it was given, twice, because it was given it twice.
+          Text(
+            'Nothing is wrong with your money. The same amount was entered '
+            'in two places, so both totals above include it. Delete whichever '
+            'one you do not use and the figures settle.',
+            style: AppType.caption(palette),
+          ),
         ],
       ),
     );
