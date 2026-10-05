@@ -34,6 +34,7 @@ String _kind(AccountKind k) => switch (k) {
   AccountKind.credit => 'credit',
   AccountKind.loan => 'loan',
   AccountKind.mortgage => 'mortgage',
+  AccountKind.property => 'property',
 };
 
 String _profile(ProfileEntity p) => switch (p) {

@@ -48,6 +48,38 @@ const List<AccountKind> assetKinds = <AccountKind>[
   AccountKind.debit,
   AccountKind.investment,
   AccountKind.receivable,
+  // Things you own outright. An asset like any other for the balance sheet,
+  // and never a cash equivalent: the list below is what you could spend, and
+  // a house is not.
+  AccountKind.property,
+];
+
+/// Assets money can actually LEAVE FROM, stated once.
+///
+/// WHY IT IS NOT `assetKinds`. Three pickers each typed out their own version
+/// of "an asset, but not a receivable", and the comment on one of them
+/// already said why that is dangerous: a typed list is a second copy of a
+/// decision and the two drift. Adding `property` to `assetKinds` proved it
+/// instantly, because all three silently started offering a house as
+/// somewhere to pay a bill from. `signedDelta` would have taken the 1,500 out
+/// of it quite happily and the estimate would have become 398,500, which
+/// nobody could trace and nobody could dispute.
+///
+/// WHY IT IS NOT `cashEquivalentKinds` EITHER. That list excludes
+/// `investment`, and the existing policy deliberately lets somebody pay from
+/// an investment account: pulling money out of MP2 to cover a bill is a real
+/// thing people do. A fourth set earns its place rather than reusing one that
+/// answers a different question.
+///
+/// Receivables are out because money owed TO you is not somewhere you can
+/// send money from, and recording a repayment is the Debt screen's job.
+const List<AccountKind> settlementKinds = <AccountKind>[
+  AccountKind.cash,
+  AccountKind.bank,
+  AccountKind.gcash,
+  AccountKind.maya,
+  AccountKind.debit,
+  AccountKind.investment,
 ];
 
 /// Which count as things you OWE.

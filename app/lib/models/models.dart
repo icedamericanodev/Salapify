@@ -20,6 +20,28 @@ enum AccountKind {
   mortgage,
   investment,
   receivable,
+
+  /// Something you OWN that is worth money: a house and lot, a vehicle.
+  ///
+  /// WHY IT EXISTS. Every other kind here is money or a claim on money. A
+  /// mortgage and a car loan had no other side, so taking out a 385,000
+  /// Pag-IBIG loan dropped net worth by the whole 385,000 on the day it was
+  /// taken and climbed back as it was repaid. That is wrong in the moment
+  /// that matters most, and wrong in the direction that makes borrowing to
+  /// buy a home look like a catastrophe. Borrowing to buy a thing does not
+  /// make you poorer: you gain the thing and you gain the debt, and what you
+  /// are worth is unchanged until one of them moves.
+  ///
+  /// THE BALANCE IS AN ESTIMATE THE PERSON MAINTAINS. Salapify has no way to
+  /// check what a house is worth and never will, so this figure is only as
+  /// good as the last time somebody updated it, which the screen says out
+  /// loud rather than implying a precision it does not have.
+  ///
+  /// DELIBERATELY NOT IN [liquidKinds] OR `cashEquivalentKinds`. You cannot
+  /// spend your house this fortnight, and a kind that reached Safe to Spend
+  /// would tell somebody with a paid-off condo that they can spend two
+  /// million pesos today.
+  property,
 }
 
 /// The kinds that count as spendable cash. Credit limits and investments are

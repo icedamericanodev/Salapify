@@ -820,6 +820,10 @@ class _AccountRow extends StatelessWidget {
     AccountKind.mortgage => 'Mortgage',
     AccountKind.investment => 'Investment',
     AccountKind.receivable => 'Receivable',
+    // "Own it", not "Property", which in English reads as real estate only
+    // and would not fit a car. This label has to cover a house, a lot and a
+    // vehicle without implying any one of them.
+    AccountKind.property => 'Own it',
   };
 
   @override
