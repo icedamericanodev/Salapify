@@ -75,6 +75,9 @@ export const ReportsScreen: React.FC = () => {
   const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
   const [reconcileSuccessMessage, setReconcileSuccessMessage] = useState<string | null>(null);
 
+  // Tax-Deductible / BIR Official Receipts Filter Toggle
+  const [taxDeductibleOnly, setTaxDeductibleOnly] = useState<boolean>(false);
+
   // Filter transactions based on active profile entity
   const entityFilteredTransactions = useMemo(() => {
     if (activeProfile === 'all') return transactions;
@@ -385,8 +388,33 @@ export const ReportsScreen: React.FC = () => {
   };
 
   // Detailed Category & Subcategory Breakdown for the active period
+  const taxDeductibleExpenses = useMemo(() => {
+    return dateFilteredTxs.filter(
+      (t) =>
+        t.type === 'expense' &&
+        (t.isTaxDeductible ||
+          t.category?.toLowerCase() === 'business' ||
+          t.profile === 'business' ||
+          (t.tags && t.tags.includes('tax-deductible')))
+    );
+  }, [dateFilteredTxs]);
+
+  const totalTaxDeductible = useMemo(() => {
+    return taxDeductibleExpenses.reduce((sum, t) => sum + t.amount, 0);
+  }, [taxDeductibleExpenses]);
+
+  const estimatedTaxShield = Math.round(totalTaxDeductible * 0.25);
+
   const expenseCategoryBreakdown = useMemo(() => {
-    const expenseTxs = dateFilteredTxs.filter((t) => t.type === 'expense');
+    const expenseTxs = dateFilteredTxs.filter(
+      (t) =>
+        t.type === 'expense' &&
+        (!taxDeductibleOnly ||
+          t.isTaxDeductible ||
+          t.category?.toLowerCase() === 'business' ||
+          t.profile === 'business' ||
+          (t.tags && t.tags.includes('tax-deductible')))
+    );
     const totalExp = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
 
     const catMap: Record<
@@ -1119,6 +1147,103 @@ export const ReportsScreen: React.FC = () => {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Tax-Deductible & BIR Official Receipts Card (Freelancer & Business Hub) */}
+          <div className="bg-white dark:bg-[#27201A] border border-[#F3DFCD] dark:border-[#383029] rounded-3xl p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-[#16643F] dark:text-[#5FCB8E] flex items-center justify-center shrink-0">
+                  <ShieldCheck size={16} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#15120F] dark:text-[#F6EFE8]">
+                    Tax-Deductible &amp; BIR Receipts Hub
+                  </h3>
+                  <p className="text-[11px] text-[#6B6156] dark:text-[#AC9E92]">
+                    Substantiated receipts for registered freelancers &amp; professionals
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle Switch */}
+              <button
+                type="button"
+                onClick={() => setTaxDeductibleOnly(!taxDeductibleOnly)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  taxDeductibleOnly
+                    ? 'bg-[#16643F] text-white border-transparent shadow-xs'
+                    : 'bg-[#FFEEDF]/50 dark:bg-[#1E1813] text-[#5A5148] dark:text-[#C6B8AC] border-[#F3DFCD] dark:border-[#383029] hover:border-[#16643F]'
+                }`}
+              >
+                <span>{taxDeductibleOnly ? 'Showing Deductibles Only' : 'Filter Claimable Receipts'}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                    taxDeductibleOnly
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                  }`}
+                >
+                  {taxDeductibleExpenses.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-1">
+              <div className="p-3 rounded-2xl bg-[#FFEEDF]/30 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029]">
+                <span className="text-[#6B6156] dark:text-[#AC9E92] block mb-0.5">Claimable Expenses</span>
+                <span className="font-extrabold text-sm text-[#15120F] dark:text-[#F6EFE8] tabular-nums">
+                  {formatPeso(totalTaxDeductible)}
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="text-emerald-800 dark:text-emerald-300 font-semibold block mb-0.5">
+                  Est. BIR Tax Shield (25%)
+                </span>
+                <span className="font-extrabold text-sm text-emerald-900 dark:text-emerald-200 tabular-nums">
+                  ~{formatPeso(estimatedTaxShield)}
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-[#FFEEDF]/30 dark:bg-[#14100D] border border-[#F3DFCD] dark:border-[#383029]">
+                <span className="text-[#6B6156] dark:text-[#AC9E92] block mb-0.5">Substantiated Receipts</span>
+                <span className="font-extrabold text-sm text-[#15120F] dark:text-[#F6EFE8]">
+                  {taxDeductibleExpenses.length} Records
+                </span>
+              </div>
+            </div>
+
+            {/* Itemized Deductible Receipts List if filtered */}
+            {taxDeductibleOnly && (
+              <div className="pt-2 border-t border-[#F3DFCD] dark:border-[#383029] space-y-2 animate-in fade-in">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B6156] dark:text-[#AC9E92] block">
+                  Substantiated Tax-Deductible Records ({taxDeductibleExpenses.length}):
+                </span>
+                {taxDeductibleExpenses.length === 0 ? (
+                  <div className="p-3 text-xs text-center text-[#6B6156] dark:text-[#AC9E92]">
+                    No tax-deductible receipts found in this period. Tag transactions or use Scan-to-Log to claim Official Receipts.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#F3DFCD] dark:divide-[#383029] max-h-48 overflow-y-auto">
+                    {taxDeductibleExpenses.map((t) => (
+                      <div key={t.id} className="py-2 flex items-center justify-between text-xs gap-2">
+                        <div className="min-w-0">
+                          <div className="font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
+                            {t.merchant || t.category}
+                          </div>
+                          <div className="text-[10px] text-[#6B6156] dark:text-[#AC9E92]">
+                            {t.date} · {t.taxTinOrRef || 'Official Receipt'}
+                          </div>
+                        </div>
+                        <span className="font-bold text-[#15120F] dark:text-[#F6EFE8] tabular-nums shrink-0">
+                          {formatPeso(t.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Comprehensive Category & Subcategory Breakdown */}

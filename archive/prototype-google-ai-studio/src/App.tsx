@@ -33,6 +33,8 @@ import { HealthCheckModal } from './components/HealthCheckModal';
 import { CollaborationHub } from './components/CollaborationHub';
 import { TransactionDetailModal } from './components/TransactionDetailModal';
 import { PhilippineFeaturesModal } from './components/PhilippineFeaturesModal';
+import { PetsaDePeligroCard } from './components/PetsaDePeligroCard';
+import { DigitalBankYieldCard } from './components/DigitalBankYieldCard';
 import { PanChatModal } from './components/PanChatModal';
 import { OfflineRegistryModal } from './components/OfflineRegistryModal';
 import { TransactionType, AppNotification, Transaction } from './types';
@@ -66,8 +68,8 @@ function SalapifyMain() {
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [isPhilippineSuiteOpen, setIsPhilippineSuiteOpen] = useState(false);
   const [philippineSuiteTab, setPhilippineSuiteTab] = useState<
-    'remittance' | '13th_month' | 'household' | 'payday_routine' | 'freelance_tax'
-  >('remittance');
+    'calculator' | 'mindset' | 'treats' | 'fx'
+  >('fx');
   const [isPanOpen, setIsPanOpen] = useState(false);
   const [panInitialPrompt, setPanInitialPrompt] = useState<string | undefined>(undefined);
   const [isOfflineRegistryOpen, setIsOfflineRegistryOpen] = useState(false);
@@ -91,8 +93,7 @@ function SalapifyMain() {
     } else if (actionId === 'open_split_bill') {
       setIsSplitBillOpen(true);
     } else if (actionId === 'open_13th_month') {
-      setPhilippineSuiteTab('13th_month');
-      setIsPhilippineSuiteOpen(true);
+      setIsTaxCalculatorOpen(true);
     } else if (actionId === 'open_savings_planner') {
       setIsSavingsPlannerOpen(true);
     } else if (actionId === 'open_tax_calc') {
@@ -202,7 +203,7 @@ function SalapifyMain() {
           onOpenReminders={() => setIsRemindersOpen(true)}
           onOpenCollaboration={() => setIsCollaborationOpen(true)}
           onOpenPhilippineSuite={() => {
-            setPhilippineSuiteTab('remittance');
+            setPhilippineSuiteTab('fx');
             setIsPhilippineSuiteOpen(true);
           }}
           onOpenPan={() => handleOpenPan()}
@@ -224,12 +225,13 @@ function SalapifyMain() {
                 onOpenHealthCheck={() => setIsHealthCheckOpen(true)}
               />
 
-              {/* Budget Pulse */}
-              <BudgetPulseCard
-                onSeeAll={() => {
-                  setPlanInitialSegment('overview');
-                  setCurrentTab('plan');
+              {/* Petsa de Peligro Survival Shield & Luho Jar */}
+              <PetsaDePeligroCard
+                onOpenLog={(amount, category, note) => {
+                  handleOpenLog('expense');
                 }}
+                onOpenSafeToSpend={() => setIsSafeToSpendOpen(true)}
+                onOpenPan={(prompt) => handleOpenPan(prompt)}
               />
 
               {/* 4 Quick Actions in one row */}
@@ -240,37 +242,20 @@ function SalapifyMain() {
                 onOpenMove={() => setIsTransferOpen(true)}
               />
 
-              {/* Live Reminders & Simulator Action Banner */}
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#1E1915] border border-[#F0D5C0] dark:border-[#383029] shadow-xs flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-[#FFEEDF] dark:bg-[#2A221C] text-[#B03C09] dark:text-[#FF9A52] flex items-center justify-center shrink-0">
-                    <Bell size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-[#15120F] dark:text-[#F6EFE8] truncate">
-                        Reminders &amp; Alerts
-                      </span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-amber-400 text-amber-950">
-                        SIMULATOR
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-[#5A5148] dark:text-[#C6B8AC] truncate block">
-                      Daily log, payment due, bill &amp; subscription reminders
-                    </span>
-                  </div>
-                </div>
+              {/* Latest Transactions immediately following Quick Actions */}
+              <LatestTransactions
+                onSeeAll={() => {
+                  setCurrentTab('ledger');
+                }}
+              />
 
-                <button
-                  type="button"
-                  id="open-reminders-banner-btn"
-                  onClick={() => setIsRemindersOpen(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#B03C09] hover:bg-[#963307] text-white dark:bg-[#FF9A52] dark:hover:bg-[#ff8a38] dark:text-[#14100D] transition-colors shrink-0 flex items-center gap-1 cursor-pointer shadow-xs"
-                >
-                  <Sparkles size={13} />
-                  <span>Test Alerts</span>
-                </button>
-              </motion.div>
+              {/* Budget Pulse */}
+              <BudgetPulseCard
+                onSeeAll={() => {
+                  setPlanInitialSegment('overview');
+                  setCurrentTab('plan');
+                }}
+              />
 
               {/* Debt Beam Card */}
               <DebtBeamCard onSeeAll={handleOpenDebt} />
@@ -284,10 +269,11 @@ function SalapifyMain() {
                 onOpenBills={() => setIsBillsOpen(true)}
               />
 
-              {/* Latest Transactions */}
-              <LatestTransactions
-                onSeeAll={() => {
-                  setCurrentTab('ledger');
+              {/* Digital Bank Yield Ladder (SeaBank, Maya, GoTyme, Tonik) */}
+              <DigitalBankYieldCard
+                onOpenPhilippineSuite={() => {
+                  setPhilippineSuiteTab('calculator');
+                  setIsPhilippineSuiteOpen(true);
                 }}
               />
             </div>
@@ -315,17 +301,39 @@ function SalapifyMain() {
         {/* Floating Pan AI Copilot Launcher */}
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          whileHover={{ scale: 1.05 }}
+          animate={{
+            scale: [1, 1.04, 1],
+            boxShadow: [
+              '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(176, 60, 9, 0.4)',
+              '0 12px 20px -3px rgba(0, 0, 0, 0.25), 0 0 0 6px rgba(176, 60, 9, 0)',
+              '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(176, 60, 9, 0)',
+            ],
+            opacity: 1,
+          }}
+          transition={{
+            scale: {
+              duration: 2.6,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            },
+            boxShadow: {
+              duration: 2.6,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            },
+            opacity: { duration: 0.3 },
+          }}
+          whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
           type="button"
           id="floating-pan-btn"
           onClick={() => handleOpenPan()}
           title="Ask Pan AI Copilot"
-          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#B03C09] to-[#E05315] dark:from-[#FF9A52] dark:to-[#E06F28] text-white dark:text-[#1E0E03] shadow-lg shadow-black/20 font-bold text-xs cursor-pointer border border-white/20 transition-transform"
+          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#B03C09] to-[#E05315] dark:from-[#FF9A52] dark:to-[#E06F28] text-white dark:text-[#1E0E03] shadow-lg shadow-black/20 font-bold text-xs cursor-pointer border border-white/20"
         >
           <Bot size={16} strokeWidth={2.4} />
           <span>Ask Pan</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 dark:bg-emerald-950 animate-pulse ml-0.5" />
         </motion.button>
 
         {/* Fixed TabBar */}
