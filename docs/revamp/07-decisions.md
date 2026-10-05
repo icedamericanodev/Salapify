@@ -1156,3 +1156,47 @@ normal. The notice is what keeps that from happening, so the notice is not
 optional polish on this decision, it is the half that makes it safe. If the
 notice is ever removed or hidden, this decision has to be revisited in the
 same change.
+
+### BUILT, 2026-10-05
+
+`app/lib/core/money/duplicate_obligations.dart`. A pure function the daily
+projection calls, returning every pair that looks like one obligation written
+into two registers. The Home Credit pair this decision preserved is its proof
+case and is asserted by name in
+`app/test/core/money/duplicate_obligations_test.dart`.
+
+Four clauses, all required, and the fourth is the one that earns its keep:
+different registers; the same amount to the centavo; within seven days AS
+WRITTEN, never as placed, because the seed's Meralco pair is three days apart
+written and eight apart placed; and a shared identifying word of three
+characters or more, minus a stop list of words that name a KIND of thing
+("bill", "loan", "premium", "electric").
+
+THE FOURTH CLAUSE IS NOT A REFINEMENT. Matching on amount and date alone finds
+three pairs on this ledger and one of them is wrong: a Pru Life VUL premium of
+2,500 against a BPI personal loan amortisation of 2,500, both due the same day.
+That is the round-figure collision a Philippine ledger produces constantly,
+because lenders and insurers quote whole pesos, and it is one in three here.
+The test asserts the collision is genuinely live before asserting the silence,
+so the silence cannot pass for the wrong reason.
+
+NOTHING IS DROPPED. Both copies stay in the figure, the card names them, and
+the person decides which row is real. That is the opposite of what the engine
+does to duplicated income under D27, and the asymmetry is the whole point: an
+over-counted bill makes somebody cautious, an over-counted salary hands them
+cash that is not coming.
+
+WHAT THIS DOES NOT COVER, stated rather than left implied:
+
+1. The BPI gadget loan pair, a liability Account against a Debt. Liability
+   accounts are deliberately not a register here, because the projection does
+   not read them at all: it takes accounts only for the opening balance and
+   places nothing from them. Saying a payment is "counted twice" when one of
+   the two is not counted once would be false. Making the projection see
+   liability accounts is a money-meaning change and a founder decision.
+2. The third leg of the Meralco case. Beyond the Bill and the Upcoming item,
+   there is a confirmed Transaction already inside the opening balance. The
+   detector finds the two future rows and says nothing about the past one, so
+   the card reports 2,840 counted twice where the fuller truth may be three
+   times. Reconciling a projected obligation against an already-settled
+   transaction is a different question from this one and is still open.

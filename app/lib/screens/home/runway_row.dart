@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/daily_projection.dart';
+import '../../core/money/duplicate_obligations.dart';
 import '../../core/money/format.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -67,112 +68,168 @@ class RunwayRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.card),
             border: Border.all(color: r.border(p)),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              IconTile(
-                palette: p,
-                icon: r.icon,
-                background: r.tile(p),
-                foreground: r.ink(p),
-              ),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  IconTile(
+                    palette: p,
+                    icon: r.icon,
+                    background: r.tile(p),
+                    foreground: r.ink(p),
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        // A FIGURE, not a lesson. It answers "why does it stop
-                        // there" without spending a sentence on it.
-                        //
-                        // FLEXIBLE AND WRAPPING, in that order, and the second
-                        // half was learned by getting it wrong. At 320dp this
-                        // kicker beside a 44dp info dot overflowed by four
-                        // pixels, and the dot cannot shrink without dropping
-                        // under the touch-target floor, so the label is what
-                        // gives. Ellipsis was the first fix and the
-                        // readability sweep rejected it at 1.5x system font:
-                        // "NEXT 45 DAYS is cut off". Trading an overflow for
-                        // a truncation is not a fix. Wrapping costs a line at
-                        // a font size somebody chose, and loses no words.
-                        Flexible(
-                          child: Text('NEXT 45 DAYS', style: AppType.kicker(p)),
-                        ),
-                        const Spacer(),
-                        InfoDot(
-                          color: p.textMuted,
-                          semanticLabel: 'How the runway is worked out',
-                          onTap: onInfo,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.xs),
-                    Text.rich(
-                      // Text.rich, NOT RichText. RichText renders its span
-                      // style verbatim, and a style with no family falls back
-                      // to the platform face, which in the shot harness is a
-                      // row of solid boxes. AppType names the family.
-                      TextSpan(
-                        style: AppType.rowTitle(p),
-                        children: <InlineSpan>[
-                          TextSpan(text: r.lead),
-                          const TextSpan(text: ' '),
-                          TextSpan(
-                            text: r.read,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w400,
-                              color: p.textSecondary,
+                        Row(
+                          children: <Widget>[
+                            // A FIGURE, not a lesson. It answers "why does it stop
+                            // there" without spending a sentence on it.
+                            //
+                            // FLEXIBLE AND WRAPPING, in that order, and the second
+                            // half was learned by getting it wrong. At 320dp this
+                            // kicker beside a 44dp info dot overflowed by four
+                            // pixels, and the dot cannot shrink without dropping
+                            // under the touch-target floor, so the label is what
+                            // gives. Ellipsis was the first fix and the
+                            // readability sweep rejected it at 1.5x system font:
+                            // "NEXT 45 DAYS is cut off". Trading an overflow for
+                            // a truncation is not a fix. Wrapping costs a line at
+                            // a font size somebody chose, and loses no words.
+                            Flexible(
+                              child: Text(
+                                'NEXT 45 DAYS',
+                                style: AppType.kicker(p),
+                              ),
                             ),
+                            const Spacer(),
+                            InfoDot(
+                              color: p.textMuted,
+                              semanticLabel: 'How the runway is worked out',
+                              onTap: onInfo,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Spacing.xs),
+                        Text.rich(
+                          // Text.rich, NOT RichText. RichText renders its span
+                          // style verbatim, and a style with no family falls back
+                          // to the platform face, which in the shot harness is a
+                          // row of solid boxes. AppType names the family.
+                          TextSpan(
+                            style: AppType.rowTitle(p),
+                            children: <InlineSpan>[
+                              TextSpan(text: r.lead),
+                              const TextSpan(text: ' '),
+                              TextSpan(
+                                text: r.read,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w400,
+                                  color: p.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (r.paydayNote != null) ...<Widget>[
+                          const SizedBox(height: Spacing.sm),
+                          Text(r.paydayNote!, style: AppType.caption(p)),
+                          const SizedBox(height: Spacing.xs),
+                          _Pill(
+                            palette: p,
+                            label: 'Set payday',
+                            onTap: onSetPayday,
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                    if (r.paydayNote != null) ...<Widget>[
-                      const SizedBox(height: Spacing.sm),
-                      Text(r.paydayNote!, style: AppType.caption(p)),
-                      const SizedBox(height: Spacing.xs),
-                      _Pill(
-                        palette: p,
-                        label: 'Set payday',
-                        onTap: onSetPayday,
-                      ),
-                    ],
-                    // ONE divider for all the notices, never one each.
-                    // Three dividers turn a card into a form.
-                    if (r.hasNotice) ...<Widget>[
-                      const SizedBox(height: Spacing.sm),
-                      Divider(height: 1, color: p.border),
-                      const SizedBox(height: Spacing.sm),
-                    ],
-                    if (r.notCounted != null)
-                      _Notice(
-                        palette: p,
-                        noticeKey: const Key('runway-not-counted'),
-                        label: 'Not counted: ',
-                        body: r.notCounted!,
-                      ),
-                    // ITS OWN LINE, not appended to the one above, and the
-                    // reason is logical rather than spatial: a duplicated
-                    // outflow IS counted, twice. Hanging it off a sentence
-                    // that opens with the words "Not counted" would make
-                    // that sentence lie about its own subject, and that holds
-                    // however short the clause is.
-                    if (r.countedOnce != null) ...<Widget>[
-                      if (r.notCounted != null)
-                        const SizedBox(height: Spacing.xs),
-                      _Notice(
-                        palette: p,
-                        noticeKey: const Key('runway-counted-once'),
-                        label: 'Counted once: ',
-                        body: r.countedOnce!,
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: Spacing.xs),
+                  Icon(Icons.chevron_right, size: 18, color: p.textMuted),
+                ],
               ),
-              const SizedBox(width: Spacing.xs),
-              Icon(Icons.chevron_right, size: 18, color: p.textMuted),
+              // THE NOTICES SIT BELOW THE ROW, AT FULL CARD WIDTH, and that is
+              // worth seventy logical pixels a line. Inside the Expanded column
+              // above they were indented past the 36dp icon tile and its 12dp
+              // gap, and stopped short of the 18dp chevron and its 4dp gap, so
+              // every line of the smallest text on the card was laid out in
+              // 256dp of a 326dp card. Twenty one percent of the width, thrown
+              // away on furniture that belongs to the lead sentence alone.
+              //
+              // Measured at 320dp with the system font at 1.5x, which is the
+              // worst case a person can actually set: nine lines of notice
+              // become six. Nothing was cut to get that.
+              if (r.hasNotice) ...<Widget>[
+                // ONE divider for all the notices, never one each. Three
+                // dividers turn a card into a form.
+                const SizedBox(height: Spacing.sm),
+                Divider(height: 1, color: p.border),
+                const SizedBox(height: Spacing.sm),
+                // NOW GENUINELY NOT TAPPABLE, which the comment on `_Notice`
+                // claimed for a day while it was false. The notices sit inside
+                // the card's own InkWell, so a tap on the words "Counted twice,
+                // Home Credit Installment" opened BillsSheet, which reads
+                // state.upcoming and nothing else and therefore shows exactly
+                // ONE of the two rows the notice just named. That is the
+                // manufactured wrong conclusion the comment warns about, bought
+                // with a tap target nobody meant to create. Absorbing the
+                // gesture here makes the stated intent true.
+                //
+                // AbsorbPointer is NOT the widget for this and was tried
+                // first. It stops the pointer reaching its own DESCENDANTS,
+                // which was never the problem: it still sits in the hit-test
+                // path, so the ancestor InkWell kept firing and the test
+                // that proves this caught it immediately. A GestureDetector
+                // with an empty onTap wins the gesture arena against the
+                // ancestor instead, which is what "nothing happens here"
+                // actually requires.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (r.notCounted != null)
+                        _Notice(
+                          palette: p,
+                          noticeKey: const Key('runway-not-counted'),
+                          label: 'Not counted: ',
+                          body: r.notCounted!,
+                        ),
+                      // ITS OWN LINE, not appended to the one above, and the
+                      // reason is logical rather than spatial: a duplicated
+                      // outflow IS counted, twice. Hanging it off a sentence
+                      // that opens with the words "Not counted" would make that
+                      // sentence lie about its own subject, and that holds
+                      // however short the clause is.
+                      if (r.countedOnce != null) ...<Widget>[
+                        if (r.notCounted != null)
+                          const SizedBox(height: Spacing.xs),
+                        _Notice(
+                          palette: p,
+                          noticeKey: const Key('runway-counted-once'),
+                          label: 'Counted once: ',
+                          body: r.countedOnce!,
+                        ),
+                      ],
+                      if (r.countedTwice != null) ...<Widget>[
+                        if (r.notCounted != null || r.countedOnce != null)
+                          const SizedBox(height: Spacing.xs),
+                        _Notice(
+                          palette: p,
+                          noticeKey: const Key('runway-counted-twice'),
+                          label: 'Counted twice: ',
+                          body: r.countedTwice!,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -191,6 +248,7 @@ class _Runway {
     this.paydayNote,
     this.notCounted,
     this.countedOnce,
+    this.countedTwice,
   });
 
   /// The bold clause: the ANSWER, which is a day.
@@ -211,7 +269,12 @@ class _Runway {
   /// Income left out because the payday rule already described it.
   final String? countedOnce;
 
-  bool get hasNotice => notCounted != null || countedOnce != null;
+  /// Outflows that appear in two registers, so the figure above took them
+  /// out twice. Nothing is dropped, the person is told.
+  final String? countedTwice;
+
+  bool get hasNotice =>
+      notCounted != null || countedOnce != null || countedTwice != null;
 
   Color border(Palette p) => tone == _Tone.bad ? p.negative : p.border;
   Color tile(Palette p) => switch (tone) {
@@ -244,6 +307,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
 
   final String? aside = _notCounted(p);
   final String? once = _countedOnce(p);
+  final String? twice = _countedTwice(p);
   final String? payday = state.payday.hasRule
       ? null
       : 'Only one payday is counted, because Salapify does not know your '
@@ -261,6 +325,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       tone: _Tone.quiet,
       notCounted: aside,
       countedOnce: once,
+      countedTwice: twice,
     );
   }
 
@@ -279,6 +344,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       tone: _Tone.bad,
       notCounted: aside,
       countedOnce: once,
+      countedTwice: twice,
     );
   }
 
@@ -306,6 +372,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       paydayNote: payday,
       notCounted: aside,
       countedOnce: once,
+      countedTwice: twice,
     );
   }
 
@@ -338,6 +405,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
       tone: _Tone.warn,
       notCounted: aside,
       countedOnce: once,
+      countedTwice: twice,
     );
   }
 
@@ -354,6 +422,7 @@ _Runway? _read(DailyProjection p, FinancialState state) {
     tone: _Tone.ok,
     notCounted: aside,
     countedOnce: once,
+    countedTwice: twice,
   );
 }
 
@@ -372,11 +441,10 @@ _Runway? _read(DailyProjection p, FinancialState state) {
 String? _notCounted(DailyProjection p) {
   final List<String> parts = <String>[];
   if (p.overdueOutflowCount > 0) {
-    parts.add(
-      '${formatPeso(p.overdueOutflow.pesos)} overdue across '
-      '${p.overdueOutflowCount} '
-      '${p.overdueOutflowCount == 1 ? "item" : "items"}',
-    );
+    // "across N items" went the same way as "Salapify could read", and for
+    // the same reason: measured, it bought a whole extra line at 390dp and
+    // no wrong conclusion rests on it. The peso amount carries the risk.
+    parts.add('${formatPeso(p.overdueOutflow.pesos)} overdue');
   }
   if (p.undatedOutflowCount > 0) {
     // "Salapify could read" was cut on 2026-10-04. Those four words bought
@@ -390,7 +458,13 @@ String? _notCounted(DailyProjection p) {
   }
 
   if (parts.isEmpty) return null;
-  return 'Not counted: ${parts.join(', and ')}.';
+  // THE BODY ONLY. The label lives at the call site and nowhere else now.
+  // It used to be written here as well and stripped back off in `_Notice`
+  // with a `startsWith`, which is six producers and three consumers agreeing
+  // on a punctuation mark with nothing checking they still do. One stray
+  // character and the card rendered "Not counted: Not counted: ..." with no
+  // test red.
+  return '${parts.join(', ')}.';
 }
 
 /// D27's other half: the income this projection deliberately left out of a
@@ -417,18 +491,76 @@ String? _countedOnce(DailyProjection p) {
 
   final List<String> names = p.duplicateIncomeLabels.toSet().toList();
   final String figure = formatPeso(p.suppressedIncome.pesos);
-  const String places = 'in Coming Up and in your payday rule';
 
+  // "in Coming Up and in your payday rule" was cut on 2026-10-05. It is the
+  // SAME TWO PLACES every time this line can fire, by construction: the
+  // suppression only ever happens between a recorded income item and the
+  // stored payday rule. A clause that cannot vary is not a figure, it is a
+  // lesson, and that lesson is already written behind the "i" dot under "It
+  // never invents income". The counted-twice line below KEEPS its places
+  // clause for the opposite reason: there they genuinely vary per pair.
   if (names.length == 1 && p.duplicateIncomeLabels.length == 1) {
-    return 'Counted once: $figure. ${names.first} is $places.';
+    return '$figure. ${names.first}, in two places.';
   }
   if (names.length == 2) {
-    return 'Counted once: $figure. ${names.first} and ${names[1]} are $places.';
+    return '$figure. ${names.first} and ${names[1]}, each in two places.';
   }
   // One name arriving several times, or more than two names: lean on the
   // total and the count rather than listing.
-  return 'Counted once: $figure across ${p.duplicateIncomeLabels.length} '
-      'items that are $places.';
+  return '$figure across ${p.duplicateIncomeLabels.length} items, '
+      'each in two places.';
+}
+
+/// The OPPOSITE of the line above, and the asymmetry is deliberate (D27).
+///
+/// Income written down twice is DROPPED and then named. An outflow written
+/// down twice is KEPT, both copies, and then named. The reason is which way
+/// the mistake cuts: an over-counted bill makes somebody cautious, and nobody
+/// ever bounced a payment because an app was careful; an over-counted salary
+/// hands them cash that is not coming. So this line never says a figure was
+/// removed. It says the figure above took the same payment out twice and
+/// leaves the person to decide which of the two rows is the real one.
+///
+/// IT NEVER CALLS THEM DUPLICATES. "Appears in two places" is a fact about
+/// the ledger that the person can check in ten seconds. "This is a
+/// duplicate" is a claim about their intent, and people genuinely do pay the
+/// same amount to the same provider twice in a week.
+///
+/// THE FIGURE IS WHAT THE DOUBLE COUNTING COSTS: one copy of each pair,
+/// which is the money taken out a second time.
+String? _countedTwice(DailyProjection p) {
+  final List<SuspectedDuplicate> found = p.duplicateOutflows;
+  if (found.isEmpty) return null;
+
+  final String figure = formatPeso(p.duplicateOutflowExtra.pesos);
+
+  if (found.length == 1) {
+    final SuspectedDuplicate d = found.first;
+    // THE PLACES STAY HERE, and they were cut from the line above. The
+    // difference is whether the clause can vary: income is always Coming Up
+    // against the payday rule, so naming it teaches nothing, while an
+    // outflow pair can be any two of four registers and the person cannot
+    // guess which. Naming them is what turns the line into something to go
+    // and do, so it is a figure by the 2026-09-18 test, not a lesson.
+    //
+    // One place means both rows sit in the same list on screen, which is
+    // three of the four registers. "in Coming Up and Coming Up" was the
+    // sentence this avoids.
+    final String where = d.places.length == 1
+        ? 'twice in ${d.places.first}'
+        : 'in ${d.places.first} and ${d.places[1]}';
+    return '$figure. ${d.label}, $where.';
+  }
+
+  if (found.length == 2) {
+    // Named, not placed. Two pairs can sit in different registers, so one
+    // shared "where" clause would be wrong about one of them, and the name
+    // is what a person searches for anyway.
+    return '$figure. ${found.first.label} and ${found[1].label}, '
+        'each in two places.';
+  }
+
+  return '$figure across ${found.length} items, each in two places.';
 }
 
 /// One exclusion notice: a bold label, then the figures.
@@ -466,12 +598,13 @@ class _Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The body arrives carrying its own label, because the engine-facing
-    // helpers build whole sentences. Strip it so the label can be drawn
-    // bold without being printed twice.
-    final String rest = body.startsWith(label)
-        ? body.substring(label.length)
-        : body;
+    // NO STRIPPING. The body used to arrive carrying its own label and this
+    // widget cut it back off with a `startsWith`, so the same sentence
+    // opener lived at the call site AND inside the helper, six producers
+    // against three consumers, with nothing checking they still matched.
+    // Drift one character of punctuation and the card renders the label
+    // twice, silently, with every test green. The helpers return the body
+    // alone now and that bug is unrepresentable.
     return Text.rich(
       // Text.rich, never RichText: RichText renders a style with no family
       // and draws boxes in the shot harness. See the headline above.
@@ -485,7 +618,7 @@ class _Notice extends StatelessWidget {
               color: palette.textSecondary,
             ),
           ),
-          TextSpan(text: rest),
+          TextSpan(text: body),
         ],
       ),
       key: noticeKey,

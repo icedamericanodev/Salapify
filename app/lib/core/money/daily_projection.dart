@@ -16,6 +16,7 @@ library;
 
 import '../../models/models.dart';
 import 'accounts.dart';
+import 'duplicate_obligations.dart';
 import 'payday_schedule.dart';
 import 'money.dart';
 import 'ph_calendar.dart';
@@ -139,6 +140,7 @@ class DailyProjection {
     this.beyondHorizonInflowCount = 0,
     this.suppressedIncome = Money.zero,
     this.duplicateIncomeLabels = const <String>[],
+    this.duplicateOutflows = const <SuspectedDuplicate>[],
   });
 
   /// Spendable cash at the start, NOT total cash.
@@ -233,6 +235,32 @@ class DailyProjection {
 
   /// What the suppressed income was called, so the line can name it.
   final List<String> duplicateIncomeLabels;
+
+  /// Outflows this run took out TWICE, because one payment is written into
+  /// two registers and both copies landed on the grid.
+  ///
+  /// THE OPPOSITE POLICY TO INCOME, on purpose, and the asymmetry is D27.
+  /// Every one of these is still COUNTED, twice, because counting a bill
+  /// twice only makes somebody cautious while counting a salary twice hands
+  /// them cash that is not coming. So nothing is dropped here, the person is
+  /// simply told, and they decide which row is the real one.
+  ///
+  /// NARROWER THAN `findDuplicateOutflows`, which is a claim about the
+  /// LEDGER. This is a claim about the FIGURE, so a pair with one leg sitting
+  /// in the overdue or beyond-horizon bucket is not here: it was written
+  /// twice and counted once. The sample ledger's Meralco pair is exactly that
+  /// shape and the gap is 2,840.
+  final List<SuspectedDuplicate> duplicateOutflows;
+
+  /// What the double counting is COSTING the projection: one copy of each
+  /// suspected pair, which is the money taken out a second time.
+  Money get duplicateOutflowExtra {
+    Money total = Money.zero;
+    for (final SuspectedDuplicate d in duplicateOutflows) {
+      total += d.amount;
+    }
+    return total;
+  }
 
   /// Every eligible peso, wherever it ended up.
   ///
@@ -709,6 +737,47 @@ DailyProjection projectDailyCash({
     );
   }
 
+  // WHAT WAS WRITTEN TWICE, NARROWED TO WHAT WAS ACTUALLY COUNTED TWICE.
+  //
+  // THE MEASUREMENT THAT FORCED THIS. `findDuplicateOutflows` answers "is
+  // this one payment written into two registers", which it reads off the
+  // raw lists. The card's sentence makes a different claim: that the figure
+  // above took the payment out twice. On the shipped sample ledger those two
+  // claims disagree by 2,840. Meralco is a Bill dated three days ago and an
+  // Upcoming item due today; the Bill is OVERDUE, so this engine never places
+  // it on the grid at all and reports it in the overdue bucket instead. The
+  // payment was written twice and counted once. A card saying "counted twice,
+  // 5,290" would have been wrong by the whole Meralco amount, and wrong in
+  // the direction that costs a notice its credibility.
+  //
+  // So the grid decides, not the ledger. A pair qualifies only when BOTH of
+  // its legs are among the events this run actually placed. Asking the
+  // placements rather than re-deriving which bucket each leg should have
+  // landed in is deliberate: re-deriving it is how the above went wrong once
+  // already, and the placements cannot disagree with themselves.
+  final Set<String> placed = <String>{};
+  for (final ProjectedDay d in days) {
+    for (final ProjectedEvent e in d.events) {
+      if (!e.isIncome) placed.add('${e.label}|${e.amount.centavos}');
+    }
+  }
+  bool wasPlaced(String label, Money amount) =>
+      placed.contains('$label|${amount.centavos}');
+
+  final List<SuspectedDuplicate> countedTwice =
+      findDuplicateOutflows(
+            bills: bills,
+            upcoming: upcoming,
+            installments: installments,
+            debts: debts,
+            now: now,
+          )
+          .where(
+            (SuspectedDuplicate d) =>
+                wasPlaced(d.label, d.amount) &&
+                wasPlaced(d.otherLabel, d.amount),
+          )
+          .toList();
   return DailyProjection(
     openingBalance: opening,
     days: days,
@@ -726,5 +795,6 @@ DailyProjection projectDailyCash({
     beyondHorizonInflowCount: beyondInCount,
     suppressedIncome: suppressedIncome,
     duplicateIncomeLabels: duplicateIncome,
+    duplicateOutflows: countedTwice,
   );
 }
