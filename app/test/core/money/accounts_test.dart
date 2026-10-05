@@ -117,11 +117,11 @@ void main() {
         null,
       );
 
-      expect(s.totalAssets, closeTo(p.totalAssets, 0.001));
-      expect(s.totalLiabilities, closeTo(p.totalLiabilities, 0.001));
+      expect(s.totalAssets, closeTo(p.totalAssets.pesos, 0.001));
+      expect(s.totalLiabilities, closeTo(p.totalLiabilities.pesos, 0.001));
       expect(
         s.netWorth,
-        closeTo(p.netWorth, 0.001),
+        closeTo(p.netWorth.pesos, 0.001),
         reason:
             'Accounts and Reports read the same accounts and must never '
             'print two different net worths. Two screens disagreeing about '

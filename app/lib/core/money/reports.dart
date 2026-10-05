@@ -92,23 +92,48 @@ class FinancialPosition {
     required this.loans,
     required this.assetAccounts,
     required this.liabilityAccounts,
+    required this.assetSourceCount,
+    required this.liabilitySourceCount,
   });
 
-  final double totalAssets;
-  final double totalLiabilities;
+  final Money totalAssets;
+  final Money totalLiabilities;
 
   /// Assets minus liabilities. The one number on the screen that answers
   /// "am I actually getting anywhere".
-  final double netWorth;
+  ///
+  /// IN CENTAVOS SINCE 2026-10-05, with the rest of this class, and it had to
+  /// move before debts could join the sheet. Every figure here was a `double`
+  /// while `computePosition` summed in `Money` and threw the exactness away
+  /// on the last line. That is survivable while nothing checks the identity
+  /// and fatal the moment something does: with debts included, the sample
+  /// ledger's assets less liabilities came to -36.65000000002328 against a
+  /// stored -36.65, so `totalAssets - totalLiabilities == netWorth` was FALSE
+  /// by 2.3e-11. A control asserted with a tolerance is a control that does
+  /// not check, and a control asserted exactly on floats reddens on a crumb.
+  final Money netWorth;
 
-  final double cashEquivalents;
-  final double investments;
-  final double receivables;
-  final double creditCards;
-  final double loans;
+  final Money cashEquivalents;
+  final Money investments;
+  final Money receivables;
+  final Money creditCards;
+  final Money loans;
 
   final List<Account> assetAccounts;
   final List<Account> liabilityAccounts;
+
+  /// How many SEPARATE THINGS each total is made of, which stopped being the
+  /// account count on 2026-10-05.
+  ///
+  /// The screen captioned both totals "N accounts" by reading the two lists
+  /// above, and that was true for exactly as long as the totals contained
+  /// only accounts. The moment debts and instalment plans joined, the caption
+  /// under 463,936.65 still read "3 accounts" while the figure was made of
+  /// three accounts, two debts and three plans. A count that does not count
+  /// the thing above it is worse than no count, because it invites somebody
+  /// to divide one by the other.
+  final int assetSourceCount;
+  final int liabilitySourceCount;
 }
 
 /// What came in and what went out, over a period.
@@ -368,11 +393,82 @@ bool _has(String? haystack, String needle) =>
 double _sumOf(Iterable<Transaction> txs) =>
     txs.fold<double>(0, (double sum, Transaction t) => sum + t.amount.pesos);
 
+/// What you owe that was never entered as an account.
+///
+/// READS `Debt.remaining`, NEVER `totalAmount - paidAmount`. That subtraction
+/// is already written, once, in `models.dart`, where it is CLAMPED at zero.
+/// An overpaid debt re-derived here would contribute a negative liability and
+/// quietly raise net worth, which is a defect that has already shipped in
+/// this codebase once and was measured at 2,000.
+Money debtLiabilities(List<Debt> debts) => sumMoney(
+  debts
+      .where(
+        (Debt d) =>
+            d.direction == DebtDirection.iOwe && !d.isSettled && !d.isArchived,
+      )
+      .map((Debt d) => d.remaining),
+);
+
+/// Money owed TO you that was never entered as a receivable account.
+///
+/// Included for symmetry and not as a kindness. Counting what you owe while
+/// ignoring what you are owed would bias the balance sheet pessimistic by
+/// construction, which is a lie with a better bedside manner.
+Money debtAssets(List<Debt> debts) => sumMoney(
+  debts
+      .where(
+        (Debt d) =>
+            d.direction == DebtDirection.owedToMe &&
+            !d.isSettled &&
+            !d.isArchived,
+      )
+      .map((Debt d) => d.remaining),
+);
+
+/// What instalment plans still owe, counting PRINCIPAL ONLY.
+///
+/// NOT `runningBalance`, and this is the one place the obvious choice is
+/// wrong. `runningBalance` is principal plus the interest still to come, and
+/// on the sample ledger those are 47,386.65 and 3,563.70, footing exactly to
+/// the 50,950.35 that screen shows.
+///
+/// Use the total and the balance sheet capitalises interest nobody has
+/// incurred yet. Net worth would then fall by the whole contractual interest
+/// on the day a plan is opened and RISE with every interest payment made,
+/// because the liability would drop faster than the cash does. Somebody who
+/// keeps books would trace that and conclude the app rewards them for paying
+/// interest. Interest belongs on the income statement as it accrues.
+///
+/// `runningBalance` is still the right figure to SHOW as "total still
+/// payable". It is a memo line, never a total.
+Money planLiabilities(List<InstallmentPlan> plans) => sumMoney(
+  plans
+      .where((InstallmentPlan p) => !p.isSettled && !p.isArchived)
+      .map((InstallmentPlan p) => p.principalRemaining),
+);
+
 /// The balance sheet.
+///
+/// DEBTS AND PLANS JOINED IT ON 2026-10-05, on founder decision, and until
+/// then this function read accounts and nothing else while a comment in
+/// `accounts.dart` stated in writing that it read debts too. Measured on the
+/// sample ledger before the change: 399,200 of liabilities reported, against
+/// a Debt register holding 17,350 and instalment plans holding 50,950.35 that
+/// it never saw. A balance sheet that changes depending on WHICH SCREEN you
+/// entered a debt on is not a balance sheet.
+///
+/// NEITHER `Debt` NOR `InstallmentPlan` HAS A PROFILE, so both are treated as
+/// profile-free and appear in every profile view, which is exactly what
+/// `filterAccountsByProfile` already does with a null-profile account. No new
+/// field, no new rule. The consequence is pre-existing and worth stating
+/// rather than discovering: the four profile views are NOT a partition and
+/// must never be summed, because a profile-free row appears in all of them.
 FinancialPosition computePosition(
   List<Account> accounts,
-  ProfileEntity? profile,
-) {
+  ProfileEntity? profile, {
+  List<Debt> debts = const <Debt>[],
+  List<InstallmentPlan> plans = const <InstallmentPlan>[],
+}) {
   final List<Account> scoped = filterAccountsByProfile(accounts, profile);
 
   final List<Account> assets = scoped
@@ -384,33 +480,63 @@ FinancialPosition computePosition(
 
   Money sum(Iterable<Account> list) => sumMoney(list.map(toPhp));
 
-  final Money totalAssets = sum(assets);
-  final Money totalLiabilities = sum(liabilities);
+  // Filtered ONCE and reused, so the totals and the counts beside them can
+  // never be built from two different readings of the same lists.
+  final List<Debt> liveOwedToMe = debts
+      .where(
+        (Debt d) =>
+            d.direction == DebtDirection.owedToMe &&
+            !d.isSettled &&
+            !d.isArchived,
+      )
+      .toList();
+  final List<Debt> liveIOwe = debts
+      .where(
+        (Debt d) =>
+            d.direction == DebtDirection.iOwe && !d.isSettled && !d.isArchived,
+      )
+      .toList();
+  final List<InstallmentPlan> livePlans = plans
+      .where((InstallmentPlan p) => !p.isSettled && !p.isArchived)
+      .toList();
+
+  final Money owedToMe = debtAssets(debts);
+  final Money owedByMe = debtLiabilities(debts) + planLiabilities(plans);
+  final Money totalAssets = sum(assets) + owedToMe;
+  final Money totalLiabilities = sum(liabilities) + owedByMe;
 
   return FinancialPosition(
-    totalAssets: totalAssets.pesos,
-    totalLiabilities: totalLiabilities.pesos,
-    netWorth: (totalAssets - totalLiabilities).pesos,
+    totalAssets: totalAssets,
+    totalLiabilities: totalLiabilities,
+    netWorth: totalAssets - totalLiabilities,
     cashEquivalents: sum(
       assets.where((Account a) => cashEquivalentKinds.contains(a.kind)),
-    ).pesos,
+    ),
     investments: sum(
       assets.where((Account a) => a.kind == AccountKind.investment),
-    ).pesos,
-    receivables: sum(
-      assets.where((Account a) => a.kind == AccountKind.receivable),
-    ).pesos,
+    ),
+    // Receivable ACCOUNTS plus money lent out on the Debt screen, because a
+    // person who recorded a loan to a cousin either way means the same thing
+    // by it and should see one figure.
+    receivables:
+        sum(assets.where((Account a) => a.kind == AccountKind.receivable)) +
+        owedToMe,
     creditCards: sum(
       liabilities.where((Account a) => a.kind == AccountKind.credit),
-    ).pesos,
-    loans: sum(
-      liabilities.where(
-        (Account a) =>
-            a.kind == AccountKind.loan || a.kind == AccountKind.mortgage,
-      ),
-    ).pesos,
+    ),
+    loans:
+        sum(
+          liabilities.where(
+            (Account a) =>
+                a.kind == AccountKind.loan || a.kind == AccountKind.mortgage,
+          ),
+        ) +
+        owedByMe,
     assetAccounts: assets,
     liabilityAccounts: liabilities,
+    assetSourceCount: assets.length + liveOwedToMe.length,
+    liabilitySourceCount:
+        liabilities.length + liveIOwe.length + livePlans.length,
   );
 }
 
@@ -645,6 +771,13 @@ ReportSet buildReports({
   required ReportPeriod period,
   required DateTime now,
   ProfileEntity? profile,
+  // DEFAULTED EMPTY so every existing caller and fixture keeps compiling and
+  // keeps its old answer. That is deliberate rather than lazy: making these
+  // required would have moved a figure in every report fixture at once and
+  // buried the real change among the noise. The app passes both, a test that
+  // cares passes them too, and everything else is provably untouched.
+  List<Debt> debts = const <Debt>[],
+  List<InstallmentPlan> plans = const <InstallmentPlan>[],
 }) {
   // The order matters and is the prototype's: entity, then validity, then
   // date. Filtering by date first would be equivalent here and is not
@@ -660,7 +793,7 @@ ReportSet buildReports({
     // Position deliberately takes NO period. A balance sheet is what you own
     // now; "my net worth last March" is a different feature and needs history
     // the app does not keep.
-    position: computePosition(accounts, profile),
+    position: computePosition(accounts, profile, debts: debts, plans: plans),
     performance: computePerformance(scoped, now),
     cashFlow: computeCashFlow(scoped),
     expenseByCategory: computeCategoryBreakdown(

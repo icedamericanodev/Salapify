@@ -160,15 +160,12 @@ Transaction _entry({
   createdAt: DateTime.utc(2026, 9, 18).millisecondsSinceEpoch,
 );
 
-Money _netWorth(List<Account> accounts) {
-  final FinancialPosition p = computePosition(accounts, null);
-  // Through Money so the comparison is in centavos. `FinancialPosition` still
-  // carries doubles, which is a known prerequisite for the balance control
-  // that comes later; for these round thousand-peso fixtures the conversion
-  // is exact, and this line is where that stops being true if the figures
-  // ever gain centavos.
-  return Money.fromDouble(p.netWorth);
-}
+/// NO CONVERSION, since `FinancialPosition` moved to whole centavos. This
+/// used to route through `Money.fromDouble` and carried a note saying the
+/// round thousand-peso fixtures made that exact, which was true and was still
+/// a rounding site sitting in the middle of a test about exactness.
+Money _netWorth(List<Account> accounts) =>
+    computePosition(accounts, null).netWorth;
 
 /// 4,200 rather than zero, everywhere. A liability at zero cannot show a sign
 /// error that drives it negative, and zero is the one starting balance where
