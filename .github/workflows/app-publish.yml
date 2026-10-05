@@ -1,0 +1,276 @@
+name: Publish Salapify 3
+
+# THE PUBLISHER for app/. It produces a signed, installable APK and writes a
+# row saying it did.
+#
+# ## Why an APK release and not Shorebird
+#
+# Salapify 2 shipped through Shorebird, which patches the running app over the
+# air so the founder never reinstalls. That is genuinely better and it is NOT
+# what this builds, for one reason: Shorebird needs an account, an app id
+# minted by its CLI, and a SHOREBIRD_TOKEN repository secret, and every one of
+# those is a founder action that cannot be done from a session. Building the
+# workflow first and discovering the token is missing at the first publish is
+# the wrong order.
+#
+# This needs nothing external. It is also a strict PREREQUISITE rather than a
+# detour: a Shorebird release IS a signed release APK, so everything here has
+# to work before Shorebird could work at all. Adding Shorebird later is a step
+# between "build" and "upload", not a rewrite.
+#
+# ## What ships, and what the founder has to do
+#
+# Every run replaces the APK on ONE fixed release, `app-preview`. The founder
+# bookmarks that page and installs from it. Because every build is signed with
+# the committed preview key (app/android/app/preview-keystore.jks), each new
+# APK installs OVER the last one in place, keeping their data. That is the
+# whole reason the key is committed, and it is why this workflow verifies the
+# signature rather than trusting it.
+#
+# Deliberately NOT the `flutter-preview` tag. That release holds Salapify 2's
+# base APK, which is the founder's only way back to the app they are running
+# today. Overwriting it would destroy that.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      # The publisher watches its own definition ON PURPOSE. Without this a
+      # push that edits only this file triggers nothing, so the shipping
+      # mechanism can be broken, or believed fixed, with no signal at all
+      # until some later app/ change fails here instead.
+      - '.github/workflows/app-publish.yml'
+
+  # The manual lever, and today it is the ONLY one that fires.
+  #
+  # The push trigger above is the steady state and it is correct, but nothing
+  # reaches main yet: the Salapify 3 rebuild lives on a long-running branch
+  # whose pull request is deliberately open. Until that changes, a build is
+  # produced by dispatching this workflow against whichever branch is wanted.
+  # Dispatch is also the right shape for a preview: a build the founder asked
+  # for, rather than one per push.
+  workflow_dispatch:
+
+# ONE AT A TIME, AND BUILDS QUEUE RATHER THAN CANCEL.
+#
+# This is the exact opposite of app-check.yml, where cancelling is safe
+# precisely because nothing is published, and both are deliberate. A publish
+# cut off midway can leave a release that exists with no installable artifact
+# on it, after which every later green run looks fine while the founder's
+# bookmark serves nothing.
+concurrency:
+  group: app-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write # the release upload and the delivery-log row
+
+jobs:
+  publish:
+    name: Build, verify and publish
+    runs-on: ubuntu-latest
+    # The most generous cap in the repository, on purpose. Cutting a publish
+    # short is worse than letting it run long.
+    timeout-minutes: 60
+    steps:
+      # Full history: the delivery-log step rebases before pushing, and a
+      # shallow clone cannot rebase.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # The same pin and the same action SHA as app-check.yml. These must not
+      # drift: a publisher on a different toolchain ships an app that nothing
+      # tested.
+      - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+          cache: true
+
+      - name: Read the stamp
+        id: stamp
+        working-directory: app
+        run: |
+          set -euo pipefail
+          # Anchored to the ASSIGNMENT rather than the first match in the file.
+          # A loose grep starts reading a doc comment the day somebody writes
+          # an example stamp above the constant, and the stamp is the one
+          # string the founder compares against their phone.
+          STAMP=$(sed -n '/^const String updateStamp/,/;/p' lib/main.dart \
+            | grep -oE "s[0-9]+\.[0-9]+" | head -1)
+          test -n "$STAMP" || {
+            echo "::error::Could not read updateStamp from app/lib/main.dart."
+            exit 1
+          }
+          echo "value=$STAMP" >> "$GITHUB_OUTPUT"
+          echo "Stamp: $STAMP"
+
+      - name: Refuse a stamp that has already been delivered
+        run: |
+          set -euo pipefail
+          STAMP='${{ steps.stamp.outputs.value }}'
+          # Tested against the WHOLE column, not just the last row. A stamp
+          # reused from three rows back is exactly as wrong as reusing the
+          # most recent one, and only the second kind would be caught by a
+          # tail -1 comparison.
+          if [ -f docs/delivery-log.md ] \
+            && grep -qE "^\| [^|]*\| *$STAMP *\|" docs/delivery-log.md; then
+            echo "::error::Stamp $STAMP already has a delivery row."
+            echo "Bump updateStamp in app/lib/main.dart. One stamp, one build:"
+            echo "otherwise the row the founder reads cannot identify what is"
+            echo "actually on their phone."
+            exit 1
+          fi
+          echo "$STAMP has no row yet, so it is free to use."
+
+      - name: Analyze
+        working-directory: app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: app
+        run: flutter test
+
+      - name: Build the release APK
+        working-directory: app
+        run: flutter build apk --release
+
+      # SAME CHECK AS app-check.yml, and it belongs in both.
+      #
+      # There it catches a broken signing config before a merge. Here it is
+      # the last gate before an artifact the founder actually installs, and
+      # this is the copy that matters: an APK signed with the wrong key
+      # installs perfectly on a clean phone and refuses only when it meets an
+      # earlier build of itself, at which point Android's only offer is an
+      # uninstall that deletes their ledger.
+      - name: Check the APK is signed with the preview key
+        working-directory: app
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          test -f "$APK" || { echo "::error::no APK at $APK"; exit 1; }
+
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null \
+            | sort -V | tail -1)
+          test -n "$APKSIGNER" || { echo "::error::apksigner not found"; exit 1; }
+
+          EXPECTED=3d2bc86c0d2524eb684e5f66acfb13a511646f13c4ec123328514ce7bce75112
+          ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" \
+            | grep -i 'SHA-256 digest' | head -1 \
+            | sed 's/.*: *//' | tr -d ' ' | tr 'A-F' 'a-f')
+
+          echo "expected: $EXPECTED"
+          echo "actual:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::The APK is NOT signed with the committed preview key."
+            exit 1
+          fi
+
+      # PROVE SOMETHING REAL CAME OUT, before any row claims it did.
+      #
+      # A build step can succeed and leave a truncated or empty artifact, and
+      # the delivery log is only worth reading if a row means an installable
+      # file exists. A Flutter release APK for this app is tens of megabytes;
+      # anything under five is not one.
+      - name: Prove the APK is actually installable
+        id: artifact
+        working-directory: app
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          BYTES=$(stat -c%s "$APK")
+          echo "APK is $BYTES bytes"
+          if [ "$BYTES" -lt 5000000 ]; then
+            echo "::error::APK is only $BYTES bytes, which is not a real build."
+            exit 1
+          fi
+          echo "bytes=$BYTES" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the APK to the fixed preview release
+        # SHA carried from archive/salapify-2-flutter/ci-disabled/workflows/
+        # flutter-preview.yml rather than chosen. That pin shipped every
+        # Salapify 2 build, so it is known to work on this runner image, which
+        # is worth more than a newer version nobody here has run.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: app-preview
+          name: Salapify 3 preview (latest)
+          prerelease: true
+          # Replaces the asset on the same release every time, so the founder
+          # bookmarks one page and always finds the newest build there.
+          files: app/build/app/outputs/flutter-apk/app-release.apk
+          body: |
+            Salapify 3, build `${{ steps.stamp.outputs.value }}`.
+
+            Install this APK on your phone. It installs over the previous
+            Salapify 3 build and keeps your data, because every build is
+            signed with the same preview key.
+
+            This is NOT the Salapify 2 release. That one is at the
+            `flutter-preview` tag and is left alone on purpose.
+
+      # THE ROW, written last and only once everything above passed.
+      #
+      # docs/delivery-log.md is the one thing that makes "merged" and
+      # "delivered" different words. It is written by the publisher rather
+      # than by hand precisely so it cannot claim something that did not
+      # happen, and nothing should ever say a stamp is live until its row
+      # exists.
+      - name: Record what actually shipped
+        run: |
+          set -euo pipefail
+          STAMP='${{ steps.stamp.outputs.value }}'
+          WHEN=$(date -u '+%Y-%m-%d %H:%M UTC')
+          VERSION=$(grep -E '^version:' app/pubspec.yaml | awk '{print $2}')
+          SHA='${{ github.sha }}'
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          printf '| %s | %s | %s | %s | %s | [%s](%s) |\n' \
+            "$WHEN" "$STAMP" "apk" "release" "$VERSION" "${SHA:0:8}" "$RUN_URL" \
+            >> docs/delivery-log.md
+
+          git config user.name  'salapify-delivery'
+          git config user.email 'salapify-delivery@users.noreply.github.com'
+          git add docs/delivery-log.md
+          # [skip ci] matters more than it looks. app-check.yml has NO paths
+          # filter, so without this token a docs-only row commit would start a
+          # full check including the Android build.
+          git commit -m "Delivery: $STAMP [skip ci]"
+
+          # Never force. Rebase and retry, because a parallel merge landing
+          # between the build and this push is ordinary, not exceptional.
+          BRANCH='${{ github.ref_name }}'
+          for attempt in 1 2 3; do
+            if git pull --rebase origin "$BRANCH" && git push origin "HEAD:$BRANCH"; then
+              echo "Recorded $STAMP on $BRANCH."
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep 5
+          done
+          echo "::error::Could not write the delivery row after three tries."
+          echo "The APK IS published. The row is missing, so the log now"
+          echo "understates what shipped. Add it by hand rather than assuming"
+          echo "nothing was delivered."
+          exit 1
+
+      # SAY SO OUT LOUD WHEN NOTHING SHIPPED.
+      #
+      # A publisher that fails quietly is how thirteen stamps went undelivered
+      # on Salapify 2 while every pull request looked finished. The founder
+      # should never have to check whether a build arrived.
+      - name: Say plainly that nothing shipped
+        if: failure()
+        run: |
+          echo "::error::NOTHING WAS PUBLISHED by this run."
+          echo "No delivery row was written, so docs/delivery-log.md is still"
+          echo "accurate: whatever it last says is still what is on the phone."
+          echo "Do not describe this build as delivered."
