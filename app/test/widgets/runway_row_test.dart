@@ -258,6 +258,25 @@ void main() {
     // protecting, never print a class name at a person, is now checked
     // across every notice on the card below, which is where it belongs.
     expect(text, isNot(contains('payday rule')));
+
+    // THE LABEL ITSELF, pinned. "Counted once" alone was misread by all three
+    // archetypes on a user panel, in three different directions, and none of
+    // them read it as the reassurance it is. The one that mattered read it as
+    // an unfinished count and went looking for what happened to the other
+    // one. There is no other one, and ", not twice" is what says so.
+    final Text whole = tester.widget<Text>(
+      find.byKey(const Key('runway-counted-once')),
+    );
+    final String full = whole.data ?? whole.textSpan!.toPlainText();
+    expect(
+      full,
+      startsWith('Counted once, not twice:'),
+      reason:
+          'the bare "Counted once" label came back. The founder kept this '
+          'line on 2026-10-05 and fixed the label rather than deleting it, '
+          'because D27 records in writing that the line is the other half of '
+          'that decision',
+    );
   });
 
   testWidgets('no notice prints a class name at a person', (
@@ -305,7 +324,7 @@ void main() {
 
     for (final (String key, String label) in <(String, String)>[
       ('runway-not-counted', 'Not counted: '),
-      ('runway-counted-once', 'Counted once: '),
+      ('runway-counted-once', 'Counted once, not twice: '),
       ('runway-counted-twice', 'Counted twice: '),
     ]) {
       final Finder f = find.byKey(Key(key));

@@ -1200,3 +1200,43 @@ WHAT THIS DOES NOT COVER, stated rather than left implied:
    the card reports 2,840 counted twice where the fuller truth may be three
    times. Reconciling a projected obligation against an already-settled
    transaction is a different question from this one and is still open.
+
+### AMENDED, 2026-10-05: the label, not the line
+
+Founder direction after testing on their own ledger: the fine print "feels
+like too much on mine". A user panel then recommended cutting this line
+outright, on the ground that all three archetypes misread it and its content
+already sits behind the "i" dot word for word.
+
+THE FOUNDER KEPT THE LINE AND FIXED THE LABEL. That is the right call and the
+reason is written above, in this decision, four paragraphs up: the line is
+"not optional polish, it is the other half of this decision". Deleting it
+would make the rare case silent, and the rare case is somebody genuinely paid
+the same amount twice in one month who then has one of the two dropped with
+nothing on screen to tell them.
+
+WHAT THE PANEL ACTUALLY FOUND, which is why the label was the real problem.
+Three archetypes read "Counted once:" three different ways and NOT ONE of them
+read it as reassurance:
+
+    "Why is a non-problem on my home screen?"
+    "The app is taking credit for doing its job."
+    "Counted once sounds like it did not finish counting. So what happened to
+     the other one?"
+
+The third is the one that bites. There is no other one, and the label never
+said so. It now reads "Counted once, not twice:", which answers that question
+inside the label, keeps the pairing with the "Counted twice" line below it,
+and matches the explainer behind the dot word for word, where the sentence
+already read "is counted once, not twice".
+
+Measured at 320dp with the system font at 1.5x, the longer label takes a line
+the body was going to use anyway: the notice block is nine lines before and
+nine lines after. The wording cost nothing.
+
+`runway_row_test.dart` pins the label with `startsWith`, so the bare "Counted
+once" cannot come back quietly.
+
+WHAT IS STILL OPEN, and the founder has not ruled on it: whether three
+notices on one card is too many in total. This amendment changes one label.
+It does not answer the question that prompted it.
