@@ -3,10 +3,25 @@
 One row per shipped stamp, recording whether the QA pass CLAUDE.md requires
 BEFORE a merge actually ran, and what it found.
 
-`flutter/test/qa_record_test.dart` fails on the real runner when the current
-`updateStamp` has no row here. That is the point: the check runs on every push
-to a `claude/**` branch, so a stamp cannot reach main without someone having
-had to look at this file and write in it.
+CORRECTED 2026-10-05. This paragraph used to say that
+`flutter/test/qa_record_test.dart` "fails on the real runner when the current
+`updateStamp` has no row here", in the present tense. THAT HAS NOT BEEN TRUE
+SINCE 2026-09-18. There is no `flutter/` directory: the file is at
+`archive/salapify-2-flutter/test/qa_record_test.dart` and the workflow that
+ran it is in `ci-disabled/`, so NOTHING ENFORCES THIS FILE TODAY. A document
+claiming a machine is watching, when none is, is worse than one that admits
+nobody is, because it stops anybody looking.
+
+What is actually true right now:
+
+- Salapify 2's guard is dormant in the archive. It governs an app with no
+  publisher and cannot fail anything.
+- `app/` gained an `updateStamp` on 2026-10-05 (`app/lib/main.dart`), so the
+  guard CAN now be copied forward and rewritten for it. That belongs with the
+  publisher, because the rule it enforces is "no stamp reaches main without a
+  QA row" and there is nothing for a stamp to reach yet.
+- Until then this file is kept by hand, and the rows below say so where they
+  were not.
 
 What this guard can and cannot do, said plainly so nobody mistakes a green
 check for more than it is:
