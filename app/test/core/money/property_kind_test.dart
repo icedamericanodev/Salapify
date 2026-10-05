@@ -15,6 +15,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:salapify/core/money/accounts.dart';
+import 'package:salapify/core/money/format.dart';
 import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/core/money/safe_to_spend.dart';
 import 'package:salapify/data/json_codec.dart';
@@ -257,5 +258,90 @@ void main() {
       expect(asset || liability, isTrue, reason: '${k.name} is in neither');
       expect(asset && liability, isFalse, reason: '${k.name} is in both');
     }
+  });
+
+  group('the age of an estimate', () {
+    final DateTime now = DateTime.utc(2026, 10, 5);
+
+    test('it reads as age, never as a date', () {
+      expect(formatAge('2026-10-05', now: now), 'today');
+      expect(formatAge('2026-10-04', now: now), 'yesterday');
+      expect(formatAge('2026-09-28', now: now), '7 days ago');
+      expect(formatAge('2026-08-20', now: now), 'about a month ago');
+      expect(formatAge('2026-03-05', now: now), 'about 7 months ago');
+      expect(formatAge('2025-09-05', now: now), 'about a year ago');
+      expect(formatAge('2023-03-12', now: now), 'about 3 years ago');
+    });
+
+    test('the YEAR is never lost, which is the whole reason this exists', () {
+      // `formatDateLabel` renders this as "Sun, Mar 12" with no year at all,
+      // so a valuation from 2023 would read as March of this year. That is
+      // the exact misreading the date was stored to prevent.
+      expect(formatDateLabel('2023-03-12', now: now), isNot(contains('2023')));
+      expect(formatAge('2023-03-12', now: now), contains('3 years'));
+    });
+
+    test('a date in the future says the only true thing about it', () {
+      // Reachable two ways: somebody types it, or a backup arrives from a
+      // phone whose clock was wrong. Neither is worth throwing over.
+      expect(formatAge('2027-01-01', now: now), 'dated ahead');
+    });
+
+    test('nothing it returns could trip the raw-date guard', () {
+      // `screen_readability_test` fails on a stored date reaching a screen,
+      // and this string goes straight onto the Accounts row.
+      final RegExp iso = RegExp(r'\d{4}-\d{2}-\d{2}');
+      for (final String d in <String>[
+        '2026-10-05',
+        '2026-09-28',
+        '2023-03-12',
+        '2027-01-01',
+      ]) {
+        expect(formatAge(d, now: now), isNot(matches(iso)), reason: d);
+      }
+    });
+  });
+
+  group('the date survives, and survives the ledger', () {
+    test('stored and read back', () {
+      final Account a = Account(
+        id: 'h',
+        name: 'House',
+        kind: AccountKind.property,
+        institution: 'Owned',
+        balance: const Money.pesos(400000),
+        monogram: 'OWN',
+        valuedOn: '2026-03-12',
+      );
+      expect(accountFromJson(accountToJson(a)).valuedOn, '2026-03-12');
+    });
+
+    test('an account written before the field is still valid', () {
+      // The whole reason it is nullable. No migration, no guessing, and
+      // nothing pretends to know a date nobody gave.
+      final Map<String, dynamic> old = accountToJson(_house(Money.zero))
+        ..remove('valuedOn');
+      expect(accountFromJson(old).valuedOn, isNull);
+    });
+
+    test('a balance moving does not wipe the date', () {
+      // `copyWith` is what the ledger calls every time a balance moves.
+      // Dropping the date there would reset a house to "no date on it" the
+      // first time anything touched the account, which is the opposite of
+      // what storing it is for.
+      final Account a = Account(
+        id: 'h',
+        name: 'House',
+        kind: AccountKind.property,
+        institution: 'Owned',
+        balance: const Money.pesos(400000),
+        monogram: 'OWN',
+        valuedOn: '2026-03-12',
+      );
+      expect(
+        a.copyWith(balance: const Money.pesos(410000)).valuedOn,
+        '2026-03-12',
+      );
+    });
   });
 }

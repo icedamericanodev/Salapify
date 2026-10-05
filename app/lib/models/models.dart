@@ -141,7 +141,29 @@ class Account {
     this.notes,
     this.isSample = false,
     this.purpose = AccountPurpose.spendable,
+    this.valuedOn,
   });
+
+  /// The day the person last said what this is worth, as an ISO date.
+  ///
+  /// ONLY MEANINGFUL FOR [AccountKind.property], and null everywhere else.
+  /// A bank balance carries its own freshness: it moves when money moves, and
+  /// a stale one is caught by Reports, Check. A house does not. Once property
+  /// is excluded from every flow that writes a transaction, which it is,
+  /// NOTHING will ever touch that balance again except a person editing it by
+  /// hand. So the staleness is genuinely unknowable without storing this, and
+  /// an estimate nobody can date is an estimate nobody can judge.
+  ///
+  /// NULLABLE, so every account written before this field existed stays valid
+  /// with no migration and no guessing. Null means "we do not know when",
+  /// which the screen says plainly rather than quietly showing today.
+  ///
+  /// SALAPIFY NEVER MOVES THE FIGURE ITSELF. No straight line depreciation,
+  /// no "phones lose forty percent a year". That would change net worth on a
+  /// day nobody did anything, which is the app inventing a peso figure that
+  /// the person cannot trace and cannot argue with. The app's whole job here
+  /// is to show the age and let them decide.
+  final String? valuedOn;
 
   /// What this money is for. See [AccountPurpose].
   ///
@@ -290,6 +312,12 @@ class Account {
         notes: notes,
         isSample: isSample ?? this.isSample,
         purpose: purpose ?? this.purpose,
+        // CARRIED THROUGH, like `isSample` and `purpose` above and for the
+        // same reason. This is the copy the ledger makes when a balance
+        // moves; dropping the date here would silently reset a house to "no
+        // date on it" the first time anything touched the account, which is
+        // the opposite of what storing the date is for.
+        valuedOn: valuedOn,
       );
 }
 

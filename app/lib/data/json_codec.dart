@@ -341,6 +341,7 @@ const Set<String> accountKeys = <String>{
   'notes',
   'isSample',
   'purpose',
+  'valuedOn',
 };
 
 Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
@@ -365,6 +366,9 @@ Map<String, dynamic> accountToJson(Account a) => <String, dynamic>{
   // from a ledger where nobody has touched this is therefore byte for byte
   // what it was before P2.3, and an older build opening it sees nothing new.
   if (a.purpose == AccountPurpose.protected) 'purpose': 'protected',
+  // WRITTEN ONLY WHEN SET, same shape again. It is only ever set on a
+  // property account, so a ledger with no house is byte for byte what it was.
+  if (a.valuedOn != null) 'valuedOn': a.valuedOn,
 };
 
 Account accountFromJson(Map<String, dynamic> m) {
@@ -403,6 +407,10 @@ Account accountFromJson(Map<String, dynamic> m) {
     purpose:
         accountPurposeWire.decodeOptional(m, 'purpose', what) ??
         AccountPurpose.spendable,
+    // Absent means "we do not know when", which is the honest answer for
+    // every account written before this field and for anybody who has not
+    // said. The screen prints that rather than quietly showing today.
+    valuedOn: _optStr(m, 'valuedOn'),
   );
 }
 
