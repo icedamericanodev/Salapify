@@ -20,6 +20,7 @@
 // opened by this build. That is the path every existing user takes on the day
 // this ships, and it happens exactly once.
 
+import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
@@ -57,11 +58,6 @@ void main() {
 
   Account accountOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id);
-
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balanceInPhp.pesos,
-  );
 
   /// Scrolls the frontmost scrollable until [target] is in the tree.
   ///
@@ -266,7 +262,7 @@ void main() {
       'says so in both figures', (WidgetTester tester) async {
     final FinancialState s = await pumpApp(tester);
 
-    final double worthBefore = netWorthOf(s);
+    final Money worthBefore = netWorthOf(s);
     final Money spendBefore = s.safeToSpendAnalysis.safeToSpendToday;
 
     await goToAccounts(tester);

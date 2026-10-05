@@ -825,7 +825,20 @@ class _AccountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool owed = liabilitiesOf(<Account>[account]).isNotEmpty;
-    final Color amountColor = owed ? palette.negative : palette.positive;
+
+    // A CARD CAN NOW GO INTO CREDIT, since Move Money started accepting
+    // liabilities on 2026-10-05, and overpaying one is an ordinary mistake:
+    // somebody pays the statement total after already paying part of it.
+    //
+    // `formatPeso` returns the ABSOLUTE value by design, so a card at minus
+    // 500 drew as "₱500.00" in the alarm colour, which reads as five hundred
+    // owed when the bank is actually holding five hundred FOR you. The figure
+    // and the colour were both wrong, in the same direction, and the row gave
+    // no hint of it.
+    final bool inCredit = owed && account.balance.centavos < 0;
+    final Color amountColor = inCredit
+        ? palette.positive
+        : (owed ? palette.negative : palette.positive);
 
     final List<String> meta = <String>[
       // FIRST, before anything else on the line. A banner is read once and
@@ -905,6 +918,17 @@ class _AccountRow extends StatelessWidget {
                       palette,
                     ).copyWith(color: amountColor),
                   ),
+                  // THE ONE CASE THE FIGURE ALONE CANNOT SAY, so it is said in
+                  // words. Every other row on this screen means "owed" by
+                  // being on a liability account, and this row means the
+                  // opposite while looking identical.
+                  if (inCredit)
+                    Text(
+                      'You are ${formatPeso(account.balance.pesos)} ahead',
+                      style: AppType.rowMeta(
+                        palette,
+                      ).copyWith(color: palette.positive),
+                    ),
                   if (account.isForeign)
                     Text(
                       // "About", because the rate is fixed and offline. A

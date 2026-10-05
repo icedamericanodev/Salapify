@@ -12,6 +12,7 @@
 // and offer the undo, so a test that opens the sheet directly would pass with
 // Home still throwing the result away, which is exactly the defect.
 
+import '../support/net_worth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
@@ -81,11 +82,6 @@ void main() {
   Money balanceOf(FinancialState s, String id) =>
       s.accounts.firstWhere((Account a) => a.id == id).balance;
 
-  double netWorthOf(FinancialState s) => s.accounts.fold<double>(
-    0,
-    (double sum, Account a) => sum + a.balance.pesos,
-  );
-
   List<Debt> splitDebts(FinancialState s) => s.debts
       .where((Debt d) => (d.notes ?? '').startsWith('Split:'))
       .toList(growable: false);
@@ -128,7 +124,7 @@ void main() {
 
     final String accountId = state.accounts.first.id;
     final Money openingBalance = balanceOf(state, accountId);
-    final double openingNetWorth = netWorthOf(state);
+    final Money openingNetWorth = netWorthOf(state);
     final int openingDebts = state.debts.length;
     final int openingEntries = state.transactions.length;
 
@@ -175,7 +171,9 @@ void main() {
       openingBalance.centavos,
       reason: 'the account did not come back to the centavo',
     );
-    expect(netWorthOf(state), closeTo(openingNetWorth, 0.001));
+    // EXACT, since this helper moved to whole centavos. The tolerance was
+    // only ever there because the old local helper summed doubles.
+    expect(netWorthOf(state), openingNetWorth);
     expect(
       splitDebts(state),
       isEmpty,
