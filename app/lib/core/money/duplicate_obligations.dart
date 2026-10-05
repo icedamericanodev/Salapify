@@ -20,7 +20,7 @@
 /// its credibility, which is permanent: somebody who opens Coming Up, finds
 /// two unrelated bills and learns the line says nothing will never read it
 /// again. Every clause below is tuned that way, and the measurement that
-/// forced it is in [_sharedWord].
+/// forced it is in [sharedIdentifyingWord].
 library;
 
 import '../../models/models.dart';
@@ -129,7 +129,7 @@ const Set<String> _noiseWords = <String>{
 ///
 /// Three characters, not four. "VUL" is three and appears in only one of that
 /// pair, so the shorter floor costs nothing here and catches a real acronym.
-bool _sharedWord(String a, String b) {
+bool sharedIdentifyingWord(String a, String b) {
   Set<String> words(String s) => s
       .toLowerCase()
       .split(RegExp(r'[^a-z0-9]+'))
@@ -217,9 +217,9 @@ List<SuspectedDuplicate> findDuplicateOutflows({
       //    genuine 5,000 payments in one month are ordinary.
       if ((a.days - b.days).abs() > 7) continue;
 
-      // 4. A SHARED IDENTIFYING WORD. See [_sharedWord] for the false
+      // 4. A SHARED IDENTIFYING WORD. See [sharedIdentifyingWord] for the false
       //    positive this removes from the sample ledger.
-      if (!_sharedWord(a.label, b.label)) continue;
+      if (!sharedIdentifyingWord(a.label, b.label)) continue;
 
       // The ENTRY side leads, because that is the row the person typed and
       // will go looking for. A debt minimum is generated machinery.

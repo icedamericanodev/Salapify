@@ -1,3 +1,4 @@
+import 'duplicate_balances.dart';
 import 'money.dart';
 import '../../models/models.dart';
 
@@ -265,9 +266,19 @@ class ReportSet {
     required this.expenseByCategory,
     required this.incomeByCategory,
     required this.transactions,
+    this.duplicateBalances = const <SuspectedDuplicateBalance>[],
   });
 
   final FinancialPosition position;
+
+  /// Balances that look like they are on the sheet twice.
+  ///
+  /// NOT SUBTRACTED FROM ANYTHING. Every total above is whole, and this list
+  /// only tells the person where to look. Dropping a side would mean the app
+  /// choosing which record they meant, and both are reasonable: an account is
+  /// the right home for a loan you watch a balance on, a debt row is the
+  /// right home for one you make payments against.
+  final List<SuspectedDuplicateBalance> duplicateBalances;
   final FinancialPerformance performance;
   final CashFlow cashFlow;
   final List<CategoryBreakdown> expenseByCategory;
@@ -794,6 +805,7 @@ ReportSet buildReports({
     // now; "my net worth last March" is a different feature and needs history
     // the app does not keep.
     position: computePosition(accounts, profile, debts: debts, plans: plans),
+    duplicateBalances: findDuplicateBalances(accounts: accounts, debts: debts),
     performance: computePerformance(scoped, now),
     cashFlow: computeCashFlow(scoped),
     expenseByCategory: computeCategoryBreakdown(

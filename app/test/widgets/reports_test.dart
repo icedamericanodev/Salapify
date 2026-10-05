@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/money.dart';
+import 'package:salapify/models/models.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/main.dart';
 import 'package:salapify/features/info/info_dot.dart';
@@ -26,15 +28,15 @@ void main() {
   /// honest way to ask "what does TODAY show" is to say which day today is.
   final DateTime fixtureToday = DateTime(2026, 9, 18, 12);
 
-  Future<void> openReports(WidgetTester tester) async {
-    final FinancialState state = FinancialState(
-      clock: fixtureToday,
-      store: MemorySnapshotStore(),
-    );
-    // The app opens on the welcome when nothing has been onboarded. This
-    // fixture is the seeded ledger, which is what the "look around with
-    // example data" path leaves behind, so it says so.
-    state.startWithExampleData();
+  /// Pass [given] to drive Reports from a ledger built for one case. Without
+  /// it this is the shipped sample data, which is what most of these tests
+  /// want and what the "look around with example data" path leaves behind.
+  Future<void> openReports(WidgetTester tester, {FinancialState? given}) async {
+    final FinancialState state =
+        given ??
+        (FinancialState(clock: fixtureToday, store: MemorySnapshotStore())
+          // The app opens on the welcome when nothing has been onboarded.
+          ..startWithExampleData());
 
     await tester.pumpWidget(SalapifyApp(state: state));
     await tester.pumpAndSettle();
@@ -363,5 +365,74 @@ void main() {
         reason: 'a control on Reports is only ${size.width} wide',
       );
     }
+  });
+
+  testWidgets('a balance on the sheet twice is named, with both sides', (
+    WidgetTester tester,
+  ) async {
+    // The sample ledger records 10,000 as both a loan ACCOUNT and a debt, and
+    // 6,250 as both a receivable account and two owedToMe debts. Neither was
+    // visible until debts joined the balance sheet on 2026-10-05, because
+    // only one side of each pair was ever counted.
+    await openReports(tester);
+
+    expect(find.text('COUNTED TWICE'), findsOneWidget);
+    expect(find.text('₱16,250.00'), findsOneWidget);
+
+    // NAMED, both of them. A figure with no name sends somebody hunting
+    // through two screens for it.
+    expect(
+      find.textContaining('BPI Gadget Loan is also recorded as'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Accounts Receivable'), findsWidgets);
+
+    // THE WRONG CONCLUSION THIS EXISTS TO STOP. The two sides pull net worth
+    // in OPPOSITE directions, so somebody who subtracts 16,250 from the
+    // headline gets a worse answer than if the card had said nothing.
+    expect(
+      find.textContaining('out by the difference, not by the total'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Nothing is wrong with your money'),
+      findsOneWidget,
+      reason:
+          'a money app reporting a double count without that clause reads as '
+          'the app confessing it lost something',
+    );
+  });
+
+  testWidgets('no double count card on a ledger that has none', (
+    WidgetTester tester,
+  ) async {
+    // THE SILENT HALF. A permanent badge saying everything is fine teaches
+    // people to read this whole area as decoration, and then the one time it
+    // speaks they will not know it has ever been quiet for a reason.
+    final FinancialState s = FinancialState(clock: DateTime.utc(2026, 9, 18));
+    await s.deleteEverything();
+    s.addAccount(
+      const Account(
+        id: 'a1',
+        name: 'GCash',
+        kind: AccountKind.gcash,
+        institution: 'GCash',
+        balance: Money.pesos(12000),
+        monogram: 'GC',
+      ),
+    );
+    s.addDebt(
+      const Debt(
+        id: 'd1',
+        person: 'Nanay',
+        direction: DebtDirection.iOwe,
+        totalAmount: Money.pesos(3000),
+        paidAmount: Money.zero,
+        isSettled: false,
+      ),
+    );
+    await openReports(tester, given: s);
+
+    expect(find.text('COUNTED TWICE'), findsNothing);
   });
 }
