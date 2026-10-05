@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/import.dart';
@@ -91,5 +92,95 @@ void main() {
         );
       },
     );
+  });
+
+  group('a backup from an EARLIER Salapify is named, not called a stranger', () {
+    // THE FIXTURE IS REAL, and that is the whole point of this group.
+    //
+    // salapify2_export_envelope.json is byte for byte the `rnText` field of
+    // archive/salapify-2-flutter/test/goldens/backup_export_goldens.json,
+    // which is Salapify 2's own committed proof of what its export writes.
+    // It is copied in rather than read across because app/ must not depend on
+    // the archive staying where it is.
+    //
+    // A HAND BUILT OBJECT IS WHAT LET THIS THROUGH FOR MONTHS.
+    // snapshot_test.dart already had a test for "the older Salapify" using
+    // {"accounts":[],"transactions":[],"receivables":[],"people":[]}, which is
+    // the shape of the data INSIDE the envelope and a shape nothing has ever
+    // written to a file. The real export wraps all of that one level down
+    // under `data`, so the guard that test proved could never fire on a real
+    // file. Reading the real bytes is the only version of this test worth
+    // having.
+    final String realExport = File(
+      'test/data/salapify2_export_envelope.json',
+    ).readAsStringSync();
+
+    test('the fixture really is a Salapify 2 envelope, not a Salapify 3 one', () {
+      // Guards the guard. If somebody regenerates this fixture from the wrong
+      // app, every assertion below would still pass while testing nothing.
+      final Map<String, dynamic> m =
+          jsonDecode(realExport) as Map<String, dynamic>;
+      expect(m.keys.toSet(), <String>{'app', 'version', 'exportedAt', 'data'});
+      expect(m['app'], 'salapify');
+      expect(m['data'], isA<Map<String, dynamic>>());
+      expect(
+        m.containsKey('schemaVersion'),
+        isFalse,
+        reason: 'the ledger sits one level down, which is the whole problem',
+      );
+    });
+
+    test('it is refused rather than half read', () {
+      expect(checkImportFile(realExport), isA<ImportRefused>());
+    });
+
+    test('the refusal says WHICH app it came from', () {
+      final ImportRefused r = checkImportFile(realExport) as ImportRefused;
+      expect(r.reason, contains('earlier version of Salapify'));
+    });
+
+    test('the refusal tells the person to KEEP the file', () {
+      // The sentence is the safety mechanism here, not the refusal.
+      //
+      // Nothing is written either way, so no tap can lose data. But somebody
+      // who has just exported their entire financial history out of the old
+      // app, and is then told the file "is not a Salapify backup", may
+      // reasonably decide the export is broken or the file is junk and delete
+      // the only copy that has ever existed off one phone. That is the loss
+      // this group exists to prevent, and it happens outside the app.
+      final ImportRefused r = checkImportFile(realExport) as ImportRefused;
+      expect(r.reason, contains('Keep this file'));
+      expect(r.reason, contains('only copy'));
+      expect(
+        r.reason,
+        isNot(contains('not a Salapify backup')),
+        reason: 'it IS a Salapify backup, and saying otherwise is what risks '
+            'the file being deleted',
+      );
+    });
+
+    test('nothing on this phone is said to have changed', () {
+      final ImportRefused r = checkImportFile(realExport) as ImportRefused;
+      expect(r.reason, contains('Nothing on this phone has changed'));
+    });
+
+    test(
+      'a Salapify 3 backup is still accepted, so this did not refuse everything',
+      () {
+        // The directional half, per CLAUDE.md. Every assertion above also
+        // passes if checkImportFile were changed to refuse every file in
+        // existence, which would break restore completely and silently.
+        expect(checkImportFile(_file('250')), isNot(isA<ImportRefused>()));
+      },
+    );
+
+    test('a file that merely mentions salapify is NOT mistaken for one', () {
+      // The envelope branch keys on `app == 'salapify'` AND a `data` map. One
+      // without the other must fall through to the ordinary gate, or the new
+      // branch becomes a way to get the wrong refusal on an unrelated file.
+      final ImportRefused r =
+          checkImportFile('{"app":"salapify","version":2}') as ImportRefused;
+      expect(r.reason, isNot(contains('earlier version of Salapify')));
+    });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:salapify/core/money/money.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,6 +20,7 @@ import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
 import 'package:salapify/features/reminders/reminders_sheet.dart';
 import 'package:salapify/features/safe_to_spend/safe_to_spend_sheet.dart';
+import 'package:salapify/features/settings/wipe_sheet.dart';
 import 'package:salapify/features/tax/business_tax_sheet.dart';
 import 'package:salapify/features/tax/tax_calculator_sheet.dart';
 import 'package:salapify/features/toolkit/toolkit_sheet.dart';
@@ -464,6 +466,52 @@ void main() {
       );
     });
   }
+
+  // Delete everything, which had never been rendered until now.
+  //
+  // It is the one control in Salapify with no way back, and it just gained
+  // the export row its own class comment had been promising in prose since
+  // the day it was written. A picture is the only way to see whether a
+  // non-destructive control sitting directly above a red one reads as an
+  // offer or as a trap, and that judgement is the founder's.
+  testWidgets('sheet wipe renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // NOT awaited, deliberately, and this cost a ten minute hang once.
+    //
+    // `show` returns a Future that completes when the sheet CLOSES. Awaiting
+    // it inside a widget test waits for something the test is never going to
+    // do, so the run sits there until the test timeout kills it with no
+    // output. Every other sheet shot in this file does the same thing: fire
+    // it, then pump.
+    unawaited(WipeSheet.show(tester.element(find.byType(AppShell)), state));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_wipe.png'),
+    );
+  });
 
   // The receipt scanner, with a sample read into it.
   //

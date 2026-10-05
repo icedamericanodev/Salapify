@@ -174,6 +174,41 @@ ImportCheck checkImportFile(String raw) {
 
   final Map<String, dynamic> map = Map<String, dynamic>.from(parsed);
 
+  // AN EARLIER SALAPIFY'S BACKUP, recognised BEFORE the gate below, because
+  // the gate's refusal would be a lie about the most precious file the person
+  // owns.
+  //
+  // Salapify 1 and Salapify 2 both write an ENVELOPE and put the ledger one
+  // level down: {app: 'salapify', version: 2, exportedAt: ..., data: {...}}.
+  // See `buildBackupText` in archive/salapify-2-flutter/lib/data/backup.dart.
+  // Salapify 3 writes the ledger at the TOP level, so `looksLikeSalapify`
+  // reads this envelope, finds no `schemaVersion` and no collection list, and
+  // returns false. Verified against the real committed export at
+  // archive/salapify-2-flutter/test/goldens/backup_export_goldens.json, whose
+  // top level keys are exactly app, data, exportedAt and version.
+  //
+  // Nothing is written either way, so no tap here can lose data. THE DANGER
+  // IS THE SENTENCE. Somebody who has just exported their whole financial
+  // history out of the old app, and is then told the file is not a Salapify
+  // backup, may reasonably conclude the export is broken or the file is junk,
+  // and delete the only copy that has ever existed off one phone. So this
+  // says what the file actually is and tells them to keep it.
+  //
+  // It deliberately does NOT convert. The two schemas disagree structurally,
+  // not cosmetically: an old account carries no `institution` and no
+  // `monogram`, both of which `accountFromJson` demands through `_reqStr`,
+  // and the kind vocabularies share only `cash`. A converter is its own piece
+  // of work with its own founder decision, and one written in a hurry against
+  // somebody's only copy is the exact thing this refusal exists to prevent.
+  if (map['app'] == 'salapify' && map['data'] is Map) {
+    return const ImportRefused(
+      'This is a backup from an earlier version of Salapify, not from this '
+      'app. Salapify keeps your records in a different shape now, so this '
+      'file cannot be read here yet. Nothing on this phone has changed. '
+      'Keep this file safe. It may be the only copy of those records.',
+    );
+  }
+
   // THE GATE. Without it `{}` is a perfectly valid, entirely empty ledger, and
   // restoring it would report success and leave Salapify with nothing.
   if (!looksLikeSalapify(map)) {

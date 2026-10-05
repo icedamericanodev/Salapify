@@ -232,9 +232,29 @@ class _ImportSheetState extends State<ImportSheet> {
       Text('Put back what was here before', style: AppType.rowTitle(p)),
       const SizedBox(height: 2),
       Text(
-        'The ledger from before you last restored a backup: '
-        '${previous.accounts} accounts holding ${formatPeso(previous.assets)} '
-        'and ${previous.entries} entries.',
+        // SAY WHEN THE EARLIER LEDGER IS THE DEMO, because on the one day
+        // this row matters most it usually is.
+        //
+        // A fresh install seeds sample records, so somebody who installs
+        // Salapify and immediately restores a backup leaves a PRE IMPORT COPY
+        // that is entirely Salapify's own invented money. This row then offers
+        // to put it back, described in pesos, reading exactly like the
+        // person's own records. The pre import copy never expires, so the
+        // offer sits in Settings permanently.
+        //
+        // The forward direction already gets this right a few lines up, where
+        // `now.hasSampleData` prints "None of it is yours". The reverse
+        // direction had the same flag available on `LedgerSummary` and never
+        // read it.
+        previous.hasSampleData
+            ? "This is Salapify's sample data, not your records: "
+                  '${previous.accounts} accounts holding '
+                  '${formatPeso(previous.assets)} and '
+                  '${previous.entries} entries.'
+            : 'The ledger from before you last restored a backup: '
+                  '${previous.accounts} accounts holding '
+                  '${formatPeso(previous.assets)} and '
+                  '${previous.entries} entries.',
         style: AppType.caption(p),
       ),
       const SizedBox(height: Spacing.sm),
@@ -362,6 +382,18 @@ class _ImportSheetState extends State<ImportSheet> {
             Text('Out: ${_describe(now)}', style: AppType.body(p)),
             const SizedBox(height: Spacing.sm),
             Text('In: ${_describe(previous)}', style: AppType.body(p)),
+            // NAME THE THING COMING IN when it is Salapify's own invented
+            // money. "In: 11 accounts holding 254,200.00" reads like the
+            // person's records whether or not a single peso of it is real,
+            // and this dialog is the last thing shown before the swap.
+            if (previous.hasSampleData) ...<Widget>[
+              const SizedBox(height: Spacing.sm),
+              Text(
+                "What comes back is Salapify's sample data. None of it is "
+                'yours.',
+                style: AppType.body(p).copyWith(color: p.negative),
+              ),
+            ],
             const SizedBox(height: Spacing.sm),
             Text(
               'Salapify keeps a copy of what is here now, so you can swap '

@@ -6,6 +6,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
+import 'export_backup.dart';
 
 /// Delete everything on this phone.
 ///
@@ -48,7 +49,30 @@ class WipeSheet extends StatefulWidget {
 class _WipeSheetState extends State<WipeSheet> {
   bool _confirming = false;
   bool _busy = false;
+  bool _exporting = false;
   int? _removed;
+
+  /// Hand the whole ledger to the share sheet, without leaving this screen.
+  ///
+  /// Deliberately does NOT close the sheet on success. Somebody who exports
+  /// here is partway through deciding, and dropping them back into Settings
+  /// would make them find their way in again to finish. It also never moves
+  /// them on to the confirm step: that tap stays theirs.
+  Future<void> _exportFirst() async {
+    setState(() => _exporting = true);
+    try {
+      await exportBackup(state: widget.state, say: _say);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  void _say(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +141,34 @@ class _WipeSheetState extends State<WipeSheet> {
             style: AppType.caption(p),
           ),
           const SizedBox(height: Spacing.lg),
+
+          // THE EXPORT, right here, and only before the last check.
+          //
+          // Property 4 in this class's own comment promised this from the day
+          // the sheet was written, and for a while the promise was prose only:
+          // there was no export control, so somebody who wanted a copy first
+          // had to back out of this sheet, find Export in Settings, and come
+          // back. The one person who most needs a backup is the one standing
+          // in front of the only button in Salapify with no way back.
+          //
+          // It disappears once `_confirming` is true. The second screen is a
+          // last check between two buttons, and a third control there is a
+          // place for a thumb to land by accident.
+          if (!_confirming) ...<Widget>[
+            _Button(
+              palette: p,
+              label: _exporting ? 'Preparing...' : 'Export a backup first',
+              danger: false,
+              onTap: _exporting ? null : _exportFirst,
+            ),
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'One file holding everything above. Keep it somewhere you '
+              'trust. This does not delete anything.',
+              style: AppType.caption(p),
+            ),
+            const SizedBox(height: Spacing.lg),
+          ],
 
           if (!_confirming)
             _Button(

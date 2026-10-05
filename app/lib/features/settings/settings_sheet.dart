@@ -12,6 +12,7 @@ import '../../state/financial_state.dart';
 import '../categories/category_manager_sheet.dart';
 import '../shared/sheet_scaffold.dart';
 import '../tax/tax_calculator_sheet.dart';
+import 'export_backup.dart';
 import 'import_sheet.dart';
 import 'privacy_sheet.dart';
 import 'sample_data_sheet.dart';
@@ -287,26 +288,11 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   Future<void> _export() async {
     setState(() => _busy = true);
-    final String json = state.snapshot().encode(at: state.now);
     try {
-      final Directory dir = await getTemporaryDirectory();
-      final String stamp = state.now.toIso8601String().split('T').first;
-      final File file = File('${dir.path}/salapify-backup-$stamp.json');
-      await file.writeAsString(json, flush: true);
-      await Share.shareXFiles(<XFile>[
-        XFile(file.path, mimeType: 'application/json'),
-      ], subject: 'Salapify backup $stamp');
-    } on MissingPluginException {
-      // Built before path_provider or share_plus were added. The backup is
-      // not lost over a plugin registration; it goes to the clipboard.
-      await Clipboard.setData(ClipboardData(text: json));
-      _say(
-        'This build cannot open the share sheet yet, so your backup is on the '
-        'clipboard instead. A full rebuild fixes it.',
-      );
-    } on Object catch (e) {
-      await Clipboard.setData(ClipboardData(text: json));
-      _say('Could not share the file, so it is on your clipboard instead. $e');
+      // The body moved to export_backup.dart so the wipe sheet can offer the
+      // same export at the moment it matters most, without a second copy of
+      // the share plumbing drifting away from this one.
+      await exportBackup(state: state, say: _say);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
