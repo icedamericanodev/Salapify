@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/money/format.dart';
-import '../../core/money/reports.dart' show assetKinds, liabilityKinds;
+import '../../core/money/reports.dart' show liabilityKinds, settlementKinds;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -105,10 +105,7 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   /// WHERE MONEY CAN LEAVE FROM. Unchanged: things you own, minus
   /// receivables.
   List<Account> get _sources => widget.state.accounts
-      .where(
-        (Account a) =>
-            assetKinds.contains(a.kind) && a.kind != AccountKind.receivable,
-      )
+      .where((Account a) => settlementKinds.contains(a.kind))
       .toList();
 
   /// WHERE MONEY CAN ARRIVE. The sources, plus everything you OWE.
@@ -130,8 +127,7 @@ class _MoveMoneySheetState extends State<MoveMoneySheet> {
   List<Account> get _destinations => widget.state.accounts
       .where(
         (Account a) =>
-            (assetKinds.contains(a.kind) && a.kind != AccountKind.receivable) ||
-            liabilityKinds.contains(a.kind),
+            settlementKinds.contains(a.kind) || liabilityKinds.contains(a.kind),
       )
       .toList();
 

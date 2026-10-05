@@ -119,13 +119,17 @@ void main() {
     // line stays: alarm is the worst possible moment to make somebody go
     // hunting for the reason.
     // SHARPER THAN IT WAS. This read "A housing loan alone can do this.",
-    // which excuses the figure without explaining it. The real reason is a
-    // modelling gap worth admitting: `AccountKind` has no kind for something
-    // you own outright, so a mortgage enters the ledger with no house on the
-    // other side. The number is not merely unflattering, it is incomplete,
-    // and saying which is the difference between comfort and information.
+    // which excuses the figure without explaining it.
+    //
+    // THE GAP IT NAMES IS NOW CLOSEABLE, and this comment said otherwise for
+    // a few hours. It read "AccountKind has no kind for something you own
+    // outright", which was true when it was written and false by the end of
+    // the same day: `AccountKind.property` exists. The sample ledger has a
+    // mortgage and no property account, so the sentence is still correct HERE,
+    // and the test below is the one that proves it goes away for somebody who
+    // records the home.
     expect(
-      find.text('Your home is not counted here, only the loan on it.'),
+      find.textContaining('Your home is not counted here'),
       findsOneWidget,
     );
 
@@ -434,5 +438,44 @@ void main() {
     await openReports(tester, given: s);
 
     expect(find.text('COUNTED TWICE'), findsNothing);
+  });
+
+  testWidgets('recording the home takes the caveat away', (
+    WidgetTester tester,
+  ) async {
+    // THE SENTENCE MUST NOT OUTLIVE THE GAP IT DESCRIBES. "Your home is not
+    // counted here" is a true and useful warning while nothing holds the
+    // house. The moment somebody records it, the app would be printing a
+    // false statement to the one person who did the thing it asked for.
+    final FinancialState s = FinancialState(
+      clock: fixtureToday,
+      store: MemorySnapshotStore(),
+    )..startWithExampleData();
+    s.addAccount(
+      const Account(
+        id: 'home',
+        name: 'House and lot',
+        kind: AccountKind.property,
+        institution: 'Owned',
+        balance: Money.pesos(3200000),
+        monogram: 'OWN',
+      ),
+    );
+    await openReports(tester, given: s);
+
+    expect(find.textContaining('Your home is not counted here'), findsNothing);
+
+    // DIRECTIONAL COMPANION. The assertion above passes just as well if the
+    // whole card stopped rendering, so this names what must still be there,
+    // and it is also the feature working: a 3.2M house against the seed's
+    // 385,000 mortgage turns the headline from a debt into a surplus.
+    expect(find.text('WHAT IS REALLY YOURS'), findsOneWidget);
+    expect(
+      find.text('STILL TO PAY OFF'),
+      findsNothing,
+      reason:
+          'with the home counted this ledger is no longer underwater, which '
+          'is the whole point of giving the mortgage its other side',
+    );
   });
 }

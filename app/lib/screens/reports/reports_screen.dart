@@ -400,6 +400,11 @@ class _PositionView extends StatelessWidget {
     final bool hasMortgage = p.liabilityAccounts.any(
       (Account a) => a.kind == AccountKind.mortgage,
     );
+    // Whether the gap the sentence below describes is still a gap. It stopped
+    // being one on 2026-10-05 for anybody who records the home itself.
+    final bool hasProperty = p.assetAccounts.any(
+      (Account a) => a.kind == AccountKind.property,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,21 +476,26 @@ class _PositionView extends StatelessWidget {
               // than reassuring. It used to read "A housing loan alone can do
               // this", which excuses the figure without explaining it.
               //
-              // The real reason is sharper and is a modelling gap worth
-              // admitting: `AccountKind` has no kind for a thing you own
-              // outright, so a mortgage enters the ledger with no house on
-              // the other side. The figure is not merely unflattering, it is
-              // incomplete, and saying so is the difference between comfort
-              // and information.
+              // The real reason was a modelling gap: `AccountKind` had no kind
+              // for a thing you own outright, so a mortgage entered the ledger
+              // with no house on the other side and the figure was not merely
+              // unflattering, it was incomplete.
               //
-              // Only shown when a mortgage actually exists. Somebody
-              // underwater on credit cards alone would be told about a home
-              // they do not have.
+              // THAT GAP IS CLOSEABLE NOW, which is why the sentence is gated
+              // on more than a mortgage. Somebody who has recorded the home
+              // itself IS having it counted, and telling them otherwise would
+              // be the app printing a false statement to the one person who
+              // did the thing it asked for. The condition reads "a mortgage
+              // and no property", not "a mortgage".
+              //
+              // The other branch covers somebody underwater on cards alone,
+              // who would otherwise be told about a home they do not have.
               if (underwater) ...<Widget>[
                 const SizedBox(height: 2),
                 Text(
-                  hasMortgage
-                      ? 'Your home is not counted here, only the loan on it.'
+                  hasMortgage && !hasProperty
+                      ? 'Your home is not counted here, only the loan on it. '
+                            'Add it under Accounts and this balances out.'
                       : 'This counts what you owe in full, including debts '
                             'you are paying down.',
                   style: AppType.caption(palette),

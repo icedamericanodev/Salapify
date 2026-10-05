@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/bills.dart';
 import '../../core/money/format.dart';
-import '../../core/money/reports.dart' show assetKinds;
+import '../../core/money/reports.dart' show settlementKinds;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -116,10 +116,7 @@ class _PayBillDialogState extends State<_PayBillDialog> {
   /// it. Paying a card with a card is a real thing people do and it is a debt
   /// transfer, not a bill payment, so it belongs on the Debt screen.
   List<Account> get _payable => widget.state.accounts
-      .where(
-        (Account a) =>
-            assetKinds.contains(a.kind) && a.kind != AccountKind.receivable,
-      )
+      .where((Account a) => settlementKinds.contains(a.kind))
       .toList();
 
   List<String> get _categories => widget.state.categories

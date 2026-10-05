@@ -67,6 +67,15 @@ const Map<(TransactionType, TxLeg), Map<AccountKind, Money>> kBalanceDelta =
         AccountKind.debit: kDown,
         AccountKind.investment: kDown,
         AccountKind.receivable: kDown,
+        // ARITHMETICALLY CASH LIKE, and that is NOT a statement that this is
+        // reachable. `property` is excluded from every picker a person can
+        // open (`settlementKinds`), so no flow writes a transaction against
+        // a house. The engine still has to answer, because `signedDelta` is
+        // total over the enum, and the honest answer is that an asset is an
+        // asset. If a future screen ever offers one, the UI is the only thing
+        // that was stopping it, which is a guard somebody can delete by
+        // accident and this comment is the warning.
+        AccountKind.property: kDown,
         // THE THREE THAT WERE WRONG. Charging a card does not spend money you
         // have, it creates money you owe, so the stored figure goes UP.
         AccountKind.credit: kUp,
@@ -81,6 +90,7 @@ const Map<(TransactionType, TxLeg), Map<AccountKind, Money>> kBalanceDelta =
         AccountKind.debit: kUp,
         AccountKind.investment: kUp,
         AccountKind.receivable: kUp,
+        AccountKind.property: kUp,
         // A REFUND OR A CASHBACK, and the naming matters more than the
         // number here. A one-sided entry arriving at a card can only be money
         // from outside that reduced the debt: a refund, a chargeback, a
@@ -100,6 +110,7 @@ const Map<(TransactionType, TxLeg), Map<AccountKind, Money>> kBalanceDelta =
         AccountKind.debit: kDown,
         AccountKind.investment: kDown,
         AccountKind.receivable: kDown,
+        AccountKind.property: kDown,
         // Money leaving a debt is a cash advance or a loan disbursing, so
         // what you owe rises.
         AccountKind.credit: kUp,
@@ -114,6 +125,7 @@ const Map<(TransactionType, TxLeg), Map<AccountKind, Money>> kBalanceDelta =
         AccountKind.debit: kUp,
         AccountKind.investment: kUp,
         AccountKind.receivable: kUp,
+        AccountKind.property: kUp,
         // THE CARD PAYMENT. This is the only correct way to pay a card down,
         // and no screen can currently produce it: Move Money filters both
         // ends to asset kinds. The engine is right and the door is shut.

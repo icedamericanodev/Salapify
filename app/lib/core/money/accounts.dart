@@ -134,6 +134,24 @@ List<AccountGroup> groupAssets(List<Account> accounts) {
           .where((Account x) => x.kind == AccountKind.investment)
           .toList(),
     ),
+    // AFTER INVESTMENTS, BEFORE RECEIVABLES, so the list runs from what you
+    // can spend today to what you cannot spend at all to what somebody else
+    // is holding.
+    //
+    // IT IS HERE BECAUSE THE COMPILER COULD NOT ASK FOR IT. These groups are
+    // a hand-typed list of `.where()` calls rather than a switch, so adding
+    // `property` to `assetKinds` put it in this function's INPUT and in none
+    // of its output. The screen's hero reads `summarize`, which counts every
+    // asset, while the list below reads this, which would have dropped the
+    // house: a total of 581,970.50 over a list footing to 181,970.50, with
+    // 400,000 nowhere on the screen and no analyzer error anywhere. The
+    // totality test below this function is what makes that impossible to
+    // repeat.
+    AccountGroup(
+      id: 'property',
+      title: 'Things you own',
+      accounts: a.where((Account x) => x.kind == AccountKind.property).toList(),
+    ),
     AccountGroup(
       id: 'receivable',
       title: 'Receivables',
@@ -246,6 +264,8 @@ String computeMonogram(String institution, AccountKind kind, String name) {
       return 'MORT';
     case AccountKind.loan:
       return 'LOAN';
+    case AccountKind.property:
+      return 'OWN';
     case AccountKind.cash:
     case AccountKind.bank:
     case AccountKind.debit:

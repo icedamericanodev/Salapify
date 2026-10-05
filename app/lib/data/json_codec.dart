@@ -208,6 +208,13 @@ final Wire<AccountKind> accountKindWire = _makeWire(<AccountKind, String>{
   AccountKind.mortgage: 'mortgage',
   AccountKind.investment: 'investment',
   AccountKind.receivable: 'receivable',
+  // ADDED 2026-10-05, and additive in the only direction that matters. Every
+  // string written before this still decodes, so an older backup opens
+  // unchanged. A NEWER backup opened by an older build is refused by
+  // `decodeRequired` with a readable message naming the value it does not
+  // know, which is the safe failure: it declines to open the file rather
+  // than quietly dropping an account out of somebody's net worth.
+  AccountKind.property: 'property',
 });
 
 final Wire<CurrencyCode> currencyWire = _makeWire(<CurrencyCode, String>{
