@@ -279,12 +279,27 @@ class AccountsSummary {
 
 /// Net worth from ACCOUNTS ALONE.
 ///
-/// This deliberately does NOT add the debt register. Reports' Position tab
-/// counts debts as well, because a balance sheet has to; this screen is a
-/// list of accounts with its own total, and the debt register sits below it
-/// as its own card with its own figures. Two cards, two questions, and the
-/// screen says which is which rather than quietly producing a third number
-/// that matches neither.
+/// This deliberately does NOT add the debt register. This screen is a list of
+/// accounts with its own total, and the debt register sits below it as its
+/// own card with its own figures. Two cards, two questions, and the screen
+/// says which is which rather than quietly producing a third number that
+/// matches neither.
+///
+/// THIS COMMENT USED TO CLAIM THAT "Reports' Position tab counts debts as
+/// well, because a balance sheet has to". It does not, and never has:
+/// `computePosition` filters `accounts` by `liabilityKinds` and reads no
+/// other collection. Measured on the sample ledger, Position reports 399,200
+/// of liabilities while the Debt register holds 17,350 and the instalment
+/// plans hold 50,950.35, none of which appear. So the balance sheet
+/// understates what is owed by everything a person entered on the Debt or
+/// Plans screens rather than as an account.
+///
+/// The sentence is left here, named as false, rather than quietly deleted,
+/// because it is the likeliest reason nobody looked for years: a reader
+/// checking whether debts were on the balance sheet found a confident
+/// statement that they were. Putting debts on the balance sheet moves a
+/// figure people already read, so it is a founder decision and is tracked as
+/// one; this correction is only about the comment no longer lying.
 AccountsSummary summarize(List<Account> accounts) {
   final List<Account> a = assetsOf(accounts);
   final List<Account> l = liabilitiesOf(accounts);
