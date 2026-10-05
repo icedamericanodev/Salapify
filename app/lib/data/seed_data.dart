@@ -908,11 +908,29 @@ class SeedData {
       type: UpcomingItemType.debt,
       isSample: true,
     ),
+    // THE SWELDO, DELIBERATELY RECORDED TWICE, and dated so the app can say
+    // so. Founder decision, 2026-10-04, following D27 and D28.
+    //
+    // This was `_due(now, -3)`, three days in the PAST on every clock. That
+    // put it in the overdue-income bucket, which the projection excludes from
+    // the grid, so the D27 scan, which only walks future days, could never
+    // reach it. Swept across all thirty days of October: the "counted once"
+    // notice fired on NONE of them. The one money decision the founder took
+    // that day was invisible in the ledger a stranger meets.
+    //
+    // `'15'` rather than an offset, for three reasons that all point the same
+    // way. `_due` returns a WEEKDAY NAME for offsets two to six, and
+    // `daysUntil` cannot read a weekday, so the obvious "move it forward a
+    // few days" would have landed it in the undated bucket instead and looked
+    // like the same bug wearing a different hat. A day of the month is what a
+    // person actually types. And it matches the stored payday rule exactly,
+    // which is the whole point: the rule says the 15th, this says the 15th,
+    // one sweldo described twice.
     UpcomingItem(
       id: 'up_payday',
       name: 'Sweldo Payday (15th Cutoff)',
       amount: Money.pesos(32500),
-      dueDate: _due(now, -3),
+      dueDate: '15',
       type: UpcomingItemType.payday,
       isIncome: true,
       isSample: true,

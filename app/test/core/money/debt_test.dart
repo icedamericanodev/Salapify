@@ -409,4 +409,60 @@ void main() {
       expect(parseDebtAmount('abc'), isNull);
     });
   });
+
+  group('the next payment due', () {
+    Debt owing(String person, String due, DebtDirection dir) => Debt(
+      id: person,
+      person: person,
+      direction: dir,
+      totalAmount: const Money.pesos(10000),
+      paidAmount: Money.zero,
+      isSettled: false,
+      dueDate: due,
+    );
+
+    final DateTime now = DateTime.utc(2026, 10, 4);
+
+    test('a free-text date is read as a DATE, never sorted as text', () {
+      // The defect this closes, measured on the sample ledger before the fix:
+      // Home named "BPI Personal Loan, Oct 11, 10,000 remaining" while the
+      // real next payment was Home Credit, due THAT DAY, at 2,450. The old
+      // getter compared the strings, and "Oct 11" sorts before "Oct 16",
+      // "Oct 2" and "Oct 4". Wrong debt, seven days late, four times the
+      // figure, on a card the founder reads every day.
+      final List<Debt> debts = <Debt>[
+        owing('BPI', 'Oct 11', DebtDirection.iOwe),
+        owing('Home Credit', 'Oct 4', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Home Credit');
+    });
+
+    test('an OVERDUE payment sorts first, not last', () {
+      // More urgent, not less. A sort that puts a negative day count at the
+      // end announces the payment somebody has not missed yet.
+      final List<Debt> debts = <Debt>[
+        owing('Later', 'Oct 20', DebtDirection.iOwe),
+        owing('Missed', 'Oct 1', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Missed');
+    });
+
+    test('money owed TO you is never announced as your next payment', () {
+      // The string sort hid this on the shipped ledger. With ISO dates it
+      // surfaces at once, and it is the same direction defect that once let
+      // a receivable reduce somebody's own runway.
+      final List<Debt> debts = <Debt>[
+        owing('Kuya Mark', '2026-10-05', DebtDirection.owedToMe),
+        owing('Home Credit', '2026-10-20', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Home Credit');
+    });
+
+    test('a date nobody can read is not guessed at', () {
+      final List<Debt> debts = <Debt>[
+        owing('Mystery', 'sometime', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now), isNull);
+    });
+  });
 }

@@ -1032,8 +1032,20 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'If you have not told Salapify your payday days, only the one '
             'payday it already knows about appears, so the line reads tighter '
             'than your real life. Set your payday days and the window fills '
-            'in properly. And a salary that sits in Upcoming AND in your '
+            'in properly. And a salary that sits in Coming Up AND in your '
             'payday rule is counted once, not twice.',
+      ),
+      InfoPoint(
+        icon: Icons.content_copy_outlined,
+        title: 'A bill in two places is counted twice, on purpose',
+        body:
+            'If the same payment is written down as a Bill and again as a '
+            'Debt, Salapify takes it out twice and tells you so. It does not '
+            'guess which one you meant. Counting a bill twice only makes the '
+            'line look tighter than your life really is, and that is the '
+            'safe direction to be wrong in. A salary counted twice would '
+            'hand you money that is not coming, which is why that one is '
+            'counted once instead.',
       ),
       InfoPoint(
         icon: Icons.visibility_off_outlined,

@@ -16,10 +16,43 @@ library;
 
 import '../../models/models.dart';
 import 'accounts.dart';
+import 'duplicate_obligations.dart';
 import 'payday_schedule.dart';
 import 'money.dart';
 import 'ph_calendar.dart';
 import 'reminders.dart';
+
+/// Which register an event came out of.
+///
+/// `fromRule` below says WHETHER machinery generated an occurrence. This says
+/// WHICH machinery, and the card needs the second one: "in Coming Up and
+/// Debts" is a sentence a bool cannot write.
+///
+/// The two words the card actually prints are deliberately fewer than the
+/// five values here. `bill`, `upcoming` and `installment` all live behind
+/// Coming Up on screen, and `debtMinimum` behind Debts, so four registers
+/// collapse to two place names a person can go and look at. See [whereSeen].
+enum EventSource {
+  bill,
+  upcoming,
+  installment,
+  debtMinimum,
+  paydayRule;
+
+  /// The place a person would go to find this, in the app's own words.
+  ///
+  /// NOT the model's words. The card said "in Upcoming" for a day, and no
+  /// screen in Salapify is called Upcoming: the Home card is "Coming Up" and
+  /// the sheet is "Bills". `UpcomingItem` is a class name, and printing a
+  /// class name at somebody is sending them nowhere.
+  String get whereSeen => switch (this) {
+    EventSource.bill => 'Coming Up',
+    EventSource.upcoming => 'Coming Up',
+    EventSource.installment => 'Coming Up',
+    EventSource.debtMinimum => 'Debts',
+    EventSource.paydayRule => 'your payday rule',
+  };
+}
 
 /// One thing that moves money on one day.
 class ProjectedEvent {
@@ -30,7 +63,11 @@ class ProjectedEvent {
     this.movedFrom,
     this.movedReason = '',
     this.fromRule = false,
+    this.source = EventSource.bill,
   });
+
+  /// The register this came out of. See [EventSource].
+  final EventSource source;
 
   final String label;
   final Money amount;
@@ -103,6 +140,7 @@ class DailyProjection {
     this.beyondHorizonInflowCount = 0,
     this.suppressedIncome = Money.zero,
     this.duplicateIncomeLabels = const <String>[],
+    this.duplicateOutflows = const <SuspectedDuplicate>[],
   });
 
   /// Spendable cash at the start, NOT total cash.
@@ -197,6 +235,32 @@ class DailyProjection {
 
   /// What the suppressed income was called, so the line can name it.
   final List<String> duplicateIncomeLabels;
+
+  /// Outflows this run took out TWICE, because one payment is written into
+  /// two registers and both copies landed on the grid.
+  ///
+  /// THE OPPOSITE POLICY TO INCOME, on purpose, and the asymmetry is D27.
+  /// Every one of these is still COUNTED, twice, because counting a bill
+  /// twice only makes somebody cautious while counting a salary twice hands
+  /// them cash that is not coming. So nothing is dropped here, the person is
+  /// simply told, and they decide which row is the real one.
+  ///
+  /// NARROWER THAN `findDuplicateOutflows`, which is a claim about the
+  /// LEDGER. This is a claim about the FIGURE, so a pair with one leg sitting
+  /// in the overdue or beyond-horizon bucket is not here: it was written
+  /// twice and counted once. The sample ledger's Meralco pair is exactly that
+  /// shape and the gap is 2,840.
+  final List<SuspectedDuplicate> duplicateOutflows;
+
+  /// What the double counting is COSTING the projection: one copy of each
+  /// suspected pair, which is the money taken out a second time.
+  Money get duplicateOutflowExtra {
+    Money total = Money.zero;
+    for (final SuspectedDuplicate d in duplicateOutflows) {
+      total += d.amount;
+    }
+    return total;
+  }
 
   /// Every eligible peso, wherever it ended up.
   ///
@@ -335,7 +399,13 @@ DailyProjection projectDailyCash({
   }
 
   /// Put one movement on one day, given how many days away it is.
-  void placeOn(String label, Money amount, int days, bool isIncome) {
+  void placeOn(
+    String label,
+    Money amount,
+    int days,
+    bool isIncome,
+    EventSource source,
+  ) {
     if (!amount.isPositive) return;
 
     // Already gone. A bill due last week that is still unpaid is a problem,
@@ -375,6 +445,7 @@ DailyProjection projectDailyCash({
             label: label,
             amount: amount,
             isIncome: isIncome,
+            source: source,
             movedFrom: when.moved ? due : null,
             movedReason: when.reason,
           ),
@@ -398,7 +469,13 @@ DailyProjection projectDailyCash({
   /// one day and are then over. [monthlyDayOf] is the single place that
   /// distinction lives, and it reads with the same pattern [daysUntil] does
   /// so the two can never disagree.
-  void place(String label, Money amount, String? dueDate, bool isIncome) {
+  void place(
+    String label,
+    Money amount,
+    String? dueDate,
+    bool isIncome,
+    EventSource source,
+  ) {
     if (!amount.isPositive) return;
 
     final int? days = daysUntil(dueDate, today);
@@ -410,7 +487,7 @@ DailyProjection projectDailyCash({
 
     final int? repeatsOn = monthlyDayOf(dueDate);
     if (repeatsOn == null) {
-      placeOn(label, amount, days, isIncome);
+      placeOn(label, amount, days, isIncome, source);
       return;
     }
 
@@ -423,7 +500,7 @@ DailyProjection projectDailyCash({
     for (int step = 0; step <= horizonDays ~/ 28 + 1; step++) {
       final int offset = when.difference(today).inDays;
       if (offset > horizonDays) break;
-      placeOn(label, amount, offset, isIncome);
+      placeOn(label, amount, offset, isIncome, source);
       final int lastDay = DateTime(when.year, when.month + 2, 0).day;
       when = DateTime(
         when.year,
@@ -434,11 +511,11 @@ DailyProjection projectDailyCash({
   }
 
   for (final BillItem b in bills.where((BillItem b) => !b.isPaid)) {
-    place(b.name, b.amount, b.dueDate, false);
+    place(b.name, b.amount, b.dueDate, false, EventSource.bill);
   }
 
   for (final UpcomingItem u in upcoming.where((UpcomingItem u) => !u.isPaid)) {
-    place(u.name, u.amount, u.dueDate, u.countsAsIncome);
+    place(u.name, u.amount, u.dueDate, u.countsAsIncome, EventSource.upcoming);
   }
 
   // Payment plans ARE DATED, and this comment used to say the opposite.
@@ -469,7 +546,7 @@ DailyProjection projectDailyCash({
       if (offset > horizonDays) break;
       final Money each = minMoney(i.installmentAmount, left);
       if (!each.isPositive) break;
-      placeOn(i.name, each, offset, false);
+      placeOn(i.name, each, offset, false, EventSource.installment);
       left -= each;
       placedAny = true;
     }
@@ -535,7 +612,7 @@ DailyProjection projectDailyCash({
         break;
       }
       final Money each = min > left ? left : min;
-      placeOn(d.person, each, offset, false);
+      placeOn(d.person, each, offset, false, EventSource.debtMinimum);
       left -= each;
       final int lastDay = DateTime(when.year, when.month + 2, 0).day;
       when = DateTime(
@@ -600,6 +677,7 @@ DailyProjection projectDailyCash({
               amount: payday.expectedIncome,
               isIncome: true,
               fromRule: true,
+              source: EventSource.paydayRule,
             ),
           );
     }
@@ -659,6 +737,47 @@ DailyProjection projectDailyCash({
     );
   }
 
+  // WHAT WAS WRITTEN TWICE, NARROWED TO WHAT WAS ACTUALLY COUNTED TWICE.
+  //
+  // THE MEASUREMENT THAT FORCED THIS. `findDuplicateOutflows` answers "is
+  // this one payment written into two registers", which it reads off the
+  // raw lists. The card's sentence makes a different claim: that the figure
+  // above took the payment out twice. On the shipped sample ledger those two
+  // claims disagree by 2,840. Meralco is a Bill dated three days ago and an
+  // Upcoming item due today; the Bill is OVERDUE, so this engine never places
+  // it on the grid at all and reports it in the overdue bucket instead. The
+  // payment was written twice and counted once. A card saying "counted twice,
+  // 5,290" would have been wrong by the whole Meralco amount, and wrong in
+  // the direction that costs a notice its credibility.
+  //
+  // So the grid decides, not the ledger. A pair qualifies only when BOTH of
+  // its legs are among the events this run actually placed. Asking the
+  // placements rather than re-deriving which bucket each leg should have
+  // landed in is deliberate: re-deriving it is how the above went wrong once
+  // already, and the placements cannot disagree with themselves.
+  final Set<String> placed = <String>{};
+  for (final ProjectedDay d in days) {
+    for (final ProjectedEvent e in d.events) {
+      if (!e.isIncome) placed.add('${e.label}|${e.amount.centavos}');
+    }
+  }
+  bool wasPlaced(String label, Money amount) =>
+      placed.contains('$label|${amount.centavos}');
+
+  final List<SuspectedDuplicate> countedTwice =
+      findDuplicateOutflows(
+            bills: bills,
+            upcoming: upcoming,
+            installments: installments,
+            debts: debts,
+            now: now,
+          )
+          .where(
+            (SuspectedDuplicate d) =>
+                wasPlaced(d.label, d.amount) &&
+                wasPlaced(d.otherLabel, d.amount),
+          )
+          .toList();
   return DailyProjection(
     openingBalance: opening,
     days: days,
@@ -676,5 +795,6 @@ DailyProjection projectDailyCash({
     beyondHorizonInflowCount: beyondInCount,
     suppressedIncome: suppressedIncome,
     duplicateIncomeLabels: duplicateIncome,
+    duplicateOutflows: countedTwice,
   );
 }

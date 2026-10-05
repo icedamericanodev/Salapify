@@ -2008,7 +2008,7 @@ void main() {
   testWidgets('home runway short renders', (WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
 
-    tester.view.physicalSize = const Size(1170, 900);
+    tester.view.physicalSize = const Size(1170, 1150);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -2053,6 +2053,61 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('out/home_runway_short.png'),
+    );
+  });
+
+  // The notice block on the hardest phone it has to survive: 320dp wide AND
+  // 1.5x system font at once, with all three notices firing.
+  //
+  // IT EXISTS BECAUSE THE FULL-HOME SHOT AT THE SAME SETTINGS CANNOT SHOW
+  // IT. `home runway narrow large renders` photographs the whole scroll view
+  // and this card falls below the fold, so the one picture that claimed to
+  // cover the hardest case has never contained the thing being reviewed.
+  // Moving the notices to full card width was justified by a measurement at
+  // exactly these settings, and a measurement nobody can look at is a
+  // measurement nobody can check.
+  testWidgets('runway notices narrow large render', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(960, 1900);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+          child: Scaffold(
+            backgroundColor: palette.background,
+            body: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: RunwayRow(
+                state: state,
+                onSeeDue: () {},
+                onSetPayday: () {},
+                onInfo: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/runway_notices_narrow_large.png'),
     );
   });
 

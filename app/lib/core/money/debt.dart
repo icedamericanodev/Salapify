@@ -15,6 +15,7 @@
 /// keeps books is the defect. Every money test was green at the time.
 library;
 
+import 'reminders.dart';
 import '../../models/models.dart';
 import 'money.dart';
 
@@ -302,6 +303,45 @@ Money outstanding(List<Debt> debts, DebtDirection direction) => sumMoney(
 /// Only the `iOwe` direction. Money owed TO you is not something you have to
 /// find every month, and counting it here would reserve your own spending
 /// money against somebody else's debt.
+/// The next payment the person actually has to make.
+///
+/// ONE FUNCTION, because the previous arrangement had two readers of one
+/// field disagreeing on a card the founder looks at every day.
+/// `FinancialState.nextDueDebt` sorted the due date as a STRING, and a due
+/// date in this app is free text, so on the sample ledger it compared
+/// "Oct 11" against "Oct 16", "Oct 2" and "Oct 4" and picked the 11th.
+/// Measured on 2026-10-04:
+///
+///     Home showed   BPI Personal Loan, "Oct 11", 10,000 remaining
+///     The truth was Home Credit (Phone), due TODAY, 2,450 a month
+///
+/// Wrong debt, seven days late, four times the figure, while the reminder
+/// tray and the runway, which both read the same field through [daysUntil],
+/// named the right one. A free-text date has exactly one correct reader in
+/// this app and this is it.
+///
+/// THE DIRECTION FILTER IS NOT DECORATION. Without it, money owed TO the
+/// person is eligible to be announced as their next payment. The string sort
+/// happened to hide that on the current ledger; with ISO dates it surfaces
+/// immediately, and it is the same direction defect that once let a
+/// receivable reduce somebody's own runway. Two readers, one field, one
+/// mistake, twice.
+Debt? nextPaymentDue(List<Debt> debts, DateTime now) {
+  final List<({Debt debt, int days})> dated = <({Debt debt, int days})>[
+    for (final Debt d in debts)
+      if (!d.isSettled && d.direction == DebtDirection.iOwe)
+        if (daysUntil(d.dueDate, now) case final int days)
+          (debt: d, days: days),
+  ];
+  if (dated.isEmpty) return null;
+  dated.sort((({Debt debt, int days}) a, ({Debt debt, int days}) b) {
+    // A date already past sorts FIRST, because an overdue payment is more
+    // urgent than one that has not arrived, not less.
+    return a.days.compareTo(b.days);
+  });
+  return dated.first.debt;
+}
+
 Money monthlyDebtMinimums(List<Debt> debts) => sumMoney(
   debts
       .where((Debt d) => !d.isSettled && d.direction == DebtDirection.iOwe)
