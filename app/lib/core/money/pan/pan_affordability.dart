@@ -1,6 +1,6 @@
 /// "Can I afford this?", answered from the ledger rather than from a mood.
 ///
-/// Ported in intent from section 1 of src/utils/panAiEngine.ts. The
+/// Ported in intent from section 1 of archive/prototype-google-ai-studio/src/utils/panAiEngine.ts. The
 /// arithmetic is the prototype's, the sentences are not: its version tells
 /// the reader to hold off until payday, which is an instruction about their
 /// money, and this one says what the figures become and stops there.

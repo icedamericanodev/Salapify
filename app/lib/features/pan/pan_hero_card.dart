@@ -8,7 +8,7 @@ import '../../models/models.dart';
 
 /// The Pan card on Home, showing the most relevant thing it could tell you.
 ///
-/// Ported from `src/components/PanHeroCard.tsx`, which is an orphan in the
+/// Ported from `archive/prototype-google-ai-studio/src/components/PanHeroCard.tsx`, which is an orphan in the
 /// prototype: the component exists and App.tsx never renders it. So the
 /// placement here is a decision rather than a port, and it sits under the
 /// quick actions, where a card that leads somewhere belongs.

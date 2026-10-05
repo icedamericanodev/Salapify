@@ -12,7 +12,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'budget_sheets.dart';
 
-/// Plan's eight destinations, from src/components/PlanScreen.tsx.
+/// Plan's eight destinations, from archive/prototype-google-ai-studio/src/components/PlanScreen.tsx.
 enum PlanSegment {
   overview,
   budgets,

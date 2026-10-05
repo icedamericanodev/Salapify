@@ -12,7 +12,7 @@ import '../../state/financial_state.dart';
 /// have to assert about a colour.
 const Key healthDotKey = ValueKey<String>('health-dot');
 
-/// The Safe to Spend hero, ported from src/components/HeroPanel.tsx.
+/// The Safe to Spend hero, ported from archive/prototype-google-ai-studio/src/components/HeroPanel.tsx.
 ///
 /// It keeps its warm gradient in both themes, exactly as the prototype does,
 /// and lays a soft dark veil over it at night instead of inverting. Every

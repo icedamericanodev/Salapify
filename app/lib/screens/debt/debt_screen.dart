@@ -14,7 +14,7 @@ import '../../state/financial_state.dart';
 import 'debt_calculators.dart';
 import 'installments_view.dart';
 
-/// The debt register, both ways, from src/components/DebtScreen.tsx.
+/// The debt register, both ways, from archive/prototype-google-ai-studio/src/components/DebtScreen.tsx.
 ///
 /// Debt here means what you owe AND what is owed to you, which is the
 /// product's own definition and the reason the two directions are a segmented

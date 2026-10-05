@@ -8,7 +8,7 @@ import 'json_codec.dart';
 
 /// The whole of a person's Salapify, as one JSON document.
 ///
-/// The top level keys are the prototype's own (`src/components/SettingsModal.tsx`,
+/// The top level keys are the prototype's own (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx`,
 /// `handleExportData`), so a file written here opens in the prototype and a
 /// backup exported from the prototype opens here.
 ///
@@ -496,10 +496,10 @@ class Snapshot {
   /// Collections only the OLD Salapify family ever wrote.
   ///
   /// Salapify 3 is not a continuation of those apps. It was rebuilt in
-  /// Flutter from the Google AI Studio prototype in `src/`, and the React
-  /// Native app in `mobile/` and Salapify 2 in `archive/` are a separate
+  /// Flutter from the Google AI Studio prototype in `archive/prototype-google-ai-studio/src/`, and the React
+  /// Native app in `archive/salapify-1-react-native/` and Salapify 2 in `archive/` are a separate
   /// branch of the family that was archived. They count their file shape to
-  /// 12 (`mobile/lib/backup.js:26`,
+  /// 12 (`archive/salapify-1-react-native/lib/backup.js:26`,
   /// `archive/salapify-2-flutter/lib/data/backup.dart:22`) while this one
   /// starts at 1, because the two numbers count two different shapes and not
   /// one shape that went backwards.
@@ -509,7 +509,7 @@ class Snapshot {
   /// to: its `debts` collection carries BOTH directions on purpose, what you
   /// owe and what you are owed, which is the first paragraph of the working
   /// rules. The prototype this app actually came from writes neither either
-  /// (`src/components/SettingsModal.tsx` exports ten keys and that is all),
+  /// (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx` exports ten keys and that is all),
   /// so this check cannot catch our own parent.
   ///
   /// It is a SHAPE check rather than a version check because the shape is

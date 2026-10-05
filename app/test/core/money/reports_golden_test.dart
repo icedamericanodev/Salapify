@@ -9,7 +9,7 @@ import '../../support/test_clock.dart';
 /// Golden vectors for the Reports engine.
 ///
 /// Every number below was PRINTED by running the prototype's own arithmetic,
-/// lifted verbatim out of src/components/ReportsScreen.tsx into
+/// lifted verbatim out of archive/prototype-google-ai-studio/src/components/ReportsScreen.tsx into
 /// app/tool/gen_report_vectors.ts, over app/'s own seed fixture. Nothing here
 /// was worked out by hand. To regenerate after a fixture change:
 ///

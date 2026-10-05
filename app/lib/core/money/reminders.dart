@@ -1,5 +1,5 @@
 /// Reminders, ported from the prototype's `evaluateReminders` in
-/// `src/utils/notificationEngine.ts`.
+/// `archive/prototype-google-ai-studio/src/utils/notificationEngine.ts`.
 ///
 /// Pure and deterministic: given the ledger, the settings, a clock and the set
 /// of reminders already sent, it returns what is newly due. Nothing here

@@ -12,7 +12,7 @@ import '../../models/academy.dart';
 import '../../state/financial_state.dart';
 import 'business_guide_screen.dart';
 
-/// Salapify Academy, from src/components/AcademyView.tsx.
+/// Salapify Academy, from archive/prototype-google-ai-studio/src/components/AcademyView.tsx.
 ///
 /// It is called ACADEMY, not Learn. An earlier pass renamed it, which was not
 /// mine to do: "Salapify Academy" is the product's own name for this, it is
@@ -20,9 +20,9 @@ import 'business_guide_screen.dart';
 /// to the brand dressed up as tidying.
 ///
 /// The curriculum is the prototype's 32 courses, extracted from
-/// src/data/academyData.ts rather than written here. The same earlier pass
+/// archive/prototype-google-ai-studio/src/data/academyData.ts rather than written here. The same earlier pass
 /// invented six courses of its own instead of looking for the real data,
-/// which is exactly the failure the "src/ is the source of truth" rule
+/// which is exactly the failure the "archive/prototype-google-ai-studio/src/ is the source of truth" rule
 /// exists to prevent. The generator is app/tool/gen_academy_dart.py.
 class AcademySegment extends StatefulWidget {
   const AcademySegment({super.key, required this.palette, required this.state});

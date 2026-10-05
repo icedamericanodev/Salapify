@@ -12,7 +12,7 @@ import '../shared/sheet_scaffold.dart';
 import 'scan_receipt_sheet.dart';
 import 'package:salapify/core/money/money.dart';
 
-/// Log an entry, from src/components/LogSheet.tsx.
+/// Log an entry, from archive/prototype-google-ai-studio/src/components/LogSheet.tsx.
 ///
 /// SCOPE, named rather than implied. The prototype's sheet also carries a
 /// fast-log text parser, a foreign currency converter, a cash denomination

@@ -15,7 +15,7 @@ import '../../models/models.dart';
 import 'card_art.dart';
 
 /// A debit or credit account drawn as a piece of plastic, from
-/// src/components/BankCard.tsx.
+/// archive/prototype-google-ai-studio/src/components/BankCard.tsx.
 ///
 /// Only `debit` and `credit` accounts get one. Everything else is a row,
 /// because a card is a big object and a screen made entirely of them is a

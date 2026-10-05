@@ -11,7 +11,7 @@ import 'home_kit.dart';
 /// about text could ever have caught.
 const Key debtBeamKey = ValueKey<String>('debt-beam');
 
-/// Debts, both directions, ported from src/components/DebtBeamCard.tsx.
+/// Debts, both directions, ported from archive/prototype-google-ai-studio/src/components/DebtBeamCard.tsx.
 ///
 /// Salapify means both halves of debt: what you owe and what is owed to you.
 /// The beam shows the balance between them at a glance, and it never lets

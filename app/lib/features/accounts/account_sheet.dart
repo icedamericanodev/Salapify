@@ -12,7 +12,7 @@ import '../../state/financial_state.dart';
 import '../shared/sheet_scaffold.dart';
 
 /// Add or edit an account, from the modal at the foot of
-/// src/components/AccountsScreen.tsx.
+/// archive/prototype-google-ai-studio/src/components/AccountsScreen.tsx.
 ///
 /// THERE IS NO DELETE HERE, and that is a decision rather than an omission.
 /// Deleting an account is user data deletion, which CLAUDE.md reserves for the

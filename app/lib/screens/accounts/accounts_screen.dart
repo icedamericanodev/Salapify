@@ -15,7 +15,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'bank_card.dart';
 
-/// Accounts, the prototype's fifth tab, from src/components/AccountsScreen.tsx.
+/// Accounts, the prototype's fifth tab, from archive/prototype-google-ai-studio/src/components/AccountsScreen.tsx.
 ///
 /// Every figure comes out of core/money/accounts.dart, which is tested against
 /// the same accounts Reports reads, so the net worth here and the net worth on

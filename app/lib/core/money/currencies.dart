@@ -1,4 +1,4 @@
-/// Multi-currency support, ported from src/utils/currencies.ts.
+/// Multi-currency support, ported from archive/prototype-google-ai-studio/src/utils/currencies.ts.
 ///
 /// Salapify is a peso app and every account in the fixture is PHP, so this
 /// whole file is a no-op on today's data. It exists because the prototype's

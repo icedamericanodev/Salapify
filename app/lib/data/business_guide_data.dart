@@ -1,6 +1,6 @@
 /// The Philippine business registration checklist, ported from the prototype.
 ///
-/// Source: `src/components/PHBusinessStartupGuide.tsx`, `CHECKLIST_ITEMS`.
+/// Source: `archive/prototype-google-ai-studio/src/components/PHBusinessStartupGuide.tsx`, `CHECKLIST_ITEMS`.
 /// Ported on founder direction, 2026-09-22 ("port this next"), from the card
 /// on the Academy tab that had been promising it.
 ///

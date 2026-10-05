@@ -4,7 +4,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Ledger, produced by RUNNING the prototype's own
-/// expressions out of src/components/LedgerScreen.tsx under bun against this
+/// expressions out of archive/prototype-google-ai-studio/src/components/LedgerScreen.tsx under bun against this
 /// exact fixture. Not one figure below was worked out by hand. If a Dart
 /// number ever disagrees, the port is wrong and the vector stands.
 ///
@@ -390,7 +390,7 @@ void main() {
 
 /// The WRITE side: what logging an entry does to account balances. Every
 /// figure below came from running addTransaction's own balance block out of
-/// src/context/FinancialContext.tsx under bun.
+/// archive/prototype-google-ai-studio/src/context/FinancialContext.tsx under bun.
 void _writeTests() {
   List<Account> base() => <Account>[
     const Account(

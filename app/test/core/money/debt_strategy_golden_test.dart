@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/debt_strategy.dart';
 
 /// Golden vectors for the credit card payoff and the snowball against
-/// avalanche simulator, produced by running src/utils/loanCalculators.ts
+/// avalanche simulator, produced by running archive/prototype-google-ai-studio/src/utils/loanCalculators.ts
 /// under bun.
 void main() {
   group('the credit card minimum payment trap', () {

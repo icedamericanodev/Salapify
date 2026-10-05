@@ -3,7 +3,7 @@ import 'package:salapify/core/money/loan.dart';
 import 'package:salapify/core/money/loan_products.dart';
 
 /// Golden vectors for the Philippine loan products, produced by running
-/// src/utils/loanCalculators.ts under bun.
+/// archive/prototype-google-ai-studio/src/utils/loanCalculators.ts under bun.
 void main() {
   const double eps = 1e-6;
 

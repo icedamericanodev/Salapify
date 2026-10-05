@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'js_round.dart';
 
 /// Credit card payoff and the snowball against avalanche simulator, ported
-/// from src/utils/loanCalculators.ts.
+/// from archive/prototype-google-ai-studio/src/utils/loanCalculators.ts.
 
 // ------------------------------------------------------------ Credit card
 

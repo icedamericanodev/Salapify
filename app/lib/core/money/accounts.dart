@@ -1,4 +1,4 @@
-/// The Accounts tab's engine, ported from src/components/AccountsScreen.tsx.
+/// The Accounts tab's engine, ported from archive/prototype-google-ai-studio/src/components/AccountsScreen.tsx.
 ///
 /// Everything here is pure: grouping, summing, and the two derived figures
 /// the screen shows (credit utilisation and the monogram). The screen itself
@@ -49,7 +49,7 @@ double accountsTotalPhp(Iterable<Account> accounts) => accounts.fold<double>(
 ///
 /// For handing to an engine that cannot convert for itself. `safe_to_spend`
 /// is the case this was written for: it is a line-for-line port of
-/// src/utils/safeToSpendEngine.ts, which has no currency field at all, so it
+/// archive/prototype-google-ai-studio/src/utils/safeToSpendEngine.ts, which has no currency field at all, so it
 /// reads `balance` raw and must keep doing so to stay golden-locked. The
 /// conversion therefore happens HERE, on the way in, rather than inside it.
 /// Peso-only ledgers are untouched: `balanceInPhp` returns `balance`

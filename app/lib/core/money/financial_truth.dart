@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../models/models.dart';
 
-/// The Financial Truth engine, ported from src/utils/financialTruthEngine.ts.
+/// The Financial Truth engine, ported from archive/prototype-google-ai-studio/src/utils/financialTruthEngine.ts.
 ///
 /// Two halves. The CONTROL CENTRE SCAN reads the ledger and raises alerts about
 /// what looks wrong. The DIGITAL TWIN answers "what if", by re-running the
@@ -244,7 +244,7 @@ List<ControlCenterAlert> runControlCenterScan({
       // safe_to_spend.dart is parity with a prototype whose Account type
       // has NO currency field at all, so converting in there would change
       // a golden-locked engine against a design that cannot express
-      // foreign money. This prototype is different: src/types.ts:30 gives
+      // foreign money. This prototype is different: archive/prototype-google-ai-studio/src/types.ts:30 gives
       // Account an optional `currency`, and financialTruthEngine.ts simply
       // ignores it. That is a defect in the prototype, not a constraint,
       // so matching it would mean porting the bug on purpose.

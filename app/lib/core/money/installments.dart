@@ -1,6 +1,6 @@
-/// Instalment plans, ported from src/context/FinancialContext.tsx
+/// Instalment plans, ported from archive/prototype-google-ai-studio/src/context/FinancialContext.tsx
 /// (`recordInstallmentPayment`, `recordInstallmentExtraPayment`) and
-/// src/components/InstallmentsView.tsx.
+/// archive/prototype-google-ai-studio/src/components/InstallmentsView.tsx.
 ///
 /// A plan is a CONTRACT, which is what separates it from a Debt: fixed term,
 /// fixed cycle, a maturity date, and a rate agreed at the start. So paying one

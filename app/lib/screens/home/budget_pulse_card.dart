@@ -10,7 +10,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
 
-/// Budget Pulse, ported from src/components/BudgetPulseCard.tsx.
+/// Budget Pulse, ported from archive/prototype-google-ai-studio/src/components/BudgetPulseCard.tsx.
 ///
 /// One figure answers the question people actually open this for: how much of
 /// the month's budget is left. The percentage and the small rail sit on the

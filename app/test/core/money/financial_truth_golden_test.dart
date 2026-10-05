@@ -4,7 +4,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/core/money/money.dart';
 
 /// Golden vectors for the Financial Truth engine, produced by running
-/// src/utils/financialTruthEngine.ts under bun.
+/// archive/prototype-google-ai-studio/src/utils/financialTruthEngine.ts under bun.
 void main() {
   const double eps = 1e-4;
 

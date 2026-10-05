@@ -6,7 +6,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
 
-/// Latest, ported from src/components/LatestTransactions.tsx.
+/// Latest, ported from archive/prototype-google-ai-studio/src/components/LatestTransactions.tsx.
 ///
 /// Six rows, each carrying the direction arrow, the merchant, the category and
 /// the ACCOUNT it moved through. That last one is what makes the row auditable:

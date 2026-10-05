@@ -2,7 +2,7 @@
 ///
 /// COPIED FORWARD DELIBERATELY from
 /// `archive/salapify-2-flutter/lib/money/phcalendar.dart`, which is itself a
-/// port of the frozen RN app's `mobile/lib/holidays.js`. The archive rule says
+/// port of the frozen RN app's `archive/salapify-1-react-native/lib/holidays.js`. The archive rule says
 /// nothing is inherited by accident, so this file was read, re-typed and
 /// re-tested here rather than imported, and the two differences from the
 /// original are written down below rather than left to be discovered.

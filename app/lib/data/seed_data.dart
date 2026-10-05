@@ -1,7 +1,7 @@
 import '../models/models.dart';
 import '../core/money/money.dart';
 
-/// The starting ledger, ported from the prototype's src/data/initialData.ts.
+/// The starting ledger, ported from the prototype's archive/prototype-google-ai-studio/src/data/initialData.ts.
 ///
 /// It is deliberately LIVED IN. An empty fixture makes every screen look like
 /// a first run, which is exactly the state that hides money defects: a peso
@@ -574,10 +574,10 @@ class SeedData {
     ),
   ];
 
-  /// The starting category tree, from src/data/initialData.ts. The emojis are
+  /// The starting category tree, from archive/prototype-google-ai-studio/src/data/initialData.ts. The emojis are
   /// USER data: they live in the backup file and are never replaced by
   /// Salapify's own icon set.
-  /// The 21 categories from src/data/categories.ts, names and all.
+  /// The 21 categories from archive/prototype-google-ai-studio/src/data/categories.ts, names and all.
   ///
   /// The NAMES are load bearing, not decoration. A transaction stores its
   /// category as a STRING, the fast-log parser returns one of these strings,
@@ -1086,7 +1086,7 @@ class SeedData {
   ///
   /// These were three name-and-amount stubs until 2026-09-18, because Safe to
   /// Spend was the only thing reading them and an amount was all it needed.
-  /// Every other field here is transcribed from src/data/initialData.ts. The
+  /// Every other field here is transcribed from archive/prototype-google-ai-studio/src/data/initialData.ts. The
   /// three deliberately differ in shape: one with a monthly add-on rate, one
   /// genuine 0 percent promo with an extra payment against it, and one
   /// e-commerce plan at 2.95 a month, so the Installments screen can be
@@ -1196,7 +1196,7 @@ class SeedData {
     ),
   ];
 
-  /// The Habits tracker's rows, from src/components/HabitTrackerView.tsx,
+  /// The Habits tracker's rows, from archive/prototype-google-ai-studio/src/components/HabitTrackerView.tsx,
   /// where they are hardcoded inside the component.
   static const List<HabitItem> habits = <HabitItem>[
     HabitItem(
@@ -1244,7 +1244,7 @@ class SeedData {
   ];
 
   /// The Subscriptions tracker's rows, from
-  /// src/components/SubscriptionTrackerView.tsx.
+  /// archive/prototype-google-ai-studio/src/components/SubscriptionTrackerView.tsx.
   ///
   /// The prototype prints a hardcoded monthly total of 3,288 beside this list,
   /// and the list does not add up to that under any reading. app/ computes it

@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'js_round.dart';
 import 'loan.dart';
 
-/// The Philippine loan products, ported from src/utils/loanCalculators.ts.
+/// The Philippine loan products, ported from archive/prototype-google-ai-studio/src/utils/loanCalculators.ts.
 ///
 /// Every one of these is a PRESET over calculateAmortization, which is already
 /// golden locked. What they add is the product knowledge: which rate a lender

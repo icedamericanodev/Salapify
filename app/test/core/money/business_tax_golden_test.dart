@@ -3,7 +3,7 @@ import 'package:salapify/core/money/business_tax.dart';
 import 'package:salapify/core/money/ph_tax.dart' show annualGraduatedTax;
 
 /// Golden vectors for the business tax port, produced by running
-/// src/utils/businessTaxes.ts under bun over the full 2 x 2 x 4 matrix of
+/// archive/prototype-google-ai-studio/src/utils/businessTaxes.ts under bun over the full 2 x 2 x 4 matrix of
 /// entity, VAT status and regime. Revenue 3,000,000, COGS 1,200,000,
 /// OPEX 600,000 throughout, so gross profit is 1,800,000 everywhere and only
 /// the regime moves the numbers.

@@ -3,7 +3,7 @@ import 'loan.dart';
 /// Turning an amortisation schedule into something a person can keep.
 ///
 /// Ported from `handleExportCSV` and the `yearlySummary` memo in
-/// `src/components/BankAmortizationTable.tsx`. Pure functions on purpose: the
+/// `archive/prototype-google-ai-studio/src/components/BankAmortizationTable.tsx`. Pure functions on purpose: the
 /// screen decides when to export, this decides what the file says, and the
 /// tests can read every byte of it without a widget in sight.
 ///

@@ -8,7 +8,7 @@ import '../shared/sheet_scaffold.dart';
 /// in Settings.
 ///
 /// Ported in spirit from the prototype's own panel
-/// (`src/components/SettingsModal.tsx`), and CORRECTED. Its version is headed
+/// (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx`), and CORRECTED. Its version is headed
 /// "Privacy Receipt and Offline Guarantee" and lists four claims, three of
 /// which are true of this app. The fourth is the omission: one request does
 /// leave the phone, and a receipt with a missing line item is worse than no

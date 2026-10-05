@@ -12,7 +12,7 @@ import 'package:salapify/core/money/money.dart';
 
 /// Moving money between your own accounts.
 ///
-/// Ported from `src/components/TransferModal.tsx` on founder direction,
+/// Ported from `archive/prototype-google-ai-studio/src/components/TransferModal.tsx` on founder direction,
 /// 2026-10-01 ("Migrate bills and move quick actions"), which replaces the
 /// "Move is not migrated yet" placeholder on Home's shortcut row.
 ///

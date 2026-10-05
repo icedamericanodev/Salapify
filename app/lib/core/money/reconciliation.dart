@@ -1,6 +1,6 @@
 /// Reconciliation, ported from the fourth tab of
-/// src/components/ReportsScreen.tsx and the two reducers behind it in
-/// src/context/FinancialContext.tsx (`createAdjustmentTransaction`,
+/// archive/prototype-google-ai-studio/src/components/ReportsScreen.tsx and the two reducers behind it in
+/// archive/prototype-google-ai-studio/src/context/FinancialContext.tsx (`createAdjustmentTransaction`,
 /// `recordReconciliation`).
 ///
 /// This is the one place in Salapify where the app admits it might be wrong.

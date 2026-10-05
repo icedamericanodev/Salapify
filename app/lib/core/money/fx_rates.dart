@@ -5,7 +5,7 @@ import 'currencies.dart';
 /// Live foreign exchange rates, and what to do when there are none.
 ///
 /// Ported from the prototype's FX converter in
-/// `src/components/PhilippineFeaturesModal.tsx`, which fetches
+/// `archive/prototype-google-ai-studio/src/components/PhilippineFeaturesModal.tsx`, which fetches
 /// `https://open.er-api.com/v6/latest/PHP`.
 ///
 /// ## Why that API

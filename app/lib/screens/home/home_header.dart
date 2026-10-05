@@ -6,7 +6,7 @@ import '../../design/tokens.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
 
-/// The Home header, ported from src/components/Header.tsx.
+/// The Home header, ported from archive/prototype-google-ai-studio/src/components/Header.tsx.
 ///
 /// Left: the wordmark, the "On this phone" badge and today's date. Right: four
 /// round buttons. The badge is not decoration, it is the product's core claim,

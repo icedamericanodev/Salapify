@@ -9,7 +9,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import 'amortization_table.dart';
 
-/// The nine loan calculators, from src/components/DebtCalculatorsView.tsx.
+/// The nine loan calculators, from archive/prototype-google-ai-studio/src/components/DebtCalculatorsView.tsx.
 ///
 /// EVERY FIGURE ON THIS SCREEN comes out of core/money/loan.dart,
 /// loan_products.dart or debt_strategy.dart, all of which were ported earlier

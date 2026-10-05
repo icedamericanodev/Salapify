@@ -11,7 +11,7 @@ import '../../core/money/loan.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 
-/// The month by month statement, from src/components/BankAmortizationTable.tsx.
+/// The month by month statement, from archive/prototype-google-ai-studio/src/components/BankAmortizationTable.tsx.
 ///
 /// Every loan calculator produced a schedule from the day the engine was
 /// ported, and none of them ever SHOWED one. That gap is exactly what the

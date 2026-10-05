@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'js_round.dart';
 import 'debt_ratio.dart';
 
-/// Loan amortization and affordability, ported from src/utils/loanCalculators.ts.
+/// Loan amortization and affordability, ported from archive/prototype-google-ai-studio/src/utils/loanCalculators.ts.
 ///
 /// Two interest conventions, and the difference is the whole point in the
 /// Philippines. DIMINISHING charges interest on what is still owed, so the

@@ -7,14 +7,61 @@ here can turn a pull request red. It is here so the work is not lost and so a
 file can be pulled back when one is genuinely needed, which is exactly what the
 founder asked for on 2026-09-18.
 
+Three generations live here now, in the order they were built:
+
 | Folder | What it is | Status |
 |---|---|---|
+| `prototype-google-ai-studio/` | The React and TypeScript prototype from Google AI Studio, which every Salapify 3 money engine was ported FROM | Archived 2026-10-05 |
+| `salapify-1-react-native/` | The original React Native and Expo app, the first thing the founder used daily | Archived 2026-10-05 |
 | `salapify-2-flutter/` | Salapify 2, the Flutter app that was on the founder's phone | Archived 2026-09-18 |
 
-The live app is `app/`, Salapify 3, rebuilt from the Google AI Studio prototype
-in `src/` under decision D24. `mobile/`, the original React Native app, is still
-at the repository root and is frozen but not archived; its only workflow
-(`eas-update.yml`) triggers on a retired branch, so it publishes nothing.
+The live app is `app/`, Salapify 3. It is the ONLY thing at the repository root
+that is built, tested or published.
+
+## Why the root was cleared, 2026-10-05
+
+Founder direction: "since my instruction we build from the scratch i want to
+remove confusion in the repository retain only our current salapify current
+build", then, a moment later, "instead of delete archive to one folder".
+
+The second half is the important one and it matches decision D5. NOTHING WAS
+DELETED. Every file that was at the root is still in the tree, at a new
+address, and `git log --follow` reaches its whole history. The repository root
+went from nine folders and nineteen loose files to five folders and six files,
+and the five that remain are the live app, the documentation, the two helper
+scripts, and the public landing page.
+
+What moved, and from where:
+
+- `mobile/` became `salapify-1-react-native/`.
+- `src/`, `public/` and `google-ai-studio/` became
+  `prototype-google-ai-studio/src/`, `/public` and `/notes`.
+- The prototype's build tooling came with it: `package.json`, `bun.lock`,
+  `vite.config.ts`, `tsconfig.json`, `server.ts`, `metadata.json` and the six
+  one-off `patch_*` and `fix_*` scripts.
+- `index.html` came with it too, because it was never a landing page: it is the
+  prototype's Vite shell, a `<div id="root">` and a module script pointing at
+  `src/main.tsx`. A real landing page was written to replace it at the root,
+  because `pages.yml` copies that file with no `|| true` and a missing one
+  fails the whole deploy.
+
+WHAT STAYED AT THE ROOT AND WHY. `privacy.html` is load bearing: Google Play
+requires that URL to keep resolving, and `pages.yml` says so in its own
+comment. `404.html` and `robots.txt` serve the same site. `tools/dev-sync.sh`
+is how the founder's emulator gets a new build. `scripts/self-check.sh` and the
+two markdown files govern the work.
+
+FOUR WORKFLOWS WERE REPOINTED, not disabled, so the Pages site keeps building
+from the archived sources exactly as it did: `pages.yml`, `eas-update.yml` and
+`build-apk.yml` now name the new paths, and all four still parse. `app-check.yml`
+never referenced any of this.
+
+SIXTY SIX FILES IN `app/` CITED THE OLD ADDRESSES in their provenance comments
+("ported from `src/components/X.tsx`"). Every one was rewritten to the new
+address rather than left dangling, and `test/docs/claude_md_paths_test.dart`
+caught the two that had reached CLAUDE.md itself. That guard is the reason this
+move is verifiable rather than hopeful: it fails the build when a document
+points at a file that is not there.
 
 ## salapify-2-flutter
 

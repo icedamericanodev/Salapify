@@ -19,7 +19,7 @@ import 'pan_explainers.dart';
 import 'pan_matchers.dart';
 import '../money.dart';
 
-/// Pan, the money assistant, ported in intent from `src/utils/panAiEngine.ts`
+/// Pan, the money assistant, ported in intent from `archive/prototype-google-ai-studio/src/utils/panAiEngine.ts`
 /// and rewritten rather than copied.
 ///
 /// ## It is NOT AI, and is never called that

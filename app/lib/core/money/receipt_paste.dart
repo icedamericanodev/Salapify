@@ -4,7 +4,7 @@ import '../../models/models.dart';
 
 /// Reading a bank or e-wallet receipt somebody PASTED in.
 ///
-/// Ported from `parsePhilippineSmsReceipt` in src/utils/smsParser.ts, which
+/// Ported from `parsePhilippineSmsReceipt` in archive/prototype-google-ai-studio/src/utils/smsParser.ts, which
 /// the founder added to the prototype on 2026-09-20.
 ///
 /// ## It reads pasted TEXT. It does not read your messages.

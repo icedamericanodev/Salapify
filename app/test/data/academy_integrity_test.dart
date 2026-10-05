@@ -7,7 +7,7 @@ import 'package:salapify/models/academy.dart';
 ///
 /// These exist because of a real failure, not a hypothetical one. An earlier
 /// pass built this segment with SIX courses written from my own head, having
-/// never looked in src/data/ where the prototype's thirty-two actually live,
+/// never looked in archive/prototype-google-ai-studio/src/data/ where the prototype's thirty-two actually live,
 /// and renamed the feature from Academy to "Learn" while it was at it. The
 /// founder spotted both from a screenshot of their own prototype.
 ///
@@ -22,7 +22,7 @@ void main() {
       32,
       reason:
           'the curriculum lost or gained a course. Regenerate from '
-          'src/data/academyData.ts rather than editing the Dart by hand',
+          'archive/prototype-google-ai-studio/src/data/academyData.ts rather than editing the Dart by hand',
     );
   });
 

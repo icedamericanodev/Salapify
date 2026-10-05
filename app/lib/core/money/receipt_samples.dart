@@ -4,7 +4,7 @@
 /// sentence is the whole design, and it is the difference between this file
 /// and the prototype's.
 ///
-/// `parseReceiptImage` in src/utils/receiptOcrParser.ts reads the FILE NAME
+/// `parseReceiptImage` in archive/prototype-google-ai-studio/src/utils/receiptOcrParser.ts reads the FILE NAME
 /// of the picture, matches it against six canned receipts, and returns the
 /// Jollibee one when nothing matches. It never opens the image. So
 /// photographing a Mercury Drug receipt and letting the camera name it

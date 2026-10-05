@@ -7,7 +7,7 @@ import '../core/money/money.dart';
 /// Turning Salapify's models into JSON and back, in the PROTOTYPE'S OWN
 /// spelling.
 ///
-/// Every key and every enum string here matches `src/types.ts` exactly, so a
+/// Every key and every enum string here matches `archive/prototype-google-ai-studio/src/types.ts` exactly, so a
 /// file written by this app opens in the prototype and a backup exported from
 /// the prototype opens here. That is the whole reason this file is a hand
 /// written codec rather than a generated one: the two sides have to agree on
@@ -982,7 +982,7 @@ const Set<String> reconciliationKeys = <String>{
 
 /// A reconciliation's outcome is a BOOL in Dart and a STRING on the wire.
 ///
-/// `src/types.ts` declares `status: 'balanced' | 'discrepancy'`. Writing a
+/// `archive/prototype-google-ai-studio/src/types.ts` declares `status: 'balanced' | 'discrepancy'`. Writing a
 /// `balanced: true` beside it would leave two fields meaning the same thing,
 /// and the moment they disagreed the prototype would read the stale one, on
 /// the single screen whose whole job is to be trustworthy about whether the

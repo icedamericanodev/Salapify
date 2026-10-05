@@ -6,7 +6,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../shared/sheet_scaffold.dart';
 
-/// The payoff schedule, ported from src/components/BankAmortizationTable.tsx.
+/// The payoff schedule, ported from archive/prototype-google-ai-studio/src/components/BankAmortizationTable.tsx.
 ///
 /// A phone cannot show a five column table at a readable size, so this is NOT
 /// a table. Each month is a row with the instalment on the right and the split

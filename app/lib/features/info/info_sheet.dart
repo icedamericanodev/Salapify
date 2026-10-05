@@ -5,7 +5,7 @@ import '../../design/type.dart';
 import '../shared/sheet_scaffold.dart';
 
 /// The explainer behind every circled "i", ported from the prototype's
-/// src/components/SectionInfoModal.tsx.
+/// archive/prototype-google-ai-studio/src/components/SectionInfoModal.tsx.
 ///
 /// WHY THIS EXISTS, in one sentence: a screen that explains itself in prose
 /// stops being a dashboard. Founder direction, 2026-09-18, on reviewing the

@@ -4,7 +4,7 @@ import '../../models/models.dart';
 /// Reading a Philippine receipt out of recognised TEXT.
 ///
 /// Founder spec, 2026-09-20, feature 1, "Scan-to-Log". Ported in intent from
-/// src/utils/receiptOcrParser.ts, which this deliberately does not follow
+/// archive/prototype-google-ai-studio/src/utils/receiptOcrParser.ts, which this deliberately does not follow
 /// line for line. See "What the prototype's version actually does" below.
 ///
 /// ## This file does no OCR, and that is the honest shape

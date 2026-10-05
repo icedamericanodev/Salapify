@@ -12,7 +12,7 @@ import '../../core/money/true_rate.dart';
 import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 
-/// Instalment plans, from src/components/InstallmentsView.tsx.
+/// Instalment plans, from archive/prototype-google-ai-studio/src/components/InstallmentsView.tsx.
 ///
 /// A plan is a CONTRACT and the screen is built around that: how far through
 /// it you are, what the rate really works out to over a year, what is left,

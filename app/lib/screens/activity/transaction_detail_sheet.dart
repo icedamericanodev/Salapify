@@ -8,7 +8,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'activity_screen.dart' show statusLabel, statusIsStruckThrough;
 
-/// One entry, in full, from src/components/TransactionDetailModal.tsx.
+/// One entry, in full, from archive/prototype-google-ai-studio/src/components/TransactionDetailModal.tsx.
 ///
 /// SCOPE, named rather than implied. This is the VIEW half. The prototype's
 /// modal also edits an entry and carries a collaboration thread: comments,

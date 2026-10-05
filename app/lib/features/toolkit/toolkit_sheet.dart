@@ -12,7 +12,7 @@ import '../shared/sheet_scaffold.dart';
 /// The Philippine Financial Toolkit, the header's sparkle button.
 ///
 /// FOUR TABS, matching the prototype's own overhaul
-/// (`src/components/PhilippineFeaturesModal.tsx`, the newest commit on main):
+/// (`archive/prototype-google-ai-studio/src/components/PhilippineFeaturesModal.tsx`, the newest commit on main):
 /// Notes Calc, Mindset, Treats and FX Rates.
 ///
 /// It used to be a list of tiles, two of which opened the tax calculator and

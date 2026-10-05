@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'ph_tax.dart' show annualGraduatedTax, vatThreshold;
 
 /// Business tax for a sole proprietorship or a partnership, ported from
-/// src/utils/businessTaxes.ts.
+/// archive/prototype-google-ai-studio/src/utils/businessTaxes.ts.
 ///
 /// The prototype's simplifications are kept, not improved on. The two that
 /// matter most, both stated in its own comments:
