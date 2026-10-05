@@ -73,9 +73,9 @@ void main() {
         savings,
         card,
       ], null);
-      expect(p.totalAssets, 23400);
-      expect(p.totalLiabilities, 4200);
-      expect(p.netWorth, 19200);
+      expect(p.totalAssets, const Money.pesos(23400));
+      expect(p.totalLiabilities, const Money.pesos(4200));
+      expect(p.netWorth, const Money.pesos(19200));
     });
 
     test('and it is not flagged as a negative balance, because it is not', () {
@@ -120,7 +120,7 @@ void main() {
       );
       expect(
         computePosition(<Account>[card], null).netWorth,
-        -4200,
+        const Money.pesos(-4200),
         reason: 'and the money owed lowers net worth rather than raising it',
       );
     });
@@ -138,7 +138,10 @@ void main() {
         creditLimit: Money.pesos(40000),
         monogram: 'OC',
       );
-      expect(computePosition(<Account>[overpaid], null).netWorth, 1500);
+      expect(
+        computePosition(<Account>[overpaid], null).netWorth,
+        const Money.pesos(1500),
+      );
       expect(creditUtilization(overpaid)! < 0, isTrue);
     });
   });

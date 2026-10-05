@@ -59,6 +59,15 @@ enum _ReportTab { position, performance, cashFlow, reconciliation }
 /// figure, so the two screens disagreed about a sign over one store.
 String _signed(double v) => formatPesoWithSign(v);
 
+/// "8 accounts" became a lie on 2026-10-05 and this is what replaced it.
+///
+/// The two totals it captions are no longer built from accounts alone: debts
+/// entered on the Debt screen and instalment plans are in them too. A caption
+/// that counts a different population from the figure above it is worse than
+/// no caption, because somebody will divide one by the other and get an
+/// average that is of nothing.
+String _sources(int n) => n == 1 ? '1 entry' : '$n entries';
+
 class _ReportsScreenState extends State<ReportsScreen> {
   _ReportTab _tab = _ReportTab.position;
   ReportPeriod _period = ReportPeriod.monthly;
@@ -77,6 +86,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       period: _period,
       now: widget.state.now,
       profile: widget.state.activeProfile,
+      // What a person entered on the Debt and Plans screens is money they
+      // owe, and until 2026-10-05 the balance sheet could not see it. A
+      // figure that changes depending on WHICH SCREEN a debt was typed into
+      // is not a balance sheet.
+      debts: widget.state.debts,
+      plans: widget.state.installments,
     );
 
     return Column(
@@ -379,14 +394,33 @@ class _PositionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final FinancialPosition p = report.position;
-    final bool underwater = p.netWorth < 0;
+    final bool underwater = p.netWorth.centavos < 0;
+    final bool hasMortgage = p.liabilityAccounts.any(
+      (Account a) => a.kind == AccountKind.mortgage,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _SectionCard(
           palette: palette,
-          title: 'Net worth',
+          // NOT "Net worth" WHEN IT IS NEGATIVE, on founder decision of
+          // 2026-10-05. The arithmetic is unchanged and the figure is the
+          // same figure; only the name moves.
+          //
+          // "Net worth: minus 217,229" is a verdict on a person. "Still to
+          // pay off: 217,229" is a job with a finish line, and it is the
+          // identical number read from the other end. For the audience this
+          // app is for, a deeply negative figure is normal: it is usually one
+          // mortgage, taken out deliberately, on a 25 year instrument
+          // designed to be largest at the start. A headline that reads as a
+          // judgement on a decision somebody already made, and cannot revisit
+          // this fortnight, is a number they learn to stop opening.
+          //
+          // The word "net worth" is not hidden. It is the first line behind
+          // the dot, because somebody who meets it at a bank or on a loan
+          // form should recognise it.
+          title: underwater ? 'Still to pay off' : 'What is really yours',
           topic: InfoTopic.netWorth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,24 +429,49 @@ class _PositionView extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _signed(p.netWorth),
+                  // UNSIGNED when underwater, because the minus sign is doing
+                  // the work the old title did. "Still to pay off, minus
+                  // 217,229" would read as a negative amount of debt.
+                  underwater
+                      ? formatPeso(p.netWorth.abs.pesos)
+                      : _signed(p.netWorth.pesos),
                   style: AppType.hero(palette).copyWith(
                     color: underwater ? palette.negative : palette.positive,
                   ),
                 ),
               ),
-              // ONE short line when the figure is negative, and nothing at all
-              // when it is not. The full explanation moved behind the dot.
+              // A = L + E, in the only words that need no glossary, and on
+              // the screen rather than behind the dot because it is two
+              // figures rather than a lesson. It is also what makes the
+              // headline checkable: a person can see where it came from
+              // without being told what an identity is.
+              const SizedBox(height: 2),
+              Text(
+                'You own ${formatPeso(p.totalAssets.pesos)} and owe '
+                '${formatPeso(p.totalLiabilities.pesos)}.',
+                style: AppType.caption(palette),
+              ),
+              // THE WRONG CONCLUSION STOPPER, and it is now specific rather
+              // than reassuring. It used to read "A housing loan alone can do
+              // this", which excuses the figure without explaining it.
               //
-              // This line stays on the screen while the rest went, and the
-              // distinction is the rule: seeing minus two hundred thousand is
-              // alarming, and alarm is the worst moment to ask somebody to go
-              // hunting for reassurance. Everything that TEACHES is one tap
-              // away; the one clause that stops a wrong conclusion is not.
+              // The real reason is sharper and is a modelling gap worth
+              // admitting: `AccountKind` has no kind for a thing you own
+              // outright, so a mortgage enters the ledger with no house on
+              // the other side. The figure is not merely unflattering, it is
+              // incomplete, and saying so is the difference between comfort
+              // and information.
+              //
+              // Only shown when a mortgage actually exists. Somebody
+              // underwater on credit cards alone would be told about a home
+              // they do not have.
               if (underwater) ...<Widget>[
                 const SizedBox(height: 2),
                 Text(
-                  'A housing loan alone can do this.',
+                  hasMortgage
+                      ? 'Your home is not counted here, only the loan on it.'
+                      : 'This counts what you owe in full, including debts '
+                            'you are paying down.',
                   style: AppType.caption(palette),
                 ),
               ],
@@ -424,15 +483,15 @@ class _PositionView extends StatelessWidget {
           left: StatCard(
             palette: palette,
             label: 'Assets',
-            value: formatPeso(p.totalAssets),
-            caption: '${p.assetAccounts.length} accounts',
+            value: formatPeso(p.totalAssets.pesos),
+            caption: _sources(p.assetSourceCount),
             valueColor: palette.positive,
           ),
           right: StatCard(
             palette: palette,
             label: 'Liabilities',
-            value: formatPeso(p.totalLiabilities),
-            caption: '${p.liabilityAccounts.length} accounts',
+            value: formatPeso(p.totalLiabilities.pesos),
+            caption: _sources(p.liabilitySourceCount),
             valueColor: palette.negative,
           ),
         ),
@@ -445,23 +504,23 @@ class _PositionView extends StatelessWidget {
               BreakdownRow(
                 palette: palette,
                 label: 'Cash and e-wallets',
-                value: formatPeso(p.cashEquivalents),
+                value: formatPeso(p.cashEquivalents.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Investments',
-                value: formatPeso(p.investments),
+                value: formatPeso(p.investments.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Owed to you',
-                value: formatPeso(p.receivables),
+                value: formatPeso(p.receivables.pesos),
               ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
                 label: 'Total assets',
-                value: formatPeso(p.totalAssets),
+                value: formatPeso(p.totalAssets.pesos),
                 emphasis: true,
                 valueColor: palette.positive,
               ),
@@ -477,18 +536,18 @@ class _PositionView extends StatelessWidget {
               BreakdownRow(
                 palette: palette,
                 label: 'Credit cards',
-                value: formatPeso(p.creditCards),
+                value: formatPeso(p.creditCards.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Loans and mortgage',
-                value: formatPeso(p.loans),
+                value: formatPeso(p.loans.pesos),
               ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
                 label: 'Total liabilities',
-                value: formatPeso(p.totalLiabilities),
+                value: formatPeso(p.totalLiabilities.pesos),
                 emphasis: true,
                 valueColor: palette.negative,
               ),

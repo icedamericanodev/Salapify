@@ -42,17 +42,35 @@ void main() {
     expect(actual, moreOrLessEquals(expected, epsilon: 0.005), reason: what);
   }
 
+  /// The balance sheet is compared EXACTLY, with no tolerance at all.
+  ///
+  /// It can be, since 2026-10-05, because `FinancialPosition` carries whole
+  /// centavos rather than doubles. The half-centavo epsilon above was never a
+  /// judgement that half a centavo is acceptable; it was the smallest number
+  /// that made a floating point boundary pass. Now that the boundary is
+  /// integers, keeping it would be choosing not to check.
+  ///
+  /// The vectors are unchanged and still pass, which is the point: this
+  /// batch gave `computePosition` two new parameters and both default to
+  /// empty, so every figure below is the same figure it was before the
+  /// change. The reports screen passes the real debts and plans; these
+  /// vectors deliberately do not, so they keep testing what they were
+  /// written to test.
+  void exact(Money actual, double expected, String what) {
+    expect(actual, Money.fromDouble(expected), reason: what);
+  }
+
   group('financial position, which takes no period', () {
     test('all entities', () {
       final FinancialPosition p = build().position;
-      closeTo(p.totalAssets, 181970.5, 'totalAssets');
-      closeTo(p.totalLiabilities, 399200, 'totalLiabilities');
-      closeTo(p.netWorth, -217229.5, 'netWorth');
-      closeTo(p.cashEquivalents, 110720.5, 'cashEquivalents');
-      closeTo(p.investments, 65000, 'investments');
-      closeTo(p.receivables, 6250, 'receivables');
-      closeTo(p.creditCards, 4200, 'creditCards');
-      closeTo(p.loans, 395000, 'loans');
+      exact(p.totalAssets, 181970.5, 'totalAssets');
+      exact(p.totalLiabilities, 399200, 'totalLiabilities');
+      exact(p.netWorth, -217229.5, 'netWorth');
+      exact(p.cashEquivalents, 110720.5, 'cashEquivalents');
+      exact(p.investments, 65000, 'investments');
+      exact(p.receivables, 6250, 'receivables');
+      exact(p.creditCards, 4200, 'creditCards');
+      exact(p.loans, 395000, 'loans');
       expect(p.assetAccounts.length, 8);
       expect(p.liabilityAccounts.length, 3);
     });
@@ -61,11 +79,11 @@ void main() {
       final FinancialPosition p = build(
         profile: ProfileEntity.personal,
       ).position;
-      closeTo(p.totalAssets, 130020.5, 'totalAssets');
-      closeTo(p.totalLiabilities, 14200, 'totalLiabilities');
-      closeTo(p.netWorth, 115820.5, 'netWorth');
-      closeTo(p.cashEquivalents, 58770.5, 'cashEquivalents');
-      closeTo(p.loans, 10000, 'loans');
+      exact(p.totalAssets, 130020.5, 'totalAssets');
+      exact(p.totalLiabilities, 14200, 'totalLiabilities');
+      exact(p.netWorth, 115820.5, 'netWorth');
+      exact(p.cashEquivalents, 58770.5, 'cashEquivalents');
+      exact(p.loans, 10000, 'loans');
       expect(p.assetAccounts.length, 5);
       expect(p.liabilityAccounts.length, 2);
     });
@@ -74,9 +92,9 @@ void main() {
       final FinancialPosition p = build(
         profile: ProfileEntity.business,
       ).position;
-      closeTo(p.totalAssets, 12400, 'totalAssets');
-      closeTo(p.totalLiabilities, 0, 'totalLiabilities');
-      closeTo(p.netWorth, 12400, 'netWorth');
+      exact(p.totalAssets, 12400, 'totalAssets');
+      exact(p.totalLiabilities, 0, 'totalLiabilities');
+      exact(p.netWorth, 12400, 'netWorth');
       expect(p.assetAccounts.length, 1);
       expect(p.liabilityAccounts.isEmpty, isTrue);
     });
@@ -94,10 +112,19 @@ void main() {
         ProfileEntity.sideHustle,
       ]) {
         final FinancialPosition p = build(profile: scope).position;
-        closeTo(
+        // EXACTLY, and this assertion is the whole reason the type changed.
+        //
+        // It was a half-centavo tolerance until 2026-10-05, and a control
+        // asserted with a tolerance is a control that does not check. On
+        // doubles it had to be: with debts included, assets less liabilities
+        // came out as -36.65000000002328 against a stored -36.65, so an exact
+        // comparison reddened on 2.3e-11 of nothing.
+        //
+        // In centavos the two sides are integers and either agree or do not.
+        expect(
           p.netWorth,
           p.totalAssets - p.totalLiabilities,
-          'net worth disagrees with its own parts for $scope',
+          reason: 'net worth disagrees with its own parts for $scope',
         );
       }
     });

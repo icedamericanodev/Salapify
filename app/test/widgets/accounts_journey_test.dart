@@ -89,17 +89,21 @@ void main() {
       // caught two screens quietly disagreeing about the same money.
       await openTab(tester, Icons.insert_chart_outlined);
       expect(
-        find.text('-₱209,729.50'),
+        find.text('₱268,216.15'),
         findsOneWidget,
         reason:
-            'net worth was -217,229.50 and 7,500 of savings just arrived. '
-            'If Reports still says -217,229.50 the two screens disagree about '
-            'money the user can see on both of them.',
+            'the balance sheet was still to pay off 275,716.15 and 7,500 of '
+            'savings just arrived. If Reports has not moved, the two screens '
+            'disagree about money the user can see on both of them.',
       );
       // .first, because Position prints total assets in the summary AND again
       // in the breakdown, and scrollUntilVisible needs one target.
-      await reach(tester, find.text('₱189,470.50').first);
-      expect(find.text('₱189,470.50'), findsWidgets, reason: 'total assets');
+      //
+      // 188,220.50 plus the 7,500 just added. Assets gained 6,250 on
+      // 2026-10-05 when money lent out on the Debt screen joined the balance
+      // sheet, which is the same batch that took the sign off the headline.
+      await reach(tester, find.text('₱195,720.50').first);
+      expect(find.text('₱195,720.50'), findsWidgets, reason: 'total assets');
 
       // Screen three: the Log sheet. An account somebody just created has to be
       // spendable from, or it is a row in a list and nothing more.
@@ -154,7 +158,7 @@ void main() {
 
     await openTab(tester, Icons.insert_chart_outlined);
     expect(
-      find.text('-₱222,229.50'),
+      find.text('₱280,716.15'),
       findsOneWidget,
       reason: 'and Reports agrees, from the same accounts',
     );

@@ -56,11 +56,55 @@ void main() {
 
     expect(find.byType(ReportsScreen), findsOneWidget);
 
-    // The vectors say net worth is -217,229.50 across all entities. If this
-    // screen ever disagrees with the engine, this is where it shows.
-    expect(find.text('-₱217,229.50'), findsOneWidget);
-    expect(find.text('₱181,970.50'), findsWidgets, reason: 'total assets');
-    expect(find.text('₱399,200.00'), findsWidgets, reason: 'total liabilities');
+    // MEASURED AFTER DEBTS AND PLANS JOINED THE BALANCE SHEET on 2026-10-05,
+    // on founder decision. Every one of these three figures moved, and none
+    // of them moved because the arithmetic changed:
+    //
+    //   assets      181,970.50 -> 188,220.50   (+6,250 lent out on the Debt
+    //                                           screen, which is money owed
+    //                                           TO the person)
+    //   liabilities 399,200.00 -> 463,936.65   (+17,350 owed on the Debt
+    //                                           screen, +47,386.65 of
+    //                                           instalment PRINCIPAL)
+    //   net worth  -217,229.50 -> -275,716.15
+    //
+    // Before this, a debt entered on the Debt screen was invisible to the
+    // balance sheet and the identical debt entered as an account was not, so
+    // the figure depended on which screen it had been typed into.
+    //
+    // NO MINUS SIGN ANY MORE. The figure is drawn unsigned under the heading
+    // "Still to pay off", which is the same number read from the other end.
+    expect(find.text('₱275,716.15'), findsOneWidget);
+    expect(find.text('₱188,220.50'), findsWidgets, reason: 'total assets');
+    expect(find.text('₱463,936.65'), findsWidgets, reason: 'total liabilities');
+  });
+
+  testWidgets('the headline names a job, not a verdict', (
+    WidgetTester tester,
+  ) async {
+    // Founder decision, 2026-10-05. For the audience this app is for, a
+    // deeply negative figure is usually one mortgage on a 25 year instrument
+    // designed to be largest at the start. "Net worth: minus 275,716" reads
+    // as a judgement on the person; "Still to pay off: 275,716" is the same
+    // arithmetic named as a job with a finish line.
+    await openReports(tester);
+
+    expect(find.text('STILL TO PAY OFF'), findsOneWidget);
+    expect(
+      find.text('NET WORTH'),
+      findsNothing,
+      reason:
+          'the accounting word belongs behind the dot, where somebody who '
+          'meets it at a bank will recognise it, not on the headline',
+    );
+
+    // A = L + E in the only words that need no glossary, and on the screen
+    // rather than behind the dot because it is two figures rather than a
+    // lesson. It is what makes the headline checkable by eye.
+    expect(
+      find.text('You own ₱188,220.50 and owe ₱463,936.65.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a negative net worth is defused on the screen, and explained '
@@ -72,7 +116,16 @@ void main() {
     // review the long reassurance moved into the explainer, but ONE short
     // line stays: alarm is the worst possible moment to make somebody go
     // hunting for the reason.
-    expect(find.text('A housing loan alone can do this.'), findsOneWidget);
+    // SHARPER THAN IT WAS. This read "A housing loan alone can do this.",
+    // which excuses the figure without explaining it. The real reason is a
+    // modelling gap worth admitting: `AccountKind` has no kind for something
+    // you own outright, so a mortgage enters the ledger with no house on the
+    // other side. The number is not merely unflattering, it is incomplete,
+    // and saying which is the difference between comfort and information.
+    expect(
+      find.text('Your home is not counted here, only the loan on it.'),
+      findsOneWidget,
+    );
 
     // And the full version is genuinely one tap away, not merely written
     // down somewhere. This is the assertion the old test could not make.
