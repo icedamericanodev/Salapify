@@ -90,3 +90,46 @@ String formatDateLabel(String isoDate, {DateTime? now}) {
   // initializeDateFormatting() is required before the first screen builds.
   return DateFormat('EEE, MMM d').format(date);
 }
+
+/// How old a figure the person asserted is, in words.
+///
+/// NOT [formatDateLabel], which drops the YEAR ("Mon, Mar 12"). That is right
+/// for a transaction, where everything is recent and the weekday is the useful
+/// part, and wrong here: a valuation from 2023 would read as March this year,
+/// which is the exact misreading this field exists to prevent.
+///
+/// AGE RATHER THAN A DATE, because age is the thing somebody can act on. "Mar
+/// 2023" asks them to do the subtraction; "about 3 years ago" has already done
+/// it. The founder's word for what they wanted was age.
+///
+/// MONTHS ARE APPROXIMATE AND THE COPY SAYS "ABOUT". A valuation is an
+/// estimate, so pretending to know it is 7 months and 3 days old would be
+/// precision the figure does not have. Days are exact for the first stretch
+/// because "updated today" and "updated yesterday" are worth distinguishing.
+String formatAge(String isoDate, {DateTime? now}) {
+  final DateTime? then = DateTime.tryParse(isoDate);
+  if (then == null) return isoDate;
+
+  final DateTime today = now ?? DateTime.now();
+  final int days = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).difference(DateTime(then.year, then.month, then.day)).inDays;
+
+  // A date in the future is not an error worth throwing over: a person can
+  // type one, and a restored backup can carry one from a phone whose clock
+  // was wrong. Say the only true thing about it.
+  if (days < 0) return 'dated ahead';
+  if (days == 0) return 'today';
+  if (days == 1) return 'yesterday';
+  if (days < 30) return '$days days ago';
+
+  final int months = (days / 30.44).floor();
+  if (months < 12) {
+    return months <= 1 ? 'about a month ago' : 'about $months months ago';
+  }
+
+  final int years = (days / 365.25).floor();
+  return years <= 1 ? 'about a year ago' : 'about $years years ago';
+}

@@ -933,6 +933,26 @@ class _AccountRow extends StatelessWidget {
                         palette,
                       ).copyWith(color: palette.positive),
                     ),
+                  // WHOSE FIGURE IT IS, AND HOW OLD, beside the figure rather
+                  // than behind the dot. Every other number on this screen
+                  // came from a bank or from something the person logged;
+                  // this one they asserted, and nothing will ever move it
+                  // again, because property is excluded from every flow that
+                  // writes a transaction. Silence here would let an estimate
+                  // from three years ago sit among live balances looking
+                  // exactly as authoritative as the rest.
+                  //
+                  // AGE, NEVER THE RAW DATE. `screen_readability_test` fails
+                  // on a stored date reaching a screen, and "about 3 years
+                  // ago" is the thing somebody can act on anyway: a date asks
+                  // them to do the subtraction themselves.
+                  if (account.kind == AccountKind.property)
+                    Text(
+                      account.valuedOn == null
+                          ? 'Your own estimate'
+                          : 'Your estimate, ${formatAge(account.valuedOn!)}',
+                      style: AppType.rowMeta(palette),
+                    ),
                   if (account.isForeign)
                     Text(
                       // "About", because the rate is fixed and offline. A
