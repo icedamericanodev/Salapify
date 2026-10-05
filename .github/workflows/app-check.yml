@@ -146,9 +146,23 @@ jobs:
   # The dev sandbox has no Android SDK at all, so this cannot be checked
   # locally either. That is precisely why it belongs on a runner.
   #
-  # Debug, not release: the release build is signed with the debug key today
-  # and a real upload keystore is still outstanding. This job's job is to
-  # compile the native side, not to produce something installable.
+  # RELEASE, not debug, since 2026-10-05. This used to build `--debug` and the
+  # comment here explained why: "the release build is signed with the debug key
+  # today and a real upload keystore is still outstanding". Both halves of that
+  # reason are gone. `app/` now has a committed preview key and `release` is
+  # signed with it.
+  #
+  # Keeping `--debug` after that change would have been worse than useless. The
+  # signing config lives on the RELEASE build type, so a debug build never
+  # touches it: the whole point of the change would have gone unexercised by
+  # CI, and the first thing to discover a broken signing config would have been
+  # a base APK that refuses to install on the founder's phone.
+  #
+  # Release also exercises what debug cannot: R8, resource shrinking and icon
+  # tree shaking. Salapify 2 shipped a real failure in exactly that area
+  # (UnpatchableChangeException from the tree-shaken icon font), and `app/`
+  # resolves Material glyphs by name through lib/design/salapify_icon.dart, so
+  # it carries the same exposure.
   android:
     name: Android build
     runs-on: ubuntu-latest
@@ -174,4 +188,51 @@ jobs:
           cache: true
 
       - name: Build the Android app
-        run: flutter build apk --debug
+        run: flutter build apk --release
+
+      # PROVE THE APK CARRIES THE KEY WE THINK IT DOES.
+      #
+      # A build succeeding says the signing config PARSED. It says nothing
+      # about which key came out the other end, and the failure this guards
+      # against is silent by nature: an APK signed with the wrong key installs
+      # perfectly well on a clean phone and only refuses when it meets an
+      # earlier build of itself. By then the only route Android offers is an
+      # uninstall, which deletes everything the person has entered.
+      #
+      # The expected value is the fingerprint of
+      # app/android/app/preview-keystore.jks, which is committed, so this is
+      # checkable by anyone:
+      #   keytool -list -v -keystore app/android/app/preview-keystore.jks \
+      #     -storepass salapify3-preview
+      #
+      # If this step ever fails, DO NOT update the fingerprint to match the
+      # build. The fingerprint is the intent and the build is the claim. A
+      # mismatch means the key changed, and a key changing is the event that
+      # costs the founder their data.
+      - name: Check the APK is signed with the preview key
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          test -f "$APK" || { echo "no APK at $APK"; exit 1; }
+
+          # build-tools version is whatever the runner image ships, so resolve
+          # it rather than pinning a number that rots on the next image bump.
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null \
+            | sort -V | tail -1)
+          test -n "$APKSIGNER" || { echo "apksigner not found"; exit 1; }
+
+          EXPECTED=3d2bc86c0d2524eb684e5f66acfb13a511646f13c4ec123328514ce7bce75112
+          ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" \
+            | grep -i 'SHA-256 digest' | head -1 \
+            | sed 's/.*: *//' | tr -d ' ' | tr 'A-F' 'a-f')
+
+          echo "expected: $EXPECTED"
+          echo "actual:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::The release APK is NOT signed with the committed preview key."
+            echo "A different signature means this build cannot install over the"
+            echo "previous one, and the only way out on a real phone is an"
+            echo "uninstall, which deletes the person's whole ledger."
+            exit 1
+          fi
+          echo "Signed with the preview key, so this build installs in place."
