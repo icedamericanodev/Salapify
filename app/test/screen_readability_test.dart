@@ -84,6 +84,17 @@ const List<String> _tabs = <String>[
   'Accounts',
 ];
 
+/// Reports' segments OTHER than the one tapping "Reports" lands on.
+///
+/// Position is the default and is already covered by the tab sweep, so it is
+/// deliberately not here. These three were measured by nothing at all until
+/// 2026-10-06, which is most of the figures in the app.
+const List<String> _reportSubTabs = <String>[
+  'Performance',
+  'Cash flow',
+  'Check',
+];
+
 /// Everything currently on screen, as strings.
 List<String> _visibleText() {
   final List<String> out = <String>[];
@@ -275,8 +286,9 @@ void main() {
   Future<List<String>> sweep(
     WidgetTester tester,
     String tab,
-    double scale,
-  ) async {
+    double scale, {
+    String? sub,
+  }) async {
     final List<String> problems = <String>[];
 
     // A RenderFlex overflow is reported through FlutterError rather than
@@ -315,6 +327,20 @@ void main() {
 
       if (tab != 'Home') {
         await tester.tap(find.text(tab).last);
+        await tester.pumpAndSettle();
+      }
+
+      // THE SUB-TAB, and without it most of Reports was never swept.
+      //
+      // Tapping "Reports" lands on its default segment, Position, and the
+      // sweep stopped there. Performance, Cash flow and Check were outside the
+      // overflow and cut-off net entirely, which is three quarters of the
+      // screen this app's whole reporting story lives on.
+      //
+      // Found while adding readings to those exact segments: the guard being
+      // relied on was not watching the thing being changed.
+      if (sub != null) {
+        await tester.tap(find.text(sub).last);
         await tester.pumpAndSettle();
       }
 
@@ -448,5 +474,90 @@ void main() {
           'the shell has a tab this file does not sweep, so a screen nobody '
           'listed is a screen nobody measures',
     );
+  });
+
+  // REPORTS' OTHER THREE SEGMENTS.
+  //
+  // Tapping "Reports" lands on Position, so until now that is all this file
+  // has ever measured. Performance, Cash flow and Check were never visited at
+  // either font size, which is where most of the figures in this app live.
+  //
+  // Position is deliberately absent from this list: it is the default and the
+  // ordinary tab sweep above already covers it. Listing it again would double
+  // the slowest tests in the file for nothing.
+  for (final String sub in _reportSubTabs) {
+    testWidgets('Reports $sub reads at the ordinary font size', (
+      WidgetTester tester,
+    ) async {
+      final List<String> problems = await sweep(
+        tester,
+        'Reports',
+        1.0,
+        sub: sub,
+      );
+      expect(
+        problems,
+        isEmpty,
+        reason:
+            'this is what the phone actually draws on a segment nothing was '
+            'measuring until now:\n${problems.join('\n')}',
+      );
+    });
+
+    testWidgets('Reports $sub does not break at 1.5x font', (
+      WidgetTester tester,
+    ) async {
+      final List<String> problems = await sweep(
+        tester,
+        'Reports',
+        1.5,
+        sub: sub,
+      );
+      expect(
+        problems,
+        isEmpty,
+        reason:
+            'a report segment came apart at a font size a person can set in '
+            'Android settings:\n${problems.join('\n')}',
+      );
+    });
+  }
+
+  testWidgets('every Reports segment is swept', (WidgetTester tester) async {
+    // The same promise as the tab list above, and it cannot be checked
+    // against an enum here because `_ReportTab` is private to
+    // reports_screen.dart. So it is checked against the SCREEN: land on
+    // Reports and require every label this file knows about to be present,
+    // plus the default one. A renamed segment then reddens here rather than
+    // silently dropping out of the sweep, which is the failure this guards.
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Palette.of(state.theme), state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reports').last);
+    await tester.pumpAndSettle();
+
+    for (final String label in <String>['Position', ..._reportSubTabs]) {
+      expect(
+        find.text(label),
+        findsWidgets,
+        reason:
+            'Reports no longer has a segment called "$label", so the sweep '
+            'above is tapping a label that is not there or skipping one that '
+            'is. Update _reportSubTabs deliberately.',
+      );
+    }
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/bir_claims.dart';
+import '../../core/money/debt_ratio.dart';
 import '../../core/money/format.dart';
 import '../../core/money/duplicate_balances.dart';
 import '../../core/money/money.dart';
@@ -69,6 +70,20 @@ String _signed(double v) => formatPesoWithSign(v);
 /// no caption, because somebody will divide one by the other and get an
 /// average that is of nothing.
 String _sources(int n) => n == 1 ? '1 entry' : '$n entries';
+
+/// A ratio, or a dash when there is nothing to take a ratio OF.
+///
+/// Both published ratios return 0 when income is zero or negative
+/// (`reports.dart:641` and `:643`). That is correct arithmetic and a terrible
+/// reading: pick "This week" in the days before payday, which is exactly when
+/// a worried person opens this tab, and the screen reports a savings rate of
+/// 0.0% and debt servicing of 0.0% over a week that may hold thousands in loan
+/// payments and no pay at all.
+///
+/// 0.0% is a measurement. The truth is that there is no measurement. A dash
+/// says so and cannot be misread as a result.
+String _ratioText(double ratio, double income) =>
+    income > 0 ? '${ratio.toStringAsFixed(1)}%' : '-';
 
 class _ReportsScreenState extends State<ReportsScreen> {
   _ReportTab _tab = _ReportTab.position;
@@ -669,31 +684,75 @@ class _PerformanceViewState extends State<_PerformanceView> {
           topic: InfoTopic.ratios,
           child: Column(
             children: <Widget>[
+              // NO PASS MARK ON THE SAVINGS RATE, and removing it is a fix
+              // rather than a softening.
+              //
+              // This row used to paint anything under 20 percent in the
+              // warning colour. That number appeared nowhere else in lib/, had
+              // no source, and health_check.dart:534 REFUSES the same idea in
+              // writing: "On an 18,000 to 25,000 Metro Manila salary a twenty
+              // percent savings rate after rent is frequently arithmetically
+              // impossible, so an absolute target turns the indicator into a
+              // monthly notice that somebody doing their best is failing."
+              //
+              // So one screen declined to judge and the other judged anyway,
+              // in orange, over the same ledger. For the public audience D19
+              // names, the person most likely to see the warning is the one it
+              // helps least.
+              //
+              // The figure stays. Only the verdict goes.
               BreakdownRow(
                 palette: palette,
                 label: 'Savings rate',
-                value: '${f.savingsRate.toStringAsFixed(1)}%',
-                valueColor: f.savingsRate >= 20
-                    ? palette.positive
-                    : palette.warning,
+                value: _ratioText(f.savingsRate, f.totalIncome),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Debt servicing',
-                value: '${f.debtServiceRatio.toStringAsFixed(1)}%',
-                // Lenders in the Philippines commonly look for total debt
-                // servicing under about a third of income. Over that and the
-                // number is worth seeing in a warning colour rather than
-                // sitting quietly in the same grey as everything else.
-                valueColor: f.debtServiceRatio > 35
+                value: _ratioText(f.debtServiceRatio, f.totalIncome),
+                // THE CANONICAL CONSTANTS, not a number typed here.
+                //
+                // This compared against a bare 35, under a comment saying
+                // lenders commonly use about a third. debt_ratio.dart exists
+                // to end exactly that: founder decision F8 sets
+                // debtShareComfortable 30 and debtShareStretched 40, and
+                // health_check.dart and loan.dart both use them.
+                //
+                // The 35 made Salapify disagree with itself. At 33 percent
+                // this screen stayed quiet while the Health Check called the
+                // same ledger stretched. It also sourced itself to lenders,
+                // which is a claim this repository refuses to make elsewhere.
+                valueColor: f.totalIncome <= 0
+                    ? palette.textPrimary
+                    : f.debtServiceRatio > debtShareStretched
                     ? palette.negative
+                    : f.debtServiceRatio > debtShareComfortable
+                    ? palette.warning
                     : palette.textPrimary,
               ),
-              // The sentence that spelled out "4,950 of loan repayments
-              // against 51,000 of income" is gone. Both figures were already
-              // on the screen, one of them twice, so it explained the
-              // arithmetic of a percentage rather than telling anybody
-              // anything.
+              // The BAND, as a figure rather than a lesson. Without it the
+              // colour is the only hint that a line exists at all, and a
+              // colour cannot say where the line is.
+              BreakdownRow(
+                palette: palette,
+                label: 'Comfortable up to',
+                value: '$debtShareComfortable%',
+              ),
+              // THE PESOS BEHIND THE PERCENTAGE. f.debtServicingExpenses was
+              // computed and rendered nowhere.
+              //
+              // The comment that used to sit here said a sentence naming both
+              // figures was removed because "both figures were already on the
+              // screen". That was true of income and false of this one: the
+              // debt payments total appeared on no screen at all. A percentage
+              // whose numerator is invisible cannot be checked by the person
+              // it describes.
+              if (f.debtServicingExpenses > 0)
+                BreakdownRow(
+                  palette: palette,
+                  label: 'Debt payments',
+                  value: formatPeso(f.debtServicingExpenses),
+                ),
             ],
           ),
         ),
