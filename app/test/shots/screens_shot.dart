@@ -55,6 +55,7 @@ import 'package:salapify/features/settings/privacy_sheet.dart';
 import 'package:salapify/features/settings/settings_sheet.dart';
 import 'package:salapify/screens/plan/business_guide_screen.dart';
 import 'package:salapify/state/financial_state.dart';
+import '../support/take_back.dart';
 
 /// The screenshot harness.
 ///
@@ -3188,7 +3189,7 @@ void takenBackRowShot() {
     // produces rather than a fixture somebody typed into the shape they hoped
     // for.
     state.recordDebtPayment('debt_homecredit', 1500, accountId: 'acc_gcash');
-    state.takeBackDebtPayment('debt_homecredit');
+    takeBackNewestDebtPayment(state, 'debt_homecredit');
     final Palette palette = Palette.of(state.theme);
 
     await tester.pumpWidget(

@@ -439,7 +439,11 @@ class _DebtScreenState extends State<DebtScreen> {
     );
 
     if (yes == true) {
-      widget.state.takeBackDebtPayment(debt.id);
+      // `row` is the payment this dialog just described in pesos, by date and
+      // by account. Passing its id is what makes the store act on THAT row or
+      // refuse, rather than independently resolving `payments.last` and
+      // trusting the two to agree.
+      widget.state.takeBackDebtPayment(debt.id, paymentId: row.id);
       if (mounted) setState(() {});
     }
   }

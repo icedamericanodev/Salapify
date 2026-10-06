@@ -9,6 +9,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../support/test_clock.dart';
+import '../support/take_back.dart';
 
 /// Taking an instalment plan off the list, which was impossible until now.
 ///
@@ -286,7 +287,7 @@ void main() {
         expect(s.archivePlan('p1'), isTrue);
         expect(s.archivedInstallments, hasLength(1));
 
-        expect(s.takeBackPlanPayment('p1'), isTrue);
+        expect(takeBackNewestPlanPayment(s, 'p1'), isTrue);
 
         expect(
           s.archivedInstallments,
@@ -334,7 +335,7 @@ void main() {
         ]);
         expect(s.archivePlan('p1'), isTrue);
 
-        expect(s.takeBackPlanPayment('p1'), isTrue);
+        expect(takeBackNewestPlanPayment(s, 'p1'), isTrue);
 
         // Read from the ARCHIVED list, because a plan that correctly stayed
         // archived is filtered out of `installments` by design.
@@ -376,7 +377,7 @@ void main() {
         ),
       ]);
 
-      expect(s.takeBackPlanPayment('p1'), isTrue);
+      expect(takeBackNewestPlanPayment(s, 'p1'), isTrue);
       expect(s.archivedInstallments, isEmpty);
       expect(s.installments, hasLength(1));
     });
@@ -406,7 +407,7 @@ void main() {
       );
 
       // The route out, and it is two taps rather than none.
-      expect(s.takeBackPlanPayment('p1'), isTrue);
+      expect(takeBackNewestPlanPayment(s, 'p1'), isTrue);
       expect(s.deletePlan('p1'), isTrue);
       expect(s.installments, isEmpty);
       expect(s.archivedInstallments, isEmpty);
@@ -419,7 +420,7 @@ void main() {
       final Money withPlan = s.safeToSpend;
 
       s.payInstallment('p1');
-      s.takeBackPlanPayment('p1');
+      takeBackNewestPlanPayment(s, 'p1');
       expect(s.deletePlan('p1'), isTrue);
 
       expect(

@@ -286,7 +286,9 @@ class _InstallmentsViewState extends State<InstallmentsView> {
     );
 
     if (yes == true) {
-      widget.state.takeBackPlanPayment(plan.id);
+      // Same reasoning as the debt dialog: `row` is what this confirmation
+      // described, so the store acts on that row or refuses.
+      widget.state.takeBackPlanPayment(plan.id, paymentId: row.id);
       if (mounted) setState(() {});
     }
   }

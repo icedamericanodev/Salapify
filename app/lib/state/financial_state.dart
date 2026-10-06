@@ -1060,13 +1060,39 @@ class FinancialState extends ChangeNotifier {
   /// The REGISTER row goes, because that list is what has been applied and
   /// this payment has not been any more. Keeping it would also let the same
   /// payment be taken back a second time.
-  bool takeBackDebtPayment(String debtId) {
+  /// [paymentId] must be the id of the payment the CALLER believes it is
+  /// taking back, and it is required rather than optional on purpose.
+  ///
+  /// This method can only ever remove the LAST row: `reverseLastDebtPayment`
+  /// reads `d.payments.last` and so does the lookup above it. Before the
+  /// register was visible that was harmless, because the only control was
+  /// labelled "take back the last payment" and there was nothing else to
+  /// point at.
+  ///
+  /// A LIST OF ROWS CHANGES THAT, and this parameter is here because making
+  /// them visible is exactly what invites the mistake. The obvious next step
+  /// is a control on each row, built from the TAPPED row the way the existing
+  /// dialog is, so the confirmation names payment 3's date, figure and
+  /// account. The store would then quietly destroy payment 5. No exception,
+  /// no refusal, nothing on screen. The removed row's `paidBefore`,
+  /// `settledDateBefore` and `installmentCurrentBefore` go with it, the debt
+  /// winds back to the wrong figure, and the wrong ledger entry is marked
+  /// corrected. Nothing on the device could reconstruct it.
+  ///
+  /// So: `required` breaks the build at every call site, which is the point.
+  /// Nobody adds a row-level control without meeting this comment first. And
+  /// the equality check means a caller that passes a plausible but wrong id
+  /// is REFUSED rather than silently redirected onto a different row.
+  bool takeBackDebtPayment(String debtId, {required String paymentId}) {
     final int i = _debts.indexWhere((Debt d) => d.id == debtId);
     if (i < 0) return false;
 
     final Debt before = _debts[i];
     if (before.payments.isEmpty) return false;
     final DebtPayment row = before.payments.last;
+    // Not the last one. Refuse rather than take back a different payment than
+    // the caller named.
+    if (row.id != paymentId) return false;
 
     _debts = reverseLastDebtPayment(_debts, debtId);
 
@@ -1272,7 +1298,12 @@ class FinancialState extends ChangeNotifier {
     return true;
   }
 
-  bool takeBackPlanPayment(String planId) {
+  /// [paymentId] is required for the same reason as on
+  /// [takeBackDebtPayment], and `PlanPayment` has the identical shape, so the
+  /// identical mistake is available here the moment a plan's payments are
+  /// listed. Kept in step deliberately: a guard on one of two twins is worse
+  /// than none, because it teaches that the pattern is handled.
+  bool takeBackPlanPayment(String planId, {required String paymentId}) {
     final int i = _installments.indexWhere(
       (InstallmentPlan p) => p.id == planId,
     );
@@ -1281,6 +1312,7 @@ class FinancialState extends ChangeNotifier {
     final InstallmentPlan before = _installments[i];
     if (before.payments.isEmpty) return false;
     final PlanPayment row = before.payments.last;
+    if (row.id != paymentId) return false;
 
     _installments = _unarchiveIfLive(
       reverseLastPlanPayment(_installments, planId),

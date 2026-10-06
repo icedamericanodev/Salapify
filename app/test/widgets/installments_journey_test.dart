@@ -9,6 +9,7 @@ import '../shots/screens_shot.dart' show loadRealFonts;
 
 import '../support/pinned_app.dart';
 import 'package:salapify/core/money/money.dart';
+import '../support/take_back.dart';
 
 /// The instalment write path, in BOTH halves.
 ///
@@ -349,7 +350,7 @@ void main() {
     );
 
     // And the way out is still open: take the payment back, then delete.
-    expect(store.takeBackPlanPayment(id), isTrue);
+    expect(takeBackNewestPlanPayment(store, id), isTrue);
     await tester.pumpAndSettle();
     expect(
       store.deletePlan(id),

@@ -5,6 +5,7 @@ import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../support/test_clock.dart';
+import '../support/take_back.dart';
 
 /// Taking a payment back puts EVERYTHING back, to the centavo.
 ///
@@ -54,7 +55,7 @@ void main() {
       expect(balanceOf(s, 'acc_gcash'), cashBefore - const Money.pesos(1500));
       expect(s.transactions.length, rowsBefore + 1);
 
-      expect(s.takeBackDebtPayment('debt_homecredit'), isTrue);
+      expect(takeBackNewestDebtPayment(s, 'debt_homecredit'), isTrue);
 
       expect(debtOf(s, 'debt_homecredit').paidAmount, paidBefore);
       expect(
@@ -107,7 +108,7 @@ void main() {
       );
       expect(s.transactions.length, rowsBefore, reason: 'it wrote an entry');
 
-      expect(s.takeBackDebtPayment('debt_homecredit'), isTrue);
+      expect(takeBackNewestDebtPayment(s, 'debt_homecredit'), isTrue);
       expect(debtOf(s, 'debt_homecredit').paidAmount, paidBefore);
       expect(s.transactions.length, rowsBefore);
     });
@@ -125,7 +126,7 @@ void main() {
       expect(debtOf(s, 'debt_homecredit').isSettled, isTrue);
       expect(debtOf(s, 'debt_homecredit').settledDate, isNotNull);
 
-      s.takeBackDebtPayment('debt_homecredit');
+      takeBackNewestDebtPayment(s, 'debt_homecredit');
 
       expect(debtOf(s, 'debt_homecredit').isSettled, isFalse);
       expect(
@@ -145,7 +146,7 @@ void main() {
       final FinancialState s = await seeded();
       final Money paidBefore = debtOf(s, 'debt_bpi_loan').paidAmount;
 
-      expect(s.takeBackDebtPayment('debt_bpi_loan'), isFalse);
+      expect(takeBackNewestDebtPayment(s, 'debt_bpi_loan'), isFalse);
       expect(debtOf(s, 'debt_bpi_loan').paidAmount, paidBefore);
     });
 
@@ -154,8 +155,8 @@ void main() {
       final Money cashBefore = balanceOf(s, 'acc_gcash');
 
       s.recordDebtPayment('debt_homecredit', 1500, accountId: 'acc_gcash');
-      expect(s.takeBackDebtPayment('debt_homecredit'), isTrue);
-      expect(s.takeBackDebtPayment('debt_homecredit'), isFalse);
+      expect(takeBackNewestDebtPayment(s, 'debt_homecredit'), isTrue);
+      expect(takeBackNewestDebtPayment(s, 'debt_homecredit'), isFalse);
 
       expect(balanceOf(s, 'acc_gcash'), cashBefore);
     });
@@ -180,7 +181,7 @@ void main() {
       // Directional: it really applied.
       expect(planOf(s, 'inst_spaylater').principalRemaining, Money.zero);
 
-      expect(s.takeBackPlanPayment('inst_spaylater'), isTrue);
+      expect(takeBackNewestPlanPayment(s, 'inst_spaylater'), isTrue);
 
       final InstallmentPlan after = planOf(s, 'inst_spaylater');
       expect(
@@ -208,7 +209,7 @@ void main() {
         before.paidInstallments + 1,
       );
 
-      s.takeBackPlanPayment('inst_spaylater');
+      takeBackNewestPlanPayment(s, 'inst_spaylater');
 
       final InstallmentPlan after = planOf(s, 'inst_spaylater');
       expect(after.paidInstallments, before.paidInstallments);
@@ -241,7 +242,7 @@ void main() {
         reason: 'the stub collected nothing',
       );
 
-      s.takeBackPlanPayment('inst_spaylater');
+      takeBackNewestPlanPayment(s, 'inst_spaylater');
 
       expect(balanceOf(s, 'acc_gcash'), cashAfterPrepay);
       expect(
@@ -276,7 +277,7 @@ void main() {
         s.payInstallment('inst_spaylater', accountId: 'acc_gcash');
         expect(planOf(s, 'inst_spaylater').payments.length, 2);
 
-        s.takeBackPlanPayment('inst_spaylater');
+        takeBackNewestPlanPayment(s, 'inst_spaylater');
 
         final InstallmentPlan after = planOf(s, 'inst_spaylater');
         expect(after.payments.length, 1);
@@ -320,10 +321,108 @@ void main() {
       expect(debtOf(second, 'debt_homecredit').paidAmount, paidAfterPayment);
       expect(debtOf(second, 'debt_homecredit').payments, hasLength(1));
 
-      expect(second.takeBackDebtPayment('debt_homecredit'), isTrue);
+      expect(takeBackNewestDebtPayment(second, 'debt_homecredit'), isTrue);
       expect(
         debtOf(second, 'debt_homecredit').paidAmount,
         paidAfterPayment - const Money.pesos(1500),
+      );
+    });
+  });
+
+  group('naming the wrong payment is refused, not redirected', () {
+    // THE DEFECT THIS PREVENTS, which does not exist yet and is one commit
+    // away at all times from the moment a list of payments is on screen.
+    //
+    // Both take-backs can only remove `payments.last`. The confirmation
+    // dialogs are built from a ROW: they name its date, its figure and the
+    // account it came from. While the only control was labelled "take back
+    // the last payment" those two could not disagree.
+    //
+    // A list of rows invites a control on each row. Built the obvious way,
+    // the dialog would describe payment 3 and the store would destroy payment
+    // 5, with no exception and nothing on screen. The removed row's
+    // `paidBefore`, `settledDateBefore` and `installmentCurrentBefore` go with
+    // it, so nothing on the device could put it back.
+    test('an older payment id does not take back the newest one', () async {
+      final FinancialState s = await seeded();
+
+      s.recordDebtPayment('debt_homecredit', 1000, accountId: 'acc_gcash');
+      s.recordDebtPayment('debt_homecredit', 2000, accountId: 'acc_gcash');
+      final Debt d = debtOf(s, 'debt_homecredit');
+      expect(d.payments, hasLength(2));
+
+      final DebtPayment older = d.payments.first;
+      final DebtPayment newest = d.payments.last;
+      final Money paidBefore = d.paidAmount;
+      final Money gcashBefore = balanceOf(s, 'acc_gcash');
+
+      // Name the OLDER row, which is exactly what a per-row control would do.
+      expect(
+        s.takeBackDebtPayment('debt_homecredit', paymentId: older.id),
+        isFalse,
+        reason: 'the store can only remove the last row, so naming an older '
+            'one must REFUSE rather than quietly remove a different payment',
+      );
+
+      // And nothing moved. Without this the refusal could be returning false
+      // after having already done the damage.
+      final Debt after = debtOf(s, 'debt_homecredit');
+      expect(after.payments, hasLength(2));
+      expect(after.payments.last.id, newest.id);
+      expect(after.paidAmount, paidBefore);
+      expect(balanceOf(s, 'acc_gcash'), gcashBefore);
+    });
+
+    // THE DIRECTIONAL HALF, and it is not optional here. Every assertion in
+    // the test above is satisfied by a store that refuses every take-back in
+    // existence, which would break the feature completely and silently.
+    test('the newest id is accepted and removes exactly that row', () async {
+      final FinancialState s = await seeded();
+
+      s.recordDebtPayment('debt_homecredit', 1000, accountId: 'acc_gcash');
+      s.recordDebtPayment('debt_homecredit', 2000, accountId: 'acc_gcash');
+      final Debt d = debtOf(s, 'debt_homecredit');
+      final DebtPayment older = d.payments.first;
+
+      expect(
+        s.takeBackDebtPayment(
+          'debt_homecredit',
+          paymentId: d.payments.last.id,
+        ),
+        isTrue,
+      );
+
+      final Debt after = debtOf(s, 'debt_homecredit');
+      expect(after.payments, hasLength(1));
+      expect(
+        after.payments.single.id,
+        older.id,
+        reason: 'the OLDER row must be the survivor',
+      );
+    });
+
+    test('a plan refuses an older payment id the same way', () async {
+      final FinancialState s = await seeded();
+
+      s.payInstallment('inst_spaylater', accountId: 'acc_gcash');
+      s.payInstallment('inst_spaylater', accountId: 'acc_gcash');
+      final InstallmentPlan p = s.installments.firstWhere(
+        (InstallmentPlan x) => x.id == 'inst_spaylater',
+      );
+      expect(p.payments.length, greaterThanOrEqualTo(2));
+
+      final PlanPayment older = p.payments.first;
+      final int countBefore = p.payments.length;
+
+      expect(
+        s.takeBackPlanPayment('inst_spaylater', paymentId: older.id),
+        isFalse,
+      );
+      expect(
+        s.installments
+            .firstWhere((InstallmentPlan x) => x.id == 'inst_spaylater')
+            .payments,
+        hasLength(countBefore),
       );
     });
   });
