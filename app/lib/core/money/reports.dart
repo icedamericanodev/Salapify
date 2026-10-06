@@ -178,6 +178,9 @@ class FinancialPerformance {
     required this.businessRevenue,
     required this.businessExpenses,
     required this.businessNetProfit,
+    required this.investedOutflows,
+    required this.repaymentInflows,
+    required this.keptRate,
     required this.savingsRate,
     required this.debtServicingExpenses,
     required this.debtServiceRatio,
@@ -194,12 +197,37 @@ class FinancialPerformance {
   final double businessExpenses;
   final double businessNetProfit;
 
+  /// Money that left as an expense but went INTO something, not out of your
+  /// life: Pag-IBIG MP2 and anything else filed as an investment.
+  final double investedOutflows;
+
+  /// Money that came back from somebody who owed you.
+  ///
+  /// It arrives as income in the ledger, which is right for the ledger. It is
+  /// not income in any ordinary sense: it is an asset turning back into cash,
+  /// and the balance sheet already treats it that way.
+  final double repaymentInflows;
+
+  /// What was KEPT AS CASH, as a percent of everything that came in.
+  ///
+  /// This is the prototype's old `savingsRate` under an honest name, and it is
+  /// what the "You kept" card means.
+  final double keptRate;
+
+  /// What was SAVED, as a percent of what was earned.
+  ///
   /// Percent, 0 to 100, not a fraction. The prototype multiplies by 100 here
   /// and the screen appends a % sign, so keeping the same unit avoids the
   /// classic hundredfold error at the one place it would be least noticed.
+  ///
+  /// DIFFERS FROM THE PROTOTYPE, deliberately and with founder approval. Money
+  /// moved into an investment counts as saved rather than spent, and money
+  /// repaid to you is out of the denominator. See [computePerformance].
   final double savingsRate;
 
   final double debtServicingExpenses;
+
+  /// Debt payments as a percent of what was EARNED, repayments excluded.
   final double debtServiceRatio;
 
   /// A straight-line run rate: what this month ends at if the rest of it
@@ -631,6 +659,35 @@ FinancialPerformance computePerformance(
   final double projectedIncome = (totalIncome / currentDay) * daysInMonth;
   final double projectedExpenses = (totalExpenses / currentDay) * daysInMonth;
 
+  // MONEY MOVED INTO INVESTMENTS, which is spending by the ledger's reckoning
+  // and saving by any ordinary reading of the word.
+  //
+  // The same filter computeCashFlow already uses for `investingOutflows`, so
+  // the two cannot drift apart and disagree about the same peso.
+  final double investedOutflows = _sumOf(
+    scoped.where(
+      (Transaction t) =>
+          t.type == TransactionType.expense &&
+          (_has(t.category, 'investment') || _has(t.subcategory, 'mp2')),
+    ),
+  );
+
+  // MONEY COMING BACK FROM SOMEBODY WHO OWED YOU. `applyDebtPayment` writes a
+  // collected repayment as income under 'Receivables & Repayments'
+  // (core/money/debt.dart), which is right for the ledger and wrong for a
+  // ratio: it is an asset turning back into cash, not money earned.
+  final double repaymentInflows = _sumOf(
+    scoped.where(
+      (Transaction t) =>
+          t.type == TransactionType.income && _has(t.category, 'receivable'),
+    ),
+  );
+
+  // The denominator both published ratios divide by. Repayments are taken out
+  // because including them makes the ratios flatter in exactly the month a
+  // cousin pays you back, which is the month they describe least well.
+  final double earnedIncome = totalIncome - repaymentInflows;
+
   return FinancialPerformance(
     totalIncome: totalIncome,
     totalExpenses: totalExpenses,
@@ -638,9 +695,31 @@ FinancialPerformance computePerformance(
     businessRevenue: businessRevenue,
     businessExpenses: businessExpenses,
     businessNetProfit: businessRevenue - businessExpenses,
-    savingsRate: totalIncome > 0 ? (netSurplus / totalIncome) * 100 : 0,
+    investedOutflows: investedOutflows,
+    repaymentInflows: repaymentInflows,
+    // WHAT WAS KEPT AS CASH, which is what the "You kept" card means and what
+    // the prototype called the savings rate. Unchanged arithmetic, renamed so
+    // the two readings below cannot be confused for one another.
+    keptRate: totalIncome > 0 ? (netSurplus / totalIncome) * 100 : 0,
+    // DELIBERATELY NOT THE PROTOTYPE'S FORMULA. Founder approved, 2026-10-06.
+    //
+    // The prototype computes (income - allExpenses) / income, and
+    // `totalExpenses` counts every expense transaction including money moved
+    // into Pag-IBIG MP2 or any other investment. So a person who put 10,000
+    // into MP2 had their savings rate REDUCED BY THE ACT OF SAVING, while the
+    // Cash flow tab pulled that same 10,000 out of spending and into
+    // investing. Two tabs, one ledger, opposite verdicts, and the one read
+    // first was the discouraging one.
+    //
+    // For an app that actively teaches people toward MP2, that was the most
+    // harmful reading on the screen.
+    savingsRate: earnedIncome > 0
+        ? ((netSurplus + investedOutflows) / earnedIncome) * 100
+        : 0,
     debtServicingExpenses: debtServicing,
-    debtServiceRatio: totalIncome > 0 ? (debtServicing / totalIncome) * 100 : 0,
+    debtServiceRatio: earnedIncome > 0
+        ? (debtServicing / earnedIncome) * 100
+        : 0,
     projectedIncome: projectedIncome,
     projectedExpenses: projectedExpenses,
     projectedSurplus: projectedIncome - projectedExpenses,

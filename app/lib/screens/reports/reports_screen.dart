@@ -649,6 +649,23 @@ class _PerformanceViewState extends State<_PerformanceView> {
             valueColor: palette.negative,
           ),
         ),
+        // MONEY THAT CAME BACK IS NOT MONEY EARNED, said once, under the
+        // figure it qualifies.
+        //
+        // A repayment collected from somebody who owed you arrives as income
+        // in the ledger, so "Money in" counts it, correctly: it really did
+        // arrive. It is not earnings though, it is an asset turning back into
+        // cash, and the balance sheet already treats it that way. Both
+        // published ratios now divide by what was EARNED, so without this
+        // line the two figures would silently disagree about one peso.
+        if (f.repaymentInflows > 0) ...<Widget>[
+          const SizedBox(height: Spacing.xs),
+          Text(
+            '${formatPeso(f.repaymentInflows)} of this is money coming back '
+            'to you, not new money. The rates below leave it out.',
+            style: AppType.caption(palette),
+          ),
+        ],
         const SizedBox(height: Spacing.md),
         _SectionCard(
           palette: palette,
@@ -668,12 +685,29 @@ class _PerformanceViewState extends State<_PerformanceView> {
               ),
               const SizedBox(height: Spacing.xs),
               Text(
+                // `keptRate`, not `savingsRate`. This card is about the cash
+                // left over, and the savings rate now counts money moved into
+                // an investment as saved, so the two are different numbers
+                // and using the wrong one here would make the card contradict
+                // its own hero figure.
                 positive
-                    ? 'That is ${f.savingsRate.toStringAsFixed(1)}% of what '
+                    ? 'That is ${f.keptRate.toStringAsFixed(1)}% of what '
                           'came in.'
                     : 'More went out than came in over this period.',
                 style: AppType.caption(palette),
               ),
+              // WHERE THE REST WENT, when some of it went somewhere rather
+              // than simply out. A figure, not a lesson, so it belongs on the
+              // screen: without it a person who put money into MP2 reads a
+              // small "kept" figure and concludes they saved nothing.
+              if (f.investedOutflows > 0) ...<Widget>[
+                const SizedBox(height: Spacing.xs),
+                Text(
+                  '${formatPeso(f.investedOutflows)} of what went out went '
+                  'into investments.',
+                  style: AppType.caption(palette),
+                ),
+              ],
             ],
           ),
         ),
