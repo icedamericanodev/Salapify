@@ -11,7 +11,6 @@ import '../../features/tax/business_tax_sheet.dart';
 import '../../features/tax/tax_calculator_sheet.dart';
 import '../../state/financial_state.dart';
 import 'academy_segment.dart';
-import 'bonus_allocator_card.dart';
 import 'plan_segments.dart';
 
 /// Plan, the prototype's fourth tab, from archive/prototype-google-ai-studio/src/components/PlanScreen.tsx.
@@ -218,13 +217,26 @@ class _Overview extends StatelessWidget {
         ),
         const SizedBox(height: Spacing.md),
 
-        // ALWAYS VISIBLE, not only in November, and that is a deliberate
-        // choice rather than an unfinished one. Showing it seasonally would
-        // hide the feature for ten months of the year, including from the
-        // founder reviewing it, and somebody told their bonus figure in
-        // September has the same question as somebody told it in December.
-        BonusAllocatorCard(palette: palette),
-        const SizedBox(height: Spacing.md),
+        // THE 13TH MONTH CARD WAS HERE and has gone, on founder direction
+        // 2026-10-06: "i think we can merge this 13month and bonus to
+        // calculators, salary and income tax so it will not be redundant".
+        //
+        // It was redundant, and more so than it looked. The Tax Calculator's
+        // "13th Month" tab already works the figure out from salary and months
+        // worked, already applies the 90,000 TRAIN allowance, and already
+        // prints a suggested split. This card did the same subject a second
+        // time from a typed-in amount.
+        //
+        // Nothing is lost by removing it. The tab reaches the same place: a
+        // person who was told a figure by HR enters it as the basic salary
+        // with 12 months worked. The Calculators tile below is the way in.
+        //
+        // What survives the removal and is NOT settled here: the two splits
+        // disagree. `calculate13thMonthPay` recommends five shares
+        // (35/25/20/10/10) and `allocateBonus` recommends three. One of them
+        // is now unreachable from any screen rather than resolved, because
+        // choosing between two pieces of financial advice is the founder's.
+        // bonus_allocator.dart and its tests are deliberately left in place.
 
         // Two per row. Three is too narrow for these labels on a 320dp phone,
         // and one per row turns eight tiles into a scroll.

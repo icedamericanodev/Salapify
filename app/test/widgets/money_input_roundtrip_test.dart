@@ -296,12 +296,6 @@ void _structuralGuard() {
     // Files where rounding to whole pesos is CORRECT, each with the reason.
     // Adding to this list is allowed and is meant to be a deliberate act.
     const Map<String, String> allowed = <String, String>{
-      // The preset chips, which hold whole pesos by construction
-      // (`bonusQuickAmounts`). The box is never pre-filled from a stored
-      // figure here, only from a chip somebody tapped.
-      'lib/screens/plan/bonus_allocator_card.dart':
-          'quick-amount chips, whole pesos by construction, never a stored '
-          'figure',
       // A percentage, not money. "8%" rather than "8.00%".
       'lib/screens/reports/bir_claims_card.dart': 'a tax rate, not an amount',
     };
