@@ -198,7 +198,8 @@ void main() {
       expect(
         d.single.paidAmount,
         const Money.pesos(9800),
-        reason: '7,350 really paid plus a real 2,450 is 9,800. Restoring the '
+        reason:
+            '7,350 really paid plus a real 2,450 is 9,800. Restoring the '
             'stale 7,350 erases a payment the account has already made.',
       );
     });
@@ -229,7 +230,8 @@ void main() {
       expect(
         d.single.paidAmount,
         const Money.pesos(7350),
-        reason: 'an un-settle with nothing in between must still put the '
+        reason:
+            'an un-settle with nothing in between must still put the '
             'real figure back, which is what this file was written for',
       );
     });

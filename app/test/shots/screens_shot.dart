@@ -129,6 +129,7 @@ void main() {
   planCalculatorShots();
   fxShot();
   reportsRatioShots();
+  cashFlowReassuranceShot();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -3835,22 +3836,31 @@ void businessGuideViewShots() {
 /// which is what the savings rate now says (22,000 + 6,000 of 50,000 earned).
 /// Two different percentages, deliberately, one line apart. If the render ever
 /// shows the same number twice, keptRate has been pointed at savingsRate.
+///
+/// ONE HONEST CAVEAT ABOUT THIS FIXTURE, so nobody reads more into the picture
+/// than it proves. The MP2 row here is filed under a category called
+/// "Savings", and NO SHIPPED CATEGORY LOOKS LIKE THAT: none of the thirteen
+/// expense categories reaches the investing bucket, which
+/// `cash_flow_no_double_count_test.dart` asserts and explains at length. So
+/// this render shows the code path working, not a screen a user can currently
+/// reach. It stays as the proof that the arithmetic and the copy are right,
+/// and the taxonomy question is the founder's.
 void reportsRatioShots() {
   for (final ThemeMode2 mode in ThemeMode2.values) {
     final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
 
-    testWidgets('reports performance with investing and a repayment in $theme', (
-      WidgetTester tester,
-    ) async {
-      await tester.runAsync(loadRealFonts);
+    testWidgets(
+      'reports performance with investing and a repayment in $theme',
+      (WidgetTester tester) async {
+        await tester.runAsync(loadRealFonts);
 
-      tester.view.physicalSize = const Size(1170, 6000);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+        tester.view.physicalSize = const Size(1170, 6000);
+        tester.view.devicePixelRatio = 3.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      final MemorySnapshotStore store = MemorySnapshotStore();
-      await store.write('''
+        final MemorySnapshotStore store = MemorySnapshotStore();
+        await store.write('''
 {
   "schemaVersion": 1,
   "accounts": [
@@ -3880,46 +3890,131 @@ void reportsRatioShots() {
 }
 ''');
 
-      final FinancialState state = FinancialState(
-        clock: DateTime.utc(2026, 9, 18),
-        store: store,
-      );
-      await state.restore();
-      if (state.theme != mode) state.toggleTheme();
-      final Palette palette = Palette.of(state.theme);
+        final FinancialState state = FinancialState(
+          clock: DateTime.utc(2026, 9, 18),
+          store: store,
+        );
+        await state.restore();
+        if (state.theme != mode) state.toggleTheme();
+        final Palette palette = Palette.of(state.theme);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          scrollBehavior: const SalapifyScrollBehavior(),
-          theme: salapifyTheme(palette, state.theme),
-          home: AppShell(state: state),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            scrollBehavior: const SalapifyScrollBehavior(),
+            theme: salapifyTheme(palette, state.theme),
+            home: AppShell(state: state),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.insert_chart_outlined));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Performance'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Performance'));
+        await tester.pumpAndSettle();
 
-      // The whole point of the fixture. Without these the shot can go back to
-      // rendering a screen with neither line on it and nobody would notice.
-      expect(
-        find.textContaining('money coming back'),
-        findsOneWidget,
-        reason: 'the repayment line is missing, so this shot proves nothing',
-      );
-      expect(
-        find.textContaining('went into investments'),
-        findsOneWidget,
-        reason: 'the investing line is missing, so this shot proves nothing',
-      );
+        // The whole point of the fixture. Without these the shot can go back to
+        // rendering a screen with neither line on it and nobody would notice.
+        expect(
+          find.textContaining('money coming back'),
+          findsOneWidget,
+          reason: 'the repayment line is missing, so this shot proves nothing',
+        );
+        expect(
+          find.textContaining('went into investments'),
+          findsOneWidget,
+          reason: 'the investing line is missing, so this shot proves nothing',
+        );
 
-      await expectLater(
-        find.byType(AppShell),
-        matchesGoldenFile('out/reports_performance_ratios_$theme.png'),
-      );
-    });
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/reports_performance_ratios_$theme.png'),
+        );
+      },
+    );
   }
+}
+
+/// Cash flow when a good month looks like a bad one.
+///
+/// The hero goes red at hero size for somebody who put 15,000 into an
+/// investment and 10,000 against a loan, which is exactly the behaviour this
+/// app teaches. The sections below have always explained it and nobody reads
+/// downward past a red headline about their own money.
+///
+/// Rendered because this is a sentence that has to be judged by eye: whether
+/// it reads as reassurance or as an excuse is not something a test can decide.
+void cashFlowReassuranceShot() {
+  testWidgets('cash flow explains a negative total that is not overspending', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 4200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 5000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "s1", "type": "income", "amount": 50000, "category": "Salary",
+     "accountId": "gc", "date": "2026-09-05", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "g1", "type": "expense", "amount": 30000, "category": "Groceries",
+     "accountId": "gc", "date": "2026-09-08", "createdAt": 2,
+     "status": "confirmed"},
+    {"id": "m1", "type": "expense", "amount": 15000, "category": "Investment",
+     "accountId": "gc", "date": "2026-09-12", "createdAt": 3,
+     "status": "confirmed"},
+    {"id": "l1", "type": "expense", "amount": 10000,
+     "category": "Debt & Loan Servicing", "accountId": "gc",
+     "date": "2026-09-14", "createdAt": 4, "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+      store: store,
+    );
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cash flow'));
+    await tester.pumpAndSettle();
+
+    // Without this the shot can quietly go back to rendering a bare red hero.
+    expect(
+      find.textContaining('came out ahead by'),
+      findsOneWidget,
+      reason: 'the reassurance line is missing, so this shot proves nothing',
+    );
+
+    await expectLater(
+      find.byType(AppShell),
+      matchesGoldenFile('out/reports_cash_flow_not_overspending.png'),
+    );
+  });
 }

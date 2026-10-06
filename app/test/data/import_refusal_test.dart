@@ -115,20 +115,28 @@ void main() {
       'test/data/salapify2_export_envelope.json',
     ).readAsStringSync();
 
-    test('the fixture really is a Salapify 2 envelope, not a Salapify 3 one', () {
-      // Guards the guard. If somebody regenerates this fixture from the wrong
-      // app, every assertion below would still pass while testing nothing.
-      final Map<String, dynamic> m =
-          jsonDecode(realExport) as Map<String, dynamic>;
-      expect(m.keys.toSet(), <String>{'app', 'version', 'exportedAt', 'data'});
-      expect(m['app'], 'salapify');
-      expect(m['data'], isA<Map<String, dynamic>>());
-      expect(
-        m.containsKey('schemaVersion'),
-        isFalse,
-        reason: 'the ledger sits one level down, which is the whole problem',
-      );
-    });
+    test(
+      'the fixture really is a Salapify 2 envelope, not a Salapify 3 one',
+      () {
+        // Guards the guard. If somebody regenerates this fixture from the wrong
+        // app, every assertion below would still pass while testing nothing.
+        final Map<String, dynamic> m =
+            jsonDecode(realExport) as Map<String, dynamic>;
+        expect(m.keys.toSet(), <String>{
+          'app',
+          'version',
+          'exportedAt',
+          'data',
+        });
+        expect(m['app'], 'salapify');
+        expect(m['data'], isA<Map<String, dynamic>>());
+        expect(
+          m.containsKey('schemaVersion'),
+          isFalse,
+          reason: 'the ledger sits one level down, which is the whole problem',
+        );
+      },
+    );
 
     test('it is refused rather than half read', () {
       expect(checkImportFile(realExport), isA<ImportRefused>());
@@ -154,7 +162,8 @@ void main() {
       expect(
         r.reason,
         isNot(contains('not a Salapify backup')),
-        reason: 'it IS a Salapify backup, and saying otherwise is what risks '
+        reason:
+            'it IS a Salapify backup, and saying otherwise is what risks '
             'the file being deleted',
       );
     });

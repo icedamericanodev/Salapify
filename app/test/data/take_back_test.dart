@@ -360,7 +360,8 @@ void main() {
       expect(
         s.takeBackDebtPayment('debt_homecredit', paymentId: older.id),
         isFalse,
-        reason: 'the store can only remove the last row, so naming an older '
+        reason:
+            'the store can only remove the last row, so naming an older '
             'one must REFUSE rather than quietly remove a different payment',
       );
 
@@ -385,10 +386,7 @@ void main() {
       final DebtPayment older = d.payments.first;
 
       expect(
-        s.takeBackDebtPayment(
-          'debt_homecredit',
-          paymentId: d.payments.last.id,
-        ),
+        s.takeBackDebtPayment('debt_homecredit', paymentId: d.payments.last.id),
         isTrue,
       );
 

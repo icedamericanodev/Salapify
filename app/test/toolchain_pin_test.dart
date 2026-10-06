@@ -52,17 +52,17 @@ void main() {
     expect(
       dir.existsSync(),
       isTrue,
-      reason: '../.github/workflows is missing, so this guard reads nothing. '
+      reason:
+          '../.github/workflows is missing, so this guard reads nothing. '
           'Point it at the new path rather than deleting it.',
     );
 
     pinsByFile = <String, List<String>>{};
     dirsByFile = <String, Set<String>>{};
 
-    for (final File f
-        in dir.listSync().whereType<File>().where(
-          (File f) => f.path.endsWith('.yml') || f.path.endsWith('.yaml'),
-        )) {
+    for (final File f in dir.listSync().whereType<File>().where(
+      (File f) => f.path.endsWith('.yml') || f.path.endsWith('.yaml'),
+    )) {
       final String name = f.uri.pathSegments.last;
       final String body = withoutComments(f.readAsStringSync());
       pinsByFile[name] = pinPattern
@@ -93,7 +93,8 @@ void main() {
     expect(
       total,
       greaterThanOrEqualTo(3),
-      reason: 'only $total Flutter pins found across all workflows. There '
+      reason:
+          'only $total Flutter pins found across all workflows. There '
           'should be at least three: two in the branch check and one in the '
           'publisher. A smaller number means the matcher stopped matching, '
           'not that the pins went away.',
@@ -114,7 +115,8 @@ void main() {
     expect(
       versions.length,
       1,
-      reason: 'the workflows that build app/ name ${versions.length} '
+      reason:
+          'the workflows that build app/ name ${versions.length} '
           'different Flutter versions: $versions, from $offenders. They must '
           'agree, or the app the founder installs is built on a toolchain '
           'that nothing tested.',
@@ -131,14 +133,16 @@ void main() {
     expect(
       appFiles.length,
       greaterThanOrEqualTo(2),
-      reason: 'expected at least a branch check and a publisher building '
+      reason:
+          'expected at least a branch check and a publisher building '
           'app/, found ${appFiles.length}: $appFiles',
     );
     for (final String file in appFiles) {
       expect(
         pinsByFile[file],
         isNotEmpty,
-        reason: '$file builds app/ but pins no Flutter version, so it runs on '
+        reason:
+            '$file builds app/ but pins no Flutter version, so it runs on '
             'whatever the runner happens to ship.',
       );
     }
@@ -157,7 +161,8 @@ void main() {
       expect(
         archiveOnly,
         isTrue,
-        reason: '$file pins Flutter but works in ${dirsByFile[file]}, which '
+        reason:
+            '$file pins Flutter but works in ${dirsByFile[file]}, which '
             'is neither app/ nor the archive. Decide which group it is in.',
       );
     }

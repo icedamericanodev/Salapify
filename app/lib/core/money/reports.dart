@@ -180,6 +180,7 @@ class FinancialPerformance {
     required this.businessNetProfit,
     required this.investedOutflows,
     required this.repaymentInflows,
+    required this.earnedIncome,
     required this.keptRate,
     required this.savingsRate,
     required this.debtServicingExpenses,
@@ -207,6 +208,25 @@ class FinancialPerformance {
   /// not income in any ordinary sense: it is an asset turning back into cash,
   /// and the balance sheet already treats it that way.
   final double repaymentInflows;
+
+  /// What actually came in as EARNINGS: [totalIncome] less [repaymentInflows].
+  ///
+  /// This is the denominator of both published ratios, and it is a field
+  /// rather than a local for two reasons that both cost something once.
+  ///
+  /// The screen has to be able to ASK whether there is anything to take a
+  /// ratio of. `_ratioText` prints a dash when there is not, and it used to
+  /// ask `totalIncome > 0`, which is a different question: a period whose
+  /// only inflow was a repayment has income above zero and nothing earned, so
+  /// the dash never appeared and a 0 that meant "no measurement" was printed
+  /// as "0.0%".
+  ///
+  /// And a percentage whose denominator is nowhere on the screen cannot be
+  /// checked. With a repayment in the period, dividing the visible
+  /// `Debt payments` row by the visible "Money in" gives a different answer
+  /// from the printed one, which reads as a wrong number rather than as a
+  /// different base.
+  final double earnedIncome;
 
   /// What was KEPT AS CASH, as a percent of everything that came in.
   ///
@@ -697,6 +717,7 @@ FinancialPerformance computePerformance(
     businessNetProfit: businessRevenue - businessExpenses,
     investedOutflows: investedOutflows,
     repaymentInflows: repaymentInflows,
+    earnedIncome: earnedIncome,
     // WHAT WAS KEPT AS CASH, which is what the "You kept" card means and what
     // the prototype called the savings rate. Unchanged arithmetic, renamed so
     // the two readings below cannot be confused for one another.

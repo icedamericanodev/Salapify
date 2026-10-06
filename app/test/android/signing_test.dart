@@ -32,7 +32,8 @@ void main() {
     expect(
       f.existsSync(),
       isTrue,
-      reason: 'android/app/build.gradle.kts moved, so this guard is reading '
+      reason:
+          'android/app/build.gradle.kts moved, so this guard is reading '
           'nothing. Point it at the new path rather than deleting it.',
     );
     gradle = f.readAsStringSync();
@@ -42,7 +43,8 @@ void main() {
     expect(
       gradle,
       contains('signingConfigs.getByName("preview")'),
-      reason: 'release must sign with the committed preview key, or two base '
+      reason:
+          'release must sign with the committed preview key, or two base '
           'APKs cannot install over each other',
     );
   });
@@ -56,7 +58,8 @@ void main() {
     expect(
       gradle,
       isNot(contains('signingConfigs.getByName("debug")')),
-      reason: 'a debug keystore is generated per machine, so two CI builds '
+      reason:
+          'a debug keystore is generated per machine, so two CI builds '
           'carry two different signatures and the second cannot install over '
           'the first. The only way out is an uninstall, which deletes '
           'everything the person has entered.',
@@ -71,7 +74,8 @@ void main() {
     expect(
       File('android/app/preview-keystore.jks').existsSync(),
       isTrue,
-      reason: 'android/app/preview-keystore.jks is missing. It is committed '
+      reason:
+          'android/app/preview-keystore.jks is missing. It is committed '
           'on purpose through the "!app/preview-keystore.jks" line in '
           'android/.gitignore.',
     );
@@ -83,23 +87,25 @@ void main() {
     // single narrow negation. If somebody widens that negation to a pattern,
     // the next key lands silently. One file is allowed. Any other is a
     // finding, not a convenience.
-    final List<String> keystores = Directory('android')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .map((File f) => f.path.replaceAll(r'\', '/'))
-        .where(
-          (String p) =>
-              p.endsWith('.jks') ||
-              p.endsWith('.keystore') ||
-              p.endsWith('key.properties'),
-        )
-        .toList()
-      ..sort();
+    final List<String> keystores =
+        Directory('android')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .map((File f) => f.path.replaceAll(r'\', '/'))
+            .where(
+              (String p) =>
+                  p.endsWith('.jks') ||
+                  p.endsWith('.keystore') ||
+                  p.endsWith('key.properties'),
+            )
+            .toList()
+          ..sort();
 
     expect(
       keystores,
       <String>['android/app/preview-keystore.jks'],
-      reason: 'exactly one keystore belongs in this repository, the preview '
+      reason:
+          'exactly one keystore belongs in this repository, the preview '
           'key. A production upload key must never be committed, and neither '
           'must a key.properties holding real passwords.',
     );

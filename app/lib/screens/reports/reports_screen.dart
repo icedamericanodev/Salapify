@@ -82,8 +82,15 @@ String _sources(int n) => n == 1 ? '1 entry' : '$n entries';
 ///
 /// 0.0% is a measurement. The truth is that there is no measurement. A dash
 /// says so and cannot be misread as a result.
-String _ratioText(double ratio, double income) =>
-    income > 0 ? '${ratio.toStringAsFixed(1)}%' : '-';
+///
+/// The figure passed in is EARNED income, not "Money in", and the difference
+/// is the whole point. Both ratios divide by what was earned, so a period
+/// whose only inflow was a repayment has money in above zero and nothing to
+/// divide by. Asking `totalIncome > 0` here let that case through and printed
+/// the engine's "no measurement" zero as "0.0%", which is exactly what this
+/// function exists to prevent.
+String _ratioText(double ratio, double earnedIncome) =>
+    earnedIncome > 0 ? '${ratio.toStringAsFixed(1)}%' : '-';
 
 class _ReportsScreenState extends State<ReportsScreen> {
   _ReportTab _tab = _ReportTab.position;
@@ -670,6 +677,21 @@ class _PerformanceViewState extends State<_PerformanceView> {
         _SectionCard(
           palette: palette,
           title: positive ? 'You kept' : 'You overspent by',
+          // InfoTopic.performance WAS DEFINED AND UNREACHABLE. No screen
+          // opened it, so three explanations (what counts as money in, what
+          // counts as money out, and why an excluded entry reaches neither)
+          // existed and could not be read by anybody.
+          //
+          // This card is where they belong rather than a tidy place to park
+          // them: the topic's own formula is "Kept = money in - money out",
+          // which is this card's hero figure. Hanging it off the Money in and
+          // Money out pair instead would have meant inventing a title for the
+          // one block on the tab that does not need one.
+          //
+          // Content nobody can reach cannot be reviewed, and quietly rots.
+          // That is how the explainer behind the ratios card came to teach a
+          // pass mark the screen had already removed.
+          topic: InfoTopic.performance,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -722,8 +744,8 @@ class _PerformanceViewState extends State<_PerformanceView> {
               // rather than a softening.
               //
               // This row used to paint anything under 20 percent in the
-              // warning colour. That number appeared nowhere else in lib/, had
-              // no source, and health_check.dart:534 REFUSES the same idea in
+              // warning colour. It had no source, and health_check.dart:534
+              // REFUSES the same idea in
               // writing: "On an 18,000 to 25,000 Metro Manila salary a twenty
               // percent savings rate after rent is frequently arithmetically
               // impossible, so an absolute target turns the indicator into a
@@ -735,15 +757,49 @@ class _PerformanceViewState extends State<_PerformanceView> {
               // helps least.
               //
               // The figure stays. Only the verdict goes.
+              //
+              // AND THE 20 SURVIVED ANYWAY, for a day, because this comment
+              // originally claimed the number "appeared nowhere else in lib/"
+              // and nobody checked. It was in info_sheet.dart, on the sheet
+              // THIS CARD'S OWN DOT OPENS, still teaching 20 percent as the
+              // target. Removing a verdict from a screen does not remove it
+              // from the explainer one tap behind the screen, and a claim in
+              // a comment is not a search. Both are fixed now.
+
+              // THE DENOMINATOR, shown only when it differs from "Money in".
+              //
+              // Both rows below divide by what was EARNED, and until this
+              // line the only income figure anywhere on the screen was
+              // "Money in", which includes money repaid to you. So in any
+              // period where somebody paid you back, a reader who divided the
+              // visible "Debt payments" by the visible "Money in" got a
+              // different percentage from the one printed two rows down.
+              //
+              // The card already shows the numerator for exactly this reason,
+              // and the comment below says why: a percentage whose numerator
+              // is invisible cannot be checked. The denominator is the other
+              // half of that sentence. A figure that cannot be reconciled
+              // reads as a wrong figure, and wrong figures are how an app
+              // like this loses somebody.
+              //
+              // Hidden when there is no repayment, because then it equals
+              // "Money in" exactly and a row restating a figure already on
+              // screen is the clutter the house rule is about.
+              if (f.repaymentInflows > 0)
+                BreakdownRow(
+                  palette: palette,
+                  label: 'Earned',
+                  value: formatPeso(f.earnedIncome),
+                ),
               BreakdownRow(
                 palette: palette,
                 label: 'Savings rate',
-                value: _ratioText(f.savingsRate, f.totalIncome),
+                value: _ratioText(f.savingsRate, f.earnedIncome),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Debt servicing',
-                value: _ratioText(f.debtServiceRatio, f.totalIncome),
+                value: _ratioText(f.debtServiceRatio, f.earnedIncome),
                 // THE CANONICAL CONSTANTS, not a number typed here.
                 //
                 // This compared against a bare 35, under a comment saying
@@ -756,7 +812,12 @@ class _PerformanceViewState extends State<_PerformanceView> {
                 // this screen stayed quiet while the Health Check called the
                 // same ledger stretched. It also sourced itself to lenders,
                 // which is a claim this repository refuses to make elsewhere.
-                valueColor: f.totalIncome <= 0
+                // EARNED income, matching the dash gate above. On totalIncome
+                // this read a ratio the engine had set to zero for want of a
+                // denominator, and judged it against the bands as though it
+                // were measured. It happened to land on textPrimary, so it
+                // showed nothing wrong while being wrong.
+                valueColor: f.earnedIncome <= 0
                     ? palette.textPrimary
                     : f.debtServiceRatio > debtShareStretched
                     ? palette.negative
@@ -937,6 +998,30 @@ class _CashFlowView extends StatelessWidget {
                 'Operating + investing + financing',
                 style: AppType.caption(palette),
               ),
+              // A GOOD MONTH LOOKED EXACTLY LIKE A BAD ONE HERE, and this is
+              // the sentence that stops it.
+              //
+              // Put money into MP2 and overpay a loan, which is precisely
+              // what this app teaches people to do, and the hero above turns
+              // red at hero size. The sections below say why, but nobody
+              // reads downward past a red headline about their own money.
+              //
+              // This clears the one exception to "a figure and the line
+              // needed to read it": it is not a lesson, it is a sentence
+              // without which the screen punishes the right behaviour.
+              //
+              // "or" rather than "and", because either one alone can do it
+              // and the sections below name which.
+              if (c.netCashChange < 0 && c.netOperating > 0) ...<Widget>[
+                const SizedBox(height: Spacing.xs),
+                Text(
+                  'Day to day you came out ahead by '
+                  '${formatPeso(c.netOperating)}. The total is below zero '
+                  'because money moved into investments or into paying down '
+                  'debt, not because you overspent.',
+                  style: AppType.caption(palette),
+                ),
+              ],
             ],
           ),
         ),

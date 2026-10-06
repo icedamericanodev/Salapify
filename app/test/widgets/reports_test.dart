@@ -478,4 +478,226 @@ void main() {
           'is the whole point of giving the mortgage its other side',
     );
   });
+
+  testWidgets('a period whose only income was a repayment dashes, not 0.0%', (
+    WidgetTester tester,
+  ) async {
+    // THE GUARD THAT STOPPED REACHING ITS OWN CASE.
+    //
+    // `_ratioText` prints a dash rather than a percentage when there is
+    // nothing to take a ratio of, because "0.0%" is a measurement and the
+    // truth in that case is that there is no measurement.
+    //
+    // On 2026-10-06 both ratios moved to dividing by what was EARNED, so a
+    // repayment is out of the denominator. The dash gate did not move with
+    // them: it still asked `totalIncome > 0`, and a repayment counts there.
+    //
+    // So a period whose only inflow was somebody paying you back has
+    // totalIncome above zero and earned income exactly zero. The engine
+    // correctly returns 0 for both ratios, having nothing to divide by, and
+    // the screen then printed that zero as though it were a result. Somebody
+    // who paid 5,000 of loans that period was told their debt servicing was
+    // 0.0%, which is the precise misreading the dash exists to prevent.
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 3000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "r1", "type": "income", "amount": 8000,
+     "category": "Receivables & Repayments",
+     "accountId": "gc", "date": "2026-09-10", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "d1", "type": "expense", "amount": 5000,
+     "category": "Debt & Loan Servicing",
+     "accountId": "gc", "date": "2026-09-12", "createdAt": 2,
+     "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+    final FinancialState s = FinancialState(clock: fixtureToday, store: store);
+    await s.restore();
+
+    await openReports(tester, given: s);
+    await tapAndSettle(tester, find.text('Performance'));
+
+    // DIRECTIONAL COMPANION. The repayment really did arrive, so "Money in"
+    // must still say so. Without this the test passes just as well on a
+    // screen that has stopped rendering the period at all, which is the
+    // failure mode an absence-only assertion cannot see.
+    expect(find.text('₱8,000.00'), findsWidgets, reason: 'money in');
+
+    // And both rates refuse to answer, because nothing was earned.
+    expect(
+      find.text('0.0%'),
+      findsNothing,
+      reason: 'a rate of zero over nothing earned is not a measurement',
+    );
+    expect(find.text('-'), findsWidgets, reason: 'both ratios should dash');
+  });
+
+  testWidgets('the ratio denominator is shown when it is not Money in', (
+    WidgetTester tester,
+  ) async {
+    // A percentage whose denominator is nowhere on the screen cannot be
+    // checked. With a repayment in the period, "Money in" is NOT what either
+    // rate divides by, so dividing the visible numerator by the visible
+    // income gives a different answer from the printed one.
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 22000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "s1", "type": "income", "amount": 50000, "category": "Salary",
+     "accountId": "gc", "date": "2026-09-05", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "r1", "type": "income", "amount": 8000,
+     "category": "Receivables & Repayments",
+     "accountId": "gc", "date": "2026-09-09", "createdAt": 2,
+     "status": "confirmed"},
+    {"id": "g1", "type": "expense", "amount": 30000, "category": "Groceries",
+     "accountId": "gc", "date": "2026-09-11", "createdAt": 3,
+     "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+    final FinancialState s = FinancialState(clock: fixtureToday, store: store);
+    await s.restore();
+
+    await openReports(tester, given: s);
+    await tapAndSettle(tester, find.text('Performance'));
+
+    expect(find.text('Earned'), findsOneWidget);
+    // 58,000 arrived, 50,000 of it earned, and BOTH are on screen so the
+    // printed rate can be reconciled against the right one.
+    expect(find.text('₱58,000.00'), findsWidgets, reason: 'money in');
+    expect(find.text('₱50,000.00'), findsWidgets, reason: 'the denominator');
+  });
+
+  testWidgets('no Earned row when it would just restate Money in', (
+    WidgetTester tester,
+  ) async {
+    // THE DIRECTIONAL HALF of the test above. Without it, that one is
+    // satisfied by a row that is simply always there, which would put a
+    // duplicate of "Money in" on every report anybody ever opens.
+    await openReports(tester);
+    await tapAndSettle(tester, find.text('Performance'));
+
+    expect(find.text('Savings rate'), findsOneWidget, reason: 'right card');
+    expect(
+      find.text('Earned'),
+      findsNothing,
+      reason:
+          'the seed has no repayment, so earned equals money in and the row '
+          'would restate a figure already on the screen',
+    );
+  });
+
+  testWidgets(
+    'Cash flow says a month of saving is not a month of overspending',
+    (WidgetTester tester) async {
+      // Put money into MP2 and overpay a loan, which is exactly what this app
+      // teaches, and the hero on Cash flow goes red at hero size. The sections
+      // below explain it and nobody reads downward past a red headline about
+      // their own money.
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 5000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "s1", "type": "income", "amount": 50000, "category": "Salary",
+     "accountId": "gc", "date": "2026-09-05", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "g1", "type": "expense", "amount": 30000, "category": "Groceries",
+     "accountId": "gc", "date": "2026-09-08", "createdAt": 2,
+     "status": "confirmed"},
+    {"id": "m1", "type": "expense", "amount": 15000,
+     "category": "Investment", "accountId": "gc", "date": "2026-09-12",
+     "createdAt": 3, "status": "confirmed"},
+    {"id": "l1", "type": "expense", "amount": 10000,
+     "category": "Debt & Loan Servicing", "accountId": "gc",
+     "date": "2026-09-14", "createdAt": 4, "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+      final FinancialState s = FinancialState(
+        clock: fixtureToday,
+        store: store,
+      );
+      await s.restore();
+
+      await openReports(tester, given: s);
+      await tapAndSettle(tester, find.text('Cash flow'));
+
+      // Day to day: 50,000 in less 30,000 of groceries. The investment and the
+      // loan payment are claimed by the other two sections, so operating keeps
+      // neither.
+      expect(
+        find.textContaining('came out ahead by ₱20,000.00'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('not because you overspent'), findsOneWidget);
+    },
+  );
+
+  testWidgets('and stays quiet when the month really was overspending', (
+    WidgetTester tester,
+  ) async {
+    // THE OTHER HALF, and the one that matters more. An alarm that fires on
+    // every negative month is an alarm whose battery gets taken out. Here
+    // everyday living genuinely did not pay for itself, so the reassurance
+    // would be a lie.
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 1000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "s1", "type": "income", "amount": 20000, "category": "Salary",
+     "accountId": "gc", "date": "2026-09-05", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "g1", "type": "expense", "amount": 35000, "category": "Groceries",
+     "accountId": "gc", "date": "2026-09-08", "createdAt": 2,
+     "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+    final FinancialState s = FinancialState(clock: fixtureToday, store: store);
+    await s.restore();
+
+    await openReports(tester, given: s);
+    await tapAndSettle(tester, find.text('Cash flow'));
+
+    // Directional: the card is on screen and the month really is negative.
+    // _SectionCard uppercases its own title, so this is the rendered string.
+    expect(find.text('NET CHANGE IN CASH'), findsOneWidget);
+    expect(find.text('-₱15,000.00'), findsWidgets, reason: 'really negative');
+    expect(find.textContaining('came out ahead'), findsNothing);
+  });
 }

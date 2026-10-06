@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/debt_ratio.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../shared/sheet_scaffold.dart';
@@ -275,6 +276,23 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Credit card balances, personal and gadget loans, and a mortgage. '
             'The full outstanding amount, not this month\'s payment.',
       ),
+      // Money lent out is counted at its FULL remaining value, and nothing on
+      // the screen says so. It is the one line in "What you own" whose figure
+      // may never turn into cash, and in practice the one most often lent to
+      // family. Salapify does not discount it, because only the person who
+      // lent it knows whether it is coming back, so the judgement stays with
+      // them. That is teaching, read once, so it belongs here and not on the
+      // card: the figure itself is already on screen as "Owed to you",
+      // directly above the total it feeds.
+      InfoPoint(
+        icon: Icons.handshake_outlined,
+        title: 'Money owed to you counts in full',
+        body:
+            'A loan you made to somebody is counted at its full remaining '
+            'amount, exactly like cash. Salapify does not guess at how likely '
+            'it is to come back, because only you know that. If some of it '
+            'never will, your real position is lower than the figure here.',
+      ),
       InfoPoint(
         icon: Icons.trending_down,
         title: 'Below zero is common, and often fine',
@@ -325,6 +343,17 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
     formula: 'Kept = money in - money out',
   ),
 
+  // THIS SHEET USED TO CONTRADICT THE CARD THAT OPENS IT, on both rows.
+  //
+  // The savings rate row on Reports deliberately removed a 20 percent pass
+  // mark, and the comment explaining why asserted that the number "appeared
+  // nowhere else in lib/". It was here, in lib/, on the sheet that same card
+  // opens, still teaching 20 percent as the target. The debt row removed a
+  // bare 35 sourced to what lenders commonly want, and this sheet still said
+  // "about a third" sourced the same way, which is also not the canonical 30.
+  //
+  // So one tap apart, over one ledger, Salapify gave two answers twice. The
+  // figures below now read the same constants the screen does.
   InfoTopic.ratios: InfoContent(
     title: 'The two ratios',
     subtitle: 'The quickest read on whether a month went well',
@@ -333,19 +362,39 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
         icon: Icons.percent,
         title: 'Savings rate',
         body:
-            'The share of what came in that you did not spend. Twenty percent '
-            'is a common target and is a guide, not a rule: a month with '
-            'tuition or a hospital bill will be lower and that is the point of '
-            'having savings.',
+            'The share of what you EARNED that you did not spend. Salapify '
+            'sets no pass mark on this on purpose: on many salaries a fixed '
+            'target after rent is simply not reachable, and a number that '
+            'tells somebody doing their best that they are failing every '
+            'month is worse than no number. Watch which way it moves.',
+      ),
+      InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'Money you put away still counts as saved',
+        body:
+            'Moving money into Pag-IBIG MP2 or any other investment leaves '
+            'your wallet, so it shows under Money out. It has not gone out of '
+            'your life though, so the savings rate counts it as saved. '
+            'Without this, the act of saving lowered your savings rate.',
+      ),
+      InfoPoint(
+        icon: Icons.south_west,
+        title: 'Money repaid to you is left out of both',
+        body:
+            'When somebody pays back what they owed you, it arrives as money '
+            'in, because it really did arrive. It is not something you '
+            'earned, so both rates divide by what you earned instead. '
+            'Otherwise a month where a friend paid you back would look like a '
+            'month you did well.',
       ),
       InfoPoint(
         icon: Icons.account_balance_outlined,
         title: 'Debt servicing',
         body:
-            'The share of your income going to loan and card repayments. '
-            'Lenders here commonly want to see this under about a third '
-            'before approving more, so it is worth watching before you apply '
-            'rather than after.',
+            'The share of what you earned going to loan and card repayments. '
+            'Salapify treats up to $debtShareComfortable% as comfortable and '
+            'past $debtShareStretched% as stretched, and uses those same two '
+            'figures everywhere it says anything about debt.',
       ),
       InfoPoint(
         icon: Icons.label_outline,
@@ -421,6 +470,20 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Spending 20,000 on groceries and putting 20,000 into savings '
             'both leave your wallet, and they are not the same event. The '
             'three sections keep them apart.',
+      ),
+      // The teaching half of the line that now appears on the headline card
+      // when operating is positive and the total is not. The FIGURE stays on
+      // the screen because a red headline over a good month misleads; this is
+      // the part somebody learns once and then never needs again.
+      InfoPoint(
+        icon: Icons.remove_circle_outline,
+        title: 'A minus here is often progress',
+        body:
+            'Money leaving for MP2 and money leaving to kill a loan both show '
+            'as out, so a month where you did both can show a negative total. '
+            'That is not the same as overspending. Read the operating section '
+            'first: that is the one that says whether day to day life paid '
+            'for itself.',
       ),
     ],
     formula: 'Net change = operating + investing + financing',

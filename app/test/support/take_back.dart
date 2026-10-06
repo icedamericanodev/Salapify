@@ -38,9 +38,7 @@ bool takeBackNewestDebtPayment(FinancialState s, String debtId) {
   // An empty or missing register still has to reach the store, because
   // returning false from here would make the helper, rather than the code
   // under test, the thing that refused.
-  final String id = (d == null || d.payments.isEmpty)
-      ? ''
-      : d.payments.last.id;
+  final String id = (d == null || d.payments.isEmpty) ? '' : d.payments.last.id;
   return s.takeBackDebtPayment(debtId, paymentId: id);
 }
 
@@ -49,8 +47,6 @@ bool takeBackNewestPlanPayment(FinancialState s, String planId) {
     ...s.installments,
     ...s.archivedInstallments,
   ].where((InstallmentPlan p) => p.id == planId).firstOrNull;
-  final String id = (p == null || p.payments.isEmpty)
-      ? ''
-      : p.payments.last.id;
+  final String id = (p == null || p.payments.isEmpty) ? '' : p.payments.last.id;
   return s.takeBackPlanPayment(planId, paymentId: id);
 }
