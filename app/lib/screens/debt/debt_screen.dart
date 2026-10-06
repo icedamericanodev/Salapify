@@ -7,6 +7,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/debt/add_debt_sheet.dart';
 import '../../features/debt/payment_sheet.dart';
+import '../../features/debt/payments_sheet.dart';
 import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 import '../../models/models.dart';
@@ -139,6 +140,7 @@ class _DebtScreenState extends State<DebtScreen> {
                     _DebtCard(
                       palette: p,
                       debt: d,
+                      onViewPayments: () => _openPayments(context, p, d),
                       onPay: () => _openPayment(context, p, d),
                       onSettle: () => _confirmSettle(context, p, d),
                       onTakeBack: d.payments.isEmpty
@@ -158,6 +160,7 @@ class _DebtScreenState extends State<DebtScreen> {
                       _DebtCard(
                         palette: p,
                         debt: d,
+                        onViewPayments: () => _openPayments(context, p, d),
                         onPay: null,
                         onSettle: () => _confirmSettle(context, p, d),
                         // Offered on a CLEARED debt too, and deliberately: a
@@ -185,6 +188,7 @@ class _DebtScreenState extends State<DebtScreen> {
                       _DebtCard(
                         palette: p,
                         debt: d,
+                        onViewPayments: () => _openPayments(context, p, d),
                         onPay: null,
                         // ONE ACTION on an archived card, and that is the
                         // whole point. Offering settle here let a debt be
@@ -216,6 +220,20 @@ class _DebtScreenState extends State<DebtScreen> {
   Future<void> _openAdd(BuildContext context, Palette palette) async {
     final Debt? added = await AddDebtSheet.show(context, palette);
     if (added != null) widget.state.addDebt(added);
+    if (mounted) setState(() {});
+  }
+
+  /// Opens the list of payments recorded against one debt.
+  ///
+  /// Passes the ID rather than the Debt, because the sheet outlives any single
+  /// copy of it: taking a payment back rewrites the debt, and a captured value
+  /// would then describe rows that no longer exist.
+  Future<void> _openPayments(
+    BuildContext context,
+    Palette palette,
+    Debt debt,
+  ) async {
+    await DebtPaymentsSheet.show(context, palette, widget.state, debt.id);
     if (mounted) setState(() {});
   }
 
@@ -718,11 +736,20 @@ class _DebtCard extends StatelessWidget {
     this.onDelete,
     this.onArchive,
     this.onUnarchive,
+    this.onViewPayments,
   });
 
   final Palette palette;
   final Debt debt;
   final VoidCallback? onPay;
+
+  /// Opens the payment list. A callback rather than the store, because this
+  /// card is stateless and every other action on it already arrives this way.
+  ///
+  /// Null is a real answer and the card checks `payments.isEmpty` before
+  /// drawing the control anyway, so a debt with nothing recorded shows the
+  /// plain caption with no chevron and nothing to tap.
+  final VoidCallback? onViewPayments;
 
   /// Null on an ARCHIVED card, which offers one action and no others.
   ///
@@ -820,11 +847,58 @@ class _DebtCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Spacing.xs),
-            Text(
-              '${formatPeso(debt.paidAmount.pesos)} of '
-              '${formatPeso(debt.totalAmount.pesos)} so far',
-              style: AppType.caption(palette),
-            ),
+            // THE WAY IN TO THE PAYMENT LIST, built on the caption that was
+            // already here rather than as a new row, so it costs no height on
+            // a card that already stacks up to nine blocks.
+            //
+            // No chevron and no tap when the register is empty. A dead
+            // affordance on a money card is what cost the founder their
+            // emulator data once, and three of the five seeded debts carry a
+            // paid figure with no register at all.
+            if (debt.payments.isEmpty)
+              Text(
+                '${formatPeso(debt.paidAmount.pesos)} of '
+                '${formatPeso(debt.totalAmount.pesos)} so far',
+                style: AppType.caption(palette),
+              )
+            else
+              InkWell(
+                onTap: onViewPayments,
+                borderRadius: BorderRadius.circular(Radii.control),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          '${formatPeso(debt.paidAmount.pesos)} of '
+                          '${formatPeso(debt.totalAmount.pesos)} so far',
+                          // WRAPS rather than ellipsizes. A seven digit pair
+                          // collides with the count on the right at 320dp, and
+                          // an ellipsis would cut a peso figure in half, which
+                          // the readability sweep fails on and a person cannot
+                          // read either way.
+                          maxLines: 2,
+                          style: AppType.caption(palette),
+                        ),
+                      ),
+                      const SizedBox(width: Spacing.sm),
+                      Text(
+                        debt.payments.length == 1
+                            ? '1 payment'
+                            : '${debt.payments.length} payments',
+                        style: AppType.caption(palette),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 14,
+                        color: palette.textMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
           if (debt.notes != null) ...<Widget>[
             const SizedBox(height: Spacing.sm),

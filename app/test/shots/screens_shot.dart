@@ -16,6 +16,7 @@ import 'package:salapify/features/log/log_sheet.dart';
 import 'package:salapify/features/accounts/move_money_sheet.dart';
 import 'package:salapify/features/bills/bills_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
+import 'package:salapify/features/debt/payments_sheet.dart';
 import 'package:salapify/features/debt/split_bill_sheet.dart';
 import 'package:salapify/features/pan/pan_sheet.dart';
 import 'package:salapify/features/reminders/reminders_sheet.dart';
@@ -3782,6 +3783,76 @@ void businessGuideViewShots() {
       await expectLater(
         find.byType(BusinessGuideScreen),
         matchesGoldenFile('out/business_guide_${shot.slug}.png'),
+      );
+    });
+  }
+
+  // THE PAYMENT LIST, in the two states that matter.
+  //
+  // `listed` has real rows through the real write path, so the shot shows what
+  // the app actually produces. The seeded Home Credit debt also carries an
+  // opening 7,350 with no register behind it, which makes this the state where
+  // the rows do NOT add up to the figure on the card: exactly the case the
+  // difference line exists for, and the one three of five debts are in on a
+  // fresh install.
+  //
+  // `legacy` is that same debt untouched: a paid figure and an empty list. It
+  // must not read as money the app lost.
+  for (final ({String slug, bool pay}) shape in <({String slug, bool pay})>[
+    (slug: 'listed', pay: true),
+    (slug: 'legacy', pay: false),
+  ]) {
+    testWidgets('sheet debt_payments_${shape.slug} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2200);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      if (shape.pay) {
+        // Through the real path, twice, so the LIFO rule has something to
+        // show: one row with a control and one without.
+        state.recordDebtPayment(
+          'debt_homecredit',
+          2450,
+          accountId: 'acc_gcash',
+        );
+        state.recordDebtPayment('debt_homecredit', 1500);
+      }
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Not awaited: `show` completes when the sheet CLOSES, which a widget
+      // test never does, so awaiting it hangs until the ten minute timeout.
+      unawaited(
+        DebtPaymentsSheet.show(
+          tester.element(find.byType(AppShell)),
+          palette,
+          state,
+          'debt_homecredit',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_debt_payments_${shape.slug}.png'),
       );
     });
   }
