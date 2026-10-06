@@ -236,3 +236,29 @@ jobs:
             exit 1
           fi
           echo "Signed with the preview key, so this build installs in place."
+
+      # KEEP THE APK, which this job used to build and throw away.
+      #
+      # It is only uploaded AFTER the signature check above, so an artifact
+      # existing means a build that is actually installable over the previous
+      # one. An unsigned or wrongly signed APK fails the step before this and
+      # nothing is published at all.
+      #
+      # This is not the publisher. app-publish.yml is, and it writes a delivery
+      # row and uploads to a fixed release page. It cannot be triggered by hand
+      # yet: GitHub only registers a workflow for manual dispatch once the file
+      # exists on the DEFAULT branch, and the rebuild lives on a long running
+      # branch whose pull request is deliberately open. Until that is settled,
+      # this artifact is the only route from a green check to a phone, and it
+      # costs one step on a job that was already doing all the work.
+      #
+      # Deliberately NOT a delivery. No row is written, because nothing here
+      # proves the founder installed anything, and docs/delivery-log.md means
+      # "this reached a phone" rather than "this was built".
+      - name: Keep the APK so it can actually be installed
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: salapify-apk-${{ github.sha }}
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
