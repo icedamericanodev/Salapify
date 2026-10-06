@@ -77,6 +77,36 @@ List<Debt> applyDebtPayment(
       installmentCurrent: d.installmentCurrent == null
           ? null
           : _min(d.installmentTotal ?? 12, d.installmentCurrent! + 1),
+      // THE FILL'S MEMORY MOVES WITH THE PAYMENT, and leaving it still is how
+      // real money was erased.
+      //
+      // `paidBeforeSettle` is what "Not settled after all" puts back. It was
+      // written once, at the moment of the fill, and then left alone, so it
+      // described a debt that no longer existed as soon as a payment landed
+      // on top of a settled debt.
+      //
+      // Measured on the seeded Home Credit debt before this line existed:
+      // paid 7,350 of 14,700, Mark settled (fills to 14,700, remembers
+      // 7,350), pay a real 2,450 from GCash, then Not settled after all. The
+      // account is 2,450 down with a confirmed entry naming it, the register
+      // holds the row, and the debt goes back to 7,350 paid. The payment is
+      // gone from the debt and the person is told they still owe money they
+      // have already handed over.
+      //
+      // Same loss, same field, as the one the take-back door below closed.
+      // This is the direct door, which that fix did not reach.
+      //
+      // So the field now means what it says at ALL times: what has really
+      // been paid, with the fill excluded. Keeping it that way costs one
+      // addition here and one subtraction in the reversal, and it does not
+      // depend on `totalAmount` holding still, which a formula computing the
+      // fill at un-settle time would have.
+      //
+      // Null stays null. A debt that was never settled by hand has no memory
+      // to keep, and `copyWith` treats a null here as "leave it alone".
+      paidBeforeSettle: d.paidBeforeSettle == null
+          ? null
+          : d.paidBeforeSettle! + amount,
       // THE THREE FIGURES THAT CANNOT BE RECOMPUTED, written down as they
       // were before this payment landed.
       //
@@ -163,6 +193,25 @@ List<Debt> reverseLastDebtPayment(List<Debt> debts, String debtId) {
       // already settled debt, taken back, leaves the settle standing, and
       // its memory is still the real figure.
       clearPaidBeforeSettle: !row.settledBefore,
+      // THE OTHER HALF OF THE ADDITION IN `applyDebtPayment`.
+      //
+      // A payment that landed on a SETTLED debt bumped the fill's memory by
+      // its own amount, because that memory is what has really been paid.
+      // Taking that payment back has to take the bump back with it, or the
+      // memory keeps money the person has just undone and a later un-settle
+      // hands it back.
+      //
+      // The subtraction is exact rather than approximate: the bump was this
+      // row's own `amount` and nothing else touches the field in between, so
+      // this restores precisely what was there before. It needs no extra
+      // stored column.
+      //
+      // Reached only when the settle is STAYING (the branch above already
+      // clears the memory outright when the debt comes back un-settled), and
+      // only when there is a memory to adjust.
+      paidBeforeSettle: row.settledBefore && d.paidBeforeSettle != null
+          ? d.paidBeforeSettle! - row.amount
+          : null,
       installmentCurrent: row.installmentCurrentBefore,
       payments: d.payments.sublist(0, d.payments.length - 1),
     );
