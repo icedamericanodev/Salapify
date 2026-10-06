@@ -128,6 +128,7 @@ void main() {
   realMoneyHomeShot();
   planCalculatorShots();
   fxShot();
+  reportsRatioShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -3804,6 +3805,120 @@ void businessGuideViewShots() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/sheet_debt_payments_${shape.slug}.png'),
+      );
+    });
+  }
+}
+
+/// Performance with an MP2 contribution and a collected repayment on it.
+///
+/// THE REASON THIS EXISTS, and it is the same reason the divergence test does.
+///
+/// `reports_performance_hapon.png` and its dark twin render the seed fixture,
+/// and the seed has no investment outflow and no repayment inflow. Both of the
+/// lines added on 2026-10-06 are gated on `> 0`, so the two existing shots
+/// render NEITHER of them. Looking at those pictures and calling the change
+/// reviewed is the fixture trap this repository has now walked into twice in
+/// one change set: `reports_golden_test.dart` passed unchanged for exactly the
+/// same reason.
+///
+/// The figures are chosen so the two new sentences can be checked by eye
+/// against arithmetic rather than taken on trust:
+///
+///   earned      50,000 salary
+///   repaid       8,000 collected back        -> "8,000 of this is money..."
+///   groceries   30,000 out
+///   MP2          6,000 out                   -> "6,000 of what went out..."
+///
+/// Money in reads 58,000 because it really did all arrive. You kept 22,000 of
+/// it, so the "You kept" caption must say 37.9% (of 58,000) and NOT 56.0%,
+/// which is what the savings rate now says (22,000 + 6,000 of 50,000 earned).
+/// Two different percentages, deliberately, one line apart. If the render ever
+/// shows the same number twice, keptRate has been pointed at savingsRate.
+void reportsRatioShots() {
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('reports performance with investing and a repayment in $theme', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 6000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 22000, "monogram": "GC"}
+  ],
+  "transactions": [
+    {"id": "t1", "type": "income", "amount": 50000, "category": "Salary",
+     "accountId": "gc", "date": "2026-09-05", "createdAt": 1,
+     "status": "confirmed"},
+    {"id": "t2", "type": "income", "amount": 8000,
+     "category": "Receivables & Repayments",
+     "subcategory": "Pahiram Repayment Collected",
+     "accountId": "gc", "date": "2026-09-09", "createdAt": 2,
+     "status": "confirmed"},
+    {"id": "t3", "type": "expense", "amount": 30000, "category": "Groceries",
+     "accountId": "gc", "date": "2026-09-11", "createdAt": 3,
+     "status": "confirmed"},
+    {"id": "t4", "type": "expense", "amount": 6000, "category": "Savings",
+     "subcategory": "Pag-IBIG MP2",
+     "accountId": "gc", "date": "2026-09-15", "createdAt": 4,
+     "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+        store: store,
+      );
+      await state.restore();
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Performance'));
+      await tester.pumpAndSettle();
+
+      // The whole point of the fixture. Without these the shot can go back to
+      // rendering a screen with neither line on it and nobody would notice.
+      expect(
+        find.textContaining('money coming back'),
+        findsOneWidget,
+        reason: 'the repayment line is missing, so this shot proves nothing',
+      );
+      expect(
+        find.textContaining('went into investments'),
+        findsOneWidget,
+        reason: 'the investing line is missing, so this shot proves nothing',
+      );
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/reports_performance_ratios_$theme.png'),
       );
     });
   }
