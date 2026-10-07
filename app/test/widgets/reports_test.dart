@@ -160,6 +160,43 @@ void main() {
     expect(find.text('12.6%'), findsWidgets);
   });
 
+  testWidgets('Performance does not forecast the month in a straight line', (
+    WidgetTester tester,
+  ) async {
+    // REMOVED ON PURPOSE, founder delegated the call to a financial-coach
+    // review on 2026-10-07, and this test is what stops it coming back.
+    //
+    // The card projected the month by straight-lining what had happened so
+    // far: income so far / today's date x days in the month. For somebody
+    // paid on the 15th and the 30th, which is the person this app is for,
+    // that is wrong on most days rather than on a few:
+    //
+    //   days 1 to 14   no pay yet, so "Left over" reads a large NEGATIVE
+    //   day 15         anything paid once on payday (rent, padala, the BNPL
+    //                  bill timed to the sweldo) is DOUBLED
+    //   days 21 to 29  red again, worst exactly before the next cutoff
+    //   the 1st        a 32,500 payday projected to 1,007,500, in green
+    //
+    // It also straight-lined one-off money, so a repayment collected once
+    // was projected as though a cousin paid every 18 days.
+    //
+    // Home's Runway answers the forward question properly, from the payday
+    // rule and the dated bills. Reports is for what already happened.
+    //
+    // The engine fields stay computed and golden locked to the prototype;
+    // only this reader was removed, so nothing diverges.
+    await openReports(tester);
+    await tapAndSettle(tester, find.text('Performance'));
+
+    // DIRECTIONAL. Prove we are on the monthly Performance view the card
+    // used to appear on, or every absence below passes on the wrong screen.
+    expect(find.text('₱51,000.00'), findsWidgets, reason: 'money in');
+
+    expect(find.text('IF THE REST OF THE MONTH LOOKS LIKE THIS'), findsNothing);
+    expect(find.text('Income by month end'), findsNothing);
+    expect(find.text('Spending by month end'), findsNothing);
+  });
+
   testWidgets('Cash flow adds its three sections up to the headline', (
     WidgetTester tester,
   ) async {
@@ -378,32 +415,80 @@ void main() {
     // 6,250 as both a receivable account and two owedToMe debts. Neither was
     // visible until debts joined the balance sheet on 2026-10-05, because
     // only one side of each pair was ever counted.
+    //
+    // REDESIGNED ON FOUNDER DIRECTION, 2026-10-07: "it is too wordy and the
+    // users may feel flooded and overwhelmed". It was a bordered amber card
+    // ABOVE the net worth, about 85 words over twelve lines. It is now one
+    // line under the headline, with the explanation behind its own dot.
     await openReports(tester);
 
-    expect(find.text('COUNTED TWICE'), findsOneWidget);
-    expect(find.text('₱16,250.00'), findsOneWidget);
-
-    // NAMED, both of them. A figure with no name sends somebody hunting
-    // through two screens for it.
-    expect(
-      find.textContaining('BPI Gadget Loan is also recorded as'),
-      findsOneWidget,
-    );
+    // STILL ON SCREEN: the names, which are the thing to go and fix, and the
+    // one clause that stops the wrong conclusion. Without "the totals here
+    // include both copies" the headline above is silently inflated and the
+    // person has no way to know.
+    expect(find.textContaining('Counted twice:'), findsOneWidget);
+    expect(find.textContaining('BPI Gadget Loan'), findsWidgets);
     expect(find.textContaining('Accounts Receivable'), findsWidgets);
-
-    // THE WRONG CONCLUSION THIS EXISTS TO STOP. The two sides pull net worth
-    // in OPPOSITE directions, so somebody who subtracts 16,250 from the
-    // headline gets a worse answer than if the card had said nothing.
     expect(
-      find.textContaining('out by the difference, not by the total'),
+      find.textContaining('The totals here include both copies.'),
       findsOneWidget,
     );
+
+    // THE COMBINED TOTAL IS GONE, deliberately. 16,250 was printed large and
+    // then walked back in a paragraph, because the two sides pull net worth
+    // in OPPOSITE directions: the headline is really out by 3,750. Somebody
+    // who subtracts 16,250 gets a worse answer than if told nothing.
+    expect(
+      find.text('₱16,250.00'),
+      findsNothing,
+      reason: 'the one figure on the old card that actively misleads',
+    );
+
+    // THE TEACHING MOVED BEHIND THE DOT rather than vanishing. Both of these
+    // were load bearing on the old card and must still be reachable.
+    expect(find.textContaining('out by the difference'), findsNothing);
+    expect(
+      find.textContaining('Nothing is wrong with your money'),
+      findsNothing,
+    );
+
+    final Finder dot = find.bySemanticsLabel(
+      'Why some balances are counted twice',
+    );
+    expect(dot, findsOneWidget, reason: 'the explanation has no way in');
+    await tapAndSettle(tester, dot);
+
     expect(
       find.textContaining('Nothing is wrong with your money'),
       findsOneWidget,
       reason:
           'a money app reporting a double count without that clause reads as '
-          'the app confessing it lost something',
+          'the app confessing it lost something, so it has to be reachable',
+    );
+    expect(
+      find.textContaining('not by the two added together'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the double count no longer outranks the net worth', (
+    WidgetTester tester,
+  ) async {
+    // It used to sit ABOVE the headline, so the first thing the eye landed on
+    // in Position was a housekeeping notice rather than the person's own net
+    // worth. It now sits at the foot of the headline card, where this screen
+    // already puts its "what this figure includes" caveats.
+    await openReports(tester);
+
+    final double headline = tester.getTopLeft(find.text('STILL TO PAY OFF')).dy;
+    final double notice = tester
+        .getTopLeft(find.textContaining('Counted twice:'))
+        .dy;
+
+    expect(
+      notice,
+      greaterThan(headline),
+      reason: 'the notice is above the net worth again',
     );
   });
 
@@ -437,7 +522,15 @@ void main() {
     );
     await openReports(tester, given: s);
 
-    expect(find.text('COUNTED TWICE'), findsNothing);
+    // DIRECTIONAL. Prove the Position headline rendered, or the absence below
+    // passes on a screen that never drew.
+    expect(find.text('WHAT IS REALLY YOURS'), findsOneWidget);
+    expect(find.textContaining('Counted twice:'), findsNothing);
+    expect(
+      find.bySemanticsLabel('Why some balances are counted twice'),
+      findsNothing,
+      reason: 'a dot with nothing to explain teaches people dots are empty',
+    );
   });
 
   testWidgets('recording the home takes the caveat away', (

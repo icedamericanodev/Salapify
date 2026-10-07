@@ -253,6 +253,14 @@ class FinancialPerformance {
   /// A straight-line run rate: what this month ends at if the rest of it
   /// looks like the part so far. See [computePerformance] for why this is
   /// worth distrusting.
+  ///
+  /// COMPUTED AND DELIBERATELY NOT DISPLAYED. These three stay for parity:
+  /// they are golden locked to the prototype's own TypeScript, and dropping
+  /// them would diverge for no gain. The screen that read them was removed on
+  /// 2026-10-07, because a straight line misreads semi-monthly pay on most
+  /// days of the month, not only the first few. Do not wire them back up to
+  /// a screen; see the comment where the card used to be in
+  /// reports_screen.dart for what a correct replacement would need.
   final double projectedIncome;
   final double projectedExpenses;
   final double projectedSurplus;

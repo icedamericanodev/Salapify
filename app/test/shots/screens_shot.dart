@@ -133,6 +133,7 @@ void main() {
   cashFlowReassuranceShot();
   runwayChartShots();
   runwayChartCloseUp();
+  countedTwiceSheetShot();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4221,6 +4222,66 @@ void runwayChartCloseUp() {
     await expectLater(
       find.byType(RunwayRow),
       matchesGoldenFile('out/home_runway_chart_closeup.png'),
+    );
+  });
+}
+
+/// What now sits behind the "Counted twice" dot on Reports > Position.
+///
+/// The on-screen notice was cut from about 85 words to about 22 on founder
+/// direction, 2026-10-07, and the explanation moved into this sheet. Rendered
+/// because moving words behind a dot is only honest if what is behind the dot
+/// actually reads well, and that is something only a look can judge.
+void countedTwiceSheetShot() {
+  testWidgets('the counted twice explainer renders', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 3200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.bySemanticsLabel('Why some balances are counted twice'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Nothing is wrong with your money'),
+      findsOneWidget,
+      reason: 'the sheet did not open, so this shot proves nothing',
+    );
+
+    // MaterialApp, NOT AppShell, and the first render of this shot is the
+    // reason. A bottom sheet lives in the Navigator's overlay ABOVE AppShell,
+    // not inside it, so capturing AppShell drew the Position screen with no
+    // sheet on it while the text assertion above still passed, because the
+    // sheet WAS in the tree. A picture of the wrong layer, with a green check
+    // beside it. Every other sheet shot in this file captures MaterialApp
+    // for exactly this reason.
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/reports_counted_twice_sheet.png'),
     );
   });
 }

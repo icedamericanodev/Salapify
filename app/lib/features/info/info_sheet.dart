@@ -141,9 +141,13 @@ class _Formula extends StatelessWidget {
 enum InfoTopic {
   accounts,
   netWorth,
+  countedTwice,
   performance,
   ratios,
-  runRate,
+  // `runRate` was here and is gone with the month-end forecast card it
+  // explained, removed 2026-10-07. Its own text conceded the defect ("on the
+  // 3rd of the month it is dividing by three days"), which is a lesson that
+  // belonged in a fix rather than behind a dot.
   cashFlow,
   transfers,
   reconciliation,
@@ -313,6 +317,70 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
     formula: 'Net worth = what you own - what you owe',
   ),
 
+  // WHAT USED TO BE ON THE SCREEN, moved here on founder direction,
+  // 2026-10-07: "it is too wordy and the users may feel flooded and
+  // overwhelmed". The on-screen line keeps the names and the one clause that
+  // stops a wrong reading of the headline; everything that explains lives
+  // here, behind the dot beside that line.
+  InfoTopic.countedTwice: InfoContent(
+    title: 'Counted twice',
+    subtitle: 'One balance, entered in two places',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.content_copy_outlined,
+        title: 'What happened',
+        body:
+            'The same balance is on this page as an account and again on your '
+            'Debt list. Salapify counts exactly what it is given, so it '
+            'counted this one twice. Nothing is wrong with your money.',
+      ),
+      InfoPoint(
+        icon: Icons.swap_vert,
+        title: 'Why the figure is off by less than it looks',
+        body:
+            'A loan entered twice makes what you owe too high, which pulls the '
+            'headline down. Money owed to you entered twice makes what you own '
+            'too high, which pushes it up. When both happen they partly '
+            'cancel, so the headline is out by the difference between them, '
+            'not by the two added together.',
+      ),
+      InfoPoint(
+        icon: Icons.groups_outlined,
+        title: 'One account can match your whole list',
+        body:
+            'If an account holds the total of everything people owe you, it is '
+            'the same money as the Owed to you side of your Debt list, just '
+            'added up. That is why one account can be counted against several '
+            'debts.',
+      ),
+      InfoPoint(
+        icon: Icons.delete_outline,
+        title: 'How to fix it',
+        body:
+            'Keep the one you use and delete the other. An account suits a '
+            'balance you check, and a debt suits one you pay down or collect. '
+            'Salapify will not choose for you, because only you know which you '
+            'meant. The totals settle as soon as one copy is gone.',
+      ),
+      // CHECKED AGAINST duplicate_balances.dart, and the first draft of this
+      // point was wrong. It said every match needs the two names to share a
+      // word. Only the one-account-to-one-debt shape checks that; the
+      // running-total shape deliberately does not ("The shared-word clause
+      // does NOT apply here and must not be bolted on"), and that is the
+      // receivables case on the sample ledger, the one this sheet opens on.
+      InfoPoint(
+        icon: Icons.rule,
+        title: 'How Salapify spots it',
+        body:
+            'Only an exact match to the centavo, on the same side of the page. '
+            'A single debt also has to share a word with the account name, '
+            'because two different loans of the same round amount are common. '
+            'Foreign currency accounts are never matched, because the exchange '
+            'rate moves the figure.',
+      ),
+    ],
+  ),
+
   InfoTopic.performance: InfoContent(
     title: 'Money in and out',
     subtitle: 'What actually happened over the period you picked',
@@ -403,35 +471,6 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'By its category. Anything filed under a category or '
             'sub-category naming debt or a loan counts. If a repayment is '
             'filed somewhere else this number will read low.',
-      ),
-    ],
-  ),
-
-  InfoTopic.runRate: InfoContent(
-    title: 'The month-end projection',
-    subtitle: 'A direction, not a forecast',
-    points: <InfoPoint>[
-      InfoPoint(
-        icon: Icons.show_chart,
-        title: 'How it is worked out',
-        body:
-            'Your total so far divided by the days elapsed, multiplied by the '
-            'days in the month. A straight line, nothing cleverer.',
-      ),
-      InfoPoint(
-        icon: Icons.warning_amber_outlined,
-        title: 'Why to distrust it early',
-        body:
-            'On the 3rd of the month it is dividing by three days, so one '
-            'large purchase makes it predict a catastrophe. It settles down '
-            'as the month fills in.',
-      ),
-      InfoPoint(
-        icon: Icons.event_outlined,
-        title: 'It does not know your calendar',
-        body:
-            'Rent, tuition or an annual premium landing later in the month is '
-            'invisible to it until it is logged.',
       ),
     ],
   ),

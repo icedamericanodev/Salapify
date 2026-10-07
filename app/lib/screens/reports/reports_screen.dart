@@ -4,7 +4,6 @@ import '../../core/money/bir_claims.dart';
 import '../../core/money/debt_ratio.dart';
 import '../../core/money/format.dart';
 import '../../core/money/duplicate_balances.dart';
-import '../../core/money/money.dart';
 import '../../core/money/reports.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -156,7 +155,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _ReportTab.performance => _PerformanceView(
                   palette: p,
                   report: r,
-                  period: _period,
                 ),
                 _ReportTab.cashFlow => _CashFlowView(palette: p, report: r),
                 _ReportTab.reconciliation => ReconciliationView(
@@ -431,20 +429,23 @@ class _PositionView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // ABOVE THE FIGURE, NOT BESIDE IT, and the placement is the whole
-        // design. A user panel found that a caveat sitting NEXT TO a headline
-        // made one archetype distrust the headline itself. Above it, with the
-        // reassurance in the same breath, says "read this first, then read
-        // the number" instead of "this number is suspect".
+        // THE DOUBLE COUNT NOTICE IS NO LONGER UP HERE. It moved to the foot
+        // of the headline card below; see `_CountedTwiceLine`.
         //
-        // Nothing renders at all when the books are clean. No green tick, no
-        // "all balanced" badge: a permanent reassurance nobody asked for
-        // teaches people to read this whole area as decoration, which is
-        // exactly what the 2026-09-18 rule rules out.
-        if (report.duplicateBalances.isNotEmpty) ...<Widget>[
-          _DoubleCountCard(palette: palette, flags: report.duplicateBalances),
-          const SizedBox(height: Spacing.md),
-        ],
+        // It sat here on purpose once, and the reason deserves keeping. A
+        // user panel found that a caveat NEXT TO a headline made one
+        // archetype distrust the headline itself, so it was put ABOVE with
+        // the reassurance in the same breath. What that produced was a
+        // bordered amber card of about 85 words that outranked the person's
+        // own net worth, and on 2026-10-07 the founder said: "it is too wordy
+        // and the users may feel flooded and overwhelmed".
+        //
+        // The panel's finding was about an ALARM beside a figure. The
+        // replacement is not an alarm: no border, no warning colour, one
+        // neutral line in the same style the Home runway already uses for
+        // "Counted twice:". A calm footnote is what the screen already does
+        // for the home caveat in the same card, so it is the same kind of
+        // thing in the same place.
         _SectionCard(
           palette: palette,
           // NOT "Net worth" WHEN IT IS NEGATIVE, on founder decision of
@@ -529,6 +530,14 @@ class _PositionView extends StatelessWidget {
                   style: AppType.caption(palette),
                 ),
               ],
+              // Nothing renders when the books are clean. No green tick, no
+              // "all balanced" badge: a permanent reassurance nobody asked
+              // for teaches people to read this area as decoration.
+              if (report.duplicateBalances.isNotEmpty)
+                _CountedTwiceLine(
+                  palette: palette,
+                  flags: report.duplicateBalances,
+                ),
             ],
           ),
         ),
@@ -614,15 +623,14 @@ class _PositionView extends StatelessWidget {
 }
 
 class _PerformanceView extends StatefulWidget {
-  const _PerformanceView({
-    required this.palette,
-    required this.report,
-    required this.period,
-  });
+  // No `period` any more. Its only reader was the month-end forecast card,
+  // which gated itself to the monthly view; with the card gone the field was
+  // carried in and never read. The figures here already arrive filtered to
+  // the chosen period inside `report`.
+  const _PerformanceView({required this.palette, required this.report});
 
   final Palette palette;
   final ReportSet report;
-  final ReportPeriod period;
 
   @override
   State<_PerformanceView> createState() => _PerformanceViewState();
@@ -641,7 +649,6 @@ class _PerformanceViewState extends State<_PerformanceView> {
   Widget build(BuildContext context) {
     final Palette palette = widget.palette;
     final ReportSet report = widget.report;
-    final ReportPeriod period = widget.period;
     final FinancialPerformance f = report.performance;
     final bool positive = f.netSurplus >= 0;
 
@@ -903,42 +910,26 @@ class _PerformanceViewState extends State<_PerformanceView> {
             ),
           ),
         ],
-        // The run rate divides by the day of the MONTH whatever period is
-        // selected, which is the prototype's behaviour. Showing it on "this
-        // year" would project a year onto a month and print a confident
-        // nonsense figure, so it appears on the monthly view only.
-        if (period == ReportPeriod.monthly) ...<Widget>[
-          const SizedBox(height: Spacing.md),
-          _SectionCard(
-            palette: palette,
-            title: 'If the rest of the month looks like this',
-            topic: InfoTopic.runRate,
-            child: Column(
-              children: <Widget>[
-                BreakdownRow(
-                  palette: palette,
-                  label: 'Income by month end',
-                  value: formatPeso(f.projectedIncome),
-                ),
-                BreakdownRow(
-                  palette: palette,
-                  label: 'Spending by month end',
-                  value: formatPeso(f.projectedExpenses),
-                ),
-                Divider(color: palette.border, height: Spacing.lg),
-                BreakdownRow(
-                  palette: palette,
-                  label: 'Left over',
-                  value: _signed(f.projectedSurplus),
-                  emphasis: true,
-                  valueColor: f.projectedSurplus >= 0
-                      ? palette.positive
-                      : palette.negative,
-                ),
-              ],
-            ),
-          ),
-        ],
+        // NO MONTH-END FORECAST HERE, and its absence is deliberate.
+        //
+        // A card called "If the rest of the month looks like this" used to sit
+        // in this spot, projecting the month as a straight line from the days
+        // so far. For somebody paid on the 15th and the 30th that is wrong on
+        // most days, not on a few: no pay yet reads as a large negative before
+        // every cutoff, anything paid once on payday is doubled, and a payday
+        // logged on the 1st projected 32,500 to 1,007,500 in green. It also
+        // treated a one-off repayment as recurring.
+        //
+        // Removed on a financial-coach review the founder delegated,
+        // 2026-10-07. The forward question ("will I make it to the next
+        // cutoff?") is answered on Home by the Runway, from the payday rule
+        // and the dated bills. Reports answers what already happened.
+        //
+        // Do NOT wire `projectedIncome` and friends back up to fix this. A
+        // corrected straight line still misreads anyone whose last payday has
+        // not landed. A real "spending pace" figure would be a new engine that
+        // takes income from the payday rule and excludes bills, transfers and
+        // investments, with its own vectors.
         const SizedBox(height: Spacing.md),
         BirClaimsCard(
           palette: palette,
@@ -1318,116 +1309,99 @@ class _SectionCard extends StatelessWidget {
 /// IT NEVER SUBTRACTS ANYTHING. Every total on this screen stays whole, which
 /// is the same policy the runway card uses for duplicated outflows and for
 /// the same reason: removing a side would mean the app deciding which record
-/// the person meant. An account is the right home for a loan you watch a
-/// balance on; a debt row is the right home for one you make payments
-/// against. Only they know which they intended.
+/// the person meant. Only they know which they intended.
 ///
-/// OUTLINED, NOT FILLED. A filled warning panel the width of the screen above
-/// a net worth figure is a klaxon, and nothing here is an emergency: the
-/// money is fine and the bookkeeping has a duplicate in it.
-class _DoubleCountCard extends StatelessWidget {
-  const _DoubleCountCard({required this.palette, required this.flags});
+/// ONE LINE, NOT A CARD, on founder direction 2026-10-07: "it is too wordy
+/// and the users may feel flooded and overwhelmed". This was a bordered amber
+/// card of about 85 words over twelve lines, sitting above the net worth. It
+/// is now about 22 words at the foot of the headline card.
+///
+/// WHAT STAYS ON SCREEN, and why each part earns it:
+///   - the account NAMES, because they are the thing to go and fix, which
+///     makes them a figure by the 2026-09-18 test rather than a lesson;
+///   - each amount, read straight from the engine;
+///   - "The totals here include both copies.", which is the one clause that
+///     stops a wrong conclusion: without it the headline above is silently
+///     inflated and nothing says so.
+///
+/// WHAT WENT, and why:
+///   - THE COMBINED TOTAL. The card printed 16,250 large and then spent a
+///     paragraph walking it back, because the two sides pull net worth in
+///     OPPOSITE directions and the headline is really out by 3,750. Someone
+///     who subtracted 16,250 got a worse answer than if told nothing. It was
+///     also the only arithmetic this widget did, so the widget now only
+///     formats engine values.
+///   - Everything that teaches, which is behind the dot as
+///     `InfoTopic.countedTwice`.
+///   - The warning colour and the border. Amber on a screen where nothing is
+///     wrong teaches people to ignore the amber that matters, and the old
+///     card's own "nothing is wrong with your money" contradicted its border.
+///
+/// The styling is deliberately the Home runway's "Counted twice:" notice, so
+/// the same idea has the same name and the same look in both places, and no
+/// new colour pair is introduced for the contrast test to measure.
+///
+/// Not tappable apart from the dot: no single screen shows both copies, so a
+/// tap would land on half the story.
+class _CountedTwiceLine extends StatelessWidget {
+  const _CountedTwiceLine({required this.palette, required this.flags});
 
   final Palette palette;
   final List<SuspectedDuplicateBalance> flags;
 
+  /// "A", "A and B", "A, B and C". Every name is listed and none is cut off:
+  /// each one is a to-do, and the readability sweep fails on truncated text.
+  String _listed() {
+    final List<String> items = <String>[
+      for (final SuspectedDuplicateBalance f in flags)
+        '${f.accountName} ${formatPeso(f.amount.pesos)}',
+    ];
+    if (items.length == 1) return items.single;
+    return '${items.sublist(0, items.length - 1).join(', ')} and '
+        '${items.last}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    Money total = Money.zero;
-    for (final SuspectedDuplicateBalance f in flags) {
-      total += f.amount;
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: palette.warning),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                Icons.content_copy_outlined,
-                size: 16,
-                color: palette.warning,
-              ),
-              const SizedBox(width: Spacing.xs),
-              Expanded(
-                child: Text(
-                  'COUNTED TWICE',
-                  style: AppType.kicker(
-                    palette,
-                  ).copyWith(color: palette.warning),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const SizedBox(height: Spacing.sm),
+        Divider(height: 1, color: palette.border),
+        const SizedBox(height: Spacing.sm),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: AppType.caption(palette),
+                  children: <InlineSpan>[
+                    TextSpan(
+                      text: 'Counted twice: ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          '${_listed()}. The totals here include both '
+                          'copies.',
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: Spacing.xs),
-          // THE FIGURE, so the person can tell whether this matters at all.
-          // 200 pesos recorded twice is a shrug; 16,250 is the difference
-          // between two different pictures of somebody's finances.
-          Text(formatPeso(total.pesos), style: AppType.amount(palette)),
-          const SizedBox(height: 2),
-          // WHICH SIDE, when both are affected, and this is a
-          // wrong-conclusion stopper rather than detail. The two sides pull
-          // net worth in OPPOSITE directions: on the sample ledger 10,000 of
-          // what you owe and 6,250 of what you are owed are each counted
-          // twice, so the headline figure is out by the difference, 3,750,
-          // and not by the 16,250 printed above. Somebody who reads one
-          // figure and subtracts it from the other gets a worse answer than
-          // if the card had said nothing.
-          Text(() {
-            Money owed = Money.zero;
-            Money owedToYou = Money.zero;
-            for (final SuspectedDuplicateBalance f in flags) {
-              if (f.isLiability) {
-                owed += f.amount;
-              } else {
-                owedToYou += f.amount;
-              }
-            }
-            if (owed.isPositive && owedToYou.isPositive) {
-              return 'is on this page twice: ${formatPeso(owed.pesos)} of '
-                  'what you owe, and ${formatPeso(owedToYou.pesos)} of what '
-                  'you are owed. They pull in opposite directions, so the '
-                  'figure below is out by the difference, not by the total.';
-            }
-            return flags.length == 1
-                ? 'is on this page twice.'
-                : 'is on this page twice, across ${flags.length} entries.';
-          }(), style: AppType.caption(palette)),
-          const SizedBox(height: Spacing.sm),
-          // NAMED, every one. A figure with no name sends somebody hunting
-          // through two screens for it, and the whole value of this card is
-          // that they can go and look.
-          for (final SuspectedDuplicateBalance f in flags)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                '${f.accountName} is also recorded as '
-                '${f.debtNames.length == 1 ? f.debtNames.first : "${f.debtNames.length} debts"}.',
-                style: AppType.caption(palette),
-              ),
             ),
-          const SizedBox(height: Spacing.xs),
-          // THE WRONG CONCLUSION THIS STOPS, and it is the reason the card
-          // says anything at all rather than quietly netting the figures off.
-          // Somebody who sees a total they did not expect concludes the app
-          // is broken. The honest sentence is that the app counted exactly
-          // what it was given, twice, because it was given it twice.
-          Text(
-            'Nothing is wrong with your money. The same amount was entered '
-            'in two places, so both totals above include it. Delete whichever '
-            'one you do not use and the figures settle.',
-            style: AppType.caption(palette),
-          ),
-        ],
-      ),
+            InfoDot(
+              color: palette.textMuted,
+              semanticLabel: 'Why some balances are counted twice',
+              onTap: () =>
+                  InfoSheet.show(context, palette, InfoTopic.countedTwice),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
