@@ -71,11 +71,19 @@ class ShareBar extends StatelessWidget {
     required this.palette,
     required this.segments,
     required this.maxY,
+    this.showTrack = true,
   });
 
   final Palette palette;
   final List<ChartSegment> segments;
   final double maxY;
+
+  /// Whether to draw the faint track for the unused rest of the scale.
+  /// Off on Position: there the scale belongs to a bar in ANOTHER card, and
+  /// a track reads as "40% of something", the way every other track in the
+  /// app means share or progress. Without it the two bars still compare by
+  /// length, with no false 100% behind them.
+  final bool showTrack;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +135,7 @@ class ShareBar extends StatelessWidget {
                   // The unused rest of the scale, drawn faintly, so a short
                   // bar reads as short against something.
                   backDrawRodData: BackgroundBarChartRodData(
-                    show: true,
+                    show: showTrack,
                     toY: top,
                     color: palette.trackSoft,
                   ),
@@ -166,15 +174,18 @@ class _BarRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
+          // A Wrap, not a Row with an Expanded label. Beside a figure that
+          // cannot shrink, an Expanded label is what gives way, and at 320dp
+          // and 2.0x text it was squeezed to one letter per line. A Wrap
+          // keeps both whole and drops the figure to its own line only when
+          // the two genuinely do not fit side by side.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: Spacing.sm,
+            runSpacing: 2,
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppType.body(palette).copyWith(fontSize: 12),
-                ),
-              ),
-              const SizedBox(width: Spacing.sm),
+              Text(label, style: AppType.body(palette).copyWith(fontSize: 12)),
               // The figure in the TEXT colour, never the bar's: the bar
               // carries identity and the number stays readable in both modes.
               Text(
@@ -226,6 +237,17 @@ positionSegments(Palette palette, FinancialPosition p) {
     0,
     (double a, ChartSegment s) => s.value > 0 ? a + s.value : a,
   );
+  // A PART BELOW ZERO MEANS NO BARS, and the rows alone carry the figures.
+  // A negative part has no length, so the bar draws only the positive ones
+  // and comes out longer than the total it stands for. With cash at -3,000,
+  // 5,000 owed to you and 4,000 owed, the headline says "Still to pay off
+  // 2,000" while the own bar draws 5,000 and outruns the owe bar of 4,000:
+  // a picture that contradicts the figure above it. That is common, too, for
+  // anybody who logged spending from a zero opening balance or overpaid a
+  // card. A chart that misleads is worse than no chart.
+  if (<ChartSegment>[...own, ...owe].any((ChartSegment s) => s.value < 0)) {
+    return (own: own, owe: owe, scale: 0);
+  }
   return (own: own, owe: owe, scale: math.max(drawn(own), drawn(owe)));
 }
 
@@ -348,9 +370,10 @@ class _DivergingBar extends StatelessWidget {
 /// as a bar from one shared zero line.
 ///
 /// Polarity is carried THREE ways, so colour is never the only cue: which side
-/// of the line the bar sits, the sign on the figure, and the colour. That
-/// matters here in particular, because the app's own green and orange failed
-/// colour-blind separation and this chart uses blue instead (chart_colors.dart).
+/// of the line the bar sits, the sign on the figure, and the colour. That is
+/// what lets this chart use the app's own green and orange, the pair that
+/// failed colour-blind separation as bare colour (chart_colors.dart): here the
+/// colour is the third cue, never the only one.
 class CashFlowChart extends StatelessWidget {
   const CashFlowChart({
     super.key,
@@ -378,8 +401,6 @@ class CashFlowChart extends StatelessWidget {
     );
     if (reach <= 0) return const SizedBox.shrink();
 
-    final ChartColors c = ChartColors.of(palette);
-
     return Semantics(
       label:
           'Operating ${formatPesoWithSign(cashFlow.netOperating)}, '
@@ -398,7 +419,13 @@ class CashFlowChart extends StatelessWidget {
                 palette: palette,
                 value: r.net,
                 reach: reach,
-                color: r.net >= 0 ? c.inflow : c.outflow,
+                // The app's own green and orange HERE, not the chart blue.
+                // The hero above and the section cards below print these
+                // same nets in green and orange, and a third colour for the
+                // same figure invites "what is blue?". The colour-blind
+                // reason for blue does not apply on this chart: the side of
+                // the zero line and the minus sign already carry direction.
+                color: r.net >= 0 ? palette.positive : palette.negative,
               ),
             ),
         ],

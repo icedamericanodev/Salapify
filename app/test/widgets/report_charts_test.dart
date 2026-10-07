@@ -14,6 +14,8 @@ import 'package:salapify/design/tokens.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/reports/report_charts.dart';
 
+import '../shots/screens_shot.dart' show loadRealFonts;
+
 Account _account(String id, AccountKind kind, Money balance) => Account(
   id: id,
   name: id,
@@ -60,25 +62,34 @@ void main() {
       expect(bars.scale, 460000);
     });
 
-    test('a part below zero cannot push the bar off its own end', () {
-      // A WHOLE PART below zero, not one account: an overdrawn wallet is
-      // netted against the bank inside "Cash and e-wallets" and never reaches
-      // here. An investment account entered at a loss does. Owned parts are
-      // then 10,000 cash and -1,500 investments, the total is 8,500, and the
-      // bar DRAWS 10,000, because a negative part has no length. A scale
-      // taken from the total would be shorter than the bar it holds.
-      final FinancialPosition p = computePosition(<Account>[
-        _account('b', AccountKind.bank, const Money.pesos(10000)),
-        _account('i', AccountKind.investment, const Money.pesos(-1500)),
-      ], null);
-      expect(p.totalAssets, const Money.pesos(8500));
-      final bars = positionSegments(palette, p);
-      expect(
-        bars.scale,
-        10000,
-        reason: 'the scale must hold everything the bar draws',
-      );
-    });
+    test(
+      'a part below zero hides the bars rather than contradict the total',
+      () {
+        // The case a design review found: a new user who logged spending from a
+        // zero opening balance. Cash -3,000, owed to you 5,000, owed 4,000. The
+        // headline says "Still to pay off 2,000", but a bar can only draw the
+        // positive parts, so the own bar would draw 5,000 and outrun the owe
+        // bar of 4,000: the picture says the opposite of the figure above it.
+        // Scale 0 hides both bars and their dots; the rows still print every
+        // signed figure.
+        final FinancialPosition p = computePosition(<Account>[
+          _account('w', AccountKind.cash, const Money.pesos(-3000)),
+          _account('r', AccountKind.receivable, const Money.pesos(5000)),
+          _account('c', AccountKind.credit, const Money.pesos(4000)),
+        ], null);
+        expect(p.netWorth, const Money.pesos(-2000));
+        final bars = positionSegments(palette, p);
+        expect(
+          bars.scale,
+          0,
+          reason:
+              'the bars would show owning more than owing, under a headline '
+              'that says the reverse',
+        );
+        // DIRECTIONAL: the parts are still all there for the rows to print.
+        expect(bars.own.map((ChartSegment s) => s.value), contains(-3000));
+      },
+    );
 
     test('a home is its own part of what you own', () {
       final FinancialPosition p = computePosition(<Account>[
@@ -134,6 +145,43 @@ void main() {
           .map((BarChart c) => (c.data.minY, c.data.maxY))
           .toSet();
       expect(ranges, <(double, double)>{(-31675.25, 31675.25)});
+    });
+
+    testWidgets('a label stays whole at 320dp and the largest system text', (
+      WidgetTester tester,
+    ) async {
+      // MEASURED IN THE SHIPPED FONT, because the default test font is wider
+      // than Plus Jakarta Sans and would judge a layout the phone never
+      // draws. The label used to sit in an Expanded beside a figure that
+      // cannot shrink, and at 2.0x it was squeezed to a letter per line.
+      await tester.runAsync(loadRealFonts);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'PlusJakartaSans'),
+          home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+            child: Scaffold(
+              body: SizedBox(
+                width: 320,
+                child: CashFlowChart(
+                  palette: palette,
+                  cashFlow: _flow(op: 12345678.90, fin: -6450),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final Size word = tester.getSize(find.text('Operating'));
+      final double oneLine = tester.getSize(find.text('Investing')).height;
+      expect(
+        word.height,
+        lessThanOrEqualTo(oneLine * 1.01),
+        reason: 'the label broke onto more than one line',
+      );
+      // And really one line, not two equally squeezed labels.
+      expect(word.width, greaterThan(word.height * 2));
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('a period with no cash movement draws no chart', (

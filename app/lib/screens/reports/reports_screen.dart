@@ -577,6 +577,7 @@ class _PositionView extends StatelessWidget {
                   palette: palette,
                   segments: bars.own,
                   maxY: bars.scale,
+                  showTrack: false,
                 ),
                 const SizedBox(height: Spacing.sm),
               ],
@@ -589,7 +590,7 @@ class _PositionView extends StatelessWidget {
                     palette: palette,
                     label: s.label,
                     value: _signed(s.value),
-                    swatch: bars.scale > 0 ? s.color : null,
+                    swatch: bars.scale > 0 && s.value > 0 ? s.color : null,
                   ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
@@ -614,6 +615,7 @@ class _PositionView extends StatelessWidget {
                   palette: palette,
                   segments: bars.owe,
                   maxY: bars.scale,
+                  showTrack: false,
                 ),
                 const SizedBox(height: Spacing.sm),
               ],
@@ -622,7 +624,7 @@ class _PositionView extends StatelessWidget {
                   palette: palette,
                   label: s.label,
                   value: _signed(s.value),
-                  swatch: bars.scale > 0 ? s.color : null,
+                  swatch: bars.scale > 0 && s.value > 0 ? s.color : null,
                 ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
