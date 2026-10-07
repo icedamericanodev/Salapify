@@ -136,6 +136,7 @@ void main() {
   runwayChartCloseUp();
   countedTwiceSheetShot();
   birClaimsShots();
+  reportsTrendShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4357,6 +4358,109 @@ void birClaimsShots() {
       await expectLater(
         find.byType(BirClaimsCard),
         matchesGoldenFile('out/bir_claims_${state.slug}.png'),
+      );
+    });
+  }
+}
+
+/// Reports > Performance with FIVE EARLIER MONTHS of history on top of the
+/// seed, so the spending pace line and the month by month bars can be judged
+/// against a ledger that has a past.
+///
+/// The seed is almost entirely the last fortnight, which is right for Home
+/// and wrong for a chart about change: over the seed alone the month by month
+/// card is two thin pairs and the pace line has no last month to race. This
+/// ADDS to the lived-in fixture rather than replacing it, per the rule about
+/// never shrinking it. The figures are a plausible kinsenas salaried life:
+/// paid on the 15th and the 30th, rent early, groceries weekly, one heavy
+/// month (June, school fees) so the bars have something to show.
+void reportsTrendShots() {
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('reports performance trends render in $theme', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 6000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      if (state.theme != mode) state.toggleTheme();
+
+      int seq = 0;
+      void add(
+        int month,
+        int day,
+        double amount,
+        String category, {
+        bool income = false,
+      }) => state.logTransaction(
+        Transaction(
+          id: 'trend_${seq++}',
+          type: income ? TransactionType.income : TransactionType.expense,
+          amount: Money.fromDouble(amount),
+          category: category,
+          accountId: 'acc_bpi',
+          date:
+              '2026-${month.toString().padLeft(2, '0')}-'
+              '${day.toString().padLeft(2, '0')}',
+          createdAt: DateTime.utc(2026, month, day).millisecondsSinceEpoch,
+        ),
+      );
+
+      // Spending scale per month: June is the heavy one.
+      const Map<int, double> scale = <int, double>{
+        4: 1.0,
+        5: 1.08,
+        6: 1.32,
+        7: 0.94,
+        8: 0.9,
+      };
+      for (final int m in scale.keys) {
+        final double k = scale[m]!;
+        add(m, 15, 25500, 'Salary', income: true);
+        add(m, 30, 25500, 'Salary', income: true);
+        add(m, 2, 12000, 'Housing & Rent');
+        add(m, 6, 2850 * k, 'Bills & Utilities');
+        for (final int d in <int>[4, 11, 18, 25]) {
+          add(m, d, 2300 * k, 'Groceries');
+        }
+        for (final int d in <int>[3, 8, 13, 17, 21, 27]) {
+          add(m, d, 640 * k, 'Food & Dining');
+        }
+        for (final int d in <int>[5, 12, 19, 26]) {
+          add(m, d, 420 * k, 'Transport & Commute');
+        }
+        if (m == 6) add(m, 9, 9500, 'Education');
+      }
+
+      final Palette palette = Palette.of(state.theme);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Performance'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SPENDING PACE'), findsOneWidget);
+      expect(find.text('MONTH BY MONTH'), findsOneWidget);
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/reports_trends_$theme.png'),
       );
     });
   }

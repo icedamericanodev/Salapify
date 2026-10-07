@@ -5,6 +5,7 @@ import '../../core/money/debt_ratio.dart';
 import '../../core/money/format.dart';
 import '../../core/money/duplicate_balances.dart';
 import '../../core/money/reports.dart';
+import '../../core/money/trends.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/info/info_dot.dart';
@@ -16,6 +17,7 @@ import 'bir_claims_card.dart';
 import 'category_bar.dart';
 import 'reconciliation_view.dart';
 import 'report_charts.dart';
+import 'trend_charts.dart';
 
 /// Reports, the prototype's third tab, from archive/prototype-google-ai-studio/src/components/ReportsScreen.tsx.
 ///
@@ -156,6 +158,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _ReportTab.performance => _PerformanceView(
                   palette: p,
                   report: r,
+                  period: _period,
+                  // Built only when this tab shows: six engine runs are cheap,
+                  // but not free, and Position and Cash flow never read them.
+                  trends: buildTrends(
+                    transactions: widget.state.transactions,
+                    now: widget.state.now,
+                    profile: widget.state.activeProfile,
+                  ),
                 ),
                 _ReportTab.cashFlow => _CashFlowView(palette: p, report: r),
                 _ReportTab.reconciliation => ReconciliationView(
@@ -643,14 +653,21 @@ class _PositionView extends StatelessWidget {
 }
 
 class _PerformanceView extends StatefulWidget {
-  // No `period` any more. Its only reader was the month-end forecast card,
-  // which gated itself to the monthly view; with the card gone the field was
-  // carried in and never read. The figures here already arrive filtered to
-  // the chosen period inside `report`.
-  const _PerformanceView({required this.palette, required this.report});
+  // `period` is back, with a real reader this time: the spending pace line
+  // is a THIS MONTH chart and shows only on the monthly view. (It was removed
+  // once when its only reader, the month-end forecast card, went, and a field
+  // nothing reads is a field nobody keeps correct.)
+  const _PerformanceView({
+    required this.palette,
+    required this.report,
+    required this.period,
+    required this.trends,
+  });
 
   final Palette palette;
   final ReportSet report;
+  final ReportPeriod period;
+  final TrendSet trends;
 
   @override
   State<_PerformanceView> createState() => _PerformanceViewState();
@@ -671,6 +688,7 @@ class _PerformanceViewState extends State<_PerformanceView> {
     final ReportSet report = widget.report;
     final FinancialPerformance f = report.performance;
     final bool positive = f.netSurplus >= 0;
+    final TrendSet trends = widget.trends;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -702,6 +720,51 @@ class _PerformanceViewState extends State<_PerformanceView> {
             '${formatPeso(f.repaymentInflows)} of this is money coming back '
             'to you, not new money. The rates below leave it out.',
             style: AppType.caption(palette),
+          ),
+        ],
+        // THE TWO CHARTS THAT SHOW CHANGE, right under the period's own
+        // figures and above everything that explains them. See
+        // trend_charts.dart for why these two and not others.
+        //
+        // The pace line is a THIS MONTH chart, so it shows on the monthly
+        // view only, and only once there is something to draw.
+        if (widget.period == ReportPeriod.monthly &&
+            (trends.pace.spentSoFar > 0 ||
+                trends.pace.hasLastMonth)) ...<Widget>[
+          const SizedBox(height: Spacing.md),
+          _SectionCard(
+            palette: palette,
+            title: 'Spending pace',
+            child: SpendingPaceChart(palette: palette, pace: trends.pace),
+          ),
+        ],
+        // Month by month needs two months to compare, or it is one pair of
+        // bars repeating the card above. It does not follow the period
+        // chips: it is always calendar months, and says so in its title.
+        if (trends.months.length >= 2) ...<Widget>[
+          const SizedBox(height: Spacing.md),
+          _SectionCard(
+            palette: palette,
+            title: 'Month by month',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                MonthlyInOutChart(palette: palette, months: trends.months),
+                // Stated, because the current month here would otherwise
+                // disagree with "This month" above by exactly these entries
+                // and nothing on screen would say why.
+                if (trends.undated > 0) ...<Widget>[
+                  const SizedBox(height: Spacing.sm),
+                  Text(
+                    trends.undated == 1
+                        ? '1 entry with an unreadable date is left out here.'
+                        : '${trends.undated} entries with an unreadable date '
+                              'are left out here.',
+                    style: AppType.caption(palette),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
         const SizedBox(height: Spacing.md),
