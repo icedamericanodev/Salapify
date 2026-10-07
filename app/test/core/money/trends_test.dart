@@ -130,6 +130,9 @@ void main() {
         reason: 'an undated entry was counted in the trend',
       );
       expect(t.undated, 1);
+      // And in pesos, which is what lets the card above and this chart be
+      // reconciled on screen.
+      expect(_c(t.undatedAmount), _c(5000));
     });
   });
 

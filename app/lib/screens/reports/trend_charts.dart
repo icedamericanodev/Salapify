@@ -239,9 +239,12 @@ class _SpendingPaceChartState extends State<SpendingPaceChart> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           // THE ANSWER LEADS, not the amount. The amount spent so far is
-          // "Money out" in the card directly above on this view, and printing
-          // it a second time here made the same figure appear three times in
-          // a row once the month by month card was added under this one.
+          // close to "Money out" in the card directly above on this view, and
+          // printing it here as well made nearly the same figure appear three
+          // times in a row. CLOSE, not equal: "Money out" also counts entries
+          // dated later this month and entries with an unreadable date, which
+          // the line cannot place, and the card says both amounts when there
+          // are any (scheduledLater here, UndatedNote under it).
           if (verdict != null) ...<Widget>[
             Text(
               verdict,
@@ -995,6 +998,14 @@ class _NetWorthChartState extends State<NetWorthChart> {
 
     // Every label up to six months; past that every other one, so twelve
     // month names never crowd a 320dp phone.
+    // X IS THE MONTH, not the list position: a month the app was never
+    // opened in has no record, and spacing by position drew June to August
+    // as one step with the gap invisible. Months since the first record.
+    final List<int> xs = <int>[
+      for (final NetWorthPoint x in pts)
+        (x.year * 12 + x.month) - (pts.first.year * 12 + pts.first.month),
+    ];
+
     bool showLabel(int i) =>
         pts.length <= 6 || i == sel || (pts.length - 1 - i).isEven;
 
@@ -1030,8 +1041,8 @@ class _NetWorthChartState extends State<NetWorthChart> {
                 builder: (double t) => LineChart(
                   duration: Duration.zero,
                   LineChartData(
-                    minX: -0.3,
-                    maxX: pts.length - 0.7,
+                    minX: xs.first - 0.3,
+                    maxX: xs.last + 0.3,
                     minY: minY,
                     maxY: maxY,
                     borderData: FlBorderData(show: false),
@@ -1057,10 +1068,13 @@ class _NetWorthChartState extends State<NetWorthChart> {
                           interval: 1,
                           reservedSize: _tickBand(palette, tick),
                           getTitlesWidget: (double v, TitleMeta meta) {
-                            final int i = v.round();
-                            if ((v - i).abs() > 0.01 ||
+                            // The axis runs in MONTHS, so a tick may fall on
+                            // a month with no record; only recorded ones are
+                            // labelled.
+                            final int i = xs.indexOf(v.round());
+
+                            if ((v - v.round()).abs() > 0.01 ||
                                 i < 0 ||
-                                i >= pts.length ||
                                 !showLabel(i)) {
                               return const SizedBox.shrink();
                             }
@@ -1104,7 +1118,7 @@ class _NetWorthChartState extends State<NetWorthChart> {
                             // Grows from the zero line, or from the bottom
                             // when the whole line is above zero.
                             FlSpot(
-                              i.toDouble(),
+                              xs[i].toDouble(),
                               (crosses ? 0 : minY) +
                                   (ys[i] - (crosses ? 0 : minY)) * t,
                             ),
@@ -1180,6 +1194,40 @@ class _NetWorthChartState extends State<NetWorthChart> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Says, under a month chart, how much money the chart leaves out and why.
+///
+/// The cards above a chart count an entry whose date cannot be read (the
+/// prototype's rule, kept so a corrupt date makes a total look wrong rather
+/// than shrink), and the month charts cannot place it in any month. So the
+/// two disagree by exactly this amount, and silence would read as the app
+/// losing money. Shown under EVERY month chart, including the pace line,
+/// which can be on screen when the month by month card is not. Only an
+/// imported or restored file can hold such an entry.
+class UndatedNote extends StatelessWidget {
+  const UndatedNote({super.key, required this.palette, required this.trends});
+
+  final Palette palette;
+  final TrendSet trends;
+
+  @override
+  Widget build(BuildContext context) {
+    if (trends.undated <= 0) return const SizedBox.shrink();
+    final String entries = trends.undated == 1
+        ? '1 entry'
+        : '${trends.undated} entries';
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: Text(
+        '$entries with an unreadable date '
+        '(${formatPeso(trends.undatedAmount)}) '
+        '${trends.undated == 1 ? 'is' : 'are'} counted in the figures above '
+        'but not in this chart.',
+        style: AppType.caption(palette),
+      ),
     );
   }
 }

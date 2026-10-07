@@ -4452,6 +4452,16 @@ void reportsTrendShots() {
       final Map<String, dynamic> file = state.snapshot().toJson(
         at: DateTime.utc(2026, 9, 18),
       );
+      // As the person's OWN money, not example data: the chart is hidden
+      // while example data is in the book, because nothing is recorded then.
+      for (final Object? collection in file.values) {
+        if (collection is! List) continue;
+        for (final Object? row in collection) {
+          if (row is Map && row.containsKey('isSample')) {
+            row['isSample'] = false;
+          }
+        }
+      }
       file['netWorthHistory'] = <Map<String, Object>>[
         for (final (int m, double a, double l) r in <(int, double, double)>[
           (4, 196000, 466400),

@@ -153,13 +153,28 @@ void main() {
 
       // The whole document, minus the timestamp, which moves on every write,
       // and minus the net worth records, which every save now refreshes for
-      // the current month and which are checked on their own below.
+      // the current month, checked on their own below.
       Map<String, dynamic> stripped(String raw) {
         final Map<String, dynamic> m = Map<String, dynamic>.from(
           jsonDecode(raw) as Map,
         );
         m.remove('timestamp');
-        m.remove(Snapshot.kNetWorthHistory);
+        // ONLY this month's net worth row: every save refreshes it from the
+        // book on screen. Every EARLIER month must come back identical, so
+        // an undo that dropped the history cannot pass. An emptied list is
+        // removed so a file that had no history still compares equal.
+        final Object? h = m[Snapshot.kNetWorthHistory];
+        if (h is List) {
+          final List<Object?> kept = <Object?>[
+            for (final Object? r in h)
+              if (!(r is Map && r['month'] == '2026-09')) r,
+          ];
+          if (kept.isEmpty) {
+            m.remove(Snapshot.kNetWorthHistory);
+          } else {
+            m[Snapshot.kNetWorthHistory] = kept;
+          }
+        }
         return m;
       }
 

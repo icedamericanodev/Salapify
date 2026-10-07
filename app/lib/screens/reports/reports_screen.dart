@@ -160,7 +160,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   report: r,
                   // ALL ENTITIES ONLY: the records are the whole book, so a
                   // line under one entity's figures would not match them.
-                  netWorth: widget.state.activeProfile == null
+                  // And not while the example data is in the book: nothing is
+                  // recorded then, so the live point would be demo money and
+                  // the "first month" line would be false.
+                  netWorth:
+                      widget.state.activeProfile == null &&
+                          !widget.state.hasSampleData
                       ? netWorthSeries(
                           widget.state.netWorthHistory,
                           r.position,
@@ -779,7 +784,16 @@ class _PerformanceViewState extends State<_PerformanceView> {
             palette: palette,
             title: 'This month vs last month',
             topic: InfoTopic.thisMonthVsLast,
-            child: SpendingPaceChart(palette: palette, pace: trends.pace),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SpendingPaceChart(palette: palette, pace: trends.pace),
+                // Here too: this card can show when the month card below
+                // cannot (a first month), and the line then ends short of
+                // "Money out" by exactly this amount.
+                UndatedNote(palette: palette, trends: trends),
+              ],
+            ),
           ),
         ],
         // Month by month needs two months to compare, or it is one pair of
@@ -803,19 +817,10 @@ class _PerformanceViewState extends State<_PerformanceView> {
                       ? trends.months.length - 2
                       : null,
                 ),
-                // Stated, because the current month here would otherwise
-                // disagree with "This month" above by exactly these entries
+                // Stated, in pesos, because the current month here would
+                // otherwise disagree with "This month" above by exactly this
                 // and nothing on screen would say why.
-                if (trends.undated > 0) ...<Widget>[
-                  const SizedBox(height: Spacing.sm),
-                  Text(
-                    trends.undated == 1
-                        ? '1 entry with an unreadable date is left out here.'
-                        : '${trends.undated} entries with an unreadable date '
-                              'are left out here.',
-                    style: AppType.caption(palette),
-                  ),
-                ],
+                UndatedNote(palette: palette, trends: trends),
               ],
             ),
           ),
@@ -1197,13 +1202,21 @@ class _CashFlowView extends StatelessWidget {
             palette: palette,
             title: 'Month by month',
             topic: InfoTopic.cashByMonth,
-            child: MonthlyCashChart(
-              palette: palette,
-              months: trends.months,
-              // The headline above is this month on the monthly view.
-              initialIndex: period == ReportPeriod.monthly
-                  ? trends.months.length - 2
-                  : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                MonthlyCashChart(
+                  palette: palette,
+                  months: trends.months,
+                  // The headline above is this month on the monthly view.
+                  initialIndex: period == ReportPeriod.monthly
+                      ? trends.months.length - 2
+                      : null,
+                ),
+                // The Cash flow headline counts these entries and this
+                // chart cannot, so the two differ by exactly this.
+                UndatedNote(palette: palette, trends: trends),
+              ],
             ),
           ),
         ],

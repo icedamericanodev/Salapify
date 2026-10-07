@@ -63,6 +63,18 @@ List<NetWorthPoint> recordNetWorth(
     liabilities: position.totalLiabilities,
   );
   final int at = history.indexWhere((NetWorthPoint p) => p.isSameMonth(now));
+  // A CLOCK SET BACKWARDS MUST NOT REWRITE A FINISHED MONTH. If a later month
+  // is already recorded, "this month" by the phone's clock is in the past,
+  // and replacing its stored row with today's balances would draw that month
+  // wrong for good once the clock is put right. A month with a later month
+  // after it is therefore never overwritten. A NEW row for such a month is
+  // still allowed: blocking inserts would freeze recording for months after
+  // a clock jumped forward, and losing real months is worse than gaining one
+  // stray back-dated row, which netWorthSeries orders correctly anyway.
+  if (at >= 0 &&
+      history.any((NetWorthPoint p) => p.key.compareTo(fresh.key) > 0)) {
+    return history;
+  }
   if (at >= 0) {
     final NetWorthPoint old = history[at];
     if (old.assets == fresh.assets && old.liabilities == fresh.liabilities) {

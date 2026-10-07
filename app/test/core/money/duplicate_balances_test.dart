@@ -11,6 +11,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/duplicate_balances.dart';
 import 'package:salapify/core/money/money.dart';
+import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/state/financial_state.dart';
 
@@ -48,6 +49,7 @@ Debt _debt(
 );
 
 void main() {
+  scopedToTheSheet();
   group('the sample ledger', () {
     final FinancialState seed = FinancialState(
       clock: DateTime.utc(2026, 9, 18),
@@ -412,5 +414,48 @@ void main() {
       expect(f, hasLength(1));
       expect(f.first.kind, BalanceOverlapKind.oneToOne);
     });
+  });
+}
+
+/// The flag footnotes the Position it sits under, so it must look at the
+/// same accounts. Found by a ledger reconciliation pass, 2026-10-07: under
+/// Business, a personal loan account was flagged although it was not on the
+/// Business sheet, and the line said the totals included both copies.
+void scopedToTheSheet() {
+  test('Counted twice only names what the picked entity\'s totals contain', () {
+    const Account personalLoan = Account(
+      id: 'loan',
+      name: 'BPI Gadget Loan',
+      kind: AccountKind.loan,
+      institution: 'BPI',
+      balance: Money.pesos(12000),
+      monogram: 'BPI',
+      profile: ProfileEntity.personal,
+    );
+    final List<Debt> debts = <Debt>[
+      _debt(
+        'd',
+        'BPI Gadget Loan',
+        DebtDirection.iOwe,
+        const Money.pesos(12000),
+      ),
+    ];
+    ReportSet under(ProfileEntity? p) => buildReports(
+      transactions: const <Transaction>[],
+      accounts: const <Account>[personalLoan],
+      debts: debts,
+      period: ReportPeriod.monthly,
+      now: DateTime(2026, 10, 18),
+      profile: p,
+    );
+
+    expect(
+      under(ProfileEntity.business).duplicateBalances,
+      isEmpty,
+      reason: 'a loan not on the Business sheet was flagged as counted twice',
+    );
+    // DIRECTIONAL: where the loan IS on the sheet, it is still flagged.
+    expect(under(ProfileEntity.personal).duplicateBalances, hasLength(1));
+    expect(under(null).duplicateBalances, hasLength(1));
   });
 }

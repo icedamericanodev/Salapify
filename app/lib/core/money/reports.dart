@@ -968,7 +968,15 @@ ReportSet buildReports({
     // now; "my net worth last March" is a different feature and needs history
     // the app does not keep.
     position: computePosition(accounts, profile, debts: debts, plans: plans),
-    duplicateBalances: findDuplicateBalances(accounts: accounts, debts: debts),
+    // SCOPED WITH THE SAME FILTER AS THE POSITION IT FOOTNOTES. Given every
+    // account, a personal loan was flagged under Business, where it is not on
+    // the sheet, and the line under the totals said "the totals here include
+    // both copies" of an amount the totals did not contain. Only the flag
+    // moves; no total does.
+    duplicateBalances: findDuplicateBalances(
+      accounts: filterAccountsByProfile(accounts, profile),
+      debts: debts,
+    ),
     performance: computePerformance(scoped, now),
     cashFlow: computeCashFlow(scoped),
     expenseByCategory: computeCategoryBreakdown(

@@ -53,6 +53,7 @@ class Snapshot {
     this.activeProfile,
     this.guideSteps = const <String>{},
     this.netWorthHistory = const <NetWorthPoint>[],
+    this.netWorthUnread = const <Object?>[],
     this.extras = const Extras.empty(),
   });
 
@@ -178,6 +179,11 @@ class Snapshot {
   /// that older build REFUSE the whole file, which is far worse than not
   /// drawing a chart.
   final List<NetWorthPoint> netWorthHistory;
+
+  /// History rows this build could not draw, kept verbatim and written back
+  /// after the readable ones. Never read by a screen. See
+  /// `_readNetWorthHistory` for why nothing in this history is dropped.
+  final List<Object?> netWorthUnread;
 
   /// Everything in the file this build did not understand, kept verbatim.
   final Extras extras;
@@ -356,10 +362,12 @@ class Snapshot {
       // Omitted when empty, like the guide steps, so a file is byte for byte
       // what it was until the first month is recorded. Oldest first, and a
       // readable row's unknown keys merged back, as every record does.
-      if (netWorthHistory.isNotEmpty)
-        kNetWorthHistory: <Map<String, dynamic>>[
+      if (netWorthHistory.isNotEmpty || netWorthUnread.isNotEmpty)
+        kNetWorthHistory: <Object?>[
           for (final NetWorthPoint p in netWorthHistory)
             merged(kNetWorthHistory, p.key, netWorthPointToJson(p)),
+          // The rows this build could not draw, back exactly as they came.
+          ...netWorthUnread,
         ],
     };
   }
@@ -376,56 +384,6 @@ class Snapshot {
   /// Unknown ids ARE kept, because a step this build does not recognise
   /// belongs to a newer build or a reworded guide, and dropping it would
   /// silently untick somebody's checklist the next time the file is saved.
-  /// The monthly net worth records, read LENIENTLY, like [_readGuideSteps].
-  ///
-  /// A chart is never worth refusing a ledger over. Not a list, no history.
-  /// A row without a real 'YYYY-MM' month or with an amount that is not a
-  /// finite number is skipped rather than thrown on. Two rows for the same
-  /// month keep the later one, which is what a save would have written.
-  /// A readable row's unknown keys are kept and merged back on save, the rule
-  /// every record in this file follows, so a newer build's extra field
-  /// survives a round trip through this one.
-  static List<NetWorthPoint> _readNetWorthHistory(
-    Object? raw,
-    ExtrasBuilder extras,
-  ) {
-    if (raw is! List) return const <NetWorthPoint>[];
-    final Map<String, NetWorthPoint> byMonth = <String, NetWorthPoint>{};
-    for (final Object? e in raw) {
-      if (e is! Map) continue;
-      final Map<String, dynamic> row = Map<String, dynamic>.from(e);
-      final Object? month = row['month'];
-      final Object? assets = row['assets'];
-      final Object? liabilities = row['liabilities'];
-      if (month is! String || assets is! num || liabilities is! num) continue;
-      if (!assets.isFinite || !liabilities.isFinite) continue;
-      final RegExpMatch? ym = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(month);
-      if (ym == null) continue;
-      final int m = int.parse(ym.group(2)!);
-      if (m < 1 || m > 12) continue;
-      final NetWorthPoint p = NetWorthPoint(
-        year: int.parse(ym.group(1)!),
-        month: m,
-        assets: Money.fromDouble(assets.toDouble()),
-        liabilities: Money.fromDouble(liabilities.toDouble()),
-      );
-      byMonth[p.key] = p;
-      final Map<String, dynamic> leftover = <String, dynamic>{
-        for (final MapEntry<String, dynamic> kv in row.entries)
-          if (!_netWorthKeys.contains(kv.key)) kv.key: kv.value,
-      };
-      if (leftover.isNotEmpty) extras.put(kNetWorthHistory, p.key, leftover);
-    }
-    return byMonth.values.toList()
-      ..sort((NetWorthPoint a, NetWorthPoint b) => a.key.compareTo(b.key));
-  }
-
-  static const Set<String> _netWorthKeys = <String>{
-    'month',
-    'assets',
-    'liabilities',
-  };
-
   static Set<String> _readGuideSteps(Object? raw) {
     if (raw is! List) return const <String>{};
     return <String>{
@@ -433,6 +391,82 @@ class Snapshot {
         if (e is String && e.isNotEmpty) e,
     };
   }
+
+  /// The monthly net worth records: the rows this build can draw, and every
+  /// other row kept VERBATIM so a save writes it straight back.
+  ///
+  /// LENIENT ABOUT LOADING. A chart is never worth refusing a ledger over, so
+  /// nothing in here throws. In particular the amounts go through
+  /// `Money.tryFromDouble`, not `fromDouble`: a record holds a SUM of
+  /// balances, which can exceed what one balance may, and `fromDouble` throws
+  /// past that. One oversized row used to make the whole file unreadable,
+  /// turn saving off, and refuse the person's own backup too.
+  ///
+  /// STRICT ABOUT KEEPING. This history cannot be rebuilt (founder decision,
+  /// 2026-10-07, "Save from now on", chosen precisely because the past is
+  /// not recomputable), so a row this build cannot read is NOT dropped. It
+  /// goes into the unread list and is written back unchanged, the same rule
+  /// every record in this file follows for keys it does not understand. That
+  /// covers a malformed row, and a second row for a month already read,
+  /// which is exactly what a newer build keeping one row per entity per
+  /// month would write. The chart reads only the drawable rows.
+  ///
+  /// A readable row's unknown fields are merged back on save too.
+  static ({List<NetWorthPoint> points, List<Object?> unread})
+  _readNetWorthHistory(Object? raw, ExtrasBuilder extras) {
+    if (raw is! List) {
+      return (points: const <NetWorthPoint>[], unread: const <Object?>[]);
+    }
+    final Map<String, NetWorthPoint> byMonth = <String, NetWorthPoint>{};
+    final List<Object?> unread = <Object?>[];
+    for (final Object? e in raw) {
+      final NetWorthPoint? p = _netWorthPointOf(e);
+      if (p == null || byMonth.containsKey(p.key)) {
+        unread.add(e);
+        continue;
+      }
+      byMonth[p.key] = p;
+      final Map<String, dynamic> row = Map<String, dynamic>.from(e! as Map);
+      final Map<String, dynamic> leftover = <String, dynamic>{
+        for (final MapEntry<String, dynamic> kv in row.entries)
+          if (!_netWorthKeys.contains(kv.key)) kv.key: kv.value,
+      };
+      if (leftover.isNotEmpty) extras.put(kNetWorthHistory, p.key, leftover);
+    }
+    return (
+      points: byMonth.values.toList()
+        ..sort((NetWorthPoint a, NetWorthPoint b) => a.key.compareTo(b.key)),
+      unread: unread,
+    );
+  }
+
+  /// One row, or null when it is not a drawable record.
+  static NetWorthPoint? _netWorthPointOf(Object? e) {
+    if (e is! Map) return null;
+    final Object? month = e['month'];
+    final Object? assets = e['assets'];
+    final Object? liabilities = e['liabilities'];
+    if (month is! String || assets is! num || liabilities is! num) return null;
+    final RegExpMatch? ym = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(month);
+    if (ym == null) return null;
+    final int m = int.parse(ym.group(2)!);
+    if (m < 1 || m > 12) return null;
+    final Money? a = Money.tryFromDouble(assets.toDouble());
+    final Money? l = Money.tryFromDouble(liabilities.toDouble());
+    if (a == null || l == null) return null;
+    return NetWorthPoint(
+      year: int.parse(ym.group(1)!),
+      month: m,
+      assets: a,
+      liabilities: l,
+    );
+  }
+
+  static const Set<String> _netWorthKeys = <String>{
+    'month',
+    'assets',
+    'liabilities',
+  };
 
   /// The payday object, plus whatever else was inside it.
   ///
@@ -658,6 +692,10 @@ class Snapshot {
       return out;
     }
 
+    // Read before the return so its unknown row keys reach the extras that
+    // are built below.
+    final ({List<NetWorthPoint> points, List<Object?> unread}) history =
+        _readNetWorthHistory(m[kNetWorthHistory], extras);
     return Snapshot(
       accounts: read<Account>(
         kAccounts,
@@ -756,7 +794,8 @@ class Snapshot {
           DecisionScenario.conservative,
       activeProfile: profileWire.decodeOptional(m, 'activeProfile', 'snapshot'),
       guideSteps: _readGuideSteps(m[kGuideSteps]),
-      netWorthHistory: _readNetWorthHistory(m[kNetWorthHistory], extras),
+      netWorthHistory: history.points,
+      netWorthUnread: history.unread,
       extras: extras.build(),
     );
   }

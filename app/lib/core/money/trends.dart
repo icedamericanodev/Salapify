@@ -9,9 +9,10 @@ import '../../models/models.dart';
 /// over an earlier window: the same profile filter, the same "does this
 /// entry count" rule, the same calendar-month filter and the same
 /// [computePerformance]. So the current month's bar is, by construction, the
-/// "This month" figure the Performance tab already prints, and a trend can
-/// never tell a person a different story about the same peso than the screen
-/// beside it does.
+/// "This month" figure the Performance tab already prints, EXCEPT for the one
+/// difference below, which every month chart states in pesos on screen
+/// (`UndatedNote`), so a trend never tells a different story about the same
+/// peso without saying why.
 ///
 /// ONE DELIBERATE DIFFERENCE, and it is the reason this file has its own entry
 /// point. `filterByPeriod` KEEPS an entry whose date cannot be read, so that a
@@ -108,6 +109,7 @@ class TrendSet {
     required this.months,
     required this.pace,
     required this.undated,
+    this.undatedAmount = 0,
   });
 
   /// Oldest first, ending with the current month. Months before the first
@@ -118,6 +120,11 @@ class TrendSet {
 
   /// Entries left out of every trend because their date could not be read.
   final int undated;
+
+  /// The pesos those entries move, income and spending together. A count
+  /// alone cannot reconcile two figures: "2 entries" does not tell anybody
+  /// why one card says 18,300 and the chart says 19,800, and 1,500 does.
+  final double undatedAmount;
 }
 
 /// The trends for [profile] as of [now], over the last [monthCount] months.
@@ -134,9 +141,14 @@ TrendSet buildTrends({
   );
   final List<Transaction> dated = <Transaction>[];
   int undated = 0;
+  Money undatedSum = Money.zero;
   for (final Transaction t in valid) {
     if (DateTime.tryParse(t.date) == null) {
       undated++;
+      // A transfer moves no total on any card, so it explains no gap.
+      if (t.type != TransactionType.transfer) {
+        undatedSum = undatedSum + t.amount;
+      }
     } else {
       dated.add(t);
     }
@@ -175,7 +187,12 @@ TrendSet buildTrends({
       ? <MonthTotals>[]
       : months.sublist(first);
 
-  return TrendSet(months: trimmed, pace: _pace(dated, now), undated: undated);
+  return TrendSet(
+    months: trimmed,
+    pace: _pace(dated, now),
+    undated: undated,
+    undatedAmount: undatedSum.pesos,
+  );
 }
 
 SpendingPace _pace(List<Transaction> dated, DateTime now) {

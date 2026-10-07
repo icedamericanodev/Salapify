@@ -175,6 +175,9 @@ class FinancialState extends ChangeNotifier {
   /// and net_worth_history.dart.
   List<NetWorthPoint> _netWorthHistory = <NetWorthPoint>[];
 
+  /// History rows this build cannot draw, carried so a save never drops them.
+  List<Object?> _netWorthUnread = <Object?>[];
+
   /// OFF until [restore] has decided it is safe. Two states leave it off: the
   /// app has not loaded yet, and the file could not be read.
   bool _saveEnabled = false;
@@ -261,6 +264,7 @@ class FinancialState extends ChangeNotifier {
     _activeProfile = s.activeProfile;
     _guideSteps = Set<String>.of(s.guideSteps);
     _netWorthHistory = List<NetWorthPoint>.of(s.netWorthHistory);
+    _netWorthUnread = List<Object?>.of(s.netWorthUnread);
     _extras = s.extras;
   }
 
@@ -287,6 +291,7 @@ class FinancialState extends ChangeNotifier {
     activeProfile: _activeProfile,
     guideSteps: _guideSteps,
     netWorthHistory: _netWorthHistory,
+    netWorthUnread: _netWorthUnread,
     extras: _extras,
   );
 
@@ -341,11 +346,21 @@ class FinancialState extends ChangeNotifier {
   void _recordNetWorth() {
     if (!_saveEnabled || hasSampleData) return;
     if (_accounts.isEmpty && _debts.isEmpty && _installments.isEmpty) return;
-    _netWorthHistory = recordNetWorth(
-      _netWorthHistory,
-      computePosition(_accounts, null, debts: _debts, plans: _installments),
-      now,
+    final FinancialPosition p = computePosition(
+      _accounts,
+      null,
+      debts: _debts,
+      plans: _installments,
     );
+    // NEVER WRITE A ROW THIS BUILD WOULD REFUSE TO READ. A record holds a SUM
+    // of balances, which can pass the limit one balance is held to, and the
+    // reader skips such a row. Writing it anyway would store a figure that
+    // can never be drawn.
+    if (Money.tryFromDouble(p.totalAssets.pesos) == null ||
+        Money.tryFromDouble(p.totalLiabilities.pesos) == null) {
+      return;
+    }
+    _netWorthHistory = recordNetWorth(_netWorthHistory, p, now);
   }
 
   /// The stored monthly records, read only. The chart adds this month LIVE
@@ -831,6 +846,7 @@ class FinancialState extends ChangeNotifier {
     // And the monthly net worth records: a line of somebody's past balances
     // is exactly what a wipe before handing a phone on is meant to erase.
     _netWorthHistory = <NetWorthPoint>[];
+    _netWorthUnread = <Object?>[];
 
     _loadStatus = LoadStatus.fresh;
     _loadProblem = null;

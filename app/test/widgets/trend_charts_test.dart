@@ -201,6 +201,36 @@ void main() {
     });
   });
 
+  group('the unreadable date note', () {
+    testWidgets('says the amount, so two figures can be reconciled', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        const UndatedNote(
+          palette: palette,
+          trends: TrendSet(
+            months: <MonthTotals>[],
+            pace: SpendingPace(
+              thisMonth: <double>[],
+              lastMonth: <double>[],
+              daysInThisMonth: 30,
+            ),
+            undated: 2,
+            undatedAmount: 1500,
+          ),
+        ),
+      );
+      expect(
+        find.text(
+          '2 entries with an unreadable date (₱1,500.00) are counted in the '
+          'figures above but not in this chart.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('cash, month by month', () {
     final List<MonthTotals> months = <MonthTotals>[
       _m(6, 51000, 20000),

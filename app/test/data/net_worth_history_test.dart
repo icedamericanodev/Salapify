@@ -13,6 +13,8 @@
 //      loading or is silently dropped on the next save.
 //   5. It survives a wipe.
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:salapify/core/money/net_worth_history.dart';
@@ -144,6 +146,27 @@ void main() {
       expect(series, hasLength(2));
     });
 
+    test('a clock set backwards never rewrites a finished month', () {
+      // October and November recorded; the phone is set back to October and
+      // something is saved. October must keep October's figures, or it is
+      // drawn wrong for good once the clock is put right.
+      final List<NetWorthPoint> h = <NetWorthPoint>[
+        _p(2026, 10, 1000, 0),
+        _p(2026, 11, 5000, 0),
+      ];
+      final List<NetWorthPoint> after = recordNetWorth(
+        h,
+        _position(9999, 0),
+        DateTime(2026, 10, 15),
+      );
+      expect(
+        after.first.netWorth,
+        const Money.pesos(1000),
+        reason: 'a back-dated clock rewrote a finished month',
+      );
+      expect(after, hasLength(2));
+    });
+
     test('a point from the future is not drawn', () {
       // A phone whose clock was set back must not plot next year.
       final List<NetWorthPoint> series = netWorthSeries(
@@ -253,6 +276,57 @@ void main() {
       expect(old.netWorthHistory, isEmpty);
     });
 
+    test(
+      'an oversized row never locks the person out of their ledger',
+      () async {
+        // A record holds a SUM of balances, which can pass the limit one
+        // balance is held to. Read with fromDouble, one such row threw, the
+        // file read as unreadable, saving went off, and the backup holding the
+        // same row was refused too.
+        final Map<String, dynamic> file = Snapshot.fromJson(<String, dynamic>{
+          'schemaVersion': 1,
+          'accounts': <Object>[
+            <String, Object>{
+              'id': 'a',
+              'name': 'Bank',
+              'kind': 'bank',
+              'institution': 'Bank',
+              'balance': 1000,
+              'monogram': 'B',
+            },
+          ],
+        }).toJson(at: DateTime.utc(2026, 10, 7));
+        file[Snapshot.kNetWorthHistory] = <Object?>[
+          <String, Object?>{
+            'month': '2026-09',
+            'assets': 1e14,
+            'liabilities': 0,
+          },
+        ];
+        final FinancialState s = FinancialState(
+          clock: DateTime.utc(2026, 10, 7),
+          store: MemorySnapshotStore(jsonEncode(file)),
+        );
+        await s.restore();
+        expect(
+          s.loadStatus,
+          LoadStatus.loaded,
+          reason: 'one history row made the whole ledger unreadable',
+        );
+        expect(s.accounts.single.id, 'a');
+        // Not drawn, but not lost either: written back as it came.
+        final List<dynamic> rows =
+            s.snapshot().toJson(
+                  at: DateTime.utc(2026, 10, 7),
+                )[Snapshot.kNetWorthHistory]
+                as List<dynamic>;
+        expect(
+          rows.any((Object? r) => r is Map && r['assets'] == 1e14),
+          isTrue,
+        );
+      },
+    );
+
     test('a bad row is skipped and never stops the ledger loading', () {
       final Snapshot back = Snapshot.fromJson(<String, dynamic>{
         'schemaVersion': 1,
@@ -268,11 +342,34 @@ void main() {
           <String, Object?>{'month': '2026-09', 'assets': 'lots'},
           'junk',
           null,
+          // A second row for a month already read: what a newer build keeping
+          // one row per entity per month would write.
+          <String, Object?>{
+            'month': '2026-08',
+            'assets': 7,
+            'liabilities': 0,
+            'entity': 'business',
+          },
         ],
       });
       expect(back.netWorthHistory.map((NetWorthPoint p) => p.key), <String>[
         '2026-08',
       ]);
+      // NOT LOST: this history cannot be rebuilt, so every row the chart
+      // skipped is written straight back on the next save.
+      final List<dynamic> rows =
+          back.toJson(at: DateTime.utc(2026, 10, 7))[Snapshot.kNetWorthHistory]
+              as List<dynamic>;
+      expect(
+        rows,
+        hasLength(7),
+        reason: 'a history row this build could not draw was dropped on save',
+      );
+      expect(rows, contains('junk'));
+      expect(
+        rows.any((Object? r) => r is Map && r['entity'] == 'business'),
+        isTrue,
+      );
     });
 
     test('a field from a newer build survives a save through this one', () {
