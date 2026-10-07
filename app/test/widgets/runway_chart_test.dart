@@ -203,4 +203,110 @@ void main() {
     expect(label, contains('500'));
     expect(label, isNot(contains('4,000')));
   });
+
+  testWidgets('the chart grows with the person\'s font size', (
+    WidgetTester tester,
+  ) async {
+    // The labels used to be drawn at a hard 10px whatever the system setting,
+    // because a TextPainter defaults to no scaling. The readability sweep
+    // could not catch it: it looks for OVERFLOW, and a label that refuses to
+    // grow cannot overflow. So this asserts the growth directly.
+    final DailyProjection p = projectionOf(<ProjectedDay>[
+      day(18, 12000),
+      day(19, 9000),
+      day(20, 15000),
+    ], opening: 12000);
+    final Palette palette = Palette.of(ThemeMode2.gabi);
+
+    Future<double> heightAt(double scale) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 300,
+                child: RunwayChart(
+                  palette: palette,
+                  projection: p,
+                  semanticsLabel: runwayChartSemantics(p),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return tester.getSize(find.byType(RunwayChart)).height;
+    }
+
+    final double normal = await heightAt(1.0);
+    final double large = await heightAt(1.5);
+
+    expect(
+      large,
+      greaterThan(normal),
+      reason:
+          'the chart is the same height at 1.5x, so its labels are ignoring '
+          'the person\'s text size',
+    );
+    // DIRECTIONAL. Only the LABEL strip grows: 10px of font at 1.5x is 5px
+    // more, and the plot keeps its height so the line is never squeezed.
+    expect(large - normal, closeTo(5, 0.01));
+  });
+
+  group('the dot marks the day the card names, in every state', () {
+    // This group exists because the file once said it did not need to. The
+    // marker's docstring claimed agreement with the card was "structural, so
+    // there is nothing left to assert", and in state S5 it was false: the
+    // card named the last day and the dot sat on the first day at the
+    // minimum. Each state is pinned below with the discriminator that puts a
+    // ledger in it, so a change to either rule reddens here.
+
+    test('S4, a real trough: the tightest day', () {
+      // Falls to 9,000 on the 19th and CLIMBS BACK to 15,000, so the low
+      // point is a trough and the card says "Tightest day: ... the 19th".
+      final DailyProjection p = projectionOf(<ProjectedDay>[
+        day(18, 12000),
+        day(19, 9000),
+        day(20, 15000),
+      ], opening: 12000);
+
+      expect(p.firstShortfall, isNull, reason: 'fixture must not go short');
+      expect(p.closingBalance.pesos, greaterThan(9000));
+      expect(runwayMarkedDay(p)?.date.day, 19);
+    });
+
+    test('S5, falls and stays down: the LAST day, not the first low one', () {
+      // THE CASE THAT WAS WRONG. Holds 20,000, drops to 17,000 on the 20th
+      // and never recovers. The tightest day is the 20th, because a strict
+      // less-than returns the EARLIEST day at the minimum, but the closing
+      // balance EQUALS it, so this is not a trough and the card names the end
+      // of the window: "17,000 left on ..., and that is the lowest it gets".
+      final DailyProjection p = projectionOf(<ProjectedDay>[
+        day(18, 20000),
+        day(19, 20000),
+        day(20, 17000),
+        day(21, 17000),
+        day(22, 17000),
+      ], opening: 20000);
+
+      // The discriminator, stated so the fixture cannot drift into S4.
+      expect(p.firstShortfall, isNull);
+      expect(p.tightestDay?.date.day, 20);
+      expect(
+        p.closingBalance.pesos,
+        closeTo(p.tightestDay!.balanceAfter.pesos, 0.0001),
+        reason: 'closing must EQUAL the low point for this to be S5',
+      );
+
+      expect(
+        runwayMarkedDay(p)?.date.day,
+        22,
+        reason:
+            'the card names the last day here; marking the 20th puts the dot '
+            'and the sentence on two different dates about one figure',
+      );
+    });
+  });
 }

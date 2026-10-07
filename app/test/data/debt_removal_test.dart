@@ -262,6 +262,67 @@ void main() {
       );
     });
 
+    test(
+      'taking a payment back on an archived debt brings it back too',
+      () async {
+        // THE THIRD DOOR, found by a QA review after the other two were shut.
+        //
+        // The test above pinned the un-settle route and the plan twin has
+        // `_unarchiveIfLive`, so this route was the only one left without the
+        // guard. The group's own title says "whatever route is taken", which
+        // was a promise it did not keep.
+        //
+        // What it costs: the money comes back to the account and the restored
+        // liability does not come back to the list. `debts` filters archived
+        // debts out, so the amount owed appears on no screen and in no total
+        // while the asset is counted in full. Net worth reads too high by
+        // exactly the payment that was taken back.
+        //
+        // The confirmation dialog makes this worse by promising the opposite:
+        // "goes back to 0.00 paid of 12,000.00" describes a live debt.
+        final Debt settledByPayment = partPaid.copyWith(
+          paidAmount: const Money.pesos(12000),
+          isSettled: true,
+          paidBeforeSettle: const Money.pesos(7350),
+          payments: <DebtPayment>[
+            const DebtPayment(
+              id: 'dp_1',
+              amount: Money.pesos(4650),
+              date: '2026-09-18',
+              // What the debt looked like BEFORE this payment, which is what
+              // the reversal restores it to: 7,350 of 12,000, not settled.
+              paidBefore: Money.pesos(7350),
+              settledBefore: false,
+            ),
+          ],
+        );
+
+        final FinancialState s = await stateWith(<Debt>[settledByPayment]);
+
+        expect(s.archiveDebt('d_part'), isTrue);
+        expect(s.archivedDebts, hasLength(1));
+
+        expect(s.takeBackDebtPayment('d_part', paymentId: 'dp_1'), isTrue);
+
+        expect(
+          s.archivedDebts,
+          isEmpty,
+          reason:
+              'the debt is live AND archived, so the money owed appears on no '
+              'screen and in no total while the cash is back in the account',
+        );
+        // DIRECTIONAL. "Not archived" is equally true of a debt that was
+        // deleted, or of the take-back silently doing nothing at all.
+        expect(s.debts.single.id, 'd_part');
+        expect(s.debts.single.isSettled, isFalse);
+        expect(
+          s.debtsIOwe,
+          greaterThan(0),
+          reason: 'it is back on the list and must count again',
+        );
+      },
+    );
+
     test('settling and un-settling a LIVE debt never archives it', () async {
       // The silent half of the alarm. The clause above must not start
       // archiving or unarchiving debts nobody put away.

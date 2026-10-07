@@ -1094,7 +1094,13 @@ class FinancialState extends ChangeNotifier {
     // the caller named.
     if (row.id != paymentId) return false;
 
-    _debts = reverseLastDebtPayment(_debts, debtId);
+    // Reverse the payment, then put the debt back on the list if that made it
+    // live again. Without the second half the money returns to the account and
+    // the restored liability stays archived, so it counts in nothing.
+    _debts = _unarchiveDebtIfLive(
+      reverseLastDebtPayment(_debts, debtId),
+      debtId,
+    );
 
     // No txId is a REAL case, not a missing one: a payment recorded with no
     // account writes no entry, deliberately, for somebody settling in cash
@@ -1359,14 +1365,33 @@ class FinancialState extends ChangeNotifier {
     // would leave a dead control, and there is nothing to protect here: the
     // person asked for this debt to be live again, and live debts belong on
     // the live list.
-    final int i = next.indexWhere((Debt d) => d.id == debtId);
-    _debts = (i >= 0 && !next[i].isSettled && next[i].isArchived)
-        ? <Debt>[
-            for (final Debt d in next)
-              if (d.id == debtId) d.copyWith(clearArchivedAt: true) else d,
-          ]
-        : next;
+    _debts = _unarchiveDebtIfLive(next, debtId);
     notifyListeners();
+  }
+
+  /// A debt that is live again must be back ON THE LIST, whichever route made
+  /// it live.
+  ///
+  /// `debts` filters archived debts out, so a debt that is live AND archived
+  /// is a real liability counted nowhere: not in "You owe", not on the balance
+  /// sheet, not in Safe to Spend's reserve, not in the runway. The money is in
+  /// the account and the obligation is invisible, so net worth reads high by
+  /// exactly that amount.
+  ///
+  /// ONE HELPER, NOT A RULE REPEATED PER ROUTE, and that is the lesson rather
+  /// than the fix. This logic was written inline in `toggleDebtSettledById`
+  /// after a retrospective found the un-settle route, and the instalment twin
+  /// grew its own `_unarchiveIfLive` separately. `takeBackDebtPayment` was the
+  /// third door and simply did not have it, under a test group titled
+  /// "archived implies settled, whatever route is taken". A rule copied into
+  /// two places out of three is how the third one gets forgotten.
+  List<Debt> _unarchiveDebtIfLive(List<Debt> debts, String debtId) {
+    final int i = debts.indexWhere((Debt d) => d.id == debtId);
+    if (i < 0 || debts[i].isSettled || !debts[i].isArchived) return debts;
+    return <Debt>[
+      for (final Debt d in debts)
+        if (d.id == debtId) d.copyWith(clearArchivedAt: true) else d,
+    ];
   }
 
   /// Pays one scheduled instalment on a plan, in both halves.
@@ -2280,9 +2305,20 @@ class FinancialState extends ChangeNotifier {
   /// notifyListeners. The stamp is a cheap shape of the inputs rather than a
   /// deep compare: the point is to skip the walk between repaints of an
   /// unchanged ledger, and anything that actually moves money changes one of
-  /// these counts or totals. A stamp that misses a change costs a stale card
-  /// for one frame, so it deliberately includes the balances rather than only
-  /// the lengths.
+  /// these counts or totals, so it deliberately includes the balances rather
+  /// than only the lengths.
+  ///
+  /// A STAMP THAT MISSES A CHANGE DOES NOT COST ONE FRAME. This said exactly
+  /// that for months and it was false, which is most of why a real miss sat
+  /// here undetected: nothing in the key is time based except the calendar
+  /// DAY, so a missed change is stale until something unrelated moves or
+  /// midnight passes. The miss was `isPaid` on the scheduled items, and
+  /// ticking one off is both the commonest thing a person does on this card
+  /// and invisible to every other term.
+  ///
+  /// So the rule for anyone adding a term: the stamp must cover everything
+  /// `projectDailyCash` READS, not everything that moves money. Those are
+  /// different sets, and the income path is in the gap between them.
   DailyProjection get dailyProjection {
     final int stamp = Object.hash(
       _accounts.length,
@@ -2297,6 +2333,25 @@ class FinancialState extends ChangeNotifier {
       now.year,
       _debts.fold<int>(0, (int a, Debt d) => a + d.remaining.centavos),
       _bills.fold<int>(0, (int a, BillItem b) => a + b.amount.centavos),
+      // THE UNPAID SCHEDULED ITEMS, which is what projectDailyCash actually
+      // reads. Counting only `_upcoming.length` missed the one change that
+      // matters most: ticking an item off does not change the length.
+      //
+      // The income path is the worst case and it is the reason these two
+      // terms exist. Confirming a sweldo landed moves NO money by design (the
+      // balance already reflects it), so the account total in this stamp does
+      // not move either, and every other term is untouched. The projection
+      // then kept counting a 32,500 payday that had already arrived, telling
+      // somebody they were 32,500 richer than they are, which is the one
+      // direction this card must never err in.
+      //
+      // Both a count and a sum, because either alone is blind to a case: the
+      // count alone misses an amount being edited, and the sum alone misses
+      // two items whose amounts happen to cancel.
+      _upcoming.where((UpcomingItem u) => !u.isPaid).length,
+      _upcoming
+          .where((UpcomingItem u) => !u.isPaid)
+          .fold<int>(0, (int a, UpcomingItem u) => a + u.amount.centavos),
     );
     if (_projection != null && _projectionStamp == stamp) return _projection!;
     _projectionStamp = stamp;

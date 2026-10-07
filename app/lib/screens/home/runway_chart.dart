@@ -50,9 +50,12 @@ class RunwayChart extends StatelessWidget {
   /// because two descriptions of one figure is how they drift apart.
   final String semanticsLabel;
 
-  /// Tall enough for the dip to have a shape, short enough that it never
-  /// pushes the notices under the fold on a small phone.
-  static const double _height = 88;
+  /// The plot itself. Tall enough for the dip to have a shape, short enough
+  /// that it never pushes the notices under the fold on a small phone.
+  static const double _plotHeight = 72;
+
+  /// The date labels' font size BEFORE the person's own text scale.
+  static const double _labelFontSize = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -65,17 +68,34 @@ class RunwayChart extends StatelessWidget {
 
     final ProjectedDay? marked = runwayMarkedDay(projection);
 
+    // THE PERSON'S OWN TEXT SIZE, read here and handed to the painter.
+    //
+    // A TextPainter defaults to `TextScaler.noScaling`, so the first version
+    // drew these three labels at a hard 10px while every other word on the
+    // same card grew with the system setting. At 1.5x they were the only text
+    // on Home that ignored the choice, on a surface built that week. Nothing
+    // overflowed, which is exactly why the readability sweep stayed green: it
+    // measures overflow, and a label that refuses to grow cannot overflow.
+    //
+    // The label strip grows WITH the scale and the plot keeps its height, so
+    // a larger font costs the card a few pixels of height rather than
+    // squeezing the line the labels describe.
+    final TextScaler scaler = MediaQuery.textScalerOf(context);
+    final double labelBand = scaler.scale(_labelFontSize) + 6;
+
     return Semantics(
       label: semanticsLabel,
       excludeSemantics: true,
       child: SizedBox(
-        height: _height,
+        height: _plotHeight + labelBand,
         width: double.infinity,
         child: CustomPaint(
           painter: _RunwayPainter(
             palette: palette,
             days: days,
             markedIndex: marked == null ? null : days.indexOf(marked),
+            scaler: scaler,
+            labelBand: labelBand,
           ),
         ),
       ),
@@ -88,18 +108,23 @@ class _RunwayPainter extends CustomPainter {
     required this.palette,
     required this.days,
     required this.markedIndex,
+    required this.scaler,
+    required this.labelBand,
   });
 
   final Palette palette;
   final List<ProjectedDay> days;
   final int? markedIndex;
 
-  /// Room under the line for the two date labels.
-  static const double _labelBand = 16;
+  /// The person's text scale, so the labels grow with every other word.
+  final TextScaler scaler;
+
+  /// Room under the line for the date labels, already sized for [scaler].
+  final double labelBand;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double plotHeight = size.height - _labelBand;
+    final double plotHeight = size.height - labelBand;
     if (plotHeight <= 0 || size.width <= 0) return;
 
     final List<double> values = days
@@ -207,7 +232,7 @@ class _RunwayPainter extends CustomPainter {
       canvas.restore();
     }
 
-    final double plotHeight = size.height - _labelBand;
+    final double plotHeight = size.height - labelBand;
     fill(Rect.fromLTRB(0, 0, size.width, zeroY), palette.accentSoft);
     fill(Rect.fromLTRB(0, zeroY, size.width, plotHeight), palette.negativeSoft);
   }
@@ -335,9 +360,14 @@ class _RunwayPainter extends CustomPainter {
       text: value,
       // The shipped face, read from the type scale rather than named here,
       // so a label in a painting cannot drift from a label in a widget.
-      style: AppType.caption(palette).copyWith(fontSize: 10, color: color),
+      style: AppType.caption(
+        palette,
+      ).copyWith(fontSize: RunwayChart._labelFontSize, color: color),
     ),
     textDirection: TextDirection.ltr,
+    // Without this a TextPainter uses TextScaler.noScaling, which is how
+    // these labels came to ignore the person's font size setting.
+    textScaler: scaler,
   )..layout();
 
   /// Where a label WOULD land, without drawing it.
@@ -387,26 +417,54 @@ class _RunwayPainter extends CustomPainter {
   bool shouldRepaint(_RunwayPainter old) =>
       old.palette != palette ||
       old.markedIndex != markedIndex ||
-      old.days != days;
+      old.days != days ||
+      old.scaler != scaler ||
+      old.labelBand != labelBand;
 }
 
-/// THE DAY WORTH MARKING, defined once and read by both the painting and the
-/// sentence that describes it.
+/// THE DAY WORTH MARKING: the same day the card's sentence names, in every
+/// state the card can be in.
 ///
-/// ONE FUNCTION, NOT TWO COPIES, and the reason is a test that nearly shipped
-/// pretending to check this. The chart and `runwayChartSemantics` each had
-/// their own `firstShortfall ?? tightestDay`, and the test asserting they
-/// agreed only ever read the sentence: reversing the chart's copy left it
-/// green while the picture marked a different day from the words beside it.
-/// Agreement is now structural, so there is nothing left to assert.
+/// It mirrors `runway_row.dart`'s state machine branch for branch, because
+/// the dot and the sentence sit on one card about one figure and must point
+/// at one day:
 ///
-/// THE ORDER IS THE DESIGN. The first shortfall is the day somebody has to act
-/// BEFORE. The tightest day may come after a payment has already bounced, so
-/// marking it would point at the bottom of a hole rather than at the edge.
-/// `runway_row.dart`'s state machine chooses in the same order, which is what
-/// keeps the card's sentence and this marker on the same day.
-ProjectedDay? runwayMarkedDay(DailyProjection projection) =>
-    projection.firstShortfall ?? projection.tightestDay;
+///   S2, S3  short today or later   the FIRST shortfall
+///   S4      a real trough          the tightest day
+///   S5      falls and stays down   the LAST day
+///
+/// THIS USED TO SAY THE AGREEMENT WAS STRUCTURAL, AND IT WAS NOT. The first
+/// version was `firstShortfall ?? tightestDay` under a comment claiming the
+/// card "chooses in the same order", so "there is nothing left to assert".
+/// S5 does not choose in that order. On a line that only falls, the tightest
+/// day is the EARLIEST day at the minimum, which the card deliberately refuses
+/// to call anything (see the S4 comment there: a date stapled to "the end of
+/// your projection"). So the card said "17,000 left on Saturday 21 Nov, and
+/// that is the lowest it gets" while the dot sat on 17 Oct. A QA review found
+/// it by constructing the S5 ledger, which no test had.
+///
+/// The lesson is the one this file had already learned once and then
+/// restated as solved: two implementations of one rule only agree when a test
+/// makes them, and "structural" is a claim about the code, not about the
+/// comment. The agreement is now asserted per state in runway_chart_test.dart.
+///
+/// The first shortfall still wins over the tightest day in S2 and S3, because
+/// it is the day somebody has to act BEFORE; the lowest point may come after a
+/// payment has already bounced.
+ProjectedDay? runwayMarkedDay(DailyProjection projection) {
+  final ProjectedDay? short = projection.firstShortfall;
+  if (short != null) return short;
+
+  final ProjectedDay? tight = projection.tightestDay;
+  if (tight == null) return null;
+
+  // S4, and the same discriminator the card uses for it: the balance has to
+  // CLIMB BACK after the low point for that point to be a trough.
+  if (projection.closingBalance > tight.balanceAfter) return tight;
+
+  // S5. The card names the end of the window, so the dot does too.
+  return projection.days.isEmpty ? null : projection.days.last;
+}
 
 /// A horizontal strip of the baseline that a label occupies.
 class _Span {

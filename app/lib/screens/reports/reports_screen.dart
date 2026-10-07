@@ -489,9 +489,15 @@ class _PositionView extends StatelessWidget {
               // headline checkable: a person can see where it came from
               // without being told what an identity is.
               const SizedBox(height: 2),
+              // SIGNED, like every figure on Position below it. These used
+              // `formatPeso`, which drops the sign by design, and nothing
+              // clamps a balance at zero: overspend an account and it went
+              // to -1,500 while this line read "You own 1,500.00". The sign
+              // of a figure that can be negative is not presentation, it is
+              // the figure. Positive balances render exactly as before.
               Text(
-                'You own ${formatPeso(p.totalAssets.pesos)} and owe '
-                '${formatPeso(p.totalLiabilities.pesos)}.',
+                'You own ${_signed(p.totalAssets.pesos)} and owe '
+                '${_signed(p.totalLiabilities.pesos)}.',
                 style: AppType.caption(palette),
               ),
               // THE WRONG CONCLUSION STOPPER, and it is now specific rather
@@ -531,14 +537,14 @@ class _PositionView extends StatelessWidget {
           left: StatCard(
             palette: palette,
             label: 'Assets',
-            value: formatPeso(p.totalAssets.pesos),
+            value: _signed(p.totalAssets.pesos),
             caption: _sources(p.assetSourceCount),
             valueColor: palette.positive,
           ),
           right: StatCard(
             palette: palette,
             label: 'Liabilities',
-            value: formatPeso(p.totalLiabilities.pesos),
+            value: _signed(p.totalLiabilities.pesos),
             caption: _sources(p.liabilitySourceCount),
             valueColor: palette.negative,
           ),
@@ -552,23 +558,23 @@ class _PositionView extends StatelessWidget {
               BreakdownRow(
                 palette: palette,
                 label: 'Cash and e-wallets',
-                value: formatPeso(p.cashEquivalents.pesos),
+                value: _signed(p.cashEquivalents.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Investments',
-                value: formatPeso(p.investments.pesos),
+                value: _signed(p.investments.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Owed to you',
-                value: formatPeso(p.receivables.pesos),
+                value: _signed(p.receivables.pesos),
               ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
                 label: 'Total assets',
-                value: formatPeso(p.totalAssets.pesos),
+                value: _signed(p.totalAssets.pesos),
                 emphasis: true,
                 valueColor: palette.positive,
               ),
@@ -584,18 +590,18 @@ class _PositionView extends StatelessWidget {
               BreakdownRow(
                 palette: palette,
                 label: 'Credit cards',
-                value: formatPeso(p.creditCards.pesos),
+                value: _signed(p.creditCards.pesos),
               ),
               BreakdownRow(
                 palette: palette,
                 label: 'Loans and mortgage',
-                value: formatPeso(p.loans.pesos),
+                value: _signed(p.loans.pesos),
               ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
                 label: 'Total liabilities',
-                value: formatPeso(p.totalLiabilities.pesos),
+                value: _signed(p.totalLiabilities.pesos),
                 emphasis: true,
                 valueColor: palette.negative,
               ),
@@ -712,7 +718,20 @@ class _PerformanceViewState extends State<_PerformanceView> {
                 // an investment as saved, so the two are different numbers
                 // and using the wrong one here would make the card contradict
                 // its own hero figure.
-                positive
+                //
+                // NOTHING IN IS ITS OWN CASE, checked first. Gating only on
+                // `positive` let zero in and zero out through as a surplus of
+                // zero, and the card printed "0.0% of what came in" about an
+                // income of nothing: the same measurement-where-there-is-none
+                // that `_ratioText` exists to prevent, on the one sentence it
+                // was never applied to. A period holding only a transfer
+                // between your own accounts lands here, and its scope line
+                // says "From 1 entry", so the bogus figure looked believable.
+                f.totalIncome <= 0
+                    ? (f.totalExpenses > 0
+                          ? 'More went out than came in over this period.'
+                          : 'Nothing came in over this period.')
+                    : positive
                     ? 'That is ${f.keptRate.toStringAsFixed(1)}% of what '
                           'came in.'
                     : 'More went out than came in over this period.',

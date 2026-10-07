@@ -231,12 +231,14 @@ class _Overview extends StatelessWidget {
         // person who was told a figure by HR enters it as the basic salary
         // with 12 months worked. The Calculators tile below is the way in.
         //
-        // What survives the removal and is NOT settled here: the two splits
-        // disagree. `calculate13thMonthPay` recommends five shares
-        // (35/25/20/10/10) and `allocateBonus` recommends three. One of them
-        // is now unreachable from any screen rather than resolved, because
-        // choosing between two pieces of financial advice is the founder's.
-        // bonus_allocator.dart and its tests are deliberately left in place.
+        // ONE SPLIT, NOT TWO. The card this replaced used `allocateBonus`,
+        // which recommended three shares, while the Tax Calculator's
+        // `calculate13thMonthPay` recommends five (35/25/20/10/10). Removing
+        // the card left the three-share version reachable from no screen,
+        // still in the tree and still contradicting the advice people
+        // actually see. It was held back pending a founder decision and was
+        // removed on founder direction, 2026-10-07 ("remove the redundant"),
+        // so the five-share split is now the only one Salapify gives.
 
         // Two per row. Three is too narrow for these labels on a 320dp phone,
         // and one per row turns eight tiles into a scroll.

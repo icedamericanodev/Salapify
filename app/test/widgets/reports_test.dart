@@ -700,4 +700,92 @@ void main() {
     expect(find.text('-₱15,000.00'), findsWidgets, reason: 'really negative');
     expect(find.textContaining('came out ahead'), findsNothing);
   });
+
+  testWidgets('"You kept" never prints a share of nothing', (
+    WidgetTester tester,
+  ) async {
+    // The same failure `_ratioText` was written to kill, on the one sentence
+    // it was never applied to. The caption was gated on the surplus being
+    // zero or more, and zero in with zero out IS a surplus of zero, so it
+    // printed "That is 0.0% of what came in" about an income of nothing.
+    //
+    // The realistic way to land here is a period whose only entry is a
+    // transfer between your own accounts. That is excluded from money in and
+    // out by design, so the scope line says "From 1 entry" and the report
+    // does NOT read as empty, which is what makes a bogus percentage on it
+    // believable.
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 5000, "monogram": "GC"},
+    {"id": "bpi", "name": "BPI", "kind": "bank",
+     "institution": "BPI", "balance": 20000, "monogram": "BP"}
+  ],
+  "transactions": [
+    {"id": "t1", "type": "transfer", "amount": 5000, "category": "Transfer",
+     "accountId": "bpi", "toAccountId": "gc", "date": "2026-09-10",
+     "createdAt": 1, "status": "confirmed"}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+    final FinancialState s = FinancialState(clock: fixtureToday, store: store);
+    await s.restore();
+
+    await openReports(tester, given: s);
+    await tapAndSettle(tester, find.text('Performance'));
+
+    expect(
+      find.textContaining('of what came in'),
+      findsNothing,
+      reason: 'a percentage of an income of zero is not a measurement',
+    );
+    // DIRECTIONAL. Absence is also what a card that stopped rendering shows.
+    expect(find.text('YOU KEPT'), findsOneWidget);
+    expect(find.text('Nothing came in over this period.'), findsOneWidget);
+  });
+
+  testWidgets('an overdrawn account reads as negative on Position', (
+    WidgetTester tester,
+  ) async {
+    // `formatPeso` returns the ABSOLUTE value on purpose, and Position used it
+    // for every asset figure. Nothing clamps a balance at zero and the Log
+    // sheet has no sufficiency check, so overspending an account is ordinary,
+    // and an account at -1,500 then read "You own 1,500.00" in the positive
+    // colour. Dropping the sign of a figure that can be negative does not
+    // understate it, it REVERSES it, which is the exact argument this file
+    // already makes for net worth.
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "GCash", "kind": "gcash",
+     "institution": "GCash", "balance": -1500, "monogram": "GC"}
+  ],
+  "transactions": [],
+  "debts": [], "budgets": [], "goals": [],
+  "upcoming": [], "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+    final FinancialState s = FinancialState(clock: fixtureToday, store: store);
+    await s.restore();
+
+    await openReports(tester, given: s);
+
+    expect(
+      find.textContaining('You own ₱1,500.00'),
+      findsNothing,
+      reason: 'an overdrawn account was reported as money owned',
+    );
+    expect(find.textContaining('You own -₱1,500.00'), findsOneWidget);
+    // DIRECTIONAL. The figure itself must still be there, with its sign.
+    expect(find.text('-₱1,500.00'), findsWidgets);
+  });
 }
