@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
+import '../../design/settle_figure.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 
@@ -125,7 +126,9 @@ class _Figure extends StatelessWidget {
       children: <Widget>[
         Text(label, style: AppType.label(palette)),
         const SizedBox(height: 2),
-        Text(
+        // Settles when an entry is logged or undone, so the person sees
+        // which digits their entry moved. See design/settle_figure.dart.
+        SettleFigure(
           formatPeso(amount),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

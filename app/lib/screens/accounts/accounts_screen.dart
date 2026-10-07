@@ -6,6 +6,7 @@ import '../../core/money/currencies.dart';
 import '../../core/money/format.dart';
 import '../../design/institution_brand.dart';
 import '../../design/institution_mark.dart';
+import '../../design/settle_figure.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/accounts/account_sheet.dart';
@@ -425,7 +426,9 @@ class _NetWorthCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(
+            // Settles after a log or a payment changes it. See
+            // design/settle_figure.dart.
+            child: SettleFigure(
               // The sign is drawn, never left to colour. formatPeso returns
               // the absolute value on purpose, so a debt of 217,229.50 would
               // otherwise render character for character like savings of the

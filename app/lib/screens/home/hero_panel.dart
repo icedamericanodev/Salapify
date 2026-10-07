@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/settle_figure.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/health_check.dart';
@@ -110,7 +111,10 @@ class HeroPanel extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(
+                  // Settles when the figure changes on screen: a scenario
+                  // chip tapped, an entry logged. See
+                  // design/settle_figure.dart.
+                  child: SettleFigure(
                     formatPeso(state.safeToSpend.pesos),
                     maxLines: 1,
                     style: const TextStyle(
