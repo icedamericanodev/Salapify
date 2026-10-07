@@ -54,6 +54,19 @@ class _BirClaimsCardState extends State<BirClaimsCard> {
   /// it, and this one would be on the screen from the first visit.
   double? _rate;
 
+  /// Whether the band picker is OPEN. Closed by default.
+  ///
+  /// Founder direction, 2026-10-07: screens are "too wordy and the users may
+  /// feel flooded and overwhelmed". Before a band was chosen this card showed
+  /// a kicker, a two-line prompt and six band chips, about 49 words, which
+  /// was more than the rest of the card put together, on every visit to
+  /// anyone with something marked. They are now one tap away.
+  ///
+  /// SESSION ONLY, like [_rate]. Remembering the band would be a stored data
+  /// change, which is founder gated, and for a figure about somebody's tax it
+  /// is better asked than assumed anyway.
+  bool _picking = false;
+
   @override
   Widget build(BuildContext context) {
     final Palette p = widget.palette;
@@ -90,9 +103,16 @@ class _BirClaimsCardState extends State<BirClaimsCard> {
                 // Nothing marked is not a failure and does not get a zero. A
                 // zero is a measurement, and a progress bar at nought on the
                 // first visit reads as something already going wrong.
-                'Nothing marked as claimable this period. Tick a business '
-                'expense when you log it, or scan its receipt, and it '
-                'appears here.',
+                //
+                // THE SECOND SENTENCE WAS FALSE and is replaced, not trimmed.
+                // It said "Tick a business expense when you log it", and the
+                // Log sheet has no such control: isTaxDeductible is set only
+                // by the scan receipt sheet's switch and by OCR. Filing under
+                // the business category genuinely works, because isClaimable
+                // accepts that category on its own. The other two routes are
+                // behind the dot.
+                'Nothing marked as claimable this period. File business '
+                'costs under Business & Freelance Ops to see them here.',
                 style: AppType.body(p),
               ),
             )
@@ -134,7 +154,15 @@ class _BirClaimsCardState extends State<BirClaimsCard> {
                   // the big figure at the top reads as the amount you can
                   // claim, and the difference between the two numbers is the
                   // part that gets disallowed.
-                  'A claim needs the official receipt behind it. The '
+                  //
+                  // "AN INVOICE OR RECEIPT", not "the official receipt". The
+                  // Ease of Paying Taxes Act (RA 11976, effective 22 January
+                  // 2024) and RR 7-2024 made the invoice the primary document
+                  // for goods and services alike; the official receipt is now
+                  // only supplementary. The old wording named the document
+                  // that is no longer the main one. Flagged by a tax
+                  // professional review, 2026-10-07.
+                  'A claim needs an invoice or receipt behind it. The '
                   '${formatPeso(s.unsupportedAmount)} above is marked but not '
                   'yet backed up.',
                   style: AppType.caption(p),
@@ -145,7 +173,20 @@ class _BirClaimsCardState extends State<BirClaimsCard> {
               palette: p,
               summary: s,
               rate: _rate,
-              onRate: (double? r) => setState(() => _rate = r),
+              picking: _picking,
+              // Choosing a band closes the picker; the figure replaces it.
+              onRate: (double r) => setState(() {
+                _rate = r;
+                _picking = false;
+              }),
+              onTogglePicker: () => setState(() => _picking = !_picking),
+              // CHANGE OPENS THE PICKER STRAIGHT AWAY. A plain reset would
+              // land on the collapsed control and make Change cost two taps,
+              // from somebody who has already said they want to pick again.
+              onChange: () => setState(() {
+                _rate = null;
+                _picking = true;
+              }),
             ),
             if (widget.onFilterChanged != null) ...<Widget>[
               const SizedBox(height: Spacing.md),
@@ -164,18 +205,55 @@ class _BirClaimsCardState extends State<BirClaimsCard> {
 }
 
 /// The saving, and everything it depends on, said out loud.
+///
+/// REVIEWED BY A TAX PROFESSIONAL, 2026-10-07, alongside a design review on
+/// founder direction that the card was too wordy. Where the two disagreed,
+/// the tax review won on every sentence that states a tax rule. What changed
+/// and why:
+///
+///   COLLAPSED BY DEFAULT. The band prompt and six chips are one tap away,
+///   behind one control, instead of about 49 words on every visit.
+///
+///   "UP TO". The engine multiplies the backed up receipts by ONE marginal
+///   rate, which is exact only while taxable income stays inside the chosen
+///   band after the deduction. Crossing into a lower band it overstates: on
+///   the 2023 table, taxable 420,000 with 50,000 of receipts truly saves
+///   8,500 while one rate at 20% says 10,000. So the figure is a ceiling,
+///   and says so. The arithmetic is unchanged and is right inside a band.
+///
+///   WHO IT APPLIES TO. TRAIN removed the personal exemptions and a pure
+///   compensation earner has no itemised deductions at all: Sec 34 covers
+///   expenses of a trade, business or profession, and Sec 36(A)(1) makes
+///   personal expenses non-deductible. Employees file on the graduated rates
+///   too, so the old condition did not exclude them, and they were shown a
+///   saving they can never claim. The condition now names business or
+///   professional income.
+///
+///   INCOME TAX, AND YEARLY TAXABLE. A non-VAT filer on graduated rates still
+///   owes 3% percentage tax on gross, which receipts do not touch. And the
+///   bands are annual taxable income while this card is usually a month.
+///
+/// What deliberately did NOT change: no default band, and no peso figure of
+/// any kind until a band is chosen. A default rate is how a made-up tax
+/// saving reaches a screen.
 class _ShieldSection extends StatelessWidget {
   const _ShieldSection({
     required this.palette,
     required this.summary,
     required this.rate,
+    required this.picking,
     required this.onRate,
+    required this.onTogglePicker,
+    required this.onChange,
   });
 
   final Palette palette;
   final BirClaimSummary summary;
   final double? rate;
-  final ValueChanged<double?> onRate;
+  final bool picking;
+  final ValueChanged<double> onRate;
+  final VoidCallback onTogglePicker;
+  final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -185,29 +263,22 @@ class _ShieldSection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'What this is worth depends on your band',
-            style: AppType.kicker(p),
-          ),
-          const SizedBox(height: Spacing.xs),
-          Text(
-            'Pick the income tax band you are in and Salapify will work out '
-            'what these receipts could take off your bill.',
-            style: AppType.caption(p),
-          ),
-          const SizedBox(height: Spacing.sm),
-          Wrap(
-            spacing: Spacing.xs,
-            runSpacing: Spacing.xs,
-            children: <Widget>[
-              for (final ({String label, double rate}) b in graduatedBrackets)
-                _BandChip(
-                  palette: p,
-                  label: b.label,
-                  onTap: () => onRate(b.rate),
-                ),
-            ],
-          ),
+          _PickerToggle(palette: p, open: picking, onTap: onTogglePicker),
+          if (picking) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            Wrap(
+              spacing: Spacing.xs,
+              runSpacing: Spacing.xs,
+              children: <Widget>[
+                for (final ({String label, double rate}) b in graduatedBrackets)
+                  _BandChip(
+                    palette: p,
+                    label: b.label,
+                    onTap: () => onRate(b.rate),
+                  ),
+              ],
+            ),
+          ],
         ],
       );
     }
@@ -224,18 +295,26 @@ class _ShieldSection extends StatelessWidget {
               child: Text(
                 rate == 0
                     ? 'In your band, these take nothing off'
-                    : 'At $pct%, this could take off',
+                    : 'At $pct%, up to',
                 style: AppType.kicker(p),
               ),
             ),
-            GestureDetector(
-              onTap: () => onRate(null),
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Change',
-                  style: AppType.caption(p).copyWith(color: p.accent),
+            Semantics(
+              button: true,
+              label: 'Change income tax band',
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: onChange,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minHeight: 44,
+                    minWidth: 44,
+                  ),
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Change',
+                    style: AppType.caption(p).copyWith(color: p.accent),
+                  ),
                 ),
               ),
             ),
@@ -247,26 +326,84 @@ class _ShieldSection extends StatelessWidget {
             p,
           ).copyWith(color: shield > 0 ? p.positive : p.textPrimary),
         ),
-        const SizedBox(height: Spacing.xs),
-        Text(
-          // EVERY ASSUMPTION, on the screen, next to the figure. This is the
-          // sentence that keeps the number honest, and it is the reason the
-          // spec's flat 25 percent was not ported: under the 8 percent
-          // election these receipts are worth nothing at all, and somebody
-          // who elected it would otherwise be told a quarter of them is
-          // coming back.
-          rate == 0
-              ? 'Income up to ₱250,000 pays no income tax, so there is '
-                    'nothing for a deduction to reduce. The records are still '
-                    'worth keeping.'
-              : 'Only counts the ${formatPeso(summary.substantiatedAmount)} '
-                    'with a receipt behind it, and only if you file on the '
-                    'graduated rates with itemised deductions. On the 8% '
-                    'election or the 40% standard deduction, these receipts '
-                    'change nothing.',
-          style: AppType.caption(p),
-        ),
+        // THE CONDITION, BESIDE THE FIGURE, and it stays on screen. It is the
+        // wrong-conclusion stopper the house rule makes an exception for: the
+        // people most likely to be misled by a peso saving are exactly those
+        // on the 8% election or the 40% standard deduction, which is most
+        // self-employed Filipinos, and employees, for whom it is always zero.
+        //
+        // At 0% there is nothing to qualify: "take nothing off" beside 0.00
+        // cannot mislead, so the explanation of the exemption is behind the
+        // dot rather than here.
+        if (rate != 0) ...<Widget>[
+          const SizedBox(height: Spacing.xs),
+          Text(
+            'Off your income tax, only for business or professional income '
+            'filed on graduated rates with itemised deductions. On the 8% '
+            'election or the 40% standard deduction, it is ₱0.',
+            style: AppType.caption(p),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// The one control that stands in for the band prompt and its six chips.
+///
+/// A full width row at the 44dp floor, so it is an obvious target and wraps
+/// rather than truncating at 320dp and 1.5x text. Accent text on the card
+/// surface, which is the pair "Change" already uses, so no new colour pair
+/// reaches the contrast test.
+class _PickerToggle extends StatelessWidget {
+  const _PickerToggle({
+    required this.palette,
+    required this.open,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = palette;
+    return Semantics(
+      button: true,
+      expanded: open,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  // OPEN, it says what to pick and which income: YEARLY and
+                  // TAXABLE, because the card is usually filtered to a month
+                  // and someone earning 40,000 a month would otherwise read
+                  // "up to 250,000" as their month and pick the 0% band. The
+                  // rates year is here too, so the table is not timeless.
+                  open
+                      ? 'Pick your yearly taxable income band (2023+ rates)'
+                      : 'See what these could save on income tax',
+                  style: AppType.caption(
+                    p,
+                  ).copyWith(color: p.accent, fontWeight: FontWeight.w800),
+                ),
+              ),
+              Icon(
+                open ? Icons.expand_less : Icons.expand_more,
+                size: 18,
+                color: p.accent,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

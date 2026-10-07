@@ -33,6 +33,7 @@ import 'package:salapify/features/payday/payday_sheet.dart';
 import 'package:salapify/screens/home/runway_chart.dart';
 import 'package:salapify/screens/home/runway_row.dart';
 import 'package:salapify/models/models.dart';
+import 'package:salapify/screens/reports/bir_claims_card.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
 import 'package:salapify/screens/accounts/bank_card.dart';
 import 'package:salapify/features/debt/payment_sheet.dart';
@@ -134,6 +135,7 @@ void main() {
   runwayChartShots();
   runwayChartCloseUp();
   countedTwiceSheetShot();
+  birClaimsShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4284,4 +4286,78 @@ void countedTwiceSheetShot() {
       matchesGoldenFile('out/reports_counted_twice_sheet.png'),
     );
   });
+}
+
+/// The Claimable expenses card in the three states a person moves through.
+///
+/// Rendered on its own with a BACKED UP entry, because the seed ledger has
+/// none: at any band its saving is 0.00, which cannot show the one state
+/// whose wording a tax professional review changed on 2026-10-07 ("up to",
+/// and the business or professional income condition).
+void birClaimsShots() {
+  Transaction backed(double amount) => Transaction(
+    id: 'tx_$amount',
+    type: TransactionType.expense,
+    amount: Money.fromDouble(amount),
+    category: 'Business & Freelance Ops',
+    accountId: 'acc',
+    date: '2026-09-20',
+    createdAt: 1,
+    taxTinOrRef: 'INV-0042',
+  );
+
+  for (final ({String slug, int taps}) state in <({String slug, int taps})>[
+    (slug: 'collapsed', taps: 0),
+    (slug: 'open', taps: 1),
+    (slug: 'band', taps: 2),
+  ]) {
+    testWidgets('claimable expenses card, ${state.slug}', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 1500);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final Palette palette = Palette.of(ThemeMode2.gabi);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: salapifyTheme(palette, ThemeMode2.gabi),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: SingleChildScrollView(
+                child: BirClaimsCard(
+                  palette: palette,
+                  transactions: <Transaction>[backed(10000)],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      if (state.taps >= 1) {
+        await tester.tap(find.textContaining('could save on income tax'));
+        await tester.pumpAndSettle();
+      }
+      if (state.taps >= 2) {
+        await tester.tap(find.textContaining('₱400,000 to ₱800,000'));
+        await tester.pumpAndSettle();
+        // Without this the shot can quietly stop showing the corrected copy.
+        expect(find.textContaining('At 20%, up to'), findsOneWidget);
+      }
+
+      await expectLater(
+        find.byType(BirClaimsCard),
+        matchesGoldenFile('out/bir_claims_${state.slug}.png'),
+      );
+    });
+  }
 }

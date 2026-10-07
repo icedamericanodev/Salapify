@@ -998,43 +998,81 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
     title: 'Claimable expenses',
     subtitle: 'What Salapify counts, and what the BIR would',
     points: <InfoPoint>[
+      // CORRECTED 2026-10-07, after a tax professional review and a check of
+      // the code. The first point told people to "tick it as tax deductible
+      // when you logged it", and the Log sheet has no such control: the flag
+      // is set only by the scan receipt sheet's switch and by OCR. The routes
+      // below are the three `isClaimable` in bir_claims.dart actually
+      // accepts.
       InfoPoint(
         icon: Icons.check_box_outlined,
         title: 'Three ways an expense lands here',
         body:
-            'You ticked it as tax deductible when you logged it, or you '
-            'filed it under Business & Freelance Ops, or you tagged it. '
-            'Scanning a receipt that carries a TIN ticks it for you, and you '
-            'can always untick it.',
+            'You filed it under Business & Freelance Ops, or you tagged it '
+            'tax-deductible, or you switched on Claimable business expense '
+            'when you scanned its receipt. A receipt carrying a TIN or the '
+            'words of an official BIR document switches that on for you, and '
+            'you can switch it off before you save.',
       ),
+      // "AN INVOICE", first. The Ease of Paying Taxes Act (RA 11976,
+      // effective 22 January 2024) and RR 7-2024 made the invoice the primary
+      // document for goods and services; the official receipt is now only
+      // supplementary.
       InfoPoint(
         icon: Icons.receipt_long,
         title: 'A tick is not a receipt',
         body:
             'The BIR can disallow a deduction with no adequate record behind '
-            'it, which in practice means the official receipt or sales '
-            'invoice with the supplier TIN on it. That is why this card '
-            'splits what you have marked from what you could actually show, '
-            'and the second number is the one that matters.',
+            'it, which in practice means the invoice (or official receipt) '
+            'with the supplier TIN on it. This card counts an entry as backed '
+            'up once it has a photo or a typed reference, but a typed number '
+            'is not the document, so keep the paper or a scan of it.',
       ),
       InfoPoint(
         icon: Icons.calculate_outlined,
         title: 'Whether it saves you anything depends on how you file',
         body:
-            'On the 8% election there are no itemised deductions at all, so '
-            'these receipts change nothing. On the 40% standard deduction '
-            'the amount is fixed whatever you spent. Only graduated rates '
-            'with itemised deductions turn a receipt into a smaller tax '
-            'bill, and how much depends on your income band.',
+            'Only business or professional income, filed on graduated rates '
+            'with itemised deductions, turns a receipt into lower income '
+            'tax. On the 8% election there are no deductions at all. On the '
+            '40% standard deduction the amount is fixed whatever you spent. '
+            'An employee with only a salary has no itemised deductions, so '
+            'these receipts change nothing for them.',
+      ),
+      // THE CEILING, explained. The card says "up to" because the figure is
+      // the receipts times ONE rate, exact only while taxable income stays in
+      // the chosen band after the deduction.
+      InfoPoint(
+        icon: Icons.trending_down,
+        title: 'Why the saving says "up to"',
+        body:
+            'It is your backed up receipts multiplied by your band\'s rate. '
+            'That is exact while your income stays in that band. If the '
+            'deduction drops you into a lower band, part of it is taxed at '
+            'the lower rate, so you save less. Itemising also only beats the '
+            '40% standard deduction once your expenses are more than 40% of '
+            'your gross.',
+      ),
+      // Moved here from the card, where the tax review ruled it safe to move:
+      // "take nothing off" beside 0.00 cannot mislead, so this teaches rather
+      // than prevents a wrong belief. "Taxable" and "a year" added, because
+      // the band is annual taxable income and the card is usually a month.
+      InfoPoint(
+        icon: Icons.money_off_outlined,
+        title: 'The 0% band',
+        body:
+            'Taxable income up to ₱250,000 a year pays no income tax, so a '
+            'deduction saves nothing. The records are still worth keeping, in '
+            'case your income rises or you are asked for them.',
       ),
       InfoPoint(
         icon: Icons.info_outline,
         title: 'Salapify does not file anything',
         body:
             'Nothing here is sent anywhere and none of it is a tax return. '
-            'It is your own records, sorted so you can find them, and it is '
-            'general information rather than tax advice. Your accountant '
-            'decides what is claimable.',
+            'It is your own records, sorted so you can find them, and these '
+            'figures are estimates on the 2023 rates, not tax advice. Ask a '
+            'tax adviser what is claimable for you.',
       ),
     ],
   ),
