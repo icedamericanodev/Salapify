@@ -17,7 +17,7 @@ on:
     branches:
       - claude/salapify-v2
     paths:
-      - 'mobile/**'
+      - 'archive/salapify-1-react-native/**'
   workflow_dispatch:
 
 # Never let two publishes race; let an in flight one finish rather than
@@ -42,14 +42,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: archive/salapify-1-react-native/package-lock.json
       - name: Install dependencies
-        working-directory: mobile
+        working-directory: archive/salapify-1-react-native
         run: npm ci
       - name: Install eas-cli
         run: npm install -g eas-cli
       - name: Publish preview update
-        working-directory: mobile
+        working-directory: archive/salapify-1-react-native
         # The commit message is passed as an env value (not interpolated into
         # the shell command) so a crafted commit message can never inject a
         # command. Falls back to a default for manual runs.
