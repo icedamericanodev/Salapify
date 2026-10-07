@@ -1395,6 +1395,16 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'Fixing an old entry today does not redraw last month, the same '
             'way a bank statement already printed does not change.',
       ),
+      // Founder decision, 2026-10-07: explain a clean-up jump here rather
+      // than store the doubled amount on each record.
+      InfoPoint(
+        icon: Icons.content_copy_outlined,
+        title: 'Fixing a "Counted twice" can look like a rise',
+        body:
+            'If a loan was recorded twice, the months before you fixed it '
+            'include it twice. Removing the copy makes the line jump up by '
+            'that amount. That jump is the clean-up, not new money.',
+      ),
       InfoPoint(
         icon: Icons.science_outlined,
         title: 'Example data is never recorded',
