@@ -4455,7 +4455,7 @@ void reportsTrendShots() {
       await tester.tap(find.text('Performance'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SPENDING PACE'), findsOneWidget);
+      expect(find.text('THIS MONTH VS LAST MONTH'), findsOneWidget);
       expect(find.text('MONTH BY MONTH'), findsOneWidget);
 
       await expectLater(

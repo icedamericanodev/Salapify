@@ -172,8 +172,8 @@ void main() {
           ),
         ),
       );
-      final Size word = tester.getSize(find.text('Operating'));
-      final double oneLine = tester.getSize(find.text('Investing')).height;
+      final Size word = tester.getSize(find.text('Day to day'));
+      final double oneLine = tester.getSize(find.text('Investments')).height;
       expect(
         word.height,
         lessThanOrEqualTo(oneLine * 1.01),

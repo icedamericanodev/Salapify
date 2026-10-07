@@ -558,14 +558,14 @@ class _PositionView extends StatelessWidget {
         StatPair(
           left: StatCard(
             palette: palette,
-            label: 'Assets',
+            label: 'You own',
             value: _signed(p.totalAssets.pesos),
             caption: _sources(p.assetSourceCount),
             valueColor: palette.positive,
           ),
           right: StatCard(
             palette: palette,
-            label: 'Liabilities',
+            label: 'You owe',
             value: _signed(p.totalLiabilities.pesos),
             caption: _sources(p.liabilitySourceCount),
             valueColor: palette.negative,
@@ -605,7 +605,7 @@ class _PositionView extends StatelessWidget {
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
-                label: 'Total assets',
+                label: 'Total',
                 value: _signed(p.totalAssets.pesos),
                 emphasis: true,
                 valueColor: palette.positive,
@@ -639,7 +639,7 @@ class _PositionView extends StatelessWidget {
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
-                label: 'Total liabilities',
+                label: 'Total',
                 value: _signed(p.totalLiabilities.pesos),
                 emphasis: true,
                 valueColor: palette.negative,
@@ -734,7 +734,8 @@ class _PerformanceViewState extends State<_PerformanceView> {
           const SizedBox(height: Spacing.md),
           _SectionCard(
             palette: palette,
-            title: 'Spending pace',
+            title: 'This month vs last month',
+            topic: InfoTopic.thisMonthVsLast,
             child: SpendingPaceChart(palette: palette, pace: trends.pace),
           ),
         ],
@@ -746,6 +747,7 @@ class _PerformanceViewState extends State<_PerformanceView> {
           _SectionCard(
             palette: palette,
             title: 'Month by month',
+            topic: InfoTopic.monthByMonth,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -1075,7 +1077,18 @@ class _CashFlowView extends StatelessWidget {
       children: <Widget>[
         _SectionCard(
           palette: palette,
-          title: 'Net change in cash',
+          // A SENTENCE, NOT "Net change in cash". Founder, 2026-10-07: chart
+          // and card words must be plain enough for somebody who has never
+          // read a cash flow statement, with the accounting behind the dot.
+          // The title carries the direction, so the figure under it is
+          // UNSIGNED, the same pattern as "You kept" and "You overspent by"
+          // on Performance: "Your cash went down by -8,784" would say it
+          // twice and read as a double negative.
+          title: c.netCashChange > 0
+              ? 'Your cash grew by'
+              : c.netCashChange < 0
+              ? 'Your cash went down by'
+              : 'Your cash did not change',
           topic: InfoTopic.cashFlow,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1084,7 +1097,7 @@ class _CashFlowView extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _signed(c.netCashChange),
+                  formatPeso(c.netCashChange.abs()),
                   style: AppType.hero(palette).copyWith(
                     color: c.netCashChange >= 0
                         ? palette.positive
@@ -1133,8 +1146,8 @@ class _CashFlowView extends StatelessWidget {
         // exercise.
         _FlowSection(
           palette: palette,
-          title: 'Operating',
-          note: 'Everyday living',
+          title: 'Day to day',
+          note: 'Salary, food, bills and shopping',
           inflows: c.operatingInflows,
           outflows: c.operatingOutflows,
           net: c.netOperating,
@@ -1142,8 +1155,8 @@ class _CashFlowView extends StatelessWidget {
         const SizedBox(height: Spacing.md),
         _FlowSection(
           palette: palette,
-          title: 'Investing',
-          note: 'Things meant to grow',
+          title: 'Investments',
+          note: 'Savings meant to grow, like MP2',
           inflows: c.investingInflows,
           outflows: c.investingOutflows,
           net: c.netInvesting,
@@ -1151,8 +1164,8 @@ class _CashFlowView extends StatelessWidget {
         const SizedBox(height: Spacing.md),
         _FlowSection(
           palette: palette,
-          title: 'Financing',
-          note: 'Loan and card repayments',
+          title: 'Loans and cards',
+          note: 'Paying down what you owe',
           inflows: c.financingInflows,
           outflows: c.financingOutflows,
           net: c.netFinancing,

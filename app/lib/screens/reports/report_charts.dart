@@ -388,9 +388,9 @@ class CashFlowChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<({String label, double net})> rows =
         <({String label, double net})>[
-          (label: 'Operating', net: cashFlow.netOperating),
-          (label: 'Investing', net: cashFlow.netInvesting),
-          (label: 'Financing', net: cashFlow.netFinancing),
+          (label: 'Day to day', net: cashFlow.netOperating),
+          (label: 'Investments', net: cashFlow.netInvesting),
+          (label: 'Loans and cards', net: cashFlow.netFinancing),
         ];
 
     // SYMMETRIC around zero and shared by all three rows, so the zero line
@@ -403,9 +403,9 @@ class CashFlowChart extends StatelessWidget {
 
     return Semantics(
       label:
-          'Operating ${formatPesoWithSign(cashFlow.netOperating)}, '
-          'investing ${formatPesoWithSign(cashFlow.netInvesting)}, '
-          'financing ${formatPesoWithSign(cashFlow.netFinancing)}.',
+          'Day to day ${formatPesoWithSign(cashFlow.netOperating)}, '
+          'investments ${formatPesoWithSign(cashFlow.netInvesting)}, '
+          'loans and cards ${formatPesoWithSign(cashFlow.netFinancing)}.',
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

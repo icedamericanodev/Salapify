@@ -167,6 +167,8 @@ enum InfoTopic {
   businessChecklist,
   openingBalance,
   runway,
+  thisMonthVsLast,
+  monthByMonth,
 }
 
 class InfoPoint {
@@ -481,7 +483,7 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
     points: <InfoPoint>[
       InfoPoint(
         icon: Icons.restaurant_outlined,
-        title: 'Operating',
+        title: 'Day to day (operating)',
         body:
             'Everyday living. Your salary coming in, your food, transport, '
             'bills and shopping going out. For most people this is the whole '
@@ -489,14 +491,14 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
       ),
       InfoPoint(
         icon: Icons.trending_up,
-        title: 'Investing',
+        title: 'Investments (investing)',
         body:
             'Money put into things meant to grow, and anything they pay back. '
             'MP2 top-ups, dividends, interest.',
       ),
       InfoPoint(
         icon: Icons.account_balance_outlined,
-        title: 'Financing',
+        title: 'Loans and cards (financing)',
         body:
             'Loan and card repayments. Money borrowed would appear on the in '
             'side, and nothing in the app records taking a loan out yet, so '
@@ -516,16 +518,17 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
       // the part somebody learns once and then never needs again.
       InfoPoint(
         icon: Icons.remove_circle_outline,
-        title: 'A minus here is often progress',
+        title: 'Cash going down is often progress',
         body:
             'Money leaving for MP2 and money leaving to kill a loan both show '
-            'as out, so a month where you did both can show a negative total. '
-            'That is not the same as overspending. Read the operating section '
+            'as out, so a month where you did both can show your cash going '
+            'down. '
+            'That is not the same as overspending. Read the day to day section '
             'first: that is the one that says whether day to day life paid '
             'for itself.',
       ),
     ],
-    formula: 'Net change = operating + investing + financing',
+    formula: 'Change in cash = day to day + investments + loans and cards',
   ),
 
   InfoTopic.transfers: InfoContent(
@@ -1239,6 +1242,90 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'You can correct the balance from the Accounts screen, and you '
             'can reconcile any time to bring it back in line. Nothing is '
             'locked by what you type here.',
+      ),
+    ],
+  ),
+
+  // The card under "In and out" on Performance. Its title used to be
+  // "Spending pace", which the founder flagged on 2026-10-07 as a word users
+  // would not understand; the title now says what the chart compares and the
+  // reading lesson lives here.
+  InfoTopic.thisMonthVsLast: InfoContent(
+    title: 'This month vs last month',
+    subtitle: 'Are you spending faster or slower than last month?',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.show_chart,
+        title: 'The solid line is this month',
+        body:
+            'It adds up what you have spent, day by day, from the 1st to '
+            'today. The dot is today.',
+      ),
+      InfoPoint(
+        icon: Icons.more_horiz,
+        title: 'The dotted line is last month',
+        body:
+            'All of it, so you can see both where last month stood on this '
+            'same day and where it ended up.',
+      ),
+      InfoPoint(
+        icon: Icons.compare_arrows,
+        title: 'The sentence on top compares the same day',
+        body:
+            'Day 18 of this month against day 18 of last month. Both months '
+            'have the same paydays, so it is a fair comparison while there is '
+            'still time to slow down.',
+      ),
+      InfoPoint(
+        icon: Icons.touch_app_outlined,
+        title: 'Tap or drag to read any day',
+        body:
+            'The figures under the chart follow your finger and stay there '
+            'when you let go.',
+      ),
+      InfoPoint(
+        icon: Icons.event_outlined,
+        title: 'Entries dated later are not on the line yet',
+        body:
+            'Rent logged in advance for the 30th counts in Money out, but the '
+            'line only reaches today. When that happens the card says how '
+            'much is waiting.',
+      ),
+    ],
+  ),
+
+  InfoTopic.monthByMonth: InfoContent(
+    title: 'Month by month',
+    subtitle: 'Your last six calendar months, side by side',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.bar_chart,
+        title: 'Two bars per month',
+        body:
+            'Blue is money that came in, orange is money that went out. When '
+            'orange is taller, that month cost more than it brought in.',
+      ),
+      InfoPoint(
+        icon: Icons.touch_app_outlined,
+        title: 'Tap a month to read it',
+        body:
+            'Its exact figures, and how much you kept or overspent, appear '
+            'under the chart.',
+      ),
+      InfoPoint(
+        icon: Icons.history,
+        title: 'Why it opens on last month',
+        body:
+            'This month is already in the cards above and below, so the chart '
+            'starts on the month you cannot see anywhere else.',
+      ),
+      InfoPoint(
+        icon: Icons.calendar_month_outlined,
+        title: 'Always calendar months',
+        body:
+            'The chips at the top change the cards, not this chart. A bonus or '
+            '13th month pay shows up here as one tall blue bar, which is '
+            'exactly what makes a normal month easy to spot.',
       ),
     ],
   ),

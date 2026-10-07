@@ -789,7 +789,7 @@ void main() {
 
     // Directional: the card is on screen and the month really is negative.
     // _SectionCard uppercases its own title, so this is the rendered string.
-    expect(find.text('NET CHANGE IN CASH'), findsOneWidget);
+    expect(find.text('YOUR CASH WENT DOWN BY'), findsOneWidget);
     expect(find.text('-₱15,000.00'), findsWidgets, reason: 'really negative');
     expect(find.textContaining('came out ahead'), findsNothing);
   });
