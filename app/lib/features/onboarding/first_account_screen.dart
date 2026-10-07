@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../info/info_dot.dart';
@@ -344,7 +345,8 @@ class _DoneState extends State<_Done> {
         onTapCancel: () => setState(() => _down = false),
         onTapUp: (_) => setState(() => _down = false),
         child: AnimatedScale(
-          scale: _down ? 0.96 : 1.0,
+          // Still when the phone asks for less motion.
+          scale: _down && !reduceMotion(context) ? 0.96 : 1.0,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: Material(

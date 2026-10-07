@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
 import '../../core/money/installments.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/debt/installment_sheet.dart';
@@ -482,12 +483,15 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: Spacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(Radii.pill),
-            child: LinearProgressIndicator(
+            child: GrowTo(
               value: plan.progress,
-              minHeight: 6,
-              backgroundColor: palette.trackSoft,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                plan.isSettled ? palette.positive : palette.accent,
+              builder: (double v) => LinearProgressIndicator(
+                value: v,
+                minHeight: 6,
+                backgroundColor: palette.trackSoft,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  plan.isSettled ? palette.positive : palette.accent,
+                ),
               ),
             ),
           ),

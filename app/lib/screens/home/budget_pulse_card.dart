@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/js_round.dart';
@@ -135,11 +136,14 @@ class BudgetPulseCard extends StatelessWidget {
                     child: SizedBox(
                       width: 80,
                       height: 8,
-                      child: LinearProgressIndicator(
+                      child: GrowTo(
                         value: percentTotal / 100,
-                        backgroundColor: palette.trackSoft,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          palette.positive,
+                        builder: (double v) => LinearProgressIndicator(
+                          value: v,
+                          backgroundColor: palette.trackSoft,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            palette.positive,
+                          ),
                         ),
                       ),
                     ),

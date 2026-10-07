@@ -636,19 +636,64 @@ class SegmentedChoice<T> extends StatelessWidget {
       // stacked down the sheet, 330px tall, looking like a menu. Nothing
       // overflows here because the labels WRAP inside their own segment
       // instead, so a narrow phone makes the bar taller rather than broken.
-      child: Row(
+      //
+      // ONE THUMB THAT SLIDES (motion review, 2026-10-07). The selected fill
+      // used to jump from segment to segment; now a single accent thumb glides
+      // under the labels to the new choice, 220ms, so the eye follows what
+      // changed. It sits BEHIND the row in a Stack and is sized from the row,
+      // so a two-line label that makes the bar taller makes the thumb taller
+      // with it. Reduced motion jumps straight there.
+      child: Stack(
         children: <Widget>[
-          for (final (T value, String label) in options) ...<Widget>[
-            if (value != options.first.$1) const SizedBox(width: 3),
-            Expanded(
-              child: _Segment(
-                palette: palette,
-                label: label,
-                selected: value == selected,
-                onTap: () => onSelect(value),
+          Positioned.fill(
+            child: AnimatedAlign(
+              alignment: Alignment(
+                options.length < 2
+                    ? 0
+                    : -1 +
+                          2 *
+                              options
+                                  .indexWhere(
+                                    ((T, String) o) => o.$1 == selected,
+                                  )
+                                  .clamp(0, options.length - 1) /
+                              (options.length - 1),
+                0,
+              ),
+              duration: (MediaQuery.maybeDisableAnimationsOf(context) ?? false)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: FractionallySizedBox(
+                widthFactor: 1 / options.length,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: options.any(((T, String) o) => o.$1 == selected)
+                        ? palette.accent
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(Radii.tile),
+                  ),
+                ),
               ),
             ),
-          ],
+          ),
+          Row(
+            children: <Widget>[
+              for (final (T value, String label) in options)
+                Expanded(
+                  child: _Segment(
+                    palette: palette,
+                    label: label,
+                    selected: value == selected,
+                    onTap: () {
+                      if (value != selected) HapticFeedback.selectionClick();
+                      onSelect(value);
+                    },
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -673,8 +718,9 @@ class _Segment extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
+      // Transparent: the selected fill is the sliding thumb behind the row.
       child: Material(
-        color: selected ? palette.accent : Colors.transparent,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(Radii.tile),
         child: InkWell(
           onTap: onTap,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/debt/add_debt_sheet.dart';
@@ -839,11 +840,15 @@ class _DebtCard extends StatelessWidget {
             const SizedBox(height: Spacing.md),
             ClipRRect(
               borderRadius: BorderRadius.circular(Radii.pill),
-              child: LinearProgressIndicator(
+              // Grows after a payment, so the bar shows the payment did it.
+              child: GrowTo(
                 value: debt.progress,
-                minHeight: 6,
-                backgroundColor: palette.trackSoft,
-                valueColor: AlwaysStoppedAnimation<Color>(tint),
+                builder: (double v) => LinearProgressIndicator(
+                  value: v,
+                  minHeight: 6,
+                  backgroundColor: palette.trackSoft,
+                  valueColor: AlwaysStoppedAnimation<Color>(tint),
+                ),
               ),
             ),
             const SizedBox(height: Spacing.xs),

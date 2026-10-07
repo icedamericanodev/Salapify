@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 
@@ -199,7 +200,8 @@ class _ChoiceButtonState extends State<_ChoiceButton> {
         child: AnimatedScale(
           // 0.96, the house floor. Below that it reads as a glitch rather
           // than as a press.
-          scale: _down ? 0.96 : 1.0,
+          // Still when the phone asks for less motion.
+          scale: _down && !reduceMotion(context) ? 0.96 : 1.0,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: Material(

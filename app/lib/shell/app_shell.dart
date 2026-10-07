@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/money/format.dart';
 import '../core/money/reminders.dart';
+import '../design/motion.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../features/log/log_sheet.dart';
@@ -81,7 +83,26 @@ class _AppShellState extends State<AppShell> {
             // the header rather than a bar across the screen. Without it, an
             // app that has silently stopped saving looks exactly like an app
             // that is fine, and there is no server holding a copy.
-            Expanded(child: _bodyFor(_current, palette)),
+            // A SHORT FADE BETWEEN TABS, not a hard cut (motion review,
+            // 2026-10-07): the new tab fades in over 200ms. Keyed by the tab
+            // so a store change inside one tab never re-runs the fade.
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: reduceMotion(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                // Only the new tab is laid out once the switch starts, so
+                // the two never stack and fight for the same space.
+                layoutBuilder: (Widget? current, List<Widget> previous) =>
+                    current ?? const SizedBox.shrink(),
+                child: KeyedSubtree(
+                  key: ValueKey<SalapifyTab>(_current),
+                  child: _bodyFor(_current, palette),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -137,18 +158,52 @@ class _AppShellState extends State<AppShell> {
   /// setState on return, because the payment path writes to the store and the
   /// tab underneath has to redraw with the new figures.
   Future<void> _openDebt(BuildContext context, Palette palette) async {
+    // A short fade and rise rather than the stock route (motion review,
+    // 2026-10-07): 280ms in, quicker out, and none at all when the phone asks
+    // for less motion.
+    final bool still = reduceMotion(context);
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext ctx) => Scaffold(
-          backgroundColor: palette.background,
-          body: SafeArea(
-            bottom: false,
-            child: DebtScreen(
-              state: widget.state,
-              onBack: () => Navigator.of(ctx).pop(),
-            ),
-          ),
-        ),
+      PageRouteBuilder<void>(
+        transitionDuration: still
+            ? Duration.zero
+            : const Duration(milliseconds: 280),
+        reverseTransitionDuration: still
+            ? Duration.zero
+            : const Duration(milliseconds: 200),
+        transitionsBuilder:
+            (
+              BuildContext _,
+              Animation<double> a,
+              Animation<double> _,
+              Widget child,
+            ) {
+              final Animation<double> c = CurvedAnimation(
+                parent: a,
+                curve: Curves.easeOutCubic,
+              );
+              return FadeTransition(
+                opacity: c,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.04),
+                    end: Offset.zero,
+                  ).animate(c),
+                  child: child,
+                ),
+              );
+            },
+        pageBuilder:
+            (BuildContext ctx, Animation<double> _, Animation<double> _) =>
+                Scaffold(
+                  backgroundColor: palette.background,
+                  body: SafeArea(
+                    bottom: false,
+                    child: DebtScreen(
+                      state: widget.state,
+                      onBack: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                ),
       ),
     );
     if (mounted) setState(() {});
@@ -165,6 +220,9 @@ class _AppShellState extends State<AppShell> {
     if (logged == null) return;
 
     widget.state.logTransaction(logged);
+    // A light tap you can feel: the entry landed. Day to day actions get a
+    // light haptic; milestones (a debt settled) get a stronger one.
+    HapticFeedback.lightImpact();
 
     // Land on Activity, where the entry now is. Saving something and being
     // left on the screen that does not show it is how somebody concludes it

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/money/format.dart';
 import '../../core/money/plan.dart';
 import '../../data/seed_data.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/info/info_dot.dart';
@@ -207,11 +208,14 @@ class _BudgetRow extends StatelessWidget {
               const SizedBox(height: 4),
               ClipRRect(
                 borderRadius: BorderRadius.circular(Radii.pill),
-                child: LinearProgressIndicator(
+                child: GrowTo(
                   value: (row.percent / 100).clamp(0.0, 1.0),
-                  minHeight: 6,
-                  backgroundColor: palette.trackSoft,
-                  valueColor: AlwaysStoppedAnimation<Color>(_colour),
+                  builder: (double v) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 6,
+                    backgroundColor: palette.trackSoft,
+                    valueColor: AlwaysStoppedAnimation<Color>(_colour),
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
@@ -463,12 +467,15 @@ class _GoalRow extends StatelessWidget {
           const SizedBox(height: 4),
           ClipRRect(
             borderRadius: BorderRadius.circular(Radii.pill),
-            child: LinearProgressIndicator(
+            child: GrowTo(
               value: (row.percent / 100).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: palette.trackSoft,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                row.isComplete ? palette.positive : palette.accent,
+              builder: (double v) => LinearProgressIndicator(
+                value: v,
+                minHeight: 6,
+                backgroundColor: palette.trackSoft,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  row.isComplete ? palette.positive : palette.accent,
+                ),
               ),
             ),
           ),

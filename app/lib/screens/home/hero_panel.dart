@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design/settle_figure.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/health_check.dart';
@@ -139,12 +140,15 @@ class HeroPanel extends StatelessWidget {
                 const SizedBox(height: Spacing.md),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(Radii.pill),
-                  child: LinearProgressIndicator(
+                  child: GrowTo(
                     value: progress,
-                    minHeight: 5,
-                    backgroundColor: HeroColors.ink.withValues(alpha: 0.22),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      HeroColors.ink,
+                    builder: (double v) => LinearProgressIndicator(
+                      value: v,
+                      minHeight: 5,
+                      backgroundColor: HeroColors.ink.withValues(alpha: 0.22),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        HeroColors.ink,
+                      ),
                     ),
                   ),
                 ),

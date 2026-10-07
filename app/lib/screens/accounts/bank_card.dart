@@ -9,6 +9,7 @@ import '../../core/money/format.dart';
 import '../../design/institution_brand.dart';
 import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -100,6 +101,11 @@ class _BankCardState extends State<BankCard>
 
   void _turn() {
     if (_flip.isAnimating) return;
+    // Reduced motion: the card shows its other side at once, no turn.
+    if (reduceMotion(context)) {
+      _flip.value = _showingBack ? 0 : 1;
+      return;
+    }
     if (_showingBack) {
       _flip.reverse();
     } else {
