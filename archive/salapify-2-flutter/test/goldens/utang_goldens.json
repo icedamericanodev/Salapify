@@ -1,0 +1,179 @@
+{
+ "rich": {
+  "input": {
+   "people": [
+    {
+     "id": "p1",
+     "name": "Migs"
+    },
+    {
+     "id": "p2",
+     "name": "Ana"
+    },
+    {
+     "id": "p3",
+     "name": ""
+    }
+   ],
+   "receivables": [
+    {
+     "id": "r1",
+     "personId": "p1",
+     "amount": 2000,
+     "payments": [
+      {
+       "id": "pay1",
+       "amount": 500
+      }
+     ],
+     "dueDate": "2026-07-04"
+    },
+    {
+     "id": "r2",
+     "person": "migs",
+     "amount": 300,
+     "payments": []
+    },
+    {
+     "id": "r3",
+     "personId": "p2",
+     "amount": 800,
+     "dueDate": "2026-07-11"
+    },
+    {
+     "id": "r4",
+     "personId": "p2",
+     "amount": 200,
+     "dueDate": "2026-08-01"
+    },
+    {
+     "id": "r5",
+     "personId": "p1",
+     "amount": 999,
+     "paid": true
+    },
+    {
+     "id": "r6",
+     "person": "Ben",
+     "amount": 100,
+     "payments": [
+      {
+       "id": "x",
+       "amount": 150
+      }
+     ]
+    },
+    {
+     "id": "r7",
+     "person": "Carla",
+     "amount": "junk"
+    },
+    {
+     "id": "r8",
+     "person": "Dodong",
+     "amount": 50,
+     "payments": [
+      {
+       "id": "y",
+       "amount": -20
+      }
+     ],
+     "dueDate": "not-a-date"
+    },
+    {
+     "id": "r9",
+     "personId": "p3",
+     "person": "Erning",
+     "amount": 75
+    }
+   ]
+  },
+  "ref": "2026-07-16T12:00:00",
+  "expected": {
+   "people": [
+    {
+     "personId": "p1",
+     "name": "Migs",
+     "phone": "",
+     "outstanding": 1800,
+     "count": 2,
+     "daysOverdue": 12,
+     "oldestDue": "2026-07-04"
+    },
+    {
+     "personId": "p2",
+     "name": "Ana",
+     "phone": "",
+     "outstanding": 1000,
+     "count": 2,
+     "daysOverdue": 5,
+     "oldestDue": "2026-07-11"
+    },
+    {
+     "personId": "p3",
+     "name": "Erning",
+     "phone": "",
+     "outstanding": 75,
+     "count": 1,
+     "daysOverdue": 0,
+     "oldestDue": ""
+    },
+    {
+     "personId": "",
+     "name": "Dodong",
+     "phone": "",
+     "outstanding": 50,
+     "count": 1,
+     "daysOverdue": 0,
+     "oldestDue": ""
+    }
+   ],
+   "totalOutstanding": 2925,
+   "overdueTotal": 2800,
+   "overdueCount": 2,
+   "worst": {
+    "personId": "p1",
+    "name": "Migs",
+    "phone": "",
+    "outstanding": 1800,
+    "count": 2,
+    "daysOverdue": 12,
+    "oldestDue": "2026-07-04"
+   }
+  }
+ },
+ "empty": {
+  "input": {
+   "people": [],
+   "receivables": []
+  },
+  "ref": "2026-07-16T12:00:00",
+  "expected": {
+   "people": [],
+   "totalOutstanding": 0,
+   "overdueTotal": 0,
+   "overdueCount": 0,
+   "worst": null
+  }
+ },
+ "junk": {
+  "input": {
+   "people": "nope",
+   "receivables": [
+    null,
+    42,
+    {
+     "id": "x"
+    }
+   ]
+  },
+  "ref": "2026-07-16T12:00:00",
+  "expected": {
+   "people": [],
+   "totalOutstanding": 0,
+   "overdueTotal": 0,
+   "overdueCount": 0,
+   "worst": null
+  }
+ }
+}

@@ -15,7 +15,8 @@ features. It replaces
 docs/Salapify_Master_Constitution.md (Master Constitution v2, 2026-08-12) as
 the top authority below direct founder direction. The constitution file stays
 in the repository unedited, as history and because
-flutter/test/constitution_citation_test.dart reads its path; nothing in it
+archive/salapify-2-flutter/test/constitution_citation_test.dart reads its
+path; nothing in it
 binds work any more, and where the two disagree docs/revamp wins.
 
 Salapify 3 is being built FOR THE PUBLIC. Founder direction, 2026-09-14,
@@ -39,11 +40,44 @@ meaning, stored data, security or privacy, a real product fork, deleting
 files that exist on main, merge or release) still stop for the founder. That
 layers on top of, and does not loosen, the STOP conditions written below.
 
-Until the new app in app/ replaces it on the founder's phone (Phase 4 in
-docs/revamp/05-roadmap.md), flutter/ is FROZEN: no feature work, only a fix
-the founder needs on the phone they use daily. Every rule below about
-flutter/ delivery still applies to such a fix. mobile/ is frozen the same
-way. Neither is deleted until the founder says so (decision D5).
+## Salapify 2 is ARCHIVED (founder direction, 2026-09-18)
+
+flutter/ no longer exists. It is archive/salapify-2-flutter/, renamed on
+founder direction so that two folders holding a Flutter app called Salapify
+cannot be confused for one another again. app/ is the only live Flutter app.
+
+Read archive/README.md before touching anything in there. The short version:
+
+1. NOTHING in archive/ is built, tested or published. Its four workflows and
+   four scripts moved to archive/salapify-2-flutter/ci-disabled/, because
+   GitHub only runs workflows from .github/workflows and moving them is what
+   actually stops them.
+2. THE PUBLISHER IS OFF, so the founder's phone receives no further Salapify 2
+   updates. flutter-preview.yml triggered on the path flutter/**, and nothing
+   is at that path now. The app already installed keeps working; it stops
+   changing. Last delivered stamp: f4.72.
+3. Every delivery rule written below about flutter/ (the stamp bump, the
+   uniqueness guard, the QA row, the delivery-log check, "merged is not
+   delivered") is therefore DORMANT, not repealed. It governs an app nothing
+   can ship. Do not apply it to app/, which has no publisher, and do not treat
+   a green app-check as evidence about anything on a phone.
+4. The restored guards do NOT gate the current build, by founder direction:
+   qa_record_test, update_stamp_test, toolchain_pin_test and
+   constitution_citation_test are Salapify 2's rules, written for an app with a
+   publisher at the end of it. When app/ earns one, copy them forward
+   deliberately and rewritten; never inherit them by accident.
+5. Files can be pulled back any time, and the money engines are the likeliest
+   want. D24 still holds when you do: src/ is the source of truth for every
+   calculation, so an engine in the archive is a second opinion and the vectors
+   in app/test/core/money/ win.
+6. Un-archiving is five steps and they are written down in archive/README.md.
+   Do all five or none; a publisher without its stamp collision guard is how
+   three real collisions happened.
+
+mobile/ is frozen the same way but is NOT archived; it is still at the
+repository root, and its only workflow triggers on a retired branch, so it
+publishes nothing. Nothing is deleted, which is what decision D5 required:
+archiving is a rename, and every file is still in the tree.
 
 The constitution file is a verbatim reproduction of the founder's document,
 so its own punctuation is preserved exactly as delivered. Do NOT normalize
@@ -58,10 +92,12 @@ and untouched for testers until the Flutter app reaches parity. Rules for the
 Flutter track:
 1. Delivery has TWO actions, and confusing them cost thirteen undelivered
    stamps once already. Pushes to a claude/** branch run the "Flutter check"
-   action (.github/workflows/flutter-check.yml): analyze and test only, on a
+   action (archive/salapify-2-flutter/ci-disabled/workflows/flutter-check.yml):
+   analyze and test only, on a
    real runner, nothing published. Only pushes to main
    that touch flutter/ run the "Flutter preview APK" action
-   (.github/workflows/flutter-preview.yml): flutter analyze (zero issues),
+   (archive/salapify-2-flutter/ci-disabled/workflows/flutter-preview.yml):
+   flutter analyze (zero issues),
    flutter test, then Shorebird ships it. So a push touching flutter/ on the
    working branch publishes NOTHING; delivery happens at the merge to main,
    and is not real until that run is green. THERE IS NO PATH THAT MERGES
@@ -74,7 +110,9 @@ Flutter track:
    merge on the belief that it ships nothing. That belief shipped f3.10 patch 5
    unrecorded (docs/lunch-and-learn.md session 25). Two guards now hold this: the
    branch check reddens a flutter/-touching PR whose stamp still equals the
-   delivered one (.github/scripts/check-stamp-unique.sh), and the publisher's own
+   delivered one
+   (archive/salapify-2-flutter/ci-disabled/scripts/check-stamp-unique.sh),
+   and the publisher's own
    record step is the backstop that refuses to write a colliding row. One RELEASE
    exists per pubspec version (the base APK at the fixed flutter-preview release
    tag, installed once); every later push PATCHES that release over the air and
@@ -82,8 +120,10 @@ Flutter track:
    installed app updates itself on reopen. Bump the pubspec version ONLY for
    native-level changes; that forces a new base APK and one manual install,
    flag it loudly to the founder. Auth is the SHOREBIRD_TOKEN repo secret;
-   the app id lives in flutter/shorebird.yaml (public, not a secret).
-2. Bump the updateStamp constant in flutter/lib/main.dart on every push
+   the app id lives in archive/salapify-2-flutter/shorebird.yaml (public, not
+   a secret).
+2. Bump the updateStamp constant in archive/salapify-2-flutter/lib/main.dart
+   on every push
    (f0.01, f0.02, ...), same verify-on-phone discipline as the RN stamp.
    Bump it FIRST, before writing the feature, not last after testing is
    done: a commit finished and pushed before the stamp is bumped ships with
@@ -94,7 +134,8 @@ Flutter track:
    catches the collision itself at the PR border every time (see below); this
    is only about not wasting a test run on a tree that was never going to
    ship (session 32, docs/lunch-and-learn.md). KEEP IT SHORT, one high level
-   line, 120 characters, enforced by test/update_stamp_test.dart. It became a
+   line, 120 characters, enforced by
+   archive/salapify-2-flutter/test/update_stamp_test.dart. It became a
    forty line wall of text on the
    founder's phone because each build appended the previous build's notes
    instead of replacing them. The detail belongs in the PULL REQUEST. Not in
@@ -142,11 +183,49 @@ Flutter track:
    has actually enabled it, and CI stays the real, unconditional backstop
    either way.
 
+## A screen shows figures, the "i" dot explains them (founder direction, 2026-09-18)
+
+Verbatim, on reviewing the first Reports build: "CRITICALLY CHECK THE SCREENS,
+IT SEEMS TO WORDY. INSTEAD WE CAN PUT THE EXPLANATION IN THE 'i' ICON SO THE
+SCREENS ARE STILL NEAT LOOKING".
+
+The rule that follows, and it governs every screen from here on:
+
+    A FIGURE, and the one short line needed to READ it, stay on the screen.
+    Everything that TEACHES goes behind the dot.
+
+"₱26,725.25" stays. "That is 52.4% of what came in" stays, because it is
+another figure. "A straight line from the days so far, so treat it as a
+direction and not a forecast" goes behind the dot, because it is a lesson, and
+a lesson is read once and then skipped forever while still taking up room on
+every visit after the first.
+
+ONE EXCEPTION, and it is not a loophole. Anything a person needs in order to
+avoid a WRONG CONCLUSION stays on the screen, however long. Two survived the
+cut in Reports for exactly this reason: "A housing loan alone can do this."
+under a net worth of minus two hundred thousand, because alarm is the worst
+possible moment to send somebody hunting for reassurance; and "Not counted
+above, on purpose." under a 5,000 transfer that moves no total, because
+otherwise it reads as money the report lost. The test is not length, it is
+whether silence would mislead.
+
+The machinery is already built: `InfoDot` in app/lib/features/info/info_dot.dart
+and the topic-keyed explainer in info_sheet.dart, ported from the prototype's
+own archive/prototype-google-ai-studio/src/components/SectionInfoModal.tsx. Adding a topic means adding an enum
+value AND an entry in `infoContent`; `test/widgets/info_sheet_test.dart`
+iterates the enum and reddens if either is missing, because InfoSheet reads the
+map with a `!` and a missing entry is a crash on a screen somebody tapped
+deliberately.
+
+A dot on every card is its own clutter. A card with nothing to teach gets no
+dot, or people learn the dots never say anything and stop tapping the one that
+matters.
+
 ## Look at the screen before shipping a screen
 
 Claude can render any Flutter screen to a PNG and actually look at it:
 
-    cd flutter && flutter test test/screens_shot.dart --update-goldens
+    cd app && flutter test test/shots/screens_shot.dart --update-goldens
 
 Do this for every UI change, before the merge. Two real bugs reached the
 founder's phone because it was not done: a lesson rendering its reference
@@ -228,7 +307,8 @@ Three things about the render, learned the hard way:
 The same font rule reaches past the render harness. A widget test that MEASURES
 layout, whether a label wraps, whether a control stacks, whether anything
 overflows or clips, must load the real fonts first with `loadRealFonts` from
-`test/screens_shot.dart`, or it judges a font the phone never draws. Flutter's
+`app/test/shots/screens_shot.dart`, or it judges a font the phone never draws.
+Flutter's
 default test font is wider than Plus Jakarta Sans, the face the app ships, so a
 layout decision can come out one way in the test and the other way on the phone.
 The theme-mode selector test did exactly this: it demanded the picker stack at
@@ -270,14 +350,25 @@ writes. That proves the harness still renders. It was abandoned once already
 after a runtime failure nobody wrote down.
 
 There is also a small COMMITTED pixel baseline, and it is a reference, not the
-gate. `test/golden/ui_golden.dart` renders the screens one change set touched
-into fixed PNGs under `test/golden/baseline/`, deterministic on purpose (fixed
-size and DPR, dark theme, en locale, real fonts, animations off, an injected
-clock where a date shows). It carries NO `_test` suffix, so `flutter test` never
-collects it, and the CI step that compares it is non-blocking: a pixel diff
-across environments is information, not a red build. The real per-push regression
-gate stays the DETERMINISTIC layout-metric tests (`screen_readability_test.dart`,
-`palette_contrast_test.dart`, `segmented_test.dart` and the like), which measure
+gate. IT BELONGS TO SALAPIFY 2 AND LIVES IN THE ARCHIVE, at
+`archive/salapify-2-flutter/test/golden/ui_golden.dart`, which renders the
+screens one change set touched into fixed PNGs under
+`archive/salapify-2-flutter/test/golden/baseline/`, deterministic on purpose
+(fixed size and DPR, dark theme, en locale, real fonts, animations off, an
+injected clock where a date shows). It carries NO `_test` suffix, so
+`flutter test` never collects it, and the CI step that compared it was
+non-blocking: a pixel diff across environments is information, not a red build.
+
+`app/` HAS NOT GOT ONE, and this paragraph read as though it did until
+2026-10-02, describing machinery the live app does not have in the present
+tense. If `app/` ever wants one, copy it forward deliberately and rewritten,
+the way the archive section says to copy anything forward, and never inherit
+it by accident.
+
+The RULING the baseline encodes is the founder's and stands whatever `app/`
+builds. The per-push regression gate is the DETERMINISTIC layout-metric tests
+(`app/test/screen_readability_test.dart`, `app/test/palette_contrast_test.dart`
+and the like), which measure
 layout rather than pixels and so cannot flake cross-platform. That split is the
 standing answer to "add a stable pixel baseline": commit one for the screens that
 can be made deterministic, keep it opt-in and non-blocking, and never let a
@@ -286,8 +377,9 @@ pixel check; that is exactly the flake the founder ruled out.
 
 ## Test the app the way a person uses it, not one screen at a time
 
-`flutter/test/journeys_test.dart` taps and types through several features in one
-sitting and then checks that every screen still agrees about the money. Most of
+The journey tests in `app/test/widgets/`, the files named `*_journey_test.dart`,
+tap and type through several features in one
+sitting and then check that every screen still agrees about the money. Most of
 the other test files drive ONE screen with a store built for it, which is good
 and is not this (no count here on purpose: the last version of this sentence
 said sixty and the real figure was seventy-nine, two paragraphs from the rule
@@ -318,7 +410,7 @@ invariant ("changes nothing", "returns to the start") is unfalsifiable by
 inaction by construction, so its companion can never be another conservation
 statement: name the per-account movement, or assert the stored blob changed.
 
-The journey-tester agent (.claude/agents/journey-tester.md) owns this file and
+The journey-tester agent (.claude/agents/journey-tester.md) owns these files and
 the discipline around it. Use it when the founder cannot test by hand, which is
 most of the time.
 
@@ -351,9 +443,20 @@ and `entriesFor` was flawless, and the defect lived in the gap between them.
 The concrete rule: after building any write path, list the screens a user would
 check to confirm it happened, and make the journey visit each one. If a screen
 cannot show it, that is a finding, not a fact of life. In this case the engine
-deliberately writes the payment with no accountId (tagging it would double
-debit the account), so the account link lives in the top level `payments`
-collection and the screen reads it from there. Display only, no stored change.
+deliberately leaves the TRANSACTION untagged by account (tagging it would
+double debit the account), so the account link lives on the payment row
+instead, as `DebtPayment.accountId`, and the screen reads it from there. It is
+stored: `debtPaymentToJson` writes `accountId`, and `debtKeys` declares
+`payments`.
+
+(Until 2026-10-02 this paragraph said the link lives in a "top level
+`payments` collection" and called it display only with no stored change. Both
+halves were wrong for `app/`, which has no such collection: `collectionKeys`
+in `snapshot.dart` does not list one and nothing in `app/lib` writes one. The
+collection it described is Salapify 2's, still in the archive at
+`archive/salapify-2-flutter/lib/money/debts.dart`. This is the third
+consecutive retrospective to find a false factual claim in these rules, so
+once more, read the codec rather than this paragraph.)
 
 ## Three Bash commands are refused by a hook, and why
 
@@ -382,9 +485,22 @@ commands gets switched off and is then absent for the real thing. `python3 -c`
 one-liners pass, any python that only reads passes, and `git checkout <branch>`,
 `git checkout -b`, and `git checkout origin/main` all pass. The discriminator for
 rule 2 is whether the argument EXISTS on disk, which is exactly what makes the
-command destructive; a ref is not a path. Rule 3 matches only an INVOCATION
-(command position on the first line), so a commit message or document that
-merely mentions the banned shape passes.
+command destructive; a ref is not a path. Rule 3 AIMS at an INVOCATION
+(command position on the first line), so an echo or a commit message that
+merely mentions the banned shape usually passes.
+
+Usually, not always, and this paragraph promised always until 2026-10-02.
+Rule 3 is a regex over the raw first line, not over parsed tokens, so a
+QUOTED STRING can supply all three parts by itself: `(^|[;&|])` is satisfied
+by an `&&` inside the quotes, `flutter[[:space:]]+test` by the words after it,
+and the trailing `\|` by any later pipe character, escaped or not. A read-only
+`grep` whose SEARCH PATTERN happens to contain all three is therefore refused,
+reproduced twice on 2026-10-02, once by accident and once by feeding the hook
+its own payload. The hook's own header states the principle that breaks: it is
+meant to under-block, because a guard that fires on ordinary work gets
+switched off. Nobody has lost work to it and the cost is a refused read, so it
+is written down here rather than loosened in a hurry. If it fires on something
+plainly harmless, that is this, and rewording the command around it is fine.
 
 Installed at the founder's explicit request. Worth knowing how it got here: two
 consecutive retrospectives concluded "nothing in this repository can observe how
@@ -477,7 +593,7 @@ defense is actually re-running the search on every kept source, every time.
 ## Icons: ours are orange, the user's are emoji
 
 Salapify's own icons are Material glyphs in the theme accent, resolved through
-flutter/lib/widgets/salapify_icon.dart. Content declares the MEANING ('shield',
+app/lib/design/salapify_icon.dart. Content declares the MEANING ('shield',
 'mountain') and that one file decides how it is drawn, so restyling every icon
 is one edit. Emoji cannot do this: they are OS-drawn multicolour stickers, the
 palette cannot reach them, and they change shape between phones.
@@ -559,7 +675,7 @@ first so the enhancement lands on what exists instead of beside it.
    preview channel using the EXPO_TOKEN repo secret. This runs on
    GitHub's free runners and does NOT use the EAS CI/CD minute allowance
    (the old .eas workflow did, and ran it out). Bump the Update stamp row
-   in mobile/app/(tabs)/more.js on every push so the founder can verify on
+   in archive/salapify-1-react-native/app/(tabs)/more.js on every push so the founder can verify on
    the phone which bundle arrived.
 5. Native changes (new native modules, app.json plugin or version changes)
    need a full APK rebuild on EAS and a version bump to isolate runtimes.
@@ -588,8 +704,8 @@ them, do not rely on model memory where they apply.
 
 Context7: use it before implementing, debugging, reviewing, or modifying any code
 that depends on an external Flutter or Dart package. Verify APIs against the
-version Salapify actually uses, not the latest. Inspect flutter/pubspec.yaml and
-flutter/pubspec.lock before recommending any upgrade, and do not upgrade a
+version Salapify actually uses, not the latest. Inspect app/pubspec.yaml and
+app/pubspec.lock before recommending any upgrade, and do not upgrade a
 dependency unless the task requires it. Model memory of a package API is a guess
 until Context7 confirms it against the pinned version.
 
@@ -597,7 +713,8 @@ Figma: use the Figma MCP for UI and UX work only when a Figma design or frame is
 provided. Treat what it returns as design context, never as production code.
 Translate designs into idiomatic Flutter that reuses Salapify's existing design
 tokens and widgets before creating anything new (the Barako palette,
-salapify_icon.dart, and the shared widgets in flutter/lib/widgets). Preserve
+salapify_icon.dart, and the shared widgets in app/lib/design/ and
+app/lib/features/shared/). Preserve
 accessibility, responsive behavior, and platform conventions. Never introduce
 React, HTML, CSS, or any web implementation into the Flutter app on the strength
 of Figma output; Salapify's icons stay Material glyphs in the accent, not emoji
@@ -762,6 +879,30 @@ is tested, rendered, green and ready to open on their emulator. Progress
 narration between those two points is noise: the branch is pushed, dev-sync
 restarts their app, and the screens are in the review folder either way.
 
+**Spin them by default, and then BUILD what they said.** Founder direction
+2026-10-04, verbatim: "always spin the relevant agents, review and the do their
+suggestions". Three things that settles:
+
+1. ALWAYS, not when stuck. Convening the fitting lens is the first step of a
+   piece of work, not a move kept for hard cases. The founder has now said
+   this three times in one session from three angles.
+2. REVIEW is still mandatory and is not a formality. "Review and then do"
+   means verify first, then build what survives, and the paragraph above is
+   the reason: every expert pass in session 36 contained at least one claim
+   that did not survive a check. Session 37 was the same. A UX review
+   correctly overturned a recommendation by running the engine; in the same
+   batch a figure it inherited was wrong by 32,500. Doing an agent's
+   suggestion without reading the code first is not following this direction,
+   it is skipping the word "review" in it.
+3. THEN DO IT. A verified finding is not a report to relay, it is work. The
+   failure this closes is the batch where three specialists ran, the founder
+   was told what they said, and nothing was built because each suggestion
+   quietly became a question back to them.
+
+Pick the lenses the DECISION needs, not a menu of ten, per the brainstorming
+skill. Two or three tightly scoped agents beat six broad ones, and an agent
+whose answer could not change what gets built should not be convened at all.
+
 What still reaches the founder, unchanged by this: the STOP conditions in the
 autonomy section, anything that could permanently lose user data, and a real
 product fork where reasonable people would build two different apps. "Major"
@@ -776,6 +917,26 @@ review". This replaces the 2026-08-10 rule that reserved the final merge for
 the founder, and it replaces STOP condition 9's first clause in the autonomy
 section above. Do not stop and ask for a merge; merge, and report what
 happened.
+
+RESTATED AND WIDENED, founder direction 2026-10-04, verbatim: "always merge
+after checking and fixing issues, do now always ask permission unless its
+really needed". Two things that settles:
+
+1. The merge is not a separate step to raise. Check, fix what the check found,
+   merge, report. A session that finishes the work and then asks "shall I
+   merge?" has added a round trip the founder has now removed twice.
+2. ASKING ITSELF IS THE THING BEING RATIONED, not just the merge. The founder
+   has made this point three ways in one session: use the expert agents rather
+   than them, decide for yourself, and now do not ask permission unless it is
+   really needed. Routine engineering inside approved work is not a question.
+
+What "really needed" still covers is unchanged and is written in full above:
+the founder-gated categories in STOP conditions 1 to 8, anything that could
+permanently lose user data, and a real product fork. Those are not permission
+requests, they are decisions only the founder can take, and they stop the WORK
+before it is done rather than the merge at the end. Everything in the merge
+conditions below also still binds: a red or unfinished check is still a stop,
+and "the founder said merge" has never been a waiver for one.
 
 Everything else in this section is UNCHANGED and still binds. The conditions
 below were the bar for presenting a PR; they are now the bar for merging one,
@@ -804,7 +965,8 @@ a short factual line, not a silence and not an essay.
 The conditions, ALL of which must hold before the merge:
 - A QA pass ran on the changed code (the qa-tester agent or equivalent)
   and every must fix finding was fixed and re-checked. Record it as a row in
-  docs/qa-log.md; flutter/test/qa_record_test.dart fails on the runner when
+  docs/qa-log.md; archive/salapify-2-flutter/test/qa_record_test.dart fails on
+  the runner when
   the current stamp has no row. This rule sat unenforced for weeks and then
   was simply skipped on f2.71, which put a monthly cap that could not see the
   app's own Log entries on the founder's phone for two hours. SKIPPED is an

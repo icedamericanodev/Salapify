@@ -1,0 +1,456 @@
+{
+  "refISO": "2026-07-16",
+  "splits": [
+    {
+      "name": "plain month of interest",
+      "args": {
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-06-16",
+        "amount": 2000,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 360,
+        "balance": 12360,
+        "applied": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "newRemaining": 10360,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "half month accrual",
+      "args": {
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-07-01",
+        "amount": 2000,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 180,
+        "balance": 12180,
+        "applied": 2000,
+        "interest": 180,
+        "principal": 1820,
+        "newRemaining": 10180,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "same day, zero accrual",
+      "args": {
+        "remaining": 12000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-07-16",
+        "amount": 2000,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 0,
+        "balance": 12000,
+        "applied": 2000,
+        "interest": 0,
+        "principal": 2000,
+        "newRemaining": 10000,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "zero rate",
+      "args": {
+        "remaining": 5000,
+        "monthlyRate": 0,
+        "interestThroughISO": "2026-06-01",
+        "amount": 1000,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 0,
+        "balance": 5000,
+        "applied": 1000,
+        "interest": 0,
+        "principal": 1000,
+        "newRemaining": 4000,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "overpay clamps, overpay reported",
+      "args": {
+        "remaining": 800,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-06-16",
+        "amount": 5000,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 24,
+        "balance": 824,
+        "applied": 824,
+        "interest": 24,
+        "principal": 800,
+        "newRemaining": 0,
+        "overpay": 4176
+      }
+    },
+    {
+      "name": "payment smaller than accrued interest",
+      "args": {
+        "remaining": 20000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-04-16",
+        "amount": 100,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 1820,
+        "balance": 21820,
+        "applied": 100,
+        "interest": 100,
+        "principal": 0,
+        "newRemaining": 21720,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "junk stamp accrues zero",
+      "args": {
+        "remaining": 9000,
+        "monthlyRate": 3,
+        "interestThroughISO": "not-a-date",
+        "amount": 500,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 0,
+        "balance": 9000,
+        "applied": 500,
+        "interest": 0,
+        "principal": 500,
+        "newRemaining": 8500,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "missing stamp uses today",
+      "args": {
+        "remaining": 9000,
+        "monthlyRate": 3,
+        "interestThroughISO": "",
+        "amount": 500,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 0,
+        "balance": 9000,
+        "applied": 500,
+        "interest": 0,
+        "principal": 500,
+        "newRemaining": 8500,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "negative remaining clamps",
+      "args": {
+        "remaining": -50,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-06-16",
+        "amount": 100,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 0,
+        "balance": 0,
+        "applied": 0,
+        "interest": 0,
+        "principal": 0,
+        "newRemaining": 0,
+        "overpay": 100
+      }
+    },
+    {
+      "name": "string inputs coerce",
+      "args": {
+        "remaining": "12000",
+        "monthlyRate": "3",
+        "interestThroughISO": "2026-06-16",
+        "amount": "2000",
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 360,
+        "balance": 12360,
+        "applied": 2000,
+        "interest": 360,
+        "principal": 1640,
+        "newRemaining": 10360,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "payoff exact balance",
+      "args": {
+        "remaining": 1000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-06-16",
+        "amount": 1030,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 30,
+        "balance": 1030,
+        "applied": 1030,
+        "interest": 30,
+        "principal": 1000,
+        "newRemaining": 0,
+        "overpay": 0
+      }
+    },
+    {
+      "name": "second payment same month books only elapsed days",
+      "args": {
+        "remaining": 10000,
+        "monthlyRate": 3,
+        "interestThroughISO": "2026-07-10",
+        "amount": 400,
+        "todayStr": "2026-07-16"
+      },
+      "result": {
+        "accrued": 60,
+        "balance": 10060,
+        "applied": 400,
+        "interest": 60,
+        "principal": 340,
+        "newRemaining": 9660,
+        "overpay": 0
+      }
+    }
+  ],
+  "projections": {
+    "avalanche": {
+      "months": 21,
+      "totalInterest": 12124,
+      "date": "2028-04-01"
+    },
+    "snowball": {
+      "months": 21,
+      "totalInterest": 12135,
+      "date": "2028-04-01"
+    },
+    "avalancheExtra": {
+      "months": 13,
+      "totalInterest": 5911,
+      "date": "2027-08-01"
+    },
+    "snowballExtra": {
+      "months": 13,
+      "totalInterest": 6350,
+      "date": "2027-08-01"
+    },
+    "hopeless": null,
+    "empty": {
+      "months": 0,
+      "totalInterest": 0,
+      "date": "2026-07-16"
+    },
+    "junk": {
+      "months": 7,
+      "totalInterest": 23,
+      "date": "2027-02-01"
+    }
+  },
+  "projDebts": [
+    {
+      "id": "card",
+      "name": "Card",
+      "remaining": 18000,
+      "monthlyRate": 3,
+      "minPayment": 900
+    },
+    {
+      "id": "loan",
+      "name": "Loan",
+      "remaining": 45000,
+      "monthlyRate": 1,
+      "minPayment": 2500
+    },
+    {
+      "id": "utang",
+      "name": "Utang",
+      "remaining": 4000,
+      "monthlyRate": 0,
+      "minPayment": 500
+    }
+  ],
+  "hopeless": [
+    {
+      "id": "trap",
+      "remaining": 50000,
+      "monthlyRate": 5,
+      "minPayment": 100
+    }
+  ],
+  "cards": {
+    "fullCard": {
+      "id": "c1",
+      "name": "BPI Blue",
+      "type": "credit card",
+      "remaining": 12000,
+      "monthlyRate": 3,
+      "minPayment": 600,
+      "statementDay": 10,
+      "graceDays": 15,
+      "creditLimit": 40000,
+      "interestThroughISO": "2026-07-01"
+    },
+    "dueDayCard": {
+      "id": "c2",
+      "name": "Metrobank",
+      "type": "credit card",
+      "remaining": 8000,
+      "monthlyRate": 3.5,
+      "minPayment": 400,
+      "dueDay": 19,
+      "creditLimit": 20000
+    },
+    "zeroRateCard": {
+      "id": "c3",
+      "name": "No rate saved",
+      "type": "credit card",
+      "remaining": 5000,
+      "monthlyRate": 0,
+      "minPayment": 250,
+      "statementDay": 5,
+      "graceDays": 20,
+      "creditLimit": 15000
+    },
+    "paidOff": {
+      "id": "c4",
+      "name": "Done card",
+      "type": "credit card",
+      "remaining": 0,
+      "monthlyRate": 3,
+      "minPayment": 0,
+      "dueDay": 12,
+      "creditLimit": 10000
+    },
+    "noSchedule": {
+      "id": "c5",
+      "name": "Utang kay Tita",
+      "remaining": 5000
+    }
+  },
+  "payments": [
+    {
+      "id": "p1",
+      "debtId": "c1",
+      "amount": 1500,
+      "status": "pending",
+      "date": "2026-07-14"
+    },
+    {
+      "id": "p2",
+      "debtId": "c1",
+      "amount": 800,
+      "status": "posted",
+      "date": "2026-07-02"
+    },
+    {
+      "id": "p3",
+      "debtId": "c2",
+      "amount": 300,
+      "status": "pending",
+      "date": "2026-07-15"
+    }
+  ],
+  "forecasts": {
+    "fullCard": {
+      "statement": "2026-08-10",
+      "due": "2026-07-27",
+      "dueRaw": "2026-07-25",
+      "dueMoved": true,
+      "dueMovedReason": "a Saturday",
+      "pending": 1500,
+      "forecastBalance": 12000,
+      "minDue": 600,
+      "creditLimit": 40000,
+      "utilization": 0.3,
+      "monthlyRate": 3,
+      "lateInterest": 360
+    },
+    "dueDayCard": {
+      "statement": null,
+      "due": "2026-07-20",
+      "dueRaw": "2026-07-19",
+      "dueMoved": true,
+      "dueMovedReason": "a Sunday",
+      "pending": 300,
+      "forecastBalance": 8000,
+      "minDue": 400,
+      "creditLimit": 20000,
+      "utilization": 0.4,
+      "monthlyRate": 3.5,
+      "lateInterest": 280
+    },
+    "zeroRateCard": {
+      "statement": "2026-08-05",
+      "due": "2026-07-27",
+      "dueRaw": "2026-07-25",
+      "dueMoved": true,
+      "dueMovedReason": "a Saturday",
+      "pending": 0,
+      "forecastBalance": 5000,
+      "minDue": 250,
+      "creditLimit": 15000,
+      "utilization": 0.3333333333333333,
+      "monthlyRate": 0,
+      "lateInterest": 0
+    },
+    "paidOff": {
+      "statement": null,
+      "due": "2026-08-12",
+      "dueRaw": "2026-08-12",
+      "dueMoved": false,
+      "dueMovedReason": "",
+      "pending": 0,
+      "forecastBalance": 0,
+      "minDue": 0,
+      "creditLimit": 10000,
+      "utilization": 0,
+      "monthlyRate": 3,
+      "lateInterest": 0
+    },
+    "noSchedule": {
+      "statement": null,
+      "due": null,
+      "dueRaw": null,
+      "dueMoved": false,
+      "dueMovedReason": "",
+      "pending": 0,
+      "forecastBalance": 5000,
+      "minDue": 5000,
+      "creditLimit": 0,
+      "utilization": null,
+      "monthlyRate": 0,
+      "lateInterest": 0
+    }
+  },
+  "soas": {
+    "fullCard": "SALAPIFY SOA FORECAST\nBPI Blue\n\nTHIS CYCLE\nNext statement cut: Aug 10, 2026\nForecast statement balance: ₱12,000\nCredit used: 30% of ₱40,000\nPayments sent but not yet posted: ₱1,500\n\nWHAT TO PAY\nPay in full: ₱12,000 and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)\nOr at least the minimum: ₱600 to avoid late fees\nDue date: Jul 27, 2026 (moved from Jul 25, 2026, which is a Saturday; banks accept payment on the next banking day)\n\nIF YOU PAY LATE OR ONLY THE MINIMUM\nAbout ₱360 interest gets added next month (3% monthly on the unpaid balance)\nMissing the due date also adds your bank’s late fee, check your card terms for the exact amount\n\nThis is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.",
+    "dueDayCard": "SALAPIFY SOA FORECAST\nMetrobank\n\nTHIS CYCLE\nForecast statement balance: ₱8,000\nCredit used: 40% of ₱20,000\nPayments sent but not yet posted: ₱300\n\nWHAT TO PAY\nPay in full: ₱8,000 and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)\nOr at least the minimum: ₱400 to avoid late fees\nDue date: Jul 20, 2026 (moved from Jul 19, 2026, which is a Sunday; banks accept payment on the next banking day)\n\nIF YOU PAY LATE OR ONLY THE MINIMUM\nAbout ₱280 interest gets added next month (3.5% monthly on the unpaid balance)\nMissing the due date also adds your bank’s late fee, check your card terms for the exact amount\n\nThis is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.",
+    "zeroRateCard": "SALAPIFY SOA FORECAST\nNo rate saved\n\nTHIS CYCLE\nNext statement cut: Aug 5, 2026\nForecast statement balance: ₱5,000\nCredit used: 33% of ₱15,000\n\nWHAT TO PAY\nPay in full: ₱5,000 and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)\nOr at least the minimum: ₱250 to avoid late fees\nDue date: Jul 27, 2026 (moved from Jul 25, 2026, which is a Saturday; banks accept payment on the next banking day)\n\nINTEREST RATE NOT SET\nThis card has no monthly interest rate saved, so the forecast shows zero interest. Check your SOA for the real rate (PH cards are capped at 3% monthly) and add it in Salapify.\n\nThis is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.",
+    "paidOff": "SALAPIFY SOA FORECAST\nDone card\n\nTHIS CYCLE\nForecast statement balance: ₱0\nCredit used: 0% of ₱10,000\n\nWHAT TO PAY\nPay in full: ₱0 and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)\nOr at least the minimum: ₱0 to avoid late fees\nDue date: Aug 12, 2026\n\nThis is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here.",
+    "noSchedule": "SALAPIFY SOA FORECAST\nUtang kay Tita\n\nTHIS CYCLE\nForecast statement balance: ₱5,000\n\nWHAT TO PAY\nPay in full: ₱5,000 and new purchases stay interest free (cash advances and balances already revolving keep charging interest until fully cleared)\nOr at least the minimum: ₱5,000 to avoid late fees\n\nINTEREST RATE NOT SET\nThis card has no monthly interest rate saved, so the forecast shows zero interest. Check your SOA for the real rate (PH cards are capped at 3% monthly) and add it in Salapify.\n\nThis is not a bank document. It is a forecast from your logged data in Salapify; your bank’s official SOA may differ if there are swipes or fees not logged here."
+  },
+  "dueDates": {
+    "fullCard": "2026-07-25",
+    "dueDayCard": "2026-07-19",
+    "zeroRateCard": "2026-07-25",
+    "paidOff": "2026-08-12",
+    "noSchedule": null
+  }
+}

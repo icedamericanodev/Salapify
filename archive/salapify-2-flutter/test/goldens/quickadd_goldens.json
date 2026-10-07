@@ -1,0 +1,451 @@
+{
+  "start": [
+    {
+      "label": "Food",
+      "amount": 150
+    },
+    {
+      "label": "Transport",
+      "amount": 50
+    }
+  ],
+  "cases": [
+    {
+      "name": "a plain new button",
+      "kind": "add",
+      "label": "Coffee",
+      "amount": "120",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Coffee",
+          "amount": 120
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "a decimal amount",
+      "kind": "add",
+      "label": "Jeep",
+      "amount": "13.50",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Jeep",
+          "amount": 13.5
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "a label with surrounding spaces is trimmed",
+      "kind": "add",
+      "label": "  Load  ",
+      "amount": "100",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Load",
+          "amount": 100
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "an exact duplicate label is refused",
+      "kind": "add",
+      "label": "Food",
+      "amount": "999",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a duplicate in a different case is refused",
+      "kind": "add",
+      "label": "fOOd",
+      "amount": "999",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a duplicate that only differs by spaces is refused",
+      "kind": "add",
+      "label": "  food ",
+      "amount": "999",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "an empty label is refused",
+      "kind": "add",
+      "label": "",
+      "amount": "100",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a whitespace only label is refused",
+      "kind": "add",
+      "label": "   ",
+      "amount": "100",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a zero amount is refused",
+      "kind": "add",
+      "label": "Zero",
+      "amount": "0",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a negative amount is refused",
+      "kind": "add",
+      "label": "Neg",
+      "amount": "-50",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a junk amount is refused",
+      "kind": "add",
+      "label": "Junk",
+      "amount": "abc",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "an empty amount is refused",
+      "kind": "add",
+      "label": "Blank",
+      "amount": "",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a whitespace amount is refused",
+      "kind": "add",
+      "label": "Space",
+      "amount": "   ",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a comma grouped amount is refused",
+      "kind": "add",
+      "label": "Comma",
+      "amount": "1,500",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a leading plus is accepted",
+      "kind": "add",
+      "label": "Plus",
+      "amount": "+70",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Plus",
+          "amount": 70
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "a hex literal is accepted",
+      "kind": "add",
+      "label": "Hex",
+      "amount": "0x10",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Hex",
+          "amount": 16
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "an infinite amount is refused",
+      "kind": "add",
+      "label": "Inf",
+      "amount": "Infinity",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "a very large amount is accepted",
+      "kind": "add",
+      "label": "Big",
+      "amount": "999999999",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Big",
+          "amount": 999999999
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "RN accepts a sub centavo amount",
+      "kind": "add",
+      "label": "Kape",
+      "amount": "0.004",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Kape",
+          "amount": 0.004
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "RN accepts a very long label",
+      "kind": "add",
+      "label": "Pamasahe papuntang opisina tapos pauwi rin sa gabi",
+      "amount": "92",
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        },
+        {
+          "label": "Pamasahe papuntang opisina tapos pauwi rin sa gabi",
+          "amount": 92
+        }
+      ],
+      "accepted": true
+    },
+    {
+      "name": "remove the first",
+      "kind": "remove",
+      "index": 0,
+      "list": [
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "remove the last",
+      "kind": "remove",
+      "index": 1,
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "remove an index that is not there",
+      "kind": "remove",
+      "index": 9,
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "remove a negative index",
+      "kind": "remove",
+      "index": -1,
+      "list": [
+        {
+          "label": "Food",
+          "amount": 150
+        },
+        {
+          "label": "Transport",
+          "amount": 50
+        }
+      ],
+      "accepted": false
+    }
+  ],
+  "fromNothing": {
+    "list": [
+      {
+        "label": "First",
+        "amount": 75
+      }
+    ],
+    "accepted": true
+  }
+}
