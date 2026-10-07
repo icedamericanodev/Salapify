@@ -60,6 +60,23 @@ void main() {
       expect(_c(t.months.last.expenses), _c(950.50 + 300 + 700));
     });
 
+    test('cash change matches the Cash flow headline, this month and last', () {
+      for (final DateTime at in <DateTime>[now, DateTime(2026, 8, 31)]) {
+        final TrendSet t = buildTrends(transactions: ledger, now: at);
+        final CashFlow c = buildReports(
+          transactions: ledger,
+          accounts: const <Account>[],
+          period: ReportPeriod.monthly,
+          now: at,
+        ).cashFlow;
+        expect(_c(t.months.last.cashChange), _c(c.netCashChange));
+      }
+      // DIRECTIONAL: September really moved, by income less spending here
+      // because this ledger has no investing or financing entries.
+      final TrendSet t = buildTrends(transactions: ledger, now: now);
+      expect(_c(t.months.last.cashChange), _c(51000 - 950.50 - 300 - 700));
+    });
+
     test('a past month matches running This month on that month', () {
       final TrendSet t = buildTrends(transactions: ledger, now: now);
       final FinancialPerformance august = buildReports(

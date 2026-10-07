@@ -167,7 +167,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     profile: widget.state.activeProfile,
                   ),
                 ),
-                _ReportTab.cashFlow => _CashFlowView(palette: p, report: r),
+                _ReportTab.cashFlow => _CashFlowView(
+                  palette: p,
+                  report: r,
+                  period: _period,
+                  trends: buildTrends(
+                    transactions: widget.state.transactions,
+                    now: widget.state.now,
+                    profile: widget.state.activeProfile,
+                  ),
+                ),
                 _ReportTab.reconciliation => ReconciliationView(
                   state: widget.state,
                 ),
@@ -1063,10 +1072,17 @@ class _PerformanceViewState extends State<_PerformanceView> {
 }
 
 class _CashFlowView extends StatelessWidget {
-  const _CashFlowView({required this.palette, required this.report});
+  const _CashFlowView({
+    required this.palette,
+    required this.report,
+    required this.period,
+    required this.trends,
+  });
 
   final Palette palette;
   final ReportSet report;
+  final ReportPeriod period;
+  final TrendSet trends;
 
   @override
   Widget build(BuildContext context) {
@@ -1138,6 +1154,25 @@ class _CashFlowView extends StatelessWidget {
             ],
           ),
         ),
+        // MONTH BY MONTH, right under the headline it extends: did cash grow
+        // or shrink in each of the last six months. Needs two months to
+        // compare, the same rule as the Performance card.
+        if (trends.months.length >= 2) ...<Widget>[
+          const SizedBox(height: Spacing.md),
+          _SectionCard(
+            palette: palette,
+            title: 'Month by month',
+            topic: InfoTopic.cashByMonth,
+            child: MonthlyCashChart(
+              palette: palette,
+              months: trends.months,
+              // The headline above is this month on the monthly view.
+              initialIndex: period == ReportPeriod.monthly
+                  ? trends.months.length - 2
+                  : null,
+            ),
+          ),
+        ],
         const SizedBox(height: Spacing.md),
         // The three sections carry a two or three word gloss instead of the
         // sentence each used to have. The sentences are in the cash flow

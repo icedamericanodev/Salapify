@@ -169,6 +169,7 @@ enum InfoTopic {
   runway,
   thisMonthVsLast,
   monthByMonth,
+  cashByMonth,
 }
 
 class InfoPoint {
@@ -1326,6 +1327,42 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
             'The chips at the top change the cards, not this chart. A bonus or '
             '13th month pay shows up here as one tall blue bar, which is '
             'exactly what makes a normal month easy to spot.',
+      ),
+    ],
+  ),
+
+  InfoTopic.cashByMonth: InfoContent(
+    title: 'Cash, month by month',
+    subtitle: 'Did your cash grow or shrink each month?',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.bar_chart,
+        title: 'Above the line, your cash grew',
+        body:
+            'A green bar above the middle line means that month left you with '
+            'more cash than it started with. Orange below means less.',
+      ),
+      InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'Below the line is not always bad',
+        body:
+            'Money moved into MP2 or used to pay a loan down early also leaves '
+            'your cash. Check the day to day section of that month before '
+            'reading it as overspending.',
+      ),
+      InfoPoint(
+        icon: Icons.touch_app_outlined,
+        title: 'Tap a month to read it',
+        body:
+            'The exact amount appears under the chart. It opens on last month, '
+            'because this month is the headline right above.',
+      ),
+      InfoPoint(
+        icon: Icons.swap_horiz,
+        title: 'Moving money between your own accounts does not count',
+        body:
+            'Bank to GCash is the same cash in a different pocket, so it never '
+            'makes a bar taller.',
       ),
     ],
   ),

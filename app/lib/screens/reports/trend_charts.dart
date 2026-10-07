@@ -724,3 +724,212 @@ class _Figure extends StatelessWidget {
     );
   }
 }
+
+/// CASH, MONTH BY MONTH: did your cash grow or shrink, each month.
+///
+/// One bar per month from a shared zero line, above it when the month added
+/// cash and below when it took cash away, in the app's own green and orange
+/// (the side of the line carries direction, so colour is never the only
+/// cue). Tap a month and the line under the chart says what it did. Same
+/// model as [MonthlyInOutChart]: only a completed tap selects, so a scroll
+/// that starts on the chart can never change the month, and on the monthly
+/// view it opens on last month, since this month is the headline above.
+class MonthlyCashChart extends StatefulWidget {
+  const MonthlyCashChart({
+    super.key,
+    required this.palette,
+    required this.months,
+    this.initialIndex,
+  });
+
+  final Palette palette;
+
+  /// Oldest first, current month last.
+  final List<MonthTotals> months;
+
+  /// The month selected at first, or null for the current month.
+  final int? initialIndex;
+
+  @override
+  State<MonthlyCashChart> createState() => _MonthlyCashChartState();
+}
+
+class _MonthlyCashChartState extends State<MonthlyCashChart> {
+  int? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette palette = widget.palette;
+    final List<MonthTotals> months = widget.months;
+    final int sel = (_selected ?? widget.initialIndex ?? months.length - 1)
+        .clamp(0, months.length - 1);
+    final MonthTotals m = months[sel];
+    final TextScaler tick = _tickScaler(context);
+
+    // Symmetric, so the zero line sits mid-chart whatever the months did.
+    final double reach = months.fold<double>(
+      0,
+      (double a, MonthTotals x) => math.max(a, x.cashChange.abs()),
+    );
+    final double r = reach <= 0 ? 1 : reach * 1.1;
+
+    Color colour(MonthTotals x, int i) {
+      final Color c = x.cashChange >= 0 ? palette.positive : palette.negative;
+      return i == sel ? c : c.withValues(alpha: 0.45);
+    }
+
+    void step(int by) {
+      final int to = (sel + by).clamp(0, months.length - 1);
+      if (to != sel) setState(() => _selected = to);
+    }
+
+    String name(MonthTotals x) => '${_monthLong[x.month - 1]} ${x.year}';
+
+    final String verdict = m.cashChange > 0
+        ? 'Your cash grew by ${formatPeso(m.cashChange)}'
+        : m.cashChange < 0
+        ? 'Your cash went down by ${formatPeso(m.cashChange.abs())}'
+        : 'Your cash did not change';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Semantics(
+          container: true,
+          label: 'Cash, month by month',
+          value: name(m),
+          increasedValue: sel < months.length - 1
+              ? name(months[sel + 1])
+              : null,
+          decreasedValue: sel > 0 ? name(months[sel - 1]) : null,
+          onIncrease: sel < months.length - 1 ? () => step(1) : null,
+          onDecrease: sel > 0 ? () => step(-1) : null,
+          child: ExcludeSemantics(
+            child: SizedBox(
+              height: 150,
+              child: _DrawIn(
+                builder: (double t) => BarChart(
+                  duration: Duration.zero,
+                  BarChartData(
+                    minY: -r,
+                    maxY: r,
+                    alignment: BarChartAlignment.spaceAround,
+                    borderData: FlBorderData(show: false),
+                    gridData: const FlGridData(show: false),
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: <HorizontalLine>[
+                        HorizontalLine(
+                          y: 0,
+                          color: palette.textMuted,
+                          strokeWidth: 1,
+                        ),
+                      ],
+                    ),
+                    titlesData: FlTitlesData(
+                      leftTitles: const AxisTitles(),
+                      rightTitles: const AxisTitles(),
+                      topTitles: const AxisTitles(),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: _tickBand(palette, tick),
+                          getTitlesWidget: (double v, TitleMeta meta) {
+                            final int i = v.round();
+                            if (i < 0 || i >= months.length) {
+                              return const SizedBox.shrink();
+                            }
+                            return SideTitleWidget(
+                              meta: meta,
+                              child: Text(
+                                _monthShort[months[i].month - 1],
+                                textScaler: tick,
+                                style: AppType.caption(palette).copyWith(
+                                  color: i == sel
+                                      ? palette.textPrimary
+                                      : palette.textMuted,
+                                  fontWeight: i == sel
+                                      ? FontWeight.w800
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    barTouchData: BarTouchData(
+                      handleBuiltInTouches: false,
+                      touchExtraThreshold: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 200,
+                      ),
+                      allowTouchBarBackDraw: true,
+                      // Only a completed tap selects; see MonthlyInOutChart.
+                      touchCallback: (FlTouchEvent e, BarTouchResponse? res) {
+                        if (e is! FlTapUpEvent) return;
+                        final int? i = res?.spot?.touchedBarGroupIndex;
+                        if (i == null || i == sel) return;
+                        HapticFeedback.selectionClick();
+                        setState(() => _selected = i);
+                      },
+                    ),
+                    barGroups: <BarChartGroupData>[
+                      for (int i = 0; i < months.length; i++)
+                        BarChartGroupData(
+                          x: i,
+                          barRods: <BarChartRodData>[
+                            BarChartRodData(
+                              toY: months[i].cashChange * t,
+                              width: 16,
+                              color: colour(months[i], i),
+                              // Rounded at the end away from zero only.
+                              borderRadius: months[i].cashChange >= 0
+                                  ? const BorderRadius.vertical(
+                                      top: Radius.circular(4),
+                                    )
+                                  : const BorderRadius.vertical(
+                                      bottom: Radius.circular(4),
+                                    ),
+                              // A whole-column target that does not draw.
+                              backDrawRodData: BackgroundBarChartRodData(
+                                show: true,
+                                fromY: -r,
+                                toY: r,
+                                color: Colors.transparent,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Divider(color: palette.border, height: Spacing.lg),
+        Semantics(
+          container: true,
+          liveRegion: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(name(m).toUpperCase(), style: AppType.kicker(palette)),
+              const SizedBox(height: Spacing.xs),
+              Text(
+                verdict,
+                style: AppType.rowTitle(palette).copyWith(
+                  color: m.cashChange > 0
+                      ? palette.positive
+                      : m.cashChange < 0
+                      ? palette.negative
+                      : palette.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

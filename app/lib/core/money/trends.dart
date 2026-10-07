@@ -29,6 +29,7 @@ class MonthTotals {
     required this.income,
     required this.expenses,
     required this.keptRate,
+    required this.cashChange,
   });
 
   final int year;
@@ -43,7 +44,13 @@ class MonthTotals {
   /// be a division by zero dressed up as a percentage.
   final double? keptRate;
 
-  bool get isEmpty => income == 0 && expenses == 0;
+  /// [CashFlow.netCashChange] for the month: the figure the Cash flow tab's
+  /// headline prints, from the same call. It is NOT income less expenses:
+  /// it leaves out nothing those count, but it sorts them, and the tab's
+  /// headline is this figure, so the trend must be too.
+  final double cashChange;
+
+  bool get isEmpty => income == 0 && expenses == 0 && cashChange == 0;
 }
 
 /// This month's spending to date, day by day, against last month's.
@@ -144,10 +151,14 @@ TrendSet buildTrends({
     final DateTime anchor = back == 0
         ? now
         : DateTime(now.year, now.month - back + 1, 0);
-    final FinancialPerformance f = computePerformance(
-      filterByPeriod(dated, ReportPeriod.monthly, anchor),
+    // ONE window, read by both engines, the same way `buildReports` feeds
+    // Performance and Cash flow from one scoped list.
+    final List<Transaction> window = filterByPeriod(
+      dated,
+      ReportPeriod.monthly,
       anchor,
     );
+    final FinancialPerformance f = computePerformance(window, anchor);
     months.add(
       MonthTotals(
         year: anchor.year,
@@ -155,6 +166,7 @@ TrendSet buildTrends({
         income: f.totalIncome,
         expenses: f.totalExpenses,
         keptRate: f.totalIncome > 0 ? f.keptRate : null,
+        cashChange: computeCashFlow(window).netCashChange,
       ),
     );
   }

@@ -4438,6 +4438,9 @@ void reportsTrendShots() {
           add(m, d, 420 * k, 'Transport & Commute');
         }
         if (m == 6) add(m, 9, 9500, 'Education');
+        // July moves 30,000 into an investment: the month the Cash flow
+        // chart shows going DOWN while day to day still paid for itself.
+        if (m == 7) add(m, 16, 30000, 'Investment & Passive Income');
       }
 
       final Palette palette = Palette.of(state.theme);
@@ -4461,6 +4464,16 @@ void reportsTrendShots() {
       await expectLater(
         find.byType(AppShell),
         matchesGoldenFile('out/reports_trends_$theme.png'),
+      );
+
+      // The same history on Cash flow, where the month by month bars sit
+      // either side of a zero line.
+      await tester.tap(find.text('Cash flow'));
+      await tester.pumpAndSettle();
+      expect(find.text('MONTH BY MONTH'), findsOneWidget);
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/reports_trends_cash_$theme.png'),
       );
     });
   }

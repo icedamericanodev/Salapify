@@ -15,6 +15,7 @@ MonthTotals _m(int month, double income, double expenses) => MonthTotals(
   income: income,
   expenses: expenses,
   keptRate: income > 0 ? (income - expenses) / income * 100 : null,
+  cashChange: income - expenses,
 );
 
 Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
@@ -124,6 +125,80 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('MAY 2026'), findsOneWidget);
+    });
+  });
+
+  group('cash, month by month', () {
+    final List<MonthTotals> months = <MonthTotals>[
+      _m(6, 51000, 20000),
+      // 30,000 into an investment: cash went DOWN though income beat
+      // spending, which is why this reads cashChange and not in less out.
+      MonthTotals(
+        year: 2026,
+        month: 7,
+        income: 51000,
+        expenses: 62000,
+        keptRate: null,
+        cashChange: -11000,
+      ),
+      _m(9, 51000, 25774.75),
+    ];
+
+    testWidgets('opens where it is told, and says which way cash went', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        MonthlyCashChart(palette: palette, months: months, initialIndex: 1),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('JULY 2026'), findsOneWidget);
+      expect(find.text('Your cash went down by ₱11,000.00'), findsOneWidget);
+    });
+
+    testWidgets('a tap selects, a scroll does not', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              children: <Widget>[
+                SizedBox(
+                  width: 360,
+                  child: MonthlyCashChart(palette: palette, months: months),
+                ),
+                const SizedBox(height: 2000),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final Rect chart = tester.getRect(find.byType(BarChart));
+      final Offset june = Offset(chart.left + chart.width / 6, chart.center.dy);
+
+      await tester.dragFrom(june, const Offset(0, -80));
+      await tester.pumpAndSettle();
+      expect(
+        tester.state<ScrollableState>(find.byType(Scrollable)).position.pixels,
+        greaterThan(0),
+      );
+      expect(
+        find.text('SEPTEMBER 2026'),
+        findsOneWidget,
+        reason: 'scrolling past the chart changed the selected month',
+      );
+
+      await tester.tapAt(
+        Offset(
+          chart.left + chart.width / 6,
+          tester.getRect(find.byType(BarChart)).center.dy,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('JUNE 2026'), findsOneWidget);
+      expect(find.text('Your cash grew by ₱31,000.00'), findsOneWidget);
     });
   });
 
