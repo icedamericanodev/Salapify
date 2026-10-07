@@ -749,7 +749,15 @@ class _PerformanceViewState extends State<_PerformanceView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                MonthlyInOutChart(palette: palette, months: trends.months),
+                MonthlyInOutChart(
+                  palette: palette,
+                  months: trends.months,
+                  // On the monthly view this month's figures are already in
+                  // the cards above and below, so open on last month.
+                  initialIndex: widget.period == ReportPeriod.monthly
+                      ? trends.months.length - 2
+                      : null,
+                ),
                 // Stated, because the current month here would otherwise
                 // disagree with "This month" above by exactly these entries
                 // and nothing on screen would say why.

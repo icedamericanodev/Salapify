@@ -66,7 +66,125 @@ void main() {
     });
   });
 
+  group('scrolling is not choosing', () {
+    final List<MonthTotals> months = <MonthTotals>[
+      _m(4, 30000, 41000),
+      _m(5, 40000, 12000),
+      _m(9, 51000, 25774.75),
+    ];
+
+    testWidgets('a scroll that starts on a month does not select it', (
+      WidgetTester tester,
+    ) async {
+      // A page that really scrolls, with the chart in it, the way Reports
+      // has it. fl_chart reports the finger landing before the page knows
+      // it is a scroll, and selecting on that swapped the figures below for
+      // whichever month the scroll happened to start on.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              children: <Widget>[
+                SizedBox(
+                  width: 360,
+                  child: MonthlyInOutChart(palette: palette, months: months),
+                ),
+                const SizedBox(height: 2000),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final Rect chart = tester.getRect(find.byType(BarChart));
+      await tester.dragFrom(
+        Offset(chart.left + chart.width / 6, chart.bottom - 40),
+        // Short enough that the card stays built, long enough to be a
+        // scroll rather than a tap.
+        const Offset(0, -80),
+      );
+      await tester.pumpAndSettle();
+      // DIRECTIONAL: the page really did scroll, or "nothing changed" would
+      // pass just as well for a gesture that never happened.
+      expect(
+        tester.state<ScrollableState>(find.byType(Scrollable)).position.pixels,
+        greaterThan(0),
+      );
+      expect(
+        find.text('SEPTEMBER 2026'),
+        findsOneWidget,
+        reason: 'scrolling past the chart changed the selected month',
+      );
+    });
+
+    testWidgets('it can open on another month', (WidgetTester tester) async {
+      await _pump(
+        tester,
+        MonthlyInOutChart(palette: palette, months: months, initialIndex: 1),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('MAY 2026'), findsOneWidget);
+    });
+  });
+
   group('spending pace', () {
+    testWidgets('the readout shows today, then the day you tap', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        SpendingPaceChart(
+          palette: palette,
+          pace: SpendingPace(
+            thisMonth: <double>[100, 200, 300, 400, 500],
+            lastMonth: <double>[10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            daysInThisMonth: 10,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('TODAY, DAY 5'), findsOneWidget);
+      expect(find.text('This month ₱500.00'), findsOneWidget);
+
+      // Day 8 of 10: past today, so this month has no figure yet.
+      final Rect chart = tester.getRect(find.byType(LineChart));
+      await tester.tapAt(
+        Offset(chart.left + chart.width * 7 / 9, chart.top + 40),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('DAY 8'),
+        findsOneWidget,
+        reason: 'the tap did not move the readout',
+      );
+      expect(find.text('Last month ₱80.00'), findsOneWidget);
+      expect(find.text('This month, not yet'), findsOneWidget);
+    });
+
+    testWidgets('says what is dated later and so not on the line', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        SpendingPaceChart(
+          palette: palette,
+          pace: SpendingPace(
+            thisMonth: <double>[100, 200],
+            lastMonth: <double>[300, 700],
+            daysInThisMonth: 30,
+            scheduledLater: 12000,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('₱12,000.00 dated later this month is not on the line yet.'),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('spending pace verdict', () {
     SpendingPace pace(List<double> thisMonth, List<double> lastMonth) =>
         SpendingPace(
           thisMonth: thisMonth,

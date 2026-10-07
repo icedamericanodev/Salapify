@@ -126,6 +126,18 @@ void main() {
       expect(_c(p.spentSoFar), _c(950.50 + 300));
     });
 
+    test('the line plus what is dated later IS the month figure', () {
+      // The line stops at today and "Money out" does not, so the two differ
+      // by exactly the spending dated later this month, and the screen says
+      // so. This pins that the difference has a home, to the centavo.
+      final TrendSet t = buildTrends(transactions: ledger, now: now);
+      expect(_c(t.pace.scheduledLater), _c(700));
+      expect(
+        _c(t.pace.spentSoFar + t.pace.scheduledLater),
+        _c(t.months.last.expenses),
+      );
+    });
+
     test('last month runs its whole length and foots to its total', () {
       final SpendingPace p = buildTrends(transactions: ledger, now: now).pace;
       expect(p.lastMonth, hasLength(31));

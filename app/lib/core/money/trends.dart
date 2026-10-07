@@ -52,6 +52,7 @@ class SpendingPace {
     required this.thisMonth,
     required this.lastMonth,
     required this.daysInThisMonth,
+    this.scheduledLater = 0,
   });
 
   /// Running total of spending, one value per day from day 1 to TODAY.
@@ -65,6 +66,13 @@ class SpendingPace {
   final List<double> lastMonth;
 
   final int daysInThisMonth;
+
+  /// Spending dated LATER this month than today, which the monthly filter,
+  /// and so "Money out" and this month's bar, already count and the line
+  /// deliberately does not. Named so the screen can say why the line ends
+  /// below "Money out" when somebody logs the rent in advance, rather than
+  /// leave two figures disagreeing in silence.
+  final double scheduledLater;
 
   /// Today's day of the month.
   int get day => thisMonth.length;
@@ -176,9 +184,21 @@ SpendingPace _pace(List<Transaction> dated, DateTime now) {
     return <double>[for (final Money m in perDay) (sum = sum + m).pesos];
   }
 
+  // Everything this month dated after today, summed the same way. With it,
+  // the line's end plus this is the month's whole spending figure.
+  Money later = Money.zero;
+  for (final Transaction t in dated) {
+    if (t.type != TransactionType.expense) continue;
+    final DateTime d = DateTime.parse(t.date);
+    if (d.year == now.year && d.month == now.month && d.day > now.day) {
+      later = later + t.amount;
+    }
+  }
+
   return SpendingPace(
     thisMonth: running(now.year, now.month, now.day),
     lastMonth: running(lastMonthEnd.year, lastMonthEnd.month, lastMonthEnd.day),
     daysInThisMonth: daysThis,
+    scheduledLater: later.pesos,
   );
 }
