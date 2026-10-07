@@ -190,6 +190,48 @@ void main() {
       expect(f.debtServiceRatio, closeTo(20, 0.0001));
     });
 
+    test('the savings rate cannot exceed 100 because money came back', () {
+      // THE DEFECT THIS FILE MISSED ON ITS FIRST PASS, found by a QA review.
+      //
+      // Taking the repayment out of the DENOMINATOR while leaving it inside
+      // `netSurplus` on the numerator subtracts the same peso from the bottom
+      // and leaves it on the top. This exact ledger printed 180.0% on a field
+      // documented as "Percent, 0 to 100".
+      //
+      // The group above asserted `debtServiceRatio` on this fixture and never
+      // asserted `savingsRate`, which is the whole reason it stayed green.
+      final FinancialPerformance f = perf(ledger);
+
+      // Earned 50,000. Spent 10,000 of it. Nothing invested.
+      expect(f.savingsRate, closeTo(80, 0.0001));
+      expect(
+        f.savingsRate,
+        lessThanOrEqualTo(100),
+        reason: 'a rate over 100 is arithmetic escaping, not a good month',
+      );
+    });
+
+    test('a repayment far larger than earnings still reports sanely', () {
+      // The shape that made it absurd rather than merely wrong: a small salary
+      // and a large sum coming back reads as a four figure percentage.
+      final FinancialPerformance f = perf(<Transaction>[
+        tx(
+          id: 'i1',
+          type: TransactionType.income,
+          amount: 2000,
+          category: 'Salary',
+        ),
+        tx(
+          id: 'i2',
+          type: TransactionType.income,
+          amount: 30000,
+          category: 'Receivables & Repayments',
+        ),
+      ]);
+      // Earned 2,000, spent nothing, so every peso earned was kept.
+      expect(f.savingsRate, closeTo(100, 0.0001));
+    });
+
     test('the repayment is still counted as money IN', () {
       // It really did arrive, so "Money in" must not quietly shrink. The fix
       // is to the ratios, not to the cash.

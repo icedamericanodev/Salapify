@@ -734,8 +734,23 @@ FinancialPerformance computePerformance(
     //
     // For an app that actively teaches people toward MP2, that was the most
     // harmful reading on the screen.
+    //
+    // THE REPAYMENT COMES OFF THE TOP AS WELL AS THE BOTTOM, and leaving it on
+    // the top was a real defect that printed 180%.
+    //
+    // `netSurplus` is `totalIncome - totalExpenses`, and totalIncome still
+    // counts a collected repayment, correctly, because the money really did
+    // arrive. Taking the repayment out of the denominator alone therefore
+    // subtracted the same peso from the bottom while leaving it on the top:
+    // 50,000 earned, a 50,000 repayment collected and 10,000 of loan payments
+    // gave (90,000 + 0) / 50,000 = 180.0%, printed as a plain percentage on a
+    // field whose own contract says 0 to 100.
+    //
+    // It is what was SAVED OUT OF WHAT WAS EARNED, so both ends have to be on
+    // the same base.
     savingsRate: earnedIncome > 0
-        ? ((netSurplus + investedOutflows) / earnedIncome) * 100
+        ? ((netSurplus - repaymentInflows + investedOutflows) / earnedIncome) *
+              100
         : 0,
     debtServicingExpenses: debtServicing,
     debtServiceRatio: earnedIncome > 0
