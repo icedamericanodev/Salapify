@@ -364,6 +364,7 @@ class BreakdownRow extends StatelessWidget {
     required this.value,
     this.valueColor,
     this.emphasis = false,
+    this.swatch,
   });
 
   final Palette palette;
@@ -372,12 +373,28 @@ class BreakdownRow extends StatelessWidget {
   final Color? valueColor;
   final bool emphasis;
 
+  /// A colour dot before the label, when the row is the legend of a chart
+  /// drawn above it. The row's words name the part, so a reader never has to
+  /// tell the part by colour alone.
+  final Color? swatch;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: <Widget>[
+          if (swatch != null) ...<Widget>[
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: swatch,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: Spacing.sm),
+          ],
           Expanded(
             child: Text(
               label,

@@ -121,6 +121,7 @@ class FinancialPosition {
     required this.cashEquivalents,
     required this.investments,
     required this.receivables,
+    required this.property,
     required this.creditCards,
     required this.loans,
     required this.assetAccounts,
@@ -149,6 +150,12 @@ class FinancialPosition {
   final Money cashEquivalents;
   final Money investments;
   final Money receivables;
+
+  /// Things owned outright, the `property` account kind. Already inside
+  /// [totalAssets] since 2026-10-05; this only names the part, so that the
+  /// parts on screen add up to the total. Before it existed, "What you own"
+  /// listed three rows summing to less than the total printed under them.
+  final Money property;
   final Money creditCards;
   final Money loans;
 
@@ -620,6 +627,7 @@ FinancialPosition computePosition(
     receivables:
         sum(assets.where((Account a) => a.kind == AccountKind.receivable)) +
         owedToMe,
+    property: sum(assets.where((Account a) => a.kind == AccountKind.property)),
     creditCards: sum(
       liabilities.where((Account a) => a.kind == AccountKind.credit),
     ),

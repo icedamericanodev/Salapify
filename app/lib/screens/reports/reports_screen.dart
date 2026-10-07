@@ -15,6 +15,7 @@ import '../../state/financial_state.dart';
 import 'bir_claims_card.dart';
 import 'category_bar.dart';
 import 'reconciliation_view.dart';
+import 'report_charts.dart';
 
 /// Reports, the prototype's third tab, from archive/prototype-google-ai-studio/src/components/ReportsScreen.tsx.
 ///
@@ -425,6 +426,8 @@ class _PositionView extends StatelessWidget {
     final bool hasProperty = p.assetAccounts.any(
       (Account a) => a.kind == AccountKind.property,
     );
+    final ({List<ChartSegment> own, List<ChartSegment> owe, double scale})
+    bars = positionSegments(palette, p);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,22 +566,31 @@ class _PositionView extends StatelessWidget {
           palette: palette,
           title: 'What you own',
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              BreakdownRow(
-                palette: palette,
-                label: 'Cash and e-wallets',
-                value: _signed(p.cashEquivalents.pesos),
-              ),
-              BreakdownRow(
-                palette: palette,
-                label: 'Investments',
-                value: _signed(p.investments.pesos),
-              ),
-              BreakdownRow(
-                palette: palette,
-                label: 'Owed to you',
-                value: _signed(p.receivables.pesos),
-              ),
+              // The chart sits ON the rows that already print each part, and
+              // the rows become its legend through the dot. Nothing is
+              // printed twice. Both bars share one scale, so this one and the
+              // one under "What you owe" can be compared by length.
+              if (bars.scale > 0) ...<Widget>[
+                ShareBar(
+                  palette: palette,
+                  segments: bars.own,
+                  maxY: bars.scale,
+                ),
+                const SizedBox(height: Spacing.sm),
+              ],
+              for (final ChartSegment s in bars.own)
+                // Property is listed only when there is some: it is the one
+                // kind most people never record, and a permanent zero row
+                // would be noise for all of them.
+                if (s.label != 'Property' || p.property.centavos != 0)
+                  BreakdownRow(
+                    palette: palette,
+                    label: s.label,
+                    value: _signed(s.value),
+                    swatch: bars.scale > 0 ? s.color : null,
+                  ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
@@ -595,17 +607,23 @@ class _PositionView extends StatelessWidget {
           palette: palette,
           title: 'What you owe',
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              BreakdownRow(
-                palette: palette,
-                label: 'Credit cards',
-                value: _signed(p.creditCards.pesos),
-              ),
-              BreakdownRow(
-                palette: palette,
-                label: 'Loans and mortgage',
-                value: _signed(p.loans.pesos),
-              ),
+              if (bars.scale > 0) ...<Widget>[
+                ShareBar(
+                  palette: palette,
+                  segments: bars.owe,
+                  maxY: bars.scale,
+                ),
+                const SizedBox(height: Spacing.sm),
+              ],
+              for (final ChartSegment s in bars.owe)
+                BreakdownRow(
+                  palette: palette,
+                  label: s.label,
+                  value: _signed(s.value),
+                  swatch: bars.scale > 0 ? s.color : null,
+                ),
               Divider(color: palette.border, height: Spacing.lg),
               BreakdownRow(
                 palette: palette,
@@ -655,18 +673,16 @@ class _PerformanceViewState extends State<_PerformanceView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        StatPair(
-          left: StatCard(
+        // The two figures that used to sit in a pair of stat tiles, now drawn
+        // on one scale. Same figures, same labels, plus the shape: whether
+        // out is nearly as long as in is the first thing anybody reads here.
+        _SectionCard(
+          palette: palette,
+          title: 'In and out',
+          child: InOutChart(
             palette: palette,
-            label: 'Money in',
-            value: formatPeso(f.totalIncome),
-            valueColor: palette.positive,
-          ),
-          right: StatCard(
-            palette: palette,
-            label: 'Money out',
-            value: formatPeso(f.totalExpenses),
-            valueColor: palette.negative,
+            moneyIn: f.totalIncome,
+            moneyOut: f.totalExpenses,
           ),
         ),
         // MONEY THAT CAME BACK IS NOT MONEY EARNED, said once, under the
@@ -1003,11 +1019,12 @@ class _CashFlowView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                'Operating + investing + financing',
-                style: AppType.caption(palette),
-              ),
+              // The three sections that make up the figure above, drawn from
+              // one zero line. This replaces the caption that only NAMED them
+              // ("Operating + investing + financing"): the chart says the same
+              // thing and also says which one moved the total.
+              const SizedBox(height: Spacing.sm),
+              CashFlowChart(palette: palette, cashFlow: c),
               // A GOOD MONTH LOOKED EXACTLY LIKE A BAD ONE HERE, and this is
               // the sentence that stops it.
               //

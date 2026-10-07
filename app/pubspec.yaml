@@ -36,6 +36,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   # Peso grouping and date labels, matching the prototype en-PH formatting.
   intl: ^0.20.2
+  # The Reports charts. Founder direction, 2026-10-07: use a Flutter chart
+  # package rather than hand painting. Pure Dart, no native code, so it ships
+  # without a new base APK. Checked against the CI pin: 1.2.0 needs Flutter
+  # >=3.27.4 and the app builds on 3.47.4.
+  fl_chart: ^1.2.0
   # Finds the app documents directory, where the one data file lives.
   path_provider: ^2.1.5
   # Hands an exported amortisation statement to the phone's own share sheet,

@@ -82,6 +82,46 @@ void main() {
       expect(p.totalLiabilities, const Money.pesos(2000000));
     });
 
+    test('the parts Reports lists foot to the totals under them', () {
+      // "What you own" listed cash, investments and owed-to-you, and the
+      // total under them included the house as well, so with a home recorded
+      // the rows summed to less than the figure printed under them. The
+      // Position chart stacks exactly these parts on one bar, so a missing
+      // part would also draw the bar short of its own total.
+      const Account stocks = Account(
+        id: 'inv',
+        name: 'Index fund',
+        kind: AccountKind.investment,
+        institution: 'Broker',
+        balance: Money.pesos(50000),
+        monogram: 'IF',
+      );
+      const Account card = Account(
+        id: 'cc',
+        name: 'Card',
+        kind: AccountKind.credit,
+        institution: 'Bank',
+        balance: Money.pesos(4200),
+        monogram: 'CC',
+      );
+      final FinancialPosition p = computePosition(<Account>[
+        _cash,
+        stocks,
+        card,
+        _house(const Money.pesos(2000000)),
+      ], null);
+
+      expect(
+        p.cashEquivalents + p.investments + p.receivables + p.property,
+        p.totalAssets,
+        reason: 'the parts of what you own do not add up to the total',
+      );
+      expect(p.creditCards + p.loans, p.totalLiabilities);
+      // DIRECTIONAL: the house is really in its own part, not hiding inside
+      // another one that happens to make the sum come out.
+      expect(p.property, const Money.pesos(2000000));
+    });
+
     test('the control still holds exactly', () {
       final FinancialPosition p = computePosition(<Account>[
         _cash,
