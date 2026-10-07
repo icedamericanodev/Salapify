@@ -31,6 +31,16 @@ class AppType {
   /// instances.
   static const String family = 'PlusJakartaSans';
 
+  /// TABULAR DIGITS for every money style: a "1" as wide as an "8", so
+  /// right-aligned amounts line up in a column and a figure that changes
+  /// does not shift what sits beside it. Proportional digits made money
+  /// columns stagger, the clearest "cheap finance app" signal the UI review
+  /// of 2026-10-07 found. Plus Jakarta Sans carries tnum (checked in the
+  /// font file's GSUB table, not assumed).
+  static const List<FontFeature> _tabular = <FontFeature>[
+    FontFeature.tabularFigures(),
+  ];
+
   /// The one big number on a screen. Safe to Spend, a payoff total.
   static TextStyle hero(Palette p) => TextStyle(
     fontFamily: family,
@@ -39,6 +49,7 @@ class AppType {
     fontWeight: FontWeight.w800,
     letterSpacing: -0.8,
     color: p.textPrimary,
+    fontFeatures: _tabular,
   );
 
   /// A money figure that leads a card without owning the screen.
@@ -47,6 +58,7 @@ class AppType {
     fontSize: 22,
     fontWeight: FontWeight.w800,
     color: p.textPrimary,
+    fontFeatures: _tabular,
   );
 
   /// A money figure inside a row or a grid cell.
@@ -55,6 +67,7 @@ class AppType {
     fontSize: 14,
     fontWeight: FontWeight.w800,
     color: p.textPrimary,
+    fontFeatures: _tabular,
   );
 
   /// A sheet or screen title.

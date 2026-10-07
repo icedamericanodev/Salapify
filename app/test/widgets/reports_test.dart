@@ -319,19 +319,18 @@ void main() {
     );
   });
 
-  testWidgets('the missing fourth tab explains itself', (
+  testWidgets('no "coming next" card under a tab that already exists', (
     WidgetTester tester,
   ) async {
+    // This test used to REQUIRE "Reconciliation comes next" at the foot of
+    // every tab, written when the build shipped three tabs. The fourth, Check,
+    // is reconciliation and has shipped, so the card had become a "coming
+    // soon" note under a finished feature (UI review, 2026-10-07).
     await openReports(tester);
-    await tester.scrollUntilVisible(
-      find.text('Reconciliation comes next'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-
-    // A gap with no explanation reads as a bug. The prototype has four tabs
-    // here and this build ships three.
-    expect(find.text('Reconciliation comes next'), findsOneWidget);
+    expect(find.text('Check'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+    expect(find.text('Reconciliation comes next'), findsNothing);
   });
 
   testWidgets('the category breakdown is ordered biggest first', (

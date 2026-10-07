@@ -243,7 +243,13 @@ class HeroPanel extends StatelessWidget {
 
     if (!analysis.runwayFromLoggedSpending) return pace;
 
-    return '$pace · Lasts ${analysis.cashRunwayDays} days';
+    // The sentence's own full stop goes when a second clause follows, or the
+    // line reads "until payday. · Lasts 129 days", which the UI review of
+    // 2026-10-07 caught on the app's most visited screen.
+    final String lead = pace.endsWith('.')
+        ? pace.substring(0, pace.length - 1)
+        : pace;
+    return '$lead · Lasts ${analysis.cashRunwayDays} days';
   }
 
   Widget _kickerRow() {

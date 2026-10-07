@@ -6,6 +6,7 @@ import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/js_round.dart';
 import '../../core/money/money.dart';
+import '../../core/money/plan.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
@@ -27,44 +28,29 @@ class BudgetPulseCard extends StatelessWidget {
     final List<Budget> budgets = state.budgets;
     if (budgets.isEmpty) return const SizedBox.shrink();
 
-    Money limitSum = Money.zero;
-    Money spentSum = Money.zero;
-    int watchCount = 0;
-
-    for (final Budget b in budgets) {
-      // The prototype matches the category case-insensitively.
-      final Money spent = state.transactions
-          .where(
-            (Transaction t) =>
-                t.type == TransactionType.expense &&
-                t.category.toLowerCase() == b.category.toLowerCase(),
+    // THE PLAN ENGINE'S FIGURES, not a copy of its arithmetic. This card
+    // used to run its own loop, and the copy had drifted: it summed spending
+    // from ALL TIME and counted entries marked excluded, while Plan counts
+    // this month only and skips them. So Home said "Total Remaining
+    // 22,585.25" and Plan said "Left to spend this month 25,425.25" for the
+    // same budgets. Found by the UI review of 2026-10-07; one source now,
+    // so the two can never disagree again.
+    final BudgetTotals totals = computeBudgetTotals(
+      computeBudgets(
+        budgets: budgets,
+        transactions: state.transactions,
+        now: state.now,
+      ),
+    );
+    final Money totalRemaining = totals.leftToSpend;
+    final int watchCount = totals.overCount + totals.nearCount;
+    final int percentTotal = totals.totalLimit.isPositive
+        ? math.min(
+            100,
+            jsRound(
+              (totals.totalSpent.centavos / totals.totalLimit.centavos) * 100,
+            ),
           )
-          .fold<Money>(
-            Money.zero,
-            (Money sum, Transaction t) => sum + t.amount,
-          );
-
-      final Money remaining = b.limit - spent;
-      // GUARDED, which it was not. A limit of zero divided straight through
-      // to an Infinity and then into jsRound, on a card that sits on Home.
-      // `plan.dart` has always guarded the same divide; this copy of the
-      // arithmetic never did.
-      final int percent = b.limit.isPositive
-          ? math.min(100, jsRound((spent.centavos / b.limit.centavos) * 100))
-          : 0;
-      final bool isOver = remaining.isNegative;
-      final bool isNear = percent >= 80 && !remaining.isNegative;
-      if (isOver || isNear) watchCount++;
-
-      limitSum += b.limit;
-      spentSum += spent;
-    }
-
-    final Money totalRemaining = (limitSum - spentSum).isNegative
-        ? Money.zero
-        : limitSum - spentSum;
-    final int percentTotal = limitSum.isPositive
-        ? math.min(100, jsRound((spentSum.centavos / limitSum.centavos) * 100))
         : 0;
 
     return SectionCard(
@@ -123,6 +109,9 @@ class BudgetPulseCard extends StatelessWidget {
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: palette.textPrimary,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
                       ),
                     ),
                   ],

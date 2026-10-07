@@ -199,10 +199,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   state: widget.state,
                 ),
               },
-              if (_tab != _ReportTab.reconciliation) ...<Widget>[
-                const SizedBox(height: Spacing.lg),
-                _ReconciliationNote(palette: p),
-              ],
+              // "Reconciliation comes next" used to end every other tab. It
+              // was stale the day the Check tab shipped, and a "coming soon"
+              // card under a finished feature makes the screen look
+              // unfinished (UI review, 2026-10-07). The Check tab's own dot
+              // still explains reconciliation.
             ],
           ),
         ),
@@ -1382,50 +1383,6 @@ class _BreakdownSection extends StatelessWidget {
                   CategoryBar(palette: palette, row: c, barColor: barColor),
               ],
             ),
-    );
-  }
-}
-
-/// Says out loud that the fourth tab is not here, and why.
-///
-/// A missing tab with no explanation reads as a bug or an oversight. Naming it
-/// costs one card and answers the question before it is asked.
-class _ReconciliationNote extends StatelessWidget {
-  const _ReconciliationNote({required this.palette});
-
-  final Palette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: palette.surfaceAlt,
-        borderRadius: BorderRadius.circular(Radii.control),
-        border: Border.all(color: palette.border),
-      ),
-      // One line and a dot. This card used to be a four line paragraph at the
-      // bottom of all three sub-tabs, which is three times the room for a
-      // notice about something that does not exist yet.
-      child: Row(
-        children: <Widget>[
-          Icon(Icons.rule, size: 16, color: palette.textMuted),
-          const SizedBox(width: Spacing.xs),
-          Expanded(
-            child: Text(
-              'Reconciliation comes next',
-              style: AppType.label(palette),
-            ),
-          ),
-          InfoDot(
-            color: palette.textMuted,
-            semanticLabel: 'What reconciliation will do',
-            onTap: () =>
-                InfoSheet.show(context, palette, InfoTopic.reconciliation),
-          ),
-        ],
-      ),
     );
   }
 }
