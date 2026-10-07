@@ -30,6 +30,7 @@ import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/features/health/health_check_sheet.dart';
 import 'package:salapify/features/log/scan_receipt_sheet.dart';
 import 'package:salapify/features/payday/payday_sheet.dart';
+import 'package:salapify/screens/home/runway_chart.dart';
 import 'package:salapify/screens/home/runway_row.dart';
 import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/accounts/accounts_screen.dart';
@@ -130,6 +131,8 @@ void main() {
   fxShot();
   reportsRatioShots();
   cashFlowReassuranceShot();
+  runwayChartShots();
+  runwayChartCloseUp();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4015,6 +4018,209 @@ void cashFlowReassuranceShot() {
     await expectLater(
       find.byType(AppShell),
       matchesGoldenFile('out/reports_cash_flow_not_overspending.png'),
+    );
+  });
+}
+
+/// The runway chart on the case it exists for: a month that runs short.
+///
+/// The seed ledger is comfortable, so `home_gabi` renders the chart as a line
+/// that never approaches its own zero rule. That picture cannot show the one
+/// thing the chart was built to show, which is a balance crossing zero and
+/// what that looks like before it happens. Same fixture trap as the Reports
+/// ratio shots, same answer: build a ledger that reaches the branch.
+///
+/// 12,000 of spendable cash against electricity, rent, an instalment and
+/// tuition, with payday landing after all four. The line should fall in steps,
+/// cross the dashed rule, run below it in the negative ink and shading, and
+/// climb back on the 30th.
+///
+/// THE TUITION ROW IS WHY THE FIXTURE IS NOT SMALLER, and that is a lesson
+/// about chart fixtures rather than about this screen. Without it the deepest
+/// point was 200 pesos below zero against a 26,000 range, which is under one
+/// pixel of an 88dp box: the two-tone fill and the negative stroke were drawn
+/// correctly and were invisible, so the render proved nothing about either.
+/// A fixture for a CHART has to be chosen for the SHAPE it produces, not only
+/// for reaching the branch.
+///
+/// The scale is NOT distorted to make a small shortfall visible, deliberately.
+/// Guaranteeing the dip a minimum number of pixels would mean a chart whose
+/// proportions no longer match the money, on the one screen where somebody is
+/// deciding whether to move cash. A 200 peso dip genuinely is a hairline, and
+/// the card says "200 short that day" in words directly above it.
+void runwayChartShots() {
+  for (final ThemeMode2 mode in ThemeMode2.values) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    testWidgets('the runway chart on a month that runs short, $theme', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 12000, "monogram": "GC"}
+  ],
+  "transactions": [],
+  "upcoming": [
+    {"id": "u1", "name": "Electricity", "amount": 3200,
+     "dueDate": "2026-09-22", "type": "bill", "isIncome": false,
+     "isPaid": false},
+    {"id": "u2", "name": "Rent", "amount": 9000,
+     "dueDate": "2026-09-25", "type": "rent", "isIncome": false,
+     "isPaid": false},
+    {"id": "u3", "name": "Home Credit", "amount": 2450,
+     "dueDate": "2026-09-27", "type": "debt", "isIncome": false,
+     "isPaid": false},
+    {"id": "u6", "name": "Tuition", "amount": 8000,
+     "dueDate": "2026-09-28", "type": "tuition", "isIncome": false,
+     "isPaid": false},
+    {"id": "u4", "name": "Salary", "amount": 26000,
+     "dueDate": "2026-09-30", "type": "payday", "isIncome": true,
+     "isPaid": false},
+    {"id": "u5", "name": "Internet", "amount": 1800,
+     "dueDate": "2026-10-05", "type": "bill", "isIncome": false,
+     "isPaid": false}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+        store: store,
+      );
+      await state.restore();
+      if (state.theme != mode) state.toggleTheme();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+
+      // Without this the shot can quietly become a picture of a card with no
+      // chart on it, which is exactly what it is here to rule out.
+      expect(
+        find.byType(RunwayChart),
+        findsOneWidget,
+        reason: 'the chart is missing, so this shot proves nothing',
+      );
+
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/home_runway_chart_short_$theme.png'),
+      );
+    });
+  }
+}
+
+/// The runway card ALONE, big enough to actually judge the chart.
+///
+/// This does not replace the full-shell render above and must not. A bare
+/// screen once hid a bug that made the app unusable, because the thing at
+/// fault was the part the harness left out. This is ADDITIONAL evidence for
+/// one question the full shot cannot answer: at 88dp inside an 844dp
+/// screenshot the chart is a smear, so the dashed zero rule, the two-tone
+/// fill and the marker ring cannot be checked by eye there.
+void runwayChartCloseUp() {
+  testWidgets('the runway card on its own, for reading the chart', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+
+    tester.view.physicalSize = const Size(1170, 1500);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final MemorySnapshotStore store = MemorySnapshotStore();
+    await store.write('''
+{
+  "schemaVersion": 1,
+  "accounts": [
+    {"id": "gc", "name": "My GCash", "kind": "gcash",
+     "institution": "GCash", "balance": 12000, "monogram": "GC"}
+  ],
+  "transactions": [],
+  "upcoming": [
+    {"id": "u1", "name": "Electricity", "amount": 3200,
+     "dueDate": "2026-09-22", "type": "bill", "isIncome": false,
+     "isPaid": false},
+    {"id": "u2", "name": "Rent", "amount": 9000,
+     "dueDate": "2026-09-25", "type": "rent", "isIncome": false,
+     "isPaid": false},
+    {"id": "u6", "name": "Tuition", "amount": 8000,
+     "dueDate": "2026-09-28", "type": "tuition", "isIncome": false,
+     "isPaid": false},
+    {"id": "u4", "name": "Salary", "amount": 26000,
+     "dueDate": "2026-09-30", "type": "payday", "isIncome": true,
+     "isPaid": false}
+  ],
+  "debts": [], "budgets": [], "goals": [],
+  "incomeStreams": [], "installments": [],
+  "reconciliations": [], "bills": []
+}
+''');
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+      store: store,
+    );
+    await state.restore();
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: Scaffold(
+          backgroundColor: palette.background,
+          // mainAxisSize.min, or the card's own Column grows to fill the
+          // whole Scaffold and the close-up becomes mostly empty card. On
+          // Home it sits in a scroll view, where it sizes to its content.
+          body: Padding(
+            padding: const EdgeInsets.all(Spacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                RunwayRow(
+                  state: state,
+                  onSeeDue: () {},
+                  onSetPayday: () {},
+                  onInfo: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RunwayChart), findsOneWidget);
+
+    await expectLater(
+      find.byType(RunwayRow),
+      matchesGoldenFile('out/home_runway_chart_closeup.png'),
     );
   });
 }

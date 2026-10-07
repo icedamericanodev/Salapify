@@ -136,9 +136,21 @@ void main() {
 
     // THE PANEL'S ONE ASK. The honest sentence used to live two taps and a
     // scroll behind a gear icon. It is on Home now, with the way out on it.
+    // POSITIVE delta, because the banner is BELOW. This read -200, which
+    // scrolls back toward the top, and it passed for a year for a reason
+    // worth writing down: the banner sat just under the fold, inside the
+    // list's cache extent, so it was already built, the loop never ran once,
+    // and the direction never mattered. Adding the runway chart pushed it
+    // about a hundred pixels further down, out of the cache, and the loop ran
+    // for the first time: fifty drags toward a top it was already at, then
+    // "Bad state: No element" because the banner was never built.
+    //
+    // The chart did not break this. It made a wrong line start executing.
+    // Every other scrollUntilVisible in this repository already uses a
+    // positive delta to reach something further down.
     await tester.scrollUntilVisible(
       find.text('These figures are examples, not yours'),
-      -200,
+      200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('These figures are examples, not yours'), findsOneWidget);

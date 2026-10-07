@@ -7,6 +7,7 @@ import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
 import 'home_kit.dart';
+import 'runway_chart.dart';
 
 /// The Sweldo Runway, on Home.
 ///
@@ -152,6 +153,23 @@ class RunwayRow extends StatelessWidget {
                   Icon(Icons.chevron_right, size: 18, color: p.textMuted),
                 ],
               ),
+              // THE SHAPE OF THE SAME 45 DAYS, under the sentence that reads
+              // them. Added, never substituted: every figure above stays
+              // exactly where it was, and the card still answers its question
+              // with the chart ignored completely.
+              //
+              // ONLY WHEN SOMETHING IS DATED. With nothing on the calendar the
+              // projection is a flat line at the opening balance, which is a
+              // picture of having told the app nothing. S1 already says that
+              // in words and says it better.
+              if (_worthDrawing(proj)) ...<Widget>[
+                const SizedBox(height: Spacing.md),
+                RunwayChart(
+                  palette: p,
+                  projection: proj,
+                  semanticsLabel: runwayChartSemantics(proj),
+                ),
+              ],
               // THE NOTICES SIT BELOW THE ROW, AT FULL CARD WIDTH, and that is
               // worth seventy logical pixels a line. Inside the Expanded column
               // above they were indented past the 36dp icon tile and its 12dp
@@ -262,6 +280,16 @@ class RunwayRow extends StatelessWidget {
 }
 
 /// What the row says, worked out once.
+/// Whether the projection has a SHAPE, as opposed to a flat line.
+///
+/// A line needs two points to exist and at least one dated event to say
+/// anything. Without an event every day carries the opening balance, so the
+/// chart would draw a perfectly straight line and imply a steady future that
+/// is really just an empty calendar. That is a fake insight of exactly the
+/// kind the S4 comment below was written about.
+bool _worthDrawing(DailyProjection p) =>
+    p.days.length >= 2 && p.days.any((ProjectedDay d) => d.events.isNotEmpty);
+
 class _Runway {
   const _Runway({
     required this.lead,
