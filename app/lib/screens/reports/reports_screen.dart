@@ -5,6 +5,7 @@ import '../../core/money/debt_ratio.dart';
 import '../../core/money/format.dart';
 import '../../core/money/duplicate_balances.dart';
 import '../../core/money/reports.dart';
+import '../../core/money/net_worth_history.dart';
 import '../../core/money/trends.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -154,7 +155,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: Spacing.lg),
               ],
               switch (_tab) {
-                _ReportTab.position => _PositionView(palette: p, report: r),
+                _ReportTab.position => _PositionView(
+                  palette: p,
+                  report: r,
+                  // ALL ENTITIES ONLY: the records are the whole book, so a
+                  // line under one entity's figures would not match them.
+                  netWorth: widget.state.activeProfile == null
+                      ? netWorthSeries(
+                          widget.state.netWorthHistory,
+                          r.position,
+                          widget.state.now,
+                        )
+                      : null,
+                ),
                 _ReportTab.performance => _PerformanceView(
                   palette: p,
                   report: r,
@@ -428,10 +441,17 @@ class _ScopeNote extends StatelessWidget {
 }
 
 class _PositionView extends StatelessWidget {
-  const _PositionView({required this.palette, required this.report});
+  const _PositionView({
+    required this.palette,
+    required this.report,
+    this.netWorth,
+  });
 
   final Palette palette;
   final ReportSet report;
+
+  /// Net worth by month, this month last, or null when one entity is picked.
+  final List<NetWorthPoint>? netWorth;
 
   @override
   Widget build(BuildContext context) {
@@ -564,6 +584,20 @@ class _PositionView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: Spacing.md),
+        // NET WORTH OVER TIME, right under the headline it extends. Built
+        // from the monthly records the app keeps from 2026-10-07 on, founder
+        // decision "Save from now on"; this month's point is live, so it is
+        // always the headline figure. Hidden for a single entity, because the
+        // records are the whole book.
+        if (netWorth != null && netWorth!.isNotEmpty) ...<Widget>[
+          _SectionCard(
+            palette: palette,
+            title: 'Month by month',
+            topic: InfoTopic.netWorthByMonth,
+            child: NetWorthChart(palette: palette, points: netWorth!),
+          ),
+          const SizedBox(height: Spacing.md),
+        ],
         StatPair(
           left: StatCard(
             palette: palette,

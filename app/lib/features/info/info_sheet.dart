@@ -170,6 +170,7 @@ enum InfoTopic {
   thisMonthVsLast,
   monthByMonth,
   cashByMonth,
+  netWorthByMonth,
 }
 
 class InfoPoint {
@@ -1363,6 +1364,50 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
         body:
             'Bank to GCash is the same cash in a different pocket, so it never '
             'makes a bar taller.',
+      ),
+    ],
+  ),
+
+  InfoTopic.netWorthByMonth: InfoContent(
+    title: 'Net worth, month by month',
+    subtitle: 'What is really yours, and how it has moved',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.show_chart,
+        title: 'One point a month',
+        body:
+            'Each point is what you owned less what you owed, as Salapify last '
+            'saw it that month. This month\'s point is today\'s figure, the '
+            'same as the headline above.',
+      ),
+      InfoPoint(
+        icon: Icons.history,
+        title: 'It starts when you start',
+        body:
+            'Salapify only began keeping these records with this update, so '
+            'the line begins with your first month and grows by one point '
+            'every month after. It never guesses the months before.',
+      ),
+      InfoPoint(
+        icon: Icons.lock_clock_outlined,
+        title: 'A past month stays as it was',
+        body:
+            'Fixing an old entry today does not redraw last month, the same '
+            'way a bank statement already printed does not change.',
+      ),
+      InfoPoint(
+        icon: Icons.science_outlined,
+        title: 'Example data is never recorded',
+        body:
+            'While the example data is in the app, nothing is saved here, so '
+            'your line starts with your own money.',
+      ),
+      InfoPoint(
+        icon: Icons.groups_outlined,
+        title: 'Your whole book only',
+        body:
+            'The records cover every profile together, so the chart shows '
+            'when all entities are selected.',
       ),
     ],
   ),

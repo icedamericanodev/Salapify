@@ -23,6 +23,8 @@ import '../core/money/daily_projection.dart';
 import '../core/money/safe_to_spend.dart';
 import '../models/models.dart';
 import '../core/money/money.dart';
+import '../core/money/net_worth_history.dart';
+import '../core/money/reports.dart';
 
 /// What happened when somebody asked to take an entry back from Activity.
 ///
@@ -169,6 +171,10 @@ class FinancialState extends ChangeNotifier {
   /// [Snapshot.guideSteps] for why this is stored and why it is a flat set.
   Set<String> _guideSteps = <String>{};
 
+  /// One balance sheet per month, oldest first. See [Snapshot.netWorthHistory]
+  /// and net_worth_history.dart.
+  List<NetWorthPoint> _netWorthHistory = <NetWorthPoint>[];
+
   /// OFF until [restore] has decided it is safe. Two states leave it off: the
   /// app has not loaded yet, and the file could not be read.
   bool _saveEnabled = false;
@@ -254,6 +260,7 @@ class FinancialState extends ChangeNotifier {
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
     _guideSteps = Set<String>.of(s.guideSteps);
+    _netWorthHistory = List<NetWorthPoint>.of(s.netWorthHistory);
     _extras = s.extras;
   }
 
@@ -279,6 +286,7 @@ class FinancialState extends ChangeNotifier {
     scenario: _scenario,
     activeProfile: _activeProfile,
     guideSteps: _guideSteps,
+    netWorthHistory: _netWorthHistory,
     extras: _extras,
   );
 
@@ -310,9 +318,40 @@ class FinancialState extends ChangeNotifier {
   /// exists to prevent.
   @override
   void notifyListeners() {
+    _recordNetWorth();
     super.notifyListeners();
     _scheduleSave();
   }
+
+  /// Sets THIS month's net worth record from the balance sheet, before every
+  /// save. Here rather than at each write path for the same reason the save
+  /// is here: the twenty first mutation is the one somebody forgets.
+  ///
+  /// NOT while the example data is in the book. A demo ledger's balances are
+  /// not anybody's history, and a line that starts with the demo's 188,000
+  /// and drops to a real 4,000 would be the most misleading chart in the app.
+  /// Not while saving is off either: a ledger that failed to load must not
+  /// gain a record built from the empty book standing in for it.
+  ///
+  /// NOT for an empty book. Nothing to measure is not a net worth of zero:
+  /// somebody who installs on the 30th and types their balances in on the
+  /// 2nd would otherwise get a zero point followed by a leap, a "rise" that
+  /// is only data entry. And a wiped phone promises "Salapify is empty",
+  /// which a fresh record written straight after the wipe would make false.
+  void _recordNetWorth() {
+    if (!_saveEnabled || hasSampleData) return;
+    if (_accounts.isEmpty && _debts.isEmpty && _installments.isEmpty) return;
+    _netWorthHistory = recordNetWorth(
+      _netWorthHistory,
+      computePosition(_accounts, null, debts: _debts, plans: _installments),
+      now,
+    );
+  }
+
+  /// The stored monthly records, read only. The chart adds this month LIVE
+  /// on top via `netWorthSeries`, so it never depends on a save having run.
+  List<NetWorthPoint> get netWorthHistory =>
+      List<NetWorthPoint>.unmodifiable(_netWorthHistory);
 
   void _scheduleSave() {
     if (!_saveEnabled || _pendingSave) return;
@@ -788,6 +827,10 @@ class FinancialState extends ChangeNotifier {
     // means to erase. The wipe screen promises "Salapify is empty"; a
     // checklist still showing 14 of 30 done would make that sentence false.
     _guideSteps = <String>{};
+
+    // And the monthly net worth records: a line of somebody's past balances
+    // is exactly what a wipe before handing a phone on is meant to erase.
+    _netWorthHistory = <NetWorthPoint>[];
 
     _loadStatus = LoadStatus.fresh;
     _loadProblem = null;

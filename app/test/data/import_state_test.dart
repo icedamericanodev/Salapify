@@ -2,7 +2,9 @@ import 'package:salapify/core/money/money.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/net_worth_history.dart';
 import 'package:salapify/core/money/reconciliation.dart';
+import 'package:salapify/core/money/reports.dart';
 import 'package:salapify/data/snapshot.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/design/tokens.dart';
@@ -149,12 +151,15 @@ void main() {
       await s.importSnapshot(ledgerOf(const <Account>[theirs]));
       expect(await s.undoLastImport(), isTrue);
 
-      // The whole document, minus the timestamp, which moves on every write.
+      // The whole document, minus the timestamp, which moves on every write,
+      // and minus the net worth records, which every save now refreshes for
+      // the current month and which are checked on their own below.
       Map<String, dynamic> stripped(String raw) {
         final Map<String, dynamic> m = Map<String, dynamic>.from(
           jsonDecode(raw) as Map,
         );
         m.remove('timestamp');
+        m.remove(Snapshot.kNetWorthHistory);
         return m;
       }
 
@@ -165,6 +170,26 @@ void main() {
             'a field _apply forgot to carry would survive a field by field '
             'assertion and not this one',
       );
+
+      // THE REAL RISK THE RECORDS ADD: the imported book's figures leaking
+      // into this person's history. After the undo, this month's record must
+      // be the RESTORED book, never the one that was imported and taken back.
+      final FinancialPosition restored = computePosition(
+        s.accounts,
+        null,
+        debts: s.debts,
+        plans: s.installments,
+      );
+      // DIRECTIONAL: there is a record to check, or the loop below proves
+      // nothing.
+      expect(s.netWorthHistory, isNotEmpty);
+      for (final NetWorthPoint p in s.netWorthHistory) {
+        expect(
+          p.netWorth,
+          restored.netWorth,
+          reason: 'the imported ledger leaked into the net worth history',
+        );
+      }
     });
 
     test('it survives the app being killed in between', () async {

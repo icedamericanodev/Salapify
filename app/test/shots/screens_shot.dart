@@ -4443,18 +4443,56 @@ void reportsTrendShots() {
         if (m == 7) add(m, 16, 30000, 'Investment & Passive Income');
       }
 
-      final Palette palette = Palette.of(state.theme);
+      // FIVE EARLIER MONTHLY NET WORTH RECORDS, written into the file and
+      // loaded back, the way a phone that has used this build since April
+      // would hold them. Recording is off while the example data is in the
+      // book, so this is the only way the lived-in fixture can show a line;
+      // it goes through the real file reader rather than a test hook. The
+      // seed is underwater on a mortgage, so the line climbs towards zero.
+      final Map<String, dynamic> file = state.snapshot().toJson(
+        at: DateTime.utc(2026, 9, 18),
+      );
+      file['netWorthHistory'] = <Map<String, Object>>[
+        for (final (int m, double a, double l) r in <(int, double, double)>[
+          (4, 196000, 466400),
+          (5, 204500, 466900),
+          (6, 207200, 466700),
+          (7, 222300, 466100),
+          (8, 235900, 465400),
+        ])
+          <String, Object>{
+            'month': '2026-0${r.$1}',
+            'assets': r.$2,
+            'liabilities': r.$3,
+          },
+      ];
+      final FinancialState loaded = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+        store: MemorySnapshotStore(jsonEncode(file)),
+      );
+      await loaded.restore();
+
+      final Palette palette = Palette.of(loaded.theme);
       await tester.pumpWidget(
         MaterialApp(
           debugShowCheckedModeBanner: false,
           scrollBehavior: const SalapifyScrollBehavior(),
-          theme: salapifyTheme(palette, state.theme),
-          home: AppShell(state: state),
+          theme: salapifyTheme(palette, loaded.theme),
+          home: AppShell(state: loaded),
         ),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.insert_chart_outlined));
       await tester.pumpAndSettle();
+
+      // Position opens first, now with the net worth line under the
+      // headline.
+      expect(find.text('MONTH BY MONTH'), findsOneWidget);
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/reports_trends_position_$theme.png'),
+      );
+
       await tester.tap(find.text('Performance'));
       await tester.pumpAndSettle();
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/money/format.dart';
+import '../../core/money/net_worth_history.dart';
 import '../../core/money/trends.dart';
 import '../../design/chart_colors.dart';
 import '../../design/tokens.dart';
@@ -929,6 +930,255 @@ class _MonthlyCashChartState extends State<MonthlyCashChart> {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// NET WORTH, MONTH BY MONTH, on Position.
+///
+/// One point per month from the stored records, with THIS month taken live
+/// from the balance sheet, so the newest point always equals the headline
+/// above it. Tap a point to read that month. Opens on last month when there
+/// is one, for the same reason the other two month charts do: this month is
+/// already the headline.
+///
+/// A FIRST MONTH IS ONE DOT, and the card says so in one line. History is
+/// recorded from the day this shipped (founder decision, 2026-10-07, "Save
+/// from now on"), so a lone dot is the honest picture, and without the line
+/// it would read as a broken chart.
+class NetWorthChart extends StatefulWidget {
+  const NetWorthChart({super.key, required this.palette, required this.points});
+
+  final Palette palette;
+
+  /// Oldest first, this month last. From `netWorthSeries`.
+  final List<NetWorthPoint> points;
+
+  @override
+  State<NetWorthChart> createState() => _NetWorthChartState();
+}
+
+class _NetWorthChartState extends State<NetWorthChart> {
+  int? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette palette = widget.palette;
+    final List<NetWorthPoint> pts = widget.points;
+    final ChartColors c = ChartColors.of(palette);
+    final Color line = c.inflow;
+    final int sel = (_selected ?? (pts.length >= 2 ? pts.length - 2 : 0)).clamp(
+      0,
+      pts.length - 1,
+    );
+    final NetWorthPoint p = pts[sel];
+    final TextScaler tick = _tickScaler(context);
+
+    final List<double> ys = <double>[
+      for (final NetWorthPoint x in pts) x.netWorth.pesos,
+    ];
+    final double lo = ys.reduce(math.min);
+    final double hi = ys.reduce(math.max);
+    // FITTED TO THE DATA, not to zero. Forcing zero into view squashed a
+    // 70,000 climb on a 280,000 mortgage into a near flat line, which hides
+    // the one thing this chart is for: the direction. The zero line is drawn
+    // only when the line really crosses it, and the readout below carries
+    // the exact figure, so nothing is exaggerated without a number beside it.
+    // Air either side, and a floor on it, so a flat line does not sit on the
+    // card's edge.
+    final double span = hi - lo;
+    final double pad = span > 0 ? span * 0.15 : math.max(hi.abs() * 0.05, 1);
+    final double minY = lo - pad;
+    final double maxY = hi + pad;
+    final bool crosses = minY < 0 && maxY > 0;
+
+    // Every label up to six months; past that every other one, so twelve
+    // month names never crowd a 320dp phone.
+    bool showLabel(int i) =>
+        pts.length <= 6 || i == sel || (pts.length - 1 - i).isEven;
+
+    void step(int by) {
+      final int to = (sel + by).clamp(0, pts.length - 1);
+      if (to != sel) setState(() => _selected = to);
+    }
+
+    String name(NetWorthPoint x) => '${_monthLong[x.month - 1]} ${x.year}';
+
+    final bool under = p.netWorth.centavos < 0;
+    // The same two names the Position headline uses, so the readout and the
+    // headline never call one number two different things.
+    final String verdict = under
+        ? 'Still to pay off ${formatPeso(p.netWorth.abs.pesos)}'
+        : 'What is really yours ${formatPeso(p.netWorth.pesos)}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Semantics(
+          container: true,
+          label: 'Net worth, month by month',
+          value: name(p),
+          increasedValue: sel < pts.length - 1 ? name(pts[sel + 1]) : null,
+          decreasedValue: sel > 0 ? name(pts[sel - 1]) : null,
+          onIncrease: sel < pts.length - 1 ? () => step(1) : null,
+          onDecrease: sel > 0 ? () => step(-1) : null,
+          child: ExcludeSemantics(
+            child: SizedBox(
+              height: 150,
+              child: _DrawIn(
+                builder: (double t) => LineChart(
+                  duration: Duration.zero,
+                  LineChartData(
+                    minX: -0.3,
+                    maxX: pts.length - 0.7,
+                    minY: minY,
+                    maxY: maxY,
+                    borderData: FlBorderData(show: false),
+                    gridData: const FlGridData(show: false),
+                    extraLinesData: ExtraLinesData(
+                      horizontalLines: <HorizontalLine>[
+                        if (crosses)
+                          HorizontalLine(
+                            y: 0,
+                            color: palette.textMuted,
+                            strokeWidth: 1,
+                            dashArray: <int>[3, 3],
+                          ),
+                      ],
+                    ),
+                    titlesData: FlTitlesData(
+                      leftTitles: const AxisTitles(),
+                      rightTitles: const AxisTitles(),
+                      topTitles: const AxisTitles(),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          interval: 1,
+                          reservedSize: _tickBand(palette, tick),
+                          getTitlesWidget: (double v, TitleMeta meta) {
+                            final int i = v.round();
+                            if ((v - i).abs() > 0.01 ||
+                                i < 0 ||
+                                i >= pts.length ||
+                                !showLabel(i)) {
+                              return const SizedBox.shrink();
+                            }
+                            return SideTitleWidget(
+                              meta: meta,
+                              child: Text(
+                                _monthShort[pts[i].month - 1],
+                                textScaler: tick,
+                                style: AppType.caption(palette).copyWith(
+                                  color: i == sel
+                                      ? palette.textPrimary
+                                      : palette.textMuted,
+                                  fontWeight: i == sel
+                                      ? FontWeight.w800
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    lineTouchData: LineTouchData(
+                      handleBuiltInTouches: false,
+                      touchSpotThreshold: 40,
+                      // Only a completed tap selects; see MonthlyInOutChart.
+                      touchCallback: (FlTouchEvent e, LineTouchResponse? r) {
+                        if (e is! FlTapUpEvent) return;
+                        final List<TouchLineBarSpot>? spots = r?.lineBarSpots;
+                        if (spots == null || spots.isEmpty) return;
+                        final int i = spots.first.spotIndex;
+                        if (i == sel) return;
+                        HapticFeedback.selectionClick();
+                        setState(() => _selected = i);
+                      },
+                    ),
+                    lineBarsData: <LineChartBarData>[
+                      LineChartBarData(
+                        spots: <FlSpot>[
+                          for (int i = 0; i < pts.length; i++)
+                            // Grows from the zero line, or from the bottom
+                            // when the whole line is above zero.
+                            FlSpot(
+                              i.toDouble(),
+                              (crosses ? 0 : minY) +
+                                  (ys[i] - (crosses ? 0 : minY)) * t,
+                            ),
+                        ],
+                        isCurved: true,
+                        preventCurveOverShooting: true,
+                        color: line,
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: FlDotData(
+                          getDotPainter: (_, _, _, int i) => FlDotCirclePainter(
+                            radius: i == sel ? 6 : 3.5,
+                            color: i == sel ? line : palette.surface,
+                            strokeColor: line,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        belowBarData: BarAreaData(
+                          show: pts.length >= 2,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: <Color>[
+                              line.withValues(alpha: 0.28),
+                              line.withValues(alpha: 0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (pts.length < 2) ...<Widget>[
+          const SizedBox(height: Spacing.xs),
+          Text(
+            'Your first month here. A new point is added each month.',
+            style: AppType.caption(palette),
+          ),
+        ],
+        // ONE POINT HAS NOTHING TO PICK, and its readout would repeat the
+        // headline's own sentence word for word, so it is left off.
+        if (pts.length >= 2) ...<Widget>[
+          Divider(color: palette.border, height: Spacing.lg),
+          Semantics(
+            container: true,
+            liveRegion: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(name(p).toUpperCase(), style: AppType.kicker(palette)),
+                const SizedBox(height: Spacing.xs),
+                Text(
+                  verdict,
+                  style: AppType.rowTitle(palette).copyWith(
+                    color: under ? palette.negative : palette.positive,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sel == pts.length - 1
+                      ? 'You own ${formatPesoWithSign(p.assets.pesos)} and owe '
+                            '${formatPesoWithSign(p.liabilities.pesos)}.'
+                      : 'You owned ${formatPesoWithSign(p.assets.pesos)} and owed '
+                            '${formatPesoWithSign(p.liabilities.pesos)}.',
+                  style: AppType.caption(palette),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

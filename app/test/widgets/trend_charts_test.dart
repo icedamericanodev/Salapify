@@ -5,6 +5,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/money.dart';
+import 'package:salapify/core/money/net_worth_history.dart';
 import 'package:salapify/core/money/trends.dart';
 import 'package:salapify/design/tokens.dart';
 import 'package:salapify/screens/reports/trend_charts.dart';
@@ -125,6 +127,77 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('MAY 2026'), findsOneWidget);
+    });
+  });
+
+  group('net worth, month by month', () {
+    NetWorthPoint p(int m, double a, double l) => NetWorthPoint(
+      year: 2026,
+      month: m,
+      assets: Money.fromDouble(a),
+      liabilities: Money.fromDouble(l),
+    );
+
+    testWidgets('a first month is one dot, and says so', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        NetWorthChart(
+          palette: palette,
+          points: <NetWorthPoint>[p(10, 20000, 5000)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Your first month here. A new point is added each month.'),
+        findsOneWidget,
+      );
+      // No readout: it would repeat the Position headline word for word.
+      expect(find.textContaining('What is really yours'), findsNothing);
+    });
+
+    testWidgets('opens on last month, and names a debt the headline way', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        NetWorthChart(
+          palette: palette,
+          points: <NetWorthPoint>[p(8, 200000, 460000), p(9, 250000, 463000)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('AUGUST 2026'), findsOneWidget);
+      expect(find.text('Still to pay off ₱260,000.00'), findsOneWidget);
+      expect(
+        find.text('You owned ₱200,000.00 and owed ₱460,000.00.'),
+        findsOne,
+      );
+    });
+
+    testWidgets('tapping a point selects that month', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        NetWorthChart(
+          palette: palette,
+          points: <NetWorthPoint>[p(7, 100, 0), p(8, 200, 0), p(9, 300, 0)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      final Rect chart = tester.getRect(find.byType(LineChart));
+      // The x range runs from -0.3 to 2.3, so July sits 0.3/2.6 across.
+      await tester.tapAt(
+        Offset(chart.left + chart.width * 0.3 / 2.6, chart.center.dy),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('JULY 2026'),
+        findsOneWidget,
+        reason: 'the tap did not select the month it landed on',
+      );
     });
   });
 
