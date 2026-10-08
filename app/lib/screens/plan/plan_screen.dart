@@ -169,7 +169,7 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(segment.title, style: AppType.title(palette)),
+                Text(segment.title, style: AppType.screenTitle(palette)),
                 const SizedBox(height: 2),
                 Text(segment.kicker, style: AppType.caption(palette)),
               ],

@@ -333,7 +333,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.sm, 0),
       child: Row(
         children: <Widget>[
-          Text('Accounts', style: AppType.title(palette)),
+          Text('Accounts', style: AppType.screenTitle(palette)),
           InfoDot(
             color: palette.textMuted,
             semanticLabel: 'What counts as an account',

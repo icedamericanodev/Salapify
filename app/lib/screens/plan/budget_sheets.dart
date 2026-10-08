@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
 import '../../core/money/plan.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../features/shared/sheet_scaffold.dart';
@@ -316,7 +317,19 @@ class _ContributeSheetState extends State<ContributeSheet> {
   void _save() {
     final double? v = _value;
     if (v == null) return;
-    widget.state.contributeToGoal(widget.row.goal.id, Money.fromDouble(v));
+    final Goal before = widget.row.goal;
+    final bool wasShort = before.currentAmount < before.targetAmount;
+    widget.state.contributeToGoal(before.id, Money.fromDouble(v));
+    // A firmer buzz when THIS contribution is the one that reaches the goal.
+    final Goal? after = widget.state.goals
+        .where((Goal g) => g.id == before.id)
+        .firstOrNull;
+    saveHaptic(
+      milestone:
+          wasShort &&
+          after != null &&
+          after.currentAmount >= after.targetAmount,
+    );
     Navigator.of(context).pop();
   }
 

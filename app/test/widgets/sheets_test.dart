@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/format.dart';
 import 'package:salapify/features/categories/category_manager_sheet.dart';
 import 'package:salapify/features/debt/add_debt_sheet.dart';
@@ -146,7 +147,7 @@ void main() {
     ) async {
       await pumpHome(tester);
 
-      await tapAndSettle(tester, find.text('DETAILS'));
+      await tapAndSettle(tester, find.byKey(heroFigureKey));
 
       expect(find.byType(SafeToSpendSheet), findsOneWidget);
       // The tab that shows the working out, which is the whole reason this
@@ -278,7 +279,7 @@ void main() {
     testWidgets('Safe to Spend fits at 320dp', (WidgetTester tester) async {
       await pumpNarrow(tester);
 
-      await tapAndSettle(tester, find.text('DETAILS'));
+      await tapAndSettle(tester, find.byKey(heroFigureKey));
       expect(tester.takeException(), isNull);
     });
 

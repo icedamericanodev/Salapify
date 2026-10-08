@@ -136,8 +136,12 @@ class DebtBeamCard extends StatelessWidget {
                       // the framework fallback face instead of Plus Jakarta
                       // Sans: in the render the whole sentence came out as
                       // grey boxes.
+                      // TWO LINES, so the date survives. On one line a
+                      // name like "Home Credit (Phone)" pushed the due date
+                      // past the edge and the card printed "(Se...", which
+                      // drops the one fact the row is there to give.
                       child: Text.rich(
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         TextSpan(
                           style: TextStyle(

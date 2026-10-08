@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../core/money/format.dart';
 import '../core/money/reminders.dart';
@@ -222,7 +221,7 @@ class _AppShellState extends State<AppShell> {
     widget.state.logTransaction(logged);
     // A light tap you can feel: the entry landed. Day to day actions get a
     // light haptic; milestones (a debt settled) get a stronger one.
-    HapticFeedback.lightImpact();
+    saveHaptic();
 
     // Land on Activity, where the entry now is. Saving something and being
     // left on the screen that does not show it is how somebody concludes it

@@ -15,6 +15,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'debt_calculators.dart';
 import 'installments_view.dart';
+import '../../features/shared/sheet_scaffold.dart';
 
 /// The debt register, both ways, from archive/prototype-google-ai-studio/src/components/DebtScreen.tsx.
 ///
@@ -78,7 +79,10 @@ class _DebtScreenState extends State<DebtScreen> {
               Expanded(
                 child: _Tab(
                   palette: p,
-                  label: 'Owed',
+                  // "Debts", not "Owed". The filter right under it reads
+                  // "Owed to you", so a tab called "Owed" looked like it held
+                  // only one direction when it holds both.
+                  label: 'Debts',
                   selected: _section == _Section.debts,
                   onTap: () => setState(() => _section = _Section.debts),
                 ),
@@ -505,7 +509,7 @@ class _Header extends StatelessWidget {
             )
           else
             const SizedBox(width: Spacing.sm),
-          Text('Debts', style: AppType.title(palette)),
+          Text('Debts', style: AppType.screenTitle(palette)),
           InfoDot(
             color: palette.textMuted,
             semanticLabel: 'How debt both ways works',
@@ -655,26 +659,20 @@ class _DirectionPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _Tab(
-            palette: palette,
-            label: 'You owe',
-            selected: current == DebtDirection.iOwe,
-            onTap: () => onSelect(DebtDirection.iOwe),
-          ),
-        ),
-        const SizedBox(width: Spacing.sm),
-        Expanded(
-          child: _Tab(
-            palette: palette,
-            label: 'Owed to you',
-            selected: current == DebtDirection.owedToMe,
-            onTap: () => onSelect(DebtDirection.owedToMe),
-          ),
-        ),
+    // THE SHARED SLIDING SWITCH, not a second row of orange tabs. The UI
+    // review of 2026-10-07 counted four solid orange shapes above the first
+    // card: two rows of tabs that looked identical, so nothing said which was
+    // the screen's sections and which was a filter inside one. Sections keep
+    // the solid tabs; this filter now looks like every other filter in the
+    // app, with the thumb that slides.
+    return SegmentedChoice<DebtDirection>(
+      palette: palette,
+      options: const <(DebtDirection, String)>[
+        (DebtDirection.iOwe, 'You owe'),
+        (DebtDirection.owedToMe, 'Owed to you'),
       ],
+      selected: current,
+      onSelect: onSelect,
     );
   }
 }
@@ -1070,30 +1068,40 @@ class _Action extends StatelessWidget {
   final bool filled;
   final VoidCallback? onTap;
 
+  // `filled` is TONAL, a soft accent fill with accent text, rather than solid
+  // orange. Every card on this screen carries one, and with two or three
+  // debts the list was a column of solid orange bars competing with the tabs
+  // above it. The pair is in palette_contrast_test.dart as "accent on
+  // accentSoft", so it holds AA in every palette.
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.control),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-          decoration: BoxDecoration(
-            color: filled ? palette.accent : palette.surface,
-            borderRadius: BorderRadius.circular(Radii.control),
-            border: Border.all(color: filled ? palette.accent : palette.border),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppType.family,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: filled ? palette.onAccent : palette.textSecondary,
+    return Pressable(
+      enabled: onTap != null,
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+            decoration: BoxDecoration(
+              color: filled ? palette.accentSoft : palette.surface,
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(
+                color: filled ? palette.accentSoft : palette.border,
+              ),
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppType.family,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: filled ? palette.accent : palette.textSecondary,
+              ),
             ),
           ),
         ),

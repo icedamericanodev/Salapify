@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -149,10 +150,18 @@ class _PaymentSheetState extends State<PaymentSheet> {
   void _save() {
     final double? amount = parseDebtAmount(_amount.text);
     if (amount == null) return;
+    final bool wasOpen = widget.debt.remaining.isPositive;
     widget.state.recordDebtPayment(
       widget.debt.id,
       amount,
       accountId: _accountId,
+    );
+    // A firmer buzz when THIS payment is the one that clears it.
+    final Debt? after = widget.state.debts
+        .where((Debt d) => d.id == widget.debt.id)
+        .firstOrNull;
+    saveHaptic(
+      milestone: wasOpen && after != null && !after.remaining.isPositive,
     );
     Navigator.of(context).pop();
   }

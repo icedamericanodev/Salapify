@@ -133,6 +133,17 @@ class TransactionRow extends StatelessWidget {
         ? Icons.swap_horiz
         : Icons.north_east;
 
+    // THE CATEGORY'S OWN EMOJI, when there is one. The UI review of
+    // 2026-10-07 found every spending row wearing the same arrow, so a day of
+    // food, fares and bills was a column of identical tiles and the eye had
+    // nothing to scan by. The emoji is the user's category icon, user data in
+    // their backup, so it stays an emoji rather than becoming a Salapify
+    // glyph (see design/salapify_icon.dart). Direction is not lost: income
+    // still carries its "+" and its green figure on the right. A transfer
+    // keeps the swap arrow because it has no category worth showing, and an
+    // entry whose category is unknown keeps the arrow it always had.
+    final String? emoji = isTransfer ? null : _emojiFor(t.category);
+
     return InkWell(
       onTap: () => TransactionDetailSheet.show(
         context,
@@ -154,11 +165,21 @@ class TransactionRow extends StatelessWidget {
                 color: palette.iconTile,
                 borderRadius: BorderRadius.circular(Radii.tile),
               ),
-              child: Icon(
-                icon,
-                size: 17,
-                color: isIncome ? palette.positive : palette.textSecondary,
-              ),
+              alignment: Alignment.center,
+              child: emoji != null
+                  ? ExcludeSemantics(
+                      child: Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 18, height: 1),
+                      ),
+                    )
+                  : Icon(
+                      icon,
+                      size: 17,
+                      color: isIncome
+                          ? palette.positive
+                          : palette.textSecondary,
+                    ),
             ),
             const SizedBox(width: Spacing.md),
             Expanded(
@@ -213,6 +234,15 @@ class TransactionRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The emoji of the category this entry is filed under, or null when the
+  /// name matches none of them (an imported entry, a category since renamed).
+  String? _emojiFor(String category) {
+    for (final CategoryInfo c in state.categories) {
+      if (c.name == category && c.emoji.isNotEmpty) return c.emoji;
+    }
+    return null;
   }
 
   String _subtitle(Transaction t, Account? from, Account? to, bool isTransfer) {

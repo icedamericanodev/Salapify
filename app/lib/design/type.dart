@@ -70,7 +70,23 @@ class AppType {
     fontFeatures: _tabular,
   );
 
-  /// A sheet or screen title.
+  /// The name of a whole screen: Activity, Reports, Accounts, Debts, Plan.
+  ///
+  /// Its own step on the scale, because the UI review of 2026-10-07 found
+  /// every screen title set in [title], the same 17pt as the card titles
+  /// below it, so nothing on the page said which line named the page. w700
+  /// rather than w800: at this size the extra weight reads as shouting, and
+  /// the size alone carries the rank.
+  static TextStyle screenTitle(Palette p) => TextStyle(
+    fontFamily: family,
+    fontSize: 26,
+    height: 1.15,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.5,
+    color: p.textPrimary,
+  );
+
+  /// A sheet or card title.
   static TextStyle title(Palette p) => TextStyle(
     fontFamily: family,
     fontSize: 17,

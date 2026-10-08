@@ -14,6 +14,11 @@ import '../../state/financial_state.dart';
 /// have to assert about a colour.
 const Key healthDotKey = ValueKey<String>('health-dot');
 
+/// The big Safe to Spend figure, which opens the breakdown when tapped. A
+/// key rather than a text finder, because the text is a peso amount that
+/// changes with every fixture.
+const Key heroFigureKey = ValueKey<String>('hero-figure');
+
 /// The Safe to Spend hero, ported from archive/prototype-google-ai-studio/src/components/HeroPanel.tsx.
 ///
 /// It keeps its warm gradient in both themes, exactly as the prototype does,
@@ -93,7 +98,14 @@ class HeroPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _kickerRow(),
-                _toolRow(),
+                // THE FIGURE SITS DIRECTLY UNDER ITS LABEL, and it is the way
+                // into the breakdown. The UI review of 2026-10-07 found a row
+                // of tools wedged between "SAFE TO SPEND" and the number it
+                // names, and one of them, DETAILS, opened the very sheet the
+                // info button beside the label already opens. So the tool row
+                // went, Health check moved to the footer, and tapping the
+                // number opens what DETAILS used to.
+                //
                 // SHRUNK TO FIT, NEVER CUT OFF, and for a money figure the
                 // difference is not cosmetic.
                 //
@@ -109,21 +121,32 @@ class HeroPanel extends StatelessWidget {
                 // ordinary phone is pixel for pixel unchanged, and only
                 // shrinks on the narrow-plus-large combination that could not
                 // fit it either way.
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  // Settles when the figure changes on screen: a scenario
-                  // chip tapped, an entry logged. See
-                  // design/settle_figure.dart.
-                  child: SettleFigure(
-                    formatPeso(state.safeToSpend.pesos),
-                    maxLines: 1,
-                    style: const TextStyle(
-                      fontSize: 36,
-                      height: 1.1,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
-                      color: HeroColors.inkStrong,
+                Semantics(
+                  button: onOpenDetails != null,
+                  hint: onOpenDetails == null
+                      ? null
+                      : 'Shows how this figure adds up',
+                  child: InkWell(
+                    key: heroFigureKey,
+                    onTap: onOpenDetails,
+                    borderRadius: BorderRadius.circular(Radii.tile),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      // Settles when the figure changes on screen: a scenario
+                      // chip tapped, an entry logged. See
+                      // design/settle_figure.dart.
+                      child: SettleFigure(
+                        formatPeso(state.safeToSpend.pesos),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 36,
+                          height: 1.1,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.8,
+                          color: HeroColors.inkStrong,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -211,6 +234,7 @@ class HeroPanel extends StatelessWidget {
                     ),
                   ],
                 ),
+                _footer(),
               ],
             ),
           ),
@@ -337,37 +361,34 @@ class HeroPanel extends StatelessWidget {
     );
   }
 
-  /// Health Check and Details, the two ways off this card. Wrapped for the
-  /// same reason as the kicker: both labels are set in caps and do not fit
-  /// beside each other on a 320dp phone.
-  Widget _toolRow() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: <Widget>[
-        _HeroTool(
-          icon: Icons.monitor_heart_outlined,
-          label: 'HEALTH CHECK',
-          onTap: onOpenHealthCheck,
-          // The dot is the diagnostic's OWN verdict now that the engine is
-          // migrated. It used to be a hardcoded dark red, with a comment
-          // saying so, which meant a brand new install showed an alarm over
-          // a sheet that opens on "Nothing recorded yet". That is the cry
-          // wolf failure: a marker that is always on is a marker nobody
-          // reads on the day it means something.
-          //
-          // No dot when nothing is wrong, and no dot when nothing is known.
-          // Green would be a third thing to learn and would claim a verdict
-          // on an app with no figures in it.
-          trailing: _healthDot(state.healthReport),
+  /// Health check, the card's one way off to a different sheet, in a footer
+  /// under a hairline so it reads as "and also" rather than as part of the
+  /// figure. It used to sit between the label and the number.
+  Widget _footer() {
+    return Container(
+      margin: const EdgeInsets.only(top: Spacing.xs),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: HeroColors.ink.withValues(alpha: 0.22)),
         ),
-        const SizedBox(width: Spacing.md),
-        _HeroTool(
-          icon: Icons.auto_awesome,
-          label: 'DETAILS',
-          onTap: onOpenDetails,
-        ),
-      ],
+      ),
+      alignment: Alignment.centerLeft,
+      child: _HeroTool(
+        icon: Icons.monitor_heart_outlined,
+        label: 'HEALTH CHECK',
+        onTap: onOpenHealthCheck,
+        // The dot is the diagnostic's OWN verdict now that the engine is
+        // migrated. It used to be a hardcoded dark red, with a comment
+        // saying so, which meant a brand new install showed an alarm over
+        // a sheet that opens on "Nothing recorded yet". That is the cry
+        // wolf failure: a marker that is always on is a marker nobody
+        // reads on the day it means something.
+        //
+        // No dot when nothing is wrong, and no dot when nothing is known.
+        // Green would be a third thing to learn and would claim a verdict
+        // on an app with no figures in it.
+        trailing: _healthDot(state.healthReport),
+      ),
     );
   }
 
@@ -434,15 +455,13 @@ class _HeroTool extends StatelessWidget {
       label: label,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.pill),
-        // Height fixed, width left to the child. Giving this an `alignment`
-        // instead made it expand to the full width of the Wrap, so each tool
-        // took a line of its own.
-        child: Container(
+        borderRadius: BorderRadius.circular(Radii.tile),
+        // The whole footer width is the target, with a chevron at the far
+        // end, so it reads as a row that opens something rather than as a
+        // caption.
+        child: SizedBox(
           height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(icon, size: 13, color: HeroColors.ink),
               const SizedBox(width: Spacing.xs),
@@ -459,6 +478,8 @@ class _HeroTool extends StatelessWidget {
                 const SizedBox(width: Spacing.xs),
                 trailing!,
               ],
+              const Spacer(),
+              const Icon(Icons.chevron_right, size: 18, color: HeroColors.ink),
             ],
           ),
         ),

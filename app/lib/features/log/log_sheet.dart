@@ -387,6 +387,7 @@ class _LogSheetState extends State<LogSheet> {
             controller: _amount,
             hint: '0.00',
             prefix: '₱ ',
+            large: true,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: Spacing.md),

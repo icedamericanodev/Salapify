@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,7 +171,7 @@ void main() {
     );
     await pump(tester, state);
 
-    await tester.tap(find.text('DETAILS'));
+    await tester.tap(find.byKey(heroFigureKey));
     await tester.pumpAndSettle();
 
     // The caption that used to read "1 days left in cutoff" on a phone with

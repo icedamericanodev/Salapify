@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 
 /// The five shortcuts. Four of them are ported from
@@ -100,39 +101,43 @@ class _QuickActionButton extends StatelessWidget {
         ? palette.onAccent
         : palette.textSecondary;
 
-    return Semantics(
-      button: true,
-      label: action.label,
-      child: InkWell(
-        onTap: action.onTap,
-        borderRadius: BorderRadius.circular(Radii.control),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Container(
-              height: 52,
-              width: 52,
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(Radii.control),
-                border: Border.all(
-                  color: action.highlight ? Colors.transparent : palette.border,
+    return Pressable(
+      child: Semantics(
+        button: true,
+        label: action.label,
+        child: InkWell(
+          onTap: action.onTap,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                height: 52,
+                width: 52,
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(Radii.control),
+                  border: Border.all(
+                    color: action.highlight
+                        ? Colors.transparent
+                        : palette.border,
+                  ),
+                ),
+                child: Icon(action.icon, size: 20, color: foreground),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                action.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: palette.textSecondary,
                 ),
               ),
-              child: Icon(action.icon, size: 20, color: foreground),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              action.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: palette.textSecondary,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

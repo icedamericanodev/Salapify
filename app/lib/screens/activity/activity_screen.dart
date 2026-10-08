@@ -59,14 +59,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final List<LedgerDay> days = groupByDay(listed);
 
     return ListView(
+      // Spacing.md on top, the same as Reports and Accounts, so the screen
+      // title sits at one height on every tab.
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
-        Spacing.sm,
+        Spacing.md,
         Spacing.lg,
         88,
       ),
       children: <Widget>[
-        Text('Activity', style: AppType.title(p)),
+        Text('Activity', style: AppType.screenTitle(p)),
         Text(
           'Every peso in and out, and where it went',
           style: AppType.caption(p),

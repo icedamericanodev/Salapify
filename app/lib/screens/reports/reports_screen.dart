@@ -238,7 +238,7 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Reports', style: AppType.title(palette)),
+          Text('Reports', style: AppType.screenTitle(palette)),
           const SizedBox(height: 2),
           // The scope, and nothing else. This line used to read "What you own,
           // what you earned, where it went" as well, which is a description of

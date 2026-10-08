@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 
@@ -435,6 +436,12 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool enabled = onTap != null;
+    // The house press (design/motion.dart): the one button every sheet ends
+    // on gives under the thumb, and a disabled one does not pretend to.
+    return Pressable(enabled: enabled, child: _primaryBody(enabled));
+  }
+
+  Widget _primaryBody(bool enabled) {
     return Semantics(
       button: true,
       enabled: enabled,
@@ -523,6 +530,7 @@ class SheetField extends StatelessWidget {
     this.prefix,
     this.onChanged,
     this.inputFormatters,
+    this.large = false,
   });
 
   final Palette palette;
@@ -532,6 +540,15 @@ class SheetField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? prefix;
   final ValueChanged<String>? onChanged;
+
+  /// The HEADLINE field of its sheet, the amount on Log. Drawn at figure
+  /// size with tabular digits, and its [prefix] is pinned in place so the ₱
+  /// shows before anything is typed. Flutter's own `prefixText` only appears
+  /// once the field is focused or filled, which left an empty Amount box with
+  /// no currency in it. From the UI review of 2026-10-07: the amount is the
+  /// one thing every Log entry is for, and it was drawn the same size as the
+  /// note field.
+  final bool large;
 
   /// Restricts what can be TYPED, for the fields where the stored value has to
   /// be narrower than the label implies. The card number field is the reason
@@ -571,12 +588,33 @@ class SheetField extends StatelessWidget {
           keyboardType: keyboardType,
           inputFormatters: _formatters,
           onChanged: onChanged,
-          style: AppType.rowTitle(palette).copyWith(fontSize: 15),
+          style: large
+              ? AppType.amount(palette).copyWith(fontSize: 28)
+              : AppType.rowTitle(palette).copyWith(fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppType.body(palette).copyWith(color: palette.textMuted),
-            prefixText: prefix,
+            hintStyle: large
+                ? AppType.amount(
+                    palette,
+                  ).copyWith(fontSize: 28, color: palette.textMuted)
+                : AppType.body(palette).copyWith(color: palette.textMuted),
+            prefixText: large ? null : prefix,
             prefixStyle: AppType.rowTitle(palette).copyWith(fontSize: 15),
+            prefixIcon: large && prefix != null
+                ? Padding(
+                    padding: const EdgeInsets.only(
+                      left: Spacing.md,
+                      right: Spacing.xs,
+                    ),
+                    child: Text(
+                      prefix!.trim(),
+                      style: AppType.amount(
+                        palette,
+                      ).copyWith(fontSize: 28, color: palette.textSecondary),
+                    ),
+                  )
+                : null,
+            prefixIconConstraints: const BoxConstraints(),
             filled: true,
             fillColor: palette.card,
             // 48 tall, comfortably past the 44 floor.

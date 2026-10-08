@@ -1,3 +1,4 @@
+import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/money.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -754,7 +755,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('DETAILS'));
+    await tester.tap(find.byKey(heroFigureKey));
     await tester.pumpAndSettle();
 
     await expectLater(

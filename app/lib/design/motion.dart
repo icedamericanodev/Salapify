@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// The app's motion rules in one place, so every animation follows them.
 ///
@@ -85,5 +86,18 @@ class GrowTo extends StatelessWidget {
       curve: Curves.easeOutCubic,
       builder: (BuildContext context, double x, Widget? _) => builder(x),
     );
+  }
+}
+
+/// The buzz that confirms a save. A MILESTONE, a debt paid off or a goal
+/// reached, gets a firmer one, because finishing something is the moment the
+/// app should feel different from an ordinary entry. It is never used for a
+/// warning: a buzz that sometimes means "well done" and sometimes "careful"
+/// teaches the thumb nothing.
+void saveHaptic({bool milestone = false}) {
+  if (milestone) {
+    HapticFeedback.mediumImpact();
+  } else {
+    HapticFeedback.lightImpact();
   }
 }
