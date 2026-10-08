@@ -4732,6 +4732,9 @@ class _ShotLock implements LockAuthenticator {
   final UnlockOutcome answer;
   @override
   Future<UnlockOutcome> authenticate(String reason) async => answer;
+
+  @override
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason) async => answer;
 }
 
 /// App lock (founder decisions: the phone's own lock, kept out of backups).
@@ -4769,6 +4772,48 @@ void appLockShots() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/app_lock_$theme.png'),
+      );
+    });
+  }
+
+  // The two states a person only meets when something goes wrong, dark only:
+  // the phone's prompt failing twice (the PIN way in, and the warning not to
+  // uninstall), and the notice left when the phone lost its screen lock.
+  for (final UnlockOutcome answer in <UnlockOutcome>[
+    UnlockOutcome.error,
+    UnlockOutcome.unavailable,
+  ]) {
+    final String name = answer == UnlockOutcome.error
+        ? 'app_lock_errors'
+        : 'app_lock_notice';
+    testWidgets('$name renders in gabi', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      state.startWithExampleData();
+      if (state.theme != ThemeMode2.gabi) state.toggleTheme();
+      final AppLockController lock = AppLockController(
+        settings: MemoryLockSettings(true),
+        authenticator: _ShotLock(answer),
+        setSecureWindow: (bool _) async {},
+      );
+      await lock.load();
+      await tester.pumpWidget(SalapifyApp(state: state, lock: lock));
+      await tester.pumpAndSettle();
+      if (answer == UnlockOutcome.error) {
+        await tester.tap(find.byKey(const Key('lock-unlock')));
+        await tester.pumpAndSettle();
+      }
+      await settleImages(tester);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/$name.png'),
       );
     });
   }

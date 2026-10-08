@@ -60,9 +60,19 @@ Future<void> exportBackup({
     final String stamp = '$day-$hhmm';
     final File file = File('${dir.path}/salapify3-backup-$stamp.json');
     await file.writeAsString(json, flush: true);
-    await Share.shareXFiles(<XFile>[
-      XFile(file.path, mimeType: 'application/json'),
-    ], subject: 'Salapify backup $stamp');
+    try {
+      await Share.shareXFiles(<XFile>[
+        XFile(file.path, mimeType: 'application/json'),
+      ], subject: 'Salapify backup $stamp');
+    } finally {
+      // The staging copy goes once the share sheet has it. share_plus hands
+      // the receiving app its OWN copy, so nothing waits on this one, and
+      // leaving it meant a plain text copy of the whole ledger stayed in
+      // the app's cache after "Delete everything" said it was all gone.
+      try {
+        if (file.existsSync()) await file.delete();
+      } catch (_) {}
+    }
   } on MissingPluginException {
     // Built before path_provider or share_plus were added. The backup is
     // not lost over a plugin registration; it goes to the clipboard.
@@ -75,4 +85,41 @@ Future<void> exportBackup({
     await Clipboard.setData(ClipboardData(text: json));
     say('Could not share the file, so it is on your clipboard instead. $e');
   }
+}
+
+/// Removes every copy an export or a share left in the app's cache: backup
+/// files, an unreadable file kept for rescue, amortization CSVs, and the
+/// copies share_plus keeps of what it shared. Called by "Delete everything",
+/// whose promise is that nothing of the ledger is left behind. Returns how
+/// many files went.
+///
+/// Only ever the PHONE's cache. On a computer, as under `flutter test`, the
+/// temporary directory is the machine's shared /tmp, and a sweep for every
+/// .csv there would delete other programs' files. A test hands in a folder
+/// of its own as [cache] instead.
+Future<int> clearExportCopies({Directory? cache}) async {
+  int removed = 0;
+  if (cache == null && !(Platform.isAndroid || Platform.isIOS)) return 0;
+  try {
+    final Directory dir = cache ?? await getTemporaryDirectory();
+    if (!dir.existsSync()) return 0;
+    for (final FileSystemEntity e in dir.listSync()) {
+      final String name = e.uri.pathSegments
+          .where((String x) => x.isNotEmpty)
+          .last;
+      final bool ours =
+          (e is File &&
+              ((name.startsWith('salapify') && name.endsWith('.json')) ||
+                  name.endsWith('.csv'))) ||
+          (e is Directory && name == 'share_plus');
+      if (!ours) continue;
+      try {
+        await e.delete(recursive: true);
+        removed++;
+      } catch (_) {}
+    }
+  } catch (_) {
+    // No cache directory on this platform: nothing was ever written there.
+  }
+  return removed;
 }

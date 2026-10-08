@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PredictiveBackEvent;
 
 import 'data/notification_gateway.dart';
 import 'data/store.dart';
@@ -82,9 +83,10 @@ Future<void> main() async {
   );
   await lock.load();
 
-  // While app lock is on, reminders on the phone's own lock screen show
-  // "Contents hidden" instead of a bill and its amount. Kept in step with the
-  // setting, and the schedule is rebuilt whenever it changes.
+  // While app lock is on, reminders say only that a reminder is due, with no
+  // amount and no name (see LocalNotificationGateway.privateOnLockScreen).
+  // Kept in step with the setting, and the schedule is rebuilt whenever it
+  // changes.
   notifications.privateOnLockScreen = lock.enabled;
   lock.addListener(() {
     if (notifications.privateOnLockScreen == lock.enabled) return;
@@ -132,7 +134,7 @@ class SalapifyApp extends StatefulWidget {
   State<SalapifyApp> createState() => _SalapifyAppState();
 }
 
-class _SalapifyAppState extends State<SalapifyApp> {
+class _SalapifyAppState extends State<SalapifyApp> with WidgetsBindingObserver {
   late final FinancialState _state;
   late final AppLockController _lock = widget.lock ?? AppLockController.off();
 
@@ -142,6 +144,12 @@ class _SalapifyAppState extends State<SalapifyApp> {
   @override
   void initState() {
     super.initState();
+    // REGISTERED HERE, before MaterialApp builds, so Android's Back reaches
+    // this observer BEFORE the app's own navigator. While the lock screen is
+    // up, Back must do nothing: otherwise it quietly closed the sheet hidden
+    // underneath, and a half typed entry was gone without the person ever
+    // seeing it go. Found by the recovery review of 2026-10-08.
+    WidgetsBinding.instance.addObserver(this);
     _ownsState = widget.state == null;
     _state = widget.state ?? FinancialState(store: MemorySnapshotStore());
     if (_ownsState) {
@@ -154,8 +162,18 @@ class _SalapifyAppState extends State<SalapifyApp> {
 
   void _onStateChanged() => setState(() {});
 
+  bool get _lockUp => _lock.locked || _lock.covered || _lock.notice != null;
+
+  @override
+  Future<bool> didPopRoute() async => _lockUp;
+
+  // The predictive back swipe on newer Android, swallowed the same way.
+  @override
+  bool handleStartBackGesture(PredictiveBackEvent backEvent) => _lockUp;
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _state.removeListener(_onStateChanged);
     if (_ownsState) _state.dispose();
     super.dispose();

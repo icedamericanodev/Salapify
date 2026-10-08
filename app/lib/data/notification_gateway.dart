@@ -63,10 +63,22 @@ class LocalNotificationGateway implements NotificationGateway {
   final FlutterLocalNotificationsPlugin _plugin;
   bool _ready = false;
 
-  /// True while app lock is on. Reminders then show on the phone's own lock
-  /// screen as "Contents hidden", because a bill and its amount sitting on a
-  /// locked phone would undo the lock for anybody who picks it up.
+  /// True while app lock is on. Each reminder then says only that a
+  /// reminder is due, with no amount and no name in it, because a bill and
+  /// its figure sitting on a locked phone would undo the lock for anybody who
+  /// picks it up.
+  ///
+  /// The words themselves change, not only the visibility flag. Android
+  /// hides a "private" notification's text only when the person has turned
+  /// off "show sensitive content" on their lock screen, and it is on by
+  /// default, so the flag alone would have shown "Your payment of 8,500 to
+  /// Tita Nena" to anybody glancing at the phone. Found by the security
+  /// review of 2026-10-08.
   bool privateOnLockScreen = false;
+
+  static const String _privateTitle = 'Salapify';
+  static const String _privateBody =
+      'A reminder is due. Open Salapify to see it.';
 
   /// One channel per kind, so a person can silence bill reminders in Android's
   /// own settings without silencing the lot. Android treats a channel as
@@ -150,8 +162,8 @@ class LocalNotificationGateway implements NotificationGateway {
 
       await _plugin.zonedSchedule(
         id: _idFor(p.reminder.tag),
-        title: p.reminder.title,
-        body: p.reminder.body,
+        title: privateOnLockScreen ? _privateTitle : p.reminder.title,
+        body: privateOnLockScreen ? _privateBody : p.reminder.body,
         // Anchored to the INSTANT, in UTC, rather than looked up in the
         // timezone database.
         //

@@ -38,6 +38,10 @@ enum UnlockOutcome {
   /// Too many wrong tries; the phone wants a pause.
   lockedOut,
 
+  /// Fingerprint and face are paused until the phone itself is unlocked
+  /// with its PIN, pattern or password. Waiting does not end this one.
+  biometricsPaused,
+
   /// This phone has no screen lock at all, so nothing can be checked.
   unavailable,
 
@@ -49,6 +53,12 @@ enum UnlockOutcome {
 /// platform channel that does not exist in one.
 abstract class LockAuthenticator {
   Future<UnlockOutcome> authenticate(String reason);
+
+  /// Android's own "confirm your PIN, pattern or password" screen, without
+  /// the biometric prompt in front of it. The way round a fingerprint
+  /// prompt that keeps failing on some phones: still the phone's own lock,
+  /// never a way past it.
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason);
 }
 
 /// The real one, through local_auth 3.x.
@@ -80,13 +90,30 @@ class DeviceLockAuthenticator implements LockAuthenticator {
         case LocalAuthExceptionCode.timeout:
           return UnlockOutcome.cancelled;
         case LocalAuthExceptionCode.temporaryLockout:
-        case LocalAuthExceptionCode.biometricLockout:
           return UnlockOutcome.lockedOut;
+        case LocalAuthExceptionCode.biometricLockout:
+          return UnlockOutcome.biometricsPaused;
         default:
           // New codes may be added to the plugin at any time, so there is
           // always a fallback rather than an exhaustive match.
           return UnlockOutcome.error;
       }
+    } catch (_) {
+      return UnlockOutcome.error;
+    }
+  }
+
+  static const MethodChannel _channel = MethodChannel('salapify/secure_window');
+
+  @override
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason) async {
+    try {
+      final bool? ok = await _channel.invokeMethod<bool>(
+        'confirmDeviceCredential',
+        <String, Object>{'title': 'Unlock Salapify', 'description': reason},
+      );
+      if (ok == null) return UnlockOutcome.unavailable;
+      return ok ? UnlockOutcome.unlocked : UnlockOutcome.cancelled;
     } catch (_) {
       return UnlockOutcome.error;
     }
@@ -97,12 +124,19 @@ class DeviceLockAuthenticator implements LockAuthenticator {
 abstract class LockSettingsStore {
   Future<bool> readEnabled();
   Future<void> writeEnabled(bool enabled);
+
+  /// True when the last read found a setting it could not understand and
+  /// fell back to off, so the person can be told rather than left guessing.
+  bool get readFailed;
 }
 
 /// The real store: `app_lock.json` beside the ledger, NOT inside it, so the
 /// export and every backup leave it out by construction.
 class FileLockSettings implements LockSettingsStore {
   FileLockSettings();
+
+  @override
+  bool readFailed = false;
 
   Future<File> _file() async {
     final Directory dir = await getApplicationDocumentsDirectory();
@@ -111,14 +145,19 @@ class FileLockSettings implements LockSettingsStore {
 
   @override
   Future<bool> readEnabled() async {
+    readFailed = false;
+    File? f;
     try {
-      final File f = await _file();
+      f = await _file();
       if (!f.existsSync()) return false;
       final Object? m = jsonDecode(await f.readAsString());
-      return m is Map && m['enabled'] == true;
+      if (m is Map && m['enabled'] == true) return true;
+      readFailed = true;
+      return false;
     } catch (_) {
       // An unreadable lock file must never lock somebody out of their own
-      // money. Unreadable means off.
+      // money. Unreadable means off, and the person is told.
+      readFailed = f != null;
       return false;
     }
   }
@@ -130,7 +169,14 @@ class FileLockSettings implements LockSettingsStore {
       if (f.existsSync()) await f.delete();
       return;
     }
-    await f.writeAsString(jsonEncode(<String, Object>{'enabled': true}));
+    // Written beside and renamed over, the way the ledger is written, so a
+    // crash halfway cannot leave a half file that silently reads as off.
+    final File tmp = File('${f.path}.tmp');
+    await tmp.writeAsString(
+      jsonEncode(<String, Object>{'enabled': true}),
+      flush: true,
+    );
+    await tmp.rename(f.path);
   }
 }
 
@@ -139,6 +185,9 @@ class MemoryLockSettings implements LockSettingsStore {
   MemoryLockSettings([this.enabled = false]);
 
   bool enabled;
+
+  @override
+  bool readFailed = false;
 
   @override
   Future<bool> readEnabled() async => enabled;
@@ -154,9 +203,12 @@ class AppLockController extends ChangeNotifier {
     required this.settings,
     required this.authenticator,
     Duration Function()? elapsed,
+    DateTime Function()? wall,
     this.relockAfter = const Duration(minutes: 1),
+    this.promptTimeout = const Duration(minutes: 2),
     this.setSecureWindow = _platformSecureWindow,
-  }) : _elapsed = elapsed ?? _monotonic();
+  }) : _elapsed = elapsed ?? _monotonic(),
+       _wall = wall ?? DateTime.now;
 
   /// A controller that is already loaded and off, for tests and previews
   /// that never think about the lock.
@@ -178,6 +230,18 @@ class AppLockController extends ChangeNotifier {
   /// away for less than a minute.
   final Duration Function() _elapsed;
 
+  /// The wall clock, the other half of measuring time away. The stopwatch
+  /// above stops while the phone is asleep on Android, so a phone left
+  /// face down for half an hour could count only seconds; the wall clock
+  /// keeps counting through sleep but can be moved back. Time away is the
+  /// LARGER of the two, so neither weakness alone shortens it.
+  final DateTime Function() _wall;
+
+  /// The longest the phone's prompt may take before it counts as a failure,
+  /// so a prompt that never answers cannot leave the button stuck on
+  /// "Checking" for good.
+  final Duration promptTimeout;
+
   /// How long away before the phone's lock is asked for again. Long enough
   /// to copy a GCash number and come back; short enough that a phone left on
   /// a table locks again.
@@ -194,6 +258,12 @@ class AppLockController extends ChangeNotifier {
   bool _busy = false;
   String? _message;
   Duration? _awayAt;
+  DateTime? _awayWall;
+
+  /// Errors in a row from the phone's prompt. After two, the lock screen
+  /// offers the phone's PIN screen directly, so a phone whose fingerprint
+  /// prompt is broken can still get in, through its own lock.
+  int _errors = 0;
 
   bool get loaded => _loaded;
   bool get enabled => _enabled;
@@ -206,8 +276,24 @@ class AppLockController extends ChangeNotifier {
   bool get covered => _enabled && _covered;
   bool get busy => _busy;
 
+  /// Whether to offer "Use your phone's PIN instead".
+  bool get offerPhoneCode => _errors >= 2;
+
   /// The last thing worth telling the person, or null.
   String? get message => _message;
+
+  /// Something the person must READ before going on, shown on the lock
+  /// screen itself with an "Open Salapify" button rather than in a passing
+  /// note. A note drawn under an open sheet expires unseen, and these say
+  /// that app lock is off, which nobody should have to discover by chance.
+  String? get notice => _notice;
+  String? _notice;
+
+  void dismissNotice() {
+    if (_notice == null) return;
+    _notice = null;
+    notifyListeners();
+  }
 
   static Duration Function() _monotonic() {
     final Stopwatch watch = Stopwatch()..start();
@@ -220,23 +306,49 @@ class AppLockController extends ChangeNotifier {
     _enabled = await settings.readEnabled();
     _locked = _enabled;
     _loaded = true;
+    if (settings.readFailed) {
+      _notice =
+          'App lock\'s setting could not be read, so it is off. Turn it on '
+          'again in Settings if you want it.';
+    }
     await _secure();
     notifyListeners();
   }
 
   /// One try at the phone's lock, from the lock screen.
-  Future<void> unlock() async {
+  Future<void> unlock() =>
+      _attempt(() => authenticator.authenticate('Unlock Salapify'));
+
+  /// The same, through the phone's PIN screen rather than the biometric
+  /// prompt. Offered after repeated errors.
+  Future<void> unlockWithPhoneCode() =>
+      _attempt(() => authenticator.confirmWithPhoneCode('Unlock Salapify'));
+
+  Future<void> _attempt(Future<UnlockOutcome> Function() ask) async {
     if (_busy || !locked) return;
     _busy = true;
     _message = null;
     notifyListeners();
-    final UnlockOutcome outcome = await authenticator.authenticate(
-      'Unlock Salapify',
-    );
+    UnlockOutcome outcome;
+    try {
+      outcome = await ask().timeout(
+        promptTimeout,
+        onTimeout: () => UnlockOutcome.error,
+      );
+    } catch (_) {
+      outcome = UnlockOutcome.error;
+    }
     _busy = false;
+    _errors = outcome == UnlockOutcome.error ? _errors + 1 : 0;
     switch (outcome) {
       case UnlockOutcome.unlocked:
         _locked = false;
+        // The prompt itself sent the app to the background, which started
+        // the away clock. A slow PIN entry must not count as time away, or
+        // a successful unlock would be followed by a second prompt.
+        _awayAt = null;
+        _awayWall = null;
+        _covered = false;
       case UnlockOutcome.unavailable:
         // THE WAY OUT, and the most important branch in this file. The
         // phone's screen lock was removed after app lock was turned on, so
@@ -246,9 +358,12 @@ class AppLockController extends ChangeNotifier {
         // write succeeding.
         _locked = false;
         _enabled = false;
-        _message =
-            'App lock is off: this phone no longer has a screen lock. Set '
-            'one in your phone\'s settings, then turn app lock on again.';
+        _awayAt = null;
+        _awayWall = null;
+        _notice =
+            'App lock is off. This phone no longer has a screen lock, so '
+            'Salapify cannot check one. Set a screen lock in your phone\'s '
+            'settings, then turn app lock on again in Salapify\'s Settings.';
         try {
           await settings.writeEnabled(false);
         } catch (_) {}
@@ -256,10 +371,20 @@ class AppLockController extends ChangeNotifier {
       case UnlockOutcome.lockedOut:
         _message =
             'Too many tries. Wait a moment, then tap Unlock to try again.';
+      case UnlockOutcome.biometricsPaused:
+        _message = _pausedCopy;
       case UnlockOutcome.cancelled:
         _message = null;
       case UnlockOutcome.error:
-        _message = 'Your phone could not check its lock. Tap Unlock to retry.';
+        // From the second error in a row, the way out is spelled out,
+        // including the one move that must NOT be made. Uninstalling is the
+        // natural thing to try and it deletes every record.
+        _message = offerPhoneCode
+            ? 'Your phone still could not check its lock. Your records are '
+                  'safe. Use your phone\'s PIN instead, or close Salapify '
+                  'fully and open it again. Do not uninstall Salapify: that '
+                  'deletes your records.'
+            : 'Your phone could not check its lock. Tap Unlock to retry.';
     }
     notifyListeners();
   }
@@ -275,9 +400,18 @@ class AppLockController extends ChangeNotifier {
     );
     switch (outcome) {
       case UnlockOutcome.unlocked:
+        // Saved FIRST, and only reported on once it is. A lock that showed
+        // as on but was never written would be off at the next launch,
+        // with nobody told.
+        try {
+          await settings.writeEnabled(true);
+        } catch (_) {
+          return 'App lock could not be saved, so it is still off.';
+        }
         _enabled = true;
         _locked = false;
-        await settings.writeEnabled(true);
+        _awayAt = null;
+        _awayWall = null;
         await _secure();
         notifyListeners();
         return null;
@@ -286,11 +420,17 @@ class AppLockController extends ChangeNotifier {
             'fingerprint or face), then turn this on.';
       case UnlockOutcome.lockedOut:
         return 'Too many tries. Wait a moment and try again.';
+      case UnlockOutcome.biometricsPaused:
+        return _pausedCopy;
       case UnlockOutcome.cancelled:
       case UnlockOutcome.error:
         return 'App lock is still off.';
     }
   }
+
+  static const String _pausedCopy =
+      'Fingerprint and face unlock are paused on this phone. Lock your '
+      'phone, open it with your PIN, pattern or password, then try again.';
 
   /// Turns app lock off, after the phone's lock, so somebody handed an
   /// unlocked phone cannot quietly switch it off. A phone with no screen
@@ -305,28 +445,39 @@ class AppLockController extends ChangeNotifier {
         outcome != UnlockOutcome.unavailable) {
       return 'App lock is still on.';
     }
-    await _turnOff();
+    if (!await _turnOff()) {
+      return 'App lock is off for now, but the change could not be saved, so '
+          'it may come back the next time Salapify opens.';
+    }
     return null;
   }
 
   /// "Delete everything on this phone" takes the lock with it.
   Future<void> wipe() => _turnOff();
 
-  Future<void> _turnOff() async {
+  /// Off now, whatever the disk says. True when the setting was saved too.
+  Future<bool> _turnOff() async {
     _enabled = false;
     _locked = false;
     _covered = false;
+    _awayAt = null;
+    _awayWall = null;
+    bool saved = true;
     try {
       await settings.writeEnabled(false);
-    } catch (_) {}
+    } catch (_) {
+      saved = false;
+    }
     await _secure();
     notifyListeners();
+    return saved;
   }
 
   /// The app left the screen: cover it at once, start the clock.
   void onBackground() {
     if (!_enabled) return;
     _awayAt ??= _elapsed();
+    _awayWall ??= _wall();
     if (!_covered) {
       _covered = true;
       notifyListeners();
@@ -337,8 +488,17 @@ class AppLockController extends ChangeNotifier {
   void onForeground() {
     if (!_enabled) return;
     final Duration? away = _awayAt;
+    final DateTime? awayWall = _awayWall;
     _awayAt = null;
-    if (away != null && _elapsed() - away > relockAfter) _locked = true;
+    _awayWall = null;
+    if (away != null) {
+      final Duration byWatch = _elapsed() - away;
+      final Duration byWall = awayWall == null
+          ? Duration.zero
+          : _wall().difference(awayWall);
+      final Duration gone = byWall > byWatch ? byWall : byWatch;
+      if (gone > relockAfter) _locked = true;
+    }
     _covered = false;
     notifyListeners();
   }
@@ -371,6 +531,10 @@ class AppLockController extends ChangeNotifier {
 class _NeverAuthenticator implements LockAuthenticator {
   @override
   Future<UnlockOutcome> authenticate(String reason) async =>
+      UnlockOutcome.unavailable;
+
+  @override
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason) async =>
       UnlockOutcome.unavailable;
 }
 

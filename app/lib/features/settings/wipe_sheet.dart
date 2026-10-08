@@ -53,6 +53,10 @@ class _WipeSheetState extends State<WipeSheet> {
   bool _exporting = false;
   int? _removed;
 
+  /// Whether app lock was on when the wipe ran, so the receipt can say it
+  /// went too rather than leave somebody believing it is still there.
+  bool _lockWasOn = false;
+
   /// Hand the whole ledger to the share sheet, without leaving this screen.
   ///
   /// Deliberately does NOT close the sheet on success. Somebody who exports
@@ -217,11 +221,15 @@ class _WipeSheetState extends State<WipeSheet> {
   Future<void> _wipe() async {
     setState(() => _busy = true);
     final AppLockController? lock = AppLockScope.maybeOf(context);
+    _lockWasOn = lock?.enabled ?? false;
     final int removed = await widget.state.deleteEverything();
     // "Everything" includes app lock. Its setting lives outside the ledger,
     // so deleting the ledger alone would leave a phone with nothing in
     // Salapify still asking for a fingerprint to open it.
     await lock?.wipe();
+    // And every copy an export left in the cache: "everything" has to mean
+    // it, and the receipt below says so.
+    await clearExportCopies();
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -250,9 +258,18 @@ class _WipeSheetState extends State<WipeSheet> {
             // is not telling them the one thing they came here for.
             '$_removed ${_removed == 1 ? 'file' : 'files'} removed from this '
             'phone: your ledger, the spare copies Salapify kept, your '
-            'conversation with Pan, and the saved exchange rates.',
+            'conversation with Pan, and the saved exchange rates. Copies '
+            'left behind by earlier exports are gone too.',
             style: AppType.body(p),
           ),
+          if (_lockWasOn) ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            Text(
+              'App lock is off as well. Turn it on again in Settings if you '
+              'still want it.',
+              style: AppType.body(p),
+            ),
+          ],
           const SizedBox(height: Spacing.md),
           Text(
             'The sample data has NOT come back. You asked for an empty app, '

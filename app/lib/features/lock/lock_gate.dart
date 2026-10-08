@@ -59,22 +59,7 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
   }
 
   void _changed() {
-    final AppLockController c = widget.controller;
-    if (!c.locked) _prompted = false;
-    // A sentence for somebody who is already IN, which the lock screen
-    // cannot carry because it has just gone: the "your phone has no screen
-    // lock any more, so app lock turned itself off" case above all. Said
-    // once, then cleared.
-    final String? note = c.message;
-    if (!c.locked && note != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ScaffoldMessenger.maybeOf(context)
-          ?..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(note)));
-        c.clearMessage();
-      });
-    }
+    if (!widget.controller.locked) _prompted = false;
     if (mounted) setState(() {});
   }
 
@@ -95,7 +80,11 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final AppLockController c = widget.controller;
-    final bool show = c.locked || c.covered;
+    // A notice (app lock turned itself off, or its setting could not be
+    // read) keeps the screen up until it is read and dismissed: the one
+    // surface certain to be on top, unlike a note under an open sheet.
+    final String? notice = c.notice;
+    final bool show = c.locked || c.covered || notice != null;
 
     if (c.locked && !_prompted && !c.busy) {
       _prompted = true;
@@ -106,15 +95,24 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
 
     return Stack(
       children: <Widget>[
-        ExcludeSemantics(excluding: show, child: widget.child),
+        // Hidden from screen readers AND from keyboard focus. Semantics alone
+        // left every button underneath reachable with Tab and Enter on a
+        // plugged in keyboard, which would have opened Export straight
+        // through the lock.
+        ExcludeFocus(
+          excluding: show,
+          child: ExcludeSemantics(excluding: show, child: widget.child),
+        ),
         if (show)
           Positioned.fill(
             child: _LockScreen(
               palette: widget.palette,
               locked: c.locked,
               busy: c.busy,
-              message: c.message,
+              message: c.locked ? c.message : notice,
               onUnlock: c.unlock,
+              onPhoneCode: c.offerPhoneCode ? c.unlockWithPhoneCode : null,
+              onContinue: !c.locked && notice != null ? c.dismissNotice : null,
             ),
           ),
       ],
@@ -129,6 +127,8 @@ class _LockScreen extends StatelessWidget {
     required this.busy,
     required this.message,
     required this.onUnlock,
+    this.onPhoneCode,
+    this.onContinue,
   });
 
   final Palette palette;
@@ -139,6 +139,14 @@ class _LockScreen extends StatelessWidget {
   final bool busy;
   final String? message;
   final VoidCallback onUnlock;
+
+  /// Offered only after the phone's prompt has failed more than once: its
+  /// own PIN screen, still the phone's lock, never a way past it.
+  final VoidCallback? onPhoneCode;
+
+  /// Set when the screen is carrying a notice rather than a lock: the one
+  /// way on, once it has been read.
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -156,16 +164,18 @@ class _LockScreen extends StatelessWidget {
                 const PanArt(mood: PanMood.shy),
                 const SizedBox(height: panGap),
                 Text(
-                  'Salapify is locked',
+                  onContinue != null ? 'About app lock' : 'Salapify is locked',
                   textAlign: TextAlign.center,
                   style: AppType.title(p),
                 ),
-                const SizedBox(height: Spacing.xs),
-                Text(
-                  'Use your phone\'s lock to open it.',
-                  textAlign: TextAlign.center,
-                  style: AppType.body(p).copyWith(color: p.textSecondary),
-                ),
+                if (onContinue == null) ...<Widget>[
+                  const SizedBox(height: Spacing.xs),
+                  Text(
+                    'Use your phone\'s lock to open it.',
+                    textAlign: TextAlign.center,
+                    style: AppType.body(p).copyWith(color: p.textSecondary),
+                  ),
+                ],
                 if (locked) ...<Widget>[
                   const SizedBox(height: Spacing.xl),
                   SizedBox(
@@ -190,12 +200,44 @@ class _LockScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (locked && onPhoneCode != null) ...<Widget>[
+                  const SizedBox(height: Spacing.sm),
+                  TextButton(
+                    key: const Key('lock-phone-code'),
+                    onPressed: busy ? null : onPhoneCode,
+                    child: Text(
+                      'Use your phone\'s PIN instead',
+                      style: AppType.button(p, color: p.accent),
+                    ),
+                  ),
+                ],
                 if (message != null) ...<Widget>[
                   const SizedBox(height: Spacing.md),
                   Text(
                     message!,
                     textAlign: TextAlign.center,
-                    style: AppType.caption(p),
+                    style: onContinue != null
+                        ? AppType.body(p)
+                        : AppType.caption(p),
+                  ),
+                ],
+                if (onContinue != null) ...<Widget>[
+                  const SizedBox(height: Spacing.xl),
+                  SizedBox(
+                    width: 220,
+                    child: FilledButton(
+                      key: const Key('lock-continue'),
+                      onPressed: onContinue,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: p.accent,
+                        foregroundColor: p.onAccent,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: Text(
+                        'Open Salapify',
+                        style: AppType.button(p, color: p.onAccent),
+                      ),
+                    ),
                   ),
                 ],
               ],
