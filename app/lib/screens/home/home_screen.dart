@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/shared/pan_empty_card.dart';
+import '../../design/pan_art.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../data/store.dart' show LoadStatus;
@@ -169,12 +171,30 @@ class HomeScreen extends StatelessWidget {
             // session that moves a number somebody recognises as theirs is
             // their own first entry.
             const SizedBox(height: Spacing.md),
-            _TodayRow(
-              palette: palette,
-              state: state,
-              onLog: onOpenLog,
-              onSeeAll: () => onOpenTab(kActivityTab),
-            ),
+            // A BOOK WITH NOTHING IN IT gets Pan waving instead of the Today
+            // row (D30). Both are the same door, into the first entry; this
+            // one is simply the version that says hello to somebody who
+            // installed the app a minute ago. The moment one entry exists the
+            // Today row is back, because from then on it carries a figure.
+            if (state.transactions.isEmpty)
+              PanEmptyCard(
+                palette: palette,
+                mood: PanMood.wave,
+                title: 'Nothing logged yet',
+                body:
+                    'Tap Log to record your first expense. Everything on this '
+                    'screen fills in from what you log.',
+                actionLabel: 'Log your first entry',
+                onAction: onOpenLog,
+                ring: true,
+              )
+            else
+              _TodayRow(
+                palette: palette,
+                state: state,
+                onLog: onOpenLog,
+                onSeeAll: () => onOpenTab(kActivityTab),
+              ),
 
             // THE RUNWAY, and it sits HERE for a reason. The reading order
             // becomes hero (how much), Today (what has gone today), Runway

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/shared/pan_empty_card.dart';
+import '../../design/pan_art.dart';
 import '../../core/money/format.dart';
 import '../../core/money/plan.dart';
 import '../../data/seed_data.dart';
@@ -98,40 +100,58 @@ class BudgetsSegment extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        PlanCard(
-          palette: palette,
-          title: 'Left to spend this month',
-          topic: InfoTopic.budgets,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  formatPeso(totals.leftToSpend.pesos),
-                  style: AppType.hero(palette).copyWith(
-                    color: totals.overCount > 0
-                        ? palette.warning
-                        : palette.positive,
+        // With NO budgets this card said "₱0.00, Every budget on track",
+        // which is true of an empty list and reads as a verdict on budgets
+        // that do not exist. The empty card below says what is true instead.
+        if (rows.isNotEmpty)
+          PlanCard(
+            palette: palette,
+            title: 'Left to spend this month',
+            topic: InfoTopic.budgets,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatPeso(totals.leftToSpend.pesos),
+                    style: AppType.hero(palette).copyWith(
+                      color: totals.overCount > 0
+                          ? palette.warning
+                          : palette.positive,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                totals.allOnTrack
-                    ? 'Every budget on track'
-                    : '${totals.overCount} over, ${totals.nearCount} to watch',
-                style: AppType.caption(palette).copyWith(
-                  color: totals.allOnTrack
-                      ? palette.textMuted
-                      : palette.warning,
+                const SizedBox(height: 2),
+                Text(
+                  totals.allOnTrack
+                      ? 'Every budget on track'
+                      : '${totals.overCount} over, ${totals.nearCount} to watch',
+                  style: AppType.caption(palette).copyWith(
+                    color: totals.allOnTrack
+                        ? palette.textMuted
+                        : palette.warning,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: Spacing.md),
+        if (rows.isNotEmpty) const SizedBox(height: Spacing.md),
+        // NO BUTTON, on purpose. This app cannot create a budget yet: budgets
+        // arrive with the example data, and once that is cleared there is no
+        // way to add one. A "Set your budget" button here would be a door
+        // painted on a wall, so the card says what the screen is for and
+        // promises nothing. Reported to the founder as a gap, 2026-10-08.
+        if (rows.isEmpty)
+          PanEmptyCard(
+            palette: palette,
+            mood: PanMood.idea,
+            title: 'No budget set',
+            body:
+                'A budget is a cap per category. Once one is set, this '
+                'screen shows what is LEFT rather than only what is spent.',
+          ),
         for (final BudgetStatus b in sorted) ...<Widget>[
           _BudgetRow(
             palette: palette,
@@ -406,6 +426,17 @@ class GoalsSegment extends StatelessWidget {
           onTap: () => AddGoalSheet.show(context, state),
         ),
         const SizedBox(height: Spacing.md),
+        // The button above already adds one, so the card carries no second
+        // button saying the same thing.
+        if (rows.isEmpty)
+          PanEmptyCard(
+            palette: palette,
+            mood: PanMood.idea,
+            title: 'Nothing saved for yet',
+            body:
+                'Name one thing you are putting money aside for, give it an '
+                'amount, and this shows what it takes each month to get there.',
+          ),
         for (final GoalStatus g in rows) ...<Widget>[
           _GoalRow(
             palette: palette,

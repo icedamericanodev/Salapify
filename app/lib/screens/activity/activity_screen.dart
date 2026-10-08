@@ -401,6 +401,15 @@ class _EmptyState extends StatelessWidget {
   final Palette palette;
   final bool hasFilters;
 
+  // Two different situations. "No entries yet" on a screen with a filter on
+  // it is a lie, and it sends somebody looking for a bug instead of looking
+  // at the filter they set.
+  Widget _title(String text) =>
+      Text(text, style: AppType.rowTitle(palette), textAlign: TextAlign.center);
+
+  Widget _body(String text) =>
+      Text(text, style: AppType.caption(palette), textAlign: TextAlign.center);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -411,40 +420,28 @@ class _EmptyState extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: palette.border),
       ),
-      child: Column(
-        children: <Widget>[
+      child: hasFilters
+          ? Column(
+              children: <Widget>[
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 28,
+                  color: palette.textMuted,
+                ),
+                const SizedBox(height: Spacing.sm),
+                _title('Nothing matches these filters'),
+                const SizedBox(height: Spacing.xs),
+                _body('Clear a filter above to see more.'),
+              ],
+            )
           // Pan asleep on an empty ledger (D30), but ONLY when it is truly
           // empty. A filter that hides everything is a "not found", and a
           // sleeping Pan there would say "nothing happened" when plenty did.
-          if (hasFilters) ...<Widget>[
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 28,
-              color: palette.textMuted,
+          : PanEmptyContent(
+              mood: PanMood.sleep,
+              title: _title('No entries yet'),
+              body: _body('Log something and it shows up here, newest first.'),
             ),
-            const SizedBox(height: Spacing.sm),
-          ] else ...<Widget>[
-            const PanArt(mood: PanMood.sleep),
-            const SizedBox(height: panGap),
-          ],
-          Text(
-            // Two different situations. "No entries yet" on a screen with a
-            // filter on it is a lie, and it sends somebody looking for a bug
-            // instead of looking at the filter they set.
-            hasFilters ? 'Nothing matches these filters' : 'No entries yet',
-            style: AppType.rowTitle(palette),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Spacing.xs),
-          Text(
-            hasFilters
-                ? 'Clear a filter above to see more.'
-                : 'Log something and it shows up here, newest first.',
-            style: AppType.caption(palette),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }

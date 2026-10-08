@@ -1,3 +1,4 @@
+import 'package:salapify/design/pan_art.dart';
 import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/money.dart';
 import 'dart:async';
@@ -4529,9 +4530,61 @@ void reportsTrendShots() {
   }
 }
 
-/// Pan on the empty states (D30, docs/revamp/pan-handoff.md), both
-/// brightnesses, dark first. A SWEPT book, the real sweep, so the empty
-/// states are ones a person can genuinely reach.
+/// Pan on the empty states (D30, docs/revamp/pan-handoff.md and
+/// pan-motion.md), all seven screens at both brightnesses, dark first, plus
+/// the Home entrance frozen at the brief's six times.
+///
+/// A SWEPT book, the real sweep, so every empty state is one a person can
+/// genuinely reach. Each shot settles first, so Pan is pictured at rest after
+/// his idle, which is what somebody sees once the card has played.
+Future<FinancialState> _panSwept(WidgetTester tester, ThemeMode2 mode) async {
+  await tester.runAsync(loadRealFonts);
+  tester.view.physicalSize = const Size(1170, 2532);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  final FinancialState state = FinancialState(clock: DateTime.utc(2026, 9, 18));
+  await state.restore();
+  if (state.theme != mode) state.toggleTheme();
+  state.removeSampleData();
+  return state;
+}
+
+Widget _panShell(FinancialState state) {
+  final Palette palette = Palette.of(state.theme);
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
+    scrollBehavior: const SalapifyScrollBehavior(),
+    theme: salapifyTheme(palette, state.theme),
+    home: AppShell(state: state),
+  );
+}
+
+/// How to reach each Pan screen from Home, by tapping, as a person would.
+final Map<String, Future<void> Function(WidgetTester tester)> _panScreens =
+    <String, Future<void> Function(WidgetTester tester)>{
+      'home': (WidgetTester tester) async {},
+      'activity': (WidgetTester tester) async =>
+          tester.tap(find.byIcon(Icons.menu_book_outlined)),
+      'plan_budgets': (WidgetTester tester) async {
+        await tester.tap(find.byIcon(Icons.track_changes_outlined));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Budgets').first);
+      },
+      'plan_goals': (WidgetTester tester) async {
+        await tester.tap(find.byIcon(Icons.track_changes_outlined));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Goals').first);
+      },
+      'accounts': (WidgetTester tester) async =>
+          tester.tap(find.byIcon(Icons.account_balance_wallet_outlined)),
+      'reports': (WidgetTester tester) async {
+        await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Performance'));
+      },
+    };
+
 void panEmptyShots() {
   for (final ThemeMode2 mode in <ThemeMode2>[
     ThemeMode2.gabi,
@@ -4539,49 +4592,29 @@ void panEmptyShots() {
   ]) {
     final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
 
-    Future<FinancialState> swept(WidgetTester tester) async {
-      await tester.runAsync(loadRealFonts);
-      tester.view.physicalSize = const Size(1170, 2532);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final FinancialState state = FinancialState(
-        clock: DateTime.utc(2026, 9, 18),
-      );
-      await state.restore();
-      if (state.theme != mode) state.toggleTheme();
-      state.removeSampleData();
-      return state;
+    for (final MapEntry<String, Future<void> Function(WidgetTester tester)> sc
+        in _panScreens.entries) {
+      testWidgets('pan ${sc.key} empty renders in $theme', (
+        WidgetTester tester,
+      ) async {
+        final FinancialState state = await _panSwept(tester, mode);
+        await tester.pumpWidget(_panShell(state));
+        await tester.pumpAndSettle();
+        await sc.value(tester);
+        await tester.pumpAndSettle();
+        await settleImages(tester);
+        expect(find.byType(PanArt), findsOneWidget, reason: 'no Pan here');
+        await expectLater(
+          find.byType(AppShell),
+          matchesGoldenFile('out/pan_${sc.key}_$theme.png'),
+        );
+      });
     }
-
-    testWidgets('pan activity empty renders in $theme', (
-      WidgetTester tester,
-    ) async {
-      final FinancialState state = await swept(tester);
-      final Palette palette = Palette.of(state.theme);
-      await tester.pumpWidget(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          scrollBehavior: const SalapifyScrollBehavior(),
-          theme: salapifyTheme(palette, state.theme),
-          home: AppShell(state: state),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.menu_book_outlined));
-      await tester.pumpAndSettle();
-      await settleImages(tester);
-      await tester.pumpAndSettle();
-      await expectLater(
-        find.byType(AppShell),
-        matchesGoldenFile('out/pan_activity_$theme.png'),
-      );
-    });
 
     testWidgets('pan debt empty renders in $theme', (
       WidgetTester tester,
     ) async {
-      final FinancialState state = await swept(tester);
+      final FinancialState state = await _panSwept(tester, mode);
       final Palette palette = Palette.of(state.theme);
       await tester.pumpWidget(
         MaterialApp(
@@ -4603,4 +4636,30 @@ void panEmptyShots() {
       );
     });
   }
+
+  // THE FRAME STRIP, pan-motion.md "Done means" 5: Home's entrance frozen at
+  // 0, 320, 600, 760, 1080 and 2200 ms, dark, by pumping exactly those
+  // durations. Compare with docs/revamp/mockups/pan/motion-frames-home.png.
+  //
+  // The entrance clock starts when the card is first built, so the images
+  // are warmed into the cache on a first build and the frames are taken on a
+  // SECOND build, or the early frames would picture an image still loading.
+  testWidgets('pan home frame strip renders', (WidgetTester tester) async {
+    final FinancialState state = await _panSwept(tester, ThemeMode2.gabi);
+    await tester.pumpWidget(_panShell(state));
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(_panShell(state));
+    int at = 0;
+    for (final int ms in <int>[0, 320, 600, 760, 1080, 2200]) {
+      await tester.pump(Duration(milliseconds: ms - at));
+      at = ms;
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/pan_home_frame_$ms.png'),
+      );
+    }
+    await tester.pumpAndSettle();
+  });
 }

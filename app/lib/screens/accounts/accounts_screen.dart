@@ -1,3 +1,5 @@
+import '../../features/shared/pan_empty_card.dart';
+import '../../design/pan_art.dart';
 import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
 
@@ -76,7 +78,22 @@ class _AccountsScreenState extends State<AccountsScreen> {
               Spacing.xl,
             ),
             children: <Widget>[
-              _NetWorthCard(palette: p, summary: summary, profile: profile),
+              // NO ACCOUNTS AT ALL, in the whole book, gets Pan with a coin
+              // in place of the net worth card (D30). A net worth of zero
+              // built from nothing tells nobody anything; the way in does.
+              if (widget.state.accounts.isEmpty)
+                PanEmptyCard(
+                  palette: p,
+                  mood: PanMood.coin,
+                  title: 'No accounts yet',
+                  body:
+                      'Add where your money actually sits and this screen '
+                      'leads with your net worth.',
+                  actionLabel: 'Add your first account',
+                  onAction: () => _openSheet(context, p, null),
+                )
+              else
+                _NetWorthCard(palette: p, summary: summary, profile: profile),
               const SizedBox(height: Spacing.md),
               // ASKED ONCE, EVER, and never on a brand new phone. The rule
               // for when it appears lives in the store, as

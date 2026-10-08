@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/shared/pan_empty_card.dart';
+import '../../design/pan_art.dart';
 import '../../core/money/bir_claims.dart';
 import '../../core/money/debt_ratio.dart';
 import '../../core/money/format.dart';
@@ -151,7 +153,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   onSelect: (ReportPeriod v) => setState(() => _period = v),
                 ),
                 const SizedBox(height: Spacing.md),
-                _ScopeNote(palette: p, count: r.transactions.length),
+                // A BOOK WITH NO ENTRIES AT ALL gets Pan thinking in place of
+                // "No entries in this period" (D30). That line is right when
+                // a period is quiet; on a book with nothing in it the true
+                // answer is that there is nothing to report from yet.
+                if (widget.state.transactions.isEmpty)
+                  PanEmptyCard(
+                    palette: p,
+                    mood: PanMood.thinking,
+                    title: 'Not enough logged yet',
+                    body:
+                        'Log a few entries and this fills in: where the month '
+                        'went, how it compares with your usual month, and '
+                        'which way your money is moving.',
+                  )
+                else
+                  _ScopeNote(palette: p, count: r.transactions.length),
                 const SizedBox(height: Spacing.lg),
               ],
               switch (_tab) {
