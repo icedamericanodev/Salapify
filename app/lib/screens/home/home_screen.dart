@@ -26,6 +26,7 @@ import '../../features/toolkit/toolkit_sheet.dart';
 import '../../models/models.dart';
 import '../../features/settings/settings_sheet.dart';
 import '../../state/financial_state.dart';
+import '../plan/budget_sheets.dart';
 import 'ask_pan_button.dart';
 import 'budget_pulse_card.dart';
 import 'coming_up_card.dart';
@@ -389,10 +390,14 @@ class HomeScreen extends StatelessWidget {
         // So the offer to tell Salapify when you get paid led to a tab that
         // could not accept the answer.
         PaydaySheet.show(context, state);
+      case HealthNeed.setBudget:
+        // Straight to the new budget sheet. It used to land on Plan's hub,
+        // two taps short of the Budgets screen, and until 2026-10-08 there
+        // was nowhere a budget could be set at all.
+        AddBudgetSheet.show(context, state);
       case HealthNeed.addBill:
       case HealthNeed.startCushion:
-      case HealthNeed.setBudget:
-        // Plan owns these three: budgets live in its Budgets segment, bills
+        // Plan owns these: budgets live in its Budgets segment, bills
         // in Bills, and a goal in Goals. One destination beats three
         // half-wired ones, and the hub is one tap from each.
         onOpenTab(3);

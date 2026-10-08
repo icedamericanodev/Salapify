@@ -343,7 +343,13 @@ List<Budget> applyNewBudget(
 }) {
   if (!limit.isPositive) return budgets;
   if (category.trim().isEmpty) return budgets;
-  if (budgets.any((Budget b) => b.category == category)) return budgets;
+  // Matched ignoring case and edge spaces, the way computeBudgets matches
+  // spending to a budget. An exact match let an imported "food & dining"
+  // sit beside a new "Food & Dining", and both would count every Food peso.
+  final String key = _budgetKey(category);
+  if (budgets.any((Budget b) => _budgetKey(b.category) == key)) {
+    return budgets;
+  }
   return <Budget>[
     ...budgets,
     Budget(category: category, limit: limit, emoji: emoji),
@@ -351,20 +357,30 @@ List<Budget> applyNewBudget(
 }
 
 /// The categories a new budget can be set for: spending categories that do
-/// not already have one. Income categories are left out, because a cap on
-/// money coming IN is not a budget.
+/// not already have one.
+///
+/// Two kinds are left out. Income, because a cap on money coming IN is not a
+/// budget. And "Transfer", which is a TYPE of entry rather than a category
+/// anybody spends in (the Log sheet leaves it out for the same reason):
+/// computeBudgets counts expenses only, so a Transfer budget would read
+/// zero spent forever and quietly add its whole limit to "left to spend".
 List<CategoryInfo> budgetableCategories(
   List<CategoryInfo> categories,
   List<Budget> budgets,
 ) {
   final Set<String> taken = <String>{
-    for (final Budget b in budgets) b.category,
+    for (final Budget b in budgets) _budgetKey(b.category),
   };
   return <CategoryInfo>[
     for (final CategoryInfo c in categories)
-      if (c.kind != CategoryKind.income && !taken.contains(c.name)) c,
+      if (c.kind != CategoryKind.income &&
+          c.name != 'Transfer' &&
+          !taken.contains(_budgetKey(c.name)))
+        c,
   ];
 }
+
+String _budgetKey(String category) => category.trim().toLowerCase();
 
 /// Parses a typed amount the way every other input in the app does.
 ///

@@ -93,7 +93,9 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
         palette: p,
         label: 'Save limit',
         icon: Icons.check,
-        onTap: v == null ? null : _save,
+        // Positive, not merely present: a typed "0.004" rounds to zero, the
+        // engine refuses it, and the sheet used to close as if it had saved.
+        onTap: (v?.isPositive ?? false) ? _save : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +185,8 @@ class _AddBudgetSheetState extends State<AddBudgetSheet> {
     return typed == null ? null : Money.tryFromDouble(typed);
   }
 
-  bool get _canSave => _category != null && _value != null;
+  /// POSITIVE, not merely present, for the same reason as the limit edit.
+  bool get _canSave => _category != null && (_value?.isPositive ?? false);
 
   /// What this category has already cost this month, worked out by the same
   /// engine Plan uses, so the sheet and the card it creates agree.

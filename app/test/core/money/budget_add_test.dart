@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:salapify/core/money/plan.dart';
+import 'package:salapify/data/seed_data.dart';
 import 'package:salapify/models/models.dart';
 
 const Budget _food = Budget(
@@ -109,6 +110,45 @@ void main() {
         _food,
       ]).map((CategoryInfo c) => c.name),
       <String>['Groceries', 'Side gigs'],
+    );
+  });
+
+  // From the QA review of 2026-10-08. Against the REAL category list rather
+  // than a hand-built one, which is how the Transfer gap got past the first
+  // version of these tests.
+  test('Transfer is never offered as a budget, on the real list', () {
+    final List<String> offered = budgetableCategories(
+      SeedData.categories,
+      const <Budget>[],
+    ).map((CategoryInfo c) => c.name).toList();
+    expect(offered, isNot(contains('Transfer')));
+    // DIRECTIONAL: the real list does offer ordinary spending categories.
+    expect(offered, contains('Food & Dining'));
+  });
+
+  test('a category in different capitals counts as the same one', () {
+    const List<Budget> before = <Budget>[
+      Budget(category: 'food & dining', limit: Money.pesos(5000), emoji: '🍔'),
+    ];
+    expect(
+      identical(
+        applyNewBudget(
+          before,
+          category: 'Food & Dining',
+          emoji: '🍔',
+          limit: const Money.pesos(6000),
+        ),
+        before,
+      ),
+      isTrue,
+      reason: 'two budgets would count every Food peso twice',
+    );
+    expect(
+      budgetableCategories(
+        SeedData.categories,
+        before,
+      ).map((CategoryInfo c) => c.name),
+      isNot(contains('Food & Dining')),
     );
   });
 }

@@ -81,4 +81,41 @@ void main() {
       'Groceries',
     ], reason: 'the budget was not saved to the phone');
   });
+
+  // From the QA review of 2026-10-08. "0.004" parses as a number but rounds
+  // to ₱0.00, which the engine refuses; the button must refuse it first, or
+  // the sheet closes looking exactly as if it had saved.
+  testWidgets('a limit that rounds to zero cannot be set', (
+    WidgetTester tester,
+  ) async {
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+    state.startWithExampleData();
+    state.removeSampleData();
+    await tester.pumpWidget(SalapifyApp(state: state));
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byIcon(Icons.track_changes_outlined));
+    await _tap(tester, find.text('Budgets').first);
+    await _tap(tester, find.text('Set your budget'));
+    await _tap(tester, find.text('Groceries'));
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('new-budget-limit')),
+        matching: find.byType(TextField),
+      ),
+      '0.004',
+    );
+    await tester.pumpAndSettle();
+    await _tap(tester, find.text('Set budget'));
+
+    expect(state.budgets, isEmpty);
+    expect(
+      find.text('New budget'),
+      findsOneWidget,
+      reason: 'the sheet closed as if a zero limit had been saved',
+    );
+  });
 }
