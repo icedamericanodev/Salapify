@@ -132,6 +132,10 @@ dependencies {
     // without this dependency fails the build with a message that does not
     // name either of them.
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // The AppCompat themes in res/values*/styles.xml, which app lock needs
+    // (local_auth's README: a non AppCompat theme crashes its prompt on
+    // Android 8 and older). Named here rather than relied on transitively.
+    implementation("androidx.appcompat:appcompat:1.7.0")
 }
 
 flutter {

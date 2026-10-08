@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- AppCompat parents, not the platform themes, since app lock
+         (2026-10-08): local_auth shows the phone lock prompt as a fragment,
+         and its README warns that on Android 8 and older a non AppCompat
+         launch theme crashes it. Same look as before: light by day. -->
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
-    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="LaunchTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
@@ -12,7 +16,7 @@
          running.
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
-    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="NormalTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
 </resources>

@@ -80,6 +80,7 @@ dependencies:
   # and the privacy receipt names it. A second request, fetching a model the
   # moment somebody photographs a receipt, would make that receipt false.
   google_mlkit_text_recognition: ^0.17.1
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

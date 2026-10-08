@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../lock/app_lock.dart';
 import '../../core/money/accounts.dart';
 import '../../core/money/format.dart';
 import '../../design/tokens.dart';
@@ -215,7 +216,12 @@ class _WipeSheetState extends State<WipeSheet> {
 
   Future<void> _wipe() async {
     setState(() => _busy = true);
+    final AppLockController? lock = AppLockScope.maybeOf(context);
     final int removed = await widget.state.deleteEverything();
+    // "Everything" includes app lock. Its setting lives outside the ledger,
+    // so deleting the ledger alone would leave a phone with nothing in
+    // Salapify still asking for a fingerprint to open it.
+    await lock?.wipe();
     if (!mounted) return;
     setState(() {
       _busy = false;

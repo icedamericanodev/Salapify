@@ -5,6 +5,8 @@ import 'data/store.dart';
 import 'design/app_theme.dart';
 import 'design/scroll_behavior.dart';
 import 'design/tokens.dart';
+import 'features/lock/app_lock.dart';
+import 'features/lock/lock_gate.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'shell/app_shell.dart';
 import 'state/financial_state.dart';
@@ -61,14 +63,34 @@ Future<void> main() async {
   // would show the seed's demo accounts for a moment and then swap them for
   // the person's real money, which reads like the app lost their data and
   // found it again.
+  final LocalNotificationGateway notifications = LocalNotificationGateway();
   final FinancialState state = FinancialState(
     store: FileSnapshotStore(),
     // The ONLY place the real notification plugin is constructed. Everywhere
     // else, including every test and the render harness, gets NoNotifications
     // by default, so nothing reaches a platform channel by accident.
-    notifications: LocalNotificationGateway(),
+    notifications: notifications,
   );
   await state.restore();
+
+  // App lock, read BEFORE the first frame for the same reason as the ledger:
+  // a locked app that drew one frame of Home first would have shown the very
+  // figures the lock exists to hide.
+  final AppLockController lock = AppLockController(
+    settings: FileLockSettings(),
+    authenticator: DeviceLockAuthenticator(),
+  );
+  await lock.load();
+
+  // While app lock is on, reminders on the phone's own lock screen show
+  // "Contents hidden" instead of a bill and its amount. Kept in step with the
+  // setting, and the schedule is rebuilt whenever it changes.
+  notifications.privateOnLockScreen = lock.enabled;
+  lock.addListener(() {
+    if (notifications.privateOnLockScreen == lock.enabled) return;
+    notifications.privateOnLockScreen = lock.enabled;
+    state.replanNotifications();
+  });
 
   // Rebuild the phone's schedule from the ledger that was just loaded. It is
   // a no-op until somebody switches phone reminders on in Settings, and it
@@ -76,7 +98,7 @@ Future<void> main() async {
   // stop buzzing, and a new one has to start.
   await state.replanNotifications();
 
-  runApp(SalapifyApp(state: state));
+  runApp(SalapifyApp(state: state, lock: lock));
 }
 
 /// Salapify, rebuilt in Flutter from the Google AI Studio prototype in archive/prototype-google-ai-studio/src/.
@@ -92,7 +114,7 @@ Future<void> main() async {
 /// read this file would otherwise reason from a premise that has not been
 /// true for some time.
 class SalapifyApp extends StatefulWidget {
-  const SalapifyApp({super.key, this.state});
+  const SalapifyApp({super.key, this.state, this.lock});
 
   /// The store, already restored from the device. [main] builds it so the
   /// first frame can be drawn from real data.
@@ -102,12 +124,17 @@ class SalapifyApp extends StatefulWidget {
   /// depends on a platform channel that does not exist in one.
   final FinancialState? state;
 
+  /// App lock, already loaded. Null means off, which is what every test and
+  /// preview gets unless it is testing the lock itself.
+  final AppLockController? lock;
+
   @override
   State<SalapifyApp> createState() => _SalapifyAppState();
 }
 
 class _SalapifyAppState extends State<SalapifyApp> {
   late final FinancialState _state;
+  late final AppLockController _lock = widget.lock ?? AppLockController.off();
 
   /// Only a state this widget made is a state this widget may dispose.
   late final bool _ownsState;
@@ -144,6 +171,16 @@ class _SalapifyAppState extends State<SalapifyApp> {
       // Drops Android's stretch overscroll. See scroll_behavior.dart for why.
       scrollBehavior: const SalapifyScrollBehavior(),
       theme: salapifyTheme(palette, _state.theme),
+      // The lock sits INSIDE MaterialApp but around the navigator, so it
+      // covers every sheet and dialog too, and Settings can reach it.
+      builder: (BuildContext context, Widget? child) => AppLockScope(
+        controller: _lock,
+        child: LockGate(
+          controller: _lock,
+          palette: palette,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       // THE FIRST LAUNCH FORK, and it reads the store rather than a flag this
       // widget keeps. The shell listens to the same store, so the moment
       // either onboarding path writes, `needsWelcome` goes false and the next

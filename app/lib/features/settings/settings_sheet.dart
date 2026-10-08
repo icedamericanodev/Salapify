@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../lock/app_lock.dart';
 import '../../data/store.dart';
 import '../../main.dart' show updateStamp;
 import '../../design/tokens.dart';
@@ -62,9 +63,35 @@ class _SettingsSheetState extends State<SettingsSheet> {
   FinancialState get state => widget.state;
   bool _busy = false;
 
+  /// On or off, each behind the phone's own lock (see AppLockController).
+  /// Anything that stopped it is said in a short note, never in silence.
+  Future<void> _toggleLock(AppLockController lock) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final bool turningOn = !lock.enabled;
+    final String? problem = turningOn
+        ? await lock.enable()
+        : await lock.disable();
+    if (!mounted) return;
+    setState(() {});
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            problem ??
+                (turningOn
+                    ? 'App lock is on. Salapify asks for your phone\'s lock '
+                          'when it opens, and after a minute away.'
+                    : 'App lock is off.'),
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Palette p = Palette.of(state.theme);
+    final AppLockController? lock = AppLockScope.maybeOf(context);
     final String? problem = state.saveProblem ?? state.loadProblem;
     final bool cannotExport = state.loadStatus == LoadStatus.unreadable;
 
@@ -189,6 +216,27 @@ class _SettingsSheetState extends State<SettingsSheet> {
             ),
 
             _Section(palette: p, title: 'Privacy'),
+            if (lock != null)
+              _Row(
+                key: const Key('settings-app-lock'),
+                palette: p,
+                icon: lock.enabled
+                    ? Icons.lock_outline
+                    : Icons.lock_open_outlined,
+                title: lock.enabled ? 'App lock is on' : 'App lock',
+                // The second sentence is on the screen, not behind a dot,
+                // under the house rule's one exception: without it the
+                // natural conclusion is that a locked app also means locked
+                // backups, and it does not.
+                subtitle: lock.enabled
+                    ? 'Salapify opens with your phone\'s fingerprint, face or '
+                          'PIN, and hides from screenshots and recent apps. It '
+                          'does not encrypt your data or your backups.'
+                    : 'Open Salapify with your phone\'s own lock. It stops '
+                          'someone opening Salapify on this phone; it does not '
+                          'encrypt your data or your backups.',
+                onTap: () => _toggleLock(lock),
+              ),
             _Row(
               palette: p,
               icon: Icons.verified_user_outlined,
@@ -459,6 +507,7 @@ class _Section extends StatelessWidget {
 
 class _Row extends StatelessWidget {
   const _Row({
+    super.key,
     required this.palette,
     required this.icon,
     required this.title,

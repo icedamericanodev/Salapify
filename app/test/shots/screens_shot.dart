@@ -1,3 +1,5 @@
+import 'package:salapify/main.dart';
+import 'package:salapify/features/lock/app_lock.dart';
 import 'package:salapify/design/pan_art.dart';
 import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/money.dart';
@@ -141,6 +143,7 @@ void main() {
   reportsTrendShots();
   panEmptyShots();
   addBudgetShots();
+  appLockShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4719,6 +4722,105 @@ void addBudgetShots() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/sheet_add_budget_$theme.png'),
+      );
+    });
+  }
+}
+
+class _ShotLock implements LockAuthenticator {
+  _ShotLock(this.answer);
+  final UnlockOutcome answer;
+  @override
+  Future<UnlockOutcome> authenticate(String reason) async => answer;
+}
+
+/// App lock (founder decisions: the phone's own lock, kept out of backups).
+/// The lock screen at both brightnesses, after the automatic prompt was
+/// backed out of; and the Settings row off and on.
+void appLockShots() {
+  for (final ThemeMode2 mode in <ThemeMode2>[
+    ThemeMode2.gabi,
+    ThemeMode2.hapon,
+  ]) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+    testWidgets('app lock screen renders in $theme', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      state.startWithExampleData();
+      if (state.theme != mode) state.toggleTheme();
+      final AppLockController lock = AppLockController(
+        settings: MemoryLockSettings(true),
+        authenticator: _ShotLock(UnlockOutcome.cancelled),
+        setSecureWindow: (bool _) async {},
+      );
+      await lock.load();
+      await tester.pumpWidget(SalapifyApp(state: state, lock: lock));
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/app_lock_$theme.png'),
+      );
+    });
+  }
+
+  for (final bool on in <bool>[false, true]) {
+    testWidgets('settings app lock ${on ? 'on' : 'off'} renders', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+      );
+      await state.restore();
+      final Palette palette = Palette.of(state.theme);
+      final AppLockController lock = AppLockController(
+        settings: MemoryLockSettings(on),
+        authenticator: _ShotLock(UnlockOutcome.unlocked),
+        setSecureWindow: (bool _) async {},
+      );
+      await lock.load();
+      lock.onForeground();
+      await lock.unlock();
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppLockScope(
+            controller: lock,
+            child: Scaffold(
+              backgroundColor: palette.background,
+              body: SettingsSheet(state: state),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final Finder row = find.byKey(const Key('settings-app-lock'));
+      await tester.scrollUntilVisible(
+        row,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 260));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(SettingsSheet),
+        matchesGoldenFile('out/settings_app_lock_${on ? 'on' : 'off'}.png'),
       );
     });
   }

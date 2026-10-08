@@ -63,6 +63,11 @@ class LocalNotificationGateway implements NotificationGateway {
   final FlutterLocalNotificationsPlugin _plugin;
   bool _ready = false;
 
+  /// True while app lock is on. Reminders then show on the phone's own lock
+  /// screen as "Contents hidden", because a bill and its amount sitting on a
+  /// locked phone would undo the lock for anybody who picks it up.
+  bool privateOnLockScreen = false;
+
   /// One channel per kind, so a person can silence bill reminders in Android's
   /// own settings without silencing the lot. Android treats a channel as
   /// permanent once created; its importance is theirs to change after that,
@@ -164,6 +169,9 @@ class LocalNotificationGateway implements NotificationGateway {
             channelDescription: channel.about,
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            visibility: privateOnLockScreen
+                ? NotificationVisibility.private
+                : NotificationVisibility.public,
           ),
         ),
         // INEXACT, deliberately. An exact alarm needs SCHEDULE_EXACT_ALARM,
