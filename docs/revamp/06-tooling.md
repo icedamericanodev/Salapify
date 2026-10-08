@@ -37,7 +37,9 @@ Paste the tokens so every generation stays on-system:
     accent (#FF8A3D) on near-black (#0D0D10) with cards in #16161B, text
     #F5F4F0, secondary text #A6A4AD. Font: Plus Jakarta Sans. Big bold
     tabular numbers for money, peso sign in orange. Corner radius 20 on
-    cards, 12 on buttons. No gradients, no illustrations, no mascot.
+    cards, 12 on buttons. No gradients, no illustrations. The only
+    character is Pan (D30), a small round figure drawn from the art in
+    app/assets/pan/, on the empty states named in docs/revamp/pan-handoff.md.
     Bottom navigation: Home, Activity, a round orange Log button in the
     centre, Plan, Accounts.
 

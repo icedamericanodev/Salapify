@@ -24,6 +24,9 @@ stays in git history and can return in Phase 5.
 Recommendation: cut all of it for v3. The founder can name any item they
 use weekly today and it moves to "kept".
 
+AMENDED 2026-10-08 by D30 for ONE item: Pan the CHARACTER is kept. The Pan
+chat and every streak or gamification item stay cut.
+
 Needed before: Phase 1, because it decides which screens get designed.
 
 ## D3. Tabs
@@ -1353,3 +1356,52 @@ and would have bitten anyway:
 WHAT IS WITHDRAWN: part 3 of `docs/reviews/publisher-and-cutover-design.md`, the
 seven step cutover, in full. Nothing in it is to be executed. It is kept
 unedited as the record.
+
+## D30. Pan returns as a CHARACTER, static first, then animated. ANSWERED 2026-10-08
+
+Founder direction, 2026-10-08, verbatim: "I am bringing Pan back into
+Salapify 3 as a CHARACTER, static first and then animated. This amends D2 for
+that one item. The Pan chat and all streaks or gamification stay cut. The new
+Pan is not an animal, so D17's Tarsi concern is answered."
+
+The briefs are `docs/revamp/pan-handoff.md` (phase 1) and
+`docs/revamp/pan-motion.md` (phase 2). The art is the 19 images in
+`app/assets/pan/`, and the target look is `docs/revamp/mockups/pan/`.
+
+WHAT IT CHANGES
+
+1. **D2 is amended for ONE item.** Pan the character moves from "cut" to
+   "kept". Everything else on the D2 cut list stays cut.
+2. **Phase 1, static:** Pan replaces the icon on the empty states that greet a
+   person, one mood per screen, at 96 x 96 at most until hi-res art arrives.
+   Every screen draws him through one widget, `PanArt`, so new art is a folder
+   swap with the same file names and no code change.
+3. **Phase 2, motion is in scope.** Pan animates INSIDE `PanArt` only: an
+   entrance, a per-mood idle with its effects, a tap squash with a light
+   buzz, and a drawn shadow replacing the one baked into the PNGs. Flutter's
+   own animation tools, no new packages. Idle runs `panIdleCycles = 3` cycles
+   and then rests; changing that number is a one-line founder decision.
+   Reduce motion shows Pan still.
+
+WHAT IT DOES NOT CHANGE
+
+1. **No chat, no AI, no gamification.** No streaks, week chains, wins or
+   milestones. Pan reacts to what is on the screen; he does not keep score.
+2. **D17 still holds.** The app icon stays Buto. The old Pan was a panda and
+   the new one is not an animal, which answers the Tarsi comparison D17 was
+   worried about.
+3. **Pan never judges spending.** The annoyed, tear and crying moods are not
+   used. Tear may return only for the wipe-all-data confirmation, and only by
+   a later founder decision.
+4. **Pan is decorative to a screen reader.** The empty state's title already
+   says what matters.
+5. No money, stored data, navigation or copy changes in either phase.
+
+ONE FACT RECORDED SO NOBODY IS SURPRISED BY IT. The briefs and mockups were
+drawn from main's older `app/` (the c1 design, with `kit.dart`, a "Ledger"
+tab and "Insights"). The live `app/` restarted from the AI Studio prototype
+under D24 and has neither file nor names. The moods were therefore mapped by
+MEANING onto the live app's own empty states: Ledger is Activity and Insights
+is Reports. That same prototype rebuild brought a rule-based "Ask Pan" card to
+Home, which reads the ledger with no AI and no network. D30 neither adds nor
+removes it; whether it stays is a separate question for the founder.
