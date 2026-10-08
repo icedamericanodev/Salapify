@@ -6,7 +6,6 @@
 // real money would push their figures down the screen to make room for a
 // greeting they no longer need.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/pan_art.dart';
 import 'package:salapify/features/log/log_sheet.dart';
