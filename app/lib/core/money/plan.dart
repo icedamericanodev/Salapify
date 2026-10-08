@@ -382,6 +382,25 @@ List<CategoryInfo> budgetableCategories(
 
 String _budgetKey(String category) => category.trim().toLowerCase();
 
+/// Removes the budget for one category, returning the new list, or the SAME
+/// list when there is no such budget.
+///
+/// Founder direction 2026-10-08 ("do the suggested"): a budget set on the
+/// wrong category had no way out but deleting everything. Removing one
+/// touches no entry anywhere: the spending stays in Activity, only the cap
+/// goes, so "left to spend" stops counting it. Matched the same way the
+/// one-per-category rule matches, ignoring case and edge spaces.
+List<Budget> applyRemoveBudget(List<Budget> budgets, String category) {
+  final String key = _budgetKey(category);
+  if (!budgets.any((Budget b) => _budgetKey(b.category) == key)) {
+    return budgets;
+  }
+  return <Budget>[
+    for (final Budget b in budgets)
+      if (_budgetKey(b.category) != key) b,
+  ];
+}
+
 /// Parses a typed amount the way every other input in the app does.
 ///
 /// Shared with the Log sheet's rule rather than reimplemented: commas allowed,

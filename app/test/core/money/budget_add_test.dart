@@ -151,4 +151,25 @@ void main() {
       isNot(contains('Food & Dining')),
     );
   });
+
+  group('applyRemoveBudget', () {
+    const Budget groceries = Budget(
+      category: 'Groceries',
+      limit: Money.pesos(8000),
+      emoji: '🛒',
+    );
+
+    test('removes only the named budget, ignoring case', () {
+      final List<Budget> next = applyRemoveBudget(const <Budget>[
+        _food,
+        groceries,
+      ], 'groceries');
+      expect(next.map((Budget b) => b.category), <String>['Food & Dining']);
+    });
+
+    test('a category with no budget leaves the list as it was', () {
+      const List<Budget> before = <Budget>[_food];
+      expect(identical(applyRemoveBudget(before, 'Groceries'), before), isTrue);
+    });
+  });
 }

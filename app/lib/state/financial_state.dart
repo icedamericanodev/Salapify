@@ -2040,6 +2040,40 @@ class FinancialState extends ChangeNotifier {
     return true;
   }
 
+  /// Removes one budget and hands back exactly what went and where, so the
+  /// Undo after it can put it back in the same place with the same flags.
+  /// Null when there was nothing to remove. Spending entries are untouched.
+  ({Budget budget, int index})? removeBudget(String category) {
+    final int index = _budgets.indexWhere(
+      (Budget b) =>
+          b.category.trim().toLowerCase() == category.trim().toLowerCase(),
+    );
+    if (index < 0) return null;
+    final Budget gone = _budgets[index];
+    final List<Budget> next = applyRemoveBudget(_budgets, category);
+    if (identical(next, _budgets)) return null;
+    _budgets = next;
+    notifyListeners();
+    return (budget: gone, index: index);
+  }
+
+  /// The Undo for [removeBudget]: the same budget, back where it was.
+  ///
+  /// Refused when that category has a budget again by now, because putting
+  /// the old one back beside it would count the same spending twice.
+  bool restoreBudget(Budget budget, int index) {
+    final bool taken = _budgets.any(
+      (Budget b) =>
+          b.category.trim().toLowerCase() ==
+          budget.category.trim().toLowerCase(),
+    );
+    if (taken) return false;
+    _budgets = <Budget>[..._budgets]
+      ..insert(index.clamp(0, _budgets.length), budget);
+    notifyListeners();
+    return true;
+  }
+
   /// Adds a goal the user just created.
   ///
   /// Front of the list, because somebody who has just typed one looks at the

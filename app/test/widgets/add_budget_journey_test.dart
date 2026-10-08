@@ -118,4 +118,59 @@ void main() {
       reason: 'the sheet closed as if a zero limit had been saved',
     );
   });
+
+  // "Remove this budget" (founder direction 2026-10-08): asked first, the
+  // spending survives, and Undo puts the same budget back in the same place.
+  testWidgets('removing a budget asks first, keeps spending, can be undone', (
+    WidgetTester tester,
+  ) async {
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+      store: MemorySnapshotStore(),
+    );
+    await state.restore();
+    state.startWithExampleData();
+    await tester.pumpWidget(SalapifyApp(state: state));
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byIcon(Icons.track_changes_outlined));
+    await _tap(tester, find.text('Budgets').first);
+
+    final List<String> before = state.budgets
+        .map((Budget b) => b.category)
+        .toList();
+    final int entries = state.transactions.length;
+    expect(before, contains('Groceries'));
+
+    Future<void> openRemove() async {
+      await _tap(tester, find.text('Groceries').first);
+      await _tap(tester, find.byKey(const Key('remove-budget')));
+    }
+
+    // The silent half: "Keep it" keeps it.
+    await openRemove();
+    await _tap(tester, find.text('Keep it'));
+    expect(state.budgets.map((Budget b) => b.category), before);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await openRemove();
+    await _tap(tester, find.text('Remove'));
+    expect(
+      state.budgets.map((Budget b) => b.category),
+      isNot(contains('Groceries')),
+    );
+    expect(state.budgets, hasLength(before.length - 1));
+    expect(
+      state.transactions,
+      hasLength(entries),
+      reason: 'removing a budget must not touch a single entry',
+    );
+
+    await _tap(tester, find.text('Undo'));
+    expect(
+      state.budgets.map((Budget b) => b.category),
+      before,
+      reason: 'Undo did not put the budget back where it was',
+    );
+  });
 }

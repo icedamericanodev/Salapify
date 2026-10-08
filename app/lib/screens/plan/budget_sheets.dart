@@ -136,9 +136,77 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
           // saving is what actually happens, silence is simply correct. A
           // line reassuring somebody about the ordinary case is clutter on
           // every visit after the first.
+          const SizedBox(height: Spacing.lg),
+          // THE WAY OUT of a budget set on the wrong category (founder
+          // direction 2026-10-08). Quiet, at the foot of the sheet, so it is
+          // never mistaken for the main action; asked about before it
+          // happens, and undoable after.
+          Center(
+            child: TextButton.icon(
+              key: const Key('remove-budget'),
+              onPressed: _remove,
+              icon: Icon(Icons.delete_outline, size: 18, color: p.negative),
+              label: Text(
+                'Remove this budget',
+                style: AppType.button(p, color: p.negative),
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _remove() async {
+    final Palette p = Palette.of(widget.state.theme);
+    final String name = widget.row.category;
+    final bool? yes = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: p.surface,
+        title: Text('Remove the $name budget?', style: AppType.title(p)),
+        content: Text(
+          // Said out loud because it is the opposite of what somebody fears:
+          // removing a cap must not look like it erases spending.
+          'Your spending in $name stays in Activity. Only the limit goes, '
+          'and Left to spend stops counting it.',
+          style: AppType.body(p),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Keep it', style: AppType.body(p)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'Remove',
+              style: AppType.body(
+                p,
+              ).copyWith(color: p.negative, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final ({Budget budget, int index})? gone = widget.state.removeBudget(name);
+    Navigator.of(context).pop();
+    if (gone == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$name budget removed.'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () =>
+                widget.state.restoreBudget(gone.budget, gone.index),
+          ),
+        ),
+      );
   }
 }
 
