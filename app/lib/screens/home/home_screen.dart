@@ -182,8 +182,8 @@ class HomeScreen extends StatelessWidget {
                 mood: PanMood.wave,
                 title: 'Nothing logged yet',
                 body:
-                    'Tap Log to record your first expense. Everything on this '
-                    'screen fills in from what you log.',
+                    'Tap Log to record your first expense, and this screen '
+                    'starts tracking what you spend.',
                 actionLabel: 'Log your first entry',
                 onAction: onOpenLog,
                 ring: true,

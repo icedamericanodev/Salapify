@@ -387,6 +387,12 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
   final List<DateTime> _taps = <DateTime>[];
   bool _still = false;
 
+  /// Where the finger has taken him BEFORE the rubber band, so the band is
+  /// applied once to the whole drag rather than compounded on every pointer
+  /// event. Compounding it made the lean depend on how often the phone
+  /// reports the finger: a 120 Hz screen leaned him less than a 60 Hz one.
+  double _rawDx = 0;
+
   _Idle get _idle => _idles[widget.mood] ?? _Idle.still;
   double get _size => widget.size.clamp(0, panMaxSize).toDouble();
 
@@ -405,6 +411,22 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
       _drag.value = 0;
     } else {
       _clock ??= AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: _runMs(_idle, widget.popDelayMs)),
+      )..forward();
+    }
+  }
+
+  /// A new mood on the same element gets its own run. Without this the old
+  /// clock's length would cut the new idle off mid-cycle and freeze him in a
+  /// tilted or half-faded pose.
+  @override
+  void didUpdateWidget(PanArt old) {
+    super.didUpdateWidget(old);
+    if (_still) return;
+    if (old.mood != widget.mood || old.popDelayMs != widget.popDelayMs) {
+      _clock?.dispose();
+      _clock = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: _runMs(_idle, widget.popDelayMs)),
       )..forward();
@@ -438,9 +460,14 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
     }
   }
 
+  double get _dragLimit => _size * 0.42;
+
   void _onDragStart(DragStartDetails _) {
     if (_still) return;
     _drag.stop();
+    // Pick up from wherever the spring had him, undoing the band once.
+    final double x = (_drag.value / _dragLimit).clamp(-0.999, 0.999);
+    _rawDx = _dragLimit * 0.5 * math.log((1 + x) / (1 - x));
     HapticFeedback.selectionClick();
   }
 
@@ -448,9 +475,8 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
     if (_still) return;
     // Rubber band: he follows the finger, but less and less the further it
     // goes, so he leans rather than leaves.
-    final double limit = _size * 0.42;
-    final double raw = _drag.value + d.delta.dx * 0.6;
-    _drag.value = limit * _tanh(raw / limit);
+    _rawDx += d.delta.dx * 0.6;
+    _drag.value = _dragLimit * _tanh(_rawDx / _dragLimit);
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -652,15 +678,7 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
           transform: Matrix4.translationValues(dx, 0, 0)
             ..multiply(Matrix4.diagonal3Values(scaleX, 1, 1)),
           alignment: Alignment.center,
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.rectangle,
-              borderRadius: BorderRadius.all(Radius.elliptical(999, 999)),
-              gradient: RadialGradient(
-                colors: <Color>[Color(0xD9000000), Color(0x00000000)],
-              ),
-            ),
-          ),
+          child: const CustomPaint(painter: _ShadowPainter()),
         ),
       ),
     );
@@ -854,6 +872,33 @@ class _PanArtState extends State<PanArt> with TickerProviderStateMixin {
         return (sx: 1, opacity: 0.5);
     }
   }
+}
+
+/// The ground shadow, a soft ellipse filling its whole box: the preview's
+/// `radial-gradient(closest-side, ...)`. Flutter's RadialGradient measures
+/// its radius against the box's SHORTEST side, so on a box 52 wide and 9
+/// tall it drew a 9 pixel dot; drawing a unit circle and stretching the
+/// canvas to the box gives the ellipse.
+class _ShadowPainter extends CustomPainter {
+  const _ShadowPainter();
+
+  static final Paint _paint = Paint()
+    ..shader = const RadialGradient(
+      colors: <Color>[Color(0xD9000000), Color(0x00000000)],
+    ).createShader(Rect.fromCircle(center: Offset.zero, radius: 1));
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas
+      ..save()
+      ..translate(size.width / 2, size.height / 2)
+      ..scale(size.width / 2, size.height / 2)
+      ..drawCircle(Offset.zero, 1, _paint)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_ShadowPainter old) => false;
 }
 
 /// Keeps the top [fraction] of the child: the image minus its baked shadow.
@@ -1064,7 +1109,11 @@ class PanEmptyContent extends StatefulWidget {
 }
 
 class _PanEmptyContentState extends State<PanEmptyContent>
-    with SingleTickerProviderStateMixin {
+        // NOT the single-ticker mixin: reduce motion switched on and off again
+        // disposes this clock and builds a new one, and the single-ticker mixin
+        // asserts on a second ticker even after the first is gone.
+        with
+        TickerProviderStateMixin {
   AnimationController? _clock;
 
   static const int _riseMs = 520;
@@ -1109,6 +1158,10 @@ class _PanEmptyContentState extends State<PanEmptyContent>
         final double e = _riseCurve.transform(p);
         return Opacity(
           opacity: e,
+          // A screen reader hears the text from the first frame. A plain
+          // Opacity at zero drops its child from the semantics tree, which
+          // hid "Log your first entry" from TalkBack for most of a second.
+          alwaysIncludeSemantics: true,
           child: Transform.translate(offset: Offset(0, 14 * (1 - e)), child: c),
         );
       },

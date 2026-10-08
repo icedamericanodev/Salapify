@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
+import '../../core/money/reports.dart' show liabilityKinds;
 import '../../design/pan_art.dart';
 import '../../design/motion.dart';
 import '../../design/tokens.dart';
@@ -140,7 +141,21 @@ class _DebtScreenState extends State<DebtScreen> {
                 if (split.open.isEmpty &&
                     split.settled.isEmpty &&
                     archived.isEmpty)
-                  _Empty(palette: p, direction: _direction)
+                  _Empty(
+                    palette: p,
+                    direction: _direction,
+                    // Calm Pan means NOTHING is owed anywhere, not only on
+                    // this list. An instalment plan or a card balance is
+                    // still owed, and an "all clear" over it is the wrong
+                    // conclusion at the worst moment.
+                    allClear:
+                        widget.state.installments.isEmpty &&
+                        !widget.state.accounts.any(
+                          (Account a) =>
+                              liabilityKinds.contains(a.kind) &&
+                              !a.balance.isZero,
+                        ),
+                  )
                 else ...<Widget>[
                   for (final Debt d in split.open) ...<Widget>[
                     _DebtCard(
@@ -1112,10 +1127,18 @@ class _Action extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.palette, required this.direction});
+  const _Empty({
+    required this.palette,
+    required this.direction,
+    this.allClear = true,
+  });
 
   final Palette palette;
   final DebtDirection direction;
+
+  /// Nothing owed elsewhere either: no instalment plan, no card or loan
+  /// balance. Only then does Pan appear calm.
+  final bool allClear;
 
   @override
   Widget build(BuildContext context) {
@@ -1144,7 +1167,7 @@ class _Empty extends StatelessWidget {
       // Pan calm on "You owe nobody anything" (D30), the all-clear. The other
       // side, nobody owing YOU, is neither good nor bad news, so it keeps its
       // icon.
-      child: owing
+      child: owing && allClear
           ? PanEmptyContent(mood: PanMood.calm, title: title, body: body)
           : Column(
               children: <Widget>[

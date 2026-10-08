@@ -143,6 +143,10 @@ class BudgetsSegment extends StatelessWidget {
         // way to add one. A "Set your budget" button here would be a door
         // painted on a wall, so the card says what the screen is for and
         // promises nothing. Reported to the founder as a gap, 2026-10-08.
+        // Headroom, because this card is the first thing in the list and
+        // Pan's bulb glow at the top of his hop reaches about 45 pixels above
+        // him; without it the list's edge sliced the glow flat.
+        if (rows.isEmpty) const SizedBox(height: Spacing.lg),
         if (rows.isEmpty)
           PanEmptyCard(
             palette: palette,

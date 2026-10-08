@@ -107,42 +107,50 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 ),
                 const SizedBox(height: Spacing.md),
               ],
-              _ViewPicker(
-                palette: p,
-                current: _view,
-                allCount: scoped.length,
-                assetCount: summary.assetCount,
-                liabilityCount: summary.liabilityCount,
-                onSelect: (AccountView v) => setState(() => _view = v),
-              ),
-              const SizedBox(height: Spacing.lg),
-              if (_view == AccountView.investments)
-                _InvestmentsView(palette: p, accounts: shown)
+              // With NO accounts the Pan card above already says so, and the
+              // picker plus two section notes beneath it said it three more
+              // times. The debt register below stays: it reads debts, which
+              // can exist with no account at all.
+              if (widget.state.accounts.isEmpty)
+                const SizedBox.shrink()
               else ...<Widget>[
-                if (_view != AccountView.liabilities)
-                  _GroupedSection(
-                    palette: p,
-                    heading: 'Assets',
-                    tint: p.positive,
-                    groups: groupAssets(shown),
-                    emptyNote: 'No asset accounts under this entity.',
-                    collapsed: _collapsed,
-                    onToggle: _toggle,
-                    onEdit: (Account a) => _openSheet(context, p, a),
-                  ),
-                if (_view == AccountView.all)
-                  const SizedBox(height: Spacing.lg),
-                if (_view != AccountView.assets)
-                  _GroupedSection(
-                    palette: p,
-                    heading: 'Liabilities and obligations',
-                    tint: p.negative,
-                    groups: groupLiabilities(shown),
-                    emptyNote: 'No liability accounts recorded.',
-                    collapsed: _collapsed,
-                    onToggle: _toggle,
-                    onEdit: (Account a) => _openSheet(context, p, a),
-                  ),
+                _ViewPicker(
+                  palette: p,
+                  current: _view,
+                  allCount: scoped.length,
+                  assetCount: summary.assetCount,
+                  liabilityCount: summary.liabilityCount,
+                  onSelect: (AccountView v) => setState(() => _view = v),
+                ),
+                const SizedBox(height: Spacing.lg),
+                if (_view == AccountView.investments)
+                  _InvestmentsView(palette: p, accounts: shown)
+                else ...<Widget>[
+                  if (_view != AccountView.liabilities)
+                    _GroupedSection(
+                      palette: p,
+                      heading: 'Assets',
+                      tint: p.positive,
+                      groups: groupAssets(shown),
+                      emptyNote: 'No asset accounts under this entity.',
+                      collapsed: _collapsed,
+                      onToggle: _toggle,
+                      onEdit: (Account a) => _openSheet(context, p, a),
+                    ),
+                  if (_view == AccountView.all)
+                    const SizedBox(height: Spacing.lg),
+                  if (_view != AccountView.assets)
+                    _GroupedSection(
+                      palette: p,
+                      heading: 'Liabilities and obligations',
+                      tint: p.negative,
+                      groups: groupLiabilities(shown),
+                      emptyNote: 'No liability accounts recorded.',
+                      collapsed: _collapsed,
+                      onToggle: _toggle,
+                      onEdit: (Account a) => _openSheet(context, p, a),
+                    ),
+                ],
               ],
               const SizedBox(height: Spacing.lg),
               _DebtRegisterCard(

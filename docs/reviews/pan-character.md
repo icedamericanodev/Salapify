@@ -77,7 +77,7 @@ which this note treats as the answer to the one open question below.
 ## Validation
 
 - `flutter analyze`: no issues, on the 3.47.4 pin.
-- Full suite: 2,203 pass, 0 fail, with the new tests below.
+- Full suite: 2,203 pass, 0 fail, with the new tests below (2,207 after the QA fixes).
 - Readability and palette sweeps: pass.
 - Renders: all seven screens, dark then light, plus the frame strip; see
   [pan/README.md](pan/README.md).
@@ -93,6 +93,34 @@ reported:
 | `pan_motion_test` tap restarts | `forward()` instead of `forward(from: 0)` | `the second tap did not restart the squash` |
 | `pan_screens_test` Home door | button does nothing | `the first-entry button did not open Log` |
 | `pan_screens_test` no Pan over real money | Pan always shown | `Found 1 widget with type "PanArt"` |
+
+## Independent QA pass
+
+A qa-tester review of the finished work raised 8 findings. Each was checked
+against the code before acting, and 7 were fixed:
+
+| # | Finding | Verdict | Fix |
+|---|---|---|---|
+| 1 | Reduce motion switched on and off again crashed `PanEmptyContent` in debug builds ("multiple tickers were created") | confirmed, reproduced | `TickerProviderStateMixin` |
+| 2 | The drawn shadow was a 9 px dot, not the ellipse: `RadialGradient` measures its radius against the box's shortest side | confirmed, visible in the first frame strip | a painter that stretches a unit circle to the box |
+| 3 | Calm "all clear" Pan appeared over an instalment plan or an unpaid card | confirmed | calm only when no plan and no liability balance; otherwise the old icon |
+| 4 | The drag lean compounded per pointer event, so a 120 Hz phone leaned him less | confirmed, measured 13.9 vs 26.5 px for the same finger travel | the band applied once to the raw drag |
+| 5 | A screen reader could not see the title, body or button while they faded in | confirmed | `alwaysIncludeSemantics` on the fade |
+| 6 | The idea glow was sliced flat at the list edge on Budgets | confirmed | headroom above that card |
+| 7 | A mood changed in place kept the old clock | confirmed latent, no call site does it yet | `didUpdateWidget` rebuilds the clock |
+| 7b | The entrance replays when the screen is revisited | not changed | pan-motion.md asks for it "each time the empty state appears" |
+| 8 | Accounts with no accounts stacked four empty messages; Home's sentence overclaimed when balances exist | confirmed | picker and sections hidden when there are no accounts; Home copy rewritten |
+
+Proven guards for the fixes, in `pan_review_fixes_test.dart`:
+
+| Break | Failure line |
+|---|---|
+| single-ticker mixin restored | `_PanEmptyContentState is a SingleTickerProviderStateMixin but multiple tickers were created.` |
+| `alwaysIncludeSemantics: false` | `Found 0 widgets with a semantics label named "Nothing logged yet"` |
+| compounding drag restored | `Expected: within 0.5 of 26.49  Actual: 13.92` |
+| calm gate removed | `calm Pan said all clear over an unpaid card` |
+
+Full suite after the fixes: 2,207 pass, 0 fail.
 
 ## Deviations from the briefs
 
