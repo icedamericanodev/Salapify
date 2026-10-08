@@ -2018,6 +2018,28 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets a budget for a category that has none, and says whether it did.
+  ///
+  /// Same split as [setBudgetLimit]: `applyNewBudget` in core/money/plan.dart
+  /// decides what is valid, this decides when. The budget is the person's
+  /// own, never sample, so clearing the example data leaves it alone.
+  bool addBudget({
+    required String category,
+    required String emoji,
+    required Money limit,
+  }) {
+    final List<Budget> next = applyNewBudget(
+      _budgets,
+      category: category,
+      emoji: emoji,
+      limit: limit,
+    );
+    if (identical(next, _budgets)) return false;
+    _budgets = next;
+    notifyListeners();
+    return true;
+  }
+
   /// Adds a goal the user just created.
   ///
   /// Front of the list, because somebody who has just typed one looks at the

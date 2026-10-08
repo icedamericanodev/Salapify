@@ -319,6 +319,53 @@ List<Budget> applyBudgetLimit(
   }).toList();
 }
 
+/// Adds a budget for one category, returning the new list.
+///
+/// Until 2026-10-08 the app could not do this at all: budgets arrived with
+/// the example data, and once that was cleared there was no way back to
+/// having one, though D19 calls per category budgets free and core.
+///
+/// Refused, by returning the SAME list, for the same reasons a limit edit is
+/// refused, plus one of its own:
+///   - a limit of zero or less, which means "no budget", not a budget;
+///   - an empty category name;
+///   - a category that already has a budget. Two budgets for one category
+///     would each count the same spending, and Plan's "left to spend"
+///     would subtract it twice.
+///
+/// New budgets go at the END, so the existing order does not shuffle under
+/// somebody's thumb. Plan sorts by health for display anyway.
+List<Budget> applyNewBudget(
+  List<Budget> budgets, {
+  required String category,
+  required String emoji,
+  required Money limit,
+}) {
+  if (!limit.isPositive) return budgets;
+  if (category.trim().isEmpty) return budgets;
+  if (budgets.any((Budget b) => b.category == category)) return budgets;
+  return <Budget>[
+    ...budgets,
+    Budget(category: category, limit: limit, emoji: emoji),
+  ];
+}
+
+/// The categories a new budget can be set for: spending categories that do
+/// not already have one. Income categories are left out, because a cap on
+/// money coming IN is not a budget.
+List<CategoryInfo> budgetableCategories(
+  List<CategoryInfo> categories,
+  List<Budget> budgets,
+) {
+  final Set<String> taken = <String>{
+    for (final Budget b in budgets) b.category,
+  };
+  return <CategoryInfo>[
+    for (final CategoryInfo c in categories)
+      if (c.kind != CategoryKind.income && !taken.contains(c.name)) c,
+  ];
+}
+
 /// Parses a typed amount the way every other input in the app does.
 ///
 /// Shared with the Log sheet's rule rather than reimplemented: commas allowed,

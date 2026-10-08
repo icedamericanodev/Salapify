@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/pan/pan_context.dart';
 import '../../core/money/format.dart';
+import '../../design/pan_art.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -71,15 +72,15 @@ class PanHeroCard extends StatelessWidget {
                   Container(
                     width: 36,
                     height: 36,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: palette.accent,
+                      color: palette.iconTile,
                       borderRadius: BorderRadius.circular(Radii.tile),
                     ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      size: 18,
-                      color: palette.onAccent,
-                    ),
+                    // Pan's own face, the one Ask Pan is named after, on the
+                    // quiet tile rather than solid orange, which he would
+                    // vanish into.
+                    child: const PanAvatar(size: 32),
                   ),
                   const SizedBox(width: Spacing.sm),
                   Expanded(

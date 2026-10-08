@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/pan_art.dart';
 import '../../design/tokens.dart';
 
 /// The floating Ask Pan button, ported from archive/prototype-google-ai-studio/src/components/PanFloatingButton.tsx.
@@ -27,15 +28,27 @@ class AskPanButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(Radii.pill),
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.sm,
+              Spacing.xs,
+              Spacing.xl,
+              Spacing.xs,
+            ),
             alignment: Alignment.center,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(
-                  Icons.smart_toy_outlined,
-                  size: 18,
-                  color: palette.onAccent,
+                // Pan himself, on a small dark disc. He is orange and so is
+                // this button, so straight on the pill he would disappear.
+                Container(
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: palette.background,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const PanAvatar(size: 30),
                 ),
                 const SizedBox(width: Spacing.sm),
                 Text(

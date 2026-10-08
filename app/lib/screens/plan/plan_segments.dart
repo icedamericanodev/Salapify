@@ -138,11 +138,10 @@ class BudgetsSegment extends StatelessWidget {
             ),
           ),
         if (rows.isNotEmpty) const SizedBox(height: Spacing.md),
-        // NO BUTTON, on purpose. This app cannot create a budget yet: budgets
-        // arrive with the example data, and once that is cleared there is no
-        // way to add one. A "Set your budget" button here would be a door
-        // painted on a wall, so the card says what the screen is for and
-        // promises nothing. Reported to the founder as a gap, 2026-10-08.
+        // THE DOOR IN. Until 2026-10-08 this card had no button, because
+        // the app had no way to create a budget; the founder approved
+        // building one the same day, and the card now opens it.
+        //
         // Headroom, because this card is the first thing in the list and
         // Pan's bulb glow at the top of his hop reaches about 45 pixels above
         // him; without it the list's edge sliced the glow flat.
@@ -155,6 +154,8 @@ class BudgetsSegment extends StatelessWidget {
             body:
                 'A budget is a cap per category. Once one is set, this '
                 'screen shows what is LEFT rather than only what is spent.',
+            actionLabel: 'Set your budget',
+            onAction: () => AddBudgetSheet.show(context, state),
           ),
         for (final BudgetStatus b in sorted) ...<Widget>[
           _BudgetRow(
@@ -163,6 +164,24 @@ class BudgetsSegment extends StatelessWidget {
             onEdit: () => EditBudgetSheet.show(context, state, b),
           ),
           const SizedBox(height: Spacing.sm),
+        ],
+        // UNDER the list, not above it as on Goals: here the figure at the
+        // top, what is left this month, is the reason somebody opened the
+        // screen, and a button would push it down. Gone once every spending
+        // category has a budget, rather than opening a sheet with nothing
+        // in it to pick.
+        if (rows.isNotEmpty &&
+            budgetableCategories(
+              state.categories,
+              state.budgets,
+            ).isNotEmpty) ...<Widget>[
+          const SizedBox(height: Spacing.sm),
+          PrimaryButton(
+            palette: palette,
+            label: 'Add a budget',
+            icon: Icons.add,
+            onTap: () => AddBudgetSheet.show(context, state),
+          ),
         ],
       ],
     );

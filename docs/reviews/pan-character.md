@@ -142,17 +142,40 @@ Full suite after the fixes: 2,207 pass, 0 fail.
 
 ## Findings for the founder
 
-1. **A budget cannot be created anywhere in this app.** Budgets arrive with
-   the example data, and once that is cleared there is no way to add one,
-   though D19 calls budgets core. The Budgets empty state therefore carries
-   no "Set your budget" button: a button that goes nowhere is worse than
-   none. Adding budgets writes new records, so it waits for your go-ahead.
+1. **A budget could not be created anywhere in this app.** Budgets arrived
+   with the example data, and once that was cleared there was no way to add
+   one, though D19 calls budgets core.
+   **ANSWERED 2026-10-08, "yes build add a budget". Built:**
+   - The rule is `applyNewBudget` in `core/money/plan.dart`. It refuses a
+     limit of zero or less, an empty name, and a second budget for a
+     category that already has one.
+   - `budgetableCategories` offers spending categories only.
+   - The store method is `FinancialState.addBudget`.
+   - `AddBudgetSheet` shows what is already spent this month before you
+     save.
+   - It opens from "Set your budget" on the empty card, and from "Add a
+     budget" under the list, which is hidden once every category has a
+     budget.
+   - No stored shape changed: a budget is the same record the example data
+     already writes, marked as the person's own.
+   - Tested at two levels. Unit tests cover the rule. A journey on a cleared
+     book taps through, finds the budget on Plan, and finds it again after
+     a restart.
+   - Proven guards:
+     - With the duplicate rule removed, the refusal test fails with
+       `Expected: true Actual: <false>`.
+     - With the card's button dead, the journey fails with
+       `Found 0 widgets with text "New budget"`.
 2. **Ask Pan already exists on Home** in this app: a rule-based card and a
    floating button from the prototype rebuild, with no AI and no network.
-   D30 says the chat stays cut and adds nothing to it; whether the existing
-   one stays is your call. On an empty Home, its floating button also covers
-   part of the quick-action row (unchanged by this work, visible in the
-   renders).
+   **ANSWERED 2026-10-08, "keep ask pan", and "can we also put mascot on it?"**
+   - Both the floating button and the Home card now wear Pan's face through
+     `PanAvatar`, a small still Pan. He sits on a dark disc on the orange
+     button, where he would otherwise vanish.
+   - Still on purpose: the button is on screen as long as Home is, and a
+     figure moving in the corner pulls the eye off the money.
+   - `ask_pan_face_test.dart` guards it. With his face removed it fails with
+     `Ask Pan lost Pan`.
 
 ## Deferred
 

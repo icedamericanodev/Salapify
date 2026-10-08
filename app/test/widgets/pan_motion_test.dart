@@ -15,21 +15,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/design/pan_art.dart';
 
-Widget _host({bool reduce = false, PanMood mood = PanMood.wave}) =>
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(disableAnimations: reduce),
-        child: Scaffold(
-          body: Center(
-            child: PanEmptyContent(
-              mood: mood,
-              title: const Text('Nothing logged yet'),
-              body: const Text('Tap Log to record your first expense.'),
-            ),
-          ),
+Widget _host({bool reduce = false, PanMood mood = PanMood.wave}) => MaterialApp(
+  home: MediaQuery(
+    data: MediaQueryData(disableAnimations: reduce),
+    child: Scaffold(
+      body: Center(
+        child: PanEmptyContent(
+          mood: mood,
+          title: const Text('Nothing logged yet'),
+          body: const Text('Tap Log to record your first expense.'),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 double _squashX(WidgetTester tester) =>
     tester.widget<Transform>(find.byKey(panSquashKey)).transform.entry(0, 0);
@@ -66,7 +65,11 @@ void main() {
     );
     await tester.tap(find.byType(PanArt));
     await tester.pump();
-    expect(buzzes, isEmpty, reason: 'a tap must do nothing under reduce motion');
+    expect(
+      buzzes,
+      isEmpty,
+      reason: 'a tap must do nothing under reduce motion',
+    );
   });
 
   testWidgets('the idle stops after its cycles, so the screen settles', (

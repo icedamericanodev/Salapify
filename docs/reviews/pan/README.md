@@ -35,3 +35,19 @@ at 0 ms you see the card with only Pan's drawn shadow in it, which is the
 target's 320 ms frame. From 600 ms on the two match: Pan mid-pop with the title
 fading in, the text and button rising at 760, settled at 1080, and the button's
 ring plus a sparkle at 2200.
+
+## Add a budget, and Pan on Ask Pan (founder direction 2026-10-08)
+
+"yes build add a budget, keep ask pan" and "can we also put mascot on it?"
+
+Left to right: the empty Budgets card now with its button, the new sheet
+(dark), the Budgets list with "Add a budget" under it, the sheet (light). The
+category emoji draw as boxes here only because this machine has no emoji
+font; they show on the phone.
+
+<img src="add_budget.png" width="900">
+
+Ask Pan with Pan's face: the floating button (dark), the Ask Pan card on
+Home, and the floating button (light).
+
+<img src="ask_pan.png" width="700">

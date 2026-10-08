@@ -140,6 +140,7 @@ void main() {
   birClaimsShots();
   reportsTrendShots();
   panEmptyShots();
+  addBudgetShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -199,6 +200,9 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        // Pan's face on Ask Pan is an image: wait for it, or the render
+        // shows an empty disc depending on which theme ran first.
+        await settleImages(tester);
 
         // Guard the same defect directly: the body must have real height.
         expect(
@@ -4662,4 +4666,60 @@ void panEmptyShots() {
     }
     await tester.pumpAndSettle();
   });
+}
+
+/// "Add a budget" (founder direction 2026-10-08), both brightnesses, on the
+/// lived-in book: one category picked and a limit typed, so the sheet shows
+/// what the new limit would mean against this month's spending.
+void addBudgetShots() {
+  for (final ThemeMode2 mode in <ThemeMode2>[
+    ThemeMode2.gabi,
+    ThemeMode2.hapon,
+  ]) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+    testWidgets('sheet add budget renders in $theme', (
+      WidgetTester tester,
+    ) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      state.startWithExampleData();
+      if (state.theme != mode) state.toggleTheme();
+      await tester.pumpWidget(_panShell(state));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.track_changes_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Budgets').first);
+      await tester.pumpAndSettle();
+      final Finder add = find.text('Add a budget');
+      await tester.ensureVisible(add);
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/plan_budgets_add_button_$theme.png'),
+      );
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Housing & Rent'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('new-budget-limit')),
+          matching: find.byType(TextField),
+        ),
+        '12000',
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_add_budget_$theme.png'),
+      );
+    });
+  }
 }

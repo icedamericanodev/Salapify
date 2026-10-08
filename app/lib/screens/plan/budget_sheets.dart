@@ -140,6 +140,232 @@ class _EditBudgetSheetState extends State<EditBudgetSheet> {
   }
 }
 
+// ------------------------------------------------------------- add a budget
+
+/// Sets a monthly cap for one spending category.
+///
+/// Built 2026-10-08 on founder direction ("yes build add a budget"): until
+/// then budgets only arrived with the example data, so clearing it left
+/// Budgets empty for good. Same shape as [AddGoalSheet] and the same two
+/// rules every Plan write follows: say what it will mean before saving, and
+/// leave the decision about what is valid to the engine (`applyNewBudget`).
+class AddBudgetSheet extends StatefulWidget {
+  const AddBudgetSheet({super.key, required this.state});
+
+  final FinancialState state;
+
+  static Future<void> show(BuildContext context, FinancialState state) {
+    return SheetScaffold.show<void>(
+      context: context,
+      palette: Palette.of(state.theme),
+      builder: (BuildContext context) => AddBudgetSheet(state: state),
+    );
+  }
+
+  @override
+  State<AddBudgetSheet> createState() => _AddBudgetSheetState();
+}
+
+class _AddBudgetSheetState extends State<AddBudgetSheet> {
+  final TextEditingController _limit = TextEditingController();
+  CategoryInfo? _category;
+
+  @override
+  void dispose() {
+    _limit.dispose();
+    super.dispose();
+  }
+
+  /// Read on every keystroke, so `tryFromDouble`: a half typed figure must
+  /// never throw on a sheet somebody is filling in.
+  Money? get _value {
+    final double? typed = parsePlanAmount(_limit.text);
+    return typed == null ? null : Money.tryFromDouble(typed);
+  }
+
+  bool get _canSave => _category != null && _value != null;
+
+  /// What this category has already cost this month, worked out by the same
+  /// engine Plan uses, so the sheet and the card it creates agree.
+  Money _spentSoFar(CategoryInfo c) {
+    final List<BudgetStatus> rows = computeBudgets(
+      budgets: <Budget>[
+        Budget(category: c.name, limit: const Money.pesos(1), emoji: c.emoji),
+      ],
+      transactions: widget.state.transactions,
+      now: widget.state.now,
+    );
+    return rows.isEmpty ? Money.zero : rows.first.spent;
+  }
+
+  void _save() {
+    final CategoryInfo? c = _category;
+    final Money? v = _value;
+    if (c == null || v == null) return;
+    final bool added = widget.state.addBudget(
+      category: c.name,
+      emoji: c.emoji,
+      limit: v,
+    );
+    if (added) saveHaptic();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = Palette.of(widget.state.theme);
+    final List<CategoryInfo> open = budgetableCategories(
+      widget.state.categories,
+      widget.state.budgets,
+    );
+    final CategoryInfo? c = _category;
+    final Money? v = _value;
+    final Money? spent = c == null ? null : _spentSoFar(c);
+    final Money? remaining = (spent == null || v == null) ? null : v - spent;
+
+    return SheetScaffold(
+      palette: p,
+      icon: Icons.pie_chart_outline,
+      title: 'New budget',
+      subtitle: 'A monthly cap for one category',
+      footer: PrimaryButton(
+        palette: p,
+        label: 'Set budget',
+        icon: Icons.check,
+        onTap: _canSave ? _save : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('Category', style: AppType.label(p)),
+          const SizedBox(height: Spacing.xs),
+          if (open.isEmpty)
+            Text(
+              'Every spending category already has a budget. Tap one on '
+              'the Budgets screen to change its limit.',
+              style: AppType.caption(p),
+            )
+          else
+            Wrap(
+              spacing: Spacing.sm,
+              runSpacing: Spacing.sm,
+              children: <Widget>[
+                for (final CategoryInfo o in open)
+                  _CategoryChip(
+                    palette: p,
+                    category: o,
+                    selected: o.name == c?.name,
+                    onTap: () => setState(() => _category = o),
+                  ),
+              ],
+            ),
+          const SizedBox(height: Spacing.lg),
+          SheetField(
+            key: const Key('new-budget-limit'),
+            palette: p,
+            label: 'Limit each month',
+            controller: _limit,
+            hint: '0',
+            prefix: '₱ ',
+            onChanged: (_) => setState(() {}),
+          ),
+          if (spent != null) ...<Widget>[
+            const SizedBox(height: Spacing.md),
+            BreakdownRow(
+              palette: p,
+              label: 'Already spent this month',
+              value: formatPeso(spent.pesos),
+            ),
+            if (remaining != null)
+              BreakdownRow(
+                palette: p,
+                label: remaining.isNegative
+                    ? 'Would be over by'
+                    : 'Would leave',
+                value: formatPeso(remaining.abs.pesos),
+                emphasis: true,
+                valueColor: remaining.isNegative ? p.negative : p.positive,
+              ),
+          ],
+          const SizedBox(height: Spacing.md),
+          Text(
+            'A budget is a limit you set for yourself. It does not move or '
+            'hold back any money.',
+            style: AppType.caption(p),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One spending category to pick, with its own emoji (user data, so an
+/// emoji and not a Salapify icon).
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.palette,
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final CategoryInfo category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? palette.accent : palette.card,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.control),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.control),
+              border: Border.all(
+                color: selected ? palette.accent : palette.border,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ExcludeSemantics(
+                  child: Text(
+                    category.emoji,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const SizedBox(width: Spacing.xs),
+                Flexible(
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? palette.onAccent : palette.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------- add a goal
 
 class AddGoalSheet extends StatefulWidget {

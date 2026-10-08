@@ -901,6 +901,42 @@ class _ShadowPainter extends CustomPainter {
   bool shouldRepaint(_ShadowPainter old) => false;
 }
 
+/// Pan small and STILL, as the face of Ask Pan (founder request 2026-10-08,
+/// "can we also put mascot on it?").
+///
+/// Still on purpose. The floating button is on screen for as long as Home
+/// is, and a figure that keeps moving in the corner pulls the eye off the
+/// money every second it is there; the empty states are where he moves.
+/// The baked shadow is clipped off, since at this size it reads as a smudge.
+class PanAvatar extends StatelessWidget {
+  const PanAvatar({super.key, this.mood = PanMood.wave, this.size = 28});
+
+  final PanMood mood;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final double side = size.clamp(0, panMaxSize).toDouble();
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: side,
+        height: side,
+        child: ClipRect(
+          clipper: const _TopClip(0.925),
+          child: Image.asset(
+            panAsset(mood),
+            width: side,
+            height: side,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            excludeFromSemantics: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Keeps the top [fraction] of the child: the image minus its baked shadow.
 class _TopClip extends CustomClipper<Rect> {
   const _TopClip(this.fraction);
