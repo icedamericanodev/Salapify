@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
+import '../../design/pan_art.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -412,8 +413,20 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          Icon(Icons.receipt_long_outlined, size: 28, color: palette.textMuted),
-          const SizedBox(height: Spacing.sm),
+          // Pan asleep on an empty ledger (D30), but ONLY when it is truly
+          // empty. A filter that hides everything is a "not found", and a
+          // sleeping Pan there would say "nothing happened" when plenty did.
+          if (hasFilters) ...<Widget>[
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 28,
+              color: palette.textMuted,
+            ),
+            const SizedBox(height: Spacing.sm),
+          ] else ...<Widget>[
+            const PanArt(mood: PanMood.sleep),
+            const SizedBox(height: panGap),
+          ],
           Text(
             // Two different situations. "No entries yet" on a screen with a
             // filter on it is a lie, and it sends somebody looking for a bug

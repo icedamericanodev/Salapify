@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
+import '../../design/pan_art.dart';
 import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -1129,12 +1130,20 @@ class _Empty extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          Icon(
-            Icons.volunteer_activism_outlined,
-            size: 28,
-            color: palette.textMuted,
-          ),
-          const SizedBox(height: Spacing.sm),
+          // Pan calm on "You owe nobody anything" (D30), the all-clear. The
+          // other side, nobody owing YOU, is neither good nor bad news, so it
+          // keeps its icon.
+          if (owing) ...<Widget>[
+            const PanArt(mood: PanMood.calm),
+            const SizedBox(height: panGap),
+          ] else ...<Widget>[
+            Icon(
+              Icons.volunteer_activism_outlined,
+              size: 28,
+              color: palette.textMuted,
+            ),
+            const SizedBox(height: Spacing.sm),
+          ],
           Text(
             owing ? 'You owe nobody anything' : 'Nobody owes you anything',
             style: AppType.section(palette),

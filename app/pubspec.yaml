@@ -110,6 +110,7 @@ flutter:
     - assets/fonts/
     - assets/brand/
     - assets/brand/institutions/
+    - assets/pan/
 
   fonts:
     - family: PlusJakartaSans

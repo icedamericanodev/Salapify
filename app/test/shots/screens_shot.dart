@@ -138,6 +138,7 @@ void main() {
   countedTwiceSheetShot();
   birClaimsShots();
   reportsTrendShots();
+  panEmptyShots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4523,6 +4524,82 @@ void reportsTrendShots() {
       await expectLater(
         find.byType(AppShell),
         matchesGoldenFile('out/reports_trends_cash_$theme.png'),
+      );
+    });
+  }
+}
+
+/// Pan on the empty states (D30, docs/revamp/pan-handoff.md), both
+/// brightnesses, dark first. A SWEPT book, the real sweep, so the empty
+/// states are ones a person can genuinely reach.
+void panEmptyShots() {
+  for (final ThemeMode2 mode in <ThemeMode2>[
+    ThemeMode2.gabi,
+    ThemeMode2.hapon,
+  ]) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+
+    Future<FinancialState> swept(WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      if (state.theme != mode) state.toggleTheme();
+      state.removeSampleData();
+      return state;
+    }
+
+    testWidgets('pan activity empty renders in $theme', (
+      WidgetTester tester,
+    ) async {
+      final FinancialState state = await swept(tester);
+      final Palette palette = Palette.of(state.theme);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('out/pan_activity_$theme.png'),
+      );
+    });
+
+    testWidgets('pan debt empty renders in $theme', (
+      WidgetTester tester,
+    ) async {
+      final FinancialState state = await swept(tester);
+      final Palette palette = Palette.of(state.theme);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: Scaffold(
+            backgroundColor: palette.background,
+            body: SafeArea(child: DebtScreen(state: state)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/pan_debt_$theme.png'),
       );
     });
   }
