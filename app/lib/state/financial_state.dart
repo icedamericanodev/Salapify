@@ -2108,6 +2108,77 @@ class FinancialState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ------------------------------------------- edit and remove (D31) ----
+  //
+  // Founder decision D31 (2026-10-09): a goal or an income stream could be
+  // added and never changed, so a typo in a target, or a stream somebody no
+  // longer has, stayed on Plan forever. (The review that raised it also said
+  // a stale stream feeds Safe to Spend. It does not: computeSafeToSpend
+  // works from money already held, and AddStreamSheet says so.)
+  //
+  // Each edit keeps the record's id and replaces it in place. Each remove
+  // returns what went and where, so the screen can offer Undo; the restore
+  // refuses when that id is back already, rather than holding two copies.
+
+  /// Replaces a goal with an edited copy, matched by id. False when no goal
+  /// has that id, so a stale sheet cannot write a goal back from the dead.
+  bool updateGoal(Goal goal) {
+    final int i = _goals.indexWhere((Goal g) => g.id == goal.id);
+    if (i < 0) return false;
+    _goals = <Goal>[..._goals]..[i] = goal;
+    notifyListeners();
+    return true;
+  }
+
+  /// Removes a goal. A goal never moved money, so no balance changes; only
+  /// the goal and its progress record go.
+  ({Goal goal, int index})? removeGoal(String id) {
+    final int i = _goals.indexWhere((Goal g) => g.id == id);
+    if (i < 0) return null;
+    final Goal gone = _goals[i];
+    _goals = <Goal>[..._goals]..removeAt(i);
+    notifyListeners();
+    return (goal: gone, index: i);
+  }
+
+  /// The Undo for [removeGoal]: the same goal, back where it was.
+  bool restoreGoal(Goal goal, int index) {
+    if (_goals.any((Goal g) => g.id == goal.id)) return false;
+    _goals = <Goal>[..._goals]..insert(index.clamp(0, _goals.length), goal);
+    notifyListeners();
+    return true;
+  }
+
+  /// Replaces an income stream with an edited copy, matched by id.
+  bool updateIncomeStream(IncomeStream stream) {
+    final int i = _incomeStreams.indexWhere(
+      (IncomeStream x) => x.id == stream.id,
+    );
+    if (i < 0) return false;
+    _incomeStreams = <IncomeStream>[..._incomeStreams]..[i] = stream;
+    notifyListeners();
+    return true;
+  }
+
+  /// Removes an expected income stream. Logged income is untouched.
+  ({IncomeStream stream, int index})? removeIncomeStream(String id) {
+    final int i = _incomeStreams.indexWhere((IncomeStream x) => x.id == id);
+    if (i < 0) return null;
+    final IncomeStream gone = _incomeStreams[i];
+    _incomeStreams = <IncomeStream>[..._incomeStreams]..removeAt(i);
+    notifyListeners();
+    return (stream: gone, index: i);
+  }
+
+  /// The Undo for [removeIncomeStream].
+  bool restoreIncomeStream(IncomeStream stream, int index) {
+    if (_incomeStreams.any((IncomeStream x) => x.id == stream.id)) return false;
+    _incomeStreams = <IncomeStream>[..._incomeStreams]
+      ..insert(index.clamp(0, _incomeStreams.length), stream);
+    notifyListeners();
+    return true;
+  }
+
   /// Schedules a new bill or expected payment.
   ///
   /// Ported from addUpcoming in archive/prototype-google-ai-studio/src/context/FinancialContext.tsx. No money

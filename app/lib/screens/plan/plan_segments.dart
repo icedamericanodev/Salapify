@@ -484,6 +484,7 @@ class GoalsSegment extends StatelessWidget {
             palette: palette,
             row: g,
             onContribute: () => ContributeSheet.show(context, state, g),
+            onEdit: () => AddGoalSheet.show(context, state, existing: g.goal),
           ),
           const SizedBox(height: Spacing.sm),
         ],
@@ -497,99 +498,116 @@ class _GoalRow extends StatelessWidget {
     required this.palette,
     required this.row,
     required this.onContribute,
+    required this.onEdit,
   });
 
   final Palette palette;
   final GoalStatus row;
   final VoidCallback onContribute;
 
+  /// Tapping the goal itself opens it for editing (D31), the same gesture
+  /// a budget row already answers to.
+  final VoidCallback onEdit;
+
   @override
   Widget build(BuildContext context) {
     final Goal g = row.goal;
 
-    return Container(
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: palette.surface,
+    return Semantics(
+      button: true,
+      label: 'Change ${g.name}',
+      child: InkWell(
+        key: ValueKey<String>('goal-${g.id}'),
+        onTap: onEdit,
         borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(
-          color: row.isComplete ? palette.positive : palette.border,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+        child: Container(
+          padding: const EdgeInsets.all(Spacing.md),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(
+              color: row.isComplete ? palette.positive : palette.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(g.emoji, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: Spacing.xs),
-              Expanded(
-                child: Text(
-                  g.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.rowTitle(palette),
-                ),
+              Row(
+                children: <Widget>[
+                  Text(g.emoji, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(width: Spacing.xs),
+                  Expanded(
+                    child: Text(
+                      g.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.rowTitle(palette),
+                    ),
+                  ),
+                  Text(
+                    formatPeso(g.currentAmount.pesos),
+                    style: AppType.amountSmall(palette),
+                  ),
+                ],
               ),
-              Text(
-                formatPeso(g.currentAmount.pesos),
-                style: AppType.amountSmall(palette),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Radii.pill),
-            child: GrowTo(
-              value: (row.percent / 100).clamp(0.0, 1.0),
-              builder: (double v) => LinearProgressIndicator(
-                value: v,
-                minHeight: 6,
-                backgroundColor: palette.trackSoft,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  row.isComplete ? palette.positive : palette.accent,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            row.isComplete
-                ? 'Funded. ${formatPeso(g.targetAmount.pesos)} reached.'
-                : '${row.percent}% of ${formatPeso(g.targetAmount.pesos)} · '
-                      '${formatPeso(row.remaining.pesos)} to go'
-                      '${row.monthsAtCurrentRate == null ? '' : ' · about ${row.monthsAtCurrentRate} months at ${formatPeso(g.monthlyTarget.pesos, showDecimals: false)} a month'}',
-            style: AppType.caption(palette).copyWith(
-              color: row.isComplete ? palette.positive : palette.textMuted,
-            ),
-          ),
-          if (!row.isComplete) ...<Widget>[
-            const SizedBox(height: Spacing.sm),
-            Semantics(
-              button: true,
-              label: 'Add money to ${g.name}',
-              child: InkWell(
-                onTap: onContribute,
-                borderRadius: BorderRadius.circular(Radii.control),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 44),
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(Icons.add, size: 16, color: palette.accent),
-                      const SizedBox(width: Spacing.xs),
-                      Text(
-                        'Add to this goal',
-                        style: AppType.button(palette, color: palette.accent),
-                      ),
-                    ],
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(Radii.pill),
+                child: GrowTo(
+                  value: (row.percent / 100).clamp(0.0, 1.0),
+                  builder: (double v) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 6,
+                    backgroundColor: palette.trackSoft,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      row.isComplete ? palette.positive : palette.accent,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 4),
+              Text(
+                row.isComplete
+                    ? 'Funded. ${formatPeso(g.targetAmount.pesos)} reached.'
+                    : '${row.percent}% of ${formatPeso(g.targetAmount.pesos)} · '
+                          '${formatPeso(row.remaining.pesos)} to go'
+                          '${row.monthsAtCurrentRate == null ? '' : ' · about ${row.monthsAtCurrentRate} months at ${formatPeso(g.monthlyTarget.pesos, showDecimals: false)} a month'}',
+                style: AppType.caption(palette).copyWith(
+                  color: row.isComplete ? palette.positive : palette.textMuted,
+                ),
+              ),
+              if (!row.isComplete) ...<Widget>[
+                const SizedBox(height: Spacing.sm),
+                Semantics(
+                  button: true,
+                  label: 'Add money to ${g.name}',
+                  child: InkWell(
+                    onTap: onContribute,
+                    borderRadius: BorderRadius.circular(Radii.control),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(Icons.add, size: 16, color: palette.accent),
+                          const SizedBox(width: Spacing.xs),
+                          Text(
+                            'Add to this goal',
+                            style: AppType.button(
+                              palette,
+                              color: palette.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -655,11 +673,19 @@ class DecisionsSegment extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              // Each row opens its stream for editing (D31).
               for (final IncomeStream s in state.incomeStreams)
-                BreakdownRow(
-                  palette: palette,
-                  label: s.name,
-                  value: formatPeso(s.expectedAmount.pesos),
+                InkWell(
+                  key: ValueKey<String>('stream-${s.id}'),
+                  onTap: () => AddStreamSheet.show(context, state, existing: s),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: BreakdownRow(
+                      palette: palette,
+                      label: s.name,
+                      value: formatPeso(s.expectedAmount.pesos),
+                    ),
+                  ),
                 ),
               const SizedBox(height: Spacing.sm),
               PrimaryButton(

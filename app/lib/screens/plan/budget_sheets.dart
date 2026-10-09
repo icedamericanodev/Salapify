@@ -440,15 +440,24 @@ class _CategoryChip extends StatelessWidget {
 // ---------------------------------------------------------------- add a goal
 
 class AddGoalSheet extends StatefulWidget {
-  const AddGoalSheet({super.key, required this.state});
+  const AddGoalSheet({super.key, required this.state, this.existing});
 
   final FinancialState state;
 
-  static Future<void> show(BuildContext context, FinancialState state) {
+  /// Set when EDITING a goal (D31): the form opens filled in, saves over the
+  /// same goal, and offers a way to remove it. Null when adding.
+  final Goal? existing;
+
+  static Future<void> show(
+    BuildContext context,
+    FinancialState state, {
+    Goal? existing,
+  }) {
     return SheetScaffold.show<void>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) => AddGoalSheet(state: state),
+      builder: (BuildContext context) =>
+          AddGoalSheet(state: state, existing: existing),
     );
   }
 
@@ -457,9 +466,17 @@ class AddGoalSheet extends StatefulWidget {
 }
 
 class _AddGoalSheetState extends State<AddGoalSheet> {
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _target = TextEditingController();
-  final TextEditingController _monthly = TextEditingController();
+  late final TextEditingController _name = TextEditingController(
+    text: widget.existing?.name ?? '',
+  );
+  // `plain`, so a stored 3,500.55 opens as 3500.55 and saving untouched
+  // writes back exactly what was there (the budget sheet's lesson).
+  late final TextEditingController _target = TextEditingController(
+    text: widget.existing?.targetAmount.plain ?? '',
+  );
+  late final TextEditingController _monthly = TextEditingController(
+    text: widget.existing?.monthlyTarget.plain ?? '',
+  );
 
   @override
   void dispose() {
@@ -481,6 +498,25 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
 
   void _save() {
     if (!_canSave) return;
+    final Goal? old = widget.existing;
+    if (old != null) {
+      // Same id, same progress, same date: only what the form shows changes.
+      // Rebuilt with the plain constructor, so an edited example becomes
+      // the person's own, which is what the isSample comment intends.
+      widget.state.updateGoal(
+        Goal(
+          id: old.id,
+          name: _name.text.trim(),
+          emoji: old.emoji,
+          targetAmount: Money.fromDouble(_targetValue!),
+          currentAmount: old.currentAmount,
+          targetDate: old.targetDate,
+          monthlyTarget: Money.fromDouble(_monthlyValue.roundToDouble()),
+        ),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
     widget.state.addGoal(
       Goal(
         id: 'goal_${DateTime.now().microsecondsSinceEpoch}',
@@ -507,11 +543,11 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
     return SheetScaffold(
       palette: p,
       icon: Icons.flag_outlined,
-      title: 'New goal',
+      title: widget.existing == null ? 'New goal' : 'Edit goal',
       subtitle: 'What are you saving for',
       footer: PrimaryButton(
         palette: p,
-        label: 'Create goal',
+        label: widget.existing == null ? 'Create goal' : 'Save goal',
         icon: Icons.check,
         onTap: _canSave ? _save : null,
       ),
@@ -569,10 +605,95 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
             'out of an account, so your balances do not change.',
             style: AppType.caption(p),
           ),
+          if (widget.existing != null) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            Center(
+              child: TextButton.icon(
+                key: const Key('remove-goal'),
+                onPressed: _remove,
+                icon: Icon(Icons.delete_outline, size: 18, color: p.negative),
+                label: Text(
+                  'Remove this goal',
+                  style: AppType.button(p, color: p.negative),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  Future<void> _remove() async {
+    final Goal g = widget.existing!;
+    final bool yes = await confirmRemoval(
+      context,
+      Palette.of(widget.state.theme),
+      title: 'Remove ${g.name}?',
+      // Said out loud because it is the opposite of what somebody fears: a
+      // goal never held money, so removing it takes none away.
+      body:
+          'No money moves. A goal never took anything out of an account, so '
+          'your balances stay exactly as they are. Only the goal and its '
+          'progress go.',
+    );
+    if (!yes || !mounted) return;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final ({Goal goal, int index})? gone = widget.state.removeGoal(g.id);
+    Navigator.of(context).pop();
+    if (gone == null) return;
+    showUndo(
+      messenger,
+      '${g.name} removed.',
+      () => widget.state.restoreGoal(gone.goal, gone.index),
+    );
+  }
+}
+
+/// The confirm step every Plan remove shares: say what goes and what stays,
+/// then "Keep it" or "Remove". True only on Remove.
+Future<bool> confirmRemoval(
+  BuildContext context,
+  Palette p, {
+  required String title,
+  required String body,
+}) async {
+  final bool? yes = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) => AlertDialog(
+      backgroundColor: p.surface,
+      title: Text(title, style: AppType.title(p)),
+      content: Text(body, style: AppType.body(p)),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text('Keep it', style: AppType.body(p)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(
+            'Remove',
+            style: AppType.body(
+              p,
+            ).copyWith(color: p.negative, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    ),
+  );
+  return yes == true;
+}
+
+/// The Undo every Plan remove shares, on the screen the sheet closed onto.
+void showUndo(ScaffoldMessengerState m, String message, VoidCallback undo) {
+  m
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(label: 'Undo', onPressed: undo),
+      ),
+    );
 }
 
 // ------------------------------------------------------- contribute to a goal
@@ -712,15 +833,23 @@ class _ContributeSheetState extends State<ContributeSheet> {
 // ------------------------------------------------------ add an income stream
 
 class AddStreamSheet extends StatefulWidget {
-  const AddStreamSheet({super.key, required this.state});
+  const AddStreamSheet({super.key, required this.state, this.existing});
 
   final FinancialState state;
 
-  static Future<void> show(BuildContext context, FinancialState state) {
+  /// Set when EDITING a stream (D31). Null when adding.
+  final IncomeStream? existing;
+
+  static Future<void> show(
+    BuildContext context,
+    FinancialState state, {
+    IncomeStream? existing,
+  }) {
     return SheetScaffold.show<void>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) => AddStreamSheet(state: state),
+      builder: (BuildContext context) =>
+          AddStreamSheet(state: state, existing: existing),
     );
   }
 
@@ -729,9 +858,14 @@ class AddStreamSheet extends StatefulWidget {
 }
 
 class _AddStreamSheetState extends State<AddStreamSheet> {
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _amount = TextEditingController();
-  IncomeStreamType _type = IncomeStreamType.semimonthlySalary;
+  late final TextEditingController _name = TextEditingController(
+    text: widget.existing?.name ?? '',
+  );
+  late final TextEditingController _amount = TextEditingController(
+    text: widget.existing?.expectedAmount.plain ?? '',
+  );
+  late IncomeStreamType _type =
+      widget.existing?.type ?? IncomeStreamType.semimonthlySalary;
 
   @override
   void dispose() {
@@ -766,6 +900,19 @@ class _AddStreamSheetState extends State<AddStreamSheet> {
 
   void _save() {
     if (!_canSave) return;
+    final IncomeStream? old = widget.existing;
+    if (old != null) {
+      widget.state.updateIncomeStream(
+        IncomeStream(
+          id: old.id,
+          name: _name.text.trim(),
+          type: _type,
+          expectedAmount: _value!,
+        ),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
     widget.state.addIncomeStream(
       IncomeStream(
         id: 'stream_${DateTime.now().microsecondsSinceEpoch}',
@@ -788,7 +935,7 @@ class _AddStreamSheetState extends State<AddStreamSheet> {
       subtitle: 'Money you expect to come in',
       footer: PrimaryButton(
         palette: p,
-        label: 'Add stream',
+        label: widget.existing == null ? 'Add stream' : 'Save stream',
         icon: Icons.check,
         onTap: _canSave ? _save : null,
       ),
@@ -873,8 +1020,45 @@ class _AddStreamSheetState extends State<AddStreamSheet> {
             'move until the income actually arrives and you log it.',
             style: AppType.caption(p),
           ),
+          if (widget.existing != null) ...<Widget>[
+            const SizedBox(height: Spacing.lg),
+            Center(
+              child: TextButton.icon(
+                key: const Key('remove-stream'),
+                onPressed: _remove,
+                icon: Icon(Icons.delete_outline, size: 18, color: p.negative),
+                label: Text(
+                  'Remove this income stream',
+                  style: AppType.button(p, color: p.negative),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Future<void> _remove() async {
+    final IncomeStream x = widget.existing!;
+    final bool yes = await confirmRemoval(
+      context,
+      Palette.of(widget.state.theme),
+      title: 'Remove ${x.name}?',
+      body:
+          'Income you already logged stays in Activity and in your balances. '
+          'Only this expectation goes.',
+    );
+    if (!yes || !mounted) return;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final ({IncomeStream stream, int index})? gone = widget.state
+        .removeIncomeStream(x.id);
+    Navigator.of(context).pop();
+    if (gone == null) return;
+    showUndo(
+      messenger,
+      '${x.name} removed.',
+      () => widget.state.restoreIncomeStream(gone.stream, gone.index),
     );
   }
 }
