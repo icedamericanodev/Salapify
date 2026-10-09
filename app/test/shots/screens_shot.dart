@@ -4729,7 +4729,9 @@ void addBudgetShots() {
 
 class _ShotLock implements LockAuthenticator {
   _ShotLock(this.answer);
-  final UnlockOutcome answer;
+
+  /// Not final: a shot can open the app with a yes, then refuse an action.
+  UnlockOutcome answer;
   @override
   Future<UnlockOutcome> authenticate(String reason) async => answer;
 
@@ -4820,40 +4822,50 @@ void appLockShots() {
 
   // Delete everything's last step with app lock on: it says the phone's
   // lock comes first, before the red button is tapped.
-  testWidgets('app_lock_wipe renders in gabi', (WidgetTester tester) async {
-    await tester.runAsync(loadRealFonts);
-    tester.view.physicalSize = const Size(1170, 2532);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final FinancialState state = FinancialState(
-      clock: DateTime.utc(2026, 9, 18),
-    );
-    await state.restore();
-    state.startWithExampleData();
-    if (state.theme != ThemeMode2.gabi) state.toggleTheme();
-    final AppLockController lock = AppLockController(
-      settings: MemoryLockSettings(true),
-      authenticator: _ShotLock(UnlockOutcome.unlocked),
-      setSecureWindow: (bool _) async {},
-    );
-    await lock.load();
-    await tester.pumpWidget(SalapifyApp(state: state, lock: lock));
-    await tester.pumpAndSettle();
-    unawaited(WipeSheet.show(tester.element(find.byType(AppShell)), state));
-    await tester.pumpAndSettle();
-    final Finder go = find.text('Delete everything').last;
-    await tester.ensureVisible(go);
-    await tester.pumpAndSettle();
-    await tester.tap(go);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Yes, erase it'));
-    await tester.pumpAndSettle();
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('out/app_lock_wipe.png'),
-    );
-  });
+  for (final bool refused in <bool>[false, true]) {
+    final String name = refused ? 'app_lock_wipe_refused' : 'app_lock_wipe';
+    testWidgets('$name renders in gabi', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      await state.restore();
+      state.startWithExampleData();
+      if (state.theme != ThemeMode2.gabi) state.toggleTheme();
+      final _ShotLock phone = _ShotLock(UnlockOutcome.unlocked);
+      final AppLockController lock = AppLockController(
+        settings: MemoryLockSettings(true),
+        authenticator: phone,
+        setSecureWindow: (bool _) async {},
+      );
+      await lock.load();
+      await tester.pumpWidget(SalapifyApp(state: state, lock: lock));
+      await tester.pumpAndSettle();
+      // Opened with a yes; the erase is then refused.
+      if (refused) phone.answer = UnlockOutcome.cancelled;
+      unawaited(WipeSheet.show(tester.element(find.byType(AppShell)), state));
+      await tester.pumpAndSettle();
+      final Finder go = find.text('Delete everything').last;
+      await tester.ensureVisible(go);
+      await tester.pumpAndSettle();
+      await tester.tap(go);
+      await tester.pumpAndSettle();
+      if (refused) {
+        await tester.tap(find.text('Yes, erase it'));
+        await tester.pumpAndSettle();
+      }
+      await tester.ensureVisible(find.text('Yes, erase it'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/$name.png'),
+      );
+    });
+  }
 
   for (final bool on in <bool>[false, true]) {
     testWidgets('settings app lock ${on ? 'on' : 'off'} renders', (

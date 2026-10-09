@@ -26,13 +26,16 @@ void main() {
     }
   });
 
-  test('a phone to phone copy carries the records', () {
+  test('a phone to phone copy carries the records, and only them', () {
     expect(
-      section('device-transfer'),
-      contains('<include domain="root" path="app_flutter/" />'),
+      RegExp(
+        '<include[^>]*>',
+      ).allMatches(section('device-transfer')).map((Match m) => m.group(0)),
+      <String>['<include domain="root" path="app_flutter/" />'],
       reason:
           'the ledger is in app_flutter/ (getApplicationDocumentsDirectory '
-          'on Android), and nothing copies it to the new phone',
+          'on Android): without that rule nothing copies it to the new '
+          'phone, and any other rule carries files nobody chose to send',
     );
   });
 

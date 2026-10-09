@@ -29,3 +29,7 @@ Shown after the phone's automatic prompt was backed out of.
 | Delete everything asks the phone's lock first | Privacy: a new phone gets the records, not the lock |
 |---|---|
 | <img src="app_lock_wipe.png" width="260"> | <img src="sheet_privacy.png" width="260"> |
+
+| When the phone's lock is not confirmed, the sheet says so itself |
+|---|
+| <img src="app_lock_wipe_refused.png" width="260"> |

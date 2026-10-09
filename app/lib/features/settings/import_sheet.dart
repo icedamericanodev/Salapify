@@ -9,6 +9,7 @@ import '../../data/import.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../state/financial_state.dart';
+import '../lock/app_lock.dart';
 import '../shared/sheet_scaffold.dart';
 
 /// Restoring a backup, which replaces everything.
@@ -302,6 +303,7 @@ class _ImportSheetState extends State<ImportSheet> {
   }
 
   Future<void> _confirm(Palette p, ImportReady ready, LedgerSummary now) async {
+    final AppLockController? lock = AppLockScope.maybeOf(context);
     final bool? go = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
@@ -351,6 +353,36 @@ class _ImportSheetState extends State<ImportSheet> {
     );
 
     if (go != true) return;
+    // The phone's lock first, while app lock is on, the same as Delete
+    // everything. One import is undoable, but the undo keeps ONE copy: a
+    // second import overwrites it, so two quick ones from somebody else's
+    // hand erase the real ledger for good. Found by the security review of
+    // 2026-10-09.
+    final String? refused = await lock?.confirmOwner(
+      'Replace everything in Salapify',
+      undone: 'replaced',
+    );
+    if (refused != null) {
+      // A dialog, not a snackbar: this sheet is drawn over the screen that
+      // would show the snackbar, so it would sit underneath, unseen.
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (BuildContext ctx) => AlertDialog(
+            backgroundColor: p.surface,
+            content: Text(refused, style: AppType.body(p)),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('OK', style: TextStyle(color: p.accent)),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
     setState(() => _busy = true);
     final bool ok = await state.importSnapshot(ready.incoming);
     if (!mounted) return;

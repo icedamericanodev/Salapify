@@ -3,10 +3,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/design/app_theme.dart';
 import 'package:salapify/design/tokens.dart';
+import 'package:salapify/features/lock/app_lock.dart';
 import 'package:salapify/features/settings/import_sheet.dart';
 import 'package:salapify/state/financial_state.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
+
+/// The phone's lock, answering from a list.
+class _Phone implements LockAuthenticator {
+  final List<UnlockOutcome> answers = <UnlockOutcome>[];
+  int asked = 0;
+
+  @override
+  Future<UnlockOutcome> authenticate(String reason) async {
+    asked++;
+    return answers.isEmpty ? UnlockOutcome.cancelled : answers.removeAt(0);
+  }
+
+  @override
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason) async =>
+      UnlockOutcome.cancelled;
+}
 
 /// The screen in front of the most destructive action in the app.
 void main() {
@@ -19,7 +36,10 @@ void main() {
       '"reconciliations":[],"bills":[],'
       '"timestamp":"2026-09-12T08:00:00.000Z"}';
 
-  Future<FinancialState> pump(WidgetTester tester) async {
+  Future<FinancialState> pump(
+    WidgetTester tester, {
+    AppLockController? lock,
+  }) async {
     await tester.runAsync(loadRealFonts);
     tester.view.physicalSize = const Size(1170, 2900);
     tester.view.devicePixelRatio = 3.0;
@@ -39,7 +59,12 @@ void main() {
         theme: salapifyTheme(p, state.theme),
         home: Scaffold(
           backgroundColor: p.background,
-          body: ImportSheet(state: state),
+          body: lock == null
+              ? ImportSheet(state: state)
+              : AppLockScope(
+                  controller: lock,
+                  child: ImportSheet(state: state),
+                ),
         ),
       ),
     );
@@ -162,5 +187,52 @@ void main() {
       findsOneWidget,
       reason: 'the undo is not on screen, so the promise made was not kept',
     );
+  });
+
+  testWidgets('with app lock on, replacing asks the phone first, and a no '
+      'replaces nothing', (WidgetTester tester) async {
+    // Each import overwrites the ONE copy kept for undo, so two quick
+    // imports from somebody else's hand would erase the real ledger for
+    // good. Found by the security review of 2026-10-09.
+    final _Phone phone = _Phone();
+    final AppLockController lock = AppLockController(
+      settings: MemoryLockSettings(true),
+      authenticator: phone,
+      setSecureWindow: (bool _) async {},
+    );
+    await lock.load();
+    final FinancialState state = await pump(tester, lock: lock);
+    final String beforeId = state.accounts.first.id;
+
+    await paste(tester, realBackup);
+    await tester.tap(find.text('Replace everything with this backup'));
+    await tester.pumpAndSettle();
+    phone.answers.add(UnlockOutcome.cancelled);
+    await tester.tap(find.text('Replace it'));
+    await tester.pumpAndSettle();
+    expect(phone.asked, 1, reason: 'the phone was not asked');
+    expect(
+      state.accounts.first.id,
+      beforeId,
+      reason: 'the ledger was replaced without the phone\'s lock',
+    );
+    // In a dialog on top: a snackbar would sit under this sheet, unseen.
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('Nothing was replaced'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // The owner passes it: now it is replaced, directionally.
+    await tester.tap(find.text('Replace everything with this backup'));
+    await tester.pumpAndSettle();
+    phone.answers.add(UnlockOutcome.unlocked);
+    await tester.tap(find.text('Replace it'));
+    await tester.pumpAndSettle();
+    expect(state.accounts.single.id, 'a1');
   });
 }

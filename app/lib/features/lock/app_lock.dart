@@ -460,28 +460,57 @@ class AppLockController extends ChangeNotifier {
   /// App lock off means nothing to ask. A phone with no screen lock any more
   /// goes ahead too, for the same reason [unlock] lets its owner in: there
   /// is nothing left to check, and refusing would trap them.
-  Future<String?> confirmOwner(String reason) async {
+  Future<String?> confirmOwner(
+    String reason, {
+    String undone = 'erased',
+  }) async {
     if (!_enabled) return null;
-    UnlockOutcome outcome;
-    try {
-      outcome = await authenticator
-          .authenticate(reason)
-          .timeout(promptTimeout, onTimeout: () => UnlockOutcome.error);
-    } catch (_) {
-      outcome = UnlockOutcome.error;
+    Future<UnlockOutcome> ask(Future<UnlockOutcome> Function() prompt) async {
+      try {
+        return await prompt().timeout(
+          promptTimeout,
+          onTimeout: () => UnlockOutcome.error,
+        );
+      } catch (_) {
+        return UnlockOutcome.error;
+      }
+    }
+
+    UnlockOutcome outcome = await ask(() => authenticator.authenticate(reason));
+    // A prompt that ERRORS, rather than one somebody backed out of, goes
+    // straight to the phone's own PIN screen. Some phones' fingerprint
+    // prompts fail every time, and without this the only way left to erase
+    // would be uninstalling, which is the trap the lock screen's own PIN
+    // offer exists to avoid.
+    if (outcome == UnlockOutcome.error) {
+      outcome = await ask(() => authenticator.confirmWithPhoneCode(reason));
     }
     switch (outcome) {
       case UnlockOutcome.unlocked:
+        // The prompt itself sent the app to the background and started the
+        // away clock. A slow PIN must not read as a minute away and fire a
+        // second prompt over the action it just allowed, the same reason
+        // [_attempt] clears it. And if the app came back before this
+        // answer did and already relocked, passing the phone's lock IS an
+        // unlock, so it lifts.
+        _awayAt = null;
+        _awayWall = null;
+        if (_locked || _covered) {
+          _locked = false;
+          _covered = false;
+          notifyListeners();
+        }
+        return null;
       case UnlockOutcome.unavailable:
         return null;
       case UnlockOutcome.lockedOut:
-        return 'Too many tries. Nothing was erased. Wait a moment and try '
+        return 'Too many tries. Nothing was $undone. Wait a moment and try '
             'again.';
       case UnlockOutcome.biometricsPaused:
         return _pausedCopy;
       case UnlockOutcome.cancelled:
       case UnlockOutcome.error:
-        return 'Nothing was erased. Your phone\'s lock was not confirmed.';
+        return 'Nothing was $undone. Your phone\'s lock was not confirmed.';
     }
   }
 

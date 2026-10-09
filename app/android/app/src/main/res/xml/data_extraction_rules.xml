@@ -23,7 +23,9 @@
     not inside it. So the transfer described above copied nothing of the
     money while the privacy sheet promised it did. The "root" rule below is
     what reaches app_flutter/ (the ledger, its safety copies, the Pan
-    conversation and the rate cache).
+    conversation and the rate cache). It is the ONLY include: the old
+    "file" rule reached nothing Salapify writes, and left in place it would
+    have quietly carried whatever a future plugin kept in files/.
 
     APP LOCK STAYS BEHIND, by founder decision ("keep it out"). app_lock.json
     and its half-written .tmp are excluded, so the new phone opens unlocked
@@ -46,7 +48,6 @@
         <exclude domain="device_sharedpref" />
     </cloud-backup>
     <device-transfer>
-        <include domain="file" path="." />
         <include domain="root" path="app_flutter/" />
         <exclude domain="root" path="app_flutter/app_lock.json" />
         <exclude domain="root" path="app_flutter/app_lock.json.tmp" />

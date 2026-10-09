@@ -8,6 +8,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/gestures.dart' show HitTestEntry, HitTestResult;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/data/store.dart';
@@ -36,6 +37,21 @@ class _FakeLock implements LockAuthenticator {
         ? UnlockOutcome.cancelled
         : phoneCodeAnswers.removeAt(0);
   }
+}
+
+/// A prompt that runs [during] while it is open, then says yes.
+class _SlowPhone implements LockAuthenticator {
+  void Function()? during;
+
+  @override
+  Future<UnlockOutcome> authenticate(String reason) async {
+    during?.call();
+    return UnlockOutcome.unlocked;
+  }
+
+  @override
+  Future<UnlockOutcome> confirmWithPhoneCode(String reason) async =>
+      UnlockOutcome.unlocked;
 }
 
 class _Rig {
@@ -367,7 +383,19 @@ void main() {
       reason: 'the records were erased without the phone\'s lock',
     );
     expect(rig.lock.enabled, isTrue);
-    expect(find.textContaining('Nothing was erased'), findsOneWidget);
+    // ON TOP, not merely built. A snackbar was built too, under the sheet,
+    // where nobody could read it (recovery review, 2026-10-09).
+    final Finder note = find.byKey(const Key('wipe-note'));
+    expect(note, findsOneWidget);
+    expect(tester.widget<Text>(note).data, contains('Nothing was erased'));
+    final HitTestResult hit = tester.hitTestOnBinding(tester.getCenter(note));
+    expect(
+      hit.path.any(
+        (HitTestEntry e) => identical(e.target, tester.renderObject(note)),
+      ),
+      isTrue,
+      reason: 'the refusal is drawn under something, so nobody sees it',
+    );
 
     // The owner passes it: now it goes, directionally.
     rig.phone.answers.add(UnlockOutcome.unlocked);
@@ -392,6 +420,49 @@ void main() {
       expect(off.phone.asked, 0);
     },
   );
+
+  test('a prompt that errors falls back to the phone PIN, so erasing is '
+      'never down to uninstalling', () async {
+    final _Rig rig = _Rig();
+    await rig.lock.load();
+    rig.phone.answers.add(UnlockOutcome.error);
+    rig.phone.phoneCodeAnswers.add(UnlockOutcome.unlocked);
+    expect(await rig.lock.confirmOwner('Erase'), isNull);
+    expect(rig.phone.askedPhoneCode, 1, reason: 'no PIN screen was offered');
+
+    // Backing out is a no, and is not second-guessed with another prompt.
+    rig.phone.answers.add(UnlockOutcome.cancelled);
+    expect(await rig.lock.confirmOwner('Erase'), contains('Nothing was'));
+    expect(rig.phone.askedPhoneCode, 1);
+  });
+
+  test('a slow PIN that relocks the app is lifted by passing it', () async {
+    Duration now = Duration.zero;
+    final _SlowPhone phone = _SlowPhone();
+    final AppLockController lock = AppLockController(
+      settings: MemoryLockSettings(true),
+      authenticator: phone,
+      elapsed: () => now,
+      setSecureWindow: (bool _) async {},
+    );
+    await lock.load();
+    await lock.unlock();
+    expect(lock.locked, isFalse);
+
+    // The phone's prompt sends the app to the background, and the person
+    // takes ninety seconds over the PIN. The app is back before the answer.
+    phone.during = () {
+      lock.onBackground();
+      now += const Duration(seconds: 90);
+      lock.onForeground();
+    };
+    expect(await lock.confirmOwner('Erase'), isNull);
+    expect(
+      lock.locked,
+      isFalse,
+      reason: 'a second prompt fires over the action the first one allowed',
+    );
+  });
 
   testWidgets('delete everything takes app lock with it', (
     WidgetTester tester,

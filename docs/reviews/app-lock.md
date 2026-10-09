@@ -92,8 +92,35 @@ hot restart. The Android build on CI is what compiles the Kotlin.
    - Guard: the "asks the phone first" journey in `app_lock_test.dart`.
      With the call removed it failed with "the phone was not asked".
 
+## Third pass: reviews of the founder decisions (2026-10-09)
+
+security-privacy-auditor and recovery-designer reviewed the two decisions.
+Every finding was checked against the code first; one was probed with a
+widget test by the reviewer.
+
+| Finding | Fix | Guard, proven by breaking it |
+|---|---|---|
+| Importing a backup never asked for the phone's lock. Each import overwrites the ONE copy kept for undo, so two quick imports erase the real ledger for good (verified: `writePreImport` has one generation). | Import asks for the phone's lock first while app lock is on, like Delete everything. | `import_sheet_test`: "the phone was not asked" |
+| "Nothing was erased" was a snackbar, drawn by the screen BEHIND the sheet, so nobody saw it. An export's "it is on your clipboard instead" was hidden the same way. | The wipe sheet carries its own note, in the warning colour, above the buttons. The import refusal is a dialog on top. | The note is hit-tested, not just found: "found 0 widgets with key 'wipe-note'" with the snackbar restored |
+| A phone whose fingerprint prompt always errors could never erase. | An error falls back to the phone's own PIN screen once. Backing out is still a no. | "falls back to the phone PIN": got the refusal instead of null |
+| A PIN that takes over a minute relocks the app and fires a second prompt over the action it allowed. | Passing the check clears the away clock and lifts a relock. | "a second prompt fires over the action the first one allowed" |
+| "Android 12 or newer" named the new phone; it is the OLD phone's version that matters. Not every setup tool copies this way. | Both privacy texts now name this phone, advise an export first, and say to open Salapify on the new phone before resetting the old one. | copy |
+| privacy.html still said the only copies that leave are backups and exports, called the wipe "Start fresh" (that is Pan's chat clear), and said the rate cache is in no backup. | All corrected. | copy |
+| The old `file` rule copied files/, which Salapify never writes. A future plugin's files would have travelled unnoticed. | Removed. `app_flutter/` is the ONLY include, and the test asserts exactly that list. | "and only them": an extra include goes red |
+
 ## Deferred
 
 - Advising someone to remove their phone's screen lock, as a last resort
   when nothing else works. This needs the founder's word: it is advice to
   weaken their phone's security.
+- The pre-import copy now travels to a new phone and is offered there with
+  no date. `LedgerSummary.savedAt` is already parsed; showing it is a small
+  follow-up (recovery review, NICE).
+- **Receipt reading may contact Google.** The bundled ML Kit text
+  recognition library is documented by Google as sending usage and
+  performance metrics. If so, "No analytics" and "If you never open the
+  converter, Salapify makes no internet request at all" are false. This
+  predates app lock and needs a network capture during a receipt scan and
+  a founder decision before any store submission (security review, raised
+  as a separate task).
+

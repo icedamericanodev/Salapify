@@ -57,6 +57,13 @@ class _WipeSheetState extends State<WipeSheet> {
   /// went too rather than leave somebody believing it is still there.
   bool _lockWasOn = false;
 
+  /// The last thing this sheet has to say: a refusal from the phone's lock,
+  /// or what an export did. Drawn INSIDE the sheet. A snackbar is drawn by
+  /// the screen behind it and sits under the sheet, unseen, which hid both
+  /// "Nothing was erased" and an export's "it is on your clipboard instead"
+  /// (recovery review, 2026-10-09).
+  String? _note;
+
   /// Hand the whole ledger to the share sheet, without leaving this screen.
   ///
   /// Deliberately does NOT close the sheet on success. Somebody who exports
@@ -64,7 +71,10 @@ class _WipeSheetState extends State<WipeSheet> {
   /// would make them find their way in again to finish. It also never moves
   /// them on to the confirm step: that tap stays theirs.
   Future<void> _exportFirst() async {
-    setState(() => _exporting = true);
+    setState(() {
+      _exporting = true;
+      _note = null;
+    });
     try {
       await exportBackup(state: widget.state, say: _say);
     } finally {
@@ -74,9 +84,7 @@ class _WipeSheetState extends State<WipeSheet> {
 
   void _say(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    setState(() => _note = message);
   }
 
   @override
@@ -173,6 +181,10 @@ class _WipeSheetState extends State<WipeSheet> {
               'trust. This does not delete anything.',
               style: AppType.caption(p),
             ),
+            if (_note != null) ...<Widget>[
+              const SizedBox(height: Spacing.sm),
+              _Note(palette: p, text: _note!),
+            ],
             const SizedBox(height: Spacing.lg),
           ],
 
@@ -190,6 +202,10 @@ class _WipeSheetState extends State<WipeSheet> {
               '${lockOn ? ' Your phone\'s lock is asked first.' : ''}',
               style: AppType.body(p).copyWith(color: p.textPrimary),
             ),
+            if (_note != null) ...<Widget>[
+              const SizedBox(height: Spacing.sm),
+              _Note(palette: p, text: _note!),
+            ],
             const SizedBox(height: Spacing.md),
             Row(
               children: <Widget>[
@@ -200,7 +216,10 @@ class _WipeSheetState extends State<WipeSheet> {
                     danger: false,
                     onTap: _busy
                         ? null
-                        : () => setState(() => _confirming = false),
+                        : () => setState(() {
+                            _confirming = false;
+                            _note = null;
+                          }),
                   ),
                 ),
                 const SizedBox(width: Spacing.sm),
@@ -221,7 +240,10 @@ class _WipeSheetState extends State<WipeSheet> {
   }
 
   Future<void> _wipe() async {
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _note = null;
+    });
     final AppLockController? lock = AppLockScope.maybeOf(context);
     _lockWasOn = lock?.enabled ?? false;
     // The phone's lock first, while app lock is on: this cannot be undone,
@@ -391,6 +413,24 @@ class _Button extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A message the sheet itself carries, in the warning colour, where the
+/// person is already looking.
+class _Note extends StatelessWidget {
+  const _Note({required this.palette, required this.text});
+
+  final Palette palette;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      key: const Key('wipe-note'),
+      style: AppType.body(palette).copyWith(color: palette.negative),
     );
   }
 }
