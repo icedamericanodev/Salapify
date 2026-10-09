@@ -4,7 +4,9 @@ import 'package:salapify/core/money/debt_strategy.dart';
 import 'package:salapify/core/money/format.dart';
 import 'package:salapify/core/money/loan.dart';
 import 'package:salapify/core/money/loan_products.dart';
+import 'package:salapify/core/money/money.dart';
 import 'package:salapify/design/tokens.dart';
+import 'package:salapify/models/models.dart';
 import 'package:salapify/screens/debt/debt_calculators.dart';
 
 import '../shots/screens_shot.dart' show loadRealFonts;
@@ -287,6 +289,68 @@ void main() {
             'calculator means it is not calculating',
       );
     }
+  });
+
+  testWidgets('snowball and avalanche run on the person\'s OWN debts, with '
+      'a rate box each (D31)', (WidgetTester tester) async {
+    // Tita Baby FIRST in the list and smallest, so with no rates typed both
+    // orders go to her first. The first draft listed the card first and
+    // passed with the rate box disconnected: equal rates kept list order.
+    const List<Debt> mine = <Debt>[
+      Debt(
+        id: 'tita',
+        person: 'Tita Baby',
+        direction: DebtDirection.iOwe,
+        totalAmount: Money.pesos(5000),
+        paidAmount: Money.pesos(0),
+        isSettled: false,
+        minimumPayment: Money.pesos(500),
+      ),
+      Debt(
+        id: 'card',
+        person: 'Metrobank Card',
+        direction: DebtDirection.iOwe,
+        totalAmount: Money.pesos(20000),
+        paidAmount: Money.pesos(0),
+        isSettled: false,
+        minimumPayment: Money.pesos(1000),
+      ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          backgroundColor: Palette.gabi.background,
+          body: const SingleChildScrollView(
+            child: DebtCalculators(palette: Palette.gabi, debts: mine),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Snowball or avalanche'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Snowball or avalanche'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Metrobank Card: '), findsOneWidget);
+    expect(
+      find.textContaining('BDO Credit Card'),
+      findsNothing,
+      reason: 'still running on the examples while real debts exist',
+    );
+
+    // With no rates, the small Tita Baby debt goes first both ways. Typing a
+    // rate on the card moves avalanche to it: the box actually feeds the plan.
+    expect(find.text('Tita Baby, Metrobank Card'), findsNWidgets(2));
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('strategy-rate-card')),
+        matching: find.byType(TextField),
+      ),
+      '36',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Metrobank Card, Tita Baby'), findsOneWidget);
   });
 
   testWidgets('nothing overflows at 320dp, on any calculator', (

@@ -121,7 +121,9 @@ class _DebtScreenState extends State<DebtScreen> {
               Spacing.xl,
             ),
             children: switch (_section) {
-              _Section.calculators => <Widget>[DebtCalculators(palette: p)],
+              _Section.calculators => <Widget>[
+                DebtCalculators(palette: p, debts: widget.state.debts),
+              ],
               _Section.installments => <Widget>[
                 InstallmentsView(state: widget.state),
               ],

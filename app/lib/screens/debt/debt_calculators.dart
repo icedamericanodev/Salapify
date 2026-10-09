@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/debt_strategy.dart';
+import '../../core/money/strategy_debts.dart';
+import '../../models/models.dart';
 import '../../core/money/amortization_export.dart';
 import '../../core/money/format.dart';
 import '../../core/money/loan.dart';
@@ -22,9 +24,18 @@ import 'amortization_table.dart';
 /// Philippine figures on it rather than a page of empty boxes somebody has to
 /// fill before it says anything.
 class DebtCalculators extends StatefulWidget {
-  const DebtCalculators({super.key, required this.palette});
+  const DebtCalculators({
+    super.key,
+    required this.palette,
+    this.debts = const <Debt>[],
+  });
 
   final Palette palette;
+
+  /// The person's own debts, for the snowball and avalanche plan (D31).
+  /// Empty falls back to the three examples, which then say they are
+  /// examples.
+  final List<Debt> debts;
 
   @override
   State<DebtCalculators> createState() => _DebtCalculatorsState();
@@ -918,25 +929,60 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
   ];
 
   Widget _strategy(Palette p) {
+    // THE PERSON'S OWN DEBTS when there are any (D31). The user panel found
+    // this running on three hardcoded examples a tab away from the debts
+    // they had just typed in. A debt's interest rate is not stored, so each
+    // gets a box here; what is typed is a calculator input and is not saved.
+    final List<DebtItemForStrategy> open = strategyDebtsFrom(widget.debts);
+    final bool mine = open.isNotEmpty;
+    final List<DebtItemForStrategy> debts = mine
+        ? strategyDebtsFrom(
+            widget.debts,
+            ratesById: <String, double>{
+              for (final DebtItemForStrategy d in open)
+                d.id: _v('rate_${d.id}'),
+            },
+          )
+        : _strategyDebts;
     final StrategyComparison r = simulateDebtStrategies(
-      debts: _strategyDebts,
+      debts: debts,
       extraMonthlyBudget: _v('strategyExtra'),
     );
 
     return _Card(
       palette: p,
       title: 'Snowball or avalanche',
-      note:
-          'Snowball clears the smallest debt first, which feels better. '
-          'Avalanche clears the dearest first, which costs less. Both against '
-          'three example debts.',
+      note: mine
+          ? 'Snowball clears the smallest debt first, which feels better. '
+                'Avalanche clears the dearest first, which costs less. These '
+                'are your own open debts. Type the yearly interest each one '
+                'charges; family utang is usually 0. Nothing typed here is '
+                'saved.'
+          : 'Snowball clears the smallest debt first, which feels better. '
+                'Avalanche clears the dearest first, which costs less. Both '
+                'against three example debts, until you add your own.',
       inputs: <Widget>[
-        for (final DebtItemForStrategy d in _strategyDebts)
-          _Row(
-            palette: p,
-            label: d.name,
-            value: '${formatPeso(d.balance)} at ${d.interestRate}% a year',
-          ),
+        if (mine)
+          for (final DebtItemForStrategy d in debts) ...<Widget>[
+            _Num(
+              key: ValueKey<String>('strategy-rate-${d.id}'),
+              palette: p,
+              label:
+                  '${d.name}: ${formatPeso(d.balance)} left'
+                  '${d.minimumPayment > 0 ? ', ${formatPeso(d.minimumPayment)} a month' : ''}. '
+                  'Interest a year, %',
+              c: _c('rate_${d.id}'),
+              onChanged: _redraw,
+            ),
+            const SizedBox(height: Spacing.sm),
+          ]
+        else
+          for (final DebtItemForStrategy d in _strategyDebts)
+            _Row(
+              palette: p,
+              label: d.name,
+              value: '${formatPeso(d.balance)} at ${d.interestRate}% a year',
+            ),
         const SizedBox(height: Spacing.sm),
         _Num(
           palette: p,
@@ -1066,6 +1112,10 @@ class _DebtCalculatorsState extends State<DebtCalculators> {
 
   static String _months(int m) {
     if (m <= 0) return 'no time at all';
+    // The simulation stops at 240 months. Reaching it means the payments
+    // never clear the debt (a debt with no minimum and no extra, or interest
+    // outrunning the payment), and "20 years" would read as an answer.
+    if (m >= 240) return 'not within 20 years at these payments';
     if (m < 12) return '$m month${m == 1 ? '' : 's'}';
     final int years = m ~/ 12;
     final int rest = m % 12;
@@ -1147,6 +1197,7 @@ class _Card extends StatelessWidget {
 
 class _Num extends StatelessWidget {
   const _Num({
+    super.key,
     required this.palette,
     required this.label,
     required this.c,
