@@ -1931,14 +1931,21 @@ class FinancialState extends ChangeNotifier {
   /// than an id, so a caller cannot ask to remove something it has not got in
   /// front of it, and it does nothing at all when the row has already gone.
   void undoLoggedTransaction(Transaction tx) {
-    final int before = _transactions.length;
-    _transactions = _transactions
-        .where((Transaction t) => t.id != tx.id)
-        .toList();
-    // Nothing removed means nothing to reverse. Without this, tapping Undo
+    final int i = _transactions.indexWhere((Transaction t) => t.id == tx.id);
+    // Nothing to remove means nothing to reverse. Without this, tapping Undo
     // twice would credit the money back twice.
-    if (_transactions.length == before) return;
-    _accounts = reverseFromBalances(_accounts, tx);
+    if (i < 0) return;
+    // THE STORED ROW, not the caller's copy, decides what is reversed. The
+    // copy is what the snackbar kept when the entry was logged; the row may
+    // have changed since. Taken back in the five seconds (status corrected,
+    // its money already returned), reversing the copy credited it a SECOND
+    // time: log 500, Take it back, Undo, and the account read 500 high.
+    // Found by the ledger-reconciler, 2026-10-09.
+    final Transaction stored = _transactions[i];
+    _transactions = <Transaction>[..._transactions]..removeAt(i);
+    if (stored.countsTowardTotals) {
+      _accounts = reverseFromBalances(_accounts, stored);
+    }
     notifyListeners();
   }
 
@@ -1981,14 +1988,17 @@ class FinancialState extends ChangeNotifier {
     bool changed = false;
 
     if (tx != null) {
-      final int before = _transactions.length;
-      _transactions = _transactions
-          .where((Transaction t) => t.id != tx.id)
-          .toList();
-      // Nothing removed means nothing to reverse. Without this, a second tap
-      // would credit the money back twice.
-      if (_transactions.length != before) {
-        _accounts = reverseFromBalances(_accounts, tx);
+      // The STORED row decides what is reversed, as in undoLoggedTransaction:
+      // a split entry taken back in the meantime has had its money returned
+      // already. Nothing found means nothing to reverse, so a second tap
+      // cannot credit the money back twice.
+      final int at = _transactions.indexWhere((Transaction t) => t.id == tx.id);
+      if (at >= 0) {
+        final Transaction stored = _transactions[at];
+        _transactions = <Transaction>[..._transactions]..removeAt(at);
+        if (stored.countsTowardTotals) {
+          _accounts = reverseFromBalances(_accounts, stored);
+        }
         changed = true;
       }
     }

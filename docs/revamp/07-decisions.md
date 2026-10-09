@@ -1449,3 +1449,24 @@ unfinished parts to the public).
 NOT BUILT, and why: Pan celebrating a reached goal was suggested and is
 left out, because D30 rules out "wins or milestones". Changing that is a
 founder decision, not an inference from D31.
+
+## D32. Three money truths found while designing D31. ANSWERED 2026-10-09
+
+THE QUESTION. Designing the approved D31 changes, the ledger-reconciler
+measured three places where the app's figures were not the truth. Each is a
+money-meaning change, so each went to the founder; all three answers were
+the recommended option.
+
+1. **Safe to Spend holds back bills the person ADDS.** It reserved only the
+   built-in BillItem list, never the bills on the Bills screen
+   (UpcomingItem), so in the reviewer's fixture 15,500 of bills due before
+   payday were reserved as 0 and the headline was 15,500 too high. Fixed
+   with one shared reader of unpaid obligations, so nothing is counted
+   twice.
+2. **Split bill counts only the person's own share as spending.** A 900
+   dinner for three logged 900 of spending while 600 of it is owed back;
+   budgets, Reports and the burn rate were overstated by the friends'
+   shares. Cash still falls by the full 900; the 600 becomes money lent.
+3. **Borrowing is the mirror of lending.** With D31's "lending moves real
+   cash", borrowing into an account moves money IN, the debt rises by the
+   same amount, net worth is unchanged, and it is never counted as income.
