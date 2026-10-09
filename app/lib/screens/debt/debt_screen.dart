@@ -541,6 +541,7 @@ class _Header extends StatelessWidget {
               button: true,
               label: 'Add a debt',
               child: InkWell(
+                key: const Key('debt-add'),
                 onTap: onAdd,
                 borderRadius: BorderRadius.circular(Radii.pill),
                 child: Container(

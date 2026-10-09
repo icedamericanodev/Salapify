@@ -558,7 +558,7 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
 
   InfoTopic.reconciliation: InfoContent(
     title: 'Reconciliation',
-    subtitle: 'Not built yet, and here is what it will do',
+    subtitle: 'Checking an account against its real balance',
     points: <InfoPoint>[
       InfoPoint(
         icon: Icons.rule,
@@ -578,12 +578,11 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
       ),
       InfoPoint(
         icon: Icons.science_outlined,
-        title: 'Why it is a separate step',
+        title: 'The one part of Reports that writes',
         body:
-            'It is the only part of Reports that CHANGES your data. Anything '
-            'that writes needs testing that follows the money all the way to '
-            'every screen that should mention it, so it is being built on its '
-            'own rather than rushed in beside three read-only tabs.',
+            'Every other tab only reads. A check is kept even when the two '
+            'agree, so "checked on the 18th and it matched" is there when the '
+            'figures stop matching later.',
       ),
     ],
   ),

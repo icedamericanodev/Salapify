@@ -37,7 +37,9 @@ void main() {
   }
 
   Future<void> openAddDebt(WidgetTester tester) async {
+    // The Debt shortcut opens the LIST (D31); adding is one tap from there.
     await tapIt(tester, find.text('Debt'));
+    await tapIt(tester, find.byKey(const Key('debt-add')));
     expect(find.byType(AddDebtSheet), findsOneWidget);
   }
 

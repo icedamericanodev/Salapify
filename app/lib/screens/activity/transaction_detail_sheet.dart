@@ -210,18 +210,6 @@ class TransactionDetailSheet extends StatelessWidget {
 
           const SizedBox(height: Spacing.lg),
           _TakeBack(palette: p, state: state, transaction: t),
-
-          const SizedBox(height: Spacing.md),
-          Text(
-            // Still honest about what is missing, but no longer claiming
-            // NOTHING can be changed. That sentence was written when the
-            // sheet was read only and survived the arrival of the take-back
-            // for a few minutes, which would have told somebody the button
-            // above them does not exist.
-            'Editing an entry, receipts and comments are later migration '
-            'steps.',
-            style: AppType.caption(p),
-          ),
         ],
       ),
     );

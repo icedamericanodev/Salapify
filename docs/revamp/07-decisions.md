@@ -1405,3 +1405,47 @@ MEANING onto the live app's own empty states: Ledger is Activity and Insights
 is Reports. That same prototype rebuild brought a rule-based "Ask Pan" card to
 Home, which reads the ledger with no AI and no network. D30 neither adds nor
 removes it; whether it stays is a separate question for the founder.
+
+## D31. The four-lens review: what gets built next. ANSWERED 2026-10-09
+
+THE QUESTION. Founder direction, 2026-10-09: "spin the product manager,
+competitor lens, user lens, behaviour science lens, review critically the
+current build. What features we can add and build free with no limitation.
+Lets think about the compliance/privacy later on when we are done building
+until im satisfied to what this app can offer". Four specialists reviewed
+`app/`; every claim used below was checked against the code first.
+
+THE ANSWERS, verbatim choices from the founder's question card:
+
+1. **Stored data and money meaning, all four approved:**
+   - Repeating bills: a paid bill rolls to next month instead of being done
+     forever.
+   - Lending moves real cash: an "owed to me" debt asks which account the
+     money came from, so collecting it back does not leave that account
+     higher than the real cash.
+   - Edit an entry, rewriting balances correctly, instead of delete and
+     retype.
+   - Edit or delete goals and income streams, with undo.
+2. **Debt stays off the tab bar and moves UP on Home**, right under Safe to
+   Spend, and the Debt shortcut opens the list rather than a blank form. A
+   sixth tab was offered and not chosen.
+3. **Income rhythms: weekly and irregular are added** beside 15th and 30th
+   and monthly, so Safe to Spend works for allowances and daily sales.
+4. **Habit features approved:** collection reminders for money owed to you,
+   a 48 hour "park it" list for impulse buys, and a backup reminder.
+   **Not approved:** a no-spend day button and a "logged 5 of 7 days" count.
+5. Compliance and privacy work waits until the founder is satisfied with
+   what the app offers. That does not loosen the STOP conditions or the
+   privacy promise in 01-vision.md.
+
+ALSO BUILT, needing no decision: a "send a reminder" message and an overdue
+tag on money owed to you; the Log sheet saying what an entry changed, opening
+with the keyboard up, category icons and last-used defaults; "usual" chips;
+the payoff plan on the user's own debts; a daily amount per budget; Reports
+drill-down and the previous month; a Sweldo Day card; and honesty fixes
+(screens that said "not built yet" about things that are built, or showed
+unfinished parts to the public).
+
+NOT BUILT, and why: Pan celebrating a reached goal was suggested and is
+left out, because D30 rules out "wins or milestones". Changing that is a
+founder decision, not an inference from D31.

@@ -713,62 +713,58 @@ class TrackersSegment extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        PlanCard(
-          palette: palette,
-          title: 'Habits',
-          topic: InfoTopic.trackers,
-          child: habits.isEmpty
-              ? Text(
-                  // Honest about WHY it is empty. "No habits yet" would imply
-                  // somebody could add one, and they cannot: there is no add
-                  // path anywhere in the app. Saying it is not built costs
-                  // nothing and stops a person hunting for a button.
-                  'Habit tracking is not built yet. It showed a sample streak '
-                  'while the demo money was here.',
-                  style: AppType.caption(palette),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Longest streak $longest days',
-                      style: AppType.rowTitle(palette),
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                    for (final HabitItem h in habits)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              h.doneToday
-                                  ? Icons.check_circle
-                                  : Icons.circle_outlined,
-                              size: 16,
-                              color: h.doneToday
-                                  ? palette.positive
-                                  : palette.textMuted,
-                            ),
-                            const SizedBox(width: Spacing.sm),
-                            Expanded(
-                              child: Text(
-                                h.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppType.body(palette),
-                              ),
-                            ),
-                            Text(
-                              '${h.streak} ${h.isDaily ? 'days' : 'weeks'}',
-                              style: AppType.caption(palette),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+        // No card at all when there is nothing in it. It used to say "Habit
+        // tracking is not built yet" to the public, which the four-lens
+        // review of 2026-10-09 found read as an unfinished app; and a card
+        // with no way to add anything is a door to nothing.
+        if (habits.isNotEmpty) ...<Widget>[
+          PlanCard(
+            palette: palette,
+            title: 'Habits',
+            topic: InfoTopic.trackers,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Longest streak $longest days',
+                  style: AppType.rowTitle(palette),
                 ),
-        ),
-        const SizedBox(height: Spacing.md),
+                const SizedBox(height: Spacing.sm),
+                for (final HabitItem h in habits)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: <Widget>[
+                        Icon(
+                          h.doneToday
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          size: 16,
+                          color: h.doneToday
+                              ? palette.positive
+                              : palette.textMuted,
+                        ),
+                        const SizedBox(width: Spacing.sm),
+                        Expanded(
+                          child: Text(
+                            h.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.body(palette),
+                          ),
+                        ),
+                        Text(
+                          '${h.streak} ${h.isDaily ? 'days' : 'weeks'}',
+                          style: AppType.caption(palette),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Spacing.md),
+        ],
         PlanCard(
           palette: palette,
           title: 'Subscriptions',

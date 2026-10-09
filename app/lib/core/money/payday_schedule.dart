@@ -129,6 +129,11 @@ class PaydayPoints {
 
   /// Whole days from today to [next]. One or more, never zero.
   final int daysToNext;
+
+  /// Whole days from the last payday to the next: about 15 for the 15th and
+  /// 30th, about 30 for once a month. Rounded from hours so a clock change
+  /// in a zone that has one cannot make it 29.96 and floor it to 29.
+  int get cycleDays => (next.difference(last).inHours / 24).round();
 }
 
 /// "Sep 15", the format the stored cycle has always used.

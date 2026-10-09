@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../design/settle_figure.dart';
@@ -5,6 +7,7 @@ import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../core/money/format.dart';
 import '../../core/money/health_check.dart';
+import '../../core/money/payday_schedule.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
 
@@ -60,7 +63,15 @@ class HeroPanel extends StatelessWidget {
     // An UNSET payday would compute 15 days passed out of 15 and draw a full
     // rail, which reads as "your cutoff is over" to somebody who has never
     // told Salapify when they get paid. It sits at the floor instead.
-    const int cycleDays = 15;
+    //
+    // The cycle is the REAL one from the payday rule. It was a fixed 15,
+    // which drew a monthly earner's rail at the floor for the first half of
+    // the month (behaviour review, 2026-10-09). A cycle with no rule keeps
+    // the old 15 rather than guessing.
+    final int cycleDays = math.max(
+      1,
+      PaydaySchedule(payday.paydayDays).pointsFrom(state.now)?.cycleDays ?? 15,
+    );
     final int daysPassed = cycleDays - payday.daysToPayday;
     final double progress = payday.isSet
         ? ((daysPassed / cycleDays) * 100).clamp(10, 100) / 100

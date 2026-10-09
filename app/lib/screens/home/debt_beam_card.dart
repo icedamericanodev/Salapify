@@ -22,11 +22,15 @@ class DebtBeamCard extends StatelessWidget {
     required this.state,
     this.onSeeAll,
     this.onInfo,
+    this.onAdd,
   });
 
   final FinancialState state;
   final VoidCallback? onSeeAll;
   final VoidCallback? onInfo;
+
+  /// Opens the add form, offered only when there is nothing to show yet.
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -43,140 +47,180 @@ class DebtBeamCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        // The title WRAPS rather than overflowing. At 320dp and large text
+        // "Debts (Both ways)", the dot and See all did not fit on one line,
+        // and nothing caught it while the card sat ninth on Home, below where
+        // any test built the screen. Moving it under the hero (D31) did.
         Row(
           children: <Widget>[
-            Text(
-              'Debts (Both ways)',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: palette.textPrimary,
+            Expanded(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Debts (Both ways)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: palette.textPrimary,
+                    ),
+                  ),
+                  InfoDot(
+                    color: palette.textMuted,
+                    semanticLabel: 'What Debts both ways means',
+                    onTap: onInfo,
+                  ),
+                ],
               ),
             ),
-            InfoDot(
-              color: palette.textMuted,
-              semanticLabel: 'What Debts both ways means',
-              onTap: onInfo,
-            ),
-            const Spacer(),
             SectionLink(palette: palette, label: 'See all', onTap: onSeeAll),
           ],
         ),
         const SizedBox(height: Spacing.sm),
-        SectionCard(
-          palette: palette,
-          onTap: onSeeAll,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    child: _Side(
-                      palette: palette,
-                      label: 'Owed to you',
-                      amount: owedToMe,
-                      color: palette.positive,
-                      alignEnd: false,
+        // NOTHING OPEN, so one line and a door, not a beam. Two ₱0.00 figures
+        // over a half and half bar read as "you owe and are owed the same",
+        // and the user panel of 2026-10-09 met exactly that sentence on a
+        // brand new install and could not tell what it meant.
+        if (combined <= 0)
+          SectionCard(
+            palette: palette,
+            onTap: onAdd ?? onSeeAll,
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    'Track what you owe, and who owes you.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: palette.textSecondary,
                     ),
-                  ),
-                  Expanded(
-                    child: _Side(
-                      palette: palette,
-                      label: 'You owe',
-                      amount: iOwe,
-                      color: palette.accent,
-                      alignEnd: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Spacing.md),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Radii.pill),
-                child: SizedBox(
-                  key: debtBeamKey,
-                  height: 5,
-                  child: Row(
-                    // stretch is load-bearing. A Row gives its children LOOSE
-                    // vertical constraints, and a ColoredBox with no child
-                    // takes the smallest size it is allowed, which is zero
-                    // height. The beam then renders as nothing at all: the
-                    // card looked complete and the bar was simply absent.
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Expanded(
-                        flex: owedToMePercent.round(),
-                        child: ColoredBox(color: palette.positive),
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        flex: (100 - owedToMePercent).round(),
-                        child: ColoredBox(color: palette.accent),
-                      ),
-                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: Spacing.md),
-              Divider(height: 1, color: palette.border),
-              const SizedBox(height: Spacing.sm),
-              if (nextDue == null)
-                Text(
-                  'No outstanding payment deadlines',
-                  style: TextStyle(fontSize: 12, color: palette.textMuted),
-                )
-              else
+                const SizedBox(width: Spacing.sm),
+                SectionLink(
+                  palette: palette,
+                  label: 'Add a debt',
+                  onTap: onAdd ?? onSeeAll,
+                ),
+              ],
+            ),
+          )
+        else
+          SectionCard(
+            palette: palette,
+            onTap: onSeeAll,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Expanded(
-                      // Text.rich, NOT RichText. RichText ignores the
-                      // surrounding DefaultTextStyle, so it drew this line in
-                      // the framework fallback face instead of Plus Jakarta
-                      // Sans: in the render the whole sentence came out as
-                      // grey boxes.
-                      // TWO LINES, so the date survives. On one line a
-                      // name like "Home Credit (Phone)" pushed the due date
-                      // past the edge and the card printed "(Se...", which
-                      // drops the one fact the row is there to give.
-                      child: Text.rich(
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        TextSpan(
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: palette.textSecondary,
-                          ),
-                          children: <InlineSpan>[
-                            const TextSpan(text: 'Next due: '),
-                            TextSpan(
-                              text: nextDue.person,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: palette.textPrimary,
-                              ),
-                            ),
-                            TextSpan(text: ' (${nextDue.dueDate})'),
-                          ],
-                        ),
+                      child: _Side(
+                        palette: palette,
+                        label: 'Owed to you',
+                        amount: owedToMe,
+                        color: palette.positive,
+                        alignEnd: false,
                       ),
                     ),
-                    const SizedBox(width: Spacing.sm),
-                    Text(
-                      '${formatPeso(nextDue.remaining.pesos)} left',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: _Side(
+                        palette: palette,
+                        label: 'You owe',
+                        amount: iOwe,
                         color: palette.accent,
+                        alignEnd: true,
                       ),
                     ),
                   ],
                 ),
-            ],
+                const SizedBox(height: Spacing.md),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                  child: SizedBox(
+                    key: debtBeamKey,
+                    height: 5,
+                    child: Row(
+                      // stretch is load-bearing. A Row gives its children LOOSE
+                      // vertical constraints, and a ColoredBox with no child
+                      // takes the smallest size it is allowed, which is zero
+                      // height. The beam then renders as nothing at all: the
+                      // card looked complete and the bar was simply absent.
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        Expanded(
+                          flex: owedToMePercent.round(),
+                          child: ColoredBox(color: palette.positive),
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          flex: (100 - owedToMePercent).round(),
+                          child: ColoredBox(color: palette.accent),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Spacing.md),
+                Divider(height: 1, color: palette.border),
+                const SizedBox(height: Spacing.sm),
+                if (nextDue == null)
+                  Text(
+                    'No outstanding payment deadlines',
+                    style: TextStyle(fontSize: 12, color: palette.textMuted),
+                  )
+                else
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        // Text.rich, NOT RichText. RichText ignores the
+                        // surrounding DefaultTextStyle, so it drew this line in
+                        // the framework fallback face instead of Plus Jakarta
+                        // Sans: in the render the whole sentence came out as
+                        // grey boxes.
+                        // TWO LINES, so the date survives. On one line a
+                        // name like "Home Credit (Phone)" pushed the due date
+                        // past the edge and the card printed "(Se...", which
+                        // drops the one fact the row is there to give.
+                        child: Text.rich(
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          TextSpan(
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: palette.textSecondary,
+                            ),
+                            children: <InlineSpan>[
+                              const TextSpan(text: 'Next due: '),
+                              TextSpan(
+                                text: nextDue.person,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: palette.textPrimary,
+                                ),
+                              ),
+                              TextSpan(text: ' (${nextDue.dueDate})'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: Spacing.sm),
+                      Text(
+                        '${formatPeso(nextDue.remaining.pesos)} left',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: palette.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

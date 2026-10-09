@@ -37,6 +37,19 @@ void main() {
     });
   });
 
+  group('the length of the cycle, which draws the rail on Home', () {
+    test('15th and 30th is a half month', () {
+      expect(points(<int>[15, 30], DateTime(2026, 9, 20)).cycleDays, 15);
+    });
+
+    test('once a month is a whole month, not 15', () {
+      // The rail was a fixed 15, so a monthly earner sat at the floor for
+      // the first half of every month (behaviour review, 2026-10-09).
+      expect(points(<int>[30], DateTime(2026, 9, 20)).cycleDays, 31);
+      expect(points(<int>[15], DateTime(2026, 9, 20)).cycleDays, 30);
+    });
+  });
+
   group('the month boundary', () {
     test('before the first payday of the month looks back a month', () {
       final PaydayPoints p = points(<int>[15, 30], DateTime(2026, 9, 3));

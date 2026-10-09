@@ -155,12 +155,15 @@ void main() {
       expect(find.text('Audit & Math'), findsOneWidget);
     });
 
-    testWidgets('the Debt quick action opens the Add Debt sheet', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('the Debt quick action opens the list, and Add is one tap '
+        'from it', (WidgetTester tester) async {
       await pumpHome(tester);
 
+      // The list, not a blank form (D31): somebody who added a debt and
+      // tapped Debt to find it was given a second empty form.
       await tapAndSettle(tester, find.text('Debt'));
+      expect(find.byType(AddDebtSheet), findsNothing);
+      await tapAndSettle(tester, find.byKey(const Key('debt-add')));
 
       expect(find.byType(AddDebtSheet), findsOneWidget);
       expect(find.text('Save debt'), findsOneWidget);
@@ -177,6 +180,7 @@ void main() {
       final double oweBefore = state.debtsIOwe;
 
       await tapAndSettle(tester, find.text('Debt'));
+      await tapAndSettle(tester, find.byKey(const Key('debt-add')));
 
       // The name field is the first in the sheet and the amount the second,
       // which is the order they are read in.
@@ -197,19 +201,28 @@ void main() {
         reason: 'the debt was not written to the store at all',
       );
 
-      // Half two, the one that gets forgotten: a person can SEE it. The Debt
-      // card on Home must now print the new total. A write that is correct in
+      // Half two, the one that gets forgotten: a person can SEE it. First on
+      // the list they added it from (the Debt shortcut opens the list since
+      // D31), then on Home after going back.
+      expect(find.text('Tita Baby'), findsWidgets);
+      Navigator.of(tester.element(find.text('Tita Baby').first)).pop();
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(DebtBeamCard, skipOffstage: false),
+        findsOneWidget,
+        reason: 'not back on Home',
+      );
+
+      // The Debt card on Home must now print the new total. A write that is correct in
       // the store and invisible on the screen is the defect, not a polish
       // item, and that is exactly how a 1,500 payment once vanished.
       // The scrollable is named explicitly. scrollUntilVisible otherwise
       // demands there be exactly ONE Scrollable in the tree and throws "Bad
       // state: Too many elements" the moment a second one exists, which says
       // nothing about the debt and sends you looking in the wrong place.
-      await tester.scrollUntilVisible(
-        find.byKey(debtBeamKey),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      // ensureVisible, not a scroll in one direction: since D31 the card is
+      // near the TOP of Home, above where the shortcut tap left the list.
+      await tester.ensureVisible(find.byKey(debtBeamKey, skipOffstage: false));
       await tester.pumpAndSettle();
       expect(
         find.text(formatPeso(oweBefore + 5000)),
@@ -232,6 +245,7 @@ void main() {
       final int countBefore = state.debts.length;
 
       await tapAndSettle(tester, find.text('Debt'));
+      await tapAndSettle(tester, find.byKey(const Key('debt-add')));
       await tester.tap(find.text('Save debt'), warnIfMissed: false);
       await tester.pumpAndSettle();
 
@@ -289,6 +303,7 @@ void main() {
       await pumpNarrow(tester);
 
       await tapAndSettle(tester, find.text('Debt'));
+      await tapAndSettle(tester, find.byKey(const Key('debt-add')));
       expect(tester.takeException(), isNull);
 
       // The amortization table only appears once there is an amount to

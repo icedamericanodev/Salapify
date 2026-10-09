@@ -156,6 +156,19 @@ class HomeScreen extends StatelessWidget {
               onInfo: () => SafeToSpendSheet.show(context, state),
             ),
 
+            // DEBT, BOTH WAYS, right under Safe to Spend. Founder decision
+            // D31 (2026-10-09): it is the product's identity and it sat ninth
+            // on this screen, below a mascot card, where all three of the
+            // user panel's archetypes went looking for it and did not find it.
+            const SizedBox(height: Spacing.md),
+            DebtBeamCard(
+              state: state,
+              onSeeAll: onOpenDebt,
+              onAdd: () => _addDebt(context, palette),
+              onInfo: () =>
+                  InfoSheet.show(context, palette, InfoTopic.debtBothWays),
+            ),
+
             // TODAY, directly under the hero, and it is the door into the one
             // action that matters in a first session.
             //
@@ -197,6 +210,23 @@ class HomeScreen extends StatelessWidget {
                 onSeeAll: () => onOpenTab(kActivityTab),
               ),
 
+            // THE SHORTCUTS, moved up under Today when Debt moved up under the
+            // hero (D31). Left where they were, the Debt card pushed them out
+            // of the first screens' reach: the five things a person DOES were
+            // below four cards of things to read.
+            const SizedBox(height: Spacing.lg),
+            QuickActions(
+              palette: palette,
+              onLog: onOpenLog,
+              // The LIST, not a blank form (D31). Somebody who added a debt
+              // and tapped here to find it got a second empty form instead,
+              // and adding one is a single tap from the list.
+              onDebt: onOpenDebt,
+              onBills: () => _bills(context, palette),
+              onMove: () => _moveMoney(context, palette),
+              onSplit: () => _splitBill(context, palette),
+            ),
+
             // THE RUNWAY, and it sits HERE for a reason. The reading order
             // becomes hero (how much), Today (what has gone today), Runway
             // (which day gets tight), Budget Pulse (how the month is going).
@@ -223,15 +253,6 @@ class HomeScreen extends StatelessWidget {
               // P1.1: was a "not migrated yet" snack bar. Budget Pulse summarises
               // the Plan tab's budgets, so its See all opens that tab.
               onSeeAll: () => onOpenTab(kPlanTab),
-            ),
-            const SizedBox(height: Spacing.lg),
-            QuickActions(
-              palette: palette,
-              onLog: onOpenLog,
-              onDebt: () => _addDebt(context, palette),
-              onBills: () => _bills(context, palette),
-              onMove: () => _moveMoney(context, palette),
-              onSplit: () => _splitBill(context, palette),
             ),
 
             // THE WAY OUT OF THE EXAMPLE DATA, and it sits HERE rather than
@@ -281,13 +302,6 @@ class HomeScreen extends StatelessWidget {
             RemindersBanner(
               state: state,
               onOpen: () => RemindersSheet.show(context, state),
-            ),
-            const SizedBox(height: Spacing.lg),
-            DebtBeamCard(
-              state: state,
-              onSeeAll: onOpenDebt,
-              onInfo: () =>
-                  InfoSheet.show(context, palette, InfoTopic.debtBothWays),
             ),
             const SizedBox(height: Spacing.lg),
             ComingUpCard(
