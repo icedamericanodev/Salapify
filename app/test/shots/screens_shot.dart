@@ -144,6 +144,7 @@ void main() {
   panEmptyShots();
   addBudgetShots();
   appLockShots();
+  d31Shots();
   // Two surfaces per theme, and both earn their place.
   //
   // The PHONE size is the honest one: it is what the founder holds, and it is
@@ -4918,4 +4919,117 @@ void appLockShots() {
       );
     });
   }
+}
+
+/// Batch 1 of the four-lens review (D31, 2026-10-09), dark first: Home with
+/// Debt under the hero, the Log sheet's "Your usual" chips and category
+/// icons, the Debt list's overdue line and Send a reminder, and the daily
+/// figure under each budget.
+void d31Shots() {
+  Future<FinancialState> open(WidgetTester tester, ThemeMode2 mode) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 18, 12),
+    );
+    await state.restore();
+    state.startWithExampleData();
+    if (state.theme != mode) state.toggleTheme();
+    state.updateReminderSettings(
+      state.reminderSettings.copyWith(phoneEnabled: true),
+    );
+    await tester.pumpWidget(SalapifyApp(state: state));
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+    return state;
+  }
+
+  Future<void> tap(WidgetTester tester, Finder f) async {
+    await tester.ensureVisible(f);
+    await tester.pumpAndSettle();
+    await tester.tap(f);
+    await tester.pumpAndSettle();
+  }
+
+  for (final ThemeMode2 mode in <ThemeMode2>[
+    ThemeMode2.gabi,
+    ThemeMode2.hapon,
+  ]) {
+    final String theme = mode == ThemeMode2.hapon ? 'hapon' : 'gabi';
+    testWidgets('d31 home renders in $theme', (WidgetTester tester) async {
+      await open(tester, mode);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/d31_home_$theme.png'),
+      );
+    });
+  }
+
+  testWidgets('d31 log usual renders in gabi', (WidgetTester tester) async {
+    final FinancialState state = await open(tester, ThemeMode2.gabi);
+    for (int i = 0; i < 3; i++) {
+      state.logTransaction(
+        Transaction(
+          id: 'tx_jeep_$i',
+          type: TransactionType.expense,
+          amount: const Money.pesos(13),
+          category: 'Transport & Commute',
+          accountId: 'acc_gcash',
+          date: '2026-09-1${5 + i}',
+          createdAt: 1000 + i,
+          merchant: 'Jeep',
+        ),
+      );
+    }
+    for (int i = 0; i < 2; i++) {
+      state.logTransaction(
+        Transaction(
+          id: 'tx_kape_$i',
+          type: TransactionType.expense,
+          amount: const Money.pesos(150),
+          category: 'Food & Dining',
+          accountId: 'acc_gcash',
+          date: '2026-09-1${6 + i}',
+          createdAt: 2000 + i,
+          merchant: 'Kape',
+        ),
+      );
+    }
+    await tester.pumpAndSettle();
+    unawaited(LogSheet.show(tester.element(find.byType(AppShell)), state));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/d31_log_usual_gabi.png'),
+    );
+  });
+
+  testWidgets('d31 debt owed renders in gabi', (WidgetTester tester) async {
+    await open(tester, ThemeMode2.gabi);
+    await tap(
+      tester,
+      find.descendant(
+        of: find.byType(DebtBeamCard),
+        matching: find.text('See all'),
+      ),
+    );
+    await tap(tester, find.text('Owed to you'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/d31_debt_owed_gabi.png'),
+    );
+  });
+
+  testWidgets('d31 budgets daily renders in gabi', (WidgetTester tester) async {
+    await open(tester, ThemeMode2.gabi);
+    await tap(tester, find.byIcon(Icons.track_changes_outlined).last);
+    await tap(tester, find.text('Budgets').first);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/d31_budgets_daily_gabi.png'),
+    );
+  });
 }

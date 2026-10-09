@@ -1,5 +1,7 @@
 import '../../core/money/money.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../core/money/collect_message.dart';
 
 import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
@@ -164,6 +166,10 @@ class _DebtScreenState extends State<DebtScreen> {
                       onViewPayments: () => _openPayments(context, p, d),
                       onPay: () => _openPayment(context, p, d),
                       onSettle: () => _confirmSettle(context, p, d),
+                      onRemind: d.direction == DebtDirection.owedToMe
+                          ? () => _remind(d)
+                          : null,
+                      now: widget.state.now,
                       onTakeBack: d.payments.isEmpty
                           ? null
                           : () => _confirmTakeBack(context, p, d),
@@ -237,6 +243,13 @@ class _DebtScreenState extends State<DebtScreen> {
   // that lived here argued it belonged on the screen where debts live. The
   // founder went looking for it the way anybody would, did not find it, and
   // moved it to Home's shortcut row on 2026-10-01. It opens from there now.
+
+  /// Hands a polite, editable message to the phone's share sheet (D31). The
+  /// person picks the chat app and can change every word before sending;
+  /// Salapify itself sends nothing anywhere.
+  Future<void> _remind(Debt d) async {
+    await Share.share(collectionMessage(d, now: widget.state.now));
+  }
 
   Future<void> _openAdd(BuildContext context, Palette palette) async {
     final Debt? added = await AddDebtSheet.show(context, palette);
@@ -753,11 +766,21 @@ class _DebtCard extends StatelessWidget {
     this.onArchive,
     this.onUnarchive,
     this.onViewPayments,
+    this.onRemind,
+    this.now,
   });
 
   final Palette palette;
   final Debt debt;
   final VoidCallback? onPay;
+
+  /// "Send a reminder", on an open debt owed TO the person only. Null on
+  /// everything else, and the control is then absent.
+  final VoidCallback? onRemind;
+
+  /// Today, for the overdue line. Null leaves the line out rather than
+  /// guessing a date.
+  final DateTime? now;
 
   /// Opens the payment list. A callback rather than the store, because this
   /// card is stateless and every other action on it already arrives this way.
@@ -827,6 +850,18 @@ class _DebtCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(meta.join(' · '), style: AppType.rowMeta(palette)),
                     ],
+                    // OVERDUE, said in words and colour. The due date used to
+                    // print in grey whether it was next week or two weeks
+                    // gone (competitor review, 2026-10-09).
+                    if (now != null && overdueDays(debt, now!) != null)
+                      Text(
+                        overdueDays(debt, now!) == 1
+                            ? 'Overdue by 1 day'
+                            : 'Overdue by ${overdueDays(debt, now!)} days',
+                        style: AppType.rowMeta(
+                          palette,
+                        ).copyWith(color: palette.warning),
+                      ),
                   ],
                 ),
               ),
@@ -951,6 +986,18 @@ class _DebtCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (onRemind != null &&
+              !debt.isSettled &&
+              !debt.isArchived) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            _Action(
+              key: ValueKey<String>('debt-remind-${debt.id}'),
+              palette: palette,
+              label: 'Send a reminder',
+              filled: false,
+              onTap: onRemind,
+            ),
+          ],
           if (onTakeBack != null) ...<Widget>[
             const SizedBox(height: Spacing.sm),
             _Action(
@@ -1074,6 +1121,7 @@ class _DebtCard extends StatelessWidget {
 
 class _Action extends StatelessWidget {
   const _Action({
+    super.key,
     required this.palette,
     required this.label,
     required this.filled,

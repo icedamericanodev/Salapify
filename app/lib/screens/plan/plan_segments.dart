@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/money/money.dart';
 
 import '../../features/shared/pan_empty_card.dart';
 import '../../design/pan_art.dart';
@@ -161,6 +162,7 @@ class BudgetsSegment extends StatelessWidget {
           _BudgetRow(
             palette: palette,
             row: b,
+            now: state.now,
             onEdit: () => EditBudgetSheet.show(context, state, b),
           ),
           const SizedBox(height: Spacing.sm),
@@ -192,11 +194,13 @@ class _BudgetRow extends StatelessWidget {
   const _BudgetRow({
     required this.palette,
     required this.row,
+    required this.now,
     required this.onEdit,
   });
 
   final Palette palette;
   final BudgetStatus row;
+  final DateTime now;
   final VoidCallback onEdit;
 
   Color get _colour => switch (row.health) {
@@ -294,6 +298,21 @@ class _BudgetRow extends StatelessWidget {
                   ),
                 ],
               ),
+              // A DAILY FIGURE (D31): "left of" answers how much, this
+              // answers how much per day, which is the question somebody has
+              // at a counter on the 18th. A figure, so it stays on screen.
+              if (budgetPerDay(row, now) case final Money perDay)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    // Whole pesos, rounded DOWN again: "About" beside
+                    // centavos read as fussy, and a floor of a floor still
+                    // never adds up past what is left.
+                    'About ${formatPeso((perDay.centavos ~/ 100).toDouble(), showDecimals: false)} a day '
+                    'for ${daysLeftInMonth(now) == 1 ? 'today' : '${daysLeftInMonth(now)} days'}',
+                    style: AppType.caption(palette),
+                  ),
+                ),
             ],
           ),
         ),

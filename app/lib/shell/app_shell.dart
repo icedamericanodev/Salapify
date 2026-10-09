@@ -251,6 +251,16 @@ class _AppShellState extends State<AppShell> {
     // Five seconds rather than four, because the undo has to be read and
     // then reached for, and the entry it undoes has just landed on a screen
     // the person is still taking in.
+    // WHAT IT CHANGED, not only that it saved (D31). An action with no
+    // visible consequence does not build a habit, and the figure that moved
+    // is on Home, the screen this just navigated away from. Spending only,
+    // and only with a payday set, because that is when the daily figure
+    // exists; the figure is the hero's own, read after the save.
+    final String pace =
+        logged.type == TransactionType.expense && widget.state.payday.isSet
+        ? ' ${formatPeso(widget.state.safeToSpendPerDay.pesos, showDecimals: false)}'
+              ' a day until payday now.'
+        : '';
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -265,7 +275,7 @@ class _AppShellState extends State<AppShell> {
             // just typed into a phone.
             '$whereItWent ${formatPeso(logged.amount.pesos)}'
             '${logged.merchant == null ? '' : ' at ${logged.merchant}'}. '
-            'Saved to this phone.',
+            'Saved to this phone.$pace',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,

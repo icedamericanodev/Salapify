@@ -410,3 +410,24 @@ double? parsePlanAmount(String raw) {
   if (v == null || !v.isFinite || v <= 0) return null;
   return v;
 }
+
+/// Whole days left in [now]'s calendar month, today included: 1 on the last
+/// day, never 0, so a divisor built on it cannot be zero.
+int daysLeftInMonth(DateTime now) {
+  final int last = DateTime(now.year, now.month + 1, 0).day;
+  return last - now.day + 1;
+}
+
+/// What a budget allows per day for the rest of the month (D31): what is
+/// left, spread evenly over the days left, today included.
+///
+/// Rounded DOWN to the centavo, never up. A daily figure that sums to more
+/// than what is left would be a promise the budget cannot keep; one that sums
+/// to a few centavos less is a figure somebody can spend to and stay inside.
+///
+/// Null when nothing is left, so an over-limit row says what it is over by
+/// rather than "₱0.00 a day".
+Money? budgetPerDay(BudgetStatus b, DateTime now) {
+  if (b.isOver || !b.remaining.isPositive) return null;
+  return Money(b.remaining.centavos ~/ daysLeftInMonth(now));
+}

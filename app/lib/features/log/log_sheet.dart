@@ -4,6 +4,7 @@ import '../../core/money/fast_log.dart';
 import '../../core/money/receipt_paste.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
+import '../../core/money/usual_entries.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -69,9 +70,64 @@ class _LogSheetState extends State<LogSheet> {
     final List<Account> usable = _spendable;
     _date = widget.state.now;
     _accountId = usable.isNotEmpty ? usable.first.id : '';
+    // LAST USED, not first in the list (D31). Somebody who pays from GCash
+    // every day was made to switch away from the first account on every
+    // single entry. Read from the newest expense, so nothing is stored; an
+    // account since closed, or a category since deleted, is simply skipped.
+    Transaction? last;
+    for (final Transaction t in widget.state.transactions) {
+      if (t.type != TransactionType.expense) continue;
+      if (last == null || t.createdAt > last.createdAt) last = t;
+    }
+    if (last != null) {
+      if (usable.any((Account a) => a.id == last!.accountId)) {
+        _accountId = last.accountId;
+      }
+      if (_categoriesFor(
+        TransactionType.expense,
+      ).any((CategoryInfo c) => c.name == last!.category)) {
+        _category = last.category;
+      }
+    }
     // The destination defaults to a DIFFERENT account. A transfer from an
     // account to itself moves nothing and reads as a bug to whoever logged it.
-    _toAccountId = usable.length > 1 ? usable[1].id : _accountId;
+    _toAccountId = _accountId;
+    for (final Account a in usable) {
+      if (a.id != _accountId) {
+        _toAccountId = a.id;
+        break;
+      }
+    }
+  }
+
+  /// Fills the form from a "usual" chip. Fills, never saves: the same rule
+  /// as the quick line above, because a guess about money is shown before
+  /// it is kept.
+  void _applyUsual(UsualEntry u) {
+    setState(() {
+      _type = TransactionType.expense;
+      final double a = u.amount.pesos;
+      _amount.text = a == a.roundToDouble()
+          ? a.toStringAsFixed(0)
+          : a.toStringAsFixed(2);
+      _merchant.text = u.merchant ?? '';
+      if (_categoriesFor(
+        TransactionType.expense,
+      ).any((CategoryInfo c) => c.name == u.category)) {
+        _category = u.category;
+      }
+      if (_spendable.any((Account x) => x.id == u.accountId)) {
+        _accountId = u.accountId;
+        if (_toAccountId == _accountId) {
+          for (final Account x in _spendable) {
+            if (x.id != _accountId) {
+              _toAccountId = x.id;
+              break;
+            }
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -331,6 +387,11 @@ class _LogSheetState extends State<LogSheet> {
             onApply: _applyQuick,
           ),
           const SizedBox(height: Spacing.sm),
+          _UsualRow(
+            palette: p,
+            entries: usualEntries(widget.state.transactions),
+            onPick: _applyUsual,
+          ),
 
           // SCAN LIVES HERE, not on Home's quick actions.
           //
@@ -741,6 +802,7 @@ class _CategoryPicker extends StatelessWidget {
               _Pill(
                 palette: palette,
                 label: c.name,
+                emoji: c.emoji,
                 selected: c.name == selected,
                 onTap: () => onSelect(c.name),
               ),
@@ -753,16 +815,22 @@ class _CategoryPicker extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   const _Pill({
+    super.key,
     required this.palette,
     required this.label,
     required this.selected,
     required this.onTap,
     this.caption,
+    this.emoji,
   });
 
   final Palette palette;
   final String label;
   final String? caption;
+
+  /// The category's own icon, beside the name. The user's choice of emoji,
+  /// so it is drawn as they picked it rather than as a Salapify glyph.
+  final String? emoji;
   final bool selected;
   final VoidCallback onTap;
 
@@ -793,13 +861,29 @@ class _Pill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? palette.onAccent : palette.textSecondary,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (emoji != null && emoji!.isNotEmpty) ...<Widget>[
+                      ExcludeSemantics(
+                        child: Text(
+                          emoji!,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? palette.onAccent
+                            : palette.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
                 if (caption != null)
                   Text(
@@ -900,6 +984,10 @@ class _QuickParseField extends StatelessWidget {
         TextField(
           key: const Key('log-quick-parse'),
           controller: controller,
+          // The keyboard is up the moment the sheet opens (D31): the sheet
+          // exists to take a typed line, and a tap to start typing was a tap
+          // spent on every single entry.
+          autofocus: true,
           onChanged: onChanged,
           onSubmitted: (_) => onApply(),
           keyboardType: TextInputType.text,
@@ -1013,6 +1101,52 @@ class _QuickParseField extends StatelessWidget {
     if (r.person != null) b.write(', with ${r.person}');
     b.write('.');
     return b.toString();
+  }
+}
+
+/// The entries this ledger repeats, one tap from filled (D31). Absent when
+/// nothing repeats yet, so a new user meets no empty row.
+class _UsualRow extends StatelessWidget {
+  const _UsualRow({
+    required this.palette,
+    required this.entries,
+    required this.onPick,
+  });
+
+  final Palette palette;
+  final List<UsualEntry> entries;
+  final ValueChanged<UsualEntry> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('Your usual', style: AppType.label(palette)),
+          const SizedBox(height: Spacing.xs),
+          Wrap(
+            spacing: Spacing.sm,
+            runSpacing: Spacing.sm,
+            children: <Widget>[
+              for (final UsualEntry u in entries)
+                _Pill(
+                  key: ValueKey<String>(
+                    'usual-${u.label}-${u.amount.centavos}',
+                  ),
+                  palette: palette,
+                  label:
+                      '${u.label} ${formatPeso(u.amount.pesos, showDecimals: u.amount.centavos % 100 != 0)}',
+                  selected: false,
+                  onTap: () => onPick(u),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
