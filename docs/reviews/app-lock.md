@@ -68,22 +68,29 @@ setting is not part of any export.
 screen. The launch themes are AppCompat. This needs a full rebuild, not a
 hot restart. The Android build on CI is what compiles the Kotlin.
 
-## Waiting on the founder (not built)
+## Founder decisions, 2026-10-09: "do the best recommendation"
 
-1. **Moving to a new phone.** The privacy sheet says that setting up a new
-   phone by copying from this one brings Salapify across. It does not.
-   - `data_extraction_rules.xml` includes the `file` domain.
-   - The ledger lives in Flutter's documents folder, `app_flutter/`, which
-     is outside that domain.
-   - So the sentence is false today.
-   - Two ways out, and both touch privacy and stored data:
-     - include `app_flutter/` in device transfer, excluding
-       `app_lock.json` (recommended);
-     - or correct the sentence.
-2. **Delete everything behind the phone's lock.** When app lock is on,
-   should Delete everything ask for the phone's lock first?
-   - It is the one action that cannot be undone.
-   - Somebody holding an unlocked phone would otherwise reach it.
+1. **A new phone gets the records, and app lock stays behind.**
+   - `data_extraction_rules.xml` now includes `app_flutter/` in device
+     transfer. That is where `getApplicationDocumentsDirectory` puts the
+     ledger on Android (`Context.getDir("flutter")`, read from
+     path_provider_android 2.3.1).
+   - It excludes `app_lock.json` and its `.tmp`.
+   - Cloud backup stays fully off.
+   - The privacy sheet and `privacy.html` now say so, including "Android 12
+     or newer", because `allowBackup="false"` stops even a phone to phone
+     copy on Android 11 and older.
+   - Guard: `test/data/data_transfer_rules_test.dart`. Each rule was
+     removed once and the test went red: "app lock would arrive switched
+     on", and "nothing copies it to the new phone".
+2. **Delete everything asks for the phone's lock first while app lock is on.**
+   - `AppLockController.confirmOwner` runs before anything is erased.
+   - A no, a cancel or an error erases nothing, and the sheet says so.
+   - A phone with no screen lock left still goes ahead, because refusing
+     would trap the owner.
+   - The last-check text says the phone's lock comes first.
+   - Guard: the "asks the phone first" journey in `app_lock_test.dart`.
+     With the call removed it failed with "the phone was not asked".
 
 ## Deferred
 

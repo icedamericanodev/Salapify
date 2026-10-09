@@ -124,8 +124,10 @@ class PrivacySheet extends StatelessWidget {
                 'Android would normally copy an app\'s data to your Google '
                 'account. Salapify turns that off, so no copy of your money '
                 'exists in a cloud we cannot see, check or delete. Setting up '
-                'a new phone by copying directly from this one still brings '
-                'Salapify across, with no server in between.',
+                'a new phone (Android 12 or newer) by copying directly from '
+                'this one still brings your records across, with no server '
+                'in between. App lock stays behind: turn it on again on the '
+                'new phone.',
           ),
           _Line(
             palette: palette,

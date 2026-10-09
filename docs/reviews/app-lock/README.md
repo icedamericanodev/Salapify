@@ -23,3 +23,9 @@ Shown after the phone's automatic prompt was backed out of.
 | Off | On |
 |---|---|
 | <img src="settings_app_lock_off.png" width="260"> | <img src="settings_app_lock_on.png" width="260"> |
+
+## Founder decisions of 2026-10-09 (dark)
+
+| Delete everything asks the phone's lock first | Privacy: a new phone gets the records, not the lock |
+|---|---|
+| <img src="app_lock_wipe.png" width="260"> | <img src="sheet_privacy.png" width="260"> |

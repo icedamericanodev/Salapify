@@ -82,6 +82,7 @@ class _WipeSheetState extends State<WipeSheet> {
   @override
   Widget build(BuildContext context) {
     final Palette p = Palette.of(widget.state.theme);
+    final bool lockOn = AppLockScope.maybeOf(context)?.enabled ?? false;
     final FinancialState s = widget.state;
 
     if (_removed != null) return _done(p);
@@ -185,7 +186,8 @@ class _WipeSheetState extends State<WipeSheet> {
           else ...<Widget>[
             Text(
               'Last check. Tapping the red button erases the figures above '
-              'from this phone and they cannot be brought back.',
+              'from this phone and they cannot be brought back.'
+              '${lockOn ? ' Your phone\'s lock is asked first.' : ''}',
               style: AppType.body(p).copyWith(color: p.textPrimary),
             ),
             const SizedBox(height: Spacing.md),
@@ -222,6 +224,18 @@ class _WipeSheetState extends State<WipeSheet> {
     setState(() => _busy = true);
     final AppLockController? lock = AppLockScope.maybeOf(context);
     _lockWasOn = lock?.enabled ?? false;
+    // The phone's lock first, while app lock is on: this cannot be undone,
+    // and the phone may be in somebody else's hand. Nothing is touched
+    // until it passes.
+    final String? refused = await lock?.confirmOwner(
+      'Erase everything in Salapify',
+    );
+    if (refused != null) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _say(refused);
+      return;
+    }
     final int removed = await widget.state.deleteEverything();
     // "Everything" includes app lock. Its setting lives outside the ledger,
     // so deleting the ledger alone would leave a phone with nothing in

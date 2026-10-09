@@ -452,6 +452,39 @@ class AppLockController extends ChangeNotifier {
     return null;
   }
 
+  /// The phone's lock, asked again before the one action that cannot be
+  /// undone: "Delete everything". Founder decision, 2026-10-09. Without it,
+  /// anybody handed the phone while Salapify is open could erase the lot.
+  ///
+  /// Returns null to go ahead, or a sentence saying why nothing happened.
+  /// App lock off means nothing to ask. A phone with no screen lock any more
+  /// goes ahead too, for the same reason [unlock] lets its owner in: there
+  /// is nothing left to check, and refusing would trap them.
+  Future<String?> confirmOwner(String reason) async {
+    if (!_enabled) return null;
+    UnlockOutcome outcome;
+    try {
+      outcome = await authenticator
+          .authenticate(reason)
+          .timeout(promptTimeout, onTimeout: () => UnlockOutcome.error);
+    } catch (_) {
+      outcome = UnlockOutcome.error;
+    }
+    switch (outcome) {
+      case UnlockOutcome.unlocked:
+      case UnlockOutcome.unavailable:
+        return null;
+      case UnlockOutcome.lockedOut:
+        return 'Too many tries. Nothing was erased. Wait a moment and try '
+            'again.';
+      case UnlockOutcome.biometricsPaused:
+        return _pausedCopy;
+      case UnlockOutcome.cancelled:
+      case UnlockOutcome.error:
+        return 'Nothing was erased. Your phone\'s lock was not confirmed.';
+    }
+  }
+
   /// "Delete everything on this phone" takes the lock with it.
   Future<void> wipe() => _turnOff();
 

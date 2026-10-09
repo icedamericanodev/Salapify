@@ -331,6 +331,68 @@ void main() {
     expect(lock.enabled, isFalse);
   });
 
+  testWidgets('with app lock on, delete everything asks the phone first, and '
+      'a no erases nothing', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1170, 3200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final _Rig rig = _Rig();
+    rig.phone.answers.add(UnlockOutcome.unlocked);
+    final FinancialState state = await rig.pump(tester);
+    final int entries = state.transactions.length;
+    expect(entries, greaterThan(0));
+
+    await tester.tap(find.byIcon(Icons.settings_outlined).first);
+    await tester.pumpAndSettle();
+    final Finder row = find.text('Delete everything on this phone');
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete everything').last);
+    await tester.pumpAndSettle();
+    // Said before the tap, not discovered after it.
+    expect(find.textContaining('Your phone\'s lock is asked first'), findsOne);
+
+    // Somebody else holding the phone backs out of the prompt.
+    final int askedBefore = rig.phone.asked;
+    rig.phone.answers.add(UnlockOutcome.cancelled);
+    await tester.tap(find.text('Yes, erase it'));
+    await tester.pumpAndSettle();
+    expect(rig.phone.asked, askedBefore + 1, reason: 'the phone was not asked');
+    expect(
+      state.transactions.length,
+      entries,
+      reason: 'the records were erased without the phone\'s lock',
+    );
+    expect(rig.lock.enabled, isTrue);
+    expect(find.textContaining('Nothing was erased'), findsOneWidget);
+
+    // The owner passes it: now it goes, directionally.
+    rig.phone.answers.add(UnlockOutcome.unlocked);
+    await tester.tap(find.text('Yes, erase it'));
+    await tester.pumpAndSettle();
+    expect(state.transactions, isEmpty);
+    expect(find.text('Gone'), findsOneWidget);
+    expect(rig.lock.enabled, isFalse);
+  });
+
+  test(
+    'a phone with no screen lock left can still erase, never trapped',
+    () async {
+      final _Rig rig = _Rig();
+      await rig.lock.load();
+      rig.phone.answers.add(UnlockOutcome.unavailable);
+      expect(await rig.lock.confirmOwner('Erase'), isNull);
+      // And with app lock off there is nothing to ask at all.
+      final _Rig off = _Rig(enabled: false);
+      await off.lock.load();
+      expect(await off.lock.confirmOwner('Erase'), isNull);
+      expect(off.phone.asked, 0);
+    },
+  );
+
   testWidgets('delete everything takes app lock with it', (
     WidgetTester tester,
   ) async {

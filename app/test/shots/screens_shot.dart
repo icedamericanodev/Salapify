@@ -4818,6 +4818,43 @@ void appLockShots() {
     });
   }
 
+  // Delete everything's last step with app lock on: it says the phone's
+  // lock comes first, before the red button is tapped.
+  testWidgets('app_lock_wipe renders in gabi', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    await state.restore();
+    state.startWithExampleData();
+    if (state.theme != ThemeMode2.gabi) state.toggleTheme();
+    final AppLockController lock = AppLockController(
+      settings: MemoryLockSettings(true),
+      authenticator: _ShotLock(UnlockOutcome.unlocked),
+      setSecureWindow: (bool _) async {},
+    );
+    await lock.load();
+    await tester.pumpWidget(SalapifyApp(state: state, lock: lock));
+    await tester.pumpAndSettle();
+    unawaited(WipeSheet.show(tester.element(find.byType(AppShell)), state));
+    await tester.pumpAndSettle();
+    final Finder go = find.text('Delete everything').last;
+    await tester.ensureVisible(go);
+    await tester.pumpAndSettle();
+    await tester.tap(go);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Yes, erase it'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/app_lock_wipe.png'),
+    );
+  });
+
   for (final bool on in <bool>[false, true]) {
     testWidgets('settings app lock ${on ? 'on' : 'off'} renders', (
       WidgetTester tester,
