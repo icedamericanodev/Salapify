@@ -10,6 +10,7 @@ import '../data/store.dart';
 import '../design/tokens.dart';
 import '../core/money/accounts.dart';
 import '../core/money/bills.dart';
+import '../core/money/bills_to_reserve.dart';
 import '../core/money/debt.dart';
 import '../core/money/health_check.dart';
 import '../core/money/payday_schedule.dart';
@@ -718,7 +719,9 @@ class FinancialState extends ChangeNotifier {
       debts: debts,
       budgets: budgets,
       goals: goals,
-      bills: bills,
+      // The list Safe to Spend holds back, so Pan explains the figure it is
+      // quoting rather than a smaller one. See [billsHeldBack].
+      bills: billsHeldBack,
       installments: installments,
       upcoming: upcoming,
       payday: payday,
@@ -2481,7 +2484,7 @@ class FinancialState extends ChangeNotifier {
     accounts: accounts,
     budgets: _budgets,
     goals: _goals,
-    bills: _bills,
+    bills: billsHeldBack,
     installments: _installments,
     payday: payday,
     now: now,
@@ -2562,6 +2565,32 @@ class FinancialState extends ChangeNotifier {
     );
   }
 
+  /// The bills money has to be found for: the built-in list plus every bill
+  /// the person added on the Bills screen that falls due by payday (D32,
+  /// 2026-10-09). See bills_to_reserve.dart for the rules.
+  ///
+  /// ONE LIST, READ BY EVERY ENGINE THAT ASKS "WHAT IS ALREADY SPOKEN FOR":
+  /// Safe to Spend, the health check and Pan. Until D32 all three read
+  /// `_bills` alone, so a bill added on the Bills screen was held back by
+  /// none of them, and Pan's own answer said "Bills you add are held back
+  /// from Safe to Spend" about a figure that did not hold them back.
+  /// Reminders keep reading the two registers apart, because each register
+  /// already has its own reminder and merging them would buzz twice.
+  ///
+  /// With no payday set there is no "by payday", so the window is a month:
+  /// the span a monthly bill repeats in, and the one a budget is set for.
+  List<BillItem> get billsHeldBack {
+    final PaydayCycle p = payday;
+    return billsToReserve(
+      bills: _bills,
+      upcoming: _upcoming,
+      daysToPayday: p.isSet ? p.daysToPayday : _noPaydayWindowDays,
+      now: now,
+    );
+  }
+
+  static const int _noPaydayWindowDays = 30;
+
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
     // CONVERTED ON THE WAY IN. The engine is a line-for-line port of a
     // prototype with no currency field, so it sums `balance` raw and has to
@@ -2585,7 +2614,9 @@ class FinancialState extends ChangeNotifier {
     // plan the user pays off stays reserved forever, and a demo bill they
     // never entered reserves money on day one. Measured before the fix: one
     // real 50,000 peso account gave a Safe to Spend of 0.00.
-    bills: _bills,
+    //
+    // And the bills the person ADDED, since D32. See [billsHeldBack].
+    bills: billsHeldBack,
     debtsIOwe: debtsIOwe,
     // What the debts REALLY cost each month, instead of the prototype's eight
     // percent of the balance. See Debt.monthlyMinimum.
