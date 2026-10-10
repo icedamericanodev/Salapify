@@ -190,6 +190,23 @@ int? daysUntil(String? dueDate, DateTime now) {
   return days;
 }
 
+const List<String> _weekdays = <String>[
+  'monday',
+  'mon',
+  'tuesday',
+  'tue',
+  'wednesday',
+  'wed',
+  'thursday',
+  'thu',
+  'friday',
+  'fri',
+  'saturday',
+  'sat',
+  'sunday',
+  'sun',
+];
+
 int? _daysUntil(String? dueDate, DateTime now) {
   if (dueDate == null) return null;
   final String raw = dueDate.trim();
@@ -200,6 +217,19 @@ int? _daysUntil(String? dueDate, DateTime now) {
   if (lower == 'tomorrow') return 1;
 
   final DateTime today = DateTime(now.year, now.month, now.day);
+
+  // A DAY OF THE WEEK, "Sunday" or "Sun", meaning the next one, and today
+  // when today is that day. Salapify's own sample data writes the Spotify
+  // bill this way and this returned null for it, so the bill got no reminder
+  // and Safe to Spend held it back while the health check and Pan left it
+  // out of "due before payday": one bill, two answers (ledger-reconciler,
+  // 2026-10-10). Exact names only, so "Sunday lunch" is not a date.
+  final int weekday = _weekdays.indexOf(lower.replaceAll('.', ''));
+  if (weekday >= 0) {
+    // DateTime.weekday runs Monday 1 to Sunday 7; the list holds each day
+    // twice, full name then short, so `weekday ~/ 2 + 1` is that number.
+    return (weekday ~/ 2 + 1 - today.weekday) % 7;
+  }
 
   // `\d{1,2}`, not `\d{2}`. The field is free text with the hint "Oct 3, or
   // the 15th", and `2026-9-21` is exactly what somebody types. It returned

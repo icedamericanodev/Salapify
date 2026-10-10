@@ -850,8 +850,12 @@ void main() {
     }
     expect(p.openingBalance + ins - outs, p.closingBalance);
 
-    // The seed has instalments, which carry no due date, so the engine must
-    // be reporting them as undated rather than quietly skipping them.
-    expect(p.undatedOutflowCount, greaterThan(0));
+    // EVERY seed outflow has a date the engine can place. This asserted the
+    // opposite until 2026-10-10, under a comment saying instalments carry no
+    // due date; the one undated item was really the Spotify bill written
+    // "Sunday", which the date reader could not read. It reads weekdays now,
+    // so a seed item landing in the undated bucket is a reader regression.
+    // Undated reporting itself is covered by the fixtures above.
+    expect(p.undatedOutflowCount, 0);
   });
 }

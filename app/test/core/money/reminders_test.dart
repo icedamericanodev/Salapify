@@ -492,6 +492,18 @@ void main() {
       expect(daysUntil('Sep 25', at), 6);
     });
 
+    test('a day of the week means the next one, today when it is today', () {
+      // Saturday 19 September 2026.
+      final DateTime at = DateTime(2026, 9, 19, 12);
+      expect(daysUntil('Sunday', at), 1);
+      expect(daysUntil('sun', at), 1);
+      expect(daysUntil('Saturday', at), 0);
+      expect(daysUntil('Fri.', at), 6);
+      expect(daysUntil('Monday', at), 2);
+      // Not a date, so not guessed at.
+      expect(daysUntil('Sunday lunch', at), isNull);
+    });
+
     test('a bare day of the month means the NEXT one, never a past one', () {
       final DateTime at = DateTime(2026, 9, 19, 12);
       expect(daysUntil('25', at), 6);

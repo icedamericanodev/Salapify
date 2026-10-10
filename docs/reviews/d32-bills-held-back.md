@@ -58,7 +58,7 @@ docs/reviews/d32/README.md.
 
 ## Deferred, routine
 
-3. `daysUntil` cannot read weekday names ("Sunday"), so such a bill is held
+3. DONE 2026-10-10. `daysUntil` could not read weekday names ("Sunday"), so such a bill was held
    back by Safe to Spend but left out of the health check's dated total.
    A weekday branch in `reminders.dart` fixes every reader at once, and also
    starts reminders for those bills.
