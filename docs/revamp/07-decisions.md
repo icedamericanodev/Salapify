@@ -1488,3 +1488,24 @@ both answers were the recommended option.
    example's Meralco was counted once but kept the built-in date, September
    15 and overdue, while the Bills screen says Today, so Pan and the health
    check left it out of "due before payday".
+
+## D34. When a friend paid, your share is spending on the day you ate. ANSWERED 2026-10-10
+
+THE QUESTION. Building D32's split-bill answer, the ledger-reconciler found
+that when somebody ELSE paid, the split took the person's share out of
+their account at once (the box is ticked by default) and also recorded that
+they owed it, so paying the friend back took it out a second time: one 300
+share, 600 out of the account. Removing the double charge is a bug fix. When
+the share counts as spending is a money-meaning choice, so it went to the
+founder.
+
+THE ANSWER, the recommended option: **on the day of the meal, under its own
+category.** The share shows in that day's Food budget. Cash leaves only when
+the friend is actually paid back, and that payment is not counted as
+spending a second time. This is D32.3's "borrowing mirrors lending" applied
+to a split: the friend lent you your share, so the record is a borrowing,
+and repaying a borrowing is not spending.
+
+NOT CHOSEN: counting the share on the day it is paid back, under "Debt &
+Loan Servicing", which was smaller to build but would have kept the dinner
+out of the Food budget entirely.
