@@ -21,10 +21,10 @@
 <body>
 <main>
   <h1>Salapify <span class="accent">Privacy Policy</span></h1>
-  <p class="updated">Last updated: October 9, 2026</p>
+  <p class="updated">Last updated: October 10, 2026</p>
 
   <div class="card">
-    <p><strong>The short version:</strong> your financial data stays on your device. Salapify has no servers, no accounts, no analytics, no trackers, and no ads. We cannot see your data even if we wanted to. The only copies of your financial data that ever leave your phone are the backups and exports you set up yourself, to a place you choose, and a direct phone to phone copy if you choose one while setting up a new phone. The app also asks a public exchange rate service for daily rates when you use a currency feature (logging an expense in a foreign currency, or the currency converter tool), sending only your main currency code, never your data (see Live exchange rates below).</p>
+    <p><strong>The short version:</strong> your financial data stays on your device. Salapify has no servers, no accounts, no ads, and no analytics of its own. We cannot see your data even if we wanted to. The only copies of your financial data that ever leave your phone are the backups and exports you set up yourself, to a place you choose, and a direct phone to phone copy if you choose one while setting up a new phone. Two features connect to the internet, and neither ever sends your financial data: the currency converter asks a public exchange rate service for today's rates, and the receipt scanner, which uses Google's ML Kit, sends Google a small usage report after each scan (see Live exchange rates and Receipt scanning below).</p>
   </div>
 
   <h2>What data Salapify handles</h2>
@@ -32,13 +32,15 @@
   <p>Because your data lives only on your device, you decide how long it is kept. Deleting an item removes it, and uninstalling Salapify removes all of it from your phone. We never hold a copy, so there is nothing for you to request from us and nothing for us to delete on your behalf.</p>
 
   <h2>What we collect</h2>
-  <p>Nothing. Salapify has no user accounts, no sign in, no analytics libraries, no crash reporters, and no advertising identifiers. We do not collect personal information of any kind.</p>
+  <p>We, the Salapify developer, collect nothing. Salapify has no user accounts, no sign in, no crash reporters, no advertising identifiers, and no analytics of our own, and nothing is ever sent to us.</p>
+  <p>Two things are sent from your phone to other companies, and both are described in full below: a currency code to the exchange rate service when you open the currency converter, and a usage report to Google when you scan a receipt. Neither contains your financial data.</p>
 
   <h2>Permissions the app asks for, and why</h2>
   <ul>
     <li><strong>Notifications:</strong> only if you turn on reminders (payday, bill due dates, collecting money owed to you, or the daily logging nudge). All reminders are scheduled locally on your phone.</li>
     <li><strong>Your phone's lock (fingerprint, face, PIN, pattern or password):</strong> only if you turn on App lock. The check happens entirely inside your phone's own system, which tells Salapify only whether it passed. Salapify never sees, stores, or has access to your fingerprint, face, PIN, pattern or password. The App lock setting itself stays on this phone and is not part of any export.</li>
-    <li><strong>Internet:</strong> used for two things only, both described below: downloading app updates, and fetching today's exchange rates when you use a currency feature. Your financial data is never part of either request.</li>
+    <li><strong>Internet:</strong> used for two things only, both described below: fetching today's exchange rates when you open the currency converter, and the usage report Google's receipt reader sends after you scan a receipt. Your financial data is never part of either.</li>
+    <li><strong>Network state:</strong> added by Google's receipt reader so it can wait for a connection before sending its usage report. It is not something you are asked about, and it does not let Salapify see what else you do online.</li>
     <li><strong>Storage access via the system file picker:</strong> only when you choose to back up, export, restore, or import your data (including CSV import). You pick the file or destination, and Salapify reads or writes only that one file. It never browses your device on its own.</li>
   </ul>
 
@@ -47,20 +49,33 @@
   <p><strong>Moving to a new phone.</strong> Android's own backup to Google Drive is switched off for Salapify, so no copy of your records sits in a cloud account. If your current phone runs Android 12 or newer, copying it straight to a new phone during setup can bring Salapify's records across, phone to phone, with no server in between. This happens only when you choose to copy your old phone during setup, and not every setup tool uses this route, so export a backup first anyway and open Salapify on the new phone before you reset the old one. App lock is not copied: turn it on again on the new phone.</p>
   <p><strong>Spare copies Salapify keeps on your phone.</strong> So that a mistake can be put right, Salapify keeps up to two spare copies of your records on the device, and never anywhere else. The first holds the version from just before your last change, and it is replaced constantly as you use the app. The second is kept only if you restore a backup, and it holds what was on the phone immediately before that restore; it is not temporary, and it stays until you restore again or erase everything. Both are plain readable text in Salapify's own private storage, which other apps on your phone cannot open. Using Delete everything on this phone, in Salapify's Settings, deletes your records, both spare copies, your conversation with Pan, and the cached exchange rates, all of it, permanently, and so does uninstalling Salapify.</p>
 
-  <h2>Update delivery</h2>
-  <p>The app checks Shorebird's update service to download improvements to the app's own code. This is a standard, anonymous code update mechanism, the same kind used by many Flutter and React Native apps: it fetches only the app's own updated code, and your financial data is never part of these requests.</p>
+  <h2>Updates</h2>
+  <p>Salapify has no update service of its own and never downloads code by itself. New versions come from wherever you installed the app.</p>
 
   <h2>Live exchange rates</h2>
-  <p>When, and only when, you use a currency feature (logging an expense in a currency other than your main one, or the currency converter tool), Salapify asks a public exchange rate service (open.er-api.com) for today's rates so it can convert for you. The only thing sent is the three letter code of your main currency, for example PHP. No account, no transaction, no balance, no name, and no personal information is ever part of this request. As with any app that connects to the internet, the rate service can see your device's internet (IP) address, which it needs to answer the request; it does not receive anything that identifies you or your finances. Rates are provided by Exchange Rate API (exchangerate-api.com). If you are offline or the service cannot be reached, you simply type the rate yourself, exactly as before. The rates that come back are stored only on your device so the app does not need to ask again for several hours, and they are not part of your backups or exports. A direct phone to phone copy carries them along with your records.</p>
+  <p>When, and only when, you open the currency converter tool, Salapify asks a public exchange rate service (open.er-api.com) for today's rates so it can convert for you. The only thing sent is the three letter code of your main currency, for example PHP. No account, no transaction, no balance, no name, and no personal information is ever part of this request. As with any app that connects to the internet, the rate service can see your device's internet (IP) address, which it needs to answer the request; it does not receive anything that identifies you or your finances. Rates are provided by Exchange Rate API (exchangerate-api.com). If you are offline or the service cannot be reached, the converter uses the last rates saved on your phone, or rates built into the app. The rates that come back are stored only on your device so the app does not need to ask again for several hours, and they are not part of your backups or exports. A direct phone to phone copy carries them along with your records.</p>
+
+  <h2>Receipt scanning</h2>
+  <p>When you scan a receipt, Salapify reads it with Google's ML Kit text recognition, which is built into the app and runs entirely on your phone. The photo and the words on it are never sent anywhere. Salapify keeps only the words it found, which you check before anything is saved, and deletes the photo as soon as it has them.</p>
+  <p>After a scan, ML Kit sends Google a small usage report. Google's own documentation says ML Kit does this for every app that uses it, to measure performance, fix problems, maintain and improve ML Kit, and detect misuse. The report contains:</p>
+  <ul>
+    <li>the phone's manufacturer, model, Android version and build;</li>
+    <li>the app's name and version, and the ML Kit version;</li>
+    <li>your country, your mobile network code, your time zone, your language, and whether you are on Wi-Fi or mobile data;</li>
+    <li>how the reading went, such as how long it took, the size of the image, and any error code;</li>
+    <li>a random identifier created for this install of Salapify, which uninstalling the app resets.</li>
+  </ul>
+  <p>It never contains the photo, the text on the receipt, your amounts, your name, or anything else you have entered in Salapify. Google receives it over an encrypted connection and, like any internet service, can see your device's internet (IP) address. The report goes to Google, not to us: we cannot see it, and we cannot delete it. Google's handling of it is covered by the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>, the <a href="https://developers.google.com/ml-kit/terms">ML Kit terms</a> and Google's <a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>.</p>
+  <p>Salapify cannot switch this report off. If you would rather it never happened, don't scan: paste the receipt's text or type the entry yourself, and nothing is sent.</p>
 
   <h2>Children</h2>
-  <p>Salapify is a general audience budgeting tool and does not knowingly collect any data from anyone, children included, because it does not collect data at all.</p>
+  <p>Salapify is a general audience budgeting tool. We do not knowingly collect data from anyone, children included, because nothing is ever sent to us. The only things that leave the phone are the exchange rate request and the receipt reader's usage report described above.</p>
 
   <h2>Changes to this policy</h2>
-  <p>If this policy ever changes (for example, if an optional cloud sync feature is added someday), the change will be described here and the app will ask before anything leaves your device. On device and private stays the default, always.</p>
+  <p>If this policy ever changes (for example, if an optional cloud sync feature is added someday), the change will be described here, and anything new that leaves your device will be named in the app before it happens. On device and private stays the default, always.</p>
 
   <h2>Who is responsible, and how to reach us</h2>
-  <p>Salapify is built and maintained by the Salapify developer, who is the party responsible for this app under the Philippine Data Privacy Act. Because the app collects nothing and keeps no copy of your data, there is no data of yours for us to access, correct, or delete. For any privacy question, open an issue on the <a href="https://github.com/icedamericanodev/Salapify">Salapify GitHub repository</a>, or reach the developer by email at the address shown on the app's Google Play listing.</p>
+  <p>Salapify is built and maintained by the Salapify developer, who is the party responsible for this app under the Philippine Data Privacy Act. Because nothing is ever sent to us and we keep no copy of your data, there is no data of yours for us to access, correct, or delete. The receipt reader's usage report goes to Google, not to us, and Google's Privacy Policy explains how to reach Google about it. For any privacy question, open an issue on the <a href="https://github.com/icedamericanodev/Salapify">Salapify GitHub repository</a>, or reach the developer by email at the address shown on the app's Google Play listing.</p>
 </main>
 </body>
 </html>

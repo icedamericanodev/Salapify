@@ -117,8 +117,12 @@ class WelcomeScreen extends StatelessWidget {
                     const SizedBox(width: Spacing.md),
                     Expanded(
                       child: Text(
-                        'Offline. No account, no sign up. Everything stays on '
-                        'this phone.',
+                        // "Offline. No account, no sign up. Everything stays
+                        // on this phone." until 2026-10-10. "Offline" is an
+                        // absolute the converter and the receipt reader both
+                        // break; what stays true is the records.
+                        'No account, no sign up. Your records stay on this '
+                        'phone.',
                         style: AppType.body(p),
                       ),
                     ),

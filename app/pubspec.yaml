@@ -75,10 +75,17 @@ dependencies:
   # the APK and is never fetched. The unbundled variant
   # (com.google.android.gms:play-services-mlkit-text-recognition) is 260KB
   # instead of about 4MB per architecture, and downloads its model from Play
-  # Services on first use. That trade is not available to Salapify: the app
-  # makes exactly ONE network request, to open.er-api.com for exchange rates,
-  # and the privacy receipt names it. A second request, fetching a model the
-  # moment somebody photographs a receipt, would make that receipt false.
+  # Services on first use, which would add yet another request.
+  #
+  # IT IS NOT SILENT, whichever variant: ML Kit uploads a usage report to
+  # Google (firebaselogging.googleapis.com) after every scan, through
+  # com.google.android.datatransport. Device, country, carrier, time zone,
+  # latency and a per-install ID; never the image or the text. Verified
+  # 2026-10-10, docs/reviews/mlkit-telemetry.md. This comment said "exactly
+  # ONE network request" until then. The founder chose to keep it and
+  # disclose it; Google APIs ToS 3(a) forbids switching it off. Changing or
+  # upgrading this package means re-checking privacy_sheet.dart,
+  # privacy.html and the Play data safety answers in docs/play-data-safety.md.
   google_mlkit_text_recognition: ^0.17.1
   local_auth: ^3.0.2
 

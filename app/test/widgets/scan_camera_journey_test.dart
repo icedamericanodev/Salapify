@@ -352,6 +352,9 @@ TOTAL              147.00
 
     expect(find.textContaining('Read on your phone'), findsOneWidget);
     expect(find.textContaining('not saved or sent anywhere'), findsOneWidget);
+    // And the notice, beside the buttons so it is read BEFORE the scan that
+    // sends it: Google's reader uploads a usage report after each scan.
+    expect(find.textContaining('usage report'), findsOneWidget);
   });
 
   testWidgets('a photo Android threw away is picked back up', (

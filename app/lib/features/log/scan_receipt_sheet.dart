@@ -369,7 +369,16 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
             // rather than only in the privacy receipt. Reading happens on the
             // phone, with a model that shipped inside the app, and the
             // picture is deleted the moment the words are out of it.
-            'Read on your phone. The photo is not saved or sent anywhere.',
+            //
+            // The second sentence is the notice, added 2026-10-10: Google's
+            // reader uploads a usage report after each scan (see
+            // docs/reviews/mlkit-telemetry.md). It sits here, beside the two
+            // buttons, so it is read BEFORE the scan that sends it, which a
+            // line in Settings cannot promise. It stays on the screen rather
+            // than behind an info dot because silence here would mislead.
+            'Read on your phone. The photo is not saved or sent anywhere. '
+            'Google\'s reader sends Google a usage report, never your '
+            'receipt.',
             style: AppType.caption(p),
           ),
           if (_readFailure != null) ...<Widget>[
