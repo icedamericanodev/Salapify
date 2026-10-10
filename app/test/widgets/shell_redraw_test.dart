@@ -54,7 +54,7 @@ void main() {
     // is changed. Without this the test below would pass on an app that
     // never showed the figure at all.
     //
-    // 24,108, and it has moved THREE times for reasons that are the seed's
+    // 32,056, and it has moved FOUR times for reasons that are the seed's
     // and the engine's rather than this test's. It was 38,414.
     //
     //   P2.3 took it to 27,359: `acc_maya` ships marked set aside, so 15,300
@@ -65,12 +65,15 @@ void main() {
     //   D32 took it to 24,108: bills added on the Bills screen are held back
     //   too. The seed's Spotify there is unpaid and due Sunday, 239, padded
     //   to 262.90 by the careful scenario, 85 percent of which is 224.
+    //   D33 took it to 32,056: only bills due by payday are held back, so
+    //   the 8,500 tuition due October 5 waits for the next cycle. 8,500
+    //   padded by a tenth is 9,350, 85 percent of which is 7,948.
     //
     // Both figures are generated rather than chosen; see vector D in
     // test/core/money/safe_to_spend_golden_test.dart and the measurement in
     // test/core/money/debt_minimums_test.dart.
     expect(
-      find.textContaining('24,108'),
+      find.textContaining('32,056'),
       findsWidgets,
       reason: 'the fixture stopped showing the figure this test watches',
     );
@@ -81,7 +84,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('24,108'),
+      find.textContaining('32,056'),
       findsNothing,
       reason:
           'the screen is still showing a figure the store no longer holds, '

@@ -1470,3 +1470,21 @@ the recommended option.
 3. **Borrowing is the mirror of lending.** With D31's "lending moves real
    cash", borrowing into an account moves money IN, the debt rises by the
    same amount, net worth is unchanged, and it is never counted as income.
+
+## D33. Which bills Safe to Spend holds back, and on which date. ANSWERED 2026-10-10
+
+THE QUESTION. Building D32's first answer, the ledger-reconciler found two
+places where the built-in bill list and the Bills screen still followed
+different rules. Both change a money figure, so both went to the founder;
+both answers were the recommended option.
+
+1. **Only bills due by payday are held back, from either list.** The engine
+   reserved every unpaid built-in bill whatever its date, so the example's
+   8,500 tuition due October 5 was held back in a cycle ending September 30,
+   while a bill added on the Bills screen for the same date was not, and the
+   Safe to Spend breakdown labelled the total "Upcoming bills before payday".
+   Overdue bills and bills with a date nobody can read are still held back.
+2. **When a bill is on both lists, the date on the Bills screen wins.** The
+   example's Meralco was counted once but kept the built-in date, September
+   15 and overdue, while the Bills screen says Today, so Pan and the health
+   check left it out of "due before payday".

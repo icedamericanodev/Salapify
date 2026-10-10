@@ -30,8 +30,16 @@ import 'duplicate_obligations.dart';
 import 'money.dart';
 import 'reminders.dart';
 
-/// The built-in bills, plus every added bill that is unpaid, outgoing, and
-/// due on or before the next payday, as one list for the engine.
+/// Every unpaid bill, built-in or added, that is due on or before the next
+/// payday, as one list for the engine. Paid built-in bills pass through
+/// untouched, because the engine skips them and Pan reports them.
+///
+/// ONE WINDOW FOR BOTH LISTS (D33, 2026-10-10). The engine holds back every
+/// built-in bill it is handed whatever its date, so this list is where the
+/// date is applied. Before D33 it was applied to added bills only, and the
+/// example's 8,500 tuition due October 5 was held back in a cycle ending
+/// September 30 under the label "Upcoming bills before payday", while the
+/// same bill typed on the Bills screen was not.
 ///
 /// Overdue counts: it is owed now. A date nobody can read counts too,
 /// because Salapify cannot tell it is NOT due before payday, and holding
@@ -59,14 +67,24 @@ List<BillItem> billsToReserve({
         (i.name, i.installmentAmount, _daysTo(nextInstallmentDate(i), now)),
   ];
 
+  bool dueThisCycle(int? days) => days == null || days <= daysToPayday;
+
   final List<BillItem> unclaimed = bills
       .where((BillItem b) => !b.isPaid)
       .toList();
+  // A built-in bill that absorbed its twin, under the twin's date.
+  final Map<String, BillItem> redated = <String, BillItem>{};
   final List<BillItem> added = <BillItem>[];
   for (final UpcomingItem u in upcoming) {
     if (u.isPaid || u.countsAsIncome) continue;
     final int? days = daysUntil(u.dueDate, now);
-    if (days != null && days > daysToPayday) continue;
+    // WRITTEN AS A DATE. The Bills screen keeps what the person typed
+    // ("Sep 18", "Sunday"), and Pan and the health check read a bill's
+    // date with DateTime.tryParse, which returns null for both and then
+    // skips the bill. Same bill, held back by Safe to Spend and missing
+    // from Pan's "bills before payday": two readers, two answers. An
+    // unreadable date keeps its label, since there is no date to write.
+    final String? iso = days == null ? null : _iso(now, days);
 
     bool same(String name, Money amount, int? otherDays) => sameObligation(
       nameA: u.name,
@@ -81,29 +99,45 @@ List<BillItem> billsToReserve({
       (BillItem b) => same(b.name, b.amount, daysUntil(b.dueDate, now)),
     );
     if (twin >= 0) {
-      unclaimed.removeAt(twin);
+      // THE DATE THE PERSON CAN SEE WINS (D33). The example's Meralco is
+      // September 15 on the built-in list, overdue, and Today on the Bills
+      // screen; Pan and the health check skip an overdue bill, so keeping
+      // the built-in date left a bill due today out of "before payday".
+      final BillItem b = unclaimed.removeAt(twin);
+      if (iso != null) {
+        redated[b.id] = BillItem(
+          id: b.id,
+          name: b.name,
+          amount: b.amount,
+          dueDate: iso,
+          isPaid: b.isPaid,
+          isSample: b.isSample,
+        );
+      }
       continue;
     }
     if (elsewhere.any(((String, Money, int?) e) => same(e.$1, e.$2, e.$3))) {
       continue;
     }
+    if (!dueThisCycle(days)) continue;
     added.add(
       BillItem(
         id: 'upcoming:${u.id}',
         name: u.name,
         amount: u.amount,
-        // WRITTEN AS A DATE. The Bills screen keeps what the person typed
-        // ("Sep 18", "Sunday"), and Pan and the health check read a bill's
-        // date with DateTime.tryParse, which returns null for both and then
-        // skips the bill. Same bill, held back by Safe to Spend and missing
-        // from Pan's "bills before payday": two readers, two answers. An
-        // unreadable date keeps its label, since there is no date to write.
-        dueDate: days == null ? u.dueDate : _iso(now, days),
+        dueDate: iso ?? u.dueDate,
         isSample: u.isSample,
       ),
     );
   }
-  return <BillItem>[...bills, ...added];
+  return <BillItem>[
+    for (final BillItem b in bills)
+      if (b.isPaid)
+        b
+      else if (dueThisCycle(daysUntil((redated[b.id] ?? b).dueDate, now)))
+        redated[b.id] ?? b,
+    ...added,
+  ];
 }
 
 int? _daysTo(DateTime? when, DateTime now) => when == null

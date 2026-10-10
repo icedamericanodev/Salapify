@@ -249,6 +249,74 @@ void main() {
     expect(ids(out), <String>['b', 'upcoming:u']);
   });
 
+  test('a built-in bill due after payday waits too (D33)', () {
+    // The engine holds back every built-in bill it is handed, so the date
+    // has to be applied here or a bill due next cycle is reserved now.
+    final List<BillItem> out = billsToReserve(
+      bills: <BillItem>[
+        BillItem(
+          id: 'tuition',
+          name: 'Tuition',
+          amount: const Money.pesos(8500),
+          dueDate: '2026-10-05',
+        ),
+        BillItem(
+          id: 'late',
+          name: 'Overdue water',
+          amount: const Money.pesos(480),
+          dueDate: '2026-09-10',
+        ),
+        BillItem(
+          id: 'paid',
+          name: 'Paid in October',
+          amount: const Money.pesos(100),
+          dueDate: '2026-10-20',
+          isPaid: true,
+        ),
+      ],
+      upcoming: const <UpcomingItem>[],
+      daysToPayday: days,
+      now: now,
+    );
+    // Overdue stays held; a paid one passes through for Pan to report.
+    expect(ids(out), <String>['late', 'paid']);
+  });
+
+  test('a bill on both lists keeps the date the Bills screen shows (D33)', () {
+    final List<BillItem> out = billsToReserve(
+      bills: <BillItem>[
+        BillItem(
+          id: 'b',
+          name: 'Meralco Electricity',
+          amount: const Money.pesos(2840),
+          dueDate: '2026-09-15',
+        ),
+      ],
+      upcoming: <UpcomingItem>[up('u', 'Meralco Electric Bill', 2840, 'Today')],
+      daysToPayday: days,
+      now: now,
+    );
+    expect(ids(out), <String>['b']);
+    expect(out.single.dueDate, '2026-09-18');
+  });
+
+  test('a twin dated after payday on the Bills screen waits too', () {
+    final List<BillItem> out = billsToReserve(
+      bills: <BillItem>[
+        BillItem(
+          id: 'b',
+          name: 'PLDT Fibr',
+          amount: const Money.pesos(1699),
+          dueDate: '2026-09-28',
+        ),
+      ],
+      upcoming: <UpcomingItem>[up('u', 'PLDT Fibr', 1699, '2026-10-02')],
+      daysToPayday: days,
+      now: now,
+    );
+    expect(ids(out), isEmpty);
+  });
+
   test('the held-back copy carries a date the other readers can parse', () {
     final List<BillItem> out = billsToReserve(
       bills: const <BillItem>[],
