@@ -158,6 +158,14 @@ List<DuplicatePair> findDuplicates(List<Transaction> transactions) {
       // friends both carry outsideAccountId, so comparing the raw id paired
       // 300 collected into GCash with 300 collected into BPI (D35).
       if (a.ownAccountId != b.ownAccountId) continue;
+      // AND THE SAME DIRECTION. Money lent and that same money repaid, or
+      // borrowed and repaid, match on amount, account and day while going
+      // opposite ways; pairing them offered advice that could never be
+      // followed (ledger-reconciler, 2026-10-10).
+      if (a.isFromOutside != b.isFromOutside ||
+          a.toAccountId != b.toAccountId) {
+        continue;
+      }
       if (a.type != b.type) continue;
       if (a.status == TransactionStatus.duplicate) continue;
       if (b.status == TransactionStatus.duplicate) continue;

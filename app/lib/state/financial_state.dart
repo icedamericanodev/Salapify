@@ -1746,11 +1746,42 @@ class FinancialState extends ChangeNotifier {
 
     if (before.countsTowardTotals && !after.countsTowardTotals) {
       _accounts = reverseFromBalances(_accounts, before);
+      _monthlyBillFollows(before, stopped: true);
     } else if (!before.countsTowardTotals && after.countsTowardTotals) {
       _accounts = applyToBalances(_accounts, after);
+      _monthlyBillFollows(before, stopped: false);
     }
 
     notifyListeners();
+  }
+
+  /// A MONTHLY BILL'S DATE FOLLOWS ITS PAYMENTS (D31, ledger-reconciler
+  /// 2026-10-10). Each counting payment moved the bill one month on, so a
+  /// payment that stops counting (taken back, marked a duplicate) moves it
+  /// one month back, and one that counts again moves it on again.
+  /// Otherwise a payment taken back from Activity left the bill a month
+  /// ahead with nothing paying for that month, and every screen agreed it
+  /// was owed nowhere.
+  void _monthlyBillFollows(Transaction tx, {required bool stopped}) {
+    if (!tx.id.startsWith('tx_bill_')) return;
+    final int i = _upcoming.indexWhere(
+      (UpcomingItem u) => u.repeats && u.name == tx.merchant,
+    );
+    if (i < 0) return;
+    final UpcomingItem bill = _upcoming[i];
+    final String? moved = stopped
+        ? previousMonthlyDue(bill.dueDate, bill.repeatDay!)
+        : nextMonthlyDue(bill.dueDate, bill.repeatDay!);
+    if (moved == null) return;
+    _upcoming = <UpcomingItem>[
+      ..._upcoming.sublist(0, i),
+      bill.copyWith(
+        dueDate: moved,
+        // The payment Undo would reverse is no longer the one moving it.
+        clearLastPaid: stopped && bill.lastPaidTxId == tx.id,
+      ),
+      ..._upcoming.sublist(i + 1),
+    ];
   }
 
   /// Takes one entry back out of every total, from Activity, at any time.
@@ -1890,7 +1921,15 @@ class FinancialState extends ChangeNotifier {
       final Iterable<UpcomingItem> monthly = _upcoming.where(
         (UpcomingItem u) => u.repeats && u.name == tx.merchant,
       );
+      // But NOT when a ticked one-off bill shares the name: its payment is
+      // the one thing still holding that tick up (ledger-reconciler: a
+      // one-off "Dentist" 3,500 beside a monthly "Dentist" was taken back
+      // while still reading Paid, owed nowhere and paid nowhere).
+      final bool oneOffTicked = _upcoming.any(
+        (UpcomingItem u) => !u.repeats && u.isPaid && u.name == tx.merchant,
+      );
       if (monthly.isNotEmpty &&
+          !oneOffTicked &&
           !monthly.any((UpcomingItem u) => u.lastPaidTxId == txId)) {
         return TakeBackOutcome.done;
       }

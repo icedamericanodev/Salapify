@@ -249,6 +249,20 @@ class _DebtScreenState extends State<DebtScreen> {
   /// Hands a polite, editable message to the phone's share sheet (D31). The
   /// person picks the chat app and can change every word before sending;
   /// Salapify itself sends nothing anywhere.
+  /// What deleting [debt] does to the money, in one sentence.
+  String _deleteMoneySentence(Debt debt) {
+    final String amount = formatPeso(debt.totalAmount.pesos);
+    final String? opening = debt.openingTxId;
+    if (opening != null && !opening.startsWith('tx_split_')) {
+      final bool lent = debt.direction == DebtDirection.owedToMe;
+      return '$amount, nothing paid. It moved money when you added it, so '
+          'deleting it also takes that entry back: the $amount '
+          '${lent ? 'returns to' : 'leaves'} the account again.\n\n';
+    }
+    return '$amount, nothing paid. No payment is recorded against this debt, '
+        'so nothing in your Activity changes and no account moves.\n\n';
+  }
+
   Future<void> _remind(Debt d) async {
     await Share.share(collectionMessage(d, now: widget.state.now));
   }
@@ -383,14 +397,15 @@ class _DebtScreenState extends State<DebtScreen> {
         backgroundColor: palette.surface,
         title: Text('Delete ${debt.person}?', style: AppType.title(palette)),
         content: Text(
-          '${formatPeso(debt.totalAmount.pesos)}, nothing paid. No payment is '
-          'recorded against this debt, so nothing in your Activity changes '
-          'and no account moves.\n\n'
+          // SAYS WHAT DELETE NOW DOES TO THE MONEY. A debt that moved money
+          // when it was added (lent from, or borrowed into, an account)
+          // takes that entry back with it; this sentence used to promise no
+          // account moves, which became false with D31.
           // Said plainly, and not softened by pointing at the backup. An
           // export is a snapshot of now, not a history, so it only helps
           // somebody who already made one BEFORE this tap.
-          'There is no undo. If you want it back you will have to type it '
-          'in again.',
+          '${_deleteMoneySentence(debt)}There is no undo. If you want it '
+          'back you will have to type it in again.',
           style: AppType.body(palette),
         ),
         actions: <Widget>[

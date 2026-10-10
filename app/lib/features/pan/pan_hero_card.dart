@@ -197,7 +197,8 @@ List<BillItem> _dueBeforePayday(PanFacts facts) {
     final DateTime? d = DateTime.tryParse(b.dueDate);
     if (d == null) return false;
     final DateTime day = DateTime(d.year, d.month, d.day);
-    return !day.isBefore(today) && !day.isAfter(horizon);
+    // Overdue still counts: see pan_affordability.dart, same rule (D33).
+    return !day.isAfter(horizon);
   }).toList();
 }
 

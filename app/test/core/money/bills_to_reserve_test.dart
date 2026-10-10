@@ -317,6 +317,43 @@ void main() {
     expect(ids(out), isEmpty);
   });
 
+  test('paying the Bills-screen copy lets the built-in twin go too', () {
+    // A one-off ticked on Bills, and a monthly one paid once (now next
+    // month, with the payment it moved on). Either way the built-in twin is
+    // money already gone, not money to hold back.
+    for (final UpcomingItem paid in <UpcomingItem>[
+      up('u', 'Meralco Electricity', 2840, 'Today', paid: true),
+      const UpcomingItem(
+        id: 'u',
+        name: 'Meralco Electricity',
+        amount: Money.pesos(2840),
+        dueDate: '2026-10-18',
+        type: UpcomingItemType.bill,
+        repeatDay: 18,
+        lastPaidTxId: 'tx_bill_1',
+      ),
+    ]) {
+      final List<BillItem> out = billsToReserve(
+        bills: <BillItem>[
+          BillItem(
+            id: 'b',
+            name: 'Meralco Electricity',
+            amount: const Money.pesos(2840),
+            dueDate: '2026-09-17',
+          ),
+        ],
+        upcoming: <UpcomingItem>[paid],
+        daysToPayday: days,
+        now: now,
+      );
+      expect(
+        out.where((BillItem b) => !b.isPaid).map((BillItem b) => b.id),
+        isEmpty,
+        reason: 'held back money already paid (${paid.repeats})',
+      );
+    }
+  });
+
   test('the held-back copy carries a date the other readers can parse', () {
     final List<BillItem> out = billsToReserve(
       bills: const <BillItem>[],

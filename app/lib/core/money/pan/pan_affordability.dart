@@ -129,11 +129,11 @@ List<BillItem> _billsBeforePayday(PanFacts facts) {
     final DateTime? d = DateTime.tryParse(b.dueDate);
     if (d == null) continue;
     final DateTime day = DateTime(d.year, d.month, d.day);
-    if (day.isBefore(
-      DateTime(facts.now.year, facts.now.month, facts.now.day),
-    )) {
-      continue;
-    }
+    // OVERDUE STILL COUNTS (D33, ledger-reconciler 2026-10-10). Safe to Spend
+    // holds back an unpaid bill whose day has passed, because it is still
+    // owed; this skipped it, so a late 12,000 rent was held back on Home and
+    // missing here. Since monthly bills (D31) never move until paid, overdue
+    // is the ordinary state of every late bill, not a rare one.
     if (day.isAfter(horizon)) continue;
     out.add(b);
   }

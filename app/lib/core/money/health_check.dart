@@ -350,7 +350,11 @@ HealthIndicator _payday(
     if (b.isPaid) continue;
     final DateTime? due = DateTime.tryParse(b.dueDate);
     if (due == null) continue;
-    if (due.isBefore(DateTime(now.year, now.month, now.day))) continue;
+    // OVERDUE STILL COUNTS (D33, ledger-reconciler 2026-10-10). Safe to Spend
+    // holds back an unpaid bill whose day has passed, because it is still
+    // owed; this skipped it, so a late 12,000 rent was held back on Home and
+    // missing here. Since monthly bills (D31) never move until paid, overdue
+    // is the ordinary state of every late bill, not a rare one.
     if (due.isAfter(cutoff)) continue;
     committed += b.amount.pesos;
   }

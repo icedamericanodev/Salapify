@@ -74,6 +74,35 @@ List<BillItem> billsToReserve({
       .toList();
   // A built-in bill that absorbed its twin, under the twin's date.
   final Map<String, BillItem> redated = <String, BillItem>{};
+
+  // PAID ON THE BILLS SCREEN, so paid here too (ledger-reconciler,
+  // 2026-10-10). Paying the Bills-screen copy of a built-in bill ticks the
+  // copy (or, for a monthly one, moves it on), and the built-in twin kept
+  // being held back for money already gone. The twin is matched against the
+  // date that was PAID: a ticked one-off's own date, or the month before a
+  // monthly bill's current date.
+  final Set<String> paidAway = <String>{};
+  for (final UpcomingItem u in upcoming) {
+    if (u.countsAsIncome) continue;
+    final String? paidDue = u.isPaid && !u.repeats
+        ? u.dueDate
+        : u.repeats && u.lastPaidTxId != null
+        ? previousMonthlyDue(u.dueDate, u.repeatDay!)
+        : null;
+    if (paidDue == null) continue;
+    final int? paidDays = daysUntil(paidDue, now);
+    final int twin = unclaimed.indexWhere(
+      (BillItem b) => sameObligation(
+        nameA: u.name,
+        amountA: u.amount,
+        daysA: paidDays,
+        nameB: b.name,
+        amountB: b.amount,
+        daysB: daysUntil(b.dueDate, now),
+      ),
+    );
+    if (twin >= 0) paidAway.add(unclaimed.removeAt(twin).id);
+  }
   final List<BillItem> added = <BillItem>[];
   for (final UpcomingItem u in upcoming) {
     if (u.isPaid || u.countsAsIncome) continue;
@@ -134,6 +163,16 @@ List<BillItem> billsToReserve({
     for (final BillItem b in bills)
       if (b.isPaid)
         b
+      else if (paidAway.contains(b.id))
+        // Held back by nothing: its twin was paid on the Bills screen.
+        BillItem(
+          id: b.id,
+          name: b.name,
+          amount: b.amount,
+          dueDate: b.dueDate,
+          isPaid: true,
+          isSample: b.isSample,
+        )
       else if (dueThisCycle(daysUntil((redated[b.id] ?? b).dueDate, now)))
         redated[b.id] ?? b,
     ...added,
