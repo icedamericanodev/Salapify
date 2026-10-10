@@ -702,6 +702,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Scrolled to, since D31 put Debt and the shortcuts above the runway: a
+    // lazy list does not build a card below the fold at all.
+    await tester.scrollUntilVisible(
+      find.byType(RunwayRow),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
 
     await tester.tap(
       find.descendant(
@@ -4128,6 +4136,16 @@ void runwayChartShots() {
           home: AppShell(state: state),
         ),
       );
+      await tester.pumpAndSettle();
+      // Scrolled to, since D31 put Debt and the shortcuts above the runway.
+      await tester.scrollUntilVisible(
+        find.byType(RunwayChart),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      // Then the whole card to the top, so the photograph is of the card
+      // and not of wherever the scroll happened to stop.
+      await tester.ensureVisible(find.byType(RunwayRow));
       await tester.pumpAndSettle();
       await settleImages(tester);
 
