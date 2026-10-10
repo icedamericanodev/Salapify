@@ -122,5 +122,7 @@ widget test by the reviewer.
   converter, Salapify makes no internet request at all" are false. This
   predates app lock and needs a network capture during a receipt scan and
   a founder decision before any store submission (security review, raised
-  as a separate task).
+  as a separate task). SETTLED 2026-10-10: it does, after every scan.
+  Evidence in docs/reviews/mlkit-telemetry.md. The founder chose to keep the
+  reader and disclose the report (option B), and the copy was corrected.
 

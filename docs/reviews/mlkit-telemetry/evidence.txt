@@ -1,0 +1,102 @@
+ML Kit telemetry evidence, captured 2026-10-10 on a throwaway emulator AVD
+(Salapify_Privacy_Probe, Android 17 Google Play image, arm64, deleted afterwards).
+APK: the Salapify 3 debug build installed on the founder's Pixel_8 emulator that day,
+built from claude/flutter-final, google_mlkit_text_recognition 0.17.1,
+com.google.mlkit:text-recognition 16.0.1 (bundled). Fresh install, example data,
+Log > Scan a receipt instead > Choose an image > one test PNG > Done. Nothing saved.
+Logging was made visible with: setprop log.tag.TRuntime.<Name> VERBOSE
+
+== 1. Shipped build, baseline: app launched and idle, no scan
+No TransportRuntime lines from the app process. databases/ did not exist.
+
+== 2. Shipped build, during and after one scan (app pid 5468)
+10-10 14:23:51.919 I/DynamiteModule( 5468): Considering local module com.google.mlkit.dynamite.text.latin:10000 and remote module com.google.mlkit.dynamite.text.latin:0
+10-10 14:23:51.919 I/DynamiteModule( 5468): Selected local version of com.google.mlkit.dynamite.text.latin
+10-10 14:23:52.056 D/TransportRuntime.SQLiteEventStore( 5468): Storing event with priority=VERY_LOW, name=FIREBASE_ML_SDK for destination cct
+10-10 14:23:52.058 D/TransportRuntime.JobInfoScheduler( 5468): Scheduling upload for context TransportContext(cct, VERY_LOW, <base64: "1$https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3">) with jobId=1755129810 in 86400000ms(Backend next call timestamp 0). Attempt 1
+10-10 14:23:52.068 D/TransportRuntime.SQLiteEventStore( 5468): Storing event with priority=DEFAULT, name=FIREBASE_ML_SDK for destination cct
+10-10 14:23:52.072 D/TransportRuntime.JobInfoScheduler( 5468): Scheduling upload for context TransportContext(cct, DEFAULT, <base64: "1$https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3">) with jobId=1750149073 in 30000ms(Backend next call timestamp 0). Attempt 1
+10-10 14:23:52.091 D/TransportRuntime.SQLiteEventStore( 5468): Storing event with priority=VERY_LOW, name=FIREBASE_ML_SDK for destination cct
+10-10 14:23:52.096 D/TransportRuntime.JobInfoScheduler( 5468): Upload for context TransportContext(cct, VERY_LOW, <base64: "1$https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3">) is already scheduled. Returning...
+10-10 14:23:52.226 D/PipelineManager( 5468): Start process bitmap
+10-10 14:23:53.297 D/PipelineManager( 5468): OCR process succeeded via visionkit pipeline.
+10-10 14:23:53.337 D/TransportRuntime.SQLiteEventStore( 5468): Storing event with priority=VERY_LOW, name=FIREBASE_ML_SDK for destination cct
+10-10 14:23:53.338 D/TransportRuntime.JobInfoScheduler( 5468): Upload for context TransportContext(cct, VERY_LOW, <base64: "1$https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3">) is already scheduled. Returning...
+10-10 14:23:53.358 D/TransportRuntime.SQLiteEventStore( 5468): Storing event with priority=VERY_LOW, name=FIREBASE_ML_SDK for destination cct
+10-10 14:23:53.360 D/TransportRuntime.JobInfoScheduler( 5468): Upload for context TransportContext(cct, VERY_LOW, <base64: "1$https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3">) is already scheduled. Returning...
+10-10 14:24:28.193 D/TransportRuntime.CctTransportBackend( 5468): Making request to: https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3
+10-10 14:24:29.537 I/TransportRuntime.CctTransportBackend( 5468): Status Code: 200
+10-10 14:24:29.537 I/TransportRuntime.CctTransportBackend( 5468): Content-Type: application/json; charset=UTF-8
+10-10 14:24:29.537 I/TransportRuntime.CctTransportBackend( 5468): Content-Encoding: gzip
+10-10 14:25:10.150 D/TransportRuntime.CctTransportBackend( 5468): Making request to: https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3
+10-10 14:25:10.235 I/TransportRuntime.CctTransportBackend( 5468): Status Code: 200
+10-10 14:25:10.235 I/TransportRuntime.CctTransportBackend( 5468): Content-Type: application/json; charset=UTF-8
+10-10 14:25:10.235 I/TransportRuntime.CctTransportBackend( 5468): Content-Encoding: gzip
+
+== 3. Queue database before upload (databases/com.google.android.datatransport.events)
+_id|transport_name|timestamp_ms|payload_bytes
+1|FIREBASE_ML_SDK|1791613432007|129
+2|FIREBASE_ML_SDK|1791613432064|117
+3|FIREBASE_ML_SDK|1791613432064|111
+4|FIREBASE_ML_SDK|1791613433336|137
+5|FIREBASE_ML_SDK|1791613433341|145
+
+Metadata attached to EVERY event by the transport (event 1 shown, all 5 identical):
+  country = US
+  product = sdk_gphone16k_arm64
+  mobile-subtype = 100
+  mcc_mnc = 310260
+  application_build = 1
+  locale = en
+  manufacturer = Google
+  net-type = 1
+  os-uild = CP31.260623.012
+  sdk-version = 37
+  fingerprint = google/sdk_gphone16k_arm64/emu64a16k:17/CP31.260623.012/16064790:user/dev-keys
+  model = sdk_gphone16k_arm64
+  tz-offset = 28800
+  device = emu64a16k
+  hardware = ranchu
+
+Payload of event 1, printable strings only (protobuf):
+  dev.icedamericano.salapify3
+  17.3.0*
+  NAB
+  en-USJ$d5ec1091-(redacted)X
+  The rest is integers (latency, image size, config codes). No recognised text,
+  no image bytes, no amounts. Checked on all five payloads.
+
+== 4. Persistent per-install ID (shared_prefs/com.google.mlkit.internal.xml)
+  <string name="ml_sdk_instance_id">d5ec1091-(redacted)</string>
+  Same value as the UUID inside every payload.
+
+== 5. Low priority events forced out (cmd jobscheduler run -f ... 1755129810)
+  14:25:10 Making request to https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3
+  Status Code: 200. Queue afterwards: 0 events.
+
+== 6. Experimental build with the CCT backend unregistered (app pid 7134)
+Manifest change: TransportBackendDiscovery service merged with
+  <meta-data android:name="backend:com.google.android.datatransport.cct.CctBackendFactory" tools:node="remove"/>
+10-10 14:28:16.413 I/DynamiteModule( 7134): Considering local module com.google.mlkit.dynamite.text.latin:10000 and remote module com.google.mlkit.dynamite.text.latin:0
+10-10 14:28:16.413 I/DynamiteModule( 7134): Selected local version of com.google.mlkit.dynamite.text.latin
+10-10 14:28:16.520 W/BackendRegistry( 7134): Could not retrieve metadata, returning empty list of transport backends.
+10-10 14:28:16.520 W/TransportRuntime( 7134): Transport backend 'cct' is not registered
+10-10 14:28:16.520 W/TransportRuntime( 7134): Transport backend 'cct' is not registered
+10-10 14:28:16.520 W/TransportRuntime( 7134): Transport backend 'cct' is not registered
+10-10 14:28:16.597 D/PipelineManager( 7134): Start process bitmap
+10-10 14:28:17.581 D/PipelineManager( 7134): OCR process succeeded via visionkit pipeline.
+10-10 14:28:17.643 W/TransportRuntime( 7134): Transport backend 'cct' is not registered
+10-10 14:28:17.650 W/TransportRuntime( 7134): Transport backend 'cct' is not registered
+Over the next 70 seconds and after forcing jobs: 0 'Making request' lines, queue 0 events,
+no transport context rows. The sheet still read Jollibee and 213.00 from the test image.
+
+== 7. Static evidence (Gradle cache, no device needed)
+com.google.mlkit:common:18.11.0 POM depends on com.google.android.datatransport:
+  transport-api 2.2.1, transport-backend-cct 2.3.3, transport-runtime 2.2.6
+transport-backend-cct 2.3.3 AndroidManifest registers CctBackendFactory and adds
+  INTERNET and ACCESS_NETWORK_STATE.
+CCTDestination endpoints, stored split in two halves and interleaved by StringMerger:
+  https://firebaselogging.googleapis.com/v0cc/log/batch?format=json_proto3
+  https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
+The shipped APK's merged manifest contains MlKitInitProvider, TransportBackendDiscovery
+with backend:...CctBackendFactory, JobInfoSchedulerService, and ACCESS_NETWORK_STATE.

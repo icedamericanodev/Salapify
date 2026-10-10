@@ -10,9 +10,19 @@ import '../shared/sheet_scaffold.dart';
 /// Ported in spirit from the prototype's own panel
 /// (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx`), and CORRECTED. Its version is headed
 /// "Privacy Receipt and Offline Guarantee" and lists four claims, three of
-/// which are true of this app. The fourth is the omission: one request does
-/// leave the phone, and a receipt with a missing line item is worse than no
-/// receipt at all. It is named here, first, by name.
+/// which are true of this app. The fourth is the omission: requests do leave
+/// the phone, and a receipt with a missing line item is worse than no receipt
+/// at all. Each is named here, by name.
+///
+/// ## The second line item, added 2026-10-10
+///
+/// This screen said "one thing leaves" and "no analytics" while the receipt
+/// reader, Google ML Kit, uploaded a usage report after every scan. Verified
+/// on an emulator, written up in docs/reviews/mlkit-telemetry.md. The founder
+/// chose to keep the reader and say so (option B there) rather than switch
+/// the report off, because Google APIs ToS 3(a) forbids interfering with it.
+/// `truthful_claims_test.dart` now reddens if the reader is in pubspec.yaml
+/// and this screen stops naming its report.
 ///
 /// ## Words that may never appear on this screen
 ///
@@ -42,7 +52,7 @@ class PrivacySheet extends StatelessWidget {
       palette: palette,
       icon: Icons.verified_user_outlined,
       title: 'What stays on this phone',
-      subtitle: 'Every line, including the one thing that leaves',
+      subtitle: 'Every line, including the two things that leave',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -52,8 +62,8 @@ class PrivacySheet extends StatelessWidget {
             title: 'No account, and nothing to sign in to',
             body:
                 'There is no email, no phone number, no password and no '
-                'profile. Salapify has no server, so there is nothing of '
-                'yours anywhere for anybody to reach.',
+                'profile. Salapify has no server, so none of your records '
+                'sit anywhere for anybody to reach.',
           ),
           _Line(
             palette: palette,
@@ -100,9 +110,10 @@ class PrivacySheet extends StatelessWidget {
             icon: Icons.photo_camera_outlined,
             title: 'A receipt you photograph is read here and then deleted',
             body:
-                'The reading happens on this phone, using a reader built into '
-                'the app itself. Nothing is uploaded and no picture is sent '
-                'anywhere. Salapify keeps only the words it found, which you '
+                'The reading happens on this phone, using a reader made by '
+                'Google that is built into the app. The photo and the words '
+                'on it are never sent anywhere. Salapify keeps only the words '
+                'it found, which you '
                 'can see and correct before anything is saved, and the photo '
                 'is deleted as soon as it has them. Salapify also never asks '
                 'for camera permission: your own camera app takes the '
@@ -111,10 +122,15 @@ class PrivacySheet extends StatelessWidget {
           _Line(
             palette: palette,
             icon: Icons.analytics_outlined,
-            title: 'No analytics, no crash reporting, no ads',
+            // "No analytics, no crash reporting, no ads" until 2026-10-10,
+            // false since the receipt reader arrived. What stays true is
+            // narrower and is said exactly: none of Salapify's OWN.
+            title: 'No ads, and no analytics of Salapify\'s own',
             body:
-                'Nothing counts your taps and nothing follows you. There is '
-                'no advertising ID in this app.',
+                'Nothing counts your taps, and there is no advertising ID '
+                'and no crash reporting. The one usage report that does '
+                'exist comes from Google\'s receipt reader, and it is listed '
+                'below.',
           ),
           _Line(
             palette: palette,
@@ -133,15 +149,35 @@ class PrivacySheet extends StatelessWidget {
           _Line(
             palette: palette,
             icon: Icons.language,
-            title: 'One thing does leave this phone',
+            title: 'Leaves this phone: the converter asks for rates',
             accent: true,
             body:
                 'When you open the currency converter, Salapify asks a public '
                 'exchange rate service for today\'s rates. It sends a currency '
                 'code, for example PHP. It never sends your balances, your '
-                'entries, the names you have saved, or anything that '
-                'identifies you. If you never open the converter, Salapify '
-                'makes no internet request at all.',
+                'entries, the names you have saved, or your name.',
+          ),
+          _Line(
+            palette: palette,
+            icon: Icons.document_scanner_outlined,
+            title: 'Leaves this phone: a usage report when you scan',
+            accent: true,
+            body:
+                // Reassurance first: the user panel's working parent stopped
+                // reading at the list and never reached "never includes".
+                // "A code for your mobile network" and not its name, because
+                // what is sent is mcc_mnc, a number (evidence.txt).
+                'It never includes the photo, the words on the receipt, your '
+                'amounts or your name. After you scan a receipt, Google\'s '
+                'reader sends Google a small report: the phone model and '
+                'Android version, the app version, your country, a code for '
+                'your mobile network, your time zone, the language, and how '
+                'long the reading took, with a random code made only for '
+                'this install of the app. Salapify cannot switch it off, so '
+                'if you would rather not send it, paste the receipt text '
+                'instead. If you never open the converter '
+                'and never scan a receipt, Salapify makes no internet request '
+                'at all.',
           ),
           _Line(
             palette: palette,
@@ -200,7 +236,8 @@ class _Line extends StatelessWidget {
   final String title;
   final String body;
 
-  /// The two lines somebody could be caught out by. Marked, not buried.
+  /// The lines somebody could be caught out by: what leaves the phone, and
+  /// the unencrypted backup. Marked, not buried.
   final bool accent;
 
   @override

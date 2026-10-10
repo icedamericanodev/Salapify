@@ -313,8 +313,8 @@ const List<PanFeature> panFeatures = <PanFeature>[
     what:
         'Four tools: a notepad that adds up as you type, an impulse check '
         'that turns a purchase into hours of your own time, a treats tracker, '
-        'and a currency converter. The converter is the one part of Salapify '
-        'that asks the internet for anything, and only for today\'s rates.',
+        'and a currency converter. The converter asks the internet for '
+        'today\'s rates, and only when you open it.',
     keywords: <String>[
       'toolkit',
       'calculator',
@@ -380,12 +380,13 @@ const List<PanFeature> panFeatures = <PanFeature>[
     name: 'Where your data lives',
     where: 'Settings, or the badge beside the Salapify name.',
     what:
-        'Everything you type stays in one file in Salapify\'s own private '
-        'storage on this phone. There is no account, no server of ours, no '
-        'analytics and no ads, and the automatic copy to your Google account '
-        'is switched off. One request leaves, and only if you open the '
-        'currency converter: it asks a public service for today\'s rates and '
-        'sends a currency code, nothing else.',
+        'Everything you type stays in Salapify\'s own private storage on '
+        'this phone. There is no account, no server of ours and no ads, and '
+        'the automatic copy to your Google account is switched off. Two '
+        'things leave, and only when you use them. The currency converter '
+        'asks a public service for today\'s rates and sends a currency code. '
+        'The receipt scanner uses Google\'s reader, which sends Google a '
+        'usage report after a scan, never the photo or what it says.',
     keywords: <String>[
       'privacy',
       'private',

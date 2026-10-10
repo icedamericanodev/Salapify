@@ -1339,6 +1339,14 @@ exchange rates, and the privacy receipt names it. A second request, fired the
 moment somebody photographs a shop receipt, would have made that receipt
 false.
 
+CORRECTION, 2026-10-10: the bundled model is not silent either. ML Kit
+uploads a usage report to Google after every scan, through
+com.google.android.datatransport, so "exactly ONE network request" was false
+from the day the reader shipped. Verified on an emulator in
+docs/reviews/mlkit-telemetry.md. The founder chose to keep the reader and
+disclose the report; the privacy receipt, privacy.html and
+docs/play-data-safety.md now name it.
+
 **No camera permission is declared, on purpose.** `image_picker` fires
 `ACTION_IMAGE_CAPTURE` and the phone's own camera app takes the picture.
 Android's rule runs opposite to the obvious guess: an app that DECLARES
