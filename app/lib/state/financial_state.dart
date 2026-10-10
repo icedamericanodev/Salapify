@@ -2586,6 +2586,8 @@ class FinancialState extends ChangeNotifier {
       upcoming: _upcoming,
       daysToPayday: p.isSet ? p.daysToPayday : _noPaydayWindowDays,
       now: now,
+      debts: _debts,
+      installments: _installments,
     );
   }
 

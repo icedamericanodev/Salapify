@@ -59,16 +59,12 @@ class HealthCheckSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Palette p = palette;
-    final HealthReport r = runHealthCheck(
-      transactions: state.transactions,
-      accounts: state.accounts,
-      budgets: state.budgets,
-      goals: state.goals,
-      bills: state.bills,
-      installments: state.installments,
-      payday: state.payday,
-      now: state.now,
-    );
+    // THE STORE'S REPORT, the one the dot on Home reads, never a second run
+    // of the engine with its own idea of the inputs. This ran its own copy
+    // with the built-in bills only, so once Safe to Spend began holding back
+    // the bills a person adds (D32), the dot said "short by 84,989" and the
+    // sheet it opened said "Covered for the next 12 days" about one ledger.
+    final HealthReport r = state.healthReport;
 
     return SheetScaffold(
       palette: p,

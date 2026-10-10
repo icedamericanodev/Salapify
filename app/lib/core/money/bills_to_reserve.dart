@@ -8,32 +8,27 @@
 /// reserved as 0. So the caller now hands the engine both, as one list, and
 /// the engine is untouched.
 ///
-/// ONCE, NEVER TWICE. A bill on both lists (the sample ledger has Meralco
-/// and Spotify on both) is reserved once: an added bill with the SAME amount
-/// to the centavo and a shared identifying word in its name as an unpaid
-/// built-in bill is the same bill. The word rule is
-/// [sharedIdentifyingWord], the one the "Counted twice" notice already
-/// uses, so the two can never disagree about what "the same" means. Each
-/// built-in bill absorbs at most one added bill.
+/// ONCE, NEVER TWICE. Safe to Spend already holds back three other things
+/// an added bill can be a second entry for: a built-in bill, a debt's
+/// monthly minimum, and a payment plan's instalment. An added bill that is
+/// [sameObligation] with any of them (exact amount, a shared word, and
+/// within seven days when both dates can be read) is that same payment and
+/// is not held back again. The rule is the "Counted twice" notice's own, so
+/// the notice and the figure can never disagree about what "the same"
+/// means. Each built-in bill absorbs at most one added bill.
+///
+/// Decided by MATCHING, never by the type picked on the Bills screen. This
+/// skipped every "Debt" row on the belief that the debt already reserved
+/// it, and nothing checked that a debt existed: a 5,000 card payment
+/// scheduled with no debt behind it was held back by nothing. And a "Bill"
+/// row for a debt that does exist was held back twice, once here and once as
+/// the debt's minimum. Both found by the ledger-reconciler on 2026-10-10.
 library;
 
 import '../../models/models.dart';
 import 'duplicate_obligations.dart';
+import 'money.dart';
 import 'reminders.dart';
-
-/// Kinds that are a person's own outgoing bill. A payday is income, and a
-/// `debt` row is a debt instalment, which Safe to Spend already reserves
-/// through the debts themselves; reserving it here as well would count it
-/// twice.
-const Set<UpcomingItemType> _billKinds = <UpcomingItemType>{
-  UpcomingItemType.bill,
-  UpcomingItemType.subscription,
-  UpcomingItemType.remittance,
-  UpcomingItemType.rent,
-  UpcomingItemType.insurance,
-  UpcomingItemType.tuition,
-  UpcomingItemType.government,
-};
 
 /// The built-in bills, plus every added bill that is unpaid, outgoing, and
 /// due on or before the next payday, as one list for the engine.
@@ -47,24 +42,49 @@ List<BillItem> billsToReserve({
   required List<UpcomingItem> upcoming,
   required int daysToPayday,
   required DateTime now,
+  List<Debt> debts = const <Debt>[],
+  List<InstallmentPlan> installments = const <InstallmentPlan>[],
 }) {
+  // What the engine already holds back elsewhere, as (name, amount, days).
+  // The SAME sets the engine reads: monthlyDebtMinimums and the unsettled
+  // plans, so nothing is skipped here that is not reserved there.
+  final List<(String, Money, int?)> elsewhere = <(String, Money, int?)>[
+    for (final Debt d in debts)
+      if (!d.isSettled &&
+          d.direction == DebtDirection.iOwe &&
+          d.monthlyMinimum != null)
+        (d.person, d.monthlyMinimum!, daysUntil(d.dueDate, now)),
+    for (final InstallmentPlan i in installments)
+      if (!i.isSettled)
+        (i.name, i.installmentAmount, _daysTo(nextInstallmentDate(i), now)),
+  ];
+
   final List<BillItem> unclaimed = bills
       .where((BillItem b) => !b.isPaid)
       .toList();
   final List<BillItem> added = <BillItem>[];
   for (final UpcomingItem u in upcoming) {
-    if (u.isPaid || u.countsAsIncome || !_billKinds.contains(u.type)) {
-      continue;
-    }
+    if (u.isPaid || u.countsAsIncome) continue;
     final int? days = daysUntil(u.dueDate, now);
     if (days != null && days > daysToPayday) continue;
 
+    bool same(String name, Money amount, int? otherDays) => sameObligation(
+      nameA: u.name,
+      amountA: u.amount,
+      daysA: days,
+      nameB: name,
+      amountB: amount,
+      daysB: otherDays,
+    );
+
     final int twin = unclaimed.indexWhere(
-      (BillItem b) =>
-          b.amount == u.amount && sharedIdentifyingWord(b.name, u.name),
+      (BillItem b) => same(b.name, b.amount, daysUntil(b.dueDate, now)),
     );
     if (twin >= 0) {
       unclaimed.removeAt(twin);
+      continue;
+    }
+    if (elsewhere.any(((String, Money, int?) e) => same(e.$1, e.$2, e.$3))) {
       continue;
     }
     added.add(
@@ -85,6 +105,14 @@ List<BillItem> billsToReserve({
   }
   return <BillItem>[...bills, ...added];
 }
+
+int? _daysTo(DateTime? when, DateTime now) => when == null
+    ? null
+    : DateTime(
+        when.year,
+        when.month,
+        when.day,
+      ).difference(DateTime(now.year, now.month, now.day)).inDays;
 
 String _iso(DateTime now, int days) {
   final DateTime d = DateTime(now.year, now.month, now.day + days);

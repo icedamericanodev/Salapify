@@ -80,21 +80,103 @@ void main() {
     expect(ids(out), <String>['upcoming:old', 'upcoming:vague']);
   });
 
-  test('paid, income, payday and debt rows are never held back', () {
+  test('paid, income and payday rows are never held back', () {
     final List<BillItem> out = billsToReserve(
       bills: const <BillItem>[],
       upcoming: <UpcomingItem>[
         up('paid', 'Paid already', 100, 'Today', paid: true),
         up('in', 'Refund', 100, 'Today', income: true),
         up('pay', 'Sweldo', 100, 'Today', type: UpcomingItemType.payday),
-        // Reserved through the debt itself; here it would count twice.
-        up('loan', 'Home Credit', 100, 'Today', type: UpcomingItemType.debt),
         up('rent', 'Rent', 100, 'Today', type: UpcomingItemType.rent),
       ],
       daysToPayday: days,
       now: now,
     );
     expect(ids(out), <String>['upcoming:rent']);
+  });
+
+  Debt homeCredit({String? due = '2026-09-18'}) => Debt(
+    id: 'd',
+    person: 'Home Credit (Phone)',
+    direction: DebtDirection.iOwe,
+    totalAmount: const Money.pesos(20000),
+    paidAmount: Money.zero,
+    isSettled: false,
+    dueDate: due,
+    minimumPayment: const Money.pesos(2450),
+  );
+
+  test('a payment a debt already holds back is not held back again, '
+      'whatever type it was scheduled as', () {
+    // Found by the ledger-reconciler: scheduled as a "Bill", this was held
+    // back here AND as the debt's minimum, 2,450 twice.
+    for (final UpcomingItemType t in <UpcomingItemType>[
+      UpcomingItemType.bill,
+      UpcomingItemType.debt,
+    ]) {
+      final List<BillItem> out = billsToReserve(
+        bills: const <BillItem>[],
+        upcoming: <UpcomingItem>[
+          up('u', 'Home Credit phone', 2450, 'Today', type: t),
+        ],
+        daysToPayday: days,
+        now: now,
+        debts: <Debt>[homeCredit()],
+      );
+      expect(ids(out), isEmpty, reason: '$t was held back twice');
+    }
+  });
+
+  test('a "Debt" row with no debt behind it IS held back', () {
+    // Skipping by type held this back nowhere: 5,000 the person scheduled
+    // and Safe to Spend never set aside.
+    final List<BillItem> out = billsToReserve(
+      bills: const <BillItem>[],
+      upcoming: <UpcomingItem>[
+        up(
+          'u',
+          'BDO card payment',
+          5000,
+          '2026-09-23',
+          type: UpcomingItemType.debt,
+        ),
+      ],
+      daysToPayday: days,
+      now: now,
+      debts: <Debt>[homeCredit()],
+    );
+    expect(ids(out), <String>['upcoming:u']);
+  });
+
+  test('a payment plan already holds back its own instalment', () {
+    // Eight of twelve paid from January 25th, so the next is September 25th.
+    const InstallmentPlan plan = InstallmentPlan(
+      id: 'p',
+      name: 'Samsung fridge',
+      provider: 'Abenson',
+      principal: Money.pesos(36000),
+      interestRate: 0,
+      interestRateType: InterestRateType.monthly,
+      totalInterest: Money.pesos(0),
+      totalPayable: Money.pesos(36000),
+      termMonths: 12,
+      installmentAmount: Money.pesos(3000),
+      paidInstallments: 8,
+      totalInstallments: 12,
+      runningBalance: Money.pesos(12000),
+      principalRemaining: Money.pesos(12000),
+      interestRemaining: Money.pesos(0),
+      startDate: '2026-01-25',
+      maturityDate: '2026-12-25',
+    );
+    final List<BillItem> out = billsToReserve(
+      bills: const <BillItem>[],
+      upcoming: <UpcomingItem>[up('u', 'Fridge (Samsung)', 3000, '2026-09-25')],
+      daysToPayday: days,
+      now: now,
+      installments: <InstallmentPlan>[plan],
+    );
+    expect(ids(out), isEmpty);
   });
 
   test('a bill on both lists is held back once', () {
@@ -128,6 +210,28 @@ void main() {
       bills: <BillItem>[bill('b', 'Spotify Family Plan', 239, paid: true)],
       upcoming: <UpcomingItem>[
         up('u', 'Spotify Premium Family', 239, 'Sunday'),
+      ],
+      daysToPayday: days,
+      now: now,
+    );
+    expect(ids(out), <String>['b', 'upcoming:u']);
+  });
+
+  test('two rents eleven days apart are two rents', () {
+    // The same amount and a shared word, but more than seven days apart:
+    // the "Counted twice" notice calls these two payments, so the figure
+    // must too. Merging them dropped 14,000 of reserve without a word.
+    final List<BillItem> out = billsToReserve(
+      bills: <BillItem>[
+        BillItem(
+          id: 'b',
+          name: 'Condo Unit Rental',
+          amount: const Money.pesos(14000),
+          dueDate: '2026-09-30',
+        ),
+      ],
+      upcoming: <UpcomingItem>[
+        up('u', 'Condo rent', 14000, '2026-09-19', type: UpcomingItemType.rent),
       ],
       daysToPayday: days,
       now: now,

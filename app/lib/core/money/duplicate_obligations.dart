@@ -150,6 +150,37 @@ bool sharedIdentifyingWord(String a, String b) {
 /// accounts is a money-meaning change and a founder decision; when it is
 /// taken, this function gains a fifth register and the pair starts matching
 /// on balance against remaining rather than on amount.
+/// Two entries for ONE payment, by the rule the "Counted twice" notice uses
+/// and the one Safe to Spend's bill list uses to count a bill once
+/// (bills_to_reserve.dart). One rule, so a notice can never call two entries
+/// the same while the figure counts them twice, or the other way round.
+///
+/// 1. EXACT AMOUNT, to the centavo, never a tolerance. A five percent
+///    tolerance produces seven extra pairs on the shipped seed, among them
+///    the fridge plan against the phone debt, which are two genuinely
+///    different obligations from one lender.
+/// 2. WITHIN SEVEN DAYS as written. A calendar month is right for income,
+///    where there is one sweldo, and far too wide here: two genuine 5,000
+///    payments in one month are ordinary. A date nobody can read cannot be
+///    compared, so it does not rule a pair out; the notice never sees such
+///    an entry anyway, because it can only place a dated one.
+/// 3. A SHARED IDENTIFYING WORD. See [sharedIdentifyingWord] for the false
+///    positive this removes from the sample ledger.
+bool sameObligation({
+  required String nameA,
+  required Money amountA,
+  required int? daysA,
+  required String nameB,
+  required Money amountB,
+  required int? daysB,
+}) {
+  if (amountA != amountB) return false;
+  if (daysA != null && daysB != null && (daysA - daysB).abs() > 7) {
+    return false;
+  }
+  return sharedIdentifyingWord(nameA, nameB);
+}
+
 List<SuspectedDuplicate> findDuplicateOutflows({
   required List<BillItem> bills,
   required List<UpcomingItem> upcoming,
@@ -206,20 +237,19 @@ List<SuspectedDuplicate> findDuplicateOutflows({
       //    two unrelated plans is close to accidental.
       if (a.register == b.register) continue;
 
-      // 2. EXACT AMOUNT, to the centavo, never a tolerance. A five percent
-      //    tolerance produces seven extra pairs on the shipped seed, among
-      //    them the fridge plan against the phone debt, which are two
-      //    genuinely different obligations from one lender.
-      if (a.amount != b.amount) continue;
-
-      // 3. WITHIN SEVEN DAYS as written. A calendar month is right for
-      //    income, where there is one sweldo, and far too wide here: two
-      //    genuine 5,000 payments in one month are ordinary.
-      if ((a.days - b.days).abs() > 7) continue;
-
-      // 4. A SHARED IDENTIFYING WORD. See [sharedIdentifyingWord] for the false
-      //    positive this removes from the sample ledger.
-      if (!sharedIdentifyingWord(a.label, b.label)) continue;
+      // 2 to 4. The same obligation: exact amount, within seven days, a
+      //    shared identifying word. See [sameObligation], which Safe to
+      //    Spend's bill list uses too, so the two never disagree.
+      if (!sameObligation(
+        nameA: a.label,
+        amountA: a.amount,
+        daysA: a.days,
+        nameB: b.label,
+        amountB: b.amount,
+        daysB: b.days,
+      )) {
+        continue;
+      }
 
       // The ENTRY side leads, because that is the row the person typed and
       // will go looking for. A debt minimum is generated machinery.
