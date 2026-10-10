@@ -9,6 +9,7 @@ import '../../features/info/info_dot.dart';
 import '../../features/info/info_sheet.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
+import '../activity/transaction_detail_sheet.dart' show takeBackRefusal;
 
 /// Reconciliation, the fourth Reports tab and the only one that WRITES.
 ///
@@ -543,6 +544,14 @@ class _Duplicates extends StatelessWidget {
                       _PairRow(
                         palette: palette,
                         pair: pair,
+                        // THE TAKE-BACK RULE, not a narrower one of its own.
+                        // Marking a duplicate reverses the second entry
+                        // exactly as Take this back does, so it must refuse
+                        // exactly where that refuses. It checked only debt
+                        // and plan payments, and put a 900 split back into
+                        // an account while both friends still owed for it
+                        // (ledger-reconciler, 2026-10-10).
+                        route: state.takeBackPreview(pair.second.id),
                         onMark: () {
                           state.setTransactionStatus(
                             pair.second.id,
@@ -565,11 +574,13 @@ class _PairRow extends StatelessWidget {
   const _PairRow({
     required this.palette,
     required this.pair,
+    required this.route,
     required this.onMark,
   });
 
   final Palette palette;
   final DuplicatePair pair;
+  final TakeBackOutcome route;
   final VoidCallback onMark;
 
   @override
@@ -619,22 +630,16 @@ class _PairRow extends StatelessWidget {
           // this sentence honest in between and was deleted in the change
           // that built the route, which is the only way a promise like that
           // is allowed to expire.
-          if (pair.second.isEnginePayment || pair.first.isEnginePayment)
-            Text(
-              'This is a payment on a debt or a plan. Marking it a duplicate '
-              'would put the money back in your account and still leave the '
-              'debt showing as paid. Take the payment back from the Debts '
-              'screen instead. If the debt is not on that list, open '
-              'Archived at the bottom and put it back first.',
-              style: AppType.caption(palette),
-            )
-          else
+          if (route == TakeBackOutcome.done)
             _Button(
               palette: palette,
               label: 'Mark the second one a duplicate',
               filled: false,
               onTap: onMark,
-            ),
+            )
+          else if (route != TakeBackOutcome.alreadyNotCounting &&
+              route != TakeBackOutcome.gone)
+            Text(takeBackRefusal(route), style: AppType.caption(palette)),
         ],
       ),
     );

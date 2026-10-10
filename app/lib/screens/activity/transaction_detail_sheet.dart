@@ -273,7 +273,7 @@ class _TakeBackState extends State<_TakeBack> {
           children: <Widget>[
             Text('Taking this back', style: AppType.label(p)),
             const SizedBox(height: Spacing.xs),
-            Text(_refusal(route), style: AppType.body(p)),
+            Text(takeBackRefusal(route), style: AppType.body(p)),
           ],
         ),
       );
@@ -300,43 +300,6 @@ class _TakeBackState extends State<_TakeBack> {
       ],
     );
   }
-
-  /// Where the real take-back lives, for an entry Salapify wrote itself.
-  ///
-  /// Never a bare refusal. Reversing the ledger row alone would put the money
-  /// back and leave the debt, plan, bill, split or reconciliation still
-  /// saying it was paid, so this screen will not do it, and the person is
-  /// owed the address of the screen that will.
-  String _refusal(TakeBackOutcome route) => switch (route) {
-    TakeBackOutcome.belongsToDebt =>
-      'Salapify wrote this entry to explain a debt payment. Taking it back '
-          'here would put the money back and leave the debt still saying it '
-          'was paid. Open that debt on the Debts screen and use Take back '
-          'the last payment, which moves both together.',
-    TakeBackOutcome.belongsToPlan =>
-      'Salapify wrote this entry to explain an instalment payment. Taking it '
-          'back here would put the money back and leave the plan still saying '
-          'it was paid. Open that plan under Plans and take the payment back '
-          'there, which moves both together.',
-    TakeBackOutcome.belongsToReconciliation =>
-      'This entry is the adjustment that balanced an account, and a record '
-          'under Reports, Check still says that account was reconciled by '
-          'exactly this row. Removing it would leave that record pointing at '
-          'nothing. Reconcile the account again instead.',
-    TakeBackOutcome.belongsToBill =>
-      'Salapify wrote this entry when a scheduled bill was marked paid, and '
-          'the bill is still ticked. Un-tick it under Bills, which puts the '
-          'money back and clears the tick together.',
-    TakeBackOutcome.belongsToSplit =>
-      'A split bill wrote this entry, and the debts it created are still '
-          'standing. Taking back only the money would leave people owing you '
-          'for a bill that no longer exists. Remove those debts from the '
-          'Debts screen first.',
-    // Not reachable: the caller returns early on these three.
-    TakeBackOutcome.done ||
-    TakeBackOutcome.alreadyNotCounting ||
-    TakeBackOutcome.gone => '',
-  };
 
   Future<void> _confirm(
     BuildContext context,
@@ -460,3 +423,44 @@ class _Row extends StatelessWidget {
     );
   }
 }
+
+/// Where the real take-back lives, for an entry Salapify wrote itself.
+///
+/// Never a bare refusal. Reversing the ledger row alone would put the money
+/// back and leave the debt, plan, bill, split or reconciliation still
+/// saying it was paid, so this screen will not do it, and the person is
+/// owed the address of the screen that will.
+///
+/// PUBLIC, because the duplicate button on Reports, Check asks the same
+/// question and must give the same answer. It used its own narrower rule
+/// and so put a split's money back while the friends still owed for it.
+String takeBackRefusal(TakeBackOutcome route) => switch (route) {
+  TakeBackOutcome.belongsToDebt =>
+    'Salapify wrote this entry to explain a debt payment. Taking it back '
+        'here would put the money back and leave the debt still saying it '
+        'was paid. Open that debt on the Debts screen and use Take back '
+        'the last payment, which moves both together.',
+  TakeBackOutcome.belongsToPlan =>
+    'Salapify wrote this entry to explain an instalment payment. Taking it '
+        'back here would put the money back and leave the plan still saying '
+        'it was paid. Open that plan under Plans and take the payment back '
+        'there, which moves both together.',
+  TakeBackOutcome.belongsToReconciliation =>
+    'This entry is the adjustment that balanced an account, and a record '
+        'under Reports, Check still says that account was reconciled by '
+        'exactly this row. Removing it would leave that record pointing at '
+        'nothing. Reconcile the account again instead.',
+  TakeBackOutcome.belongsToBill =>
+    'Salapify wrote this entry when a scheduled bill was marked paid, and '
+        'the bill is still ticked. Un-tick it under Bills, which puts the '
+        'money back and clears the tick together.',
+  TakeBackOutcome.belongsToSplit =>
+    'A split bill wrote this entry, and the debts it created are still '
+        'standing. Taking back only the money would leave people owing you '
+        'for a bill that no longer exists. Remove those debts from the '
+        'Debts screen first.',
+  // Not reachable: both callers act or stay silent on these three.
+  TakeBackOutcome.done ||
+  TakeBackOutcome.alreadyNotCounting ||
+  TakeBackOutcome.gone => '',
+};
