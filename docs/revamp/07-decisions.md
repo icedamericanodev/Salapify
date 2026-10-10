@@ -1509,3 +1509,21 @@ and repaying a borrowing is not spending.
 NOT CHOSEN: counting the share on the day it is paid back, under "Debt &
 Loan Servicing", which was smaller to build but would have kept the dinner
 out of the Food budget entirely.
+
+## D35. A debt remembers the entry that started it; old splits stay as saved. ANSWERED 2026-10-10
+
+THE QUESTION. Building D34, the ledger-reconciler found that a repayment can
+only be classified correctly (moving cash, but neither spending nor income a
+second time) if the debt knows that it began with real money moving: a split,
+or money lent or borrowed. That is a new stored field, and splits already
+saved under the old method raise the question of rewriting stored data. Both
+are founder-gated, both answers were the recommended option.
+
+1. **Yes, add `Debt.openingTxId`.** Additive: an older backup loads with it
+   empty, and an empty field means the debt behaves exactly as before, so
+   debts added by hand and the sample debts are unchanged. Rejected: guessing
+   from the debt's id, which the reviewer measured as wrong by 600 for good
+   on older splits and blind to money lent through Add Debt.
+2. **Splits already saved stay exactly as they are.** Nothing stored is
+   rewritten. Only new splits use the D32/D34 shape. An old split that
+   bothers somebody can be taken back and entered again.

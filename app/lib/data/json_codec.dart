@@ -579,6 +579,9 @@ const Set<String> debtKeys = <String>{
   // old figure back on the next launch, quietly reserving money against a
   // debt they had just told the app not to.
   'minimumPayment',
+  // FIVE. Nothing clears it today, but a debt whose opening entry is taken
+  // back may, and an undeclared key would come back from the sidecar.
+  'openingTxId',
 };
 
 Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
@@ -609,6 +612,9 @@ Map<String, dynamic> debtToJson(Debt d) => <String, dynamic>{
   // touched is byte for byte what it always was, and an older build reading
   // this file ignores a key it does not know.
   if (d.minimumPayment != null) 'minimumPayment': d.minimumPayment!.pesos,
+  // Written only for a debt that began with money moving (D35), so every
+  // other debt's row is byte for byte what it always was.
+  if (d.openingTxId != null) 'openingTxId': d.openingTxId,
 };
 
 Debt debtFromJson(Map<String, dynamic> m) {
@@ -645,6 +651,9 @@ Debt debtFromJson(Map<String, dynamic> m) {
     // reserves nothing; a stored zero means the person said it genuinely
     // costs nothing a month, and the two must stay distinguishable.
     minimumPayment: _optMoney(m, 'minimumPayment'),
+    // Absent means the debt began with no money moving, which is the right
+    // answer for every debt written before this key existed (D35).
+    openingTxId: _optStr(m, 'openingTxId'),
   );
 }
 

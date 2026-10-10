@@ -627,7 +627,22 @@ class Debt {
     this.payments = const <DebtPayment>[],
     this.archivedAt,
     this.minimumPayment,
+    this.openingTxId,
   });
+
+  /// The ledger entry that STARTED this debt, when real money moved to make
+  /// it: a split bill, or money lent or borrowed (D35, 2026-10-10).
+  ///
+  /// It decides how a repayment is written. A debt that began with money
+  /// moving is repaid by moving the money back, which is neither spending nor
+  /// income: the spending (your share of a meal) or the lending was already
+  /// recorded when the debt began. Without this, repaying a friend for a
+  /// split counted the same 300 of dinner a second time.
+  ///
+  /// NULL MEANS "began with no money moving", which is every debt added by
+  /// hand, every sample debt and every debt in an older backup, and they are
+  /// repaid exactly as they always were.
+  final String? openingTxId;
 
   /// What this debt costs every month, when the person has said so.
   ///
@@ -874,6 +889,12 @@ class Debt {
     // same reason: passing null has to mean "leave it alone", or every copy
     // made for an unrelated purpose would un-archive the debt by accident.
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    // CARRIED THROUGH. This copy dropped minimumPayment for as long as the
+    // field existed, so recording any payment erased the minimum the person
+    // had typed and Safe to Spend quietly stopped holding it back. Every
+    // field without a parameter above must still be passed along here.
+    minimumPayment: minimumPayment,
+    openingTxId: openingTxId,
   );
 }
 
