@@ -242,8 +242,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
               icon: Icons.verified_user_outlined,
               title: 'What stays on this phone',
               subtitle:
-                  'Every line, including the one request that does leave and '
-                  'the fact that a backup is readable text',
+                  'Every line, including the two things that leave and the '
+                  'fact that a backup is readable text',
               onTap: () => PrivacySheet.show(context, p),
             ),
             // DELETE IS IN THE PRIVACY SECTION, not under "Your data" beside

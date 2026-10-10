@@ -5,9 +5,9 @@ Date: 2026-10-10. Code examined: `claude/flutter-final` at `300ec93d`
 `com.google.mlkit:text-recognition` 16.0.1, the bundled model).
 Evidence: [mlkit-telemetry/evidence.txt](mlkit-telemetry/evidence.txt).
 
-**Status: FOUNDER DECISION NEEDED. Nothing has been changed.** No privacy
+**Status: DECIDED 2026-10-10, option B (keep the reader, disclose the report).** The copy changes are on the claude/privacy-copy-b branch. Originally: no privacy
 copy, no dependency, no manifest. This is a privacy decision (STOP condition 3
-in CLAUDE.md), so it waits for the founder.
+in CLAUDE.md), so it waited for the founder.
 
 ## The answer in plain English
 
@@ -295,7 +295,7 @@ as such.
 | Does the app collect or share data? | Yes | It leaves the device, and Play counts SDK traffic. |
 | App info and performance > Diagnostics | Collected | Latency, error and config codes, image size, device and build details. |
 | Device or other IDs | Collected | `ml_sdk_instance_id`. |
-| Approximate location | Do not declare | Country, carrier code and time zone are coarse settings and SIM data, not a position. Describe them in the privacy policy instead. |
+| Approximate location | Declare (revised 2026-10-10) | Counsel's first pass said no. Its second pass, and Play's own wording ("an area greater than or equal to 3 square kilometers", inferred location "must be disclosed"), say declare. The current answers live in `docs/play-data-safety.md`. |
 | Shared | Yes, to be safe (counsel's judgement) | The service provider exemption covers processing "on behalf of the developer", and Google uses these metrics for its own purposes ("improve the APIs", "detect misuse"). Over-declaring is not penalised; under-declaring is a violation. Note that Google's own disclosure page says ML Kit does not transfer the data to third parties, so a "Not shared" answer is arguable. Counsel chose the safe side. |
 | Purpose | Analytics | Not app functionality: the A1 test showed the OCR works without the uploads. |
 | Optional or required | Required | Play treats data as optional only if the user can opt out of the collection itself. Choosing to scan does not count. |

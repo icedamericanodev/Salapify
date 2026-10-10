@@ -62,8 +62,8 @@ class PrivacySheet extends StatelessWidget {
             title: 'No account, and nothing to sign in to',
             body:
                 'There is no email, no phone number, no password and no '
-                'profile. Salapify has no server, so there is nothing of '
-                'yours anywhere for anybody to reach.',
+                'profile. Salapify has no server, so none of your records '
+                'sit anywhere for anybody to reach.',
           ),
           _Line(
             palette: palette,
@@ -125,12 +125,12 @@ class PrivacySheet extends StatelessWidget {
             // "No analytics, no crash reporting, no ads" until 2026-10-10,
             // false since the receipt reader arrived. What stays true is
             // narrower and is said exactly: none of Salapify's OWN.
-            title: 'No ads, and nothing that follows you',
+            title: 'No ads, and no analytics of Salapify\'s own',
             body:
-                'There is no advertising ID, no crash reporting and no '
-                'analytics of Salapify\'s own, and nothing counts your taps. '
-                'The one usage report that does exist comes from Google\'s '
-                'receipt reader, and it is listed below.',
+                'Nothing counts your taps, and there is no advertising ID '
+                'and no crash reporting. The one usage report that does '
+                'exist comes from Google\'s receipt reader, and it is listed '
+                'below.',
           ),
           _Line(
             palette: palette,
@@ -155,8 +155,7 @@ class PrivacySheet extends StatelessWidget {
                 'When you open the currency converter, Salapify asks a public '
                 'exchange rate service for today\'s rates. It sends a currency '
                 'code, for example PHP. It never sends your balances, your '
-                'entries, the names you have saved, or anything that '
-                'identifies you.',
+                'entries, the names you have saved, or your name.',
           ),
           _Line(
             palette: palette,
@@ -164,14 +163,19 @@ class PrivacySheet extends StatelessWidget {
             title: 'Leaves this phone: a usage report when you scan',
             accent: true,
             body:
-                'After you scan a receipt, Google\'s reader sends Google a '
-                'small report: the phone model and Android version, the app '
-                'version, your country, mobile network and time zone, the '
-                'language, and how long the reading took, with a random ID '
-                'for this install. It never includes the photo, the words on '
-                'the receipt, your amounts or your name. Salapify cannot '
-                'switch it off, so if you would rather it never went, paste '
-                'the receipt text instead. If you never open the converter '
+                // Reassurance first: the user panel's working parent stopped
+                // reading at the list and never reached "never includes".
+                // "A code for your mobile network" and not its name, because
+                // what is sent is mcc_mnc, a number (evidence.txt).
+                'It never includes the photo, the words on the receipt, your '
+                'amounts or your name. After you scan a receipt, Google\'s '
+                'reader sends Google a small report: the phone model and '
+                'Android version, the app version, your country, a code for '
+                'your mobile network, your time zone, the language, and how '
+                'long the reading took, with a random code made only for '
+                'this install of the app. Salapify cannot switch it off, so '
+                'if you would rather not send it, paste the receipt text '
+                'instead. If you never open the converter '
                 'and never scan a receipt, Salapify makes no internet request '
                 'at all.',
           ),

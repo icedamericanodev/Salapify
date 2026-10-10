@@ -39,13 +39,18 @@ the phone and resets the ML Kit install ID.
 | --- | --- | --- | --- | --- | --- |
 | App info and performance > Diagnostics | Yes | Yes | No | Required | Analytics |
 | Device or other IDs | Yes | Yes | No | Required | Analytics |
+| Location > Approximate location | Yes | Yes | No | Required | Analytics |
 
 Every other data type: not collected. In particular:
 
-- **Approximate location: do not declare.** Country, carrier code and time
-  zone are settings and SIM data, not a position fix. Play defines
-  approximate location as a position to within about 3 square kilometres.
-  They are named in the privacy policy instead.
+- **Approximate location: declare (safe side).** Play defines it as "User or
+  device physical location to an area greater than or equal to 3 square
+  kilometers", and says location "that is inferred ... must be disclosed".
+  The report's country and carrier code locate the phone to a country, which
+  is such an area. Counsel's first pass said not to declare and its second
+  said to declare; the Play wording, checked 2026-10-10, supports declaring.
+  The cost is that the store listing will say "Location", which the founder
+  should see before it goes live.
 - **Photos: not collected.** The receipt photo is read on the phone and
   deleted. It never leaves.
 - **Financial info: not collected.** Nothing the person types leaves the phone.
@@ -67,9 +72,11 @@ Every other data type: not collected. In particular:
   The paste path avoids it, but that is avoiding the feature, not opting out.
 - **The exchange rate request is not declared as a data type.** A currency
   code is a setting, not user data in any Play category, and the developer
-  does not collect the IP address the rate service sees. **Confirm this with
-  legal-compliance-counsel before submitting.** It is the one answer here
-  that was reasoned rather than checked.
+  does not collect the IP address the rate service sees. Play asks for an IP
+  address to be declared when a developer uses it to work out location, and
+  Salapify does not. Confirmed by legal-compliance-counsel against Play's
+  Data safety help page on 2026-10-10. Redo this if the request ever carries
+  anything besides the currency code.
 
 ## When this must be redone
 

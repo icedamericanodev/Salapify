@@ -376,9 +376,13 @@ class _ScanReceiptSheetState extends State<ScanReceiptSheet> {
             // buttons, so it is read BEFORE the scan that sends it, which a
             // line in Settings cannot promise. It stays on the screen rather
             // than behind an info dot because silence here would mislead.
-            'Read on your phone. The photo is not saved or sent anywhere. '
-            'Google\'s reader sends Google a usage report, never your '
-            'receipt.',
+            // Names the two things that matter, device details and an
+            // install code, because the Data Privacy Act's duty to inform
+            // is about WHAT is collected before it is (counsel review).
+            'Your phone reads the photo. It is not saved or sent anywhere. '
+            'Google\'s reader then sends Google a usage report with device '
+            'details and a random install code, never your receipt. The '
+            'full list is in Settings.',
             style: AppType.caption(p),
           ),
           if (_readFailure != null) ...<Widget>[
