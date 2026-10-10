@@ -451,16 +451,31 @@ class HomeScreen extends StatelessWidget {
 
     final int n = saved.debts.length;
     final String debts = n == 1 ? '1 debt' : '$n debts';
-    final Transaction? tx = saved.transaction;
 
     // WHAT ACTUALLY HAPPENED, not a generic success. "Saved" on its own
     // leaves somebody checking their balance to find out which account paid.
-    final String what = tx == null
-        ? 'Split recorded. $debts created, no money moved. Saved to this '
-              'phone.'
-        : 'Split recorded. ${formatPeso(tx.amount.pesos)} out of '
-              '${saved.accountName ?? 'your account'}, $debts created. '
-              'Saved to this phone.';
+    // And since D32 the whole bill leaving an account is NOT the whole bill
+    // spent, so the sentence names both halves, or the Food budget showing
+    // 300 after "900 out of GCash" reads as 600 lost.
+    final String what;
+    if (saved.leaving.isPositive) {
+      final String out =
+          '${formatPeso(saved.leaving.pesos)} out of '
+          '${saved.accountName ?? 'your account'}';
+      what = saved.lent.isPositive && saved.spend.isPositive
+          ? 'Split recorded. $out: ${formatPeso(saved.spend.pesos)} your '
+                'share, ${formatPeso(saved.lent.pesos)} lent. $debts '
+                'created. Saved to this phone.'
+          : 'Split recorded. $out, $debts created. Saved to this phone.';
+    } else if (saved.spend.isPositive) {
+      what =
+          'Split recorded. Your ${formatPeso(saved.spend.pesos)} share '
+          'counted as spending, no money moved yet. Saved to this phone.';
+    } else {
+      what =
+          'Split recorded. $debts created, no money moved. Saved to this '
+          'phone.';
+    }
 
     messenger
       ..hideCurrentSnackBar()
@@ -474,7 +489,10 @@ class HomeScreen extends StatelessWidget {
             label: 'Undo',
             textColor: palette.onAccent,
             onPressed: () {
-              final bool done = state.undoSplitBill(tx: tx, debts: saved.debts);
+              final bool done = state.undoSplitBill(
+                txs: saved.transactions,
+                debts: saved.debts,
+              );
               messenger
                 ..hideCurrentSnackBar()
                 ..showSnackBar(

@@ -148,7 +148,8 @@ void main() {
       1,
       reason: 'one receivable for Carla should exist after the split',
     );
-    expect(state.transactions.length, openingEntries + 1);
+    // TWO entries since D32: Carla's half lent and your half spent.
+    expect(state.transactions.length, openingEntries + 2);
 
     // And the person is TOLD, which is the other half of the defect. Before
     // this change Home threw the sheet's result away, so a split saved in

@@ -237,11 +237,15 @@ void main() {
   });
 
   group('the expense half', () {
-    testWidgets('the whole bill is logged when you paid', (
+    testWidgets('you paid: your share is spending, the rest is lent, and '
+        'the account falls by the whole bill (D32)', (
       WidgetTester tester,
     ) async {
       final FinancialState state = await openSheet(tester);
       final int before = state.transactions.length;
+      // The sheet spends from the first account unless told otherwise.
+      final String accountId = state.accounts.first.id;
+      final Money balanceBefore = state.accounts.first.balance;
 
       await type(tester, 'Total bill', '1200');
       await type(tester, 'What was it', 'Lunch');
@@ -253,25 +257,41 @@ void main() {
 
       await tapIt(tester, find.text('Record it'));
 
-      expect(state.transactions.length, before + 1);
-      final Transaction tx = state.transactions.firstWhere(
-        (Transaction t) => t.id.startsWith('tx_split_'),
+      expect(state.transactions.length, before + 2);
+      final Transaction share = state.transactions.firstWhere(
+        (Transaction t) =>
+            t.id.startsWith('tx_split_') && !t.id.endsWith('_lent'),
       );
+      final Transaction lent = state.transactions.firstWhere(
+        (Transaction t) =>
+            t.id.startsWith('tx_split_') && t.id.endsWith('_lent'),
+      );
+      // Only your half is spending. It used to be the whole 1,200, so the
+      // Food budget carried Carla's half as yours.
+      expect(share.type, TransactionType.expense);
+      expect(share.amount, const Money.pesos(600));
+      expect(share.merchant, 'Lunch');
+      // Carla's half is money lent: out of the account, not spending.
+      expect(lent.type, TransactionType.transfer);
+      expect(lent.toAccountId, isNull);
+      expect(lent.amount, const Money.pesos(600));
+      // And the account still fell by every peso of the bill.
       expect(
-        tx.amount,
-        const Money.pesos(1200),
-        reason:
-            'the whole bill left your account, and the debt is what '
-            'brings half of it back',
+        state.accounts.firstWhere((Account a) => a.id == accountId).balance,
+        balanceBefore - const Money.pesos(1200),
       );
-      expect(tx.type, TransactionType.expense);
-      expect(tx.merchant, 'Lunch');
+      // The debt remembers the money that started it (D35).
+      expect(splitDebts(state).single.openingTxId, lent.id);
     });
 
-    testWidgets('only your share is logged when somebody else paid', (
+    testWidgets('somebody else paid: your share is spending today and no '
+        'account moves until you pay them back (D34)', (
       WidgetTester tester,
     ) async {
       final FinancialState state = await openSheet(tester);
+      final List<Money> balances = <Money>[
+        for (final Account a in state.accounts) a.balance,
+      ];
 
       await type(tester, 'Total bill', '1200');
       await type(tester, 'Add somebody', 'Carla');
@@ -287,6 +307,17 @@ void main() {
         (Transaction t) => t.id.startsWith('tx_split_'),
       );
       expect(tx.amount, const Money.pesos(600));
+      expect(tx.type, TransactionType.expense);
+      expect(tx.isFromOutside, isTrue, reason: 'Carla paid, not you');
+      expect(tx.person, 'Carla');
+      // No account moved. It used to take 600 out now AND again on
+      // repayment.
+      expect(<Money>[
+        for (final Account a in state.accounts) a.balance,
+      ], balances);
+      final Debt owed = splitDebts(state).single;
+      expect(owed.direction, DebtDirection.iOwe);
+      expect(owed.openingTxId, tx.id);
     });
 
     testWidgets('unticking it writes the debts and no transaction', (
@@ -302,13 +333,17 @@ void main() {
         find.bySemanticsLabel('Add this person to the split'),
       );
 
-      await tapIt(tester, find.textContaining('Also log the whole bill'));
+      await tapIt(
+        tester,
+        find.textContaining('Record the bill as paid from my account'),
+      );
 
       await tapIt(tester, find.text('Record it'));
 
       // DIRECTIONAL both ways: the debt still landed, the transaction did not.
       expect(splitDebts(state).length, 1);
       expect(state.transactions.length, txBefore);
+      expect(splitDebts(state).single.openingTxId, isNull);
     });
   });
 

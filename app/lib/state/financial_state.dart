@@ -1794,6 +1794,15 @@ class FinancialState extends ChangeNotifier {
       }
     }
 
+    // THE ENTRY THAT STARTED A DEBT (D35), a stored link like the three
+    // above. Taking back money lent, or a share a friend paid, while the
+    // debt it opened still stands leaves somebody owing for money that never
+    // moved. Only a split writes one today, so the split's sentence is the
+    // right one; a lending flow that writes one later must add its own.
+    for (final Debt d in _debts) {
+      if (d.openingTxId == txId) return TakeBackOutcome.belongsToSplit;
+    }
+
     // THE GUESSES, after the facts. See the doc above.
     if (tx.isEnginePayment) {
       return txId.startsWith('tx_debt_')
@@ -1826,7 +1835,11 @@ class FinancialState extends ChangeNotifier {
     // with the same limit (an older build's ids, a restored backup), and it is
     // what there is until the link is stored properly.
     if (txId.startsWith('tx_split_')) {
-      final String stamp = txId.substring('tx_split_'.length);
+      // THE STAMP ONLY, up to the next underscore. A split now writes two
+      // rows, `tx_split_<stamp>` and `tx_split_<stamp>_lent`, and reading
+      // everything after the prefix built `debt_split_<stamp>_lent_` for the
+      // second, matched no debt, and let it be taken back alone.
+      final String stamp = txId.substring('tx_split_'.length).split('_').first;
       final String born = 'debt_split_${stamp}_';
       // ANY, not all. One receivable left standing is still a person who
       // owes for a bill that would no longer exist.
@@ -1976,7 +1989,14 @@ class FinancialState extends ChangeNotifier {
   /// It takes the OBJECTS the split created rather than ids, for the same
   /// reason [undoLoggedTransaction] does: a caller cannot ask to remove
   /// something it has not got in front of it.
-  bool undoSplitBill({required Transaction? tx, required List<Debt> debts}) {
+  ///
+  /// SEVERAL ENTRIES since D32: the person's own share, and the money lent to
+  /// the others. Each is reversed from its stored row, inside the same one
+  /// notify, so the account returns by exactly what the split took.
+  bool undoSplitBill({
+    required List<Transaction> txs,
+    required List<Debt> debts,
+  }) {
     // CHECKED BEFORE ANYTHING IS TOUCHED. A refusal halfway through would be
     // the half-landed state this method exists to prevent.
     for (final Debt d in debts) {
@@ -1990,7 +2010,7 @@ class FinancialState extends ChangeNotifier {
 
     bool changed = false;
 
-    if (tx != null) {
+    for (final Transaction tx in txs) {
       // The STORED row decides what is reversed, as in undoLoggedTransaction:
       // a split entry taken back in the meantime has had its money returned
       // already. Nothing found means nothing to reverse, so a second tap

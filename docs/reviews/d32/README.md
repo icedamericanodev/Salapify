@@ -16,3 +16,16 @@ How the figures tie:
 - The health check's 22,940 "due before payday" is the same bills minus the
   overdue 6,000 remittance and the 239 Spotify whose date reads "Sunday".
   Safe to Spend still holds both back, because both are still owed.
+
+## D32.2, D34, D35: a split counts only your share
+
+| You paid | A friend paid | Activity afterwards |
+| --- | --- | --- |
+| ![You paid](sheet_split_bill_working.png) | ![Friend paid](sheet_split_bill_friend_paid.png) | ![Activity](activity_split_rows.png) |
+
+- You paid 2,400 for three: 2,400 leaves the account, 800 is your spending,
+  1,600 is lent to the others.
+- A friend paid: your 800 is spending today, no account moves, and paying the
+  friend back later is not spending again.
+- In Activity a friend's repayment reads as money in from them, money lent
+  reads as leaving for them, and a share a friend paid reads "Paid by Ana".

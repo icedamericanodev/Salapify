@@ -76,7 +76,9 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isIncome = tx.type == TransactionType.income;
+    // A friend repaying money lent reads as money in (D35).
+    final bool isIncome =
+        tx.type == TransactionType.income || tx.arrivesFromOutside;
     final bool isTransfer = tx.type == TransactionType.transfer;
 
     final IconData icon = isIncome
@@ -111,7 +113,9 @@ class _Row extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${tx.category} · ${state.accountShortName(tx.accountId)}',
+                  // The friend's name, not "Account", for money that
+                  // touched none of the person's accounts (D34, D35).
+                  '${tx.category} · ${tx.isFromOutside ? tx.counterparty : state.accountShortName(tx.accountId)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: palette.textMuted),

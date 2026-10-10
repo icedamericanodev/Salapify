@@ -335,6 +335,22 @@ enum TransactionStatus {
   excluded,
 }
 
+/// The account id that names NO account of the person's: money that came
+/// from, or went to, somebody else (D34, D35, 2026-10-10).
+///
+/// Three entries use it. A friend paid for your share of a split: an expense
+/// with this as its account, so the share counts as spending and no balance
+/// moves. A friend repays money you lent: a transfer FROM here into your
+/// account. And it is never the destination: money lent out is a transfer
+/// from your account with no destination at all.
+///
+/// A NAMED value rather than the empty string, because an empty account id
+/// already means "nothing chosen" on the Log sheet and is what a bug would
+/// produce; a sentinel nobody can type cannot be confused with either. It
+/// matches no account, so the balance code skips that leg without a special
+/// case (ledger.dart applyToBalances).
+const String outsideAccountId = 'outside';
+
 class Transaction {
   const Transaction({
     required this.id,
@@ -464,6 +480,28 @@ class Transaction {
   /// happened, and it stops counting, because the payment it describes has been
   /// undone. A row left counting while the debt has moved is the half-landed
   /// state this whole batch exists to stop.
+  /// True when this entry's own account is nobody's: see [outsideAccountId].
+  bool get isFromOutside => accountId == outsideAccountId;
+
+  /// The one account of the PERSON'S that this entry touches, for a screen
+  /// that labels or groups entries by account. Null when it touches none (a
+  /// share a friend paid for).
+  ///
+  /// Read this, never [accountId], wherever an account is shown or compared:
+  /// two repayments collected into GCash and BPI both carry [outsideAccountId]
+  /// as their account, and comparing that paired them as "the same account".
+  String? get ownAccountId => isFromOutside ? toAccountId : accountId;
+
+  /// Money arriving from somebody else into one of the person's accounts: a
+  /// friend repaying money lent. Shown as money IN (a plus and the positive
+  /// colour) although it is a transfer, so a repayment does not read as a
+  /// payment the person made.
+  bool get arrivesFromOutside =>
+      isFromOutside && type == TransactionType.transfer && toAccountId != null;
+
+  /// Who is on the far side of an entry that involves somebody else.
+  String get counterparty => person ?? 'Someone else';
+
   bool get countsTowardTotals =>
       status != TransactionStatus.excluded &&
       status != TransactionStatus.duplicate &&

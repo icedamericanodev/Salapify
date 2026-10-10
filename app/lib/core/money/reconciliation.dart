@@ -154,7 +154,10 @@ List<DuplicatePair> findDuplicates(List<Transaction> transactions) {
       final Transaction b = transactions[j];
 
       if (a.amount != b.amount) continue;
-      if (a.accountId != b.accountId) continue;
+      // THE PERSON'S OWN ACCOUNT, not the stored id. Two repayments from
+      // friends both carry outsideAccountId, so comparing the raw id paired
+      // 300 collected into GCash with 300 collected into BPI (D35).
+      if (a.ownAccountId != b.ownAccountId) continue;
       if (a.type != b.type) continue;
       if (a.status == TransactionStatus.duplicate) continue;
       if (b.status == TransactionStatus.duplicate) continue;

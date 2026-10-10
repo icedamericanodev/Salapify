@@ -58,6 +58,9 @@ List<UsualEntry> usualEntries(
   final Map<String, _Tally> tallies = <String, _Tally>{};
   for (final Transaction t in transactions) {
     if (t.type != TransactionType.expense || t.isSample) continue;
+    // A share a friend paid touched none of the person's accounts, so it
+    // cannot be "the usual" from one (D34).
+    if (t.isFromOutside) continue;
     final String? merchant = t.merchant?.trim().isEmpty ?? true
         ? null
         : t.merchant!.trim();

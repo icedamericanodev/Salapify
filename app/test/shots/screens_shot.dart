@@ -3,6 +3,8 @@ import 'package:salapify/features/lock/app_lock.dart';
 import 'package:salapify/design/pan_art.dart';
 import 'package:salapify/screens/home/hero_panel.dart';
 import 'package:salapify/core/money/money.dart';
+import 'package:salapify/core/money/debt.dart'
+    show isoDate, lendingEntry, paidByOtherEntry;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -1691,10 +1693,13 @@ void main() {
   // the per-person figures, the running total and the reconcile line, which
   // is the part a founder can look at and say "that number is in the wrong
   // place".
-  for (final ({String slug, bool filled}) shape
-      in <({String slug, bool filled})>[
-        (slug: 'split_bill', filled: false),
-        (slug: 'split_bill_working', filled: true),
+  for (final ({String slug, bool filled, bool friendPaid}) shape
+      in <({String slug, bool filled, bool friendPaid})>[
+        (slug: 'split_bill', filled: false, friendPaid: false),
+        (slug: 'split_bill_working', filled: true, friendPaid: false),
+        // D34: when a friend paid, the sheet says the share is spending today
+        // and that no account moves until the friend is paid back.
+        (slug: 'split_bill_friend_paid', filled: true, friendPaid: true),
       ]) {
     testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);
@@ -1751,6 +1756,13 @@ void main() {
           await tester.tap(add);
           await tester.pumpAndSettle();
         }
+        if (shape.friendPaid) {
+          final Finder paid = find.text('Paid the bill').at(1);
+          await tester.ensureVisible(paid);
+          await tester.pumpAndSettle();
+          await tester.tap(paid);
+          await tester.pumpAndSettle();
+        }
       }
 
       await expectLater(
@@ -1759,6 +1771,87 @@ void main() {
       );
     });
   }
+
+  // Activity after a split and a repayment (D32, D34, D35): your share as
+  // spending, the friends' half leaving for them, and a friend paying back
+  // as money in, each saying who it involves.
+  testWidgets('activity split rows render', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 2600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+    final DateTime today = state.now;
+    state.addDebt(
+      const Debt(
+        id: 'debt_split_shot_0',
+        person: 'Carla, Miggy',
+        direction: DebtDirection.owedToMe,
+        totalAmount: Money.pesos(1600),
+        paidAmount: Money.zero,
+        isSettled: false,
+        notes: 'Split: Barkada lunch',
+        openingTxId: 'tx_split_shot_lent',
+      ),
+    );
+    state.logTransaction(
+      Transaction(
+        id: 'tx_split_shot',
+        type: TransactionType.expense,
+        amount: const Money.pesos(800),
+        category: 'Food & Dining',
+        accountId: 'acc_gcash',
+        date: isoDate(today),
+        createdAt: 2,
+        merchant: 'Barkada lunch',
+      ),
+    );
+    state.logTransaction(
+      lendingEntry(
+        id: 'tx_split_shot_lent',
+        amount: const Money.pesos(1600),
+        person: 'Carla, Miggy',
+        accountId: 'acc_gcash',
+        today: today,
+        createdAt: 3,
+        merchant: 'Barkada lunch',
+      ),
+    );
+    state.logTransaction(
+      paidByOtherEntry(
+        id: 'tx_split_shot_2',
+        amount: const Money.pesos(450),
+        category: 'Food & Dining',
+        person: 'Ana',
+        today: today,
+        createdAt: 4,
+        merchant: 'Ramen with Ana',
+      ),
+    );
+    state.recordDebtPayment('debt_split_shot_0', 800, accountId: 'acc_gcash');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Activity'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/activity_split_rows.png'),
+    );
+  });
 
   // Accounts, the fifth tab. All four views at both brightnesses, because a
   // view nobody renders is a screen nobody has looked at.

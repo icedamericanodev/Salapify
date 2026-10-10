@@ -307,6 +307,38 @@ Transaction? paymentEntry({
 
   final bool owing = debt.direction == DebtDirection.iOwe;
 
+  // A DEBT THAT BEGAN WITH MONEY MOVING is repaid by moving the money back,
+  // which is neither spending nor income (D35, 2026-10-10). The spending, or
+  // the lending, was recorded when the debt began: the share of a dinner a
+  // friend paid for counted as Food that day, and money lent left the
+  // account then. Writing the repayment as an expense or as income counted
+  // the same 300 a second time. The id keeps the `tx_debt_` prefix, which is
+  // how the take-back and duplicate rules recognise a payment row.
+  if (debt.openingTxId != null) {
+    return Transaction(
+      id: id,
+      type: TransactionType.transfer,
+      amount: Money.fromDouble(amount),
+      category: owing ? 'Debt & Loan Servicing' : 'Receivables & Repayments',
+      subcategory: owing ? 'Paid back' : 'Pahiram Repayment Collected',
+      // Mine to them, or theirs (outside) into mine.
+      accountId: owing ? accountId : outsideAccountId,
+      toAccountId: owing ? null : accountId,
+      person: debt.person,
+      merchant: owing
+          ? 'Repayment to ${debt.person}'
+          : 'Repayment from ${debt.person}',
+      date: isoDate(today),
+      note: owing
+          ? 'Paid back ${debt.person}'
+          : 'Collected from ${debt.person}',
+      tags: <String>[owing ? '#debt-payment' : '#receivable-collected'],
+      status: TransactionStatus.confirmed,
+      profile: ProfileEntity.personal,
+      createdAt: today.millisecondsSinceEpoch,
+    );
+  }
+
   return Transaction(
     id: id,
     type: owing ? TransactionType.expense : TransactionType.income,
@@ -330,6 +362,67 @@ Transaction? paymentEntry({
     createdAt: today.millisecondsSinceEpoch,
   );
 }
+
+/// Money LENT: it leaves one of the person's accounts for somebody else
+/// (D32, D35). A transfer with no destination, so it is neither spending nor
+/// income and the account still falls by every peso that left. The debt it
+/// opens carries this entry's id as [Debt.openingTxId].
+Transaction lendingEntry({
+  required String id,
+  required Money amount,
+  required String person,
+  required String accountId,
+  required DateTime today,
+  required int createdAt,
+  String? merchant,
+  String? note,
+  ProfileEntity profile = ProfileEntity.personal,
+}) => Transaction(
+  id: id,
+  type: TransactionType.transfer,
+  amount: amount,
+  category: 'Receivables & Repayments',
+  subcategory: 'Money lent',
+  accountId: accountId,
+  person: person,
+  merchant: merchant ?? 'Lent to $person',
+  date: isoDate(today),
+  note: note,
+  tags: const <String>['#money-lent'],
+  status: TransactionStatus.confirmed,
+  profile: profile,
+  createdAt: createdAt,
+);
+
+/// A share of something SOMEBODY ELSE paid for (D34): spending under its own
+/// category on the day it happened, touching none of the person's accounts,
+/// because the friend's money paid. The person's cash leaves only when they
+/// pay the friend back, and that repayment is not spending (see
+/// [paymentEntry]). The debt it opens carries this entry's id.
+Transaction paidByOtherEntry({
+  required String id,
+  required Money amount,
+  required String category,
+  required String person,
+  required DateTime today,
+  required int createdAt,
+  String? merchant,
+  String? note,
+  ProfileEntity profile = ProfileEntity.personal,
+}) => Transaction(
+  id: id,
+  type: TransactionType.expense,
+  amount: amount,
+  category: category,
+  accountId: outsideAccountId,
+  person: person,
+  merchant: merchant,
+  date: isoDate(today),
+  note: note,
+  status: TransactionStatus.confirmed,
+  profile: profile,
+  createdAt: createdAt,
+);
 
 /// What is still outstanding in one direction, settled debts excluded.
 Money outstanding(List<Debt> debts, DebtDirection direction) => sumMoney(

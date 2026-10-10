@@ -83,8 +83,13 @@ class LedgerSummaryCard extends StatelessWidget {
             // the card.
             countLabel: switch (totals.transferCount) {
               0 => 'What came in, less what went out',
-              1 => 'Plus 1 move between your own accounts',
-              final int n => 'Plus $n moves between your own accounts',
+              // "TRANSFER", not "move between your own accounts", since
+              // D32: money lent to a friend and a friend paying it back are
+              // transfers too, counted here and in neither total, and the
+              // old sentence called a 600 lent to Carla a move between your
+              // own accounts. The count is the locked ledger's own.
+              1 => 'Plus 1 transfer, not counted in or out',
+              final int n => 'Plus $n transfers, not counted in or out',
             },
             color: kept ? palette.positive : palette.negative,
           ),

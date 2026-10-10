@@ -120,7 +120,10 @@ class TransactionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Transaction t = transaction;
-    final bool isIncome = t.type == TransactionType.income;
+    // A repayment from a friend is a transfer, but it is money arriving, so
+    // it wears income's plus sign and colour (D35).
+    final bool isIncome =
+        t.type == TransactionType.income || t.arrivesFromOutside;
     final bool isTransfer = t.type == TransactionType.transfer;
     final bool struck = statusIsStruckThrough(t.status);
 
@@ -252,10 +255,26 @@ class TransactionRow extends StatelessWidget {
       t.isSample ? 'Sample · ${t.category}' : t.category,
     );
     b.write(' · ');
+    // SOMEBODY ELSE'S MONEY reads as their name, never as "Account": a share
+    // a friend paid for touched none of the person's accounts, and a
+    // repayment came from the friend, not from an account (D34, D35).
+    if (t.isFromOutside) {
+      b.write(
+        isTransfer && to != null
+            ? '${t.counterparty} → ${to.name}'
+            : 'Paid by ${t.counterparty}',
+      );
+      return b.toString();
+    }
     b.write(from?.name ?? 'Account');
     if (isTransfer && to != null) {
       b.write(' → ');
       b.write(to.name);
+    } else if (isTransfer && t.person != null) {
+      // Money lent, which leaves for a person rather than an account.
+      b.write(' → ');
+      b.write(t.person);
+      return b.toString();
     }
     if (t.person != null) {
       b.write(' · ');

@@ -70,7 +70,9 @@ class TransactionDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final Palette p = palette;
     final Transaction t = transaction;
-    final bool isIncome = t.type == TransactionType.income;
+    // See day_group.dart: a repayment from a friend reads as money in.
+    final bool isIncome =
+        t.type == TransactionType.income || t.arrivesFromOutside;
     final bool isTransfer = t.type == TransactionType.transfer;
     final bool struck = statusIsStruckThrough(t.status);
 
@@ -129,17 +131,29 @@ class TransactionDetailSheet extends StatelessWidget {
           ],
           const SizedBox(height: Spacing.lg),
 
+          // SOMEBODY ELSE on either side is named, never "Unknown account":
+          // a share a friend paid, a repayment from them, money lent to them
+          // (D34, D35). "Unknown account" is kept for what it always meant,
+          // an account that has since been deleted.
           _Row(
             palette: p,
-            label: isTransfer ? 'From' : 'Account',
-            value: from?.name ?? 'Unknown account',
-            caption: from?.institution,
+            label: t.isFromOutside && !isTransfer
+                ? 'Paid by'
+                : isTransfer
+                ? 'From'
+                : 'Account',
+            value: t.isFromOutside
+                ? t.counterparty
+                : from?.name ?? 'Unknown account',
+            caption: t.isFromOutside ? null : from?.institution,
           ),
           if (isTransfer)
             _Row(
               palette: p,
               label: 'To',
-              value: to?.name ?? 'Unknown account',
+              value: t.toAccountId == null
+                  ? t.counterparty
+                  : to?.name ?? 'Unknown account',
               caption: to?.institution,
             ),
           _Row(

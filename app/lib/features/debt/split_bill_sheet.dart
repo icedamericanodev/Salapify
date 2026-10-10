@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/debt.dart';
 import '../../core/money/format.dart';
 import '../../core/money/split_bill.dart';
 import '../../design/tokens.dart';
@@ -54,22 +55,35 @@ import 'package:salapify/core/money/money.dart';
 /// display a reassurance.
 class SplitBillResult {
   const SplitBillResult({
-    required this.transaction,
+    required this.transactions,
     required this.debts,
     required this.accountName,
+    required this.leaving,
+    required this.spend,
+    required this.lent,
   });
 
-  /// The expense, or null when the person unticked the box or had no account
-  /// to spend from. A split with no expense is perfectly ordinary: somebody
-  /// else paid and all that happened is that you now owe them.
-  final Transaction? transaction;
+  /// Every ledger entry the split wrote, in order: the person's own share
+  /// (spending) and, when they paid, the money lent to the others. Empty
+  /// when the box was unticked or there was no account: then only the debts
+  /// exist, which is ordinary when somebody else paid.
+  final List<Transaction> transactions;
 
   /// Every debt the split created, in the order it created them.
   final List<Debt> debts;
 
-  /// The account the expense came out of, for the confirmation sentence.
-  /// Null exactly when [transaction] is.
+  /// The account the money came out of, for the confirmation sentence.
+  /// Null when nothing left an account.
   final String? accountName;
+
+  /// What left the account in total, the whole bill when the person paid.
+  final Money leaving;
+
+  /// The part of it that counts as the person's own spending.
+  final Money spend;
+
+  /// The part of it lent to the others.
+  final Money lent;
 }
 
 class SplitBillSheet extends StatefulWidget {
@@ -132,6 +146,16 @@ class _PlannedDebt {
   final double amount;
   final DebtDirection direction;
 }
+
+/// What one tap on Record it is going to write, as one value (D32, D34).
+typedef _Plan = ({
+  List<_PlannedDebt> debts,
+  bool iPaid,
+  bool records,
+  Money spend,
+  Money lent,
+  Money leaving,
+});
 
 class _SplitBillSheetState extends State<SplitBillSheet> {
   final TextEditingController _total = TextEditingController();
@@ -234,7 +258,7 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
   ///
   /// It decides nothing on its own. Every branch below is lifted from what
   /// [_save] already did; moving them here is a refactor, not a rule change.
-  ({List<_PlannedDebt> debts, double leaving}) get _plan {
+  _Plan get _plan {
     final List<SplitShare> shares = _shares;
     final bool iPaid = _payer == 'You';
     final double myShare = shares
@@ -261,16 +285,38 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
             ),
     ];
 
-    // The FULL bill if you paid it, your share if somebody else did. That is
-    // the prototype's rule and it is right: money left your account for the
-    // whole bill, and the debts are what brings it back.
-    double leaving = 0;
-    if (_logExpense && _accountId != null) {
-      final double amount = iPaid ? _bill : myShare;
-      if (amount > 0) leaving = amount;
-    }
+    // ONLY THE PERSON'S OWN SHARE IS SPENDING (D32, D34, 2026-10-10). The
+    // whole bill used to be logged as one expense, so a 900 dinner for three
+    // put 900 into the Food budget when 600 of it is owed back.
+    //
+    // You paid: the account still falls by the WHOLE bill, but as two
+    // entries, your share as spending and the rest as money lent. Your share
+    // is the bill minus what the others owe, in centavos, so the two always
+    // add back to the bill exactly, including when fixed amounts fall short
+    // and you absorb the difference.
+    //
+    // Somebody else paid: your share is spending today and touches none of
+    // your accounts, because their money paid. Your cash leaves when you pay
+    // them back, and that is not spending again. Before this, the share left
+    // your account now AND again on repayment.
+    final Money lent = iPaid
+        ? sumMoney(<Money>[
+            for (final _PlannedDebt d in debts) Money.fromDouble(d.amount),
+          ])
+        : Money.zero;
+    final Money bill = Money.fromDouble(_bill);
+    final Money spend = iPaid ? bill - lent : Money.fromDouble(myShare);
+    final bool records = _logExpense && (iPaid ? _accountId != null : true);
+    final Money leaving = records && iPaid ? bill : Money.zero;
 
-    return (debts: debts, leaving: leaving);
+    return (
+      debts: debts,
+      iPaid: iPaid,
+      records: records,
+      spend: spend.isPositive ? spend : Money.zero,
+      lent: lent,
+      leaving: leaving,
+    );
   }
 
   /// The sentence under Record it, which says what the tap is about to do.
@@ -284,57 +330,130 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
   /// makes that default visible, and it is cheaper than forcing a choice
   /// somebody would make identically nine times out of ten.
   ///
-  /// Three clauses, and each one stops a different wrong conclusion, which
-  /// is the only reason a caption is allowed to run this long:
-  ///
-  /// 1. the figure and the account, so nobody discovers afterwards which
-  ///    account paid;
-  /// 2. nothing is sent, so nobody believes their friends were just messaged
-  ///    a payment request, which is what every app that looks like this does;
-  /// 3. the undo exists, which is the difference between hesitating over a
-  ///    button and tapping it.
+  /// It names the split between spending and lending too (D32): somebody who
+  /// sees "900 out of GCash" and later finds only 300 in the Food budget
+  /// would otherwise conclude the app lost 600.
   String get _whatTheTapWillDo {
     if (_people.length < 2) return 'Add at least one other person.';
-
-    final ({List<_PlannedDebt> debts, double leaving}) plan = _plan;
+    final _Plan plan = _plan;
+    if (_tooMuchOwed) {
+      return 'The others owe more than the whole bill. Check the amounts.';
+    }
     final int n = plan.debts.length;
     final String debts = n == 1 ? '1 debt' : '$n debts';
-    final String account = _accountName ?? 'your account';
+    const String tail =
+        'Nothing is sent to anyone. You can undo it for a few seconds '
+        'afterwards.';
 
-    if (plan.leaving <= 0) {
+    if (!plan.records) {
       return n == 0
           ? 'This moves no money and creates no debts yet.'
           : 'This creates $debts and moves no money. Nothing is sent to '
                 'anyone.';
     }
 
-    final String spend =
-        'Recording this takes ${formatPeso(plan.leaving)} out of $account';
-    return n == 0
-        ? '$spend. Nothing is sent to anyone. You can undo it for a few '
-              'seconds afterwards.'
-        : '$spend and creates $debts. Nothing is sent to anyone. You can '
-              'undo it for a few seconds afterwards.';
+    if (!plan.iPaid) {
+      if (!plan.spend.isPositive) {
+        return 'This moves no money and creates no debts yet.';
+      }
+      return 'Your ${formatPeso(plan.spend.pesos)} share counts as spending '
+          'today, and you owe $_payer for it. No money leaves your accounts '
+          'until you pay $_payer back. $tail';
+    }
+
+    final String account = _accountName ?? 'your account';
+    final String out =
+        'Recording this takes ${formatPeso(plan.leaving.pesos)} out of '
+        '$account';
+    if (!plan.lent.isPositive) return '$out. $tail';
+    if (!plan.spend.isPositive) {
+      return '$out, all of it lent to the others, and creates $debts. $tail';
+    }
+    return '$out: your ${formatPeso(plan.spend.pesos)} share counts as '
+        'spending and ${formatPeso(plan.lent.pesos)} is lent to the others, '
+        'with $debts. $tail';
+  }
+
+  /// When the others' shares add up to more than the bill, your share would
+  /// be negative spending, which no sentence can explain. Refused instead.
+  bool get _tooMuchOwed {
+    if (_payer != 'You') return false;
+    final _Plan plan = _plan;
+    return plan.lent > Money.fromDouble(_bill);
   }
 
   void _save() {
-    if (!_canSave) return;
+    if (!_canSave || _tooMuchOwed) return;
 
-    final ({List<_PlannedDebt> debts, double leaving}) plan = _plan;
+    final _Plan plan = _plan;
     final String what = _what.text.trim().isEmpty
         ? 'Split bill'
         : _what.text.trim();
-    final bool iPaid = _payer == 'You';
+    final String others = _people
+        .where((_Person p) => !p.isMe)
+        .map((_Person p) => p.name)
+        .join(', ');
 
     final String stamp = DateTime.now().microsecondsSinceEpoch.toString();
-    int seq = 0;
+    final int createdAt = DateTime.now().millisecondsSinceEpoch;
+    final DateTime today = widget.state.now;
+
+    // THE ENTRIES FIRST, so each debt can carry the id of the entry that
+    // started it (D35). That link is what makes a later repayment move the
+    // money back instead of counting the same share as spending again.
+    final List<Transaction> logged = <Transaction>[];
+    String? opening;
+    if (plan.records && plan.iPaid) {
+      if (plan.spend.isPositive) {
+        logged.add(
+          Transaction(
+            id: 'tx_split_$stamp',
+            type: TransactionType.expense,
+            amount: plan.spend,
+            category: _category,
+            accountId: _accountId!,
+            date: isoDate(today),
+            createdAt: createdAt,
+            merchant: what,
+            note: 'My share, paid the whole bill, split with $others',
+          ),
+        );
+      }
+      if (plan.lent.isPositive) {
+        final Transaction lent = lendingEntry(
+          id: 'tx_split_${stamp}_lent',
+          amount: plan.lent,
+          person: others,
+          accountId: _accountId!,
+          today: today,
+          createdAt: createdAt,
+          merchant: what,
+          note: 'Lent for the split: $others',
+        );
+        logged.add(lent);
+        opening = lent.id;
+      }
+    } else if (plan.records && plan.spend.isPositive) {
+      final Transaction share = paidByOtherEntry(
+        id: 'tx_split_$stamp',
+        amount: plan.spend,
+        category: _category,
+        person: _payer,
+        today: today,
+        createdAt: createdAt,
+        merchant: what,
+        note: 'My share, $_payer paid',
+      );
+      logged.add(share);
+      opening = share.id;
+    }
 
     // COLLECTED AS THEY ARE WRITTEN, not looked up again afterwards. The ids
     // share [stamp], so a later cold-start undo could find them by prefix,
     // but an undo offered in the same breath as the write does not need to
     // go looking: it already holds exactly what it would be searching for.
     final List<Debt> created = <Debt>[];
-
+    int seq = 0;
     for (final _PlannedDebt pd in plan.debts) {
       // EXACT, not rounded. Founder decision, 2026-10-01, and a deliberate
       // divergence from the prototype: it wraps this in Math.round, so a
@@ -348,41 +467,23 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
         paidAmount: Money.pesos(0),
         isSettled: false,
         notes: 'Split: $what',
+        openingTxId: opening,
       );
       widget.state.addDebt(d);
       created.add(d);
     }
-
-    Transaction? logged;
-    String? spentFrom;
-
-    if (plan.leaving > 0) {
-      final DateTime now = widget.state.now;
-      logged = Transaction(
-        id: 'tx_split_$stamp',
-        type: TransactionType.expense,
-        amount: Money.fromDouble(plan.leaving),
-        category: _category,
-        accountId: _accountId!,
-        date:
-            '${now.year}-${now.month.toString().padLeft(2, '0')}-'
-            '${now.day.toString().padLeft(2, '0')}',
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        merchant: what,
-        note: iPaid
-            ? 'Paid the whole bill, split with '
-                  '${_people.where((_Person p) => !p.isMe).map((_Person p) => p.name).join(', ')}'
-            : 'My share, $_payer paid',
-      );
-      widget.state.logTransaction(logged);
-      spentFrom = _accountName;
+    for (final Transaction t in logged) {
+      widget.state.logTransaction(t);
     }
 
     Navigator.of(context).pop(
       SplitBillResult(
-        transaction: logged,
+        transactions: logged,
         debts: created,
-        accountName: spentFrom,
+        accountName: plan.leaving.isPositive ? _accountName : null,
+        leaving: plan.leaving,
+        spend: logged.isEmpty ? Money.zero : plan.spend,
+        lent: plan.leaving.isPositive ? plan.lent : Money.zero,
       ),
     );
   }
@@ -542,7 +643,7 @@ class _SplitBillSheetState extends State<SplitBillSheet> {
             palette: p,
             label: 'Record it',
             icon: Icons.check,
-            onTap: _canSave ? _save : null,
+            onTap: _canSave && !_tooMuchOwed ? _save : null,
           ),
           const SizedBox(height: Spacing.sm),
           Text(_whatTheTapWillDo, style: AppType.caption(p)),
@@ -835,9 +936,11 @@ class _LogExpense extends StatelessWidget {
                     const SizedBox(width: Spacing.sm),
                     Expanded(
                       child: Text(
+                        // D32, D34: only the person's own share is
+                        // spending, so neither label promises the bill.
                         iPaid
-                            ? 'Also log the whole bill as an expense'
-                            : 'Also log my share as an expense',
+                            ? 'Record the bill as paid from my account'
+                            : 'Count my share as spending today',
                         style: AppType.body(palette).copyWith(fontSize: 13),
                       ),
                     ),
@@ -848,35 +951,40 @@ class _LogExpense extends StatelessWidget {
           ),
           if (on) ...<Widget>[
             const SizedBox(height: Spacing.sm),
-            if (accounts.isEmpty)
+            // ONLY WHEN YOU PAID is there an account to choose (D34). When a
+            // friend paid, none of your accounts moves, so a "From which
+            // account" picker would ask a question with no true answer.
+            if (iPaid && accounts.isEmpty)
               Text(
                 'No accounts yet, so there is nowhere to log it. The debts '
                 'will still be recorded.',
                 style: AppType.caption(palette),
               )
             else ...<Widget>[
-              DropdownButtonFormField<String>(
-                initialValue: accountId,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'From which account',
-                  labelStyle: AppType.label(palette),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Radii.control),
-                  ),
-                ),
-                items: <DropdownMenuItem<String>>[
-                  for (final Account a in accounts)
-                    DropdownMenuItem<String>(
-                      value: a.id,
-                      child: Text(a.name, style: AppType.body(palette)),
+              if (iPaid) ...<Widget>[
+                DropdownButtonFormField<String>(
+                  initialValue: accountId,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'From which account',
+                    labelStyle: AppType.label(palette),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Radii.control),
                     ),
-                ],
-                onChanged: (String? v) {
-                  if (v != null) onAccount(v);
-                },
-              ),
-              const SizedBox(height: Spacing.sm),
+                  ),
+                  items: <DropdownMenuItem<String>>[
+                    for (final Account a in accounts)
+                      DropdownMenuItem<String>(
+                        value: a.id,
+                        child: Text(a.name, style: AppType.body(palette)),
+                      ),
+                  ],
+                  onChanged: (String? v) {
+                    if (v != null) onAccount(v);
+                  },
+                ),
+                const SizedBox(height: Spacing.sm),
+              ],
               // A PICKER, not a hardcoded category. The prototype files every
               // split under Food & Dining unless it is a business one, which
               // is the same defect this repository already refused to port
