@@ -192,6 +192,7 @@ void main() {
     // built from them passes with the stored-link check deleted. This one
     // has no prefix to guess from: only openingTxId can refuse it.
     final FinancialState s = await fresh();
+    final Money start = cash(s, 'acc_cash');
     s.addDebt(debt('debt_9', 'Kuya Jun', DebtDirection.owedToMe, 'tx_lend_9'));
     s.logTransaction(
       lendingEntry(
@@ -203,9 +204,13 @@ void main() {
         createdAt: 1,
       ),
     );
-    expect(s.takeBackPreview('tx_lend_9'), TakeBackOutcome.belongsToSplit);
-    s.deleteDebt('debt_9');
-    expect(s.takeBackPreview('tx_lend_9'), TakeBackOutcome.done);
+    expect(cash(s, 'acc_cash'), start - const Money.pesos(300));
+    expect(s.takeBackPreview('tx_lend_9'), TakeBackOutcome.belongsToLoan);
+    // Deleting the debt, which the refusal points to, takes the money back
+    // with it (D32.3): the entry is gone and the 300 is back.
+    expect(s.deleteDebt('debt_9'), isTrue);
+    expect(s.takeBackPreview('tx_lend_9'), TakeBackOutcome.gone);
+    expect(cash(s, 'acc_cash'), start);
   });
 
   test('a debt with no opening entry is repaid exactly as before', () async {

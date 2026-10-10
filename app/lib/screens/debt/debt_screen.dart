@@ -254,8 +254,14 @@ class _DebtScreenState extends State<DebtScreen> {
   }
 
   Future<void> _openAdd(BuildContext context, Palette palette) async {
-    final Debt? added = await AddDebtSheet.show(context, palette);
-    if (added != null) widget.state.addDebt(added);
+    final AddDebtResult? added = await AddDebtSheet.show(
+      context,
+      palette,
+      accounts: widget.state.accounts,
+    );
+    if (added != null) {
+      widget.state.addDebtWithMoney(added.debt, accountId: added.accountId);
+    }
     if (mounted) setState(() {});
   }
 

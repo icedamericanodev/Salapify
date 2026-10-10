@@ -536,11 +536,22 @@ class HomeScreen extends StatelessWidget {
 
   Future<void> _addDebt(BuildContext context, Palette palette) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    final Debt? saved = await AddDebtSheet.show(context, palette);
+    final AddDebtResult? saved = await AddDebtSheet.show(
+      context,
+      palette,
+      accounts: state.accounts,
+    );
     if (saved == null) {
       return;
     }
-    state.addDebt(saved);
+    state.addDebtWithMoney(saved.debt, accountId: saved.accountId);
+    final String? moved = saved.accountId == null
+        ? null
+        : state.accounts
+              .where((Account a) => a.id == saved.accountId)
+              .firstOrNull
+              ?.name;
+    final String amount = formatPeso(saved.debt.totalAmount.pesos);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -549,7 +560,14 @@ class HomeScreen extends StatelessWidget {
             // This used to warn that the debt would not survive a restart,
             // which was true and honest right up until storage landed. Saying
             // it now would be the same lie in the other direction.
-            'Added and saved to this phone.',
+            // SAYS WHERE THE MONEY WENT when it moved (D31, D32.3), or a
+            // 2,000 drop in GCash reads as a mystery the next time somebody
+            // opens Accounts.
+            moved == null
+                ? 'Added and saved to this phone.'
+                : saved.debt.direction == DebtDirection.owedToMe
+                ? 'Added. $amount out of $moved, lent. Saved to this phone.'
+                : 'Added. $amount into $moved, borrowed. Saved to this phone.',
             style: TextStyle(color: palette.onAccent),
           ),
           backgroundColor: palette.accent,

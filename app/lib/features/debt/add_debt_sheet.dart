@@ -16,17 +16,39 @@ import 'amortization_table.dart';
 /// an amortization table in another. Putting the schedule under the form means
 /// the instalment appears while the amount is still being typed, which is when
 /// somebody is actually deciding whether they can afford it.
+/// What Save debt produced: the debt, and the account money moved through
+/// when it moved (D31, D32.3). [accountId] null means no money moved now.
+class AddDebtResult {
+  const AddDebtResult(this.debt, this.accountId);
+
+  final Debt debt;
+  final String? accountId;
+}
+
 class AddDebtSheet extends StatefulWidget {
-  const AddDebtSheet({super.key, required this.palette, this.onSave});
+  const AddDebtSheet({
+    super.key,
+    required this.palette,
+    this.accounts = const <Account>[],
+  });
 
   final Palette palette;
-  final ValueChanged<Debt>? onSave;
 
-  static Future<Debt?> show(BuildContext context, Palette palette) {
-    return SheetScaffold.show<Debt>(
+  /// The accounts money can be lent from or borrowed into. Empty means the
+  /// question is not asked, so a person with no accounts can still record
+  /// who owes whom.
+  final List<Account> accounts;
+
+  static Future<AddDebtResult?> show(
+    BuildContext context,
+    Palette palette, {
+    List<Account> accounts = const <Account>[],
+  }) {
+    return SheetScaffold.show<AddDebtResult>(
       context: context,
       palette: palette,
-      builder: (BuildContext context) => AddDebtSheet(palette: palette),
+      builder: (BuildContext context) =>
+          AddDebtSheet(palette: palette, accounts: accounts),
     );
   }
 
@@ -45,6 +67,18 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
 
   DebtDirection _direction = DebtDirection.iOwe;
   bool _scheduled = false;
+
+  /// Where the money went or came from, or [_noMoney]. Null until chosen.
+  ///
+  /// ASKED, NOT DEFAULTED (D31). A default account would move money nobody
+  /// chose to move, and a default of "no money moved" would quietly keep the
+  /// old behaviour where lending 2,000 left GCash untouched. One tap either
+  /// way, and the caption under it says what that tap will do.
+  String? _money;
+  static const String _noMoney = '__none__';
+
+  List<Account> get _moneyAccounts =>
+      widget.accounts.where((Account a) => a.isLiquid).toList();
 
   @override
   void dispose() {
@@ -114,41 +148,75 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
   /// also refused while the minimum box holds something unreadable, rather
   /// than saving it as nothing: see [_minimumUnreadable].
   bool get _canSave =>
-      _person.text.trim().isNotEmpty && _amountValue > 0 && !_minimumUnreadable;
+      _person.text.trim().isNotEmpty &&
+      _amountValue > 0 &&
+      !_minimumUnreadable &&
+      (_moneyAccounts.isEmpty || _money != null);
+
+  /// What the money question's answer will do, said before Save.
+  String? get _moneyCaption {
+    if (_moneyAccounts.isEmpty || _money == null) return null;
+    final bool owed = _direction == DebtDirection.owedToMe;
+    if (_money == _noMoney) {
+      return owed
+          ? 'Nothing leaves your accounts. Use this for money lent before '
+                'you started using Salapify.'
+          : 'Nothing arrives in your accounts. Use this for a credit card, '
+                'something bought on instalments, or a loan from before '
+                'Salapify.';
+    }
+    final String name = _moneyAccounts
+        .firstWhere(
+          (Account a) => a.id == _money,
+          orElse: () => _moneyAccounts.first,
+        )
+        .name;
+    final String amount = _amountValue > 0
+        ? formatPeso(_amountValue)
+        : 'The amount';
+    return owed
+        ? '$amount leaves $name now. When they pay you back it returns, and '
+              'neither counts as spending or income.'
+        : '$amount arrives in $name now. Paying it back moves it out again, '
+              'and that is not counted as spending.';
+  }
 
   void _save() {
     if (!_canSave) return;
     Navigator.of(context).pop(
-      Debt(
-        id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
-        person: _person.text.trim(),
-        direction: _direction,
-        totalAmount: Money.fromDouble(_amountValue),
-        paidAmount: Money.pesos(0),
-        isSettled: false,
-        dueDate: _dueDate.text.trim().isEmpty ? null : _dueDate.text.trim(),
-        // EVERYTHING THE FORM ASKS FOR IS NOW KEPT.
-        //
-        // This constructor used to stop at dueDate, so the note, the
-        // Installments choice and the term were collected, rendered, used to
-        // draw a full amortisation preview, and then thrown away on save. A
-        // debt entered as a 6 month plan came back as "Flexible, pay when
-        // you can" and the note never appeared, on a card that renders notes
-        // whenever they exist.
-        //
-        // Nothing new is stored: debtToJson already writes notes,
-        // scheduleType and installmentTotal, and debtKeys already declares
-        // all three. The form was simply not filling them in.
-        schedule: _scheduled ? DebtSchedule.scheduled : DebtSchedule.flexible,
-        // The counter starts at the first payment, which is what
-        // applyDebtPayment increments. Null on a flexible debt, which has no
-        // instalments to count.
-        installmentCurrent: _scheduled && _termMonths > 0 ? 0 : null,
-        installmentTotal: _scheduled && _termMonths > 0 ? _termMonths : null,
-        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-        // Null unless the person typed one, so a debt to a relative reserves
-        // nothing against Safe to Spend. See Debt.monthlyMinimum.
-        minimumPayment: _minimumValue,
+      AddDebtResult(
+        Debt(
+          id: 'debt_${DateTime.now().millisecondsSinceEpoch}',
+          person: _person.text.trim(),
+          direction: _direction,
+          totalAmount: Money.fromDouble(_amountValue),
+          paidAmount: Money.pesos(0),
+          isSettled: false,
+          dueDate: _dueDate.text.trim().isEmpty ? null : _dueDate.text.trim(),
+          // EVERYTHING THE FORM ASKS FOR IS NOW KEPT.
+          //
+          // This constructor used to stop at dueDate, so the note, the
+          // Installments choice and the term were collected, rendered, used to
+          // draw a full amortisation preview, and then thrown away on save. A
+          // debt entered as a 6 month plan came back as "Flexible, pay when
+          // you can" and the note never appeared, on a card that renders notes
+          // whenever they exist.
+          //
+          // Nothing new is stored: debtToJson already writes notes,
+          // scheduleType and installmentTotal, and debtKeys already declares
+          // all three. The form was simply not filling them in.
+          schedule: _scheduled ? DebtSchedule.scheduled : DebtSchedule.flexible,
+          // The counter starts at the first payment, which is what
+          // applyDebtPayment increments. Null on a flexible debt, which has no
+          // instalments to count.
+          installmentCurrent: _scheduled && _termMonths > 0 ? 0 : null,
+          installmentTotal: _scheduled && _termMonths > 0 ? _termMonths : null,
+          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          // Null unless the person typed one, so a debt to a relative reserves
+          // nothing against Safe to Spend. See Debt.monthlyMinimum.
+          minimumPayment: _minimumValue,
+        ),
+        _money == null || _money == _noMoney ? null : _money,
       ),
     );
   }
@@ -202,6 +270,40 @@ class _AddDebtSheetState extends State<AddDebtSheet> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: Spacing.md),
+          if (_moneyAccounts.isNotEmpty) ...<Widget>[
+            DropdownButtonFormField<String>(
+              key: const Key('debt-money'),
+              initialValue: _money,
+              isExpanded: true,
+              hint: Text('Choose one', style: AppType.body(p)),
+              decoration: InputDecoration(
+                labelText: owed
+                    ? 'Lent from which account'
+                    : 'Borrowed into which account',
+                labelStyle: AppType.label(p),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Radii.control),
+                ),
+              ),
+              items: <DropdownMenuItem<String>>[
+                for (final Account a in _moneyAccounts)
+                  DropdownMenuItem<String>(
+                    value: a.id,
+                    child: Text(a.name, style: AppType.body(p)),
+                  ),
+                DropdownMenuItem<String>(
+                  value: _noMoney,
+                  child: Text('No money moved now', style: AppType.body(p)),
+                ),
+              ],
+              onChanged: (String? v) => setState(() => _money = v),
+            ),
+            if (_moneyCaption != null) ...<Widget>[
+              const SizedBox(height: Spacing.xs),
+              Text(_moneyCaption!, style: AppType.caption(p)),
+            ],
+            const SizedBox(height: Spacing.md),
+          ],
           SheetField(
             palette: p,
             label: 'Due date (optional)',

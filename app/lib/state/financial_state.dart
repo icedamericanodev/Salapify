@@ -63,6 +63,10 @@ enum TakeBackOutcome {
 
   /// A split wrote it, and the receivables it created are still standing.
   belongsToSplit,
+
+  /// It is the money lent or borrowed that started a debt still on the
+  /// Debts screen (D32.3, D35). Deleting the debt takes it back with it.
+  belongsToLoan,
 }
 
 /// The single store the screens read, standing in for the prototype's
@@ -1257,8 +1261,67 @@ class FinancialState extends ChangeNotifier {
       for (final Debt x in _debts)
         if (x.id != debtId) x,
     ];
+
+    // THE MONEY THAT STARTED IT GOES BACK TOO (D32.3), when this debt is the
+    // only one it started. Removing a loan entered by mistake while keeping
+    // the 2,000 that left GCash for it would leave the account short with no
+    // debt to explain why. A split's entry is shared by several debts and is
+    // the split's to undo, so it is left alone here.
+    final String? opening = d.openingTxId;
+    if (opening != null &&
+        !opening.startsWith('tx_split_') &&
+        !_debts.any((Debt x) => x.openingTxId == opening)) {
+      final int at = _transactions.indexWhere(
+        (Transaction t) => t.id == opening,
+      );
+      if (at >= 0) {
+        final Transaction stored = _transactions[at];
+        _transactions = <Transaction>[..._transactions]..removeAt(at);
+        if (stored.countsTowardTotals) {
+          _accounts = reverseFromBalances(_accounts, stored);
+        }
+      }
+    }
     notifyListeners();
     return true;
+  }
+
+  /// Adds a debt and, when money moved to make it, the entry that moved it
+  /// (D31 "lending moves real cash", D32.3 "borrowing mirrors lending").
+  ///
+  /// [accountId] null means no money moved now: a loan from before Salapify,
+  /// a credit card balance, a phone bought on instalments. Otherwise money
+  /// lent LEAVES that account and money borrowed ARRIVES in it, and the debt
+  /// remembers the entry, so its repayments move the money back without
+  /// counting as spending or income (see paymentEntry). One notify, so the
+  /// debt and the money never exist apart.
+  void addDebtWithMoney(Debt debt, {String? accountId}) {
+    if (accountId == null || !debt.totalAmount.isPositive) {
+      addDebt(debt);
+      return;
+    }
+    final int stamp = DateTime.now().microsecondsSinceEpoch;
+    final int createdAt = DateTime.now().millisecondsSinceEpoch;
+    final bool lent = debt.direction == DebtDirection.owedToMe;
+    final Transaction entry = lent
+        ? lendingEntry(
+            id: 'tx_lend_$stamp',
+            amount: debt.totalAmount,
+            person: debt.person,
+            accountId: accountId,
+            today: now,
+            createdAt: createdAt,
+          )
+        : borrowingEntry(
+            id: 'tx_borrow_$stamp',
+            amount: debt.totalAmount,
+            person: debt.person,
+            accountId: accountId,
+            today: now,
+            createdAt: createdAt,
+          );
+    _debts = <Debt>[debt.copyWith(openingTxId: entry.id), ..._debts];
+    logTransaction(entry);
   }
 
   /// Takes the most recent payment back off an instalment plan, in both
@@ -1800,7 +1863,11 @@ class FinancialState extends ChangeNotifier {
     // moved. Only a split writes one today, so the split's sentence is the
     // right one; a lending flow that writes one later must add its own.
     for (final Debt d in _debts) {
-      if (d.openingTxId == txId) return TakeBackOutcome.belongsToSplit;
+      if (d.openingTxId == txId) {
+        return txId.startsWith('tx_split_')
+            ? TakeBackOutcome.belongsToSplit
+            : TakeBackOutcome.belongsToLoan;
+      }
     }
 
     // THE GUESSES, after the facts. See the doc above.

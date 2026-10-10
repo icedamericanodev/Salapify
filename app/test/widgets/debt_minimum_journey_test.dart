@@ -41,6 +41,10 @@ void main() {
     await tapIt(tester, find.text('Debt'));
     await tapIt(tester, find.byKey(const Key('debt-add')));
     expect(find.byType(AddDebtSheet), findsOneWidget);
+    // The money question (D31) is answered "no money moved", because these
+    // tests are about the minimum and must not move an account balance.
+    await tapIt(tester, find.byKey(const Key('debt-money')));
+    await tapIt(tester, find.text('No money moved now').last);
   }
 
   group('the field appears only where the answer does something', () {

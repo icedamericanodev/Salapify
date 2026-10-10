@@ -394,6 +394,37 @@ Transaction lendingEntry({
   createdAt: createdAt,
 );
 
+/// Money BORROWED: it arrives in one of the person's accounts from somebody
+/// else (D32.3, the mirror of [lendingEntry]). A transfer from outside, so it
+/// is never income, and the account still rises by every peso received. The
+/// debt it opens carries this entry's id as [Debt.openingTxId], so paying it
+/// back moves the money out without counting as spending.
+Transaction borrowingEntry({
+  required String id,
+  required Money amount,
+  required String person,
+  required String accountId,
+  required DateTime today,
+  required int createdAt,
+  String? note,
+}) => Transaction(
+  id: id,
+  type: TransactionType.transfer,
+  amount: amount,
+  category: 'Debt & Loan Servicing',
+  subcategory: 'Money borrowed',
+  accountId: outsideAccountId,
+  toAccountId: accountId,
+  person: person,
+  merchant: 'Borrowed from $person',
+  date: isoDate(today),
+  note: note,
+  tags: const <String>['#money-borrowed'],
+  status: TransactionStatus.confirmed,
+  profile: ProfileEntity.personal,
+  createdAt: createdAt,
+);
+
 /// A share of something SOMEBODY ELSE paid for (D34): spending under its own
 /// category on the day it happened, touching none of the person's accounts,
 /// because the friend's money paid. The person's cash leaves only when they

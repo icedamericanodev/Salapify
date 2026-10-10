@@ -1305,6 +1305,52 @@ void main() {
     );
   });
 
+  // Lending moves real cash (D31, D32.3): the money question answered, with
+  // the caption that says what Save will do to the account.
+  testWidgets('sheet add debt lend renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 3600);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AddDebtSheet.show(
+      tester.element(find.byType(AppShell)),
+      palette,
+      accounts: state.accounts,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('They owe me'));
+    await tester.pumpAndSettle();
+    final Finder fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Pinsan Joel');
+    await tester.enterText(fields.at(1), '2000');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('debt-money')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GCash Wallet').last);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_add_debt_lend.png'),
+    );
+  });
+
   // Bills, in both of the states worth reviewing: the list, and the schedule
   // form open so the kind chips and the fields can be checked.
   for (final ({String slug, bool adding}) shape

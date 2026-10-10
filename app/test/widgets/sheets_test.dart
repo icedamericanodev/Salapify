@@ -188,6 +188,9 @@ void main() {
       await tester.enterText(fields.at(0), 'Tita Baby');
       await tester.enterText(fields.at(1), '5000');
       await tester.pumpAndSettle();
+      // The money question (D31): this test is about the debt reaching Home.
+      await tapAndSettle(tester, find.byKey(const Key('debt-money')));
+      await tapAndSettle(tester, find.text('No money moved now').last);
 
       await tapAndSettle(tester, find.text('Save debt'));
 

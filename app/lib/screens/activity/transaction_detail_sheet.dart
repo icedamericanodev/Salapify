@@ -468,6 +468,11 @@ String takeBackRefusal(TakeBackOutcome route) => switch (route) {
     'Salapify wrote this entry when a scheduled bill was marked paid, and '
         'the bill is still ticked. Un-tick it under Bills, which puts the '
         'money back and clears the tick together.',
+  TakeBackOutcome.belongsToLoan =>
+    'This is the money lent or borrowed that started a debt, and the debt '
+        'is still on the Debts screen. Taking back only the money would '
+        'leave a debt for money that never moved. Delete the debt there '
+        'instead, which takes this entry back with it.',
   TakeBackOutcome.belongsToSplit =>
     'A split bill wrote this entry, and the debts it created are still '
         'standing. Taking back only the money would leave people owing you '

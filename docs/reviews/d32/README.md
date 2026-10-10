@@ -29,3 +29,15 @@ How the figures tie:
   friend back later is not spending again.
 - In Activity a friend's repayment reads as money in from them, money lent
   reads as leaving for them, and a share a friend paid reads "Paid by Ana".
+
+## D31 + D32.3: lending moves real cash, borrowing mirrors it
+
+![Add a debt, lent from GCash](sheet_add_debt_lend.png)
+
+- Add a debt now asks "Lent from which account" (or "Borrowed into which
+  account"), with "No money moved now" for older loans, credit cards and
+  instalment purchases. It is asked, never defaulted.
+- Lent: the money leaves that account now; repayments bring it back. Borrowed:
+  it arrives now; repaying moves it out. Neither is spending or income.
+- Deleting a debt entered by mistake also reverses the money it moved (only
+  a debt with no payments can be deleted, as before).

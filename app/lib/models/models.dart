@@ -900,6 +900,7 @@ class Debt {
     List<DebtPayment>? payments,
     String? archivedAt,
     bool clearArchivedAt = false,
+    String? openingTxId,
   }) => Debt(
     id: id,
     person: person,
@@ -932,7 +933,7 @@ class Debt {
     // had typed and Safe to Spend quietly stopped holding it back. Every
     // field without a parameter above must still be passed along here.
     minimumPayment: minimumPayment,
-    openingTxId: openingTxId,
+    openingTxId: openingTxId ?? this.openingTxId,
   );
 }
 
