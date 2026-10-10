@@ -352,6 +352,28 @@ int? _daysUntil(String? dueDate, DateTime now) {
 ///
 /// Clamping is what the banks themselves do: a month is closed on the last
 /// day it has, because nothing can fall due on a day that does not exist.
+/// The due date after [isoDue] for a bill that repeats on [day] each month,
+/// as an ISO date: the same day next month, clamped to that month's last day
+/// (a bill on the 31st falls on the 30th of a 30-day month). Null when
+/// [isoDue] is not an ISO date.
+String? nextMonthlyDue(String isoDue, int day) {
+  final DateTime? d = DateTime.tryParse(isoDue);
+  if (d == null) return null;
+  return _isoOf(_onDayOf(d.year, d.month + 1, day));
+}
+
+/// The inverse of [nextMonthlyDue]: the due date one month before [isoDue].
+/// An undo uses it to put a repeating bill back where it was.
+String? previousMonthlyDue(String isoDue, int day) {
+  final DateTime? d = DateTime.tryParse(isoDue);
+  if (d == null) return null;
+  return _isoOf(_onDayOf(d.year, d.month - 1, day));
+}
+
+String _isoOf(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
+
 DateTime _onDayOf(int year, int month, int day) {
   // Day zero of the FOLLOWING month is the last day of this one, and it
   // carries correctly from December into January.

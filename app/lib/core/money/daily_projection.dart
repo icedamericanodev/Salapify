@@ -474,8 +474,9 @@ DailyProjection projectDailyCash({
     Money amount,
     String? dueDate,
     bool isIncome,
-    EventSource source,
-  ) {
+    EventSource source, {
+    int? repeatDay,
+  }) {
     if (!amount.isPositive) return;
 
     final int? days = daysUntil(dueDate, today);
@@ -485,7 +486,9 @@ DailyProjection projectDailyCash({
       return;
     }
 
-    final int? repeatsOn = monthlyDayOf(dueDate);
+    // A bill marked "Repeats every month" says so in its own field (D31),
+    // whatever shape its date is written in.
+    final int? repeatsOn = repeatDay ?? monthlyDayOf(dueDate);
     if (repeatsOn == null) {
       placeOn(label, amount, days, isIncome, source);
       return;
@@ -515,7 +518,14 @@ DailyProjection projectDailyCash({
   }
 
   for (final UpcomingItem u in upcoming.where((UpcomingItem u) => !u.isPaid)) {
-    place(u.name, u.amount, u.dueDate, u.countsAsIncome, EventSource.upcoming);
+    place(
+      u.name,
+      u.amount,
+      u.dueDate,
+      u.countsAsIncome,
+      EventSource.upcoming,
+      repeatDay: u.repeatDay,
+    );
   }
 
   // Payment plans ARE DATED, and this comment used to say the opposite.

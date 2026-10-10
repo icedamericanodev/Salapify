@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/money/money.dart';
 import '../../core/money/format.dart';
 import '../../core/money/plan.dart' show UpcomingTotals, computeUpcomingTotals;
+import '../../core/money/reminders.dart' show daysUntil;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
 import '../../models/models.dart';
@@ -61,6 +62,37 @@ class _BillsSheetState extends State<BillsSheet> {
   final TextEditingController _due = TextEditingController();
   UpcomingItemType _type = UpcomingItemType.bill;
 
+  /// "Repeats every month" (D31). Off by default: a one-off is the old
+  /// behaviour, and a monthly bill is a choice the person makes.
+  bool _monthly = false;
+
+  /// The due date as an ISO date, when the typed text can be read.
+  String? get _isoDue {
+    final DateTime now = widget.state.now;
+    final int? days = daysUntil(_due.text.trim(), now);
+    if (days == null) return null;
+    final DateTime d = DateTime(now.year, now.month, now.day + days);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// The day of the month a monthly bill comes back on. A bare day the
+  /// person typed ("31", "the 31st") wins over the date it lands on this
+  /// month, so a bill on the 31st typed in September (30 days) still falls
+  /// on the 31st in October.
+  int? get _repeatDay {
+    final RegExpMatch? bare = RegExp(
+      r'^(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?$',
+      caseSensitive: false,
+    ).firstMatch(_due.text.trim());
+    if (bare != null) {
+      final int d = int.parse(bare.group(1)!);
+      if (d >= 1 && d <= 31) return d;
+    }
+    final String? iso = _isoDue;
+    return iso == null ? null : DateTime.parse(iso).day;
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -81,7 +113,12 @@ class _BillsSheetState extends State<BillsSheet> {
     return v == null ? Money.zero : Money.tryFromDouble(v) ?? Money.zero;
   }
 
-  bool get _canAdd => _name.text.trim().isNotEmpty && _newAmount.isPositive;
+  bool get _canAdd =>
+      _name.text.trim().isNotEmpty &&
+      _newAmount.isPositive &&
+      // A monthly bill needs a date Salapify can read, or it cannot know
+      // which day to come back on.
+      (!_monthly || _repeatDay != null);
 
   void _add() {
     if (!_canAdd) return;
@@ -94,8 +131,13 @@ class _BillsSheetState extends State<BillsSheet> {
         // "Today" or "Sep 18", and every screen that reads it prints it
         // straight out. Left empty it reads "Due", which says nothing, so it
         // falls back to a sentence that is at least true.
-        dueDate: _due.text.trim().isEmpty ? 'No date set' : _due.text.trim(),
+        dueDate: _monthly
+            ? _isoDue!
+            : (_due.text.trim().isEmpty ? 'No date set' : _due.text.trim()),
         type: _type,
+        // Stored as a real date with the day it repeats on, so paying it can
+        // move it to next month (D31).
+        repeatDay: _monthly ? _repeatDay : null,
       ),
     );
     setState(() {
@@ -104,6 +146,7 @@ class _BillsSheetState extends State<BillsSheet> {
       _amount.clear();
       _due.clear();
       _type = UpcomingItemType.bill;
+      _monthly = false;
     });
   }
 
@@ -177,6 +220,25 @@ class _BillsSheetState extends State<BillsSheet> {
     });
   }
 
+  /// Undo the last payment on a MONTHLY bill: the money comes back and the
+  /// due date goes back a month. Reads the stored link, so it still works
+  /// after the sheet was closed and opened again.
+  void _undoMonthly(UpcomingItem item) {
+    final String? txId = item.lastPaidTxId;
+    if (txId == null) return;
+    Transaction? written;
+    for (final Transaction t in widget.state.transactions) {
+      if (t.id == txId) written = t;
+    }
+    widget.state.undoUpcomingPaid(item.id, written);
+    setState(() {
+      if (_justPaidId == item.id) {
+        _justPaidId = null;
+        _justPaidTx = null;
+      }
+    });
+  }
+
   void _undoPay() {
     final String? id = _justPaidId;
     if (id == null) return;
@@ -238,6 +300,8 @@ class _BillsSheetState extends State<BillsSheet> {
               due: _due,
               type: _type,
               canAdd: _canAdd,
+              monthly: _monthly,
+              onMonthly: (bool v) => setState(() => _monthly = v),
               onType: (UpcomingItemType v) => setState(() => _type = v),
               onChanged: () => setState(() {}),
               onCancel: () => setState(() => _adding = false),
@@ -277,7 +341,13 @@ class _BillsSheetState extends State<BillsSheet> {
                 // say something untrue while doing it.
                 onPay: u.countsAsIncome ? null : () => _pay(u),
                 onDelete: () => _confirmDelete(u),
-                onUndo: null,
+                // A MONTHLY bill stays in Due after it is paid, on its next
+                // date, so its way back lives here (D31).
+                onUndo: u.repeats && u.lastPaidTxId != null
+                    ? () => _undoMonthly(u)
+                    : null,
+                undoLabel: 'Undo last payment',
+                now: widget.state.now,
               ),
 
           if (done.isNotEmpty) ...<Widget>[
@@ -292,13 +362,15 @@ class _BillsSheetState extends State<BillsSheet> {
                 onPay: null,
                 onDelete: () => _confirmDelete(u),
                 onUndo: u.id == _justPaidId ? _undoPay : null,
+                now: widget.state.now,
               ),
           ],
 
           const SizedBox(height: Spacing.lg),
           Text(
             'Ticking a bill paid takes the money out of the account you pick '
-            'and records it in Activity. You can undo it straight away.',
+            'and records it in Activity. You can undo it straight away. A '
+            'monthly bill moves to its next date instead of being ticked off.',
             style: AppType.caption(p),
           ),
         ],
@@ -315,6 +387,8 @@ class _BillRow extends StatelessWidget {
     required this.onPay,
     required this.onDelete,
     required this.onUndo,
+    required this.now,
+    this.undoLabel = 'Undo',
   });
 
   final Palette palette;
@@ -322,8 +396,11 @@ class _BillRow extends StatelessWidget {
   final VoidCallback? onPay;
   final VoidCallback onDelete;
 
-  /// Set only on the bill paid most recently from this sheet.
+  /// Set only on the bill paid most recently from this sheet, or on a
+  /// monthly bill whose last payment can still be undone.
   final VoidCallback? onUndo;
+  final String undoLabel;
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +470,14 @@ class _BillRow extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        item.isPaid ? 'Paid' : 'Due ${item.dueDate}',
+                        // A stored ISO date reads as "Tue, Oct 20"; a
+                        // label somebody typed ("Sep 25") prints as typed.
+                        item.isPaid
+                            ? 'Paid'
+                            : item.repeats
+                            ? 'Due ${formatDateLabel(item.dueDate, now: now)}'
+                                  ' · Every month'
+                            : 'Due ${formatDateLabel(item.dueDate, now: now)}',
                         style: AppType.caption(palette),
                       ),
                     ],
@@ -422,7 +506,7 @@ class _BillRow extends StatelessWidget {
                   if (onUndo != null)
                     _RowAction(
                       palette: palette,
-                      label: 'Undo',
+                      label: undoLabel,
                       semantics: 'Undo paying ${item.name}',
                       onTap: onUndo!,
                       accent: true,
@@ -521,6 +605,8 @@ class _AddForm extends StatelessWidget {
     required this.due,
     required this.type,
     required this.canAdd,
+    required this.monthly,
+    required this.onMonthly,
     required this.onType,
     required this.onChanged,
     required this.onCancel,
@@ -533,6 +619,8 @@ class _AddForm extends StatelessWidget {
   final TextEditingController due;
   final UpcomingItemType type;
   final bool canAdd;
+  final bool monthly;
+  final ValueChanged<bool> onMonthly;
   final ValueChanged<UpcomingItemType> onType;
   final VoidCallback onChanged;
   final VoidCallback onCancel;
@@ -598,6 +686,24 @@ class _AddForm extends StatelessWidget {
             keyboardType: TextInputType.text,
             onChanged: (_) => onChanged(),
           ),
+          const SizedBox(height: Spacing.xs),
+          // ITS OWN MATERIAL, because the form's coloured box would hide the
+          // tap ripple, and Flutter asserts on exactly that in a debug build.
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              key: const Key('bill-monthly'),
+              contentPadding: EdgeInsets.zero,
+              value: monthly,
+              onChanged: onMonthly,
+              activeTrackColor: p.accent,
+              title: Text('Repeats every month', style: AppType.body(p)),
+              subtitle: Text(
+                'Paying it moves it to the same day next month.',
+                style: AppType.caption(p),
+              ),
+            ),
+          ),
           const SizedBox(height: Spacing.md),
           Text('What kind', style: AppType.label(p)),
           const SizedBox(height: Spacing.xs),
@@ -639,7 +745,10 @@ class _AddForm extends StatelessWidget {
           if (!canAdd) ...<Widget>[
             const SizedBox(height: Spacing.sm),
             Text(
-              'A name and an amount, and it is on the list.',
+              monthly
+                  ? 'A name, an amount, and a due date Salapify can read, '
+                        'like Sep 25 or the 10th.'
+                  : 'A name and an amount, and it is on the list.',
               style: AppType.caption(p),
             ),
           ],

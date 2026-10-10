@@ -1036,7 +1036,46 @@ class UpcomingItem {
     this.isPaid = false,
     this.category,
     this.isSample = false,
+    this.repeatDay,
+    this.lastPaidTxId,
   });
+
+  /// The day of the month this bill comes back on, or null for a one-off
+  /// (D31 repeating bills, 2026-10-10). A repeating bill is never left
+  /// ticked: paying it writes the payment and moves this same row to the
+  /// next month's due date, clamped to a short month's last day, so a bill
+  /// on the 31st is due on the 30th of September, never on the 1st of
+  /// October.
+  final int? repeatDay;
+
+  /// The payment entry that last moved this repeating bill forward, so Undo
+  /// can put the money back AND the due date back. Null when nothing has
+  /// been paid yet, or the last payment was undone.
+  final String? lastPaidTxId;
+
+  /// True when this bill comes back every month.
+  bool get repeats => repeatDay != null;
+
+  /// A copy with some fields replaced. [clearLastPaid] empties
+  /// [lastPaidTxId], since passing null means "leave it alone".
+  UpcomingItem copyWith({
+    String? dueDate,
+    bool? isPaid,
+    String? lastPaidTxId,
+    bool clearLastPaid = false,
+  }) => UpcomingItem(
+    id: id,
+    name: name,
+    amount: amount,
+    dueDate: dueDate ?? this.dueDate,
+    type: type,
+    isIncome: isIncome,
+    isPaid: isPaid ?? this.isPaid,
+    category: category,
+    isSample: isSample,
+    repeatDay: repeatDay,
+    lastPaidTxId: clearLastPaid ? null : (lastPaidTxId ?? this.lastPaidTxId),
+  );
 
   /// True for a record Salapify put there itself, so the screens are not blank
   /// on a brand new phone. NEVER true for anything the person entered.

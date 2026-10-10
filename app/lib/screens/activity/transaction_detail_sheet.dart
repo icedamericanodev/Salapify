@@ -465,9 +465,10 @@ String takeBackRefusal(TakeBackOutcome route) => switch (route) {
         'exactly this row. Removing it would leave that record pointing at '
         'nothing. Reconcile the account again instead.',
   TakeBackOutcome.belongsToBill =>
-    'Salapify wrote this entry when a scheduled bill was marked paid, and '
-        'the bill is still ticked. Un-tick it under Bills, which puts the '
-        'money back and clears the tick together.',
+    'Salapify wrote this entry when a scheduled bill was marked paid. Undo '
+        'it under Bills, which puts the money back and the bill back '
+        'together: un-tick a one-off bill, or use Undo last payment on a '
+        'monthly one.',
   TakeBackOutcome.belongsToLoan =>
     'This is the money lent or borrowed that started a debt, and the debt '
         'is still on the Debts screen. Taking back only the money would '

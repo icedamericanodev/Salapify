@@ -41,3 +41,18 @@ How the figures tie:
   it arrives now; repaying moves it out. Neither is spending or income.
 - Deleting a debt entered by mistake also reverses the money it moved (only
   a debt with no payments can be deleted, as before).
+
+## D31: repeating bills
+
+| A monthly bill after paying it once | Scheduling one |
+| --- | --- |
+| ![Monthly bill](sheet_bills_monthly.png) | ![Add form](sheet_bills_adding.png) |
+
+- "Repeats every month" on the add form. A monthly bill needs a date Salapify
+  can read ("Sep 25", "the 10th").
+- Paying it writes the payment and moves the SAME row to next month's date,
+  clamped to a short month (the 31st falls on the 30th in September). It is
+  never ticked off.
+- "Undo last payment" on the row puts the money and the date back. An older
+  month's payment can be taken back from Activity on its own.
+- The runway chart places it every month it falls in the window.

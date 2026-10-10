@@ -378,7 +378,12 @@ class ComingUpCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  item.dueDate,
+                  // A stored date reads as "Tue, Oct 20" (repeating bills,
+                  // D31); a label somebody typed prints as typed.
+                  item.repeats
+                      ? '${formatDateLabel(item.dueDate, now: state.now)}'
+                            ' · Every month'
+                      : formatDateLabel(item.dueDate, now: state.now),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: palette.textMuted),

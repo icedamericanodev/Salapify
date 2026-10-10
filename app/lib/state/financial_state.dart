@@ -1881,7 +1881,21 @@ class FinancialState extends ChangeNotifier {
     // `undoLoggedTransaction`, so un-ticking the bill REMOVES this entry
     // outright. Follow the refusal's instruction and there is nothing left to
     // refuse, so the route clears itself the way the three stored links do.
-    if (txId.startsWith('tx_bill_')) return TakeBackOutcome.belongsToBill;
+    if (txId.startsWith('tx_bill_')) {
+      // A MONTHLY BILL'S OLDER PAYMENT has nothing left on Bills to undo:
+      // the bill has already moved on to a later month, and only its LAST
+      // payment can be undone there. Refusing would be a dead end, so an
+      // older month's payment may be taken back on its own, which is all it
+      // is now (D31).
+      final Iterable<UpcomingItem> monthly = _upcoming.where(
+        (UpcomingItem u) => u.repeats && u.name == tx.merchant,
+      );
+      if (monthly.isNotEmpty &&
+          !monthly.any((UpcomingItem u) => u.lastPaidTxId == txId)) {
+        return TakeBackOutcome.done;
+      }
+      return TakeBackOutcome.belongsToBill;
+    }
 
     // A SPLIT DOES NEED ONE, and shipping it without was a dead end.
     //
@@ -2344,32 +2358,39 @@ class FinancialState extends ChangeNotifier {
     if (i == -1 || _upcoming[i].isPaid) return null;
     final UpcomingItem old = _upcoming[i];
 
+    final bool moves =
+        accountId != null &&
+        !old.countsAsIncome &&
+        _accounts.any((Account a) => a.id == accountId);
+    final String txId = 'tx_bill_${DateTime.now().microsecondsSinceEpoch}';
+
+    // A REPEATING BILL IS NEVER LEFT TICKED (D31). It moves to next month's
+    // due date and remembers the payment that moved it, so Undo can put the
+    // money and the date back together. A one-off is ticked, as before.
+    final String? next = old.repeats
+        ? nextMonthlyDue(old.dueDate, old.repeatDay!)
+        : null;
+    final UpcomingItem paid = next != null
+        ? old.copyWith(
+            dueDate: next,
+            lastPaidTxId: moves ? txId : null,
+            clearLastPaid: !moves,
+          )
+        : old.copyWith(isPaid: true);
     _upcoming = <UpcomingItem>[
       ..._upcoming.sublist(0, i),
-      UpcomingItem(
-        id: old.id,
-        name: old.name,
-        amount: old.amount,
-        dueDate: old.dueDate,
-        type: old.type,
-        isIncome: old.isIncome,
-        isPaid: true,
-        category: old.category,
-        isSample: old.isSample,
-      ),
+      paid,
       ..._upcoming.sublist(i + 1),
     ];
 
-    if (accountId == null ||
-        old.countsAsIncome ||
-        !_accounts.any((Account a) => a.id == accountId)) {
+    if (!moves) {
       notifyListeners();
       return null;
     }
 
     final DateTime today = now;
     final Transaction tx = Transaction(
-      id: 'tx_bill_${DateTime.now().microsecondsSinceEpoch}',
+      id: txId,
       type: TransactionType.expense,
       amount: old.amount,
       category: category ?? defaultCategoryFor(old),
@@ -2398,18 +2419,22 @@ class FinancialState extends ChangeNotifier {
     final int i = _upcoming.indexWhere((UpcomingItem u) => u.id == id);
     if (i == -1) return;
     final UpcomingItem old = _upcoming[i];
+    // A REPEATING BILL goes back one month, but only for the payment that
+    // moved it last: an Undo for an older payment, or a second tap, must not
+    // walk the due date back a month it never moved forward.
+    final bool rollBack =
+        old.repeats &&
+        !old.isPaid &&
+        (written == null || old.lastPaidTxId == written.id);
+    final String? previous = rollBack
+        ? previousMonthlyDue(old.dueDate, old.repeatDay!)
+        : null;
     _upcoming = <UpcomingItem>[
       ..._upcoming.sublist(0, i),
-      UpcomingItem(
-        id: old.id,
-        name: old.name,
-        amount: old.amount,
-        dueDate: old.dueDate,
-        type: old.type,
-        isIncome: old.isIncome,
-        category: old.category,
-        isSample: old.isSample,
-      ),
+      if (previous != null)
+        old.copyWith(dueDate: previous, clearLastPaid: true)
+      else
+        old.copyWith(isPaid: false),
       ..._upcoming.sublist(i + 1),
     ];
     if (written != null) {
@@ -2638,6 +2663,12 @@ class FinancialState extends ChangeNotifier {
       _upcoming
           .where((UpcomingItem u) => !u.isPaid)
           .fold<int>(0, (int a, UpcomingItem u) => a + u.amount.centavos),
+      // THE DATES, because paying a MONTHLY bill moves its date and changes
+      // neither the count nor the sum above (D31): the chart kept showing
+      // the bill on the day just paid until midnight.
+      Object.hashAll(
+        _upcoming.map((UpcomingItem u) => '${u.dueDate}|${u.repeatDay}'),
+      ),
     );
     if (_projection != null && _projectionStamp == stamp) return _projection!;
     _projectionStamp = stamp;

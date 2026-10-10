@@ -424,7 +424,12 @@ class _BillRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  item.isPaid ? 'Paid' : 'Due ${item.dueDate}',
+                  item.isPaid
+                      ? 'Paid'
+                      : item.repeats
+                      ? 'Due ${formatDateLabel(item.dueDate, now: state.now)}'
+                            ' · Every month'
+                      : 'Due ${formatDateLabel(item.dueDate, now: state.now)}',
                   style: AppType.caption(palette),
                 ),
               ],

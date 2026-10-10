@@ -1357,6 +1357,9 @@ void main() {
       in <({String slug, bool adding})>[
         (slug: 'bills', adding: false),
         (slug: 'bills_adding', adding: true),
+        // Repeating bills (D31): a monthly bill paid once, back in Due on
+        // next month's date with its own Undo.
+        (slug: 'bills_monthly', adding: false),
       ]) {
     testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
       await tester.runAsync(loadRealFonts);
@@ -1381,6 +1384,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      if (shape.slug == 'bills_monthly') {
+        state.addUpcoming(
+          const UpcomingItem(
+            id: 'up_pldt_shot',
+            name: 'PLDT Fibr',
+            amount: Money.pesos(1699),
+            dueDate: '2026-09-25',
+            type: UpcomingItemType.bill,
+            repeatDay: 25,
+          ),
+        );
+        state.markUpcomingPaid('up_pldt_shot', accountId: 'acc_gcash');
+        await tester.pumpAndSettle();
+      }
+
       BillsSheet.show(
         tester.element(find.byType(AppShell)),
         palette: palette,
@@ -1390,6 +1408,8 @@ void main() {
 
       if (shape.adding) {
         await tester.tap(find.text('Schedule a bill'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('bill-monthly')));
         await tester.pumpAndSettle();
       }
 

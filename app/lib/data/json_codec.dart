@@ -725,6 +725,10 @@ const Set<String> upcomingKeys = <String>{
   'isPaid',
   'category',
   'isSample',
+  // Repeating bills (D31). Declared, so clearing lastPaidTxId on an undo is
+  // not undone by the unknown-key sidecar on the next launch.
+  'repeatDay',
+  'lastPaidTxId',
 };
 
 Map<String, dynamic> upcomingToJson(UpcomingItem u) => <String, dynamic>{
@@ -737,6 +741,10 @@ Map<String, dynamic> upcomingToJson(UpcomingItem u) => <String, dynamic>{
   'isPaid': u.isPaid,
   if (u.category != null) 'category': u.category,
   if (u.isSample) 'isSample': true,
+  // Written only for a repeating bill, so every other row is byte for byte
+  // what it always was and an older build ignores keys it does not know.
+  if (u.repeatDay != null) 'repeatDay': u.repeatDay,
+  if (u.lastPaidTxId != null) 'lastPaidTxId': u.lastPaidTxId,
 };
 
 UpcomingItem upcomingFromJson(Map<String, dynamic> m) {
@@ -751,8 +759,14 @@ UpcomingItem upcomingFromJson(Map<String, dynamic> m) {
     isPaid: _optBool(m, 'isPaid'),
     category: _optStr(m, 'category'),
     isSample: _optBool(m, 'isSample'),
+    // Absent means a one-off bill, the right answer for every row written
+    // before repeating bills existed. A day outside 1 to 31 is not a day.
+    repeatDay: _validDay(_optInt(m, 'repeatDay')),
+    lastPaidTxId: _optStr(m, 'lastPaidTxId'),
   );
 }
+
+int? _validDay(int? d) => d != null && d >= 1 && d <= 31 ? d : null;
 
 const Set<String> incomeStreamKeys = <String>{
   'id',
