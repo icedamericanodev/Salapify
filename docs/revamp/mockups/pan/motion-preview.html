@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pan motion preview</title>
+<style>
+@font-face{font-family:Jakarta;font-weight:400;src:url('../../../../app/assets/fonts/PlusJakartaSans-Regular.ttf')}
+@font-face{font-family:Jakarta;font-weight:600;src:url('../../../../app/assets/fonts/PlusJakartaSans-SemiBold.ttf')}
+@font-face{font-family:Jakarta;font-weight:700;src:url('../../../../app/assets/fonts/PlusJakartaSans-Bold.ttf')}
+@font-face{font-family:Jakarta;font-weight:800;src:url('../../../../app/assets/fonts/PlusJakartaSans-ExtraBold.ttf')}
+body{margin:0;background:#0B0907;color:#F6EFE8;font-family:Jakarta,sans-serif}
+button{font-family:inherit}
+.wrap{max-width:1360px;margin:0 auto;padding:32px 16px 64px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.bar{width:100%;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bar h1{margin:0 auto 0 0;font-size:28px}
+.bar button{height:40px;padding:0 16px;border-radius:999px;border:1px solid #383029;background:#1E1915;color:#F6EFE8;font-size:14px;font-weight:600;cursor:pointer}
+.bar button.on{background:#FF9A52;color:#1E0E03;border-color:#FF9A52}
+.phone{width:390px;height:844px;flex:none;position:relative;overflow:hidden;background:#14100D;border-radius:28px}
+.grid{flex:1 1 560px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:#27201A;border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.card b{font-size:17px}.card span{font-size:13px;color:#AC9E92}
+.stage{position:relative;margin:0 auto}
+.layer{position:absolute;inset:0;transform-origin:50% 92%}
+.stage img{display:block;width:100%;height:100%;clip-path:inset(0 0 7.5% 0)}
+.shadow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.85),rgba(0,0,0,0));opacity:.5}
+.tapzone{position:absolute;inset:0;cursor:pointer}
+.fx{position:absolute;pointer-events:none}
+@keyframes pan-pop{0%{opacity:0;transform:translateY(28px) scale(.35)}55%{opacity:1;transform:translateY(-8px) scale(1.08)}75%{transform:translateY(2px) scale(.96)}100%{opacity:1;transform:none}}
+@keyframes pan-float{from{transform:translateY(0)}to{transform:translateY(-9%)}}
+@keyframes pan-breathe{from{transform:scale(1,1)}to{transform:scale(1.035,.965)}}
+@keyframes pan-rock{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes pan-hop{0%,58%,100%{transform:translateY(0) scale(1,1)}66%{transform:translateY(0) scale(1.1,.88)}80%{transform:translateY(-16%) scale(.95,1.06)}92%{transform:translateY(0) scale(1.06,.93)}}
+@keyframes pan-tilt{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@keyframes pan-squash{0%{transform:scale(1,1)}22%{transform:scale(1.16,.82)}52%{transform:translateY(-14%) scale(.9,1.12)}78%{transform:scale(1.05,.96)}100%{transform:scale(1,1)}}
+@keyframes sh-float{from{transform:scaleX(1);opacity:.5}to{transform:scaleX(.74);opacity:.22}}
+@keyframes sh-hop{0%,58%,100%{transform:scaleX(1);opacity:.5}66%{transform:scaleX(1.12);opacity:.55}80%{transform:scaleX(.62);opacity:.16}}
+@keyframes sh-breathe{from{transform:scaleX(1)}to{transform:scaleX(1.06)}}
+@keyframes fx-twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+@keyframes fx-z{0%{opacity:0;transform:translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translate(16px,-36px) scale(1.25)}}
+@keyframes fx-glow{from{opacity:.2;transform:scale(.75)}to{opacity:.95;transform:scale(1.3)}}
+@keyframes fx-dot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+@keyframes ui-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes ui-ring{0%{box-shadow:0 0 0 0 rgba(255,154,82,.55)}100%{box-shadow:0 0 0 16px rgba(255,154,82,0)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>Pan in motion</h1>
+    <button id="replay">Replay</button>
+    <button id="forever">Loop forever</button>
+    <button id="reduce">Reduce motion</button>
+  </div>
+
+  <div class="phone" id="phone">
+    <div style="padding:44px 22px 0">
+      <div class="rise" data-d="0" style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:#C6B8AC"><span>Thursday, Oct 8</span><span>&#9675;</span></div>
+      <div style="height:18px"></div>
+      <div class="rise" data-d="60" style="font-size:27px;font-weight:700;letter-spacing:-.8px">Home</div>
+      <div style="height:6px"></div>
+      <div class="rise" data-d="110" style="font-size:14px;line-height:1.45;color:#C6B8AC">Safe to spend, what is due, and what just happened.</div>
+      <div style="height:20px"></div>
+      <div class="rise" data-d="160" style="background:#27201A;border-radius:20px;padding:26px;text-align:center">
+        <div class="pan" data-mood="wave" data-size="96" data-pop="320" style="margin:-6px auto 0"></div>
+        <div style="height:10px"></div>
+        <div class="rise" data-d="560" style="font-size:16px;font-weight:600">Nothing logged yet</div>
+        <div style="height:8px"></div>
+        <div class="rise" data-d="630" style="font-size:13px;line-height:1.45;color:#AC9E92">Tap Log to record your first expense. Once there is money in here, this screen leads with what is safe to spend before payday.</div>
+      </div>
+      <div id="pill" class="rise" data-d="720" style="margin-top:14px;height:50px;border-radius:999px;background:#FF9A52;color:#1E0E03;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600">+&nbsp;&nbsp;Log your first entry</div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// Images resolve from the repo: docs/revamp/mockups/pan/ up to app/assets/pan/.
+const IMG = (m) => '../../../../app/assets/pan/pan_' + m + '.png';
+const MOODS = {
+  wave:     { screen: 'Home', move: ['pan-float', 2400, true], body: ['pan-rock', 1600, false], shadow: ['sh-float', 2400, true],
+              fx: [['star', 80, 4, .15, 0, '#FFD36B'], ['star', 95, 22, .1, 600, '#FFD36B'], ['star', 66, -4, .08, 1100, '#FFD36B']] },
+  sleep:    { screen: 'Ledger', move: null, body: ['pan-breathe', 3200, true], shadow: ['sh-breathe', 3200, true],
+              fx: [['z', 74, 10, .18, 0], ['z', 82, 2, .13, 1300]] },
+  idea:     { screen: 'Plan', move: ['pan-hop', 2200, false, 'linear'], body: null, shadow: ['sh-hop', 2200, false, 'linear'],
+              fx: [['glow', 72, 4, .54, 0, 'rgba(255,224,138,.95)', true]] },
+  coin:     { screen: 'Accounts', move: ['pan-float', 2000, true], body: ['pan-tilt', 2400, false], shadow: ['sh-float', 2000, true],
+              fx: [['glow', 18, 9, .46, 0, 'rgba(255,214,107,.9)', true], ['star', 12, 2, .16, 0, '#FFFFFF'], ['star', 26, 16, .09, 900, '#FFFFFF']] },
+  calm:     { screen: 'Debt', move: ['pan-float', 3600, true], body: ['pan-breathe', 3600, true], shadow: ['sh-float', 3600, true],
+              fx: [['star', 10, 22, .11, 0, '#7FD9B8'], ['star', 90, 16, .13, 700, '#7FD9B8'], ['star', 84, 50, .08, 1400, '#7FD9B8']] },
+  thinking: { screen: 'Insights', move: null, body: ['pan-tilt', 3000, false], shadow: null,
+              fx: [['dot', 4, 34, .05, 0], ['dot', -4, 26, .05, 200], ['dot', -12, 18, .05, 400]] }
+};
+const IDLE = 1000;
+let forever = false, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const STAR = (c) => '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="' + c + '"><path d="M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12 6.4-.8 11.2-5.6 12-12Z"/></svg>';
+
+function loop(spec, extra) {
+  if (!spec) return 'none';
+  const [name, ms, alt, ease] = spec;
+  const n = forever ? 'infinite' : (alt ? 6 : 3);
+  return name + ' ' + ms + 'ms ' + (ease || 'ease-in-out') + ' ' + (IDLE + (extra || 0)) + 'ms ' + n + (alt ? ' alternate' : '') + ' both';
+}
+
+function buildPan(el) {
+  const mood = el.dataset.mood, size = +el.dataset.size, m = MOODS[mood];
+  el.className = 'pan stage'; el.style.width = el.style.height = size + 'px';
+  const fx = (back) => m.fx.filter(f => !!f[6] === back || (f[0] !== 'glow' && !back)).map(f => {
+    const [kind, x, y, rel, delay, color] = f, s = Math.round(rel * size);
+    const box = 'left:' + x + '%;top:' + y + '%;width:' + s + 'px;height:' + s + 'px;margin:-' + s / 2 + 'px 0 0 -' + s / 2 + 'px;';
+    if (kind === 'star') return '<span class="fx" data-a="fx-twinkle 1800ms ease-in-out D" data-x="' + delay + '" style="' + box + '">' + STAR(color) + '</span>';
+    if (kind === 'z') return '<span class="fx" data-a="fx-z 2600ms ease-out D" data-x="' + delay + '" style="' + box + 'font-size:' + s + 'px;line-height:1;font-weight:800;color:#8FA3D9">z</span>';
+    if (kind === 'glow') return '<span class="fx" data-a="fx-glow 1200ms ease-in-out A" data-x="0" style="' + box + 'border-radius:50%;background:radial-gradient(closest-side,' + color + ',rgba(255,224,138,0))"></span>';
+    return '<span class="fx" data-a="fx-dot 1200ms ease-in-out D" data-x="' + delay + '" style="' + box + 'border-radius:50%;background:#C6B8AC"></span>';
+  }).join('');
+  const sw = size * .54, sh = size * .09;
+  el.innerHTML =
+    '<div class="shadow" style="left:' + (size - sw) / 2 + 'px;bottom:' + size * .04 + 'px;width:' + sw + 'px;height:' + sh + 'px"></div>' +
+    '<div class="layer L0"><div class="layer L1">' + fx(true) +
+    '<div class="layer L2"><div class="layer L3"><img alt="" src="' + IMG(mood) + '"><div class="tapzone"></div></div></div>' +
+    fx(false) + '</div></div>';
+  el.querySelector('.tapzone').onclick = () => {
+    if (reduce) return;
+    const t = el.querySelector('.L3'); t.style.animation = 'none'; void t.offsetWidth;
+    t.style.animation = 'pan-squash 560ms ease-out 0ms 1 both';
+  };
+}
+
+function play() {
+  document.querySelectorAll('.pan').forEach(el => {
+    const m = MOODS[el.dataset.mood], pop = +(el.dataset.pop || 0);
+    const set = (sel, a) => { const n = el.querySelector(sel); n.style.animation = 'none'; void n.offsetWidth; n.style.animation = reduce ? 'none' : a; };
+    set('.L0', 'pan-pop 760ms ease-out ' + pop + 'ms both');
+    set('.L1', loop(m.move));
+    set('.L2', loop(m.body));
+    set('.shadow', loop(m.shadow));
+    el.querySelectorAll('.fx').forEach(f => {
+      f.style.animation = 'none'; void f.offsetWidth;
+      if (reduce) { f.style.opacity = 0; return; }
+      f.style.opacity = '';
+      const [name, ms, ease, mode] = f.dataset.a.split(' ');
+      const alt = mode === 'A', n = forever ? 'infinite' : (alt ? 6 : 3);
+      f.style.animation = name + ' ' + ms + ' ' + ease + ' ' + (IDLE + +f.dataset.x) + 'ms ' + n + (alt ? ' alternate' : '') + ' both';
+    });
+  });
+  document.querySelectorAll('.rise').forEach(r => {
+    r.style.animation = 'none'; void r.offsetWidth;
+    r.style.animation = reduce ? 'none' : 'ui-rise 520ms cubic-bezier(.2,.8,.2,1) ' + r.dataset.d + 'ms both';
+  });
+  const pill = document.getElementById('pill');
+  if (!reduce) pill.style.animation += ', ui-ring 1600ms ease-out 1500ms 2';
+  document.getElementById('forever').classList.toggle('on', forever);
+  document.getElementById('reduce').classList.toggle('on', reduce);
+}
+
+const grid = document.getElementById('grid');
+Object.entries(MOODS).forEach(([k, m], i) => {
+  grid.insertAdjacentHTML('beforeend', '<div class="card"><div class="pan" data-mood="' + k + '" data-size="140" data-pop="' + (200 + i * 90) + '"></div><b>' + k[0].toUpperCase() + k.slice(1) + '</b><span>' + m.screen + '</span></div>');
+});
+document.querySelectorAll('.pan').forEach(buildPan);
+document.getElementById('replay').onclick = play;
+document.getElementById('forever').onclick = () => { forever = !forever; play(); };
+document.getElementById('reduce').onclick = () => { reduce = !reduce; play(); };
+play();
+</script>
+</body>
+</html>

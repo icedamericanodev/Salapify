@@ -1,0 +1,1805 @@
+/// Pan, the money assistant. See the class docs below for the full contract.
+library;
+
+import 'dart:math' as math;
+
+import '../../../data/academy_data.dart';
+import '../accounts.dart' show accountsTotalPhp;
+import 'pan_knowledge.dart';
+import '../../../models/academy.dart';
+import '../../../models/models.dart';
+import '../format.dart';
+import '../health_check.dart';
+import '../reports.dart' show liabilityKinds;
+import 'pan_affordability.dart';
+import 'pan_amounts.dart';
+import 'pan_bans.dart';
+import 'pan_context.dart';
+import 'pan_explainers.dart';
+import 'pan_matchers.dart';
+import '../money.dart';
+
+/// Pan, the money assistant, ported in intent from `archive/prototype-google-ai-studio/src/utils/panAiEngine.ts`
+/// and rewritten rather than copied.
+///
+/// ## It is NOT AI, and is never called that
+///
+/// The prototype names its file `panAiEngine.ts`, badges Pan an "Offline
+/// Financial Copilot", and puts a 240ms delay with three bouncing dots in
+/// front of every answer to make it feel like something is thinking. There is
+/// no model anywhere in it: `processPanQuery` is a chain of `q.includes(...)`
+/// returning hardcoded strings, with no fetch, no key and no inference.
+///
+/// This is the same kind of thing, which is why it is called a money
+/// assistant and the file is `pan.dart`. Claiming AI would be a
+/// characteristic claim about a product that does not have it, which is a
+/// deceptive-behaviour problem on Play and a misrepresentation under
+/// consumer law, and it would make the answers feel more authoritative than
+/// they have earned. What it IS, is a good line: every answer is worked out
+/// on this phone, from figures the person typed, with nothing leaving the
+/// device and no signal needed.
+///
+/// ## What it may and may not say
+///
+/// Founder direction, 2026-09-19: Pan must know the person's own figures and
+/// every feature in the app, and how an entry flows through it. It does. The
+/// boundary, which a securities review of the prototype's own strings made
+/// concrete, is that Pan may do ARITHMETIC on somebody's figures, compare
+/// them to a stated general rule of thumb, and name the CONSEQUENCE. It may
+/// not tell them what to do about it.
+///
+/// Concretely, and enforced by `pan_bans.dart` at RUNTIME over every passage
+/// before it is emitted, and by pan_test.dart over Pan's OUTPUT:
+///
+/// THIS USED TO SAY the bans were enforced over the literals in this file and
+/// in pan_knowledge.dart, and that sentence was true when written and false
+/// by the time Pan could quote the Academy. The words were still not in
+/// either file, so all four bans reported green while "what is an emergency
+/// fund" came back naming three banks and quoting four to six percent per
+/// annum. A guard scoped to a location is a guard until the content moves. A
+/// rule about what a person sees has to be checked where the person sees it.
+///
+/// The four rules themselves are unchanged:
+///
+///   - no bank, e-wallet, fund or product named in Salapify's own words. A
+///     name that came from the user's own account list is fine and necessary,
+///     because refusing to say "your BPI Savings holds X" would make the
+///     assistant useless;
+///   - no imperative about their money: no "you should", "we recommend",
+///     "put your", "invest in";
+///   - no yield, return, dividend or forward-looking figure;
+///   - no professional standing: no CPA, adviser, expert, audit, coach.
+///
+/// The prototype breaks all four. Its emergency fund answer prescribes a
+/// split of the reader's money across four named products with quoted annual
+/// yields, under a badge reading "Financial Coach". None of that is ported.
+
+/// One answer, plus anything the screen should offer after it.
+class PanAnswer {
+  const PanAnswer({
+    required this.topic,
+    required this.text,
+    this.badge,
+    this.points = const <String>[],
+    this.more,
+    this.figures = const <PanFigure>[],
+    this.actions = const <PanAction>[],
+    this.followUps = const <String>[],
+    this.aboutMoney = false,
+  });
+
+  /// Short lines under the answer, one idea each.
+  ///
+  /// Founder direction, 2026-09-20: "Im still not satisfied on how pan answer
+  /// the question it is too wordy compare to the google ai studio
+  /// prototype". They were right, and the fix is structural rather than a
+  /// word count. The MP2 answer was four paragraphs of prose, and the
+  /// prototype's equivalent is a headline followed by short labelled lines.
+  /// Prose on a phone is skipped; a list is scanned.
+  ///
+  /// This is the same rule the screens already follow, arriving in the chat:
+  /// a figure and the one line needed to read it stay in front of somebody,
+  /// and anything that TEACHES goes one tap away, in [more].
+  final List<String> points;
+
+  /// The part that is read once and then never again.
+  ///
+  /// Behind a tap, for exactly the reason the founder gave about the screens:
+  /// a lesson is read once and then skipped forever while still taking up
+  /// room on every visit after the first.
+  final String? more;
+
+  /// A short label above the answer, saying what KIND of answer it is.
+  ///
+  /// Ported from the prototype's badges, with the two that could not come
+  /// across left behind. Its "Financial Coach" and "CPA & Tax Advisory" claim
+  /// a professional standing Salapify has not got, which is the fourth of the
+  /// four bans and is also a registration question in the Philippines. A
+  /// badge here says what the answer IS, never who is speaking.
+  final String? badge;
+
+  /// Which rule matched, for tests and for the screen's own label.
+  final String topic;
+
+  final String text;
+
+  /// Figures pulled out of the sentence so the screen can show them large.
+  /// A number in a paragraph is read; a number in a row is seen.
+  final List<PanFigure> figures;
+
+  /// Places in the app this answer leads to.
+  ///
+  /// The engine names a DESTINATION and never a Flutter route, because
+  /// pan.dart has no import from lib/screens and adding one would let a
+  /// money rule reach for a widget. The sheet maps an id to a screen; if it
+  /// does not recognise one, nothing is shown, which is why a stale id can
+  /// never crash a chat. `pan_journey_test.dart` walks every id to make sure
+  /// none is quietly dead.
+  final List<PanAction> actions;
+
+  /// Questions that follow naturally from this answer.
+  final List<String> followUps;
+
+  /// True when the answer touches saving, investing, tax, insurance or a
+  /// product. Those, and only those, carry the trailer.
+  ///
+  /// NOT every answer. A disclaimer on every single message is wallpaper
+  /// within two days, and then it is not there for the one that matters.
+  final bool aboutMoney;
+
+  static const String trailer =
+      'This is general information, not advice about your own money.';
+
+  /// EVERY word this answer can put in front of somebody, in one string.
+  ///
+  /// Used by the content guards, and that is why it includes [more] even
+  /// though the screen keeps it behind a tap. A ban that reads only what is
+  /// visible on arrival is a ban with a door in it, and this repository has
+  /// already shipped one guard that was scoped to the wrong thing.
+  String get display => <String>[
+    text,
+    for (final String p in points) p,
+    ?more,
+    if (aboutMoney) trailer,
+  ].join('\n\n');
+}
+
+class PanFigure {
+  const PanFigure({required this.label, required this.value});
+  final String label;
+  final String value;
+}
+
+/// Somewhere to go next, named by intent rather than by route.
+class PanAction {
+  const PanAction({required this.label, required this.id});
+  final String label;
+
+  /// One of the ids in `panActionIds`, which is the list the sheet switches
+  /// on and the test iterates.
+  final String id;
+}
+
+/// Every destination Pan is allowed to offer.
+///
+/// A typed list rather than free strings, so a test can walk all of them and
+/// a typo cannot ship as a button that does nothing. The prototype has
+/// seventeen action ids and no list, and three of them point at screens that
+/// were never built.
+const List<String> panActionIds = <String>[
+  'log',
+  'safeToSpend',
+  'healthCheck',
+  'reports',
+  'accounts',
+  'debts',
+  'bills',
+  'academy',
+  'privacy',
+  'reminders',
+];
+
+/// Strips a question down to something matchable.
+String normalise(String raw) => raw
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^\w\s₱.]'), ' ')
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
+
+bool _has(String q, List<String> words) => words.any(q.contains);
+
+/// The answer to a question, worked out entirely from [facts].
+///
+/// Deterministic and offline by construction: there is no clock read, no
+/// randomness, no network and no storage here. The same question against the
+/// same facts gives the same answer forever, which is what lets every rule
+/// below be pinned by a test.
+PanAnswer askPan(String question, PanFacts facts) {
+  final String q = normalise(question);
+
+  if (q.isEmpty) return _dontKnow(facts);
+
+  // 1. THE ADVICE BOUNDARY COMES FIRST, before anything else can match.
+  //
+  // "Where should I put my savings" contains "savings", and a balance answer
+  // would be a confident non-answer to a question about what to do. Checking
+  // it first is what makes the boundary a boundary rather than a fallback.
+  if (_looksLikeAdviceRequest(q)) return _boundary(q, facts);
+
+  // 1b. CAN I AFFORD THIS, which is the most useful question a person can
+  //     ask a budget app and the one it exists to answer.
+  //
+  //     Checked here, above the account rule, because the amount is the
+  //     subject: "can I afford 2,500" with an account called Cash must not
+  //     become a balance lookup. It needs BOTH an asking phrase and a
+  //     readable figure, so "can I afford it" with no amount falls through to
+  //     Safe to Spend, which is the honest answer to a question with no
+  //     number in it.
+  if (_has(q, affordTriggers)) {
+    // The RAW question, not the normalised one. normalise turns every
+    // non-word character into a space, so "₱2,500" reaches it as "₱2 500"
+    // and the currency match takes the 2. A confidently formatted answer
+    // about a two peso purchase is exactly the failure this whole feature
+    // must not have.
+    final double? amount = extractAmount(question);
+    if (amount != null) return _afford(amount, facts);
+
+    // "Can I afford it" names no figure, so there is nothing to judge. Safe
+    // to Spend is the honest answer to that question and it is the same
+    // arithmetic without the purchase, so it goes here rather than falling
+    // through to "Pan did not recognise that one" on a question Pan
+    // understood perfectly well.
+    return _safeToSpend(facts);
+  }
+
+  // 1c. HOW AM I DOING, the whole picture rather than one figure.
+  if (_has(q, healthTriggers)) return _health(facts);
+
+  // 2. A named account, because it is the most specific thing a person can
+  //    ask about and the answer is simply their own figure.
+  final Account? named = _accountNamed(q, facts);
+  if (named != null) return _oneAccount(named, facts);
+
+  // 2b. "What is a budget" is a different question from "what is MY budget",
+  //     and the topic rules below cannot tell them apart: both contain the
+  //     word budget, so both used to come back as a list of the person's own
+  //     limits. That is a confident non-answer to somebody who wanted to be
+  //     taught, and the course teaching it ships in the same app.
+  //
+  //     Two conditions, and both are needed. The question has to ASK to be
+  //     taught, and a course title has to carry every word of it, so
+  //     "what is cash flow" teaches while "what is safe to spend" still
+  //     answers with the figure. Any my, me or I sends it back to the
+  //     figures, because "what is my net worth" is about their money.
+  // 2a. SALAPIFY'S OWN ANSWER, before the curriculum and before the topics.
+  //
+  //     Founder direction, 2026-09-20: "what if the user has no time to
+  //     navigate to the academy and they need answer in 2 sec". An explainer
+  //     is written for this surface, so it needs no filtering and cannot end
+  //     in "Pan does not read that lesson out here".
+  //
+  //     It sits under the advice boundary and the account name, and above
+  //     everything else, including the figure topics: somebody typing "what
+  //     is cash flow" wants the idea, and `_wantsTheConcept` decides whether
+  //     they meant theirs.
+  //     GATED BY THE SAME POSSESSIVE TEST as the curriculum below it, and
+  //     that gate is why this is not simply first. "What is net worth" wants
+  //     the idea and "what is MY net worth" wants a peso figure, and there is
+  //     an explainer called Net worth that would have taken both. Questions
+  //     with no opener, like "how does credit card interest work", are caught
+  //     further down instead, after the figure topics have had their turn.
+  if (_wantsTheConcept(q)) {
+    final PanExplainer? plain = _explainerFor(q);
+    if (plain != null) return _explain(plain);
+  }
+
+  if (_wantsTheConcept(q)) {
+    final ({
+      CourseModule? course,
+      List<LessonSection> sections,
+      int score,
+      bool titleCovered,
+    })
+    lesson = _academyFor(q);
+    if (lesson.course != null && lesson.titleCovered) {
+      return _lesson(lesson.course!, lesson.sections);
+    }
+  }
+
+  if (_has(q, <String>[
+    'safe to spend',
+    'can i spend',
+    'spendable',
+    'pwede ko gastusin',
+    'how much left',
+  ])) {
+    return _safeToSpend(facts);
+  }
+
+  if (_has(q, <String>[
+    'how much do i have',
+    'how much money',
+    'my balance',
+    'total balance',
+    'magkano',
+    'pera ko',
+    'cash',
+    'how much have i got',
+  ])) {
+    return _cash(facts);
+  }
+
+  if (_has(q, <String>['net worth', 'net asset', 'worth', 'overall'])) {
+    return _netWorth(facts);
+  }
+
+  if (_has(q, <String>[
+    'where did my money go',
+    'saan napunta',
+    'spending',
+    'spent this month',
+    'biggest',
+    'what did i spend',
+    'expenses this month',
+  ])) {
+    return _spending(facts);
+  }
+
+  if (_has(q, <String>['budget', 'limit', 'overspend', 'lampas'])) {
+    return _budgets(facts);
+  }
+
+  // OWED TO ME IS CHECKED FIRST, and the order is the whole rule.
+  //
+  // "who owes me money" contains "owe". With the other way round it matched
+  // the what-you-owe branch and answered a question about a receivable with a
+  // list of the person's own debts, which is the single confusion a two way
+  // register must never create. A test caught it; reading the two keyword
+  // lists side by side did not.
+  if (_has(q, <String>[
+    'owes me',
+    'owed to me',
+    'utang sa akin',
+    'who owes',
+    'receivable',
+    'owe me',
+  ])) {
+    return _owedToMe(facts);
+  }
+
+  if (_has(q, <String>[
+    'who do i owe',
+    'my debt',
+    'utang ko',
+    'how much do i owe',
+    'owe',
+  ])) {
+    return _owed(facts);
+  }
+
+  if (_has(q, <String>[
+    'due',
+    'bill',
+    'bayarin',
+    'coming up',
+    'upcoming',
+    'this week',
+  ])) {
+    return _due(facts);
+  }
+
+  if (_has(q, <String>['goal', 'ipon', 'saving for', 'target'])) {
+    return _goals(facts);
+  }
+
+  if (_has(q, <String>['payday', 'sweldo', 'next pay', 'when do i get paid'])) {
+    return _payday(facts);
+  }
+
+  // 3. The app itself, and the ACADEMY, scored against each other.
+  //
+  // The Academy is 32 courses the app already ships, and Pan could not reach
+  // one of them. "What is MP2" returned "Pan did not recognise that one"
+  // while a whole course called "PAG-IBIG MP2: The Wealth Engine" sat in the
+  // same build. That is the gap the founder found, and it was mine: I gave
+  // Pan the ledger and the feature list and never gave it the curriculum.
+  //
+  // Which of the two is asked FIRST is decided by the words, not by a score.
+  // Comparing the two numbers directly does not work and the attempt is worth
+  // recording: a feature match is a handful of authored keywords and scores 1
+  // to 3, while a course is scored over a title, a category, objectives and
+  // every section, so it reached 9 on "what happens when I log an expense"
+  // and buried the answer that was actually right.
+  //
+  // So the rule is a word list, the same shape as reservedWords one level
+  // down. A question carrying an app word is about Salapify and tries the
+  // feature answer first. Everything else tries the curriculum first, which
+  // is what makes "what is MP2" teach.
+  final ({PanFeature? feature, int score}) f = _featureFor(q);
+  final ({
+    CourseModule? course,
+    List<LessonSection> sections,
+    int score,
+    bool titleCovered,
+  })
+  a = _academyFor(q);
+
+  // Salapify's own explanation again, for the questions with no opener that
+  // the figure topics above did not claim. "How does credit card interest
+  // work" arrives here, and it is a better answer than any passage of the
+  // curriculum Pan is allowed to read out.
+  final PanExplainer? plain = _explainerFor(q);
+
+  if (_has(q, appOwnWords)) {
+    if (f.feature != null) return _feature(f.feature!);
+    if (plain != null) return _explain(plain);
+    if (a.course != null) return _lesson(a.course!, a.sections);
+    return _dontKnow(facts);
+  }
+
+  if (plain != null) return _explain(plain);
+  if (a.course != null) return _lesson(a.course!, a.sections);
+  if (f.feature != null) return _feature(f.feature!);
+
+  return _dontKnow(facts);
+}
+
+// ---------------------------------------------------------------------------
+// The boundary
+// ---------------------------------------------------------------------------
+
+/// The trigger words live in pan_matchers.dart, NOT here, and that split is
+/// enforcement rather than tidiness. The content guard forbids this file from
+/// naming a financial product, and it correctly fired on a product name that
+/// was only ever used to RECOGNISE a question. Pan has to know the word to
+/// spot the question and must never use it in an answer, so the two sets of
+/// words live in two files and only this one is rendered.
+/// Two passes, because a list of exact phrases cannot hold this line alone.
+///
+/// A securities review walked through the questions somebody actually types
+/// once Pan will talk about a savings programme at all, and found a dozen
+/// that sailed straight past twenty five phrases. "Is MP2 safe" is the
+/// shape: the thing being asked about sits in the MIDDLE, so no fixed phrase
+/// can contain it. [adviceShapes] holds those as patterns.
+///
+/// The phrase list stays, and stays first, because it is readable and most
+/// questions are in it. This is the second net under it, not a replacement.
+bool _looksLikeAdviceRequest(String q) {
+  if (_has(q, adviceTriggers)) return true;
+  for (final RegExp r in adviceShapes) {
+    if (r.hasMatch(q)) return true;
+  }
+  return false;
+}
+
+/// Answers the answerable part, names the line once, says WHY in terms of what
+/// Pan cannot see, and ends on something to do rather than on a no.
+///
+/// Refusing flatly is its own harm. A money app that says "I cannot discuss
+/// that" to somebody asking where to keep their savings sends a twenty three
+/// year old to a Facebook group, which is materially worse for them and is
+/// the outcome the scam warnings exist to prevent. So the education always
+/// comes first and the last thing on screen is never the refusal.
+PanAnswer _boundary(String q, PanFacts facts) {
+  final bool investing = _has(q, investingWords);
+  final bool borrowing = !investing && _has(q, borrowingWords);
+
+  final String opener = investing
+      ? 'Investing means putting money somewhere it can grow and can also '
+            'fall.'
+      : borrowing
+      ? 'Borrowing always costs more than the amount you borrow.'
+      : 'Money you might need within a few days behaves differently from '
+            'money you can leave alone for years.';
+
+  final String detail = investing
+      ? 'What decides whether any of it fits you is when you would need the '
+            'money back, and what it would cost to have it locked away on '
+            'the month something goes wrong.'
+      : borrowing
+      ? 'How much more depends on the rate, the term and the fees, which are '
+            'often quoted separately. Type an arrangement\'s real numbers '
+            'into the Debt register or a loan calculator here and it shows '
+            'the total cost.'
+      : 'That difference, rather than the name of any particular place to '
+            'put it, is what usually decides the answer.';
+
+  // THE CHECK BRANCHES TOO, and it did not before. The SEC sentence was
+  // unconditional while the lead and the detail branched, so "should I get
+  // a loan" was answered with advice about verifying a licence to take
+  // INVESTMENT money. Wrong register, and it displaced the check that would
+  // actually protect a borrower: a lender needs its own authority to lend,
+  // which is a different lookup with different consequences. The mismatch
+  // predates this rewrite; promoting the sentence to a visible bullet is
+  // what made it obvious.
+  //
+  // Both branches end on the same clause, and that clause is the point: a
+  // beginner reads "licensed" as "approved, therefore safe", and the SEC's
+  // own advisories say the opposite. Saying only "check it is licensed"
+  // leaves the dangerous half of the inference to the reader.
+  //
+  // No URL on purpose. A government link can rot, and a lookalike domain
+  // for this exact portal already exists.
+  final String check = borrowing
+      ? 'In the Philippines a lender needs its own authority from the SEC '
+            'to lend, separate from being a registered company, and the SEC '
+            'publishes which online lending apps hold it. Authority means '
+            'there is a regulator to complain to, not that the terms are '
+            'fair.'
+      : 'In the Philippines you can check on the SEC\'s own website whether '
+            'a company is licensed to take investment money. A certificate '
+            'of incorporation is only a business birth certificate, not '
+            'permission to take your savings. A licence means there is a '
+            'regulator to complain to, not that the investment is safe or '
+            'approved.';
+
+  // THE LONGEST ANSWER IN THE FILE, four paragraphs, and the priority was
+  // upside down: the SEC check, the one sentence here that can stop
+  // somebody losing money to an investment scam, sat in paragraph four
+  // where the reviews agree nobody reaches it. It is a visible line now.
+  //
+  // THE REFUSAL STAYS VISIBLE TOO, which is a deliberate departure from the
+  // content review's advice to move it behind the More tap. Two reasons,
+  // and both are about this being a licensing boundary rather than copy:
+  // `more` is not persisted by PanStoredMessage, so a restored conversation
+  // would show the answer with the refusal silently missing; and a refusal
+  // to give advice only does its work if it is read, which a collapsed
+  // section cannot guarantee. The trailer that `aboutMoney` renders is a
+  // standing disclaimer, not a substitute for saying plainly that Salapify
+  // cannot answer the question that was asked.
+  //
+  // "Which one suits you" became "What suits you": in the generic branch
+  // no options are ever named, so "which one" referred to nothing.
+  return PanAnswer(
+    topic: 'boundary',
+    aboutMoney: true,
+    badge: 'What Salapify can and cannot say',
+    text: opener,
+    points: <String>[
+      detail,
+      'What suits you is not something Salapify can work out. It turns on '
+          'things Pan cannot see: when you would need the money, what else '
+          'you owe, and how it would feel to have it tied up at the wrong '
+          'moment.',
+      check,
+      'What Salapify can do is the arithmetic. Set a goal with the date you '
+          'would need the money by, and it shows what to set aside each '
+          'payday to get there.',
+    ],
+    followUps: <String>[
+      'How do goals work?',
+      'What is safe to spend?',
+      'How much do I have right now?',
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The person's own figures
+// ---------------------------------------------------------------------------
+
+/// The account a question is about, matched on WHOLE WORDS and longest first.
+///
+/// The first version was `q.contains(name)` with a length guard, and it was
+/// wrong in both directions at once.
+///
+/// It fired when it should not: an account called "One" made "how much MONEY
+/// do i have" answer about that account, because "money" contains "one". The
+/// same for an account called "Pay" against "when is my payday", and "Due"
+/// against "what bills are due". An account literally called "Cash" beat the
+/// question about total cash every time, because this runs first.
+///
+/// And it missed when it should have fired: the WHOLE stored name had to
+/// appear in the question, so "how much is in BPI" never matched an account
+/// called "BPI Preferred Payroll", which is how people actually name accounts
+/// and how they actually ask.
+///
+/// Whole words fix the first. Matching the first word as well fixes the
+/// second. Longest match wins, so "GCash Business" beats "GCash" rather than
+/// whichever happens to be earlier in the list.
+Account? _accountNamed(String q, PanFacts facts) {
+  final List<String> words = q.split(' ');
+  Account? best;
+  int bestLength = 0;
+
+  bool holdsPhrase(String phrase) {
+    final List<String> parts = phrase.split(' ');
+    if (parts.isEmpty || parts.length > words.length) return false;
+    for (int i = 0; i + parts.length <= words.length; i++) {
+      bool all = true;
+      for (int j = 0; j < parts.length; j++) {
+        if (words[i + j] != parts[j]) {
+          all = false;
+          break;
+        }
+      }
+      if (all) return true;
+    }
+    return false;
+  }
+
+  for (final Account a in facts.accounts) {
+    final String name = normalise(a.name);
+    if (name.isEmpty) continue;
+
+    // A one word name that IS a question word loses to the question. An
+    // account called "Due" answered "what bills are due", and one called
+    // "Cash" beat the question about total cash every time. A longer name
+    // containing the same word is unaffected, because "Due Payments Card" is
+    // unambiguously a name.
+    if (!name.contains(' ') && reservedWords.contains(name)) continue;
+
+    // The full name first. A one word name still has to be a whole word, so
+    // "One" no longer matches inside "money".
+    if (name.length > bestLength && holdsPhrase(name)) {
+      best = a;
+      bestLength = name.length;
+      continue;
+    }
+
+    // Then the first word, for "how much is in BPI" against "BPI Preferred
+    // Payroll". Three letters minimum, so a name starting with "My" or "A"
+    // cannot swallow an ordinary sentence.
+    final String head = name.split(' ').first;
+    if (head.length >= 3 && head.length > bestLength && holdsPhrase(head)) {
+      best = a;
+      bestLength = head.length;
+    }
+  }
+  return best;
+}
+
+PanAnswer _oneAccount(Account a, PanFacts facts) {
+  // THE SIGN CONVENTION IS THE APP'S, NOT THIS FUNCTION'S GUESS.
+  //
+  // A credit, loan or mortgage balance is stored POSITIVE when money is owed.
+  // reports.dart computes net worth as assets minus a plain sum of those
+  // kinds, and accounts.dart divides that same positive balance by the credit
+  // limit to get utilisation. The sample BPI card carries 4,200.00 against a
+  // 40,000 limit.
+  //
+  // This read `balance < 0` instead, so a card carrying 4,200 of debt was
+  // reported as HOLDING 4,200, and the explanatory sentence then taught the
+  // wrong convention back to the reader as fact. The deleted pan_health.dart
+  // carried the identical defect with an equally confident comment; this one
+  // was found by going looking for its twin.
+  final bool liability = liabilityKinds.contains(a.kind);
+  final bool owing = liability ? a.balance.isPositive : a.balance.isNegative;
+  final double amount = a.balance.abs.pesos;
+
+  final String text;
+  final String label;
+  if (liability && a.balance > Money.pesos(0)) {
+    text =
+        '${a.name} is carrying ${formatPeso(amount)} owing. A card or a loan '
+        'records what you owe as a positive balance, and Salapify subtracts '
+        'it from your net worth rather than adding to it.';
+    label = 'Owing';
+  } else if (liability && a.balance < Money.pesos(0)) {
+    // Rare but real: an overpayment leaves the card owing YOU.
+    text =
+        '${a.name} is ${formatPeso(amount)} in credit, which is money the '
+        'card owes you rather than money you owe it.';
+    label = 'In credit';
+  } else if (liability) {
+    text = '${a.name} has nothing owing on it.';
+    label = 'Owing';
+  } else if (owing) {
+    text =
+        '${a.name} is ${formatPeso(amount)} overdrawn, so it is money you owe '
+        'rather than money you hold.';
+    label = 'Overdrawn';
+  } else {
+    text = '${a.name} holds ${formatPeso(amount)}.';
+    label = 'Balance';
+  }
+
+  return PanAnswer(
+    topic: 'account',
+    text: text,
+    figures: <PanFigure>[PanFigure(label: label, value: formatPeso(amount))],
+    followUps: <String>[
+      'How much do I have right now?',
+      'What is a reconciliation check?',
+    ],
+  );
+}
+
+PanAnswer _cash(PanFacts facts) {
+  if (facts.isEmpty) return _nothingYet('how much you have');
+
+  // THE COUNT MUST MATCH THE FIGURE. This said `facts.accounts.length`,
+  // which is EVERY account, while the figure beside it counts only the
+  // spendable ones. On the shipped sample data that read "You can reach
+  // 86,470.50 across 11 accounts", where 5 accounts produced the figure and
+  // the eleven included a housing loan, a credit card and an MP2 fund. The
+  // very next sentence then promised it had excluded exactly those. Counting
+  // the same list the figure is summed from is the only way the two cannot
+  // drift apart again.
+  final List<Account> counted = facts.accounts
+      .where((Account a) => a.isSpendable)
+      .toList();
+
+  // Liquid money the person deliberately set aside. It is left out of the
+  // figure, correctly, but saying nothing about it leaves somebody staring
+  // at a total with their savings missing and no explanation. Only mentioned
+  // when there IS some, because for most people this clause is noise.
+  final List<Account> setAside = facts.accounts
+      .where((Account a) => a.isLiquid && !a.isSpendable)
+      .toList();
+  final double setAsideTotal = accountsTotalPhp(setAside);
+
+  final String where = counted.isEmpty
+      ? 'right now'
+      : 'across ${counted.length} '
+            '${counted.length == 1 ? 'account' : 'accounts'}';
+
+  // ONE LEAD, THEN SCANNABLE LINES, which is what [points] is for. This was
+  // a single prose blob of up to five sentences, and the founder's standing
+  // complaint about Pan being wordy (2026-09-20, repeated 2026-10-04) is
+  // answered structurally rather than by deleting the teaching: every clause
+  // below survives, it is just no longer a paragraph somebody has to read to
+  // find the one line that is new to them. Prose on a phone is skipped, a
+  // list is scanned.
+  //
+  // Nothing moves to [more] here. All four lines are one line each, and
+  // [more] is not persisted across a restart (see PanStoredMessage), so it
+  // suits read-once teaching rather than the standing caveats on a figure.
+  //
+  // Signed for the same reason as net worth: an overdrawn set of accounts
+  // reads as money held if the minus is dropped.
+  return PanAnswer(
+    topic: 'cash',
+    text: 'You can reach ${formatPesoWithSign(facts.liquidCash)} today $where.',
+    points: <String>[
+      'Cash, bank and e-wallet balances.',
+      if (setAside.isNotEmpty)
+        'The ${formatPeso(setAsideTotal)} you set aside is not in here. '
+            'That is the point of setting it aside.',
+      'A credit limit is not in here. Money you can borrow is not money '
+          'you have.',
+      if (facts.hasSampleData)
+        'Some of this is still Salapify sample data. You can remove it in '
+            'Settings.',
+    ],
+    figures: <PanFigure>[
+      PanFigure(
+        label: 'Reachable today',
+        value: formatPesoWithSign(facts.liquidCash),
+      ),
+    ],
+    followUps: <String>[
+      'What is safe to spend?',
+      'What is my net worth?',
+      'What is due soon?',
+    ],
+  );
+}
+
+PanAnswer _safeToSpend(PanFacts facts) {
+  if (facts.isEmpty) return _nothingYet('what is safe to spend');
+
+  // The engine's own step: what is left after everything spoken for, before
+  // the 85 / 15 split. Guarded the same way computeSafeToSpend guards it, so
+  // a ledger reserving more than it holds says nothing rather than quoting a
+  // negative "left".
+  final double uncommitted = math.max(
+    0,
+    facts.liquidCash - facts.amountReserved,
+  );
+
+  return PanAnswer(
+    topic: 'safeToSpend',
+    text:
+        '${formatPeso(facts.safeToSpendUntilPayday)} is yours to spend '
+        'before your next payday.',
+    // THE AUDIT TRAIL, AND IT NOW CLOSES. The old prose ended "what is left
+    // is what is really yours to spend", which was false: what is left is
+    // the figure on the third line, and only 85 percent of it is the
+    // headline. Somebody checking with a calculator landed 5,545.50 out on
+    // the founder's own ledger with nothing on screen to explain the gap.
+    // The Safe to Spend sheet has always disclosed the split as its step 7;
+    // Pan was the one surface hiding it. No money math changed here, the
+    // engine always did this, the sentence just did not say so.
+    //
+    // These stay in [points] rather than [more] DELIBERATELY: [more] is not
+    // persisted by PanStoredMessage, and an audit trail that vanishes when
+    // the app restarts is not an audit trail.
+    points: <String>[
+      'Starts from ${formatPeso(facts.liquidCash)}, the cash you can '
+          'actually reach.',
+      'Holds back ${formatPeso(facts.amountReserved)} already spoken for: '
+          'unpaid bills, payment plan instalments, a minimum against what '
+          'you owe, and a buffer.',
+      if (uncommitted > 0)
+        'Of the ${formatPeso(uncommitted)} left, 85 percent is the figure '
+            'above and 15 percent is kept as Safe to Save.',
+    ],
+    figures: <PanFigure>[
+      PanFigure(
+        label: 'Until payday',
+        value: formatPeso(facts.safeToSpendUntilPayday),
+      ),
+      PanFigure(label: 'A day', value: formatPeso(facts.safeToSpendPerDay)),
+      PanFigure(label: 'Held back', value: formatPeso(facts.amountReserved)),
+    ],
+    followUps: <String>['What is due soon?', 'Where did my money go?'],
+  );
+}
+
+PanAnswer _netWorth(PanFacts facts) {
+  if (facts.isEmpty) return _nothingYet('your net worth');
+  final double net = facts.netWorth;
+  // The assets and the liabilities stay APART in the sentence, never summed
+  // into one figure that hides which half is which.
+  return PanAnswer(
+    topic: 'netWorth',
+    // formatPesoWithSign, NOT formatPeso. formatPeso drops the sign, which for
+    // a net worth does not understate it, it reverses it: minus 200,000 read
+    // as 200,000 while Reports showed the minus for the same store.
+    text: 'Your net worth is ${formatPesoWithSign(net)}.',
+    // The held-and-owed breakdown is GONE from the prose because the two
+    // figure rows below say it better, and the old sentence "assets and
+    // what you owe are kept apart on purpose" went with it: asserting what
+    // the layout already demonstrates is the definition of padding.
+    //
+    // The below-zero explanation stays, and only appears when it applies.
+    // It is rare, specific and genuinely reassuring, which is the opposite
+    // of the sentence it replaced.
+    points: <String>[
+      if (net < 0)
+        'Below zero sounds alarming and often is not. A housing or vehicle '
+            'loan alone can do it, because the whole balance sits against '
+            'you while the thing it bought is not counted here.',
+    ],
+    figures: <PanFigure>[
+      PanFigure(label: 'Net worth', value: formatPesoWithSign(net)),
+      PanFigure(label: 'Held', value: formatPeso(facts.assets)),
+      PanFigure(label: 'Owed', value: formatPeso(facts.liabilities)),
+    ],
+    followUps: <String>['Who do I owe?', 'How much do I have right now?'],
+  );
+}
+
+PanAnswer _spending(PanFacts facts) {
+  if (facts.spendingByCategory.isEmpty) {
+    return _nothingYet('where your money went');
+  }
+  final List<({String category, double amount})> top = facts.spendingByCategory
+      .take(3)
+      .toList();
+  // The list was hand-rolled into the prose with '\n  ' indentation while a
+  // bullet renderer sat unused in the same bubble. Five answers did this.
+  return PanAnswer(
+    topic: 'spending',
+    text:
+        'This month ${formatPeso(facts.monthOut)} went out and '
+        '${formatPeso(facts.monthIn)} came in.',
+    points: <String>[
+      for (final ({String category, double amount}) c in top)
+        '${c.category}: ${formatPeso(c.amount)}',
+      if (facts.monthOut > facts.monthIn && facts.monthIn > 0)
+        'More left than arrived this month. That is a fact about this month '
+            'rather than a verdict: a yearly payment or a one-off can do it.',
+    ],
+    figures: <PanFigure>[
+      PanFigure(label: 'Out', value: formatPeso(facts.monthOut)),
+      PanFigure(label: 'In', value: formatPeso(facts.monthIn)),
+    ],
+    followUps: <String>['How are my budgets doing?', 'What is safe to spend?'],
+  );
+}
+
+PanAnswer _budgets(PanFacts facts) {
+  if (facts.budgets.isEmpty) {
+    return const PanAnswer(
+      topic: 'budgets',
+      text:
+          'You have no budget limits set yet. A limit is a monthly line you '
+          'draw for a category, and logging an expense in that category fills '
+          'the bar toward it. Salapify never blocks anything and never moves '
+          'money; the bar simply shows where you are.\n\n'
+          'They live on the Plan tab.',
+      followUps: <String>['Where did my money go?'],
+    );
+  }
+  final Map<String, double> spent = <String, double>{
+    for (final ({String category, double amount}) c in facts.spendingByCategory)
+      c.category: c.amount,
+  };
+  final List<String> over = <String>[];
+  for (final Budget b in facts.budgets) {
+    // `spendingByCategory` is still a peso double, so it is converted here
+    // rather than compared across types. It moves to Money with the rest of
+    // the facts record; until then this is the one boundary.
+    final Money used = Money.fromDouble(spent[b.category] ?? 0);
+    if (b.limit.isPositive && used > b.limit) over.add(b.category);
+  }
+  return PanAnswer(
+    topic: 'budgets',
+    text: over.isEmpty
+        ? 'You have ${facts.budgets.length} budget '
+              '${facts.budgets.length == 1 ? 'limit' : 'limits'} set, and '
+              'nothing is over its line this month.'
+        : '${over.length} of your ${facts.budgets.length} limits are over the '
+              'line this month: ${over.join(', ')}. Over a limit is not an '
+              'error, it is a line you drew and a month that went '
+              'differently. The Plan tab shows each bar.',
+    followUps: <String>['Where did my money go?', 'What is safe to spend?'],
+  );
+}
+
+PanAnswer _owed(PanFacts facts) {
+  final List<Debt> mine = facts.debts
+      .where((Debt d) => d.direction == DebtDirection.iOwe && !d.isSettled)
+      .toList();
+  if (mine.isEmpty) {
+    return const PanAnswer(
+      topic: 'owed',
+      text: 'Nothing is recorded as owed by you.',
+      followUps: <String>['Who owes me money?', 'What is due soon?'],
+    );
+  }
+  return PanAnswer(
+    topic: 'owed',
+    text:
+        'You owe ${formatPeso(facts.owed)} across ${mine.length} '
+        '${mine.length == 1 ? 'debt' : 'debts'}.',
+    points: <String>[
+      for (final Debt d in mine.take(5))
+        '${d.person}: ${formatPeso(d.remaining.pesos)}',
+      if (mine.length > 5) 'and ${mine.length - 5} more.',
+    ],
+    // Read once and then never again, which is exactly what `more` is for.
+    // It is real double-entry teaching and worth keeping, but it does not
+    // need to sit between somebody and their list of debts on every visit.
+    more:
+        'Recording a payment lowers the debt and the account it came from '
+        'together, so your net worth does not move.',
+    figures: <PanFigure>[
+      PanFigure(label: 'You owe', value: formatPeso(facts.owed)),
+    ],
+    followUps: <String>['Who owes me money?', 'What is my net worth?'],
+  );
+}
+
+PanAnswer _owedToMe(PanFacts facts) {
+  final List<Debt> theirs = facts.debts
+      .where((Debt d) => d.direction == DebtDirection.owedToMe && !d.isSettled)
+      .toList();
+  if (theirs.isEmpty) {
+    return const PanAnswer(
+      topic: 'owedToMe',
+      text: 'Nobody is recorded as owing you anything.',
+      followUps: <String>['Who do I owe?'],
+    );
+  }
+  return PanAnswer(
+    topic: 'owedToMe',
+    text:
+        '${formatPeso(facts.owedToMe)} is owed to you, across '
+        '${theirs.length} '
+        '${theirs.length == 1 ? 'person' : 'people'}.',
+    points: <String>[
+      for (final Debt d in theirs.take(5))
+        '${d.person}: ${formatPeso(d.remaining.pesos)}',
+      if (theirs.length > 5) 'and ${theirs.length - 5} more.',
+    ],
+    more:
+        'Salapify keeps this as a record for you. It never contacts anybody '
+        'and never chases a payment on your behalf.',
+    figures: <PanFigure>[
+      PanFigure(label: 'Owed to you', value: formatPeso(facts.owedToMe)),
+    ],
+    followUps: <String>['Who do I owe?'],
+  );
+}
+
+PanAnswer _due(PanFacts facts) {
+  final List<BillItem> unpaid = facts.bills
+      .where((BillItem b) => !b.isPaid)
+      .toList();
+  if (unpaid.isEmpty) {
+    return const PanAnswer(
+      topic: 'due',
+      text:
+          'Nothing unpaid is recorded. Bills you add are held back from Safe '
+          'to Spend until they are paid, so the figure on Home stays money '
+          'that is really yours.',
+      followUps: <String>['What is safe to spend?'],
+    );
+  }
+  final double total = unpaid.fold<double>(
+    0,
+    (double s, BillItem b) => s + b.amount.pesos,
+  );
+  return PanAnswer(
+    topic: 'due',
+    text:
+        '${formatPeso(total)} is unpaid across ${unpaid.length} '
+        '${unpaid.length == 1 ? 'bill' : 'bills'}.',
+    points: <String>[
+      // formatDateLabel, not the raw stored string. This printed "due
+      // 2026-09-15" on the founder's own fixture, and a stored date shown
+      // raw is a defect class this repo already screens the main screens
+      // for; Pan was simply never in that sweep. facts.now is the injected
+      // clock, so "Today" and "Tomorrow" stay testable.
+      for (final BillItem b in unpaid.take(5))
+        '${b.name}: ${formatPeso(b.amount.pesos)}, due '
+            '${formatDateLabel(b.dueDate, now: facts.now)}',
+      if (unpaid.length > 5) 'and ${unpaid.length - 5} more.',
+      // STAYS VISIBLE, not moved to `more`. It prevents a real mental
+      // double count: somebody reading "6,200 unpaid" right after reading
+      // their Safe to Spend figure will subtract it again unless told not
+      // to. A caveat that only works if it is read cannot go behind a tap.
+      'All of it is already held back from Safe to Spend, so you are not '
+          'counting it twice.',
+    ],
+    figures: <PanFigure>[PanFigure(label: 'Unpaid', value: formatPeso(total))],
+    followUps: <String>['What is safe to spend?', 'How do reminders work?'],
+  );
+}
+
+/// One goal as a scannable line. A goal already past its target reads "0.00
+/// to go" rather than a negative, which would say the person owes their own
+/// savings account money.
+String _goalLine(Goal g) {
+  final Money gap = g.targetAmount - g.currentAmount;
+  final Money left = gap.isNegative ? Money.zero : gap;
+  return '${g.name}: ${formatPeso(g.currentAmount.pesos)} of '
+      '${formatPeso(g.targetAmount.pesos)}, ${formatPeso(left.pesos)} to go';
+}
+
+PanAnswer _goals(PanFacts facts) {
+  if (facts.goals.isEmpty) {
+    return const PanAnswer(
+      topic: 'goals',
+      aboutMoney: true,
+      text:
+          'You have no goals set. A goal is an amount and a date, and '
+          'Salapify works out what you would need to set aside each payday to '
+          'reach it from where you are now. It is arithmetic on your own '
+          'figures.\n\nThey live on the targets tab.',
+      followUps: <String>['How much do I have right now?'],
+    );
+  }
+  return PanAnswer(
+    topic: 'goals',
+    aboutMoney: true,
+    text:
+        'You have ${facts.goals.length} '
+        '${facts.goals.length == 1 ? 'goal' : 'goals'}.',
+    points: <String>[
+      for (final Goal g in facts.goals.take(4)) _goalLine(g),
+      if (facts.goals.length > 4) 'and ${facts.goals.length - 4} more.',
+    ],
+    followUps: <String>['What is safe to spend?'],
+  );
+}
+
+PanAnswer _payday(PanFacts facts) {
+  if (!facts.payday.isSet) {
+    return const PanAnswer(
+      topic: 'payday',
+      text:
+          'Your payday is not set yet, so Salapify is spreading Safe to Spend '
+          'over a single day rather than across a pay cycle. Setting it makes '
+          'that daily figure mean something.',
+      followUps: <String>['What is safe to spend?'],
+    );
+  }
+  return PanAnswer(
+    topic: 'payday',
+    text:
+        'Your next payday is ${facts.payday.nextPayday}, '
+        '${facts.payday.daysToPayday} '
+        '${facts.payday.daysToPayday == 1 ? 'day' : 'days'} away. That is the '
+        'number Safe to Spend divides by, which is why the daily figure moves '
+        'as payday gets closer.',
+    figures: <PanFigure>[
+      PanFigure(label: 'Days to payday', value: '${facts.payday.daysToPayday}'),
+    ],
+    followUps: <String>['What is safe to spend?'],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The app itself
+// ---------------------------------------------------------------------------
+
+({PanFeature? feature, int score}) _featureFor(String q) {
+  PanFeature? best;
+  int bestScore = 0;
+  for (final PanFeature f in panFeatures) {
+    int score = 0;
+    for (final String k in f.keywords) {
+      if (q.contains(k)) score += k.split(' ').length;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = f;
+    }
+  }
+  return (feature: best, score: bestScore);
+}
+
+/// Words too common to identify a lesson on their own.
+///
+/// Without this, "how much money do i have" matches half the curriculum on
+/// the word "money" and Pan answers a balance question with a lecture.
+const Set<String> _tooCommon = <String>{
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'of',
+  'to',
+  'in',
+  'is',
+  'it',
+  'my',
+  'me',
+  'i',
+  'you',
+  'your',
+  'what',
+  'how',
+  'why',
+  'do',
+  'does',
+  'can',
+  'about',
+  'for',
+  'money',
+  'peso',
+  'pesos',
+  'much',
+  'get',
+  'have',
+  'this',
+  'that',
+  'tell',
+  'explain',
+  'mean',
+  'means',
+  'work',
+  'works',
+  // Ordinary English that happens to appear in a lesson heading. "Explain
+  // the 50 30 20 rule" reduced to the single word "rule", which matched two
+  // headings in the credit card course and taught utilisation to somebody
+  // asking about budgeting. A word that could head any chapter identifies
+  // none of them.
+  'rule',
+  'rules',
+  'time',
+  'way',
+  'ways',
+  'thing',
+  'things',
+  'good',
+  'bad',
+  'best',
+  'real',
+  'right',
+  'need',
+  'needs',
+  'use',
+  'using',
+  'one',
+  'when',
+  'where',
+  'who',
+  'which',
+  'should',
+  'would',
+  'like',
+  'want',
+  'know',
+  'make',
+  'makes',
+  'more',
+  'from',
+  'with',
+  'are',
+  'was',
+  'not',
+  'but',
+  'over',
+  'out',
+  'into',
+  'per',
+};
+
+/// Whether the question is asking what a thing IS, rather than what theirs is.
+///
+/// The possessive is the whole test. "What is net worth" wants the idea and
+/// "what is my net worth" wants a peso figure, and Salapify holds both.
+bool _wantsTheConcept(String q) {
+  const List<String> openers = <String>[
+    'what is',
+    'what are',
+    'whats',
+    'what s',
+    'explain',
+    'tell me about',
+    'define',
+    'ano ang',
+    'ano ba ang',
+  ];
+  if (!openers.any(q.startsWith)) return false;
+  for (final String mine in <String>[' my ', ' me ', ' i ', ' ko ', ' akin']) {
+    if (' $q '.contains(mine)) return false;
+  }
+  return true;
+}
+
+/// Whether a course's own words contain the word somebody asked about.
+///
+/// A short word has to be the WHOLE word, a long one may sit inside a longer
+/// one. Both halves were paid for. "How do I pay my taxes" landed on a course
+/// about global app revenue because "pay" is inside "Payouts", and a person
+/// asking about compound interest should still reach a section headed
+/// "Compounding vs. Annual Payout". Five letters is where a fragment stops
+/// being an accident: mp2, sss, dti and bnpl are all short and all have to
+/// match exactly.
+bool _mentions(String field, String w) {
+  if (w.length >= 5) return field.contains(w);
+  for (final String fw in field.split(' ')) {
+    if (fw == w) return true;
+  }
+  return false;
+}
+
+/// The Academy course a question is about, and the section that answers it.
+///
+/// Matched on the curriculum's own words, so it needs no keyword list to
+/// maintain: adding a course to academy_data.dart makes Pan able to teach it
+/// with no further work, which is the only way this stays true of 32 courses.
+({
+  CourseModule? course,
+  List<LessonSection> sections,
+  int score,
+  bool titleCovered,
+})
+_academyFor(String q) {
+  final List<String> asked = q
+      .split(' ')
+      .where((String w) => w.length > 2 && !_tooCommon.contains(w))
+      .toList();
+  if (asked.isEmpty) {
+    return (
+      course: null,
+      sections: const <LessonSection>[],
+      score: 0,
+      titleCovered: false,
+    );
+  }
+
+  CourseModule? best;
+  List<LessonSection> bestSections = const <LessonSection>[];
+  int bestScore = 0;
+  bool bestCovered = false;
+
+  for (final CourseModule c in academyCourses) {
+    final String title = normalise(c.title);
+    final String category = normalise(c.category);
+
+    // NAME fields only. A course NAMES its subject in its title, its
+    // category, its objectives and its section headings; its body merely
+    // mentions things. Scoring the body is what made a question about
+    // compound interest land on whichever lesson happened to use the word
+    // most often, so the body decides nothing here and only picks which
+    // section to quote, below.
+    int nameScore = 0;
+    int inTitle = 0;
+    for (final String w in asked) {
+      if (_mentions(title, w)) {
+        nameScore += 6;
+        inTitle++;
+      }
+      if (_mentions(category, w)) nameScore += 2;
+      for (final String o in c.objectives) {
+        if (_mentions(normalise(o), w)) nameScore += 2;
+      }
+      for (final LessonSection s in c.sections) {
+        if (_mentions(normalise(s.title), w)) nameScore += 3;
+      }
+    }
+    // A title carrying EVERY word asked is the course, not a candidate.
+    // "Taming Lifestyle Inflation" and "Inflation: The Silent Wealth Killer"
+    // both answer to "inflation"; only one of them answers to "lifestyle
+    // inflation".
+    final bool covered = inTitle == asked.length;
+    if (covered) nameScore += 8;
+    if (nameScore == 0) continue;
+
+    // Sections RANKED, not just the winner, because the best answer to the
+    // question is not always one Pan is allowed to read out. The best-scoring
+    // section for "what is an emergency fund" is the one headed "Where to
+    // Store Emergency Money", which names three banks and quotes a rate; the
+    // next one down teaches what an emergency is and is perfectly safe. A
+    // single winner leaves no second choice and throws the answer away.
+    final List<({LessonSection s, int score})> ranked =
+        <({LessonSection s, int score})>[];
+    for (final LessonSection s in c.sections) {
+      int ss = 0;
+      for (final String w in asked) {
+        if (normalise(s.title).contains(w)) ss += 3;
+        if (normalise(s.content).contains(w)) ss += 1;
+      }
+      ranked.add((s: s, score: ss));
+    }
+    ranked.sort(
+      (({LessonSection s, int score}) x, ({LessonSection s, int score}) y) =>
+          y.score.compareTo(x.score),
+    );
+
+    if (nameScore > bestScore) {
+      bestScore = nameScore;
+      best = c;
+      bestSections = ranked
+          .map((({LessonSection s, int score}) r) => r.s)
+          .toList();
+      bestCovered = covered;
+    }
+  }
+
+  // A single glancing mention is not a match. Two is the floor because one
+  // objective hit is the weakest thing that still counts as the course
+  // naming its own subject.
+  if (bestScore < 2) {
+    return (
+      course: null,
+      sections: const <LessonSection>[],
+      score: 0,
+      titleCovered: false,
+    );
+  }
+  return (
+    course: best,
+    sections: bestSections,
+    score: bestScore,
+    titleCovered: bestCovered,
+  );
+}
+
+/// Teaches from the curriculum the app already ships, in its own words.
+/// Teaches from the curriculum, through the filter, with the frame first.
+///
+/// ## Every passage is checked before it is said, and most of this is why
+///
+/// The first version of this function wrote `section.content` straight into
+/// the bubble. A securities review asked what came back for "what is an
+/// emergency fund" and the answer was three named banks, four to six percent
+/// per annum, and an instruction to store money there. Every word of it had
+/// shipped on the Academy screen for weeks, where it sits under a permanent
+/// educational notice, inside a course somebody opened on purpose, as chapter
+/// three of three. In a chat bubble it arrives alone, chosen by Salapify,
+/// because of what this person asked one second earlier. Same words, and the
+/// selection is what changes them.
+///
+/// So each of the three things this can emit goes through [safeForPan]
+/// separately, because they are three separate paths and a filter on one
+/// leaves the others open:
+///
+///   - the SECTION, and if the best one fails, the next best that passes.
+///     That is why the caller hands over a ranked list: the passage that
+///     best answers the question is often the one naming products, and the
+///     one below it usually teaches the concept perfectly well;
+///   - each TAKEAWAY on its own, since a takeaway is written as a one-line
+///     instruction by design and reads as a command with no lesson behind it;
+///   - the DESCRIPTION, which is dropped entirely rather than filtered.
+///     Course descriptions are written to sell a course. "One of the safest,
+///     highest-yielding government-backed savings programs" is not something
+///     Salapify gets to say about anything.
+///
+/// ## The frame goes FIRST
+///
+/// A disclaimer under a recommendation does not turn it into education, it
+/// only records that we knew. So the line naming this as general knowledge
+/// sits above the quoted passage, where it is read before the content and
+/// not after it.
+///
+/// ## It never reads their figures, and that is deliberate
+///
+/// This function takes no PanFacts and returns no PanFigure. General
+/// information about a subject is education; the same information mixed with
+/// somebody's own balances starts to look like a recommendation shaped to
+/// their situation, which is the thing Salapify is not licensed to give.
+/// Keep it that way: no facts parameter, ever.
+PanAnswer _lesson(CourseModule course, List<LessonSection> ranked) {
+  final LessonSection? usable = ranked
+      .where((LessonSection s) => safeForPan(s.content))
+      .firstOrNull;
+
+  // TAKEAWAYS ONLY WHEN A PASSAGE COULD BE QUOTED, objectives only when it
+  // could not, and never both. The two branches say different things on
+  // purpose: one is answering the question, the other is declining to and
+  // pointing at the course instead.
+  //
+  // Mixing them is a regression in caution rather than a tidy-up, and the
+  // first draft of this rewrite did exactly that. Each takeaway passes
+  // safeForPan on its own, so nothing unsafe escapes, but the unquotable
+  // branch exists BECAUSE that course names particular places to put money
+  // and quotes rates of return. Emitting its takeaways there widens what
+  // Pan says about precisely the courses it has decided not to read out.
+  final List<String> takeaways = usable == null
+      ? const <String>[]
+      : course.keyTakeaways.where(safeForPan).take(3).toList();
+
+  final List<String> aims = usable != null
+      ? const <String>[]
+      : course.objectives.where(safeForPan).take(2).toList();
+
+  // The lesson CONTENT leads, where the frame sentence used to. The course
+  // text was buried under a disclaimer paragraph and then followed by a
+  // hand-rolled list, so an answer to "what is MP2" opened with two
+  // sentences about what the answer is not.
+  //
+  // THE DISCLAIMER IS STILL FIRST ON SCREEN, as the badge, which renders
+  // above the body. It is deliberately NOT thinned to match the standing
+  // trailer below it, even though the two overlap and a content review
+  // called that duplication. The trailer says "not advice about your own
+  // money"; this one names tax, legal and investment specifically, and
+  // these lessons cover BIR filing and government savings programmes.
+  // Narrowing a tax and legal disclaimer is a call for the policy lens,
+  // not a tidy-up, so the overlap stays until somebody with that lens
+  // says otherwise.
+  return PanAnswer(
+    topic: 'academy:${course.id}',
+    badge: 'Academy, general knowledge, not tax, legal or investment advice',
+    text:
+        usable?.content ??
+        'The Academy covers this in "${course.title}", on the Plan tab, in '
+            'about ${course.durationMinutes} minutes.',
+    points: <String>[
+      ...takeaways,
+      ...aims,
+      // Attribution stays VISIBLE rather than going behind the More tap.
+      // It is one line, it is what lets somebody judge where the answer
+      // came from, and `more` does not survive a restart.
+      if (usable != null)
+        'From the course "${course.title}", on the Plan tab, about '
+            '${course.durationMinutes} minutes.',
+    ],
+    // Read once and then never again: Salapify explaining its own content
+    // filter to somebody who asked what an emergency fund is.
+    more: usable != null
+        ? null
+        : 'Pan does not read that lesson out here, because parts of it name '
+              'particular places to put money and quote rates of return. '
+              'Those belong in the lesson, with the rest of the chapter '
+              'around them, not in a one line answer.',
+    // Every lesson touches money, so every one carries the trailer. That is
+    // not wallpaper here: a person reading an explanation of a government
+    // savings programme is exactly who needs to know it is not a nudge to
+    // use one.
+    aboutMoney: true,
+    // The way to the lesson itself, and it matters most in the case where
+    // nothing could be quoted. Telling somebody what Pan will not read out,
+    // with no way to go and read it, is a dead end dressed as an answer.
+    actions: const <PanAction>[
+      PanAction(label: 'Open the course', id: 'academy'),
+    ],
+    followUps: <String>[
+      'What is safe to spend?',
+      'How much do I have right now?',
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Salapify's own explanation
+// ---------------------------------------------------------------------------
+
+/// The explainer a question is asking for, by LONGEST matching phrase.
+///
+/// Longest, not first, and the difference is real: "13th month" and "month"
+/// would both match a question about thirteenth month pay, and first-match
+/// ordering makes the answer depend on the order somebody happened to type
+/// the list in.
+///
+/// An ask is matched as a WHOLE phrase inside the question, so 'mp2' hits
+/// "what is mp2" and "how does mp2 work" without needing either written down.
+PanExplainer? _explainerFor(String q) {
+  PanExplainer? best;
+  int longest = 0;
+  for (final PanExplainer e in panExplainers) {
+    for (final String ask in e.asks) {
+      if (q.contains(ask) && ask.length > longest) {
+        longest = ask.length;
+        best = e;
+      }
+    }
+  }
+
+  // A one or two letter coincidence is not a question about a subject. The
+  // floor is here rather than in the data so a short real term like 'sss' or
+  // 'dca' cannot be excluded by somebody tidying the list.
+  if (longest < 3) return null;
+  return best;
+}
+
+PanAnswer _explain(PanExplainer e) {
+  final CourseModule? course = e.courseId == null
+      ? null
+      : academyCourses
+            .where((CourseModule c) => c.id == e.courseId)
+            .firstOrNull;
+
+  final List<String> deeper = <String>[
+    if (e.more != null) e.more!,
+    if (course != null)
+      'The Academy course "${course.title}" goes further, on the Plan tab, '
+          'in about ${course.durationMinutes} minutes.',
+  ];
+
+  // The lead is the whole answer, and everything else supports it. This used
+  // to be one string with four paragraphs concatenated into it, which is
+  // what the founder called too wordy next to the prototype. The parts are
+  // separate now so the screen can decide what to show on arrival and what
+  // to keep one tap away.
+  return PanAnswer(
+    topic: 'explain:${e.id}',
+    badge: e.title,
+    // Every one of these touches money, so every one carries the trailer.
+    aboutMoney: true,
+    text: e.lead,
+    points: <String>[
+      ...e.points,
+      // What the app can DO about it, last, because it is the line somebody
+      // acts on and the others are the ones they read.
+      if (e.salapifyCanDo != null) 'In Salapify: ${e.salapifyCanDo}',
+    ],
+    more: deeper.isEmpty ? null : deeper.join('\n\n'),
+    actions: course == null
+        ? const <PanAction>[]
+        : const <PanAction>[PanAction(label: 'Open the course', id: 'academy')],
+    followUps: const <String>[
+      'What is safe to spend?',
+      'How am I doing?',
+      'How much do I have right now?',
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Can I afford it, and how am I doing
+// ---------------------------------------------------------------------------
+
+/// What a purchase does to the rest of the cycle.
+///
+/// The prototype's version of this ends "Recommend holding off until next
+/// payday". That is an instruction about somebody's money, and it is also
+/// unnecessary: a person who reads that the purchase leaves them 1,400 short
+/// has been told everything they need and can decide for themselves. So this
+/// one states the arithmetic and stops, which is both the safer answer and
+/// the more respectful one.
+PanAnswer _afford(double amount, PanFacts facts) {
+  final AffordVerdict v = judgeAffordability(amount, facts);
+  final StringBuffer b = StringBuffer();
+
+  if (!v.paydayKnown) {
+    b.write(
+      'You have ${formatPeso(v.safeToSpendNow)} safe to spend. Spending '
+      '${formatPeso(amount)} would leave ${formatPeso(v.safeToSpendAfter)}.'
+      '\n\nThere is no payday set yet, so there is no daily pace to compare '
+      'it against. Setting one on the Plan tab is what turns this into a '
+      'figure per day.',
+    );
+  } else {
+    switch (v.status) {
+      case Afford.overBuffer:
+        b.write(
+          'Spending ${formatPeso(amount)} is ${formatPeso(-v.safeToSpendAfter)} '
+          'more than you have safe to spend. Safe to Spend has already set '
+          'aside what your bills and debts need, so this would come out of '
+          'that reserve.',
+        );
+      case Afford.tight:
+        b.write(
+          'It fits, and it is tight. ${formatPeso(amount)} leaves '
+          '${formatPeso(v.safeToSpendAfter)} for the ${v.daysToPayday} days '
+          'to payday, which is ${formatPeso(v.dailyPaceAfter)} a day, down '
+          'from ${formatPeso(v.dailyPaceNow)}.',
+        );
+      case Afford.comfortable:
+        b.write(
+          'It fits. ${formatPeso(amount)} leaves '
+          '${formatPeso(v.safeToSpendAfter)} for the ${v.daysToPayday} days '
+          'to payday, which is ${formatPeso(v.dailyPaceAfter)} a day, down '
+          'from ${formatPeso(v.dailyPaceNow)}.',
+        );
+    }
+
+    // The bills line is the reason this answer is worth more than the
+    // prototype's. Safe to Spend has already reserved for them, so a person
+    // can pass the check and still be surprised on Friday. Naming what is
+    // coming is the difference between a number and an answer.
+    if (v.billsDueBeforePayday.isNotEmpty) {
+      b.write(
+        '\n\nBefore that payday you have '
+        '${formatPeso(v.billsBeforePayday)} of bills due: '
+        '${v.billsDueBeforePayday.map((BillItem x) => x.name).join(', ')}. '
+        'That is already held back inside the figure above.',
+      );
+    }
+  }
+
+  return PanAnswer(
+    topic: 'afford',
+    badge: switch (v.status) {
+      Afford.comfortable => 'It fits',
+      Afford.tight => 'Tight',
+      Afford.overBuffer => 'Over your buffer',
+    },
+    text: b.toString(),
+    figures: <PanFigure>[
+      PanFigure(label: 'This purchase', value: formatPeso(amount)),
+      PanFigure(
+        label: 'Left after',
+        value: formatPesoWithSign(v.safeToSpendAfter),
+      ),
+      if (v.paydayKnown)
+        PanFigure(label: 'A day, after', value: formatPeso(v.dailyPaceAfter)),
+    ],
+    actions: const <PanAction>[
+      PanAction(label: 'Log it as an expense', id: 'log'),
+      PanAction(label: 'Inspect Safe to Spend', id: 'safeToSpend'),
+    ],
+    followUps: const <String>[
+      'What bills are due?',
+      'How am I doing?',
+      'What is safe to spend?',
+    ],
+  );
+}
+
+/// The whole picture, from THE health check.
+///
+/// Founder decision F9: Salapify has ONE health check, the five-question
+/// engine in `core/money/health_check.dart`. Pan used to carry a second one,
+/// `pan_health.dart`, which scored four weighted parts out of a hundred.
+/// Both were defensible, and they answered the same question differently, so
+/// somebody who opened the Health Check sheet and then asked Pan the same
+/// thing got two readings of their own money. That is the defect F8 fixed for
+/// the debt share, arriving through a different door.
+///
+/// THE SCORE WENT, not the sheet, and that is the right way round. A zero to
+/// one hundred is a single number standing in for five separate questions,
+/// and it hides the one that matters: an 85 sat directly above "you owe more
+/// than you hold" on a real ledger for a whole release. Each question keeps
+/// its own answer now, and the tightest one leads.
+PanAnswer _health(PanFacts facts) {
+  final HealthReport r = runHealthCheck(
+    transactions: facts.transactions,
+    accounts: facts.accounts,
+    budgets: facts.budgets,
+    goals: facts.goals,
+    bills: facts.bills,
+    installments: facts.installments,
+    payday: facts.payday,
+    now: facts.now,
+  );
+
+  if (r.nothingYet) return _nothingYet('how you are doing');
+
+  // THE TIGHTEST ANSWER LEADS, by the sheet's own rule. It is the first in
+  // priority order at the worst tone rather than merely the worst, so two
+  // tight answers lead with the one happening soonest.
+  final HealthIndicator? attention = r.needsAttention;
+
+  final String lead = attention == null
+      ? 'Nothing tight on the ${r.measured.length} of ${r.indicators.length} '
+            'questions Salapify can answer from what you have recorded.'
+      : '${attention.question}? ${attention.reading}.';
+
+  final List<String> lines = <String>[
+    for (final HealthIndicator i in r.measured)
+      if (i.id != attention?.id) '${i.question}: ${i.reading}.',
+  ];
+
+  // WHAT IS NOT ANSWERED IS SHOWN, never quietly dropped. A reply over two
+  // questions that reads like a reply over five is the prototype's habit of
+  // filling a gap with an invented number, arriving by a different door.
+  if (r.unmeasured.isNotEmpty) {
+    final String open = r.unmeasured
+        .map((HealthIndicator i) => i.question.toLowerCase())
+        .join('; ');
+    lines.add('Not answered yet: $open.');
+  }
+
+  // The detail behind each reading, what each missing answer needs, and the
+  // one fact the five questions do not carry, all go one tap away. That is
+  // the founder's rule about the screens arriving in the chat.
+  final List<String> deeper = <String>[
+    for (final HealthIndicator i in r.measured)
+      if (i.detail case final String d) '${i.question}: $d',
+    for (final HealthIndicator i in r.unmeasured)
+      if (i.missing case final String m) m,
+    if (facts.owedToMe > 0)
+      'Separately, ${formatPeso(facts.owedToMe)} is owed to you. It is yours '
+          'and it is not in the figures above, because it is not on this '
+          'phone yet.',
+  ];
+
+  return PanAnswer(
+    topic: 'health',
+    badge: switch (attention?.tone) {
+      HealthTone.tight => 'Needs attention',
+      HealthTone.watch => 'One to watch',
+      _ => 'Nothing tight',
+    },
+    text: lead,
+    points: lines,
+    more: deeper.isEmpty ? null : deeper.join('\n\n'),
+    figures: <PanFigure>[
+      // The honest replacement for "Out of 100". It does not compress five
+      // answers into one, it says how much of the picture there is, which is
+      // the only thing a single number here can truthfully report.
+      PanFigure(
+        label: 'Questions answered',
+        value: '${r.measured.length} of ${r.indicators.length}',
+      ),
+    ],
+    actions: const <PanAction>[
+      PanAction(label: 'Open the Health Check', id: 'healthCheck'),
+      PanAction(label: 'Inspect Safe to Spend', id: 'safeToSpend'),
+    ],
+    followUps: const <String>[
+      'What is safe to spend?',
+      'What do I owe?',
+      'Where did my money go?',
+    ],
+  );
+}
+
+PanAnswer _feature(PanFeature f) => PanAnswer(
+  topic: 'feature:${f.id}',
+  text: '${f.what}\n\nWhere: ${f.where}',
+  followUps: const <String>[
+    'What happens when I log an expense?',
+    'Is my data private?',
+  ],
+);
+
+PanAnswer _nothingYet(String what) => PanAnswer(
+  topic: 'empty',
+  text:
+      'There is nothing recorded yet, so Pan cannot tell you $what. Add an '
+      'account and log one entry, and every figure in Salapify starts working '
+      'from there.',
+  followUps: const <String>[
+    'How do I add an entry?',
+    'What happens when I log an expense?',
+  ],
+);
+
+/// The honest miss.
+///
+/// It says what Pan IS rather than only what it is not, because "I do not
+/// understand" from an assistant reads as a broken app, and because the real
+/// answer is usually one of a short list a person has not thought to ask for.
+/// Twelve lines of prose for "I did not understand you", and the second
+/// paragraph was a list of things Pan can answer, written out in prose,
+/// directly above four TAPPABLE chips offering the same thing. A list you
+/// cannot tap, competing with a list you can, is the clearest case in the
+/// file of words doing work the layout already does.
+///
+/// The failure itself is the one moment a person is most likely to give up
+/// on an assistant, so what they need is the shortest possible route back
+/// to something that works, not an essay about how the matcher works.
+PanAnswer _dontKnow(PanFacts facts) => PanAnswer(
+  topic: 'unknown',
+  text: 'Pan did not recognise that one.',
+  points: <String>[
+    'It matches what you ask against built-in answers and does arithmetic '
+        'on the figures you typed in. No AI model, nothing leaves your '
+        'phone, which is also why it can be a bit literal.',
+    'Try one of the questions below, or ask what you hold, what is safe to '
+        'spend, what you owe, what is due, or how any part of Salapify '
+        'works.',
+  ],
+  followUps: panStarters.take(4).toList(),
+);

@@ -16,49 +16,6 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 subprojects {
-    // Some plugins (file_picker pulls flutter_plugin_android_lifecycle) require a
-    // newer compileSdk than the Flutter default, and they compile their OWN
-    // module against that default, so setting it only on :app is not enough.
-    //
-    // That distinction is the whole bug, and it cost two rounds. Pinning
-    // compileSdk on :app alone produced exactly the same failure, because the
-    // error is about the PLUGIN's own module:
-    //
-    //   Execution failed for task ':file_picker:checkDebugAarMetadata'.
-    //   > Dependency ':flutter_plugin_android_lifecycle' requires libraries and
-    //     applications that depend on it to compile against version 36 or later
-    //     of the Android APIs.
-    //     :file_picker is currently compiled against android-34.
-    //
-    // Force every Android subproject to compile against 36. Reflection keeps this
-    // working across AGP majors: the compileSdk property setter on AGP 8/9, or
-    // the older compileSdkVersion(int) method as a fallback.
-    //
-    // Registered BEFORE evaluationDependsOn below so the callback is added while
-    // the subproject is still being configured, and guarded on state.executed so
-    // it never throws "afterEvaluate when already evaluated" if a project (e.g.
-    // :app) was pulled in and fully evaluated early.
-    //
-    // Ported verbatim from flutter/android/build.gradle.kts, which hit this
-    // first with the same package and wrote down why.
-    val forceCompileSdk = {
-        val android = extensions.findByName("android")
-        if (android != null) {
-            val methods = android.javaClass.methods
-            val setter = methods.firstOrNull {
-                it.name == "setCompileSdk" && it.parameterCount == 1
-            }
-            if (setter != null) {
-                runCatching { setter.invoke(android, 36) }
-            } else {
-                methods.firstOrNull {
-                    it.name == "compileSdkVersion" && it.parameterCount == 1 &&
-                        it.parameterTypes[0] == Integer.TYPE
-                }?.let { runCatching { it.invoke(android, 36) } }
-            }
-        }
-    }
-    if (state.executed) forceCompileSdk() else afterEvaluate { forceCompileSdk() }
     project.evaluationDependsOn(":app")
 }
 

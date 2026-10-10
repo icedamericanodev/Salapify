@@ -1,0 +1,174 @@
+{
+  "app": "salapify",
+  "version": 2,
+  "exportedAt": "2026-07-16T22:18:29.866Z",
+  "data": {
+    "schemaVersion": 12,
+    "accounts": [
+      {
+        "id": "cash",
+        "name": "Cash",
+        "kind": "cash",
+        "balance": 5230.5,
+        "brand": "",
+        "icon": "",
+        "target": 0
+      },
+      {
+        "id": "bank",
+        "name": "BPI",
+        "kind": "cash",
+        "balance": 41890,
+        "brand": "",
+        "icon": "",
+        "target": 0
+      }
+    ],
+    "assets": [],
+    "debts": [
+      {
+        "id": "d1",
+        "name": "Credit card",
+        "amount": 12000,
+        "rate": 3.5,
+        "minPay": 1000,
+        "type": "other",
+        "remaining": 0,
+        "monthlyRate": 0,
+        "minPayment": 0,
+        "dueDay": 0,
+        "statementDay": 0,
+        "graceDays": 0,
+        "creditLimit": 0
+      }
+    ],
+    "payments": [
+      {
+        "id": "pay1",
+        "debtId": "d1",
+        "amount": 1000,
+        "date": "2026-07-05",
+        "interest": 350,
+        "principal": 650
+      }
+    ],
+    "transactions": [
+      {
+        "id": "t1",
+        "type": "expense",
+        "label": "Groceries",
+        "amount": 250,
+        "date": "2026-07-15",
+        "accountId": "cash",
+        "categoryId": "cat_food"
+      },
+      {
+        "id": "t2",
+        "type": "income",
+        "label": "Sweldo",
+        "amount": 25000,
+        "date": "2026-07-15",
+        "accountId": "bank"
+      },
+      {
+        "id": "t3",
+        "type": "transfer",
+        "flow": "out",
+        "label": "Lent to Ana",
+        "amount": 1000,
+        "date": "2026-07-10",
+        "accountId": "cash",
+        "source": "receivable"
+      },
+      {
+        "id": "t4",
+        "type": "income",
+        "label": "Migs paid you back",
+        "amount": 500,
+        "date": "2026-07-12",
+        "accountId": "bank",
+        "source": "receivable"
+      }
+    ],
+    "goals": [
+      {
+        "id": "g1",
+        "name": "Emergency fund",
+        "target": 30000,
+        "saved": 12000,
+        "targetDate": "2026-12-31"
+      }
+    ],
+    "wins": [],
+    "notes": [],
+    "recurring": [],
+    "categories": [],
+    "people": [
+      {
+        "id": "p1",
+        "name": "Migs",
+        "phone": "0917",
+        "note": ""
+      },
+      {
+        "id": "p2",
+        "name": "Ana",
+        "phone": "",
+        "note": "officemate"
+      }
+    ],
+    "receivables": [
+      {
+        "id": "r1",
+        "personId": "p1",
+        "person": "Migs",
+        "amount": 2000,
+        "dueDate": "2026-07-04",
+        "phone": "",
+        "note": "",
+        "payments": [
+          {
+            "id": "rp1",
+            "amount": 500,
+            "date": "2026-07-12",
+            "txnId": "t4",
+            "settled": false
+          }
+        ],
+        "paid": false,
+        "cashLeg": false
+      },
+      {
+        "id": "r2",
+        "personId": "p2",
+        "person": "Ana",
+        "amount": 1000,
+        "dueDate": "",
+        "phone": "",
+        "note": "",
+        "payments": [],
+        "paid": false,
+        "cashLeg": true,
+        "accountId": "cash",
+        "lendTxnId": "t3"
+      }
+    ],
+    "payables": [],
+    "settings": {
+      "currency": "₱",
+      "monthlyLimit": 15000,
+      "defaultAccountId": "bank",
+      "quickAdds": [
+        {
+          "label": "Food",
+          "amount": 150
+        }
+      ],
+      "appLock": false,
+      "pro": false,
+      "budgetCarryOver": false,
+      "notifications": {},
+      "treats": []
+    }
+  }
+}

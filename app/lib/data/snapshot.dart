@@ -1,0 +1,879 @@
+import 'dart:convert';
+
+import '../core/money/reconciliation.dart';
+import '../core/money/money.dart';
+import '../core/money/net_worth_history.dart';
+import '../core/money/reminders.dart';
+import '../design/tokens.dart';
+import '../models/models.dart';
+import 'json_codec.dart';
+
+/// The whole of a person's Salapify, as one JSON document.
+///
+/// The top level keys are the prototype's own (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx`,
+/// `handleExportData`), so a file written here opens in the prototype and a
+/// backup exported from the prototype opens here.
+///
+/// It is deliberately a SUPERSET of that export. The prototype's backup covers
+/// nine of the thirty four things it actually stores, leaving out instalment
+/// plans, reconciliation history, bills, income streams, investments and the
+/// collaboration data. Somebody who exports, wipes their phone and imports
+/// loses all of it and is never told. That defect is not ported: this file
+/// carries everything Salapify 3 holds, under the same names where a name
+/// already exists.
+///
+/// ## Keys this build does not model are KEPT
+///
+/// The prototype's `Transaction` carries `changeHistory`, `comments`,
+/// `approval`, `splitId`, `spaceId` and more, none of which Salapify 3 models
+/// yet. Reading a prototype backup, dropping those, and saving would destroy
+/// them permanently, on a device with no second copy. So every record's
+/// unread keys are stashed in [Extras] on load and written back on save. The
+/// models themselves stay clean; nothing in `models.dart` had to change.
+class Snapshot {
+  const Snapshot({
+    required this.accounts,
+    required this.transactions,
+    required this.debts,
+    required this.budgets,
+    required this.goals,
+    required this.upcoming,
+    required this.incomeStreams,
+    required this.installments,
+    required this.reconciliations,
+    required this.bills,
+    this.notifications = const <AppNotification>[],
+    this.reminderSettings = ReminderSettings.defaults,
+    required this.payday,
+    this.sampleDataRemovedAt,
+    this.setAsideReviewedAt,
+    this.onboardedAt,
+    required this.theme,
+    required this.scenario,
+    this.activeProfile,
+    this.guideSteps = const <String>{},
+    this.netWorthHistory = const <NetWorthPoint>[],
+    this.netWorthUnread = const <Object?>[],
+    this.extras = const Extras.empty(),
+  });
+
+  final List<Account> accounts;
+  final List<Transaction> transactions;
+  final List<Debt> debts;
+  final List<Budget> budgets;
+  final List<Goal> goals;
+  final List<UpcomingItem> upcoming;
+  final List<IncomeStream> incomeStreams;
+  final List<InstallmentPlan> installments;
+  final List<ReconciliationRecord> reconciliations;
+
+  /// The user's own bills. Previously not stored at all: Safe to Spend read
+  /// the SEED list, so a new user's headline figure was reduced by demo bills
+  /// they had never entered and could find on no screen.
+  final List<BillItem> bills;
+
+  /// The reminders already raised, newest first.
+  ///
+  /// Stored rather than recomputed, and that is the whole design. The engine
+  /// decides what is DUE; this list is what has already been SAID, which is
+  /// the only way a reminder can be dismissed, marked read, or kept from
+  /// firing a second time when the app is reopened an hour later.
+  final List<AppNotification> notifications;
+
+  /// When the person wants to be reminded, and how far ahead.
+  final ReminderSettings reminderSettings;
+
+  /// The payday cycle. Previously a compile time constant, so a fresh install
+  /// said "4 days to payday, Sep 15" and would have said it in December too.
+  final PaydayCycle payday;
+
+  /// When the person cleared Salapify's sample data, if they ever did.
+  ///
+  /// This is what gates the put-it-back control, and gating it on a STORED
+  /// key rather than on a screen flag is the whole safety argument. A ledger
+  /// restored from another phone, or imported from the prototype, has no such
+  /// key and no sample flags, so the button is simply not there and cannot
+  /// inject demo money into somebody's real book.
+  final String? sampleDataRemovedAt;
+
+  /// When the person answered, or dismissed, the one-time "which of these is
+  /// set aside" card. Null until they do either.
+  ///
+  /// P2.3 needs this because the defect it fixes is SILENT: an account's
+  /// purpose defaults to spendable and is never inferred, which is right, but
+  /// it means a ledger that already exists keeps the old behaviour until
+  /// somebody goes and sets it. A control nobody opens fixes nothing.
+  ///
+  /// Modelled on [onboardedAt] below, same shape and same reasons: a nullable
+  /// scalar beside the collections, absent from a file written before it
+  /// existed, read back as null rather than as a default pretending to know.
+  ///
+  /// It records that the card was ANSWERED OR DISMISSED, not what was chosen.
+  /// What was chosen lives on the accounts themselves, as `purpose`, which is
+  /// the only place it can be true, and a second field that could disagree
+  /// with the first would be a defect waiting to happen.
+  final String? setAsideReviewedAt;
+
+  /// When the app finished introducing itself, or null if it never has.
+  ///
+  /// Founder decision, 2026-10-03, approving the onboarding design. One
+  /// nullable string, modelled on [sampleDataRemovedAt] directly above,
+  /// because that field already proved the shape: a scalar beside the
+  /// collections, absent from a file written before it existed, and read back
+  /// as null rather than as a default that pretends to know something.
+  ///
+  /// NULL IS THE CORRECT ANSWER FOR AN OLD BACKUP, and that is the whole
+  /// reason it is nullable rather than a bool. A ledger exported before this
+  /// existed, or imported from the prototype, genuinely never saw the welcome,
+  /// and saying so is honest. What stops that being annoying is that the
+  /// routing asks a SECOND question, whether the person already has real
+  /// records, so somebody restoring a full backup is not marched through a
+  /// first run they finished months ago on another phone.
+  ///
+  /// It deliberately does NOT record WHICH path was taken. That is derivable:
+  /// demo records carry `isSample`, so `hasSampleData` already answers it, and
+  /// a second stored field that can disagree with the first is a defect
+  /// waiting to be written.
+  final String? onboardedAt;
+
+  final ThemeMode2 theme;
+  final DecisionScenario scenario;
+  final ProfileEntity? activeProfile;
+
+  /// Steps the person has ticked off in a guide, by step id.
+  ///
+  /// The first thing in Salapify 3 that remembers PROGRESS rather than money,
+  /// and it is stored on founder direction, 2026-09-22, when the business
+  /// startup guide was ported: the checklist is thirty government steps that
+  /// take weeks of real life to work through, so a tick that does not survive
+  /// closing the app is worse than no tick at all.
+  ///
+  /// It is deliberately a flat set of ids rather than a structure per guide.
+  /// The ids are namespaced by their own content (the prototype's are
+  /// `chk_dti_sec`, `chk_brgy` and the like), so the Academy's lessons can
+  /// use the same set later without a migration. The Academy currently tells
+  /// people "progress is not saved to the phone yet", and this is the
+  /// mechanism that sentence is waiting on; wiring the lessons up is NOT part
+  /// of this change.
+  ///
+  /// NOT a ledger collection, so it is deliberately absent from
+  /// [collectionKeys]: a file holding nothing but ticked checkboxes is not a
+  /// Salapify document and must not restore as an empty book.
+  ///
+  /// An unknown id is KEPT, not dropped. A step this build has never heard of
+  /// belongs to a newer build or a guide that has been reworded, and silently
+  /// discarding it would untick somebody's checklist on the next save.
+  final Set<String> guideSteps;
+
+  /// One balance sheet per calendar month, so Position can draw net worth
+  /// over time. See net_worth_history.dart for what a point means.
+  ///
+  /// Founder decision, 2026-10-07: "Save from now on". NOT a ledger
+  /// collection, so it is absent from [collectionKeys] for the same reason
+  /// [guideSteps] is: a file holding only history is not a Salapify book.
+  ///
+  /// NO SCHEMA BUMP, deliberately. The key is additive, and every build of
+  /// this app keeps a top level key it does not understand in [Extras] and
+  /// writes it back, so an older build that opens a newer file carries the
+  /// history through untouched rather than dropping it. A bump would make
+  /// that older build REFUSE the whole file, which is far worse than not
+  /// drawing a chart.
+  final List<NetWorthPoint> netWorthHistory;
+
+  /// History rows this build could not draw, kept verbatim and written back
+  /// after the readable ones. Never read by a screen. See
+  /// `_readNetWorthHistory` for why nothing in this history is dropped.
+  final List<Object?> netWorthUnread;
+
+  /// Everything in the file this build did not understand, kept verbatim.
+  final Extras extras;
+
+  /// Bumped only when the shape changes in a way a reader has to know about.
+  /// A file from the FUTURE is refused rather than guessed at, so an older
+  /// build cannot quietly drop what a newer one wrote.
+  static const int currentSchemaVersion = 1;
+
+  /// What a file with NO `schemaVersion` at all is taken to be.
+  ///
+  /// The oldest shape that has ever existed, which is also the only one so
+  /// far. Written down as its own constant rather than left implicit,
+  /// because the two numbers mean different things and will one day differ:
+  /// [currentSchemaVersion] moves every time the shape changes, this one
+  /// never does.
+  ///
+  /// See [readSchemaVersion] for why an absent key must not read as current.
+  static const int legacySchemaVersion = 1;
+
+  /// Collection names, used as the keys of both the document and [Extras].
+  static const String kAccounts = 'accounts';
+  static const String kTransactions = 'transactions';
+  static const String kDebts = 'debts';
+  static const String kBudgets = 'budgets';
+  static const String kGoals = 'goals';
+  static const String kUpcoming = 'upcoming';
+  static const String kIncomeStreams = 'incomeStreams';
+  static const String kInstallments = 'installments';
+  static const String kReconciliations = 'reconciliations';
+  static const String kBills = 'bills';
+  static const String kNotifications = 'notifications';
+
+  /// Every LEDGER collection this build reads, for the shape check that tells
+  /// a Salapify document from any other valid JSON. See looksLikeSalapify.
+  ///
+  /// [kNotifications] is deliberately NOT here. It is a tray of messages, not
+  /// a ledger, and a file holding nothing but notifications would otherwise
+  /// pass the gate and restore as an empty book. The gate exists to stop
+  /// exactly that.
+  static const List<String> collectionKeys = <String>[
+    kAccounts,
+    kTransactions,
+    kDebts,
+    kBudgets,
+    kGoals,
+    kUpcoming,
+    kIncomeStreams,
+    kInstallments,
+    kReconciliations,
+    kBills,
+  ];
+
+  /// Top level keys this build writes itself. Anything else in a loaded file
+  /// is somebody else's and is preserved rather than dropped.
+  static const Set<String> _ownTopKeys = <String>{
+    'schemaVersion',
+    'timestamp',
+    'themeMode',
+    'scenario',
+    'activeProfile',
+    kAccounts,
+    kTransactions,
+    kDebts,
+    kBudgets,
+    kGoals,
+    kUpcoming,
+    kIncomeStreams,
+    kInstallments,
+    kReconciliations,
+    kBills,
+    kNotifications,
+    'reminderSettings',
+    'payday',
+    'sampleDataRemovedAt',
+    'setAsideReviewedAt',
+    'onboardedAt',
+    kGuideSteps,
+    kNetWorthHistory,
+  };
+
+  /// The ticked guide steps. Not a collection, so it is named here rather
+  /// than beside the ledger keys above.
+  static const String kGuideSteps = 'guideSteps';
+
+  /// The monthly balance sheet records. Not a collection; see [netWorthHistory].
+  static const String kNetWorthHistory = 'netWorthHistory';
+
+  String encode({required DateTime at}) =>
+      const JsonEncoder.withIndent('  ').convert(toJson(at: at));
+
+  Map<String, dynamic> toJson({required DateTime at}) {
+    Map<String, dynamic> merged(
+      String collection,
+      String id,
+      Map<String, dynamic> own,
+    ) {
+      final Map<String, dynamic>? kept = extras.forRecord(collection, id);
+      if (kept == null || kept.isEmpty) return own;
+      // Own values win: this build's understanding of a field it models is
+      // newer than whatever was on disk.
+      return <String, dynamic>{...kept, ...own};
+    }
+
+    return <String, dynamic>{
+      // The unknown top level keys go FIRST so our own always win a clash.
+      ...extras.top,
+      'schemaVersion': currentSchemaVersion,
+      'timestamp': at.toUtc().toIso8601String(),
+      'themeMode': themeWire.encode(theme),
+      'scenario': scenarioWire.encode(scenario),
+      if (activeProfile != null)
+        'activeProfile': profileWire.encode(activeProfile!),
+      kAccounts: <Map<String, dynamic>>[
+        for (final Account a in accounts)
+          merged(kAccounts, a.id, accountToJson(a)),
+      ],
+      kTransactions: <Map<String, dynamic>>[
+        for (final Transaction t in transactions)
+          merged(kTransactions, t.id, transactionToJson(t)),
+      ],
+      kDebts: <Map<String, dynamic>>[
+        for (final Debt d in debts) merged(kDebts, d.id, debtToJson(d)),
+      ],
+      kBudgets: <Map<String, dynamic>>[
+        // A budget has no id. Its identity IS its category, which is also
+        // what every screen looks it up by.
+        for (final Budget b in budgets)
+          merged(kBudgets, b.category, budgetToJson(b)),
+      ],
+      kGoals: <Map<String, dynamic>>[
+        for (final Goal g in goals) merged(kGoals, g.id, goalToJson(g)),
+      ],
+      kUpcoming: <Map<String, dynamic>>[
+        for (final UpcomingItem u in upcoming)
+          merged(kUpcoming, u.id, upcomingToJson(u)),
+      ],
+      kIncomeStreams: <Map<String, dynamic>>[
+        for (final IncomeStream s in incomeStreams)
+          merged(kIncomeStreams, s.id, incomeStreamToJson(s)),
+      ],
+      kInstallments: <Map<String, dynamic>>[
+        for (final InstallmentPlan p in installments)
+          merged(kInstallments, p.id, installmentToJson(p)),
+      ],
+      kReconciliations: <Map<String, dynamic>>[
+        for (final ReconciliationRecord r in reconciliations)
+          merged(kReconciliations, r.id, reconciliationToJson(r)),
+      ],
+      kBills: <Map<String, dynamic>>[
+        for (final BillItem b in bills) merged(kBills, b.id, billToJson(b)),
+      ],
+      kNotifications: <Map<String, dynamic>>[
+        for (final AppNotification n in notifications)
+          merged(kNotifications, n.id, notificationToJson(n)),
+      ],
+      'reminderSettings': merged(
+        'reminderSettings',
+        'reminderSettings',
+        reminderSettingsToJson(reminderSettings),
+      ),
+      'payday': merged('payday', 'payday', paydayToJson(payday)),
+      if (sampleDataRemovedAt != null)
+        'sampleDataRemovedAt': sampleDataRemovedAt,
+      if (setAsideReviewedAt != null) 'setAsideReviewedAt': setAsideReviewedAt,
+      if (onboardedAt != null) 'onboardedAt': onboardedAt,
+      // SORTED, so that ticking the same two boxes always produces the same
+      // bytes. A Set's iteration order is its insertion order, which would
+      // make two identical checklists encode differently and every diff of a
+      // backup file noisy for no reason.
+      //
+      // Omitted entirely when empty rather than written as [], so a person
+      // who has never opened a guide gets no key at all and their file stays
+      // exactly as small as it was before this feature existed.
+      if (guideSteps.isNotEmpty) kGuideSteps: (guideSteps.toList()..sort()),
+      // Omitted when empty, like the guide steps, so a file is byte for byte
+      // what it was until the first month is recorded. Oldest first, and a
+      // readable row's unknown keys merged back, as every record does.
+      if (netWorthHistory.isNotEmpty || netWorthUnread.isNotEmpty)
+        kNetWorthHistory: <Object?>[
+          for (final NetWorthPoint p in netWorthHistory)
+            merged(kNetWorthHistory, p.key, netWorthPointToJson(p)),
+          // The rows this build could not draw, back exactly as they came.
+          ...netWorthUnread,
+        ],
+    };
+  }
+
+  /// The ticked guide steps, read LENIENTLY.
+  ///
+  /// Same argument the notification tray and reminderSettings already make in
+  /// this file, and it applies harder here. These are checkboxes. A malformed
+  /// or missing key must never stop a ledger from loading, because a file
+  /// left unopened can still be recovered while a person locked out of their
+  /// accounts over a tickbox has lost the use of the app.
+  ///
+  /// So: not a list, no ticks. A non-string entry, skipped. Neither throws.
+  /// Unknown ids ARE kept, because a step this build does not recognise
+  /// belongs to a newer build or a reworded guide, and dropping it would
+  /// silently untick somebody's checklist the next time the file is saved.
+  static Set<String> _readGuideSteps(Object? raw) {
+    if (raw is! List) return const <String>{};
+    return <String>{
+      for (final Object? e in raw)
+        if (e is String && e.isNotEmpty) e,
+    };
+  }
+
+  /// The monthly net worth records: the rows this build can draw, and every
+  /// other row kept VERBATIM so a save writes it straight back.
+  ///
+  /// LENIENT ABOUT LOADING. A chart is never worth refusing a ledger over, so
+  /// nothing in here throws. In particular the amounts go through
+  /// `Money.tryFromDouble`, not `fromDouble`: a record holds a SUM of
+  /// balances, which can exceed what one balance may, and `fromDouble` throws
+  /// past that. One oversized row used to make the whole file unreadable,
+  /// turn saving off, and refuse the person's own backup too.
+  ///
+  /// STRICT ABOUT KEEPING. This history cannot be rebuilt (founder decision,
+  /// 2026-10-07, "Save from now on", chosen precisely because the past is
+  /// not recomputable), so a row this build cannot read is NOT dropped. It
+  /// goes into the unread list and is written back unchanged, the same rule
+  /// every record in this file follows for keys it does not understand. That
+  /// covers a malformed row, and a second row for a month already read,
+  /// which is exactly what a newer build keeping one row per entity per
+  /// month would write. The chart reads only the drawable rows.
+  ///
+  /// A readable row's unknown fields are merged back on save too.
+  static ({List<NetWorthPoint> points, List<Object?> unread})
+  _readNetWorthHistory(Object? raw, ExtrasBuilder extras) {
+    if (raw is! List) {
+      return (points: const <NetWorthPoint>[], unread: const <Object?>[]);
+    }
+    final Map<String, NetWorthPoint> byMonth = <String, NetWorthPoint>{};
+    final List<Object?> unread = <Object?>[];
+    for (final Object? e in raw) {
+      final NetWorthPoint? p = _netWorthPointOf(e);
+      if (p == null || byMonth.containsKey(p.key)) {
+        unread.add(e);
+        continue;
+      }
+      byMonth[p.key] = p;
+      final Map<String, dynamic> row = Map<String, dynamic>.from(e! as Map);
+      final Map<String, dynamic> leftover = <String, dynamic>{
+        for (final MapEntry<String, dynamic> kv in row.entries)
+          if (!_netWorthKeys.contains(kv.key)) kv.key: kv.value,
+      };
+      if (leftover.isNotEmpty) extras.put(kNetWorthHistory, p.key, leftover);
+    }
+    return (
+      points: byMonth.values.toList()
+        ..sort((NetWorthPoint a, NetWorthPoint b) => a.key.compareTo(b.key)),
+      unread: unread,
+    );
+  }
+
+  /// One row, or null when it is not a drawable record.
+  static NetWorthPoint? _netWorthPointOf(Object? e) {
+    if (e is! Map) return null;
+    final Object? month = e['month'];
+    final Object? assets = e['assets'];
+    final Object? liabilities = e['liabilities'];
+    if (month is! String || assets is! num || liabilities is! num) return null;
+    final RegExpMatch? ym = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(month);
+    if (ym == null) return null;
+    final int m = int.parse(ym.group(2)!);
+    if (m < 1 || m > 12) return null;
+    final Money? a = Money.tryFromDouble(assets.toDouble());
+    final Money? l = Money.tryFromDouble(liabilities.toDouble());
+    if (a == null || l == null) return null;
+    return NetWorthPoint(
+      year: int.parse(ym.group(1)!),
+      month: m,
+      assets: a,
+      liabilities: l,
+    );
+  }
+
+  static const Set<String> _netWorthKeys = <String>{
+    'month',
+    'assets',
+    'liabilities',
+  };
+
+  /// The payday object, plus whatever else was inside it.
+  ///
+  /// Kept as a record under its own name so [toJson] can merge it back. The
+  /// id is the same as the collection because there is only ever one of them.
+  static PaydayCycle _readPayday(Object? raw, ExtrasBuilder extras) {
+    if (raw is! Map) return PaydayCycle.unset;
+    final Map<String, dynamic> row = Map<String, dynamic>.from(raw);
+    final Map<String, dynamic> leftover = <String, dynamic>{
+      for (final MapEntry<String, dynamic> e in row.entries)
+        if (!paydayKeys.contains(e.key)) e.key: e.value,
+    };
+    if (leftover.isNotEmpty) extras.put('payday', 'payday', leftover);
+    return paydayFromJson(row);
+  }
+
+  /// The tray, skipping any message that cannot be read.
+  ///
+  /// A skipped message is not a loss worth reporting: the engine works out
+  /// what is due again on the next open. A REJECTED DOCUMENT is a loss, of
+  /// everything.
+  static List<AppNotification> _readNotifications(
+    Object? raw,
+    ExtrasBuilder extras,
+  ) {
+    if (raw is! List) return const <AppNotification>[];
+    final List<AppNotification> out = <AppNotification>[];
+    for (final Object? entry in raw) {
+      if (entry is! Map) continue;
+      final Map<String, dynamic> row = Map<String, dynamic>.from(entry);
+      try {
+        final AppNotification n = notificationFromJson(row);
+        final Map<String, dynamic> leftover = <String, dynamic>{
+          for (final MapEntry<String, dynamic> e in row.entries)
+            if (!notificationKeys.contains(e.key)) e.key: e.value,
+        };
+        if (leftover.isNotEmpty) {
+          extras.put(kNotifications, n.id, leftover);
+        }
+        out.add(n);
+      } on SnapshotFormatException {
+        // Dropped on purpose. See the note at the call site.
+      }
+    }
+    return out;
+  }
+
+  /// The reminder rules, plus whatever else was inside them.
+  ///
+  /// Same shape as [_readPayday], and same reason: one object rather than a
+  /// collection, so it gets a record in [Extras] under its own name and its
+  /// unknown sub-keys survive a save. The prototype's own object carries
+  /// `webNotificationsEnabled`, `inAppToastsEnabled` and `soundEnabled`, none
+  /// of which mean anything on a phone, and all three come back out untouched.
+  static ReminderSettings _readReminderSettings(
+    Object? raw,
+    ExtrasBuilder extras,
+  ) {
+    if (raw is! Map) return ReminderSettings.defaults;
+    final Map<String, dynamic> row = Map<String, dynamic>.from(raw);
+    final Map<String, dynamic> leftover = <String, dynamic>{
+      for (final MapEntry<String, dynamic> e in row.entries)
+        if (!reminderSettingsKeys.contains(e.key)) e.key: e.value,
+    };
+    if (leftover.isNotEmpty) {
+      extras.put('reminderSettings', 'reminderSettings', leftover);
+    }
+    return reminderSettingsFromJson(row);
+  }
+
+  /// Reads a document, or throws [SnapshotFormatException].
+  ///
+  /// Throwing is the design. Nothing here guesses a value it could not read,
+  /// because the caller's response to a throw is to leave the file untouched,
+  /// and a file left untouched can still be recovered.
+  static Snapshot decode(String raw) {
+    final Object? parsed;
+    try {
+      parsed = jsonDecode(raw);
+    } on FormatException catch (e) {
+      throw SnapshotFormatException('The file is not valid JSON. ${e.message}');
+    }
+    if (parsed is! Map) {
+      throw const SnapshotFormatException(
+        'The file should hold one object, and does not.',
+      );
+    }
+    return fromJson(Map<String, dynamic>.from(parsed));
+  }
+
+  /// The shape version a loaded document claims, as a number to compare.
+  ///
+  /// Two fence holes this closes. Both are harmless today, because only one
+  /// version has ever existed and [legacySchemaVersion] and
+  /// [currentSchemaVersion] are therefore the same number. Both become
+  /// unfindable bugs the day a second version ships.
+  ///
+  /// ABSENT MEANS THE OLDEST VERSION, never the current one. The old check
+  /// was `version is num && version > currentSchemaVersion`, so a file with
+  /// no `schemaVersion` at all simply fell past it with no objection, and
+  /// `looksLikeSalapify` deliberately admits such a file on one collection
+  /// key alone. The moment version 2 exists, an unversioned prototype backup
+  /// would be treated as already current and would never be carried forward.
+  /// Nothing would throw; every figure would just be read by the wrong
+  /// reader.
+  ///
+  /// NOT A NUMBER IS A REFUSAL, never a shrug. `"schemaVersion": "2"` is a
+  /// string, failed `is num`, and was read as if the file were current. The
+  /// same went for an explicit null and for a nested object. A version this
+  /// build cannot even compare is a file it has no business guessing at, so
+  /// it says so in a sentence rather than opening the file anyway.
+  ///
+  /// A whole double is accepted, because `jsonDecode` hands back `1.0` for a
+  /// `1.0` in the text and that is the same version. A fractional one is
+  /// not: there is no version 1.5 to dispatch on.
+  ///
+  /// [whenAbsent] exists so the absent rule can actually be PROVEN. While
+  /// only one version has ever existed, [legacySchemaVersion] and
+  /// [currentSchemaVersion] are the same number, so swapping the return
+  /// below for `currentSchemaVersion` produces no test failure at all and
+  /// the test then reads as proof while proving nothing. Passing a floor the
+  /// current version is not makes the deliberate break fail the way a break
+  /// is supposed to. Production never passes it.
+  static int readSchemaVersion(
+    Map<String, dynamic> m, {
+    int whenAbsent = legacySchemaVersion,
+  }) {
+    if (!m.containsKey('schemaVersion')) return whenAbsent;
+    final Object? version = m['schemaVersion'];
+    if (version is int) return version;
+    if (version is double && version.isFinite && version % 1 == 0) {
+      return version.toInt();
+    }
+    throw SnapshotFormatException(
+      'The file says its format is "$version", which is not a whole number, '
+      'so Salapify cannot tell which version wrote it. Nothing has been '
+      'changed. Try another copy of your backup.',
+    );
+  }
+
+  /// Collections only the OLD Salapify family ever wrote.
+  ///
+  /// Salapify 3 is not a continuation of those apps. It was rebuilt in
+  /// Flutter from the Google AI Studio prototype in `archive/prototype-google-ai-studio/src/`, and the React
+  /// Native app in `archive/salapify-1-react-native/` and Salapify 2 in `archive/` are a separate
+  /// branch of the family that was archived. They count their file shape to
+  /// 12 (`archive/salapify-1-react-native/lib/backup.js:26`,
+  /// `archive/salapify-2-flutter/lib/data/backup.dart:22`) while this one
+  /// starts at 1, because the two numbers count two different shapes and not
+  /// one shape that went backwards.
+  ///
+  /// Both of them keep `receivables` and `people` as top level lists
+  /// (`backup.dart:522` and `:532`). Salapify 3 has neither and is not going
+  /// to: its `debts` collection carries BOTH directions on purpose, what you
+  /// owe and what you are owed, which is the first paragraph of the working
+  /// rules. The prototype this app actually came from writes neither either
+  /// (`archive/prototype-google-ai-studio/src/components/SettingsModal.tsx` exports ten keys and that is all),
+  /// so this check cannot catch our own parent.
+  ///
+  /// It is a SHAPE check rather than a version check because the shape is
+  /// what makes the file unreadable here. The number is a label and could in
+  /// principle collide one day; `receivables` next to `people` could not get
+  /// here by accident. `snapshot_test.dart` asserts a genuine Salapify 3
+  /// document is not caught by it, which is the tripwire if anybody ever
+  /// does add a `people` collection to this app.
+  static const List<String> _oldFamilyKeys = <String>['receivables', 'people'];
+
+  static bool looksLikeTheOldSalapify(Map<String, dynamic> m) =>
+      _oldFamilyKeys.any((String key) => m[key] is List);
+
+  static Snapshot fromJson(Map<String, dynamic> m) {
+    // BEFORE the version compare, because this file's problem is its shape
+    // and the version message would send somebody somewhere that does not
+    // exist. A format 12 file hitting the newer-than-me branch was told
+    // "Update the app rather than opening it here", which cannot be done,
+    // because THIS is the newer app.
+    if (looksLikeTheOldSalapify(m)) {
+      throw const SnapshotFormatException(
+        'This backup is from the older Salapify, the one that kept what you '
+        'owe and what you are owed in two separate lists. This app keeps '
+        'them together, so reading the file here would bring across only '
+        'part of your records. Nothing on this phone has been changed. Keep '
+        'the file somewhere safe rather than deleting it.',
+      );
+    }
+
+    final int version = readSchemaVersion(m);
+    if (version > currentSchemaVersion) {
+      throw SnapshotFormatException(
+        'This file was written by a newer version of Salapify '
+        '(format $version, this build reads $currentSchemaVersion). '
+        'Update the app rather than opening it here.',
+      );
+    }
+
+    final ExtrasBuilder extras = ExtrasBuilder();
+    for (final MapEntry<String, dynamic> e in m.entries) {
+      if (!_ownTopKeys.contains(e.key)) extras.top[e.key] = e.value;
+    }
+
+    List<T> read<T>(
+      String collection,
+      Set<String> known,
+      T Function(Map<String, dynamic>) decode,
+      String Function(T) idOf,
+    ) {
+      final List<Map<String, dynamic>> rows = readList(
+        m[collection],
+        collection,
+      );
+      final List<T> out = <T>[];
+      for (final Map<String, dynamic> row in rows) {
+        final T value = decode(row);
+        final Map<String, dynamic> leftover = <String, dynamic>{
+          for (final MapEntry<String, dynamic> e in row.entries)
+            if (!known.contains(e.key)) e.key: e.value,
+        };
+        if (leftover.isNotEmpty) {
+          extras.put(collection, idOf(value), leftover);
+        }
+        out.add(value);
+      }
+      return out;
+    }
+
+    // Read before the return so its unknown row keys reach the extras that
+    // are built below.
+    final ({List<NetWorthPoint> points, List<Object?> unread}) history =
+        _readNetWorthHistory(m[kNetWorthHistory], extras);
+    return Snapshot(
+      accounts: read<Account>(
+        kAccounts,
+        accountKeys,
+        accountFromJson,
+        (Account a) => a.id,
+      ),
+      transactions: read<Transaction>(
+        kTransactions,
+        transactionKeys,
+        transactionFromJson,
+        (Transaction t) => t.id,
+      ),
+      debts: read<Debt>(kDebts, debtKeys, debtFromJson, (Debt d) => d.id),
+      budgets: read<Budget>(
+        kBudgets,
+        budgetKeys,
+        budgetFromJson,
+        (Budget b) => b.category,
+      ),
+      goals: read<Goal>(kGoals, goalKeys, goalFromJson, (Goal g) => g.id),
+      upcoming: read<UpcomingItem>(
+        kUpcoming,
+        upcomingKeys,
+        upcomingFromJson,
+        (UpcomingItem u) => u.id,
+      ),
+      incomeStreams: read<IncomeStream>(
+        kIncomeStreams,
+        incomeStreamKeys,
+        incomeStreamFromJson,
+        (IncomeStream s) => s.id,
+      ),
+      installments: read<InstallmentPlan>(
+        kInstallments,
+        installmentKeys,
+        installmentFromJson,
+        (InstallmentPlan p) => p.id,
+      ),
+      reconciliations: read<ReconciliationRecord>(
+        kReconciliations,
+        reconciliationKeys,
+        reconciliationFromJson,
+        (ReconciliationRecord r) => r.id,
+      ),
+      bills: read<BillItem>(
+        kBills,
+        billKeys,
+        billFromJson,
+        (BillItem b) => b.id,
+      ),
+      // A file written before bills and payday were stored simply has no
+      // 'payday' key. It gets the NEUTRAL cycle rather than the seed's, so an
+      // older file cannot quietly reintroduce "4 days to payday, Sep 15".
+      //
+      // Its unknown SUB-keys are kept too. payday used to be somebody else's
+      // key, preserved whole; now that this build models five of its fields,
+      // anything else inside it would be silently dropped on the next save
+      // unless it is stashed here. Same rule as every record, applied to an
+      // object that is not in a collection.
+      // READ LENIENTLY, and this is the one collection that gets to be.
+      //
+      // Everywhere else a bad field throws, and that is right: a balance this
+      // build cannot read must stop the load, because a file left untouched
+      // can still be recovered while a guessed number cannot.
+      //
+      // The tray is different in kind. It is DERIVED, disposable data, rebuilt
+      // from the ledger every time the app opens, and it is already the one
+      // collection deliberately excluded from looksLikeSalapify because a file
+      // holding only messages is not a ledger. Letting one unreadable message
+      // reject the whole document would make accounts, entries and debts
+      // unreadable over a notification, which turns saving off entirely and
+      // shows the red panel. A future build's reminder kind, or a row with a
+      // missing body, would be enough.
+      //
+      // reminderSettingsFromJson already makes exactly this argument about a
+      // preference being too small to brick a ledger. The same argument
+      // applies to the messages and was not applied until QA pointed at it.
+      notifications: _readNotifications(m[kNotifications], extras),
+      reminderSettings: _readReminderSettings(m['reminderSettings'], extras),
+      payday: _readPayday(m['payday'], extras),
+      sampleDataRemovedAt: m['sampleDataRemovedAt'] is String
+          ? m['sampleDataRemovedAt'] as String
+          : null,
+      setAsideReviewedAt: m['setAsideReviewedAt'] is String
+          ? m['setAsideReviewedAt'] as String
+          : null,
+      onboardedAt: m['onboardedAt'] is String
+          ? m['onboardedAt'] as String
+          : null,
+      theme:
+          themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??
+          ThemeMode2.gabi,
+      scenario:
+          scenarioWire.decodeOptional(m, 'scenario', 'snapshot') ??
+          DecisionScenario.conservative,
+      activeProfile: profileWire.decodeOptional(m, 'activeProfile', 'snapshot'),
+      guideSteps: _readGuideSteps(m[kGuideSteps]),
+      netWorthHistory: history.points,
+      netWorthUnread: history.unread,
+      extras: extras.build(),
+    );
+  }
+}
+
+/// Keys read from the file that this build does not model, kept so that
+/// saving cannot destroy them.
+class Extras {
+  const Extras(this.top, this._records);
+
+  const Extras.empty()
+    : top = const <String, dynamic>{},
+      _records = const <String, Map<String, Map<String, dynamic>>>{};
+
+  /// Top level keys, such as the prototype's `payday` and `categories`, which
+  /// Salapify 3 still reads from its seed rather than storing.
+  final Map<String, dynamic> top;
+
+  final Map<String, Map<String, Map<String, dynamic>>> _records;
+
+  Map<String, dynamic>? forRecord(String collection, String id) =>
+      _records[collection]?[id];
+
+  bool get isEmpty => top.isEmpty && _records.isEmpty;
+
+  /// How many records carry kept keys, for the diagnostics line.
+  int get recordCount => _records.values.fold(
+    0,
+    (int sum, Map<String, Map<String, dynamic>> m) => sum + m.length,
+  );
+}
+
+class ExtrasBuilder {
+  final Map<String, dynamic> top = <String, dynamic>{};
+  final Map<String, Map<String, Map<String, dynamic>>> _records =
+      <String, Map<String, Map<String, dynamic>>>{};
+
+  void put(String collection, String id, Map<String, dynamic> leftover) {
+    (_records[collection] ??= <String, Map<String, dynamic>>{})[id] = leftover;
+  }
+
+  Extras build() => Extras(top, _records);
+}
+
+/// Does this document even LOOK like a Salapify ledger?
+///
+/// [Snapshot.fromJson] is deliberately tolerant: an absent collection reads as
+/// an empty list, because that is how a prototype backup covering nine of the
+/// thirty four keys is allowed to open at all. The cost of that tolerance is
+/// that `{}` decodes perfectly into a complete, entirely empty ledger.
+///
+/// Which means a JSON file that has nothing to do with Salapify, another app's
+/// export, a stray `{}`, loads as a valid ledger of nothing. The loader then
+/// turns saving ON and writes that emptiness over the real file within two
+/// notifications, because every notify is a save and every save demotes the
+/// previous generation.
+///
+/// `loadSnapshot` already guards the empty STRING case, with a comment saying
+/// exactly why: "something wrote nothing where a ledger should be". The empty
+/// OBJECT is the same failure wearing a different hat, and it was not guarded.
+///
+/// So: a document must carry a schemaVersion, or at least one collection key
+/// holding a list. A genuinely empty Salapify backup, from somebody who
+/// cleared everything and exported, passes on its schemaVersion and is still
+/// importable. A photo's metadata sidecar is not.
+bool looksLikeSalapify(Map<String, dynamic> raw) {
+  if (raw['schemaVersion'] is num) return true;
+  for (final String key in Snapshot.collectionKeys) {
+    if (raw[key] is List) return true;
+  }
+  return false;
+}
+
+/// One monthly record as it is written. Pesos, like every other amount in
+/// the file (see json_codec.dart), so a backup reads the same to a person
+/// opening it in a text editor.
+Map<String, dynamic> netWorthPointToJson(NetWorthPoint p) => <String, dynamic>{
+  'month': p.key,
+  'assets': p.assets.pesos,
+  'liabilities': p.liabilities.pesos,
+};

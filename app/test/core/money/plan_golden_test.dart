@@ -1,0 +1,419 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/plan.dart';
+import 'package:salapify/data/seed_data.dart';
+import 'package:salapify/models/models.dart';
+
+import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
+
+/// Golden vectors for the Plan engine.
+///
+/// Produced by app/tool/gen_plan_vectors.ts, which runs the prototype's own
+/// budget arithmetic over app/'s fixture and prints BOTH readings: the
+/// prototype's, and the one the founder approved on 2026-09-18. To regenerate:
+///
+///   flutter test test/tool/dump_fixture_test.dart
+///   bun app/tool/gen_plan_vectors.ts `the printed json` `the same json`
+///
+/// Clock PINNED to 2026-09-18, because the budget window is "this month".
+void main() {
+  final DateTime now = DateTime.utc(2026, 9, 18);
+
+  List<BudgetStatus> budgets() => computeBudgets(
+    budgets: SeedData.budgets,
+    transactions: SeedData.transactions(testToday),
+    now: now,
+  );
+
+  BudgetStatus row(String category) =>
+      budgets().firstWhere((BudgetStatus b) => b.category == category);
+
+  /// A money figure against its golden, EXACTLY.
+  ///
+  /// The expected peso values below are untouched by the Money migration and
+  /// must stay that way: they are the lock, not a reading of the code. What
+  /// changed is the comparison. Every assertion here used to allow half a
+  /// centavo either way, because a float sum of pesos could land a hair off
+  /// the figure the generator printed. It cannot any more, so the tolerance
+  /// is gone with the last double: keeping one on an exact type would hide
+  /// the single thing this lock exists for, which is a centavo moving.
+  void exactly(Money actual, double expectedPesos, String what) {
+    expect(actual, Money.fromDouble(expectedPesos), reason: what);
+  }
+
+  group('budgets, this month, excluded entries ignored', () {
+    test('every line', () {
+      const Map<String, (double spent, double limit, int percent, int n)>
+      expected = <String, (double, double, int, int)>{
+        'Food & Dining': (465, 9000, 5, 2),
+        'Transport & Commute': (420, 3500, 12, 1),
+        'Bills & Utilities': (2840, 6500, 44, 1),
+        'Groceries': (3250.75, 8000, 41, 1),
+        'Shopping & Personal': (1899, 4000, 47, 1),
+        'Business & Freelance Ops': (1250, 5000, 25, 1),
+        'Debt & Loan Servicing': (6450, 6000, 100, 3),
+      };
+
+      expected.forEach((String category, (double, double, int, int) want) {
+        final BudgetStatus b = row(category);
+        exactly(b.spent, want.$1, '$category spent');
+        exactly(b.limit, want.$2, '$category limit');
+        expect(b.percent, want.$3, reason: '$category percent');
+        expect(b.entryCount, want.$4, reason: '$category entry count');
+      });
+    });
+
+    test('THE DIVERGENCE: an excluded entry does not eat a budget', () {
+      // This is the whole reason the founder was asked. The fixture holds two
+      // identical 2,840 Meralco charges, one marked excluded because it was
+      // billed twice. The prototype counts both, which puts Bills & Utilities
+      // at 5,680 of 6,500 and into "watch closely" on a bill the person has
+      // already said is not theirs.
+      final BudgetStatus bills = row('Bills & Utilities');
+      exactly(bills.spent, 2840, 'the excluded duplicate was counted');
+      expect(bills.entryCount, 1, reason: 'both Meralco charges were counted');
+      expect(bills.health, BudgetHealth.onTrack);
+
+      // Named so the failure message says what went wrong rather than just
+      // which number moved.
+      expect(
+        bills.spent,
+        isNot(5680),
+        reason: 'this is the prototype figure, so the exclusion rule is gone',
+      );
+    });
+
+    test('THE DIVERGENCE: only this month counts', () {
+      // A limit that never resets is not a limit. Nothing in the fixture is
+      // dated outside September 2026, so this asserts the RULE directly by
+      // handing the engine an entry from last month.
+      final List<Transaction> withLastMonth = <Transaction>[
+        ...SeedData.transactions(testToday),
+        const Transaction(
+          id: 'tx_last_month',
+          type: TransactionType.expense,
+          amount: Money.pesos(99999),
+          category: 'Food & Dining',
+          accountId: 'acc_cash',
+          date: '2026-08-14',
+          createdAt: 0,
+        ),
+      ];
+
+      final BudgetStatus food = computeBudgets(
+        budgets: SeedData.budgets,
+        transactions: withLastMonth,
+        now: now,
+      ).firstWhere((BudgetStatus b) => b.category == 'Food & Dining');
+
+      exactly(food.spent, 465, 'August spending reached a September budget');
+      expect(food.isOver, isFalse);
+    });
+
+    test('the three states, and one of each is reachable in the fixture', () {
+      final List<BudgetStatus> rows = budgets();
+
+      expect(
+        rows
+            .firstWhere(
+              (BudgetStatus b) => b.category == 'Debt & Loan Servicing',
+            )
+            .health,
+        BudgetHealth.over,
+        reason:
+            'the fixture is meant to contain an over-budget line, so the '
+            'red state can be rendered and reviewed at all',
+      );
+      expect(
+        rows.any((BudgetStatus b) => b.health == BudgetHealth.onTrack),
+        isTrue,
+      );
+    });
+
+    test('over budget keeps a real negative remaining, not a clamped zero', () {
+      final BudgetStatus debt = row('Debt & Loan Servicing');
+      expect(debt.isOver, isTrue);
+      exactly(debt.remaining, -450, 'remaining');
+      // The PERCENT is capped so a progress bar cannot overflow its track.
+      // The remaining is not, because somebody 450 over needs the 450.
+      expect(debt.percent, 100);
+    });
+
+    test('totals', () {
+      final BudgetTotals t = computeBudgetTotals(budgets());
+      exactly(t.totalLimit, 42000, 'totalLimit');
+      exactly(t.totalSpent, 16574.75, 'totalSpent');
+      exactly(t.leftToSpend, 25425.25, 'leftToSpend');
+      expect(t.overCount, 1);
+      expect(t.nearCount, 0);
+      expect(t.allOnTrack, isFalse);
+    });
+
+    test('left to spend is floored at zero rather than going negative', () {
+      final List<BudgetStatus> broke = <BudgetStatus>[
+        const BudgetStatus(
+          category: 'Food & Dining',
+          emoji: 'x',
+          limit: Money.pesos(1000),
+          spent: Money.pesos(5000),
+          remaining: Money.pesos(-4000),
+          percent: 100,
+          entryCount: 1,
+        ),
+      ];
+      exactly(computeBudgetTotals(broke).leftToSpend, 0, 'leftToSpend');
+    });
+
+    test('a zero limit does not produce infinity or NaN', () {
+      final List<BudgetStatus> rows = computeBudgets(
+        budgets: const <Budget>[
+          Budget(category: 'Food & Dining', limit: Money.zero, emoji: 'x'),
+        ],
+        transactions: SeedData.transactions(testToday),
+        now: now,
+      );
+      expect(rows.single.percent, 0);
+      expect(rows.single.percent.isFinite, isTrue);
+    });
+  });
+
+  group('goals', () {
+    test('every goal', () {
+      final List<GoalStatus> rows = computeGoals(SeedData.goals);
+      // The SAME vectors as before the Money migration, to the peso. What
+      // changed is that `remaining` is now compared EXACTLY rather than
+      // within a tolerance: closeTo existed because a double could not be
+      // trusted to land on 17,500.00, and a centavo count can.
+      const Map<String, (int percent, Money remaining, int? months)> expected =
+          <String, (int, Money, int?)>{
+            'goal_emergency': (71, Money.pesos(17500), 4),
+            'goal_japan': (37, Money.pesos(47000), 11),
+            'goal_phone': (100, Money.zero, null),
+          };
+      expected.forEach((String id, (int, Money, int?) want) {
+        final GoalStatus g = rows.firstWhere((GoalStatus g) => g.goal.id == id);
+        expect(g.percent, want.$1, reason: '$id percent');
+        expect(g.remaining, want.$2, reason: '$id remaining');
+        expect(g.monthsAtCurrentRate, want.$3, reason: '$id months');
+      });
+    });
+
+    test('months to go rounds UP, because a part payment is still a payment', () {
+      // 100 left at 30 a month is four payments, not three and a bit. A goal
+      // tracker that rounds down is a goal tracker that lies about the last one.
+      final List<GoalStatus> rows = computeGoals(const <Goal>[
+        Goal(
+          id: 'g',
+          name: 'g',
+          emoji: 'x',
+          targetAmount: Money.pesos(1000),
+          currentAmount: Money.pesos(900),
+          targetDate: 'Dec 2026',
+          monthlyTarget: Money.pesos(30),
+        ),
+      ]);
+      expect(rows.single.monthsAtCurrentRate, 4);
+    });
+
+    test('a finished goal is finished, not negatively short', () {
+      final GoalStatus done = computeGoals(
+        SeedData.goals,
+      ).firstWhere((GoalStatus g) => g.goal.id == 'goal_phone');
+      expect(done.isComplete, isTrue);
+      expect(done.remaining, Money.zero, reason: 'remaining');
+      expect(done.monthsAtCurrentRate, isNull);
+    });
+  });
+
+  group('contributing to a goal', () {
+    test('moves that goal and nothing else', () {
+      final List<Goal> after = applyGoalContribution(
+        SeedData.goals,
+        'goal_emergency',
+        const Money.pesos(2500),
+      );
+
+      final Goal moved = after.firstWhere((Goal g) => g.id == 'goal_emergency');
+      expect(
+        moved.currentAmount,
+        const Money.pesos(45000),
+        reason: 'the contribution did not land',
+      );
+
+      // The directional companion. Without this, a function that returns the
+      // list untouched satisfies "nothing else changed" perfectly.
+      final Goal untouched = after.firstWhere((Goal g) => g.id == 'goal_japan');
+      expect(
+        untouched.currentAmount,
+        SeedData.goals
+            .firstWhere((Goal g) => g.id == 'goal_japan')
+            .currentAmount,
+        reason: 'a contribution to one goal moved another',
+      );
+    });
+
+    test('cannot push a goal past its own target', () {
+      final List<Goal> after = applyGoalContribution(
+        SeedData.goals,
+        'goal_emergency',
+        const Money.pesos(999999),
+      );
+      final Goal g = after.firstWhere((Goal g) => g.id == 'goal_emergency');
+      expect(
+        g.currentAmount,
+        g.targetAmount,
+        reason: 'a goal went past 100 percent',
+      );
+    });
+
+    test('a zero or negative contribution changes nothing', () {
+      for (final Money bad in <Money>[Money.zero, Money.pesos(-500)]) {
+        final List<Goal> after = applyGoalContribution(
+          SeedData.goals,
+          'goal_emergency',
+          bad,
+        );
+        expect(
+          after.firstWhere((Goal g) => g.id == 'goal_emergency').currentAmount,
+          const Money.pesos(42500),
+          reason: 'a contribution of $bad was accepted',
+        );
+      }
+    });
+  });
+
+  group('changing a budget limit', () {
+    test('changes that budget and nothing else', () {
+      final List<Budget> after = applyBudgetLimit(
+        SeedData.budgets,
+        'Food & Dining',
+        Money.pesos(12000),
+      );
+      exactly(
+        after.firstWhere((Budget b) => b.category == 'Food & Dining').limit,
+        12000,
+        'the new limit did not land',
+      );
+      exactly(
+        after.firstWhere((Budget b) => b.category == 'Groceries').limit,
+        8000,
+        'changing one limit changed another',
+      );
+    });
+
+    test('refuses zero and negative', () {
+      for (final Money bad in <Money>[
+        Money.zero,
+        Money.pesos(-1),
+        const Money(-1), // one centavo under, not one peso under
+      ]) {
+        final List<Budget> after = applyBudgetLimit(
+          SeedData.budgets,
+          'Food & Dining',
+          bad,
+        );
+        exactly(
+          after.firstWhere((Budget b) => b.category == 'Food & Dining').limit,
+          9000,
+          'a limit of ${bad.centavos} centavos was stored',
+        );
+      }
+    });
+
+    test('nonsense is refused EARLIER now, and cannot reach the engine', () {
+      // This test used to hand `applyBudgetLimit` a NaN and an Infinity and
+      // check it shrugged them off. It cannot any more, and that is the
+      // point rather than a gap: a Money has no way to BE one, so the
+      // refusal moved to the boundary where a typed figure becomes money.
+      // Asserting it here keeps the rule guarded after the guard moved,
+      // which is otherwise exactly how a check gets quietly deleted.
+      for (final double nonsense in <double>[
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+      ]) {
+        expect(
+          Money.tryFromDouble(nonsense),
+          isNull,
+          reason: '$nonsense became a usable amount of money',
+        );
+      }
+
+      // And the engine's own refusal still stands for everything that CAN
+      // be money, which the test above covers. Together they are the pair
+      // the single old test used to be.
+      expect(
+        applyBudgetLimit(SeedData.budgets, 'Food & Dining', Money.zero),
+        same(SeedData.budgets),
+        reason: 'a refused limit should return the list untouched',
+      );
+    });
+  });
+
+  group('upcoming', () {
+    test('bills and income are separated', () {
+      final UpcomingTotals t = computeUpcomingTotals(
+        SeedData.upcoming(testToday),
+      );
+      exactly(t.totalOut, 5529, 'totalOut');
+      exactly(t.totalIn, 32500, 'totalIn');
+      expect(t.billCount, 3);
+    });
+
+    test('THE DIVERGENCE: payday is not a bill', () {
+      // The prototype's headline sums EVERY row under the label "Total
+      // Scheduled Bills", so the 32,500 payday is counted as a bill and the
+      // figure reads 38,029 when the bills come to 5,529. No stored number
+      // changes here; both figures are shown instead of one wrong one.
+      final UpcomingTotals t = computeUpcomingTotals(
+        SeedData.upcoming(testToday),
+      );
+      expect(
+        t.totalOut,
+        isNot(38029),
+        reason: 'payday is being counted as a bill again',
+      );
+      exactly(
+        t.totalOut + t.totalIn,
+        38029,
+        'the two halves should still account for every row',
+      );
+    });
+
+    test('a paid item drops out of both totals', () {
+      final List<UpcomingItem> items = <UpcomingItem>[
+        ...SeedData.upcoming(testToday).map(
+          (UpcomingItem u) => UpcomingItem(
+            id: u.id,
+            name: u.name,
+            amount: u.amount,
+            dueDate: u.dueDate,
+            type: u.type,
+            isIncome: u.isIncome,
+            isPaid: u.type == UpcomingItemType.bill,
+            category: u.category,
+          ),
+        ),
+      ];
+      // Only the BILL type is marked paid above, so what is left is the
+      // Spotify subscription at 239 and the Home Credit instalment at 2,450.
+      // The first version of this test expected 2,450 and forgot the
+      // subscription, which is worth recording: the assertion was wrong and
+      // the engine was right, and a looser test would have agreed with me.
+      final UpcomingTotals t = computeUpcomingTotals(items);
+      exactly(t.totalOut, 2689, 'a paid bill is still being counted');
+      expect(t.billCount, 2);
+    });
+  });
+
+  group('parsing a typed amount', () {
+    test('accepts what a person types, refuses what breaks a total', () {
+      expect(parsePlanAmount('2500'), 2500);
+      expect(parsePlanAmount('2,500.50'), 2500.5);
+      expect(parsePlanAmount(' 300 '), 300);
+      for (final String bad in <String>['', 'abc', '0', '-5', 'NaN']) {
+        expect(parsePlanAmount(bad), isNull, reason: '"$bad" was accepted');
+      }
+    });
+  });
+}

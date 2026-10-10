@@ -1,0 +1,58 @@
+# D32 and D33: which bills Safe to Spend holds back
+
+Dark, the example ledger on Friday, September 18, payday in 12 days.
+
+| Home | Safe to Spend breakdown | Health check |
+| --- | --- | --- |
+| ![Home](home_gabi.png) | ![Safe to Spend](sheet_safe_to_spend.png) | ![Health check](sheet_health_check.png) |
+
+How the figures tie:
+
+- Safe to Spend 32,056. It was 24,332 before D32. D32 added the unpaid Spotify on
+  the Bills screen (minus 224). D33 let the 8,500 tuition due October 5 wait for the
+  next cycle (plus 7,948).
+- "Upcoming bills before payday" 32,097 is 29,179 of bills, padded by a tenth
+  in the careful scenario.
+- The health check's 22,940 "due before payday" is the same bills minus the
+  overdue 6,000 remittance and the 239 Spotify whose date reads "Sunday".
+  Safe to Spend still holds both back, because both are still owed.
+
+## D32.2, D34, D35: a split counts only your share
+
+| You paid | A friend paid | Activity afterwards |
+| --- | --- | --- |
+| ![You paid](sheet_split_bill_working.png) | ![Friend paid](sheet_split_bill_friend_paid.png) | ![Activity](activity_split_rows.png) |
+
+- You paid 2,400 for three: 2,400 leaves the account, 800 is your spending,
+  1,600 is lent to the others.
+- A friend paid: your 800 is spending today, no account moves, and paying the
+  friend back later is not spending again.
+- In Activity a friend's repayment reads as money in from them, money lent
+  reads as leaving for them, and a share a friend paid reads "Paid by Ana".
+
+## D31 + D32.3: lending moves real cash, borrowing mirrors it
+
+![Add a debt, lent from GCash](sheet_add_debt_lend.png)
+
+- Add a debt now asks "Lent from which account" (or "Borrowed into which
+  account"), with "No money moved now" for older loans, credit cards and
+  instalment purchases. It is asked, never defaulted.
+- Lent: the money leaves that account now; repayments bring it back. Borrowed:
+  it arrives now; repaying moves it out. Neither is spending or income.
+- Deleting a debt entered by mistake also reverses the money it moved (only
+  a debt with no payments can be deleted, as before).
+
+## D31: repeating bills
+
+| A monthly bill after paying it once | Scheduling one |
+| --- | --- |
+| ![Monthly bill](sheet_bills_monthly.png) | ![Add form](sheet_bills_adding.png) |
+
+- "Repeats every month" on the add form. A monthly bill needs a date Salapify
+  can read ("Sep 25", "the 10th").
+- Paying it writes the payment and moves the SAME row to next month's date,
+  clamped to a short month (the 31st falls on the 30th in September). It is
+  never ticked off.
+- "Undo last payment" on the row puts the money and the date back. An older
+  month's payment can be taken back from Activity on its own.
+- The runway chart places it every month it falls in the window.

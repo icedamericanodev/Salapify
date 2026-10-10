@@ -24,6 +24,9 @@ stays in git history and can return in Phase 5.
 Recommendation: cut all of it for v3. The founder can name any item they
 use weekly today and it moves to "kept".
 
+AMENDED 2026-10-08 by D30 for ONE item: Pan the CHARACTER is kept. The Pan
+chat and every streak or gamification item stay cut.
+
 Needed before: Phase 1, because it decides which screens get designed.
 
 ## D3. Tabs
@@ -1353,3 +1356,174 @@ and would have bitten anyway:
 WHAT IS WITHDRAWN: part 3 of `docs/reviews/publisher-and-cutover-design.md`, the
 seven step cutover, in full. Nothing in it is to be executed. It is kept
 unedited as the record.
+
+## D30. Pan returns as a CHARACTER, static first, then animated. ANSWERED 2026-10-08
+
+Founder direction, 2026-10-08, verbatim: "I am bringing Pan back into
+Salapify 3 as a CHARACTER, static first and then animated. This amends D2 for
+that one item. The Pan chat and all streaks or gamification stay cut. The new
+Pan is not an animal, so D17's Tarsi concern is answered."
+
+The briefs are `docs/revamp/pan-handoff.md` (phase 1) and
+`docs/revamp/pan-motion.md` (phase 2). The art is the 19 images in
+`app/assets/pan/`, and the target look is `docs/revamp/mockups/pan/`.
+
+WHAT IT CHANGES
+
+1. **D2 is amended for ONE item.** Pan the character moves from "cut" to
+   "kept". Everything else on the D2 cut list stays cut.
+2. **Phase 1, static:** Pan replaces the icon on the empty states that greet a
+   person, one mood per screen, at 96 x 96 at most until hi-res art arrives.
+   Every screen draws him through one widget, `PanArt`, so new art is a folder
+   swap with the same file names and no code change.
+3. **Phase 2, motion is in scope.** Pan animates INSIDE `PanArt` only: an
+   entrance, a per-mood idle with its effects, a tap squash with a light
+   buzz, and a drawn shadow replacing the one baked into the PNGs. Flutter's
+   own animation tools, no new packages. Idle runs `panIdleCycles = 3` cycles
+   and then rests; changing that number is a one-line founder decision.
+   Reduce motion shows Pan still.
+
+WHAT IT DOES NOT CHANGE
+
+1. **No chat, no AI, no gamification.** No streaks, week chains, wins or
+   milestones. Pan reacts to what is on the screen; he does not keep score.
+2. **D17 still holds.** The app icon stays Buto. The old Pan was a panda and
+   the new one is not an animal, which answers the Tarsi comparison D17 was
+   worried about.
+3. **Pan never judges spending.** The annoyed, tear and crying moods are not
+   used. Tear may return only for the wipe-all-data confirmation, and only by
+   a later founder decision.
+4. **Pan is decorative to a screen reader.** The empty state's title already
+   says what matters.
+5. No money, stored data, navigation or copy changes in either phase.
+
+ONE FACT RECORDED SO NOBODY IS SURPRISED BY IT. The briefs and mockups were
+drawn from main's older `app/` (the c1 design, with `kit.dart`, a "Ledger"
+tab and "Insights"). The live `app/` restarted from the AI Studio prototype
+under D24 and has neither file nor names. The moods were therefore mapped by
+MEANING onto the live app's own empty states: Ledger is Activity and Insights
+is Reports. That same prototype rebuild brought a rule-based "Ask Pan" card to
+Home, which reads the ledger with no AI and no network. D30 neither adds nor
+removes it; whether it stays is a separate question for the founder.
+
+## D31. The four-lens review: what gets built next. ANSWERED 2026-10-09
+
+THE QUESTION. Founder direction, 2026-10-09: "spin the product manager,
+competitor lens, user lens, behaviour science lens, review critically the
+current build. What features we can add and build free with no limitation.
+Lets think about the compliance/privacy later on when we are done building
+until im satisfied to what this app can offer". Four specialists reviewed
+`app/`; every claim used below was checked against the code first.
+
+THE ANSWERS, verbatim choices from the founder's question card:
+
+1. **Stored data and money meaning, all four approved:**
+   - Repeating bills: a paid bill rolls to next month instead of being done
+     forever.
+   - Lending moves real cash: an "owed to me" debt asks which account the
+     money came from, so collecting it back does not leave that account
+     higher than the real cash.
+   - Edit an entry, rewriting balances correctly, instead of delete and
+     retype.
+   - Edit or delete goals and income streams, with undo.
+2. **Debt stays off the tab bar and moves UP on Home**, right under Safe to
+   Spend, and the Debt shortcut opens the list rather than a blank form. A
+   sixth tab was offered and not chosen.
+3. **Income rhythms: weekly and irregular are added** beside 15th and 30th
+   and monthly, so Safe to Spend works for allowances and daily sales.
+4. **Habit features approved:** collection reminders for money owed to you,
+   a 48 hour "park it" list for impulse buys, and a backup reminder.
+   **Not approved:** a no-spend day button and a "logged 5 of 7 days" count.
+5. Compliance and privacy work waits until the founder is satisfied with
+   what the app offers. That does not loosen the STOP conditions or the
+   privacy promise in 01-vision.md.
+
+ALSO BUILT, needing no decision: a "send a reminder" message and an overdue
+tag on money owed to you; the Log sheet saying what an entry changed, opening
+with the keyboard up, category icons and last-used defaults; "usual" chips;
+the payoff plan on the user's own debts; a daily amount per budget; Reports
+drill-down and the previous month; a Sweldo Day card; and honesty fixes
+(screens that said "not built yet" about things that are built, or showed
+unfinished parts to the public).
+
+NOT BUILT, and why: Pan celebrating a reached goal was suggested and is
+left out, because D30 rules out "wins or milestones". Changing that is a
+founder decision, not an inference from D31.
+
+## D32. Three money truths found while designing D31. ANSWERED 2026-10-09
+
+THE QUESTION. Designing the approved D31 changes, the ledger-reconciler
+measured three places where the app's figures were not the truth. Each is a
+money-meaning change, so each went to the founder; all three answers were
+the recommended option.
+
+1. **Safe to Spend holds back bills the person ADDS.** It reserved only the
+   built-in BillItem list, never the bills on the Bills screen
+   (UpcomingItem), so in the reviewer's fixture 15,500 of bills due before
+   payday were reserved as 0 and the headline was 15,500 too high. Fixed
+   with one shared reader of unpaid obligations, so nothing is counted
+   twice.
+2. **Split bill counts only the person's own share as spending.** A 900
+   dinner for three logged 900 of spending while 600 of it is owed back;
+   budgets, Reports and the burn rate were overstated by the friends'
+   shares. Cash still falls by the full 900; the 600 becomes money lent.
+3. **Borrowing is the mirror of lending.** With D31's "lending moves real
+   cash", borrowing into an account moves money IN, the debt rises by the
+   same amount, net worth is unchanged, and it is never counted as income.
+
+## D33. Which bills Safe to Spend holds back, and on which date. ANSWERED 2026-10-10
+
+THE QUESTION. Building D32's first answer, the ledger-reconciler found two
+places where the built-in bill list and the Bills screen still followed
+different rules. Both change a money figure, so both went to the founder;
+both answers were the recommended option.
+
+1. **Only bills due by payday are held back, from either list.** The engine
+   reserved every unpaid built-in bill whatever its date, so the example's
+   8,500 tuition due October 5 was held back in a cycle ending September 30,
+   while a bill added on the Bills screen for the same date was not, and the
+   Safe to Spend breakdown labelled the total "Upcoming bills before payday".
+   Overdue bills and bills with a date nobody can read are still held back.
+2. **When a bill is on both lists, the date on the Bills screen wins.** The
+   example's Meralco was counted once but kept the built-in date, September
+   15 and overdue, while the Bills screen says Today, so Pan and the health
+   check left it out of "due before payday".
+
+## D34. When a friend paid, your share is spending on the day you ate. ANSWERED 2026-10-10
+
+THE QUESTION. Building D32's split-bill answer, the ledger-reconciler found
+that when somebody ELSE paid, the split took the person's share out of
+their account at once (the box is ticked by default) and also recorded that
+they owed it, so paying the friend back took it out a second time: one 300
+share, 600 out of the account. Removing the double charge is a bug fix. When
+the share counts as spending is a money-meaning choice, so it went to the
+founder.
+
+THE ANSWER, the recommended option: **on the day of the meal, under its own
+category.** The share shows in that day's Food budget. Cash leaves only when
+the friend is actually paid back, and that payment is not counted as
+spending a second time. This is D32.3's "borrowing mirrors lending" applied
+to a split: the friend lent you your share, so the record is a borrowing,
+and repaying a borrowing is not spending.
+
+NOT CHOSEN: counting the share on the day it is paid back, under "Debt &
+Loan Servicing", which was smaller to build but would have kept the dinner
+out of the Food budget entirely.
+
+## D35. A debt remembers the entry that started it; old splits stay as saved. ANSWERED 2026-10-10
+
+THE QUESTION. Building D34, the ledger-reconciler found that a repayment can
+only be classified correctly (moving cash, but neither spending nor income a
+second time) if the debt knows that it began with real money moving: a split,
+or money lent or borrowed. That is a new stored field, and splits already
+saved under the old method raise the question of rewriting stored data. Both
+are founder-gated, both answers were the recommended option.
+
+1. **Yes, add `Debt.openingTxId`.** Additive: an older backup loads with it
+   empty, and an empty field means the debt behaves exactly as before, so
+   debts added by hand and the sample debts are unchanged. Rejected: guessing
+   from the debt's id, which the reviewer measured as wrong by 600 for good
+   on older splits and blind to money lent through Add Debt.
+2. **Splits already saved stay exactly as they are.** Nothing stored is
+   rewritten. Only new splits use the D32/D34 shape. An old split that
+   bothers somebody can be taken back and entered again.
