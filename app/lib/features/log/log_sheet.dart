@@ -27,15 +27,33 @@ import 'package:salapify/core/money/money.dart';
 /// date, and for a transfer a destination. Everything the ledger needs to be
 /// correct.
 class LogSheet extends StatefulWidget {
-  const LogSheet({super.key, required this.state});
+  const LogSheet({super.key, required this.state, this.editing});
 
   final FinancialState state;
 
-  static Future<Transaction?> show(BuildContext context, FinancialState state) {
+  /// The entry being corrected, or null for a new one.
+  ///
+  /// EDITING IS THE SAME FORM, prefilled, rather than a second sheet. Every
+  /// rule this form already enforces (a transfer cannot point at itself, the
+  /// category follows the type, no future dates) applies to a correction for
+  /// exactly the same reasons, and a second form would be a second copy of
+  /// each of them to keep in step.
+  ///
+  /// The sheet only builds the corrected entry. Whether it may be saved, and
+  /// how the money follows, is the store's decision
+  /// ([FinancialState.editTransaction]).
+  final Transaction? editing;
+
+  static Future<Transaction?> show(
+    BuildContext context,
+    FinancialState state, {
+    Transaction? editing,
+  }) {
     return SheetScaffold.show<Transaction>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) => LogSheet(state: state),
+      builder: (BuildContext context) =>
+          LogSheet(state: state, editing: editing),
     );
   }
 
@@ -98,6 +116,44 @@ class _LogSheetState extends State<LogSheet> {
         break;
       }
     }
+
+    final Transaction? e = widget.editing;
+    if (e != null) _prefill(e);
+  }
+
+  /// Fills the form from the entry being corrected, so the person changes
+  /// only what is wrong.
+  void _prefill(Transaction e) {
+    _type = e.type;
+    final double a = e.amount.pesos;
+    _amount.text = a == a.roundToDouble()
+        ? a.toStringAsFixed(0)
+        : a.toStringAsFixed(2);
+    _merchant.text = e.merchant ?? '';
+    _note.text = e.note ?? '';
+    _person.text = e.person ?? '';
+    _tags.text = e.tags.join(', ');
+    _accountId = e.accountId;
+    if (e.toAccountId != null) _toAccountId = e.toAccountId!;
+    if (e.type != TransactionType.transfer) _category = e.category;
+    _date = _readIso(e.date) ?? _date;
+    // Open, so a note or a person already on the entry is in view rather
+    // than hidden behind a toggle the person has no reason to press.
+    _showMore = e.note != null || e.person != null || e.tags.isNotEmpty;
+  }
+
+  /// A stored YYYY-MM-DD date, or null when it is not one. Strict, because
+  /// DateTime.tryParse quietly turns 2026-02-30 into March and an edit would
+  /// then save a date nobody chose.
+  static DateTime? _readIso(String s) {
+    final RegExpMatch? m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(s);
+    if (m == null) return null;
+    final int y = int.parse(m.group(1)!);
+    final int mo = int.parse(m.group(2)!);
+    final int d = int.parse(m.group(3)!);
+    final DateTime out = DateTime(y, mo, d);
+    if (out.year != y || out.month != mo || out.day != d) return null;
+    return out;
   }
 
   /// Fills the form from a "usual" chip. Fills, never saves: the same rule
@@ -295,6 +351,43 @@ class _LogSheetState extends State<LogSheet> {
     if (amount == null || !_canSave) return;
 
     final bool isTransfer = _type == TransactionType.transfer;
+    final Transaction? e = widget.editing;
+    if (e != null) {
+      final String category = isTransfer ? 'Transfer' : _category;
+      Navigator.of(context).pop(
+        Transaction(
+          // WHO IT IS stays: the same id, written at the same moment, in the
+          // same profile, with the same receipt and tax marking. Only what
+          // the form shows can change, and the store decides how the money
+          // follows.
+          id: e.id,
+          createdAt: e.createdAt,
+          status: e.status,
+          profile: e.profile,
+          isSample: e.isSample,
+          isTaxDeductible: e.isTaxDeductible,
+          taxTinOrRef: e.taxTinOrRef,
+          attachmentPath: e.attachmentPath,
+          attachmentName: e.attachmentName,
+          // A sub-category belongs to its category, so it survives only
+          // when the category did.
+          subcategory: category == e.category ? e.subcategory : null,
+          type: _type,
+          amount: Money.fromDouble(amount),
+          category: category,
+          accountId: _accountId,
+          toAccountId: isTransfer ? _toAccountId : null,
+          date: _iso(_date),
+          merchant: _merchant.text.trim().isEmpty
+              ? null
+              : _merchant.text.trim(),
+          note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+          person: _person.text.trim().isEmpty ? null : _person.text.trim(),
+          tags: parseTags(_tags.text),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).pop(
       Transaction(
         id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
@@ -351,7 +444,14 @@ class _LogSheetState extends State<LogSheet> {
     final DateTime today = widget.state.now;
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _date,
+      // Clamped, because an entry being corrected can carry a date outside
+      // the picker's range (an imported row, a five year old one), and the
+      // picker asserts rather than opening on it.
+      initialDate: _date.isAfter(today)
+          ? DateTime(today.year, today.month, today.day)
+          : _date.isBefore(DateTime(today.year - 5, today.month, today.day))
+          ? DateTime(today.year - 5, today.month, today.day)
+          : _date,
       firstDate: DateTime(today.year - 5, today.month, today.day),
       lastDate: DateTime(today.year, today.month, today.day),
       helpText: 'When did this happen',
@@ -364,65 +464,28 @@ class _LogSheetState extends State<LogSheet> {
     final Palette p = Palette.of(widget.state.theme);
     final bool isTransfer = _type == TransactionType.transfer;
     final double amount = _amountValue ?? 0;
+    final bool editing = widget.editing != null;
 
     return SheetScaffold(
       palette: p,
-      icon: Icons.add,
-      title: 'Log an entry',
-      subtitle: 'What moved, out of which account',
+      icon: editing ? Icons.edit_outlined : Icons.add,
+      title: editing ? 'Edit entry' : 'Log an entry',
+      subtitle: editing
+          ? 'Change what is wrong, the balance follows'
+          : 'What moved, out of which account',
       footer: PrimaryButton(
         palette: p,
-        label: 'Save entry',
+        label: editing ? 'Save changes' : 'Save entry',
         icon: Icons.check,
         onTap: _canSave ? _save : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _QuickParseField(
-            palette: p,
-            controller: _quick,
-            preview: _preview,
-            onChanged: (_) => setState(() {}),
-            onApply: _applyQuick,
-          ),
-          const SizedBox(height: Spacing.sm),
-          _UsualRow(
-            palette: p,
-            entries: usualEntries(widget.state.transactions),
-            onPick: _applyUsual,
-          ),
-
-          // SCAN LIVES HERE, not on Home's quick actions.
-          //
-          // The prototype puts it in that row, which on this app would be a
-          // fifth Expanded label across a 320dp phone beside Log, Debt, Bills
-          // and Move. This sheet is already the one place a person comes to
-          // record spending, and the box directly above it reads a pasted
-          // receipt too, so the two ways of doing the same thing sit
-          // together rather than in different rooms.
-          _ScanRow(
-            palette: p,
-            onTap: () async {
-              // The navigator is captured BEFORE the await, the same rule the
-              // shell already writes down for its messenger: the scan sheet
-              // can be dismissed long after this context is gone, and
-              // reaching for Navigator.of on the far side of an await is the
-              // usual way that becomes a crash.
-              final NavigatorState nav = Navigator.of(context);
-              final Transaction? scanned = await ScanReceiptSheet.show(
-                context,
-                p,
-                widget.state,
-              );
-              // Straight back out through this sheet, so the shell's single
-              // handler records it, lands on Activity and offers the undo.
-              // A second save path would be a second set of those lessons to
-              // remember.
-              if (scanned != null && mounted) nav.pop(scanned);
-            },
-          ),
-          const SizedBox(height: Spacing.lg),
+          // The three ways to START an entry (a typed line, a usual, a scan)
+          // have nothing to do when the entry already exists, so a
+          // correction opens straight on the fields.
+          if (!editing) ..._starters(p),
 
           Text('What kind', style: AppType.label(p)),
           const SizedBox(height: Spacing.xs),
@@ -567,6 +630,55 @@ class _LogSheetState extends State<LogSheet> {
       ),
     );
   }
+
+  /// The three ways to START an entry: a typed or pasted line, a usual
+  /// chip, and a scan. Drawn only for a new entry.
+  List<Widget> _starters(Palette p) => <Widget>[
+    _QuickParseField(
+      palette: p,
+      controller: _quick,
+      preview: _preview,
+      onChanged: (_) => setState(() {}),
+      onApply: _applyQuick,
+    ),
+    const SizedBox(height: Spacing.sm),
+    _UsualRow(
+      palette: p,
+      entries: usualEntries(widget.state.transactions),
+      onPick: _applyUsual,
+    ),
+
+    // SCAN LIVES HERE, not on Home's quick actions.
+    //
+    // The prototype puts it in that row, which on this app would be a
+    // fifth Expanded label across a 320dp phone beside Log, Debt, Bills
+    // and Move. This sheet is already the one place a person comes to
+    // record spending, and the box directly above it reads a pasted
+    // receipt too, so the two ways of doing the same thing sit
+    // together rather than in different rooms.
+    _ScanRow(
+      palette: p,
+      onTap: () async {
+        // The navigator is captured BEFORE the await, the same rule the
+        // shell already writes down for its messenger: the scan sheet
+        // can be dismissed long after this context is gone, and
+        // reaching for Navigator.of on the far side of an await is the
+        // usual way that becomes a crash.
+        final NavigatorState nav = Navigator.of(context);
+        final Transaction? scanned = await ScanReceiptSheet.show(
+          context,
+          p,
+          widget.state,
+        );
+        // Straight back out through this sheet, so the shell's single
+        // handler records it, lands on Activity and offers the undo.
+        // A second save path would be a second set of those lessons to
+        // remember.
+        if (scanned != null && mounted) nav.pop(scanned);
+      },
+    ),
+    const SizedBox(height: Spacing.lg),
+  ];
 
   String _named(String id) {
     for (final Account a in widget.state.accounts) {
