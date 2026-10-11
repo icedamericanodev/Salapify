@@ -91,7 +91,7 @@ jobs:
       # tested.
       - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
         with:
-          flutter-version: '3.47.4'
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
 

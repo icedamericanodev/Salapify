@@ -54,7 +54,8 @@ jobs:
       # app/ is not that app. It has no Shorebird publisher, no app id and no
       # update stamp, so there is no shipping toolchain for this check to
       # diverge FROM. What it can diverge from is the founder's machine, which
-      # runs 3.47.4 and is the only place this app runs at all. Testing on
+      # runs 3.47.7 (moved from 3.47.4 on 2026-10-11, when the founder
+      # upgraded) and is the only place this app runs at all. Testing on
       # 3.44.6 meant CI proving the app works on a Flutter nobody uses.
       #
       # The 2026-08-16 decision rejected raising only the branch check, and
@@ -68,7 +69,7 @@ jobs:
       # that SDK in the same commit.
       - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
         with:
-          flutter-version: '3.47.4'
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
 
@@ -183,7 +184,7 @@ jobs:
       # Same pin and same argument as the job above.
       - uses: subosito/flutter-action@9a48871cbeff8679f6337339dc79b806ad9a9a13 # v2.9.1
         with:
-          flutter-version: '3.47.4'
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
 
