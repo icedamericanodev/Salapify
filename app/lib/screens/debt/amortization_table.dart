@@ -165,11 +165,14 @@ class _AmortizationTableState extends State<AmortizationTable> {
       // showing mojibake. Written here rather than in the CSV builder, so the
       // string the tests read is the string a spreadsheet reads.
       await file.writeAsString('﻿${_csv()}', flush: true);
-      // share_plus 10's API, checked against the installed package rather
-      // than remembered: version 11 renamed this to SharePlus.instance.share.
-      await Share.shareXFiles(<XFile>[
-        XFile(file.path, mimeType: 'text/csv'),
-      ], subject: widget.meta.title);
+      // share_plus 13's API, checked against the installed package (13.3.1)
+      // rather than remembered: `Share.shareXFiles` became this in 11.
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'text/csv')],
+          subject: widget.meta.title,
+        ),
+      );
     } on MissingPluginException {
       // The app is running a build made before share_plus or path_provider
       // were added, so the native side of them is not in the APK. A hot

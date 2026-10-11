@@ -61,9 +61,17 @@ Future<void> exportBackup({
     final File file = File('${dir.path}/salapify3-backup-$stamp.json');
     await file.writeAsString(json, flush: true);
     try {
-      await Share.shareXFiles(<XFile>[
-        XFile(file.path, mimeType: 'application/json'),
-      ], subject: 'Salapify backup $stamp');
+      // share_plus 13 (2026-10-11): `Share.shareXFiles` became
+      // `SharePlus.instance.share(ShareParams(...))`. Same file, same subject,
+      // and its copies still go in the cache's `share_plus` folder
+      // (android/.../Share.kt, read at 13.3.1), which is the folder
+      // `clearExportCopies` below sweeps.
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'application/json')],
+          subject: 'Salapify backup $stamp',
+        ),
+      );
     } finally {
       // The staging copy goes once the share sheet has it. share_plus hands
       // the receiving app its OWN copy, so nothing waits on this one, and

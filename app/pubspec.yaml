@@ -46,7 +46,7 @@ dependencies:
   # Hands an exported amortisation statement to the phone's own share sheet,
   # so a CSV can reach email, Drive or Files without Salapify needing any of
   # them. No network of its own.
-  share_plus: ^10.1.4
+  share_plus: ^13.3.1
   # Picks a backup file to restore from, through Android's Storage Access
   # Framework, so Salapify needs no storage permission and no manifest change.
   # It IS a new plugin, so it needs a new base APK and one manual install.

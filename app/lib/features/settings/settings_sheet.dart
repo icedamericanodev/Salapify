@@ -339,9 +339,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
         final Directory dir = await getTemporaryDirectory();
         final File file = File('${dir.path}/salapify-unreadable-$stamp.json');
         await file.writeAsString(raw, flush: true);
-        await Share.shareXFiles(<XFile>[
-          XFile(file.path, mimeType: 'application/json'),
-        ], subject: 'Salapify data file, unreadable, $stamp');
+        await SharePlus.instance.share(
+          ShareParams(
+            files: <XFile>[XFile(file.path, mimeType: 'application/json')],
+            subject: 'Salapify data file, unreadable, $stamp',
+          ),
+        );
       } on Object {
         // Same fallback as the normal export, and for the same reason: a
         // missing plugin or a refused share must not be the thing that loses

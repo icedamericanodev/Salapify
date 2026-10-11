@@ -264,7 +264,9 @@ class _DebtScreenState extends State<DebtScreen> {
   }
 
   Future<void> _remind(Debt d) async {
-    await Share.share(collectionMessage(d, now: widget.state.now));
+    await SharePlus.instance.share(
+      ShareParams(text: collectionMessage(d, now: widget.state.now)),
+    );
   }
 
   Future<void> _openAdd(BuildContext context, Palette palette) async {
