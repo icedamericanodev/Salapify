@@ -80,6 +80,11 @@ class _LogSheetState extends State<LogSheet> {
   /// store's clock, which a test pins.
   late DateTime _date;
 
+  /// Whether the person picked a date. An entry being corrected keeps its
+  /// stored date untouched otherwise, so a date this sheet cannot read
+  /// (from an older backup) is never quietly turned into today.
+  bool _dateTouched = false;
+
   List<Account> get _spendable =>
       widget.state.accounts.where((Account a) => a.isLiquid).toList();
 
@@ -138,6 +143,7 @@ class _LogSheetState extends State<LogSheet> {
     if (e.toAccountId != null) _toAccountId = e.toAccountId!;
     if (e.type != TransactionType.transfer) _category = e.category;
     _date = _readIso(e.date) ?? _date;
+    _dateTouched = false;
     // Open, so a note or a person already on the entry is in view rather
     // than hidden behind a toggle the person has no reason to press.
     _showMore = e.note != null || e.person != null || e.tags.isNotEmpty;
@@ -355,6 +361,17 @@ class _LogSheetState extends State<LogSheet> {
     final Transaction? e = widget.editing;
     if (e != null) {
       final String category = isTransfer ? 'Transfer' : _category;
+      // Move money titles its entries "Transfer: GCash to BPI". Moved to a
+      // different account, that title would keep naming the old one on
+      // Activity and on this entry's own sheet, so it is rewritten. Any
+      // other title is the person's own words and is left alone.
+      String merchant = _merchant.text.trim();
+      if (isTransfer &&
+          e.merchant ==
+              'Transfer: ${_named(e.accountId)} to '
+                  '${_named(e.toAccountId ?? '')}') {
+        merchant = 'Transfer: ${_named(_accountId)} to ${_named(_toAccountId)}';
+      }
       Navigator.of(context).pop(
         Transaction(
           // Only what the form shows. Everything it does not (when it was
@@ -368,10 +385,8 @@ class _LogSheetState extends State<LogSheet> {
           category: category,
           accountId: _accountId,
           toAccountId: isTransfer ? _toAccountId : null,
-          date: _iso(_date),
-          merchant: _merchant.text.trim().isEmpty
-              ? null
-              : _merchant.text.trim(),
+          date: _dateTouched ? _iso(_date) : e.date,
+          merchant: merchant.isEmpty ? null : merchant,
           note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           person: _person.text.trim().isEmpty ? null : _person.text.trim(),
           tags: parseTags(_tags.text),
@@ -447,7 +462,12 @@ class _LogSheetState extends State<LogSheet> {
       lastDate: DateTime(today.year, today.month, today.day),
       helpText: 'When did this happen',
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null) {
+      setState(() {
+        _date = picked;
+        _dateTouched = true;
+      });
+    }
   }
 
   @override

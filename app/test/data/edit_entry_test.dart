@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/debt.dart';
 import 'package:salapify/core/money/ledger.dart';
 import 'package:salapify/core/money/money.dart';
 import 'package:salapify/core/money/reconciliation.dart';
@@ -224,6 +225,107 @@ void main() {
         isNull,
       );
     });
+  });
+
+  group('refusals found by QA (2026-10-11)', () {
+    test('money lent with its debt gone is refused: the sheet cannot say '
+        '"a person" and filled in an account of their own', () async {
+      final FinancialState s = await fresh();
+      s.logTransaction(
+        lendingEntry(
+          id: 'tx_lend_qa',
+          amount: const Money.pesos(600),
+          person: 'Ana',
+          accountId: 'acc_gcash',
+          today: today,
+          createdAt: 1,
+        ),
+      );
+      expect(s.takeBackPreview('tx_lend_qa'), TakeBackOutcome.done);
+      expect(s.editPreview('tx_lend_qa'), EditOutcome.otherPerson);
+      final Money cashBefore = cash(s, 'acc_cash');
+      final Transaction lent = row(s, 'tx_lend_qa');
+      // What the sheet used to hand back: the same entry, now with a
+      // destination of the person's own. Refused, and nothing moves.
+      expect(
+        s.editTransaction(
+          lent.id,
+          Transaction(
+            id: lent.id,
+            type: TransactionType.transfer,
+            amount: lent.amount,
+            category: 'Transfer',
+            accountId: 'acc_gcash',
+            toAccountId: 'acc_cash',
+            date: lent.date,
+            createdAt: lent.createdAt,
+          ),
+        ),
+        isNull,
+      );
+      expect(cash(s, 'acc_cash'), cashBefore);
+    });
+
+    test('a share a friend paid is refused', () async {
+      final FinancialState s = await fresh();
+      s.logTransaction(
+        paidByOtherEntry(
+          id: 'tx_share_qa',
+          amount: const Money.pesos(300),
+          category: 'Food & Dining',
+          person: 'Ana',
+          today: today,
+          createdAt: 1,
+        ),
+      );
+      expect(s.editPreview('tx_share_qa'), EditOutcome.otherPerson);
+    });
+
+    test('a payment to a credit card is refused, a move between two '
+        'wallets is not', () async {
+      final FinancialState s = await fresh();
+      Transaction move(String id, String to) => Transaction(
+        id: id,
+        type: TransactionType.transfer,
+        amount: const Money.pesos(1000),
+        category: 'Transfer',
+        accountId: 'acc_gcash',
+        toAccountId: to,
+        date: '2026-09-17',
+        createdAt: 1,
+      );
+      s.logTransaction(move('tx_move_cc', 'acc_bpi_cc'));
+      s.logTransaction(move('tx_move_ok', 'acc_cash'));
+      expect(s.editPreview('tx_move_cc'), EditOutcome.otherAccount);
+      expect(s.editPreview('tx_move_ok'), EditOutcome.done);
+    });
+  });
+
+  test('a reconciled row whose money changes goes back to Confirmed; a '
+      'note alone keeps it Reconciled', () async {
+    final FinancialState s = await fresh();
+    const Transaction checked = Transaction(
+      id: 'tx_rec_1',
+      type: TransactionType.expense,
+      amount: Money.pesos(250),
+      category: 'Food & Dining',
+      accountId: 'acc_cash',
+      date: '2026-09-17',
+      createdAt: 1000,
+      status: TransactionStatus.reconciled,
+    );
+    s.logTransaction(checked);
+    final EditReceipt a = s.editTransaction(
+      'tx_rec_1',
+      edit(checked, note: 'just a note'),
+    )!;
+    final Transaction noted = row(s, a.replacementId);
+    expect(noted.status, TransactionStatus.reconciled);
+    final EditReceipt b = s.editTransaction(
+      noted.id,
+      edit(noted, amount: const Money.pesos(260)),
+    )!;
+    expect(row(s, b.replacementId).status, TransactionStatus.confirmed);
   });
 
   group('undo', () {

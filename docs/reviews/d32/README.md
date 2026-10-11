@@ -84,4 +84,7 @@ How the figures tie:
   check will be off by.
 - Not editable, with a one line reason: entries tied to a debt, a plan, a
   split, a loan or a reconciliation (same as Take this back), bill
-  payments, and example entries.
+  payments, example entries, money to or from another person, and entries
+  on a card or loan account. Take this back still works on those.
+- A Move money entry moved to a different account gets its title rewritten
+  to match; a title you wrote yourself is left alone.

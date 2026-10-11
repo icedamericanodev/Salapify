@@ -122,8 +122,10 @@ class TransactionDetailSheet extends StatelessWidget {
                 // row describes a payment the person deliberately took back,
                 // and the debt or plan it paid has already moved with it.
                 TransactionStatus.corrected when state.wasEditedAway(t) =>
-                  'You edited this entry. The corrected version is the one '
-                      'counted; this one stays as the record of what it was.',
+                  // Says nothing about which version counts now: the newer
+                  // one can have been taken back too (qa-tester).
+                  'You edited this entry, so this version is not counted. It '
+                      'stays here as the record of what it was.',
                 TransactionStatus.corrected =>
                   'You took this payment back, so it is not counted in your '
                       'totals. It stays here because it is part of what '
@@ -329,14 +331,20 @@ class _TakeBackState extends State<_TakeBack> {
             onTap: () => _confirm(context, p, t),
           ),
           const SizedBox(height: Spacing.sm),
-          Text(
-            edit == EditOutcome.example
-                ? 'Example entries cannot be edited. Remove the examples in '
-                      'Settings, then log your own.'
-                : 'Bill payments cannot be edited here, because the bill '
-                      'keeps track of them. Take it back if it was wrong.',
-            style: AppType.caption(p),
-          ),
+          Text(switch (edit) {
+            EditOutcome.example =>
+              'Example entries cannot be edited. Remove the examples in '
+                  'Settings, then log your own.',
+            EditOutcome.billPayment =>
+              'Bill payments cannot be edited here, because the bill '
+                  'keeps track of them. Take it back if it was wrong.',
+            EditOutcome.otherPerson =>
+              'Money to or from another person cannot be edited here. '
+                  'Take it back and record it again from Debts.',
+            _ =>
+              'This uses a card or loan account, which cannot be edited '
+                  'here. Take it back and record it again.',
+          }, style: AppType.caption(p)),
         ],
         const SizedBox(height: Spacing.sm),
         Text(

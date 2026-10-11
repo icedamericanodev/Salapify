@@ -83,6 +83,13 @@ enum EditOutcome {
 
   /// Marking a bill paid wrote it.
   billPayment,
+
+  /// Somebody else is on one side of it: money lent or borrowed, a
+  /// repayment, a share a friend paid.
+  otherPerson,
+
+  /// It uses an account the Log sheet cannot pick, such as a card or a loan.
+  otherAccount,
 }
 
 /// What [FinancialState.undoEdit] needs to put an edit back: the two rows,
@@ -2027,6 +2034,25 @@ class FinancialState extends ChangeNotifier {
     );
     if (tx.isSample) return EditOutcome.example;
     if (txId.startsWith('tx_bill_')) return EditOutcome.billPayment;
+    // SOMEBODY ELSE on one side: money lent (a transfer with nobody's
+    // account at the end of it), a repayment from a friend, a share a friend
+    // paid. The Log sheet has no way to say "a person" on either side, so it
+    // filled in one of the person's own accounts, and a Save with nothing
+    // changed moved 600 lent into their own Cash (qa-tester, 2026-10-11).
+    if (tx.isFromOutside ||
+        (tx.type == TransactionType.transfer && tx.toAccountId == null)) {
+      return EditOutcome.otherPerson;
+    }
+    // An account the Log sheet cannot pick, a card or a loan on either side.
+    // The picker could not show it, Save could never be enabled, and the
+    // way out people would find, switching the type to Spent, turns a card
+    // payment into spending.
+    bool pickable(String? id) =>
+        _accounts.any((Account a) => a.id == id && a.isLiquid);
+    if (!pickable(tx.accountId) ||
+        (tx.toAccountId != null && !pickable(tx.toAccountId))) {
+      return EditOutcome.otherAccount;
+    }
     return EditOutcome.done;
   }
 
@@ -2061,7 +2087,13 @@ class FinancialState extends ChangeNotifier {
     final Transaction replacement = Transaction(
       id: '${base}_e${DateTime.now().microsecondsSinceEpoch}',
       createdAt: stored.createdAt,
-      status: stored.status,
+      // "Reconciled" said this row matched a statement. Once its money
+      // changes it no longer does, so it goes back to plain Confirmed.
+      status:
+          stored.status == TransactionStatus.reconciled &&
+              _movesMoneyDifferently(stored, edited)
+          ? TransactionStatus.confirmed
+          : stored.status,
       profile: stored.profile,
       isSample: false,
       isTaxDeductible: stored.isTaxDeductible,
@@ -2162,6 +2194,12 @@ class FinancialState extends ChangeNotifier {
     }
     return false;
   }
+
+  static bool _movesMoneyDifferently(Transaction a, Transaction b) =>
+      a.type != b.type ||
+      a.amount != b.amount ||
+      a.accountId != b.accountId ||
+      a.toAccountId != b.toAccountId;
 
   /// The fields a person can change on the Log sheet, compared. Equal means
   /// Save would write a struck row and an identical copy, which records
