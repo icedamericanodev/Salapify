@@ -331,7 +331,8 @@ class BillsSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final UpcomingTotals t = computeUpcomingTotals(state.upcoming);
+    // Added up over what is due by payday (D36); every item is still listed.
+    final UpcomingTotals t = computeUpcomingTotals(state.upcomingThisCycle);
     final List<UpcomingItem> items = state.upcoming;
 
     return Column(
@@ -345,13 +346,17 @@ class BillsSegment extends StatelessWidget {
             palette: palette,
             label: 'Going out',
             value: formatPeso(t.totalOut.pesos),
-            caption: t.billCount == 1 ? '1 bill' : '${t.billCount} bills',
+            caption: t.billCount == 1
+                ? '1 bill due by payday'
+                : '${t.billCount} bills due by payday',
             valueColor: palette.negative,
           ),
           right: StatCard(
             palette: palette,
             label: 'Coming in',
-            value: formatPeso(t.totalIn.pesos),
+            // COMING IN keeps every scheduled income: D36 is about what goes
+            // out, and the payday that ends the window is the income.
+            value: formatPeso(computeUpcomingTotals(items).totalIn.pesos),
             caption: 'Payday and income',
             valueColor: palette.positive,
           ),

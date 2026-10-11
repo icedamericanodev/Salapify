@@ -1527,3 +1527,20 @@ are founder-gated, both answers were the recommended option.
 2. **Splits already saved stay exactly as they are.** Nothing stored is
    rewritten. Only new splits use the D32/D34 shape. An old split that
    bothers somebody can be taken back and entered again.
+
+## D36. Borrowing and lending in cash flow; "Going out" means by payday. ANSWERED 2026-10-10
+
+THE QUESTION. The ledger-reconciler's review of lending (D31, D32.3) and
+repeating bills (D31) found two figures whose meaning only the founder can
+set. Both answers were the recommended option.
+
+1. **Reports' cash flow shows borrowing and lending on its own line.**
+   Money borrowed and money collected back come in; money lent and money
+   repaid go out. Spending and income are unchanged: these entries were
+   already neither. Before this, borrowing 10,000 into GCash raised the
+   account and appeared nowhere in the cash flow statement.
+2. **"Going out" on the Bills screen counts only what is due by payday**, the
+   same window Safe to Spend holds back (D33). Paying a bill makes it drop
+   at once; bills due later are still listed, just not added in. Before
+   this, paying a monthly bill moved it to next month and the total did not
+   move.

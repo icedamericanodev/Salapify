@@ -2750,6 +2750,20 @@ class FinancialState extends ChangeNotifier {
 
   static const int _noPaydayWindowDays = 30;
 
+  /// The scheduled items due by payday, overdue included: the window Safe
+  /// to Spend holds bills back for (D33), used for the "Going out" and
+  /// "Coming in" totals on Bills and Plan (D36), so paying a bill makes the
+  /// total drop at once. Every item is still LISTED; this is only what is
+  /// added up.
+  List<UpcomingItem> get upcomingThisCycle {
+    final PaydayCycle p = payday;
+    final int window = p.isSet ? p.daysToPayday : _noPaydayWindowDays;
+    return <UpcomingItem>[
+      for (final UpcomingItem u in _upcoming)
+        if ((daysUntil(u.dueDate, now) ?? 0) <= window) u,
+    ];
+  }
+
   SafeToSpendAnalysis get safeToSpendAnalysis => computeSafeToSpend(
     // CONVERTED ON THE WAY IN. The engine is a line-for-line port of a
     // prototype with no currency field, so it sums `balance` raw and has to

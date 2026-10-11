@@ -1271,6 +1271,16 @@ class _CashFlowView extends StatelessWidget {
           net: c.netFinancing,
         ),
         const SizedBox(height: Spacing.md),
+        // D36: its own line, so borrowed money is visible where it came in.
+        _FlowSection(
+          palette: palette,
+          title: 'Borrowing and lending',
+          note: 'Money lent, borrowed and paid back',
+          inflows: c.borrowLendInflows,
+          outflows: c.borrowLendOutflows,
+          net: c.netBorrowLend,
+        ),
+        const SizedBox(height: Spacing.md),
         _SectionCard(
           palette: palette,
           title: 'Your own transfers',

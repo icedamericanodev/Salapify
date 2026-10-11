@@ -201,7 +201,7 @@ class _Overview extends StatelessWidget {
       now: state.now,
     );
     final BudgetTotals totals = computeBudgetTotals(budgets);
-    final UpcomingTotals bills = computeUpcomingTotals(state.upcoming);
+    final UpcomingTotals bills = computeUpcomingTotals(state.upcomingThisCycle);
     final List<GoalStatus> goals = computeGoals(state.goals);
 
     return Column(

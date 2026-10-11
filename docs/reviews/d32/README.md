@@ -56,3 +56,14 @@ How the figures tie:
 - "Undo last payment" on the row puts the money and the date back. An older
   month's payment can be taken back from Activity on its own.
 - The runway chart places it every month it falls in the window.
+
+## D36: borrowing and lending in cash flow; "Going out" by payday
+
+![Cash flow](reports_cash_flow_gabi.png)
+
+- Reports, Cash flow has a "Borrowing and lending" line: money borrowed and
+  collected comes in, money lent and repaid goes out, and it counts toward
+  "Your cash grew by". "Your own transfers" now counts only moves between
+  your own accounts.
+- "Going out" on Bills and Plan adds up only what is due by payday ("3 bills
+  due by payday"); every bill is still listed. "Coming in" is unchanged.

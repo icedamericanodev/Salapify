@@ -286,6 +286,9 @@ class CashFlow {
     required this.financingInflows,
     required this.financingOutflows,
     required this.netFinancing,
+    this.borrowLendInflows = 0,
+    this.borrowLendOutflows = 0,
+    this.netBorrowLend = 0,
     required this.transfersCount,
     required this.transfersVolume,
     required this.netCashChange,
@@ -302,6 +305,15 @@ class CashFlow {
   final double financingInflows;
   final double financingOutflows;
   final double netFinancing;
+
+  /// BORROWING AND LENDING (D36, 2026-10-10): money borrowed or collected
+  /// back from somebody comes in; money lent or repaid goes out. Neither is
+  /// income or spending (D35), and before this line they were in no section
+  /// at all, so borrowing 10,000 into GCash raised the account while the
+  /// statement said nothing had come in.
+  final double borrowLendInflows;
+  final double borrowLendOutflows;
+  final double netBorrowLend;
 
   /// Transfers are reported and then EXCLUDED from netCashChange, because
   /// moving your own money between your own accounts is not cash flowing in
@@ -829,13 +841,41 @@ CashFlow computeCashFlow(List<Transaction> scoped) {
     ),
   );
 
+  // Money from, or to, somebody else (D36): a transfer FROM outside into an
+  // account, or OUT of one with no destination. Counted only while it counts
+  // toward the totals, like every other line.
+  final double borrowLendInflows = _sumOf(
+    scoped.where(
+      (Transaction t) =>
+          t.type == TransactionType.transfer &&
+          t.countsTowardTotals &&
+          t.arrivesFromOutside,
+    ),
+  );
+  final double borrowLendOutflows = _sumOf(
+    scoped.where(
+      (Transaction t) =>
+          t.type == TransactionType.transfer &&
+          t.countsTowardTotals &&
+          !t.isFromOutside &&
+          t.toAccountId == null,
+    ),
+  );
+
+  // YOUR OWN transfers only, between two of your accounts. Borrowing and
+  // lending used to be counted here too, as "moves between your own
+  // accounts", which they are not.
   final Iterable<Transaction> transfers = scoped.where(
-    (Transaction t) => t.type == TransactionType.transfer,
+    (Transaction t) =>
+        t.type == TransactionType.transfer &&
+        !t.isFromOutside &&
+        t.toAccountId != null,
   );
 
   final double netOperating = operatingInflows - operatingOutflows;
   final double netInvesting = investingInflows - investingOutflows;
   final double netFinancing = financingInflows - financingOutflows;
+  final double netBorrowLend = borrowLendInflows - borrowLendOutflows;
 
   return CashFlow(
     operatingInflows: operatingInflows,
@@ -847,9 +887,13 @@ CashFlow computeCashFlow(List<Transaction> scoped) {
     financingInflows: financingInflows,
     financingOutflows: financingOutflows,
     netFinancing: netFinancing,
+    borrowLendInflows: borrowLendInflows,
+    borrowLendOutflows: borrowLendOutflows,
+    netBorrowLend: netBorrowLend,
     transfersCount: transfers.length,
     transfersVolume: _sumOf(transfers),
-    netCashChange: netOperating + netInvesting + netFinancing,
+    // Borrowing and lending move real cash, so they are in the change.
+    netCashChange: netOperating + netInvesting + netFinancing + netBorrowLend,
   );
 }
 
