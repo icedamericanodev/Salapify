@@ -137,4 +137,76 @@ void main() {
     expect(saved!.toAccountId, 'acc_maya');
     expect(saved.merchant, 'Pocket money');
   });
+
+  testWidgets('a card payment opens with the card chosen and saves with a '
+      'new amount', (WidgetTester tester) async {
+    const Transaction pay = Transaction(
+      id: 'tx_move_card',
+      type: TransactionType.transfer,
+      amount: Money.pesos(500),
+      category: 'Transfer',
+      accountId: 'acc_cash',
+      toAccountId: 'acc_bpi_cc',
+      date: '2026-09-17',
+      createdAt: 1,
+    );
+    final Transaction? saved = await editAndSave(tester, pay, () async {
+      // The card is offered where the money went, which the everyday-only
+      // list could not do, so Save was dead.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('log-destination-picker')),
+          matching: find.text('BPI Rewards Card'),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '700',
+      );
+      await tester.pumpAndSettle();
+    });
+    expect(saved, isNotNull, reason: 'Save never unlocked');
+    expect(saved!.amount, const Money.pesos(700));
+    expect(saved.toAccountId, 'acc_bpi_cc');
+    expect(saved.accountId, 'acc_cash');
+  });
+
+  testWidgets('a new entry still offers everyday accounts only', (
+    WidgetTester tester,
+  ) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+    final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
+    state.startWithExampleData();
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: salapifyTheme(Palette.of(state.theme), state.theme),
+        home: Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: TextButton(
+              onPressed: () => LogSheet.show(context, state),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('log-source-picker')),
+        matching: find.text('BPI Rewards Card'),
+      ),
+      findsNothing,
+      reason: 'paying a card is Move money\'s job; a new log is unchanged',
+    );
+  });
 }

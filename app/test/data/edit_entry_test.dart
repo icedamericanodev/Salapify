@@ -281,23 +281,87 @@ void main() {
       expect(s.editPreview('tx_share_qa'), EditOutcome.otherPerson);
     });
 
-    test('a payment to a credit card is refused, a move between two '
-        'wallets is not', () async {
+    test('accounts an edit cannot offer are refused: money owed to you, or '
+        'a loan as the source', () async {
       final FinancialState s = await fresh();
-      Transaction move(String id, String to) => Transaction(
+      Transaction move(String id, String from, String to) => Transaction(
         id: id,
         type: TransactionType.transfer,
         amount: const Money.pesos(1000),
         category: 'Transfer',
-        accountId: 'acc_gcash',
+        accountId: from,
         toAccountId: to,
         date: '2026-09-17',
         createdAt: 1,
       );
-      s.logTransaction(move('tx_move_cc', 'acc_bpi_cc'));
-      s.logTransaction(move('tx_move_ok', 'acc_cash'));
-      expect(s.editPreview('tx_move_cc'), EditOutcome.otherAccount);
+      s.logTransaction(move('tx_to_recv', 'acc_gcash', 'acc_receivables'));
+      s.logTransaction(move('tx_from_loan', 'acc_personal_loan', 'acc_cash'));
+      s.logTransaction(move('tx_move_ok', 'acc_gcash', 'acc_cash'));
+      expect(s.editPreview('tx_to_recv'), EditOutcome.otherAccount);
+      expect(s.editPreview('tx_from_loan'), EditOutcome.otherAccount);
       expect(s.editPreview('tx_move_ok'), EditOutcome.done);
+    });
+  });
+
+  group('card payments (2026-10-11)', () {
+    Transaction payCard(int pesos) => Transaction(
+      id: 'tx_move_card',
+      type: TransactionType.transfer,
+      amount: Money.pesos(pesos),
+      category: 'Transfer',
+      accountId: 'acc_gcash',
+      toAccountId: 'acc_bpi_cc',
+      date: '2026-09-17',
+      createdAt: 1,
+      merchant: 'Transfer: GCash Wallet to BPI Rewards Card',
+    );
+
+    test('a card payment edited from 500 to 700 leaves every account where '
+        'a 700 payment would have', () async {
+      final FinancialState edited = await fresh();
+      edited.logTransaction(payCard(500));
+      final Money gcashAt500 = cash(edited, 'acc_gcash');
+      final Money cardAt500 = cash(edited, 'acc_bpi_cc');
+      expect(edited.editPreview('tx_move_card'), EditOutcome.done);
+      expect(edited.editTransaction('tx_move_card', payCard(700)), isNotNull);
+
+      // Directional: 200 more left GCash and the card moved.
+      expect(cash(edited, 'acc_gcash'), gcashAt500 - const Money.pesos(200));
+      expect(cash(edited, 'acc_bpi_cc'), isNot(cardAt500));
+
+      // The invariant, measured against the engine itself rather than a
+      // sign this test would have to assume: the same as paying 700.
+      final FinancialState direct = await fresh();
+      direct.logTransaction(payCard(700));
+      for (final Account a in direct.accounts) {
+        expect(cash(edited, a.id), a.balance, reason: a.name);
+      }
+    });
+
+    test('a spend on the card is editable and moves only the card', () async {
+      final FinancialState s = await fresh();
+      const Transaction onCard = Transaction(
+        id: 'tx_on_card',
+        type: TransactionType.expense,
+        amount: Money.pesos(1200),
+        category: 'Shopping & Personal',
+        accountId: 'acc_bpi_cc',
+        date: '2026-09-17',
+        createdAt: 1,
+      );
+      s.logTransaction(onCard);
+      final Money cardBefore = cash(s, 'acc_bpi_cc');
+      final Money gcashBefore = cash(s, 'acc_gcash');
+      expect(s.editPreview('tx_on_card'), EditOutcome.done);
+      s.editTransaction(
+        'tx_on_card',
+        edit(onCard, amount: const Money.pesos(1500)),
+      );
+      expect(cash(s, 'acc_bpi_cc'), isNot(cardBefore));
+      expect(cash(s, 'acc_gcash'), gcashBefore);
+      final FinancialState direct = await fresh();
+      direct.logTransaction(edit(onCard, amount: const Money.pesos(1500)));
+      expect(cash(s, 'acc_bpi_cc'), cash(direct, 'acc_bpi_cc'));
     });
   });
 

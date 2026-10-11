@@ -342,8 +342,8 @@ class _TakeBackState extends State<_TakeBack> {
               'Money to or from another person cannot be edited here. '
                   'Take it back and record it again from Debts.',
             _ =>
-              'This uses a card or loan account, which cannot be edited '
-                  'here. Take it back and record it again.',
+              'This uses an account that cannot be edited here. Take it '
+                  'back and record it again.',
           }, style: AppType.caption(p)),
         ],
         const SizedBox(height: Spacing.sm),

@@ -12,6 +12,7 @@ import '../core/money/accounts.dart';
 import '../core/money/bills.dart';
 import '../core/money/bills_to_reserve.dart';
 import '../core/money/debt.dart';
+import '../core/money/edit_accounts.dart';
 import '../core/money/health_check.dart';
 import '../core/money/payday_schedule.dart';
 import '../core/money/installments.dart';
@@ -88,7 +89,8 @@ enum EditOutcome {
   /// repayment, a share a friend paid.
   otherPerson,
 
-  /// It uses an account the Log sheet cannot pick, such as a card or a loan.
+  /// It uses an account an edit cannot offer, such as a house or money owed
+  /// to you (core/money/edit_accounts.dart).
   otherAccount,
 }
 
@@ -2043,15 +2045,23 @@ class FinancialState extends ChangeNotifier {
         (tx.type == TransactionType.transfer && tx.toAccountId == null)) {
       return EditOutcome.otherPerson;
     }
-    // An account the Log sheet cannot pick, a card or a loan on either side.
-    // The picker could not show it, Save could never be enabled, and the
-    // way out people would find, switching the type to Spent, turns a card
-    // payment into spending.
-    bool pickable(String? id) =>
-        _accounts.any((Account a) => a.id == id && a.isLiquid);
-    if (!pickable(tx.accountId) ||
-        (tx.toAccountId != null && !pickable(tx.toAccountId))) {
+    // An account the edit sheet cannot offer. The SAME rule the sheet's
+    // pickers use (core/money/edit_accounts.dart), so the button and the
+    // form cannot disagree: a card payment and a spend on a card are
+    // editable; a house, money owed to you, or a loan as the source are
+    // not. Before 2026-10-11 any card or loan was refused here, because the
+    // sheet could only pick everyday accounts and Save could never unlock.
+    final Account? from = _accounts
+        .where((Account a) => a.id == tx.accountId)
+        .firstOrNull;
+    if (from == null || !canEditFrom(from, tx.type)) {
       return EditOutcome.otherAccount;
+    }
+    if (tx.toAccountId != null) {
+      final Account? to = _accounts
+          .where((Account a) => a.id == tx.toAccountId)
+          .firstOrNull;
+      if (to == null || !canEditTo(to)) return EditOutcome.otherAccount;
     }
     return EditOutcome.done;
   }

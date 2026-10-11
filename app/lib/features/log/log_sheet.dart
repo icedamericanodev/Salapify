@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/money/edit_accounts.dart';
 import '../../core/money/fast_log.dart';
 import '../../core/money/receipt_paste.dart';
 import '../../core/money/format.dart';
@@ -87,6 +88,22 @@ class _LogSheetState extends State<LogSheet> {
 
   List<Account> get _spendable =>
       widget.state.accounts.where((Account a) => a.isLiquid).toList();
+
+  /// Where this entry may come FROM. A new entry offers everyday accounts
+  /// only; a correction also offers what Move money or the receipt scanner
+  /// could have written, so a card payment or a spend on a card can be
+  /// edited (core/money/edit_accounts.dart, the rule the store's Edit
+  /// button reads too).
+  List<Account> get _sources => widget.editing == null
+      ? _spendable
+      : widget.state.accounts
+            .where((Account a) => canEditFrom(a, _type))
+            .toList();
+
+  /// Where a move may ARRIVE, on the same terms.
+  List<Account> get _destinations => widget.editing == null
+      ? _spendable
+      : widget.state.accounts.where(canEditTo).toList();
 
   @override
   void initState() {
@@ -305,6 +322,13 @@ class _LogSheetState extends State<LogSheet> {
   void _setType(TransactionType next) {
     setState(() {
       _type = next;
+      // A card can be spent on but not MOVED out of, so a correction that
+      // switches type can leave the source unofferable. Pick the first one
+      // that is, rather than a picker with nothing selected and Save dead.
+      if (!_sources.any((Account a) => a.id == _accountId) &&
+          _sources.isNotEmpty) {
+        _accountId = _sources.first.id;
+      }
       if (next == TransactionType.transfer) return;
 
       final List<CategoryInfo> usable = _categoriesFor(next);
@@ -314,7 +338,7 @@ class _LogSheetState extends State<LogSheet> {
       if (!stillValid && usable.isNotEmpty) _category = usable.first.name;
 
       if (_toAccountId == _accountId) {
-        for (final Account a in _spendable) {
+        for (final Account a in _destinations) {
           if (a.id != _accountId) {
             _toAccountId = a.id;
             break;
@@ -341,6 +365,10 @@ class _LogSheetState extends State<LogSheet> {
   bool get _canSave {
     if (_amountValue == null) return false;
     if (_accountId.isEmpty) return false;
+    if (widget.editing != null &&
+        !_sources.any((Account a) => a.id == _accountId)) {
+      return false;
+    }
     // The quirk guard. applyToBalances reproduces the prototype faithfully,
     // and the prototype DESTROYS money on a transfer whose destination does
     // not exist: it debits the source and credits nobody. The engine keeps
@@ -348,7 +376,9 @@ class _LogSheetState extends State<LogSheet> {
     if (_type == TransactionType.transfer) {
       if (_toAccountId.isEmpty) return false;
       if (_toAccountId == _accountId) return false;
-      if (!_spendable.any((Account a) => a.id == _toAccountId)) return false;
+      if (!_destinations.any((Account a) => a.id == _toAccountId)) {
+        return false;
+      }
     }
     return true;
   }
@@ -545,17 +575,19 @@ class _LogSheetState extends State<LogSheet> {
             key: const Key('log-source-picker'),
             palette: p,
             label: isTransfer ? 'From which account' : 'Which account',
-            accounts: _spendable,
+            accounts: _sources,
             selectedId: _accountId,
             onSelect: (String id) => setState(() {
               _accountId = id;
               // Keep a transfer from pointing at itself the moment the source
               // changes, rather than waiting for Save to refuse.
               if (_toAccountId == id) {
-                final Account? other = _spendable.cast<Account?>().firstWhere(
-                  (Account? a) => a!.id != id,
-                  orElse: () => null,
-                );
+                final Account? other = _destinations
+                    .cast<Account?>()
+                    .firstWhere(
+                      (Account? a) => a!.id != id,
+                      orElse: () => null,
+                    );
                 if (other != null) _toAccountId = other.id;
               }
             }),
@@ -567,7 +599,7 @@ class _LogSheetState extends State<LogSheet> {
               key: const Key('log-destination-picker'),
               palette: p,
               label: 'To which account',
-              accounts: _spendable
+              accounts: _destinations
                   .where((Account a) => a.id != _accountId)
                   .toList(),
               selectedId: _toAccountId,

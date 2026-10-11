@@ -85,7 +85,8 @@ How the figures tie:
 - Not editable, with a one line reason: entries tied to a debt, a plan, a
   split, a loan or a reconciliation (same as Take this back), bill
   payments, example entries, money to or from another person, and entries
-  on a card or loan account. Take this back still works on those.
+  on an account an edit cannot offer (a house, money owed to you, a loan
+  as the source). Take this back still works on those.
 - A Move money entry moved to a different account gets its title rewritten
   to match; a title you wrote yourself is left alone.
 
@@ -102,3 +103,13 @@ How the figures tie:
   (Flutter 3.47 had made them stay until tapped).
 - The few messages that used Flutter's default dark grey now use the
   same orange as the rest.
+
+## Card payments are editable
+
+![Editing a card payment](sheet_edit_card_payment.png)
+
+- A payment to a card or a loan (from Move money) and a spend made ON a
+  card can now be edited. The form offers the same accounts Move money and
+  the receipt scanner do, so the card is selected and Save works.
+- Logging a NEW entry is unchanged: everyday accounts only, and paying a
+  card is still Move money's job.

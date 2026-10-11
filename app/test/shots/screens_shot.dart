@@ -1421,6 +1421,56 @@ void main() {
     });
   }
 
+  // A card payment open for editing (2026-10-11): the card offered where
+  // the money went, so Save works.
+  testWidgets('sheet_edit_card_payment renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime.utc(2026, 9, 18),
+    );
+    const Transaction pay = Transaction(
+      id: 'tx_move_card_shot',
+      type: TransactionType.transfer,
+      amount: Money.pesos(500),
+      category: 'Transfer',
+      accountId: 'acc_cash',
+      toAccountId: 'acc_bpi_cc',
+      date: '2026-09-17',
+      createdAt: 900,
+      merchant: 'Transfer: Cash on Hand (Pitaka) to BPI Rewards Card',
+    );
+    state.logTransaction(pay);
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    LogSheet.show(tester.element(find.byType(AppShell)), state, editing: pay);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '700',
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/sheet_edit_card_payment.png'),
+    );
+  });
+
   // The message after logging, with Undo and the close button side by side
   // (founder direction, 2026-10-11), at a normal phone and at 320dp, where
   // the two buttons and the sentence compete hardest for room.

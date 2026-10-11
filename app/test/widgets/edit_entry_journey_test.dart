@@ -210,4 +210,56 @@ void main() {
       reason: 'an edit and its own old version were offered as a double entry',
     );
   });
+
+  testWidgets('a card payment can be edited from Activity, and Accounts '
+      'shows the new figure', (WidgetTester tester) async {
+    final FinancialState state = await openApp(tester);
+    state.logTransaction(
+      const Transaction(
+        id: 'tx_move_card',
+        type: TransactionType.transfer,
+        amount: Money.pesos(500),
+        category: 'Transfer',
+        accountId: 'acc_cash',
+        toAccountId: 'acc_bpi_cc',
+        date: '2026-09-18',
+        createdAt: 950,
+        merchant: 'Card payment',
+      ),
+    );
+    await tester.pumpAndSettle();
+    Money card() =>
+        state.accounts.firstWhere((Account a) => a.id == 'acc_bpi_cc').balance;
+    final Money before = card();
+
+    await tapIt(tester, find.text('Activity'));
+    await tapIt(tester, find.text('Card payment'));
+    await tapIt(tester, find.byKey(const Key('entry-edit')));
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('log-amount')),
+        matching: find.byType(TextField),
+      ),
+      '700',
+    );
+    await tester.pumpAndSettle();
+    await tapIt(tester, find.text('Save changes'));
+
+    expect(card(), isNot(before), reason: 'the card did not move');
+    expect(find.textContaining('Edited.'), findsOneWidget);
+
+    // Accounts, by tapping: the card reads its new balance.
+    await tester.pumpAndSettle(const Duration(seconds: 6));
+    await tapIt(
+      tester,
+      find.byIcon(Icons.account_balance_wallet_outlined).last,
+    );
+    await tester.scrollUntilVisible(
+      find.text('BPI Rewards Card'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(formatPeso(card().pesos)), findsWidgets);
+  });
 }
