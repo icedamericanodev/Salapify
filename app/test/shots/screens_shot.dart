@@ -55,6 +55,7 @@ import 'package:salapify/screens/home/home_screen.dart';
 import 'package:salapify/features/onboarding/first_account_screen.dart';
 import 'package:salapify/features/onboarding/welcome_screen.dart';
 import 'package:salapify/screens/activity/transaction_detail_sheet.dart';
+import 'package:salapify/screens/home/quick_actions.dart';
 import 'package:salapify/shell/app_shell.dart';
 import 'package:salapify/data/fx_service.dart';
 import 'package:salapify/data/store.dart';
@@ -1416,6 +1417,85 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
+
+  // The message after logging, with Undo and the close button side by side
+  // (founder direction, 2026-10-11), at a normal phone and at 320dp, where
+  // the two buttons and the sentence compete hardest for room.
+  for (final ({String slug, double width}) shape
+      in <({String slug, double width})>[
+        (slug: 'snackbar_logged', width: 390),
+        (slug: 'snackbar_logged_320', width: 320),
+      ]) {
+    testWidgets('${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = Size(shape.width * 3, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      // Not the first real entry, which also opens the reminder offer.
+      state.logTransaction(
+        const Transaction(
+          id: 'tx_shot_earlier',
+          type: TransactionType.expense,
+          amount: Money.pesos(90),
+          category: 'Food & Dining',
+          accountId: 'acc_cash',
+          date: '2026-09-17',
+          createdAt: 1,
+        ),
+      );
+      final Palette palette = Palette.of(state.theme);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final Finder log = find.descendant(
+        of: find.byType(QuickActions),
+        matching: find.text('Log'),
+      );
+      await tester.ensureVisible(log);
+      await tester.pumpAndSettle();
+      await tester.tap(log);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('log-amount')),
+          matching: find.byType(TextField),
+        ),
+        '150',
+      );
+      final Finder where = find.descendant(
+        of: find.byKey(const Key('log-merchant')),
+        matching: find.byType(TextField),
+      );
+      await tester.scrollUntilVisible(
+        where,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(where, 'Mcdo');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save entry'));
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/${shape.slug}.png'),
       );
     });
   }

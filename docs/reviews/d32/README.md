@@ -88,3 +88,17 @@ How the figures tie:
   on a card or loan account. Take this back still works on those.
 - A Move money entry moved to a different account gets its title rewritten
   to match; a title you wrote yourself is left alone.
+
+## Messages can be closed
+
+| A normal phone | 320dp, the narrowest |
+| --- | --- |
+| ![Message](snackbar_logged.png) | ![Message at 320dp](snackbar_logged_320.png) |
+
+- Every message now has a close button (✕), so one already read does not
+  sit over the screen for its five seconds. Closing it does not undo
+  anything; Undo still does that.
+- Messages with an Undo go away on their own again after five seconds
+  (Flutter 3.47 had made them stay until tapped).
+- The few messages that used Flutter's default dark grey now use the
+  same orange as the rest.
