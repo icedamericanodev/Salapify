@@ -73,6 +73,10 @@ Future<Transaction?> payBillFlow(
         // screen full of small round targets, and without this the only
         // recovery is finding the entry in Activity and knowing the bill put
         // it there.
+        // GOES AWAY ON ITS OWN. Flutter 3.47 keeps any snackbar with an action
+        // on screen until it is tapped unless told otherwise, so an Undo
+        // stayed over the screen for good (founder report, 2026-10-11).
+        persist: false,
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () => state.undoUpcomingPaid(item.id, written),

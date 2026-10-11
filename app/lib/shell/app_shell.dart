@@ -281,6 +281,10 @@ class _AppShellState extends State<AppShell> {
           backgroundColor: palette.accent,
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
+          // GOES AWAY ON ITS OWN. Flutter 3.47 keeps any snackbar with an action
+          // on screen until it is tapped unless told otherwise, so an Undo
+          // stayed over the screen for good (founder report, 2026-10-11).
+          persist: false,
           action: SnackBarAction(
             label: 'Undo',
             textColor: palette.onAccent,
