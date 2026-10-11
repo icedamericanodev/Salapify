@@ -58,6 +58,10 @@ List<UsualEntry> usualEntries(
   final Map<String, _Tally> tallies = <String, _Tally>{};
   for (final Transaction t in transactions) {
     if (t.type != TransactionType.expense || t.isSample) continue;
+    // Only what still counts. A taken-back or edited-away entry is not a
+    // habit, and counting it kept "Kape 150 x2" on a chip after one of the
+    // two was corrected to 180.
+    if (!t.countsTowardTotals) continue;
     // A share a friend paid touched none of the person's accounts, so it
     // cannot be "the usual" from one (D34).
     if (t.isFromOutside) continue;

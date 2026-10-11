@@ -67,3 +67,21 @@ How the figures tie:
   your own accounts.
 - "Going out" on Bills and Plan adds up only what is due by payday ("3 bills
   due by payday"); every bill is still listed. "Coming in" is unchanged.
+
+## Edit an entry
+
+| The entry, with Edit | Editing it | The old version afterwards |
+| --- | --- | --- |
+| ![Entry](entry_detail_editable.png) | ![Edit sheet](sheet_edit_entry.png) | ![Edited](entry_detail_edited.png) |
+
+- Open any entry in Activity and tap Edit. The Log sheet opens filled in;
+  change what is wrong and tap Save changes. The balance follows.
+- The old version stays in Activity, struck through and marked Taken back,
+  and says "You edited this entry". The corrected one is the one counted.
+  Undo on the confirmation puts it back as it was.
+- If the account was checked against a statement after the entry was
+  logged, the sheet says so at the top before Save, with the amount the
+  check will be off by.
+- Not editable, with a one line reason: entries tied to a debt, a plan, a
+  split, a loan or a reconciliation (same as Take this back), bill
+  payments, and example entries.

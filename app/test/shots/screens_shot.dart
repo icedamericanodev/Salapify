@@ -1420,6 +1420,106 @@ void main() {
     });
   }
 
+  // Edit an entry (Batch 2, 2026-10-11), in the three states worth
+  // reviewing: the entry with its Edit and Take this back buttons, the Log
+  // sheet in edit mode with a new amount on an account checked against a
+  // statement since, and the old version afterwards saying it was edited.
+  for (final String slug in <String>[
+    'entry_detail_editable',
+    'sheet_edit_entry',
+    'entry_detail_edited',
+  ]) {
+    testWidgets('$slug renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+
+      tester.view.physicalSize = const Size(1170, 3400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+      const Transaction lunch = Transaction(
+        id: 'tx_shot_edit',
+        type: TransactionType.expense,
+        amount: Money.pesos(250),
+        category: 'Food & Dining',
+        accountId: 'acc_gcash',
+        date: '2026-09-17',
+        createdAt: 900,
+        merchant: 'Mang Inasal',
+      );
+      state.logTransaction(lunch);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final BuildContext ctx = tester.element(find.byType(AppShell));
+
+      Transaction shown = lunch;
+      if (slug == 'entry_detail_edited') {
+        state.editTransaction(
+          lunch.id,
+          const Transaction(
+            id: 'tx_shot_edit',
+            type: TransactionType.expense,
+            amount: Money.pesos(320),
+            category: 'Food & Dining',
+            accountId: 'acc_gcash',
+            date: '2026-09-17',
+            createdAt: 900,
+            merchant: 'Mang Inasal',
+          ),
+        );
+        shown = state.transactions.firstWhere(
+          (Transaction t) => t.id == lunch.id,
+        );
+        await tester.pumpAndSettle();
+      }
+
+      if (slug == 'sheet_edit_entry') {
+        state.recordReconciliation(
+          accountId: 'acc_gcash',
+          bookBalance: 100,
+          actualBalance: 100,
+        );
+        LogSheet.show(ctx, state, editing: lunch);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(const Key('log-amount')),
+            matching: find.byType(TextField),
+          ),
+          '320',
+        );
+        await tester.pumpAndSettle();
+      } else {
+        TransactionDetailSheet.show(
+          ctx,
+          palette: palette,
+          transaction: shown,
+          state: state,
+          accounts: state.accounts,
+          now: state.now,
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/$slug.png'),
+      );
+    });
+  }
+
   // Move money, in both of the states worth reviewing: as it opens, and with
   // a move filled in so the figures and the closing sentence are visible.
   for (final ({String slug, bool filled}) shape

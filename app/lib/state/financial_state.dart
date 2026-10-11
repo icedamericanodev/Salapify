@@ -69,6 +69,36 @@ enum TakeBackOutcome {
   belongsToLoan,
 }
 
+/// Whether an entry can be edited, from [FinancialState.editPreview].
+enum EditOutcome {
+  /// It can.
+  done,
+
+  /// It cannot be taken back, so it cannot be edited either; the take-back
+  /// refusal on the same sheet already says why and where.
+  refused,
+
+  /// One of Salapify's example entries.
+  example,
+
+  /// Marking a bill paid wrote it.
+  billPayment,
+}
+
+/// What [FinancialState.undoEdit] needs to put an edit back: the two rows,
+/// and the status the original had before it was marked Taken back.
+class EditReceipt {
+  const EditReceipt({
+    required this.originalId,
+    required this.priorStatus,
+    required this.replacementId,
+  });
+
+  final String originalId;
+  final TransactionStatus priorStatus;
+  final String replacementId;
+}
+
 /// The single store the screens read, standing in for the prototype's
 /// FinancialContext. It holds the ledger and derives everything else, so no
 /// screen ever computes money on its own.
@@ -1969,6 +1999,199 @@ class FinancialState extends ChangeNotifier {
     }
 
     return TakeBackOutcome.done;
+  }
+
+  /// Whether an entry may be edited, changing nothing. The detail sheet asks
+  /// this before it offers Edit, and [editTransaction] asks it again at Save,
+  /// so the button and the store cannot disagree.
+  ///
+  /// It STARTS from [takeBackPreview], because an edit IS a take-back plus a
+  /// new entry: anything with a companion record (a debt, a plan, a
+  /// reconciliation, a split, a loan) is refused here for the same reason
+  /// it is refused there. Then two more, both measured by the
+  /// ledger-reconciler and recovery-designer passes on 2026-10-11:
+  ///
+  /// - A BILL PAYMENT. Bills follow their payments by name, and the Bills
+  ///   screen undoes only the payment it last recorded, so an edited copy
+  ///   would be a payment the bill does not know about. Taking it back is
+  ///   still allowed where [takeBackPreview] allows it.
+  /// - AN EXAMPLE ENTRY. Example balances were set directly, never by their
+  ///   entries, so reversing one puts back money that was never taken out,
+  ///   and Remove examples would later delete the row and keep whatever it
+  ///   moved on the person's own account.
+  EditOutcome editPreview(String txId) {
+    final TakeBackOutcome route = takeBackPreview(txId);
+    if (route != TakeBackOutcome.done) return EditOutcome.refused;
+    final Transaction tx = _transactions.firstWhere(
+      (Transaction t) => t.id == txId,
+    );
+    if (tx.isSample) return EditOutcome.example;
+    if (txId.startsWith('tx_bill_')) return EditOutcome.billPayment;
+    return EditOutcome.done;
+  }
+
+  /// Corrects an entry, KEEPING THE OLD ONE IN THE HISTORY.
+  ///
+  /// The old row is marked Taken back and the corrected one is added beside
+  /// it, so Activity shows both: what was logged, and what it was corrected
+  /// to. That is the founder's take-back ruling of 2026-10-02 applied to an
+  /// edit ("somebody keeping books needs the history to show what happened,
+  /// including the correction"), and it is why the model refuses a general
+  /// copyWith: an amount must never change without a trace. Nothing new is
+  /// stored; the struck row IS the record of what it was.
+  ///
+  /// ONE SAVE. Building this from takeBackEntry and logTransaction would be
+  /// two writes, and an app killed between them would have taken the entry
+  /// back with no replacement.
+  ///
+  /// The replacement keeps the old row's createdAt, because Safe to Spend
+  /// picks its measuring window by when entries were logged and a
+  /// correction is not new spending. Its id keeps the old id in front, the
+  /// only link a split's rows have, with one `_e` suffix however many times
+  /// it is edited.
+  ///
+  /// Returns what [undoEdit] needs, or null when nothing was written: a
+  /// refusal, a missing row, or an edit that changes nothing.
+  EditReceipt? editTransaction(String txId, Transaction edited) {
+    if (editPreview(txId) != EditOutcome.done) return null;
+    final int i = _transactions.indexWhere((Transaction t) => t.id == txId);
+    final Transaction stored = _transactions[i];
+
+    final String base = txId.replaceFirst(RegExp(r'_e\d+$'), '');
+    final Transaction replacement = Transaction(
+      id: '${base}_e${DateTime.now().microsecondsSinceEpoch}',
+      createdAt: stored.createdAt,
+      status: stored.status,
+      profile: stored.profile,
+      isSample: false,
+      isTaxDeductible: stored.isTaxDeductible,
+      taxTinOrRef: stored.taxTinOrRef,
+      attachmentPath: stored.attachmentPath,
+      attachmentName: stored.attachmentName,
+      subcategory: edited.category == stored.category
+          ? stored.subcategory
+          : null,
+      type: edited.type,
+      amount: edited.amount,
+      category: edited.category,
+      accountId: edited.accountId,
+      toAccountId: edited.toAccountId,
+      date: edited.date,
+      merchant: edited.merchant,
+      note: edited.note,
+      person: edited.person,
+      tags: edited.tags,
+    );
+    if (_sameEntry(stored, replacement)) return null;
+
+    final List<Transaction> next = applyStatusChange(
+      _transactions,
+      txId,
+      TransactionStatus.corrected,
+    );
+    // Beside the old row rather than at the top, so the two read together
+    // wherever a list keeps the stored order.
+    next.insert(i, replacement);
+    _transactions = next;
+    _accounts = applyToBalances(
+      reverseFromBalances(_accounts, stored),
+      replacement,
+    );
+    notifyListeners();
+    return EditReceipt(
+      originalId: txId,
+      priorStatus: stored.status,
+      replacementId: replacement.id,
+    );
+  }
+
+  /// Puts an edit back, in one save, or changes nothing at all.
+  ///
+  /// THE STORED ROWS decide, never the receipt's memory of them, the lesson
+  /// `undoLoggedTransaction` already records: if the replacement was taken
+  /// back, edited again or marked a duplicate since, or the original no
+  /// longer reads Taken back, undoing would move money twice. Then it
+  /// refuses, both versions stay in Activity, and the person can still put
+  /// it right by hand.
+  bool undoEdit(EditReceipt r) {
+    final int ri = _transactions.indexWhere(
+      (Transaction t) => t.id == r.replacementId,
+    );
+    final int oi = _transactions.indexWhere(
+      (Transaction t) => t.id == r.originalId,
+    );
+    if (ri < 0 || oi < 0) return false;
+    final Transaction replacement = _transactions[ri];
+    final Transaction original = _transactions[oi];
+    if (!replacement.countsTowardTotals) return false;
+    if (original.status != TransactionStatus.corrected) return false;
+
+    final Transaction restored = original.withStatus(r.priorStatus);
+    _transactions = <Transaction>[
+      for (final Transaction t in _transactions)
+        if (t.id == r.replacementId)
+          ...<Transaction>[]
+        else if (t.id == r.originalId)
+          restored
+        else
+          t,
+    ];
+    _accounts = applyToBalances(
+      reverseFromBalances(_accounts, replacement),
+      restored,
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Whether [t] is the old version of an entry that was edited, rather than
+  /// one taken back outright. Read from the ids [editTransaction] writes: a
+  /// later version shares the id in front of `_e` and carries a larger
+  /// number after it. Nothing is stored for this; the detail sheet uses it
+  /// only to say which of the two happened.
+  bool wasEditedAway(Transaction t) {
+    if (t.status != TransactionStatus.corrected) return false;
+    final RegExp suffix = RegExp(r'_e(\d+)$');
+    final String base = t.id.replaceFirst(suffix, '');
+    final int mine = int.tryParse(suffix.firstMatch(t.id)?.group(1) ?? '') ?? 0;
+    for (final Transaction u in _transactions) {
+      final RegExpMatch? m = suffix.firstMatch(u.id);
+      if (m == null) continue;
+      if (u.id.substring(0, m.start) != base) continue;
+      if ((int.tryParse(m.group(1)!) ?? 0) > mine) return true;
+    }
+    return false;
+  }
+
+  /// The fields a person can change on the Log sheet, compared. Equal means
+  /// Save would write a struck row and an identical copy, which records
+  /// nothing but clutter.
+  static bool _sameEntry(Transaction a, Transaction b) =>
+      a.type == b.type &&
+      a.amount == b.amount &&
+      a.category == b.category &&
+      a.accountId == b.accountId &&
+      a.toAccountId == b.toAccountId &&
+      a.date == b.date &&
+      a.merchant == b.merchant &&
+      a.note == b.note &&
+      a.person == b.person &&
+      listEquals(a.tags, b.tags);
+
+  /// The latest BALANCED reconciliation of [accountId] made after [tx] was
+  /// logged, or null. An edit that moves that account's money changes the
+  /// balance the person checked against their statement, so the sheet says
+  /// so before Save. By createdAt on both sides, because the check compared
+  /// the balance as it stood when the person checked, back-dated entries
+  /// included.
+  ReconciliationRecord? checkedAfter(Transaction tx, String accountId) {
+    ReconciliationRecord? latest;
+    for (final ReconciliationRecord r in _reconciliations) {
+      if (r.accountId != accountId || !r.balanced) continue;
+      if (r.createdAt < tx.createdAt) continue;
+      if (latest == null || r.createdAt > latest.createdAt) latest = r;
+    }
+    return latest;
   }
 
   /// Adds an account the user just described.

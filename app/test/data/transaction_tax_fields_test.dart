@@ -262,6 +262,11 @@ void main() {
         // the person can turn off before saving, and carries their answer
         // onto the entry. Nothing is computed from it here either.
         'lib/features/log/scan_receipt_sheet.dart',
+        // Added 2026-10-11, when this test caught Edit an entry. The store
+        // COPIES the flag, the reference and the receipt from the old row
+        // onto its corrected version, so editing an amount does not quietly
+        // drop a claim the person marked. A copy, never a figure.
+        'lib/state/financial_state.dart',
       ];
       final List<String> offenders = <String>[];
       final List<FileSystemEntity> files = Directory('lib')

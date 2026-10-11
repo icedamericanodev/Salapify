@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money/format.dart';
+import '../../design/motion.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../../features/log/log_sheet.dart';
 import '../../features/shared/sheet_scaffold.dart';
 import '../../models/models.dart';
 import '../../state/financial_state.dart';
@@ -119,6 +121,9 @@ class TransactionDetailSheet extends StatelessWidget {
                 // Names what happened rather than only the consequence. This
                 // row describes a payment the person deliberately took back,
                 // and the debt or plan it paid has already moved with it.
+                TransactionStatus.corrected when state.wasEditedAway(t) =>
+                  'You edited this entry. The corrected version is the one '
+                      'counted; this one stays as the record of what it was.',
                 TransactionStatus.corrected =>
                   'You took this payment back, so it is not counted in your '
                       'totals. It stays here because it is part of what '
@@ -293,15 +298,46 @@ class _TakeBackState extends State<_TakeBack> {
       );
     }
 
+    final EditOutcome edit = widget.state.editPreview(t.id);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        PrimaryButton(
-          palette: p,
-          label: 'Take this back',
-          icon: Icons.undo,
-          onTap: () => _confirm(context, p, t),
-        ),
+        // EDIT FIRST, because a wrong amount or account is far more common
+        // than an entry that should not exist at all, and the take-back was
+        // the only way to fix either: take it back and log it again.
+        if (edit == EditOutcome.done) ...<Widget>[
+          PrimaryButton(
+            key: const Key('entry-edit'),
+            palette: p,
+            label: 'Edit',
+            icon: Icons.edit_outlined,
+            onTap: () => _edit(context, p, t),
+          ),
+          const SizedBox(height: Spacing.sm),
+          _QuietButton(
+            palette: p,
+            label: 'Take this back',
+            icon: Icons.undo,
+            onTap: () => _confirm(context, p, t),
+          ),
+        ] else ...<Widget>[
+          PrimaryButton(
+            palette: p,
+            label: 'Take this back',
+            icon: Icons.undo,
+            onTap: () => _confirm(context, p, t),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Text(
+            edit == EditOutcome.example
+                ? 'Example entries cannot be edited. Remove the examples in '
+                      'Settings, then log your own.'
+                : 'Bill payments cannot be edited here, because the bill '
+                      'keeps track of them. Take it back if it was wrong.',
+            style: AppType.caption(p),
+          ),
+        ],
         const SizedBox(height: Spacing.sm),
         Text(
           // The second half is the part that stops a wrong conclusion. A
@@ -314,6 +350,87 @@ class _TakeBackState extends State<_TakeBack> {
       ],
     );
   }
+
+  /// Opens the Log sheet on this entry and saves the correction.
+  ///
+  /// This sheet CLOSES after a save, for the reason the take-back gives
+  /// below: it describes a row that is now struck through.
+  Future<void> _edit(
+    BuildContext context,
+    Palette palette,
+    Transaction t,
+  ) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    final FinancialState state = widget.state;
+
+    final Transaction? edited = await LogSheet.show(context, state, editing: t);
+    if (edited == null || !mounted) return;
+
+    final EditReceipt? receipt = state.editTransaction(t.id, edited);
+    if (receipt == null) {
+      // Nothing written. Either nothing changed, which needs no word, or
+      // the entry changed under the sheet, which does.
+      if (state.editPreview(t.id) != EditOutcome.done) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            _snack(
+              palette,
+              'Nothing changed. This entry can no longer be edited.',
+            ),
+          );
+      }
+      return;
+    }
+    saveHaptic();
+    navigator.pop();
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        _snack(
+          palette,
+          'Edited. The old version is kept in Activity, marked Taken back.',
+          seconds: 5,
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: palette.onAccent,
+            onPressed: () {
+              final bool undone = state.undoEdit(receipt);
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  _snack(
+                    palette,
+                    undone
+                        ? 'Put back as it was.'
+                        // The stored rows moved on since the edit, so undoing
+                        // would move money twice. Both versions are still
+                        // there to put right by hand.
+                        : 'Undo was not applied, because this entry changed '
+                              'after you edited it. Both versions are in your '
+                              'Activity.',
+                  ),
+                );
+            },
+          ),
+        ),
+      );
+  }
+
+  SnackBar _snack(
+    Palette palette,
+    String text, {
+    int seconds = 4,
+    SnackBarAction? action,
+  }) => SnackBar(
+    content: Text(text, style: TextStyle(color: palette.onAccent)),
+    backgroundColor: palette.accent,
+    duration: Duration(seconds: seconds),
+    behavior: SnackBarBehavior.floating,
+    action: action,
+  );
 
   Future<void> _confirm(
     BuildContext context,
@@ -394,6 +511,58 @@ class _TakeBackState extends State<_TakeBack> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+  }
+}
+
+/// A second action under a primary one: the same size and the same 48dp
+/// floor, outlined rather than filled, so the eye lands on the first.
+class _QuietButton extends StatelessWidget {
+  const _QuietButton({
+    required this.palette,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      child: Semantics(
+        button: true,
+        child: Material(
+          color: palette.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.control),
+            side: BorderSide(color: palette.border),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.control),
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 48),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(icon, size: 16, color: palette.textPrimary),
+                  const SizedBox(width: Spacing.sm),
+                  Text(
+                    label,
+                    style: AppType.button(palette, color: palette.textPrimary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

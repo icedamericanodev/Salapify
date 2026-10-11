@@ -4,6 +4,7 @@ import '../../core/money/fast_log.dart';
 import '../../core/money/receipt_paste.dart';
 import '../../core/money/format.dart';
 import '../../core/money/ledger.dart';
+import '../../core/money/reconciliation.dart';
 import '../../core/money/usual_entries.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -356,22 +357,12 @@ class _LogSheetState extends State<LogSheet> {
       final String category = isTransfer ? 'Transfer' : _category;
       Navigator.of(context).pop(
         Transaction(
-          // WHO IT IS stays: the same id, written at the same moment, in the
-          // same profile, with the same receipt and tax marking. Only what
-          // the form shows can change, and the store decides how the money
-          // follows.
+          // Only what the form shows. Everything it does not (when it was
+          // logged, its status, profile, receipt and tax marking) the store
+          // carries over from the stored row, so this sheet cannot drop one
+          // by forgetting it (FinancialState.editTransaction).
           id: e.id,
           createdAt: e.createdAt,
-          status: e.status,
-          profile: e.profile,
-          isSample: e.isSample,
-          isTaxDeductible: e.isTaxDeductible,
-          taxTinOrRef: e.taxTinOrRef,
-          attachmentPath: e.attachmentPath,
-          attachmentName: e.attachmentName,
-          // A sub-category belongs to its category, so it survives only
-          // when the category did.
-          subcategory: category == e.category ? e.subcategory : null,
           type: _type,
           amount: Money.fromDouble(amount),
           category: category,
@@ -486,6 +477,17 @@ class _LogSheetState extends State<LogSheet> {
           // have nothing to do when the entry already exists, so a
           // correction opens straight on the fields.
           if (!editing) ..._starters(p),
+          // AT THE TOP, where it is read before anything is changed. Below
+          // the fields it sat under the fold of a long form, beside a Save
+          // button that is always on screen.
+          if (_checkedWarning() case final String warning) ...<Widget>[
+            Text(
+              warning,
+              key: const Key('log-checked-warning'),
+              style: AppType.caption(p).copyWith(color: p.warning),
+            ),
+            const SizedBox(height: Spacing.md),
+          ],
 
           Text('What kind', style: AppType.label(p)),
           const SizedBox(height: Spacing.xs),
@@ -679,6 +681,55 @@ class _LogSheetState extends State<LogSheet> {
     ),
     const SizedBox(height: Spacing.lg),
   ];
+
+  /// One line, in edit mode only, when Save would move money on an account
+  /// the person has checked against a statement since this entry was
+  /// logged. Not a refusal: taking the entry back and logging it again ends
+  /// in the same place, so blocking one route would only send people down
+  /// the other. It says what the check will no longer match, before Save.
+  ///
+  /// The movement comes from the ledger's own apply and reverse, never from
+  /// arithmetic here, so the figure is exactly what Save will do.
+  String? _checkedWarning() {
+    final Transaction? e = widget.editing;
+    final double? amount = _amountValue;
+    if (e == null || amount == null || !_canSave) return null;
+    final Transaction draft = Transaction(
+      id: e.id,
+      type: _type,
+      amount: Money.fromDouble(amount),
+      category: _category,
+      accountId: _accountId,
+      toAccountId: _type == TransactionType.transfer ? _toAccountId : null,
+      date: e.date,
+      createdAt: e.createdAt,
+      status: e.status,
+    );
+    final List<Account> before = widget.state.accounts;
+    final List<Account> after = applyToBalances(
+      reverseFromBalances(before, e),
+      draft,
+    );
+    for (int i = 0; i < before.length; i++) {
+      final Money moved = after[i].balance - before[i].balance;
+      if (moved == Money.zero) continue;
+      final ReconciliationRecord? check = widget.state.checkedAfter(
+        e,
+        before[i].id,
+      );
+      if (check == null) continue;
+      final String name = before[i].name;
+      // "on Today" reads as a mistake; a relative day takes no "on".
+      final String label = formatDateLabel(check.date, now: widget.state.now);
+      final String when = label == 'Today' || label == 'Yesterday'
+          ? label.toLowerCase()
+          : 'on $label';
+      return '$name matched your statement $when. Saving '
+          'this moves $name by ${formatPeso(moved.pesos.abs())} from that '
+          'check.';
+    }
+    return null;
+  }
 
   String _named(String id) {
     for (final Account a in widget.state.accounts) {
