@@ -307,7 +307,9 @@ void main() {
 
     // What Reconciliation hands the duplicate finder.
     final List<DuplicatePair> pairs = findDuplicates(
-      s.transactions.where((Transaction t) => t.countsTowardTotals).toList(),
+      s.transactions
+          .where((Transaction t) => t.status != TransactionStatus.corrected)
+          .toList(),
     );
     expect(
       pairs.any(

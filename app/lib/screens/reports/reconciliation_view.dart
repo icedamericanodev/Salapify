@@ -512,14 +512,16 @@ class _Duplicates extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // COUNTING ROWS ONLY. A taken-back row beside its correction is the
-    // history an edit keeps on purpose (2026-10-11), not money counted
+    // TAKEN-BACK ROWS LEFT OUT. A taken-back row beside its correction is
+    // the history an edit keeps on purpose (2026-10-11), not money counted
     // twice, and a pair offered here with no button to clear it would be an
-    // alarm nobody could switch off. The engine skips duplicates only, and
-    // it is locked, so the filter lives at the call.
+    // alarm nobody could switch off. Only `corrected`: an EXCLUDED row is
+    // still offered, because "I excluded one of two identical entries" is
+    // exactly the pair this list exists to show. The engine is locked, so
+    // the filter lives at the call.
     final List<DuplicatePair> pairs = findDuplicates(
       state.transactions
-          .where((Transaction t) => t.countsTowardTotals)
+          .where((Transaction t) => t.status != TransactionStatus.corrected)
           .toList(),
     );
 

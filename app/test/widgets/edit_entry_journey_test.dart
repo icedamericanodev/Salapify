@@ -168,4 +168,46 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('the two versions of an edit are not offered on Check as a '
+      'possible double entry', (WidgetTester tester) async {
+    final FinancialState state = await openApp(tester);
+
+    // Same amount, same account, same day: only the category changes, which
+    // is the shape the double entry finder pairs.
+    await tapIt(tester, find.text('Activity'));
+    await tapIt(tester, find.text('Mang Inasal'));
+    await tapIt(tester, find.byKey(const Key('entry-edit')));
+    await tapIt(
+      tester,
+      find.descendant(
+        of: find.byKey(const Key('log-category-picker')),
+        matching: find.text('Groceries'),
+      ),
+    );
+    await tapIt(tester, find.text('Save changes'));
+    // Directional: the edit happened.
+    expect(
+      state.transactions.where(
+        (Transaction t) =>
+            t.merchant == 'Mang Inasal' && t.category == 'Groceries',
+      ),
+      hasLength(1),
+    );
+
+    await tester.pumpAndSettle(const Duration(seconds: 6));
+    await tapIt(tester, find.byIcon(Icons.insert_chart_outlined));
+    await tapIt(tester, find.text('Check'));
+    await tester.scrollUntilVisible(
+      find.text('POSSIBLE DOUBLE ENTRIES'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Mang Inasal'),
+      findsNothing,
+      reason: 'an edit and its own old version were offered as a double entry',
+    );
+  });
 }
