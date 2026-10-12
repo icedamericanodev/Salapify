@@ -1187,6 +1187,11 @@ final Wire<ReminderKind> reminderKindWire = _makeWire(<ReminderKind, String>{
   ReminderKind.paymentDue: 'payment_due',
   ReminderKind.billDue: 'bill_due',
   ReminderKind.subscription: 'subscription',
+  // D38.1. A build older than this SKIPS a tray message of this kind
+  // (Snapshot._readNotifications drops what it cannot read) and opens the
+  // rest of the file normally. The message is lost on that build only, and
+  // the engine raises it again on the next open of a newer one.
+  ReminderKind.collection: 'collection',
 });
 
 const Set<String> notificationKeys = <String>{
@@ -1232,6 +1237,9 @@ const Set<String> reminderSettingsKeys = <String>{
   'billDaysBefore',
   'subscriptionReminderEnabled',
   'subscriptionDaysBefore',
+  // Ours, D38.1. Missing from every earlier file, so it reads as the default,
+  // on, the same as for somebody who never opened the reminder settings.
+  'collectionReminderEnabled',
   // Ours, not the prototype's: the web has no notification permission to
   // remember. A prototype backup simply has no such key and reads as off,
   // which is the right answer for a phone that has never been asked.
@@ -1252,6 +1260,7 @@ Map<String, dynamic> reminderSettingsToJson(ReminderSettings s) =>
       'billDaysBefore': s.billDaysBefore,
       'subscriptionReminderEnabled': s.subscriptionEnabled,
       'subscriptionDaysBefore': s.subscriptionDaysBefore,
+      'collectionReminderEnabled': s.collectionEnabled,
       'phoneNotificationsEnabled': s.phoneEnabled,
     };
 
@@ -1295,6 +1304,11 @@ ReminderSettings reminderSettingsFromJson(Map<String, dynamic> m) {
     subscriptionDaysBefore:
         (_optInt(m, 'subscriptionDaysBefore') ?? d.subscriptionDaysBefore)
             .clamp(0, 30),
+    collectionEnabled: _optBool(
+      m,
+      'collectionReminderEnabled',
+      fallback: d.collectionEnabled,
+    ),
     phoneEnabled: _optBool(
       m,
       'phoneNotificationsEnabled',

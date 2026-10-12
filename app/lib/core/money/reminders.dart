@@ -45,6 +45,7 @@ class ReminderSettings {
     this.billDaysBefore = 2,
     this.subscriptionEnabled = true,
     this.subscriptionDaysBefore = 1,
+    this.collectionEnabled = true,
     this.phoneEnabled = false,
   });
 
@@ -61,6 +62,11 @@ class ReminderSettings {
   final int billDaysBefore;
   final bool subscriptionEnabled;
   final int subscriptionDaysBefore;
+
+  /// Reminders to ASK for money owed to you (D38.1). On by default, like the
+  /// other rules, and its own switch so turning off reminders about your own
+  /// payments never silences these, or the other way round.
+  final bool collectionEnabled;
 
   /// Whether reminders are handed to Android to arrive while Salapify is shut.
   ///
@@ -83,6 +89,7 @@ class ReminderSettings {
     int? billDaysBefore,
     bool? subscriptionEnabled,
     int? subscriptionDaysBefore,
+    bool? collectionEnabled,
     bool? phoneEnabled,
   }) => ReminderSettings(
     dailyExpenseEnabled: dailyExpenseEnabled ?? this.dailyExpenseEnabled,
@@ -95,6 +102,7 @@ class ReminderSettings {
     subscriptionEnabled: subscriptionEnabled ?? this.subscriptionEnabled,
     subscriptionDaysBefore:
         subscriptionDaysBefore ?? this.subscriptionDaysBefore,
+    collectionEnabled: collectionEnabled ?? this.collectionEnabled,
     phoneEnabled: phoneEnabled ?? this.phoneEnabled,
   );
 }
@@ -397,6 +405,127 @@ DateTime _onDayOf(int year, int month, int day) {
 /// branch, rather than hoped to be caught here.
 const int _absurdDayCount = 3650;
 
+/// How many weeks overdue a collection reminder keeps going: the due day,
+/// then once a week up to eight weeks late. After that the Debt screen's
+/// overdue tag keeps saying it, and the tray stops.
+const int collectionWeeks = 8;
+
+/// The first days of the next month a "no due date" ask can still land on,
+/// for somebody who did not open the app on the last day itself.
+const int _collectionGraceDays = 3;
+
+/// A nudge to ask for money owed to the person, or null when today is not a
+/// day for one (D38.1).
+///
+/// ## With a due date: the day, then weekly
+///
+/// Nothing before the date, because there is nothing to do yet. On the due
+/// day, then once a week, up to [collectionWeeks] weeks late. The tag names
+/// the WEEK, not the day, so the tray holds one per week whichever day of it
+/// the app was opened, and the phone planner (which walks day by day) fires
+/// on the first day of each week, the due day and every seventh after.
+///
+/// ## Without one: the last day of the month
+///
+/// Utang between friends usually has no date. Salaries land at month end, so
+/// that is when asking feels normal. The tray takes it on the last day or the
+/// first [_collectionGraceDays] days after, tagged by the month, so once.
+/// Skipped while the debt is under a week old, or within a week of a payment
+/// towards it: asking right after lending, or right after they paid some, is
+/// the awkward ask this feature exists to avoid.
+Reminder? collectionReminder(
+  Debt d,
+  DateTime now,
+  List<Transaction> transactions,
+) {
+  if (d.direction != DebtDirection.owedToMe) return null;
+  if (d.isSettled || d.isArchived || !d.remaining.isPositive) return null;
+
+  final String amount = formatPeso(d.remaining.pesos);
+  final String person = d.person.trim().isEmpty ? 'Someone' : d.person.trim();
+  const String offer = 'A friendly message is ready when you are.';
+
+  final String due = (d.dueDate ?? '').trim();
+  if (due.isNotEmpty) {
+    final int? days = daysUntil(due, now);
+    if (days == null || days > 0) return null;
+    final int late = -days;
+    final int week = late ~/ 7;
+    if (week > collectionWeeks) return null;
+    return Reminder(
+      tag: 'collect-${d.id}-$due-w$week',
+      kind: ReminderKind.collection,
+      title: 'Owed to you: $person',
+      body: late == 0
+          ? '$person owes you $amount, due today. $offer'
+          : '$person owes you $amount, due '
+                '${late == 1 ? 'yesterday' : '$late days ago'}. $offer',
+      // The week's first day reads as a multiple of seven, so
+      // [Reminder.worthSchedulingToday] lets the phone say it that day.
+      daysAway: -late,
+    );
+  }
+
+  // No due date. Which month is ending, if today is in its window?
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime lastOfThis = DateTime(now.year, now.month + 1, 0);
+  final DateTime monthEnding;
+  if (today == lastOfThis) {
+    monthEnding = lastOfThis;
+  } else if (now.day <= _collectionGraceDays) {
+    monthEnding = DateTime(now.year, now.month, 0);
+  } else {
+    return null;
+  }
+  if (_recentlyStarted(d, monthEnding, transactions)) return null;
+
+  final String ym =
+      '${monthEnding.year}-${monthEnding.month.toString().padLeft(2, '0')}';
+  return Reminder(
+    tag: 'collect-${d.id}-nodate-$ym',
+    kind: ReminderKind.collection,
+    title: 'Owed to you: $person',
+    body:
+        '$person still owes you $amount. Around payday is an easy time to '
+        'ask. $offer',
+    daysAway: 0,
+  );
+}
+
+/// The debt a collection reminder is about, or null when it is gone, paid
+/// or was never one. Read from the tag, which starts `collect-<debt id>-`, so
+/// a tray message finds its debt without a second stored link that could
+/// drift from the first. The trailing dash keeps `d1` from matching `d12`.
+Debt? collectionDebtFor(String tag, List<Debt> debts) {
+  for (final Debt d in debts) {
+    if (!tag.startsWith('collect-${d.id}-')) continue;
+    if (d.direction != DebtDirection.owedToMe) return null;
+    if (d.isSettled || d.isArchived || !d.remaining.isPositive) return null;
+    return d;
+  }
+  return null;
+}
+
+/// Whether a debt was lent, or last paid towards, within a week of [day].
+bool _recentlyStarted(Debt d, DateTime day, List<Transaction> transactions) {
+  bool within(String? iso) {
+    final DateTime? at = iso == null ? null : DateTime.tryParse(iso);
+    if (at == null) return false;
+    final int age = day.difference(DateTime(at.year, at.month, at.day)).inDays;
+    return age >= 0 && age < 7;
+  }
+
+  if (d.openingTxId case final String id) {
+    for (final Transaction t in transactions) {
+      if (t.id == id) {
+        if (within(t.date.split('T').first)) return true;
+        break;
+      }
+    }
+  }
+  return d.payments.any((DebtPayment p) => within(p.date.split('T').first));
+}
+
 /// How a due date reads in a sentence.
 String _whenPhrase(int days, String dueDate) {
   if (days < 0) {
@@ -468,9 +597,9 @@ ReminderResult evaluateReminders({
     }
   }
 
-  // 2. Debts YOU owe. Money owed TO you is deliberately silent: it is not
-  //    your payment to make, and nagging somebody about their own receivable
-  //    is how a reminder tray stops being read.
+  // 2. Debts YOU owe. Money owed TO you has its own rule, 2d below, with its
+  //    own switch and its own rhythm, because asking for money is a different
+  //    act from paying it and a daily nudge to ask would be read as nagging.
   if (settings.paymentDueEnabled) {
     for (final Debt d in debts) {
       if (d.direction != DebtDirection.iOwe || d.isSettled) continue;
@@ -559,6 +688,18 @@ ReminderResult evaluateReminders({
             '${_whenPhrase(days, _iso(next))}.',
         daysAway: days,
       );
+    }
+  }
+
+  // 2d. Money owed TO you (D38.1), a nudge to ASK. Salapify never contacts
+  //     anybody; the tray card offers the friendly message and the person
+  //     sends it themselves.
+  if (settings.collectionEnabled) {
+    for (final Debt d in debts) {
+      final Reminder? r = collectionReminder(d, now, transactions);
+      if (r != null) {
+        add(r.tag, r.kind, r.title, r.body, daysAway: r.daysAway);
+      }
     }
   }
 

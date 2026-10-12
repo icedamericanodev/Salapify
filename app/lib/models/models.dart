@@ -1239,7 +1239,13 @@ class BillItem {
 /// The four things Salapify will remind somebody about, ported from the
 /// prototype's `ReminderType`. The wire names in json_codec.dart are the
 /// prototype's own, so a backup written by either app reads in the other.
-enum ReminderKind { dailyExpense, paymentDue, billDue, subscription }
+enum ReminderKind {
+  dailyExpense,
+  paymentDue,
+  billDue,
+  subscription,
+  collection,
+}
 
 /// One reminder that has actually been raised, sitting in the tray.
 ///

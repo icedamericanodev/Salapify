@@ -1072,6 +1072,7 @@ class FinancialState extends ChangeNotifier {
       ReminderKind.paymentDue: 'a payment reminder',
       ReminderKind.billDue: 'a bill reminder',
       ReminderKind.subscription: 'a subscription renewal',
+      ReminderKind.collection: 'a nudge about money owed to you',
     };
     _notifications = <AppNotification>[
       AppNotification(

@@ -1593,9 +1593,11 @@ designed all three; all three answers were the recommended option.
    default. With a due date it reminds on the day, then weekly for up to
    eight weeks. With no due date it reminds once a month, on the last day.
    Each reminder offers the existing friendly message. Saved: a
-   `collectionReminderEnabled` setting and a `collection` reminder type. A
-   backup written after this is refused by an older build (safely, nothing is
-   lost); the founder accepted that.
+   `collectionReminderEnabled` setting and a `collection` reminder type. The
+   founder was told an older build would refuse a backup holding one, and
+   accepted that. Checking the reader while building showed it is milder:
+   an older build skips just that tray message (`_readNotifications` drops
+   what it cannot read) and opens everything else.
 2. **Park it saves a wish list item** (name, price, category, when parked)
    on the phone and in the backup. After 48 hours Home asks "Still want it?"
    with three answers: I bought it (opens Log filled in), Save up for it

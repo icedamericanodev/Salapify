@@ -106,6 +106,13 @@ class LocalNotificationGateway implements NotificationGateway {
       name: 'Subscription renewals',
       about: 'Anything that renews itself',
     ),
+    // Its own channel (D38.1), so muting the asks can never mute reminders
+    // about payments the person owes, which cost money when missed.
+    ReminderKind.collection: (
+      id: 'salapify_collection',
+      name: 'Money owed to you',
+      about: 'A nudge to ask. Salapify never sends anything to anyone',
+    ),
   };
 
   Future<void> _init() async {

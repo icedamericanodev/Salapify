@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../core/money/collect_message.dart';
 import '../../core/money/reminders.dart';
 import '../../design/tokens.dart';
 import '../../design/type.dart';
@@ -69,7 +71,7 @@ class _RemindersSheetState extends State<RemindersSheet> {
         palette: p,
         icon: Icons.notifications_none,
         title: 'Reminders',
-        subtitle: 'Daily logging, payments, bills and renewals',
+        subtitle: 'Logging, payments, bills, renewals and money owed to you',
         tabs: const <String>['Alerts', 'Rules', 'Test'],
         selectedTab: _tab,
         onSelectTab: (int i) => setState(() => _tab = i),
@@ -110,6 +112,10 @@ class _KindStyle {
     ),
     ReminderKind.billDue: _KindStyle(Icons.bolt_outlined, 'Bill'),
     ReminderKind.subscription: _KindStyle(Icons.autorenew, 'Renewal'),
+    ReminderKind.collection: _KindStyle(
+      Icons.volunteer_activism_outlined,
+      'Owed to you',
+    ),
   };
 }
 
@@ -184,10 +190,28 @@ class _AlertsTab extends StatelessWidget {
                 notification: n,
                 onRead: () => state.markNotificationRead(n.id),
                 onClear: () => state.clearNotification(n.id),
+                onSend: _sendFor(n),
               ),
             ),
       ],
     );
+  }
+}
+
+/// The friendly message for a money-owed-to-you reminder (D38.1), or null
+/// for every other kind and for a debt that is now paid or gone, so a stale
+/// message never offers to ask for money nobody owes any more.
+extension on _AlertsTab {
+  VoidCallback? _sendFor(AppNotification n) {
+    if (n.kind != ReminderKind.collection) return null;
+    final Debt? d = collectionDebtFor(n.id, state.debts);
+    if (d == null) return null;
+    return () async {
+      state.markNotificationRead(n.id);
+      await SharePlus.instance.share(
+        ShareParams(text: collectionMessage(d, now: state.now)),
+      );
+    };
   }
 }
 
@@ -319,12 +343,16 @@ class _NotificationCard extends StatelessWidget {
     required this.notification,
     required this.onRead,
     required this.onClear,
+    this.onSend,
   });
 
   final Palette palette;
   final AppNotification notification;
   final VoidCallback onRead;
   final VoidCallback onClear;
+
+  /// "Send a reminder", on a money-owed-to-you message whose debt is open.
+  final VoidCallback? onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +407,14 @@ class _NotificationCard extends StatelessWidget {
           const SizedBox(height: Spacing.sm),
           Row(
             children: <Widget>[
-              if (unread)
+              if (onSend case final VoidCallback send)
+                _TextAction(
+                  palette: palette,
+                  icon: Icons.send_outlined,
+                  label: 'Send a reminder',
+                  onTap: send,
+                )
+              else if (unread)
                 _TextAction(
                   palette: palette,
                   icon: Icons.check,
@@ -512,6 +547,23 @@ class _RulesTab extends StatelessWidget {
             ),
           ),
         ),
+        // D38.1. A nudge to ASK, so the subtitle says the one thing somebody
+        // switching it on needs to trust: nothing is sent on their behalf.
+        _RuleCard(
+          palette: palette,
+          icon: Icons.volunteer_activism_outlined,
+          key: ruleKey(ReminderKind.collection),
+          title: 'Money owed to you',
+          subtitle: 'A nudge to ask. Salapify never sends anything.',
+          on: s.collectionEnabled,
+          onChanged: (bool v) =>
+              state.updateReminderSettings(s.copyWith(collectionEnabled: v)),
+          detail: Text(
+            'On the due date, then once a week for up to eight weeks. No due '
+            'date: the last day of the month.',
+            style: AppType.caption(palette),
+          ),
+        ),
         _RuleCard(
           palette: palette,
           icon: Icons.bolt_outlined,
@@ -547,7 +599,8 @@ class _RulesTab extends StatelessWidget {
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'An overdue item keeps reminding you until it is paid or removed.',
+          'An overdue bill or payment keeps reminding you until it is paid '
+          'or removed.',
           style: AppType.caption(palette),
         ),
       ],
