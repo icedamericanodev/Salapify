@@ -692,8 +692,12 @@ DailyProjection projectDailyCash({
           );
     }
 
-    final PaydaySchedule schedule = PaydaySchedule(payday.paydayDays);
-    if (schedule.isUsable) {
+    final PaydaySchedule? schedule = PaydaySchedule.fromCycle(payday);
+    if (schedule != null && schedule.kind == PaydayKind.lastUntil) {
+      // NO FIXED PAYDAY (D37.2): the date the money must last until is not a
+      // payday, and nothing is promised to arrive on it. Drawing income there
+      // would show a freelancer a rescue the app has no reason to expect.
+    } else if (schedule != null && schedule.isUsable) {
       // THE STORED RULE, WALKED FORWARD. An earlier draft of this stepped by
       // 15 days from the next payday, which quietly assumed everybody is paid
       // kinsenas and katapusan. That is the same sin as the eight percent

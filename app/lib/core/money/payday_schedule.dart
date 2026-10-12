@@ -19,21 +19,90 @@
 /// locked.
 library;
 
-/// A payday rule: which days of the month the money lands on.
+import '../../models/models.dart';
+
+/// The four shapes a payday rule can take (D37, 2026-10-12).
+enum PaydayKind {
+  /// Days of the month: twice a month (the 15th and 30th, the 10th and
+  /// 25th) or once a month.
+  daysOfMonth,
+
+  /// The same weekday every week, "every Friday".
+  weekly,
+
+  /// Every fourteen days, counted from a payday the person names. Stored as
+  /// that DATE, never as a countdown, for the reason this file opens with.
+  everyTwoWeeks,
+
+  /// No fixed payday. The person picks the date the money has to last
+  /// until (a payout, a padala), and it does not repeat: once it passes, the
+  /// app asks again rather than guessing the next one.
+  lastUntil,
+}
+
+/// A payday rule. Which days the money lands on, or for somebody with no
+/// fixed payday, the day it has to last until.
 ///
-/// One day means paid once a month. Two means the usual Philippine
-/// semi-monthly sweldo. The list is the whole rule, which is why there is no
-/// enum: "twice a month on the 10th and the 25th" and "once a month on the
-/// 25th" are the same idea with a different number of entries, and an enum
-/// would have to carry the days beside it anyway.
+/// One day of the month means paid once a month. Two means the usual
+/// Philippine semi-monthly sweldo. Weekly, every two weeks and "last until"
+/// were added by D37 for earners the first version could not describe at
+/// all: a weekly wage, a two-weekly payroll, and the freelancers, riders,
+/// sellers and remittance households with no payday of their own.
 class PaydaySchedule {
   PaydaySchedule(Iterable<int> daysOfMonth)
-    : daysOfMonth = List<int>.unmodifiable(
+    : kind = PaydayKind.daysOfMonth,
+      weekday = null,
+      date = null,
+      daysOfMonth = List<int>.unmodifiable(
         (daysOfMonth.where((int d) => d >= 1 && d <= 31).toSet().toList()
           ..sort()),
       );
 
-  /// Sorted, de-duplicated, and every entry between 1 and 31.
+  /// Paid every week on [weekday], Monday 1 to Sunday 7 as `DateTime` counts
+  /// them. Anything else is unusable rather than a throw, for the same
+  /// stored-data reason the days of the month are filtered.
+  PaydaySchedule.weekly(int weekday)
+    : kind = PaydayKind.weekly,
+      weekday = weekday >= 1 && weekday <= 7 ? weekday : null,
+      date = null,
+      daysOfMonth = const <int>[];
+
+  /// Paid every fourteen days, [anchor] being any one real payday.
+  PaydaySchedule.everyTwoWeeks(DateTime anchor)
+    : kind = PaydayKind.everyTwoWeeks,
+      weekday = null,
+      date = DateTime(anchor.year, anchor.month, anchor.day),
+      daysOfMonth = const <int>[];
+
+  /// No fixed payday: the money has to last until [until].
+  PaydaySchedule.lastUntil(DateTime until)
+    : kind = PaydayKind.lastUntil,
+      weekday = null,
+      date = DateTime(until.year, until.month, until.day),
+      daysOfMonth = const <int>[];
+
+  /// The rule a stored cycle carries, or null when it carries none: a cycle
+  /// from before the editor existed, or a prototype import, which keep the
+  /// countdown they stored.
+  ///
+  /// ONE PLACE reads the stored fields into a rule. The Home bar, the runway
+  /// chart and the Health Check each used to rebuild it from `paydayDays`
+  /// themselves, which is exactly how a weekly rule would have been read as
+  /// "no rule" by three screens at once (ledger-reconciler, 2026-10-12).
+  static PaydaySchedule? fromCycle(PaydayCycle c) {
+    if (c.paydayDays.isNotEmpty) return PaydaySchedule(c.paydayDays);
+    if (c.paydayWeekday != null) return PaydaySchedule.weekly(c.paydayWeekday!);
+    final DateTime? anchor = readIsoDate(c.paydayAnchor);
+    if (anchor != null) return PaydaySchedule.everyTwoWeeks(anchor);
+    final DateTime? until = readIsoDate(c.lastUntil);
+    if (until != null) return PaydaySchedule.lastUntil(until);
+    return null;
+  }
+
+  final PaydayKind kind;
+
+  /// Sorted, de-duplicated, and every entry between 1 and 31. Empty unless
+  /// [kind] is [PaydayKind.daysOfMonth].
   ///
   /// Filtered in the constructor rather than asserted, because this is built
   /// from stored data as well as from a picker. A backup carrying day 0 or
@@ -42,8 +111,44 @@ class PaydaySchedule {
   /// [isUsable] is what the caller checks.
   final List<int> daysOfMonth;
 
-  /// True when there is at least one day to work from.
-  bool get isUsable => daysOfMonth.isNotEmpty;
+  /// The weekday for [PaydayKind.weekly], 1 (Monday) to 7 (Sunday).
+  final int? weekday;
+
+  /// The anchor payday for [PaydayKind.everyTwoWeeks], or the last-until date
+  /// for [PaydayKind.lastUntil], at midnight.
+  final DateTime? date;
+
+  /// True when there is enough to work from.
+  bool get isUsable => switch (kind) {
+    PaydayKind.daysOfMonth => daysOfMonth.isNotEmpty,
+    PaydayKind.weekly => weekday != null,
+    PaydayKind.everyTwoWeeks || PaydayKind.lastUntil => date != null,
+  };
+
+  /// Whether the paydays come round again. A last-until date does not: it is
+  /// one date, and after it the person is asked for the next.
+  bool get repeats => kind != PaydayKind.lastUntil;
+
+  /// How many paydays fall in an average month, for anything that turns
+  /// "each payday" into "each month" (the Health Check's take-home). Null
+  /// when the question has no answer: with no fixed payday there is no
+  /// monthly pay to speak of.
+  double? get paydaysPerMonth => switch (kind) {
+    PaydayKind.daysOfMonth => daysOfMonth.length.toDouble(),
+    PaydayKind.weekly => 52 / 12,
+    PaydayKind.everyTwoWeeks => 26 / 12,
+    PaydayKind.lastUntil => null,
+  };
+
+  /// The fewest days of bills Safe to Spend holds back, whatever the
+  /// countdown says (D37.3). A weekly or two-weekly payday comes round
+  /// before rent does, so "bills due by payday" would offer the rent as
+  /// spending money until the week it fell due. Monthly cycles keep D33's
+  /// "due by payday", which a floor of zero leaves exactly as it was.
+  int get billWindowFloor => switch (kind) {
+    PaydayKind.weekly || PaydayKind.everyTwoWeeks => 30,
+    PaydayKind.daysOfMonth || PaydayKind.lastUntil => 0,
+  };
 
   /// Every payday in a given month, as real dates, shortest month included.
   ///
@@ -78,6 +183,31 @@ class PaydaySchedule {
 
     final DateTime today = DateTime(now.year, now.month, now.day);
 
+    switch (kind) {
+      case PaydayKind.weekly:
+        // How many days back the last one was: 0 on payday itself, which
+        // keeps "next" strictly after today, as below.
+        final int back = (today.weekday - weekday! + 7) % 7;
+        final DateTime last = _plusDays(today, -back);
+        return _points(last, _plusDays(last, 7), today);
+      case PaydayKind.everyTwoWeeks:
+        // Whole fortnights from the anchor, rounded DOWN, so an anchor in the
+        // future still finds the payday on or before today.
+        final int since = _daysBetween(date!, today);
+        final int fortnights = (since / 14).floor();
+        final DateTime last = _plusDays(date!, fortnights * 14);
+        return _points(last, _plusDays(last, 14), today);
+      case PaydayKind.lastUntil:
+        // THE DATE HAS PASSED, OR IS TODAY: no countdown at all. A zero would
+        // reach the engine as a divisor of one and offer every free peso as
+        // today's allowance (financial-coach, 2026-10-12). The screens ask
+        // for the next date instead.
+        if (!date!.isAfter(today)) return null;
+        return _points(today, date!, today);
+      case PaydayKind.daysOfMonth:
+        break;
+    }
+
     // Three months of candidates: the previous one for `last` when today is
     // before this month's first payday, and the next one for `next` when
     // today is on or after this month's last.
@@ -106,6 +236,24 @@ class PaydaySchedule {
       daysToNext: next.difference(today).inDays,
     );
   }
+
+  static PaydayPoints _points(DateTime last, DateTime next, DateTime today) =>
+      PaydayPoints(
+        last: last,
+        next: next,
+        daysToNext: _daysBetween(today, next),
+      );
+
+  /// Calendar arithmetic by the date's own fields, so a day is always a day
+  /// whatever the clock does in a zone with daylight saving.
+  static DateTime _plusDays(DateTime d, int n) =>
+      DateTime(d.year, d.month, d.day + n);
+
+  static int _daysBetween(DateTime a, DateTime b) => DateTime.utc(
+    b.year,
+    b.month,
+    b.day,
+  ).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
 
   /// Day 0 of the following month is the last day of this one, and Dart
   /// rolls month 13 into January of the next year on its own.
@@ -160,3 +308,24 @@ const List<String> _months = <String>[
   'Nov',
   'Dec',
 ];
+
+/// A stored YYYY-MM-DD date, or null when it is not one. Strict, because
+/// DateTime.tryParse quietly turns 2026-02-30 into March, and a payday rule
+/// read from a backup must not land on a date nobody chose.
+DateTime? readIsoDate(String? s) {
+  if (s == null) return null;
+  final RegExpMatch? m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(s);
+  if (m == null) return null;
+  final int y = int.parse(m.group(1)!);
+  final int mo = int.parse(m.group(2)!);
+  final int d = int.parse(m.group(3)!);
+  final DateTime out = DateTime(y, mo, d);
+  if (out.year != y || out.month != mo || out.day != d) return null;
+  return out;
+}
+
+/// The stored form of a date: YYYY-MM-DD.
+String isoDateOf(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';

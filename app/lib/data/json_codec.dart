@@ -1,4 +1,5 @@
 import '../core/money/reconciliation.dart';
+import '../core/money/payday_schedule.dart' show readIsoDate;
 import '../core/money/reminders.dart';
 import '../design/tokens.dart';
 import '../models/models.dart';
@@ -1113,6 +1114,9 @@ const Set<String> paydayKeys = <String>{
   'daysToPayday',
   'expectedIncome',
   'paydayDays',
+  'paydayWeekday',
+  'paydayAnchor',
+  'lastUntil',
 };
 
 Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
@@ -1128,6 +1132,11 @@ Map<String, dynamic> paydayToJson(PaydayCycle p) => <String, dynamic>{
   // key still reads a complete and sensible cycle. They are simply no
   // longer the source of truth when this list has something in it.
   'paydayDays': p.paydayDays,
+  // D37, 2026-10-12: the three other shapes a rule can take. Written only
+  // when set, so a twice-a-month backup reads exactly as it did before.
+  if (p.paydayWeekday != null) 'paydayWeekday': p.paydayWeekday,
+  if (p.paydayAnchor != null) 'paydayAnchor': p.paydayAnchor,
+  if (p.lastUntil != null) 'lastUntil': p.lastUntil,
 };
 
 PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
@@ -1151,7 +1160,20 @@ PaydayCycle paydayFromJson(Map<String, dynamic> m) => PaydayCycle(
   // state reads as leave the stored countdown alone, so an old file keeps
   // behaving exactly as it did.
   paydayDays: _optIntList(m, 'paydayDays'),
+  // Optional and checked, like everything here: a weekday outside 1 to 7 or a
+  // date that is not a real YYYY-MM-DD is read as "not set", never a throw.
+  paydayWeekday: _validWeekday(_optNum(m, 'paydayWeekday')),
+  paydayAnchor: _validIsoDate(_optStr(m, 'paydayAnchor')),
+  lastUntil: _validIsoDate(_optStr(m, 'lastUntil')),
 );
+
+int? _validWeekday(num? n) {
+  if (n == null || n != n.roundToDouble()) return null;
+  final int d = n.toInt();
+  return d >= 1 && d <= 7 ? d : null;
+}
+
+String? _validIsoDate(String? s) => readIsoDate(s) == null ? null : s;
 
 // ---------------------------------------------------------------------------
 // Reminders: the settings, and the tray of notifications already raised.

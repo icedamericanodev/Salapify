@@ -1115,6 +1115,9 @@ class PaydayCycle {
     required this.daysToPayday,
     required this.expectedIncome,
     this.paydayDays = const <int>[],
+    this.paydayWeekday,
+    this.paydayAnchor,
+    this.lastUntil,
   });
 
   final String cycleType;
@@ -1144,8 +1147,26 @@ class PaydayCycle {
   /// only when there is a rule here to refresh it from.
   final List<int> paydayDays;
 
+  /// Paid every week on this weekday, 1 (Monday) to 7 (Sunday). D37.
+  final int? paydayWeekday;
+
+  /// Paid every two weeks, counted from this payday (YYYY-MM-DD). Stored as
+  /// a DATE rather than a countdown for the reason [paydayDays] gives. D37.
+  final String? paydayAnchor;
+
+  /// No fixed payday: the money has to last until this date (YYYY-MM-DD).
+  /// It does not repeat; once it passes the app asks for the next. D37.
+  final String? lastUntil;
+
   /// True when the countdown can be worked out fresh rather than recalled.
-  bool get hasRule => paydayDays.isNotEmpty;
+  ///
+  /// At most one of the four rule fields is ever set: the store's setter
+  /// builds a fresh cycle for each rule rather than layering one on another.
+  bool get hasRule =>
+      paydayDays.isNotEmpty ||
+      paydayWeekday != null ||
+      paydayAnchor != null ||
+      lastUntil != null;
 
   /// What a ledger with no payday set looks like.
   ///
@@ -1182,6 +1203,11 @@ class PaydayCycle {
     daysToPayday: daysToPayday ?? this.daysToPayday,
     expectedIncome: expectedIncome ?? this.expectedIncome,
     paydayDays: paydayDays ?? this.paydayDays,
+    // CARRIED, never dropped. A copy that forgot these would turn a weekly
+    // rule back into "no rule" the moment the countdown was refreshed.
+    paydayWeekday: paydayWeekday,
+    paydayAnchor: paydayAnchor,
+    lastUntil: lastUntil,
   );
 }
 

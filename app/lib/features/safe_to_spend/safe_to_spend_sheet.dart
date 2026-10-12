@@ -129,6 +129,9 @@ class _SafeToSpendSheetState extends State<SafeToSpendSheet> {
             // is a cutoff at all.
             caption: widget.state.payday.isSet
                 ? '${_days(a.daysToPayday)} left in cutoff'
+                : widget.state.paydayDatePassed
+                // D37.2: the "last until" date has come.
+                ? 'Your last-until date has passed'
                 : 'Payday not set',
           ),
         ),

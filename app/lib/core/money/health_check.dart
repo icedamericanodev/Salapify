@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'debt_ratio.dart';
+import 'payday_schedule.dart';
 import 'format.dart';
 import 'plan.dart';
 import '../../models/models.dart';
@@ -414,9 +415,26 @@ HealthIndicator _promised(
   const String id = 'promised';
   const String question = 'How much of my pay is already promised';
 
-  // Monthly take-home, from what the person said they receive each payday.
+  // Monthly take-home, from what the person said they receive each payday,
+  // times how many paydays a month the RULE has.
+  //
+  // It used to multiply by 2 only when `cycleType` read '15_30', the example
+  // data's label. Setting a payday in the app saves 'semi_monthly', so
+  // anybody paid twice a month who set their own payday had their take-home
+  // halved here and "promised" doubled: measured at 10% shown as 20%
+  // (ledger-reconciler, 2026-10-12). A cycle with no rule keeps reading the
+  // label, the only thing it has.
+  final PaydaySchedule? schedule = PaydaySchedule.fromCycle(payday);
+  final double perMonth =
+      schedule?.paydaysPerMonth ??
+      (schedule != null
+          // No fixed payday: there is no monthly pay to measure against.
+          ? 0
+          : (payday.cycleType == '15_30' || payday.cycleType == 'semi_monthly')
+          ? 2
+          : 1);
   final double monthly = payday.isSet && payday.expectedIncome.isPositive
-      ? payday.expectedIncome.pesos * (payday.cycleType == '15_30' ? 2 : 1)
+      ? payday.expectedIncome.pesos * perMonth
       : 0;
 
   if (monthly <= 0) {

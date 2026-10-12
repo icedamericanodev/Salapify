@@ -575,12 +575,17 @@ class FinancialState extends ChangeNotifier {
   /// backup written before the editor existed and every prototype import:
   /// they keep whatever they had rather than having a rule guessed for them.
   PaydayCycle get payday {
-    if (!_payday.hasRule) return _payday;
+    final PaydaySchedule? schedule = PaydaySchedule.fromCycle(_payday);
+    if (schedule == null) return _payday;
 
-    final PaydayPoints? points = PaydaySchedule(
-      _payday.paydayDays,
-    ).pointsFrom(now);
-    if (points == null) return _payday;
+    final PaydayPoints? points = schedule.pointsFrom(now);
+    if (points == null) {
+      // A "last until" date that has come (D37.2). NOT the stored countdown:
+      // that was written when the date was still ahead and would keep
+      // dividing by it. Unset instead, so every screen hides the daily
+      // figure and [paydayDatePassed] asks for the next date.
+      return _payday.copyWith(daysToPayday: 0, nextPayday: '', lastPayday: '');
+    }
 
     return _payday.copyWith(
       daysToPayday: points.daysToNext,
@@ -601,8 +606,28 @@ class FinancialState extends ChangeNotifier {
   /// storing an unusable rule. Somebody who set a payday by mistake needs a
   /// way back out, and leaving a half-built rule behind would show the
   /// screens a cycle that `isSet` calls true and the schedule cannot use.
-  void setPaydayRule({required List<int> daysOfMonth, Money? expectedIncome}) {
-    final PaydaySchedule schedule = PaydaySchedule(daysOfMonth);
+  ///
+  /// ONE RULE AT A TIME (D37). Exactly one of [daysOfMonth], [weekday],
+  /// [everyTwoWeeksFrom] or [lastUntil] describes the rule; the first one
+  /// given wins. The cycle is built FRESH rather than copied, so switching
+  /// from weekly to twice a month cannot leave the weekday behind to be
+  /// read as a second rule.
+  void setPaydayRule({
+    List<int> daysOfMonth = const <int>[],
+    int? weekday,
+    DateTime? everyTwoWeeksFrom,
+    DateTime? lastUntil,
+    Money? expectedIncome,
+  }) {
+    final PaydaySchedule schedule = daysOfMonth.isNotEmpty
+        ? PaydaySchedule(daysOfMonth)
+        : weekday != null
+        ? PaydaySchedule.weekly(weekday)
+        : everyTwoWeeksFrom != null
+        ? PaydaySchedule.everyTwoWeeks(everyTwoWeeksFrom)
+        : lastUntil != null
+        ? PaydaySchedule.lastUntil(lastUntil)
+        : PaydaySchedule(const <int>[]);
 
     if (!schedule.isUsable) {
       _payday = PaydayCycle.unset;
@@ -610,13 +635,47 @@ class FinancialState extends ChangeNotifier {
       return;
     }
 
-    _payday = _payday.copyWith(
+    // The snapshot fields are filled from today's points, so a backup opened
+    // by something that knows only the old countdown still reads sensibly.
+    // The getter above re-derives them every time regardless.
+    final PaydayPoints? points = schedule.pointsFrom(now);
+    _payday = PaydayCycle(
+      cycleType: switch (schedule.kind) {
+        PaydayKind.daysOfMonth =>
+          schedule.daysOfMonth.length > 1 ? 'semi_monthly' : 'monthly',
+        PaydayKind.weekly => 'weekly',
+        PaydayKind.everyTwoWeeks => 'biweekly',
+        PaydayKind.lastUntil => 'irregular',
+      },
+      lastPayday: points == null ? '' : formatPaydayLabel(points.last),
+      nextPayday: points == null ? '' : formatPaydayLabel(points.next),
+      daysToPayday: points?.daysToNext ?? 0,
+      // NONE FOR "NO FIXED PAYDAY" (D37.2): with no payday there is no
+      // amount each payday, and expected income must never become spending
+      // money for the person least able to absorb it not arriving.
+      expectedIncome: schedule.kind == PaydayKind.lastUntil
+          ? Money.zero
+          : expectedIncome ?? Money.zero,
       paydayDays: schedule.daysOfMonth,
-      cycleType: schedule.daysOfMonth.length > 1 ? 'semi_monthly' : 'monthly',
-      expectedIncome: expectedIncome ?? Money.zero,
+      paydayWeekday: schedule.weekday,
+      paydayAnchor: schedule.kind == PaydayKind.everyTwoWeeks
+          ? isoDateOf(schedule.date!)
+          : null,
+      lastUntil: schedule.kind == PaydayKind.lastUntil
+          ? isoDateOf(schedule.date!)
+          : null,
     );
     notifyListeners();
   }
+
+  /// The stored rule, read in the one place that knows how (D37).
+  PaydaySchedule? get paydaySchedule => PaydaySchedule.fromCycle(_payday);
+
+  /// True when the person has no fixed payday and the date their money had
+  /// to last until has come. Every screen then hides the daily figure, and
+  /// this is what lets them say why and ask for the next date.
+  bool get paydayDatePassed =>
+      paydaySchedule?.kind == PaydayKind.lastUntil && !payday.isSet;
 
   // -------------------------------------------------------------------------
   // Reminders
@@ -3008,11 +3067,10 @@ class FinancialState extends ChangeNotifier {
   /// With no payday set there is no "by payday", so the window is a month:
   /// the span a monthly bill repeats in, and the one a budget is set for.
   List<BillItem> get billsHeldBack {
-    final PaydayCycle p = payday;
     return billsToReserve(
       bills: _bills,
       upcoming: _upcoming,
-      daysToPayday: p.isSet ? p.daysToPayday : _noPaydayWindowDays,
+      daysToPayday: _billWindowDays,
       now: now,
       debts: _debts,
       installments: _installments,
@@ -3021,14 +3079,26 @@ class FinancialState extends ChangeNotifier {
 
   static const int _noPaydayWindowDays = 30;
 
+  /// How many days of bills count against the money now (D33, D37.3). Bills
+  /// due by payday, but never fewer than the rule's floor: a weekly or
+  /// two-weekly payday comes round before rent does, so those hold back the
+  /// next 30 days. With no payday at all, the next 30 days too.
+  int get _billWindowDays {
+    final PaydayCycle p = payday;
+    if (!p.isSet) return _noPaydayWindowDays;
+    final int floor = paydaySchedule?.billWindowFloor ?? 0;
+    return p.daysToPayday > floor ? p.daysToPayday : floor;
+  }
+
   /// The scheduled items due by payday, overdue included: the window Safe
   /// to Spend holds bills back for (D33), used for the "Going out" and
   /// "Coming in" totals on Bills and Plan (D36), so paying a bill makes the
   /// total drop at once. Every item is still LISTED; this is only what is
   /// added up.
   List<UpcomingItem> get upcomingThisCycle {
-    final PaydayCycle p = payday;
-    final int window = p.isSet ? p.daysToPayday : _noPaydayWindowDays;
+    // The SAME window Safe to Spend holds back (D36): what "Going out" adds
+    // up must be what the daily figure has already set aside.
+    final int window = _billWindowDays;
     return <UpcomingItem>[
       for (final UpcomingItem u in _upcoming)
         if ((daysUntil(u.dueDate, now) ?? 0) <= window) u,

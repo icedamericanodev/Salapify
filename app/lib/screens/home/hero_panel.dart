@@ -70,7 +70,7 @@ class HeroPanel extends StatelessWidget {
     // the old 15 rather than guessing.
     final int cycleDays = math.max(
       1,
-      PaydaySchedule(payday.paydayDays).pointsFrom(state.now)?.cycleDays ?? 15,
+      PaydaySchedule.fromCycle(payday)?.pointsFrom(state.now)?.cycleDays ?? 15,
     );
     final int daysPassed = cycleDays - payday.daysToPayday;
     final double progress = payday.isSet
@@ -214,8 +214,17 @@ class HeroPanel extends StatelessWidget {
                             constraints: const BoxConstraints(minHeight: 44),
                             alignment: Alignment.centerLeft,
                             child: Text(
+                              // No fixed payday (D37.2): the date is when the
+                              // money has to last until, not a payday. Once it
+                              // has come, ask for the next one rather than
+                              // calling the payday "not set".
                               payday.isSet
-                                  ? '${payday.daysToPayday} days to payday'
+                                  ? (state.paydaySchedule?.kind ==
+                                            PaydayKind.lastUntil
+                                        ? '${payday.daysToPayday} days to go'
+                                        : '${payday.daysToPayday} days to payday')
+                                  : state.paydayDatePassed
+                                  ? 'Money in yet? Set your next date'
                                   : 'Payday not set',
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -276,8 +285,13 @@ class HeroPanel extends StatelessWidget {
   /// burn rates it used. What changes is only whether the hero states it
   /// flatly, with no room for the caption that makes it honest.
   String _subtitle(SafeToSpendAnalysis analysis) {
+    final bool lastUntil = state.paydaySchedule?.kind == PaydayKind.lastUntil;
     final String pace = state.payday.isSet
-        ? '${formatPeso(state.safeToSpendPerDay.pesos, showDecimals: false)} a day until payday.'
+        ? '${formatPeso(state.safeToSpendPerDay.pesos, showDecimals: false)} a day '
+              '${lastUntil ? 'until ${state.payday.nextPayday}' : 'until payday'}.'
+        : state.paydayDatePassed
+        // D37.2: the date has come. A question, not a stale number.
+        ? 'Did money come in? Set your next date to see a daily figure.'
         : 'Set your payday to see a daily figure.';
 
     if (!analysis.runwayFromLoggedSpending) return pace;

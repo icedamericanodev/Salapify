@@ -113,3 +113,26 @@ How the figures tie:
   the receipt scanner do, so the card is selected and Save works.
 - Logging a NEW entry is unchanged: everyday accounts only, and paying a
   card is still Move money's job.
+
+## D37: weekly, every two weeks, and no fixed payday
+
+| Every week | Every two weeks | No fixed payday |
+| --- | --- | --- |
+| ![Weekly](sheet_payday_weekly.png) | ![Two weeks](sheet_payday_two_weeks.png) | ![None](sheet_payday_none.png) |
+
+| Weekly at 320dp | Home after the "last until" date |
+| --- | --- |
+| ![Weekly 320](sheet_payday_weekly_320.png) | ![Passed](home_payday_passed.png) |
+
+- "When do you get paid" now has five choices: Twice a month, Once a month,
+  Every week (pick the day), Every two weeks (pick your last payday) and No
+  fixed payday (pick the date your money has to last until).
+- Every two weeks shows the next payday and the one after, so somebody who
+  meant "twice a month" notices.
+- No fixed payday asks for no take-home amount, and Home says "N days to
+  go" instead of "to payday". When the date comes, the daily figure is
+  hidden and Home asks "Did money come in? Set your next date".
+- Weekly and every-two-weeks pay hold back bills due in the next 30 days,
+  so rent three weeks away is not offered as spending money.
+- Fixed on the way: Health Check now counts two paydays a month for a
+  twice-a-month payday set in the app (it showed "promised" doubled).

@@ -1544,3 +1544,33 @@ set. Both answers were the recommended option.
    at once; bills due later are still listed, just not added in. Before
    this, paying a monthly bill moved it to next month and the total did not
    move.
+
+## D37. Weekly, every-two-weeks and no-fixed-payday income. ANSWERED 2026-10-12
+
+THE QUESTION. Batch 3 opens with income that is not "twice a month" or
+"once a month". A payday could only be days of the month, so a weekly
+earner, a two-weekly earner and a freelancer, rider, seller or remittance
+household had no daily Safe to Spend figure at all. The financial-coach and
+ledger-reconciler reviews set out the choices; all four answers were the
+recommended option.
+
+1. **Five payday choices.** Twice a month and Once a month (as before), Every
+   week (pick the weekday), Every two weeks (pick the last payday, stored as
+   a date so it never goes stale), and No fixed payday.
+2. **No fixed payday divides by a "make it last until" date** the person
+   picks, prefilled with a week from today. When the date passes, the daily
+   figure is hidden and the app asks whether money came in and what the next
+   date is, rather than showing a countdown of zero or less. Expected income
+   is still never counted as money to spend.
+3. **Weekly and two-weekly pay hold back bills due in the next 30 days**, not
+   only those due before the next payday, so rent three weeks away is not
+   offered as spending money. Twice a month and once a month keep D33's
+   "due by payday".
+4. **New saved fields are added** for the weekday, the two-weekly anchor
+   date and the "last until" date. Additive: an older backup restores exactly
+   as before.
+
+FOUND ON THE WAY, fixed with it: the Health Check read "twice a month" only
+from the example data's label (`15_30`), while setting a payday in the app
+saves `semi_monthly`, so anyone who set their own twice-a-month payday had
+"how much of my pay is promised" doubled (measured 10% shown as 20%).

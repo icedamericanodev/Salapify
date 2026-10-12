@@ -595,6 +595,110 @@ void main() {
     });
   }
 
+  // D37 (2026-10-12): the payday editor on each new choice, and at 320dp the
+  // one with the most chips. Each opens on a rule already saved, so the
+  // preview card shows what the person would see after Save.
+  for (final ({String slug, double width, void Function(FinancialState) set})
+      shape
+      in <({String slug, double width, void Function(FinancialState) set})>[
+        (
+          slug: 'payday_weekly',
+          width: 390,
+          set: (FinancialState s) => s.setPaydayRule(
+            weekday: DateTime.friday,
+            expectedIncome: const Money.pesos(4500),
+          ),
+        ),
+        (
+          slug: 'payday_weekly_320',
+          width: 320,
+          set: (FinancialState s) => s.setPaydayRule(
+            weekday: DateTime.friday,
+            expectedIncome: const Money.pesos(4500),
+          ),
+        ),
+        (
+          slug: 'payday_two_weeks',
+          width: 390,
+          set: (FinancialState s) => s.setPaydayRule(
+            everyTwoWeeksFrom: DateTime(2026, 9, 11),
+            expectedIncome: const Money.pesos(14000),
+          ),
+        ),
+        (
+          slug: 'payday_none',
+          width: 390,
+          set: (FinancialState s) =>
+              s.setPaydayRule(lastUntil: DateTime(2026, 9, 27)),
+        ),
+      ]) {
+    testWidgets('sheet ${shape.slug} renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = Size(shape.width * 3, 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime.utc(2026, 9, 18),
+      );
+      final Palette palette = Palette.of(state.theme);
+      state.removeSampleData();
+      shape.set(state);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      PaydaySheet.show(tester.element(find.byType(AppShell)), state);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/sheet_${shape.slug}.png'),
+      );
+    });
+  }
+
+  // D37: Home after a "last until" date has come. Saved on one day and
+  // opened two days later, the way a phone reads it.
+  testWidgets('home payday passed renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // A rule whose date has already come: the same stored cycle a phone holds
+    // the morning after (the store-level test proves the save and reload).
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 21, 9),
+    );
+    state.setPaydayRule(lastUntil: DateTime(2026, 9, 20));
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_payday_passed.png'),
+    );
+  });
+
   testWidgets('sheet scan receipt renders', (WidgetTester tester) async {
     await tester.runAsync(loadRealFonts);
 
