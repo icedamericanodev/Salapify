@@ -445,15 +445,23 @@ Reminder? collectionReminder(
   final String person = d.person.trim().isEmpty ? 'Someone' : d.person.trim();
   const String offer = 'A friendly message is ready when you are.';
 
+  // A due date Salapify cannot read ("payday", "end of month", "Dec") is
+  // treated as NO due date, so it falls to the month-end ask below. Read as
+  // a date it never reminded at all, while the rules card promised the last
+  // day of the month (QA, D38.1).
   final String due = (d.dueDate ?? '').trim();
-  if (due.isNotEmpty) {
-    final int? days = daysUntil(due, now);
-    if (days == null || days > 0) return null;
+  final int? days = due.isEmpty ? null : daysUntil(due, now);
+  if (days != null) {
+    if (days > 0) return null;
     final int late = -days;
     final int week = late ~/ 7;
     if (week > collectionWeeks) return null;
+    // The tag names the actual DATE that fell due, not the text typed. A
+    // repeating "15th" is the same text every month, so a text tag fired in
+    // October and was then already "seen" every month after (QA, D38.1).
+    final DateTime fellDue = DateTime(now.year, now.month, now.day - late);
     return Reminder(
-      tag: 'collect-${d.id}-$due-w$week',
+      tag: 'collect-${d.id}-${_iso(fellDue)}-w$week',
       kind: ReminderKind.collection,
       title: 'Owed to you: $person',
       body: late == 0
@@ -477,7 +485,7 @@ Reminder? collectionReminder(
   } else {
     return null;
   }
-  if (_recentlyStarted(d, monthEnding, transactions)) return null;
+  if (_recentlyStarted(d, today, transactions)) return null;
 
   final String ym =
       '${monthEnding.year}-${monthEnding.month.toString().padLeft(2, '0')}';
@@ -506,13 +514,30 @@ Debt? collectionDebtFor(String tag, List<Debt> debts) {
   return null;
 }
 
-/// Whether a debt was lent, or last paid towards, within a week of [day].
-bool _recentlyStarted(Debt d, DateTime day, List<Transaction> transactions) {
+/// Whether a debt was lent, or last paid towards, in the week up to [today].
+///
+/// Measured from TODAY, not from the month that is ending: in the grace days
+/// a payment made on the 1st is two days old, and measuring from the 31st
+/// read it as "in the future" and asked anyway (QA, D38.1).
+bool _recentlyStarted(Debt d, DateTime today, List<Transaction> transactions) {
   bool within(String? iso) {
     final DateTime? at = iso == null ? null : DateTime.tryParse(iso);
     if (at == null) return false;
-    final int age = day.difference(DateTime(at.year, at.month, at.day)).inDays;
+    final int age = today
+        .difference(DateTime(at.year, at.month, at.day))
+        .inDays;
     return age >= 0 && age < 7;
+  }
+
+  // A debt typed in by hand has no opening entry, but the Debt sheet names
+  // it by the moment it was saved (`debt_<milliseconds>`), which is the best
+  // record of when the money was lent that the app holds.
+  final RegExpMatch? stamp = RegExp(r'^debt_(\d{12,})$').firstMatch(d.id);
+  if (stamp != null) {
+    final int? ms = int.tryParse(stamp.group(1)!);
+    if (ms != null && within(_iso(DateTime.fromMillisecondsSinceEpoch(ms)))) {
+      return true;
+    }
   }
 
   if (d.openingTxId case final String id) {
@@ -917,4 +942,7 @@ ReminderSettings _nudgeOnly(ReminderSettings s) => s.copyWith(
   paymentDueEnabled: false,
   billEnabled: false,
   subscriptionEnabled: false,
+  // Missing until QA caught it: a cleared "Owed to you" message was then
+  // scheduled a second time at the evening nudge hour.
+  collectionEnabled: false,
 );

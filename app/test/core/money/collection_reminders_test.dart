@@ -196,6 +196,88 @@ void main() {
     });
   });
 
+  group('QA fixes', () {
+    test('a due date Salapify cannot read asks at month end instead of '
+        'never', () {
+      final Debt d = lent(due: 'payday');
+      expect(at(d, DateTime(2026, 10, 15)), isNull);
+      expect(
+        at(d, DateTime(2026, 10, 31))!.tag,
+        'collect-debt_ana-nodate-2026-10',
+      );
+    });
+
+    test('a repeating "15th" asks again next month, under a new tag', () {
+      final Debt d = lent(due: '15th');
+      final Reminder oct = at(d, DateTime(2026, 10, 15))!;
+      final Reminder nov = at(d, DateTime(2026, 11, 15))!;
+      expect(oct.tag, isNot(nov.tag));
+      expect(nov.tag, 'collect-debt_ana-2026-11-15-w0');
+    });
+
+    test('a payment on the 1st quiets the month-end ask in the grace days', () {
+      final Debt d = lent(
+        due: null,
+        payments: <DebtPayment>[
+          DebtPayment(
+            id: 'p1',
+            date: '2026-11-01',
+            amount: const Money.pesos(500),
+            paidBefore: const Money.pesos(0),
+            settledBefore: false,
+          ),
+        ],
+      );
+      expect(at(d, DateTime(2026, 11, 2)), isNull);
+    });
+
+    test('a debt typed in by hand this week is not asked about yet', () {
+      final int lentAt = DateTime(2026, 10, 29, 10).millisecondsSinceEpoch;
+      expect(
+        at(lent(id: 'debt_$lentAt', due: null), DateTime(2026, 10, 31)),
+        isNull,
+      );
+      final int earlier = DateTime(2026, 10, 1, 10).millisecondsSinceEpoch;
+      expect(
+        at(lent(id: 'debt_$earlier', due: null), DateTime(2026, 10, 31)),
+        isNotNull,
+      );
+    });
+
+    test('the evening nudge pass never schedules an ask a second time', () {
+      final List<PlannedReminder> plan = planReminders(
+        settings: ReminderSettings.defaults.copyWith(dailyExpenseEnabled: true),
+        // Something logged every day, so the evening pass has no nudge of
+        // its own to raise and anything it plans is a duplicate.
+        transactions: <Transaction>[
+          for (int i = 0; i < 3; i++)
+            Transaction(
+              id: 'tx_$i',
+              type: TransactionType.expense,
+              amount: const Money.pesos(1),
+              category: 'Food & Dining',
+              accountId: 'acc_cash',
+              date: '2026-10-0${5 + i}',
+              createdAt: 1,
+            ),
+        ],
+        debts: <Debt>[lent()],
+        bills: const <BillItem>[],
+        // The 9am message was raised and then cleared: not in the tray.
+        sentTags: const <String>{},
+        from: DateTime(2026, 10, 5, 10),
+        days: 1,
+      );
+      expect(
+        plan.where(
+          (PlannedReminder p) => p.reminder.kind == ReminderKind.collection,
+        ),
+        isEmpty,
+        reason: 'scheduled again at the evening nudge hour',
+      );
+    });
+  });
+
   group('saved', () {
     test('the switch survives a save, and a file without it reads as on', () {
       final Map<String, dynamic> off = reminderSettingsToJson(

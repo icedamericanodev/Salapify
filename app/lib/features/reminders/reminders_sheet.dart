@@ -207,10 +207,17 @@ extension on _AlertsTab {
     final Debt? d = collectionDebtFor(n.id, state.debts);
     if (d == null) return null;
     return () async {
-      state.markNotificationRead(n.id);
-      await SharePlus.instance.share(
-        ShareParams(text: collectionMessage(d, now: state.now)),
-      );
+      // Read only once the share sheet actually opened. A build without the
+      // share plugin throws here, and the message then stays unread rather
+      // than looking handled when nothing was sent.
+      try {
+        await SharePlus.instance.share(
+          ShareParams(text: collectionMessage(d, now: state.now)),
+        );
+        state.markNotificationRead(n.id);
+      } on Object {
+        return;
+      }
     };
   }
 }

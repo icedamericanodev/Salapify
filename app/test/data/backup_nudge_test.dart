@@ -158,6 +158,23 @@ void main() {
       expect(back.backupNudgeSnoozedUntil, '2026-10-26');
     });
 
+    test('restoring a backup counts as backed up now, so Home does not ask '
+        'about the entries it just read from the file', () async {
+      final FinancialState from = withEntries(40);
+      addTearDown(from.dispose);
+      // The file a FIRST backup writes: taken before the backup is recorded,
+      // so it carries no lastBackupAt at all.
+      final Snapshot file = Snapshot.decode(from.snapshot().encode(at: now));
+      expect(file.lastBackupAt, isNull);
+
+      final FinancialState phone = FinancialState(clock: now);
+      await phone.restore();
+      addTearDown(phone.dispose);
+      expect(await phone.importSnapshot(file), isTrue);
+      expect(phone.lastBackupAt, DateTime(2026, 10, 12, 9));
+      expect(phone.backupNudge, isNull);
+    });
+
     test('a file written before D38 reads as never backed up', () {
       final FinancialState s = withEntries(30);
       addTearDown(s.dispose);

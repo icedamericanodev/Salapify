@@ -3238,6 +3238,7 @@ class FinancialState extends ChangeNotifier {
         return false;
       }
       _apply(incoming);
+      _restoredFromFile();
       _saveEnabled = true;
 
       // AND THE WARNINGS COME DOWN, which this branch forgot to do while the
@@ -3282,6 +3283,7 @@ class FinancialState extends ChangeNotifier {
     // ledger, and the sample marker is the dangerous one: kept locally, it
     // would offer to inject demo money into a real book.
     _apply(incoming);
+    _restoredFromFile();
 
     // The recovered-load banner is not true of what is on screen any more.
     _loadStatus = LoadStatus.loaded;
@@ -3468,6 +3470,16 @@ class FinancialState extends ChangeNotifier {
     _lastBackupAt = backupStamp(now);
     _backupSnoozedUntil = null;
     notifyListeners();
+  }
+
+  /// Everything just restored is, by definition, in a file somewhere, so it
+  /// counts as backed up NOW. The file's own `lastBackupAt` is always one
+  /// backup behind (it was written before that backup was recorded), so a
+  /// first backup restored read "No backup yet" and Home asked again about
+  /// the very entries it had just read from the file (QA, D38.3).
+  void _restoredFromFile() {
+    _lastBackupAt = backupStamp(now);
+    _backupSnoozedUntil = null;
   }
 
   /// "Not now" on the Home card: quiet for [daysBetweenAsks] days.

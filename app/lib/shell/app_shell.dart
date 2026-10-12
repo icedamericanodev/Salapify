@@ -231,7 +231,11 @@ class _AppShellState extends State<AppShell> {
     widget.state.logTransaction(logged);
     // "I bought it" (D38.2): off the parked list only now, once the entry
     // is actually saved. Cancel kept it parked; Undo below puts it back.
-    if (parked != null) widget.state.unpark(parked.id);
+    // Only when what was saved is still the purchase. Switched to income or
+    // a move on the sheet, it is a different entry and the wish stays (QA).
+    if (parked != null && logged.type == TransactionType.expense) {
+      widget.state.unpark(parked.id);
+    }
     // A light tap you can feel: the entry landed. Day to day actions get a
     // light haptic; milestones (a debt settled) get a stronger one.
     saveHaptic();
