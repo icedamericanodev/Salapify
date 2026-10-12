@@ -666,6 +666,68 @@ void main() {
     });
   }
 
+  // D31: Reports stepped to a past month, and the entries behind a category.
+  for (final String which in <String>['stepper', 'category']) {
+    testWidgets('reports $which renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = const Size(1170, 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final FinancialState state = FinancialState(
+        clock: DateTime(2026, 9, 18, 12),
+      );
+      // One August entry, so stepping back has somewhere to land.
+      state.logTransaction(
+        const Transaction(
+          id: 'tx_shot_aug',
+          type: TransactionType.expense,
+          amount: Money.pesos(1280),
+          category: 'Groceries',
+          accountId: 'acc_cash',
+          date: '2026-08-22',
+          createdAt: 1,
+          merchant: 'Puregold',
+        ),
+      );
+      final Palette palette = Palette.of(state.theme);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+      await tester.tap(find.byIcon(Icons.insert_chart_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Performance'));
+      await tester.pumpAndSettle();
+
+      if (which == 'stepper') {
+        await tester.tap(find.byTooltip('Previous month'));
+        await tester.pumpAndSettle();
+      } else {
+        final Finder food = find.text('Food & Dining').hitTestable();
+        await tester.scrollUntilVisible(
+          food,
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(food.first);
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/reports_$which.png'),
+      );
+    });
+  }
+
   // D38.2: park it. The Log sheet with a purchase typed, so the Park button
   // shows; Home two days later asking "Still want it?"; and Plan's list.
   for (final String which in <String>['log', 'home', 'plan']) {

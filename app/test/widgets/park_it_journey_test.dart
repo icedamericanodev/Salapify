@@ -134,7 +134,8 @@ void main() {
     expect(
       state.transactions.any(
         (Transaction t) =>
-            t.merchant == 'Running shoes' && t.category == 'Shopping & Personal',
+            t.merchant == 'Running shoes' &&
+            t.category == 'Shopping & Personal',
       ),
       isTrue,
     );

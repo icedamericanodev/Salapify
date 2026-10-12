@@ -238,7 +238,7 @@ void main() {
     await tapAndSettle(tester, find.text('Performance'));
     expect(find.text('₱51,000.00'), findsWidgets);
 
-    await tapAndSettle(tester, find.text('Today'));
+    await tapAndSettle(tester, find.text('Day'));
 
     // The directional companion: it is not enough that the numbers are
     // "still valid" after the tap, they have to have MOVED. Today holds one
@@ -257,7 +257,7 @@ void main() {
   ) async {
     await openReports(tester);
     await tapAndSettle(tester, find.text('Cash flow'));
-    await tapAndSettle(tester, find.text('This week'));
+    await tapAndSettle(tester, find.text('Week'));
 
     // This week has entries, so first prove the note is counting rather than
     // hardcoded, then check the wording exists for the zero case by reading
@@ -291,8 +291,10 @@ void main() {
     await openReports(tester);
     await tapAndSettle(tester, find.text('Performance'));
 
-    final double today = tester.getTopLeft(find.text('Today')).dy;
-    final double week = tester.getTopLeft(find.text('This week')).dy;
+    // The chips name the unit since stepping back arrived (D31); "Today"
+    // is now the stepper's label under them.
+    final double today = tester.getTopLeft(find.text('Day')).dy;
+    final double week = tester.getTopLeft(find.text('Week')).dy;
     expect(
       today,
       week,
@@ -306,7 +308,7 @@ void main() {
         .getSize(
           find
               .ancestor(
-                of: find.text('Today'),
+                of: find.text('Day'),
                 matching: find.byType(DecoratedBox),
               )
               .first,

@@ -29,14 +29,167 @@ import '../../models/models.dart';
 enum ReportPeriod { daily, weekly, monthly, quarterly, semiAnnually, annually }
 
 extension ReportPeriodLabel on ReportPeriod {
+  /// The chip: the UNIT only. Which one of them is showing is the stepper's
+  /// job ([periodLabel]), since D31 added stepping back; a chip reading "This
+  /// month" over a stepper reading "Aug 2026" would contradict it.
   String get label => switch (this) {
-    ReportPeriod.daily => 'Today',
-    ReportPeriod.weekly => 'This week',
-    ReportPeriod.monthly => 'This month',
-    ReportPeriod.quarterly => 'This quarter',
-    ReportPeriod.semiAnnually => 'This half',
-    ReportPeriod.annually => 'This year',
+    ReportPeriod.daily => 'Day',
+    ReportPeriod.weekly => 'Week',
+    ReportPeriod.monthly => 'Month',
+    ReportPeriod.quarterly => 'Quarter',
+    ReportPeriod.semiAnnually => 'Half year',
+    ReportPeriod.annually => 'Year',
   };
+}
+
+/// The moment a report [back] periods ago is computed AT (D31, previous
+/// period).
+///
+/// [filterByPeriod] already reads every period from one date, so stepping
+/// back is choosing that date, not building a second window engine:
+///
+///   - Day and Week keep the time of day, so seven-day windows sit end to
+///     end with no gap and no overlap.
+///   - Month, Quarter and Half year land on DAY 1 of the target month. From
+///     31 March, "one month back" by day arithmetic is 3 March, which is
+///     March again.
+///   - Year lands on 1 January.
+DateTime periodAnchor(ReportPeriod period, DateTime now, int back) {
+  if (back <= 0) return now;
+  switch (period) {
+    case ReportPeriod.daily:
+      return DateTime(
+        now.year,
+        now.month,
+        now.day - back,
+        now.hour,
+        now.minute,
+        now.second,
+      );
+    case ReportPeriod.weekly:
+      // One microsecond BEFORE the next window's cutoff. The window includes
+      // both its ends, so a clock at exactly midnight put the boundary date
+      // in two weeks at once (report_period_test caught it: "2026-10-05
+      // landed in 2 periods"). Ending each past week a tick early leaves
+      // every date in exactly one.
+      return DateTime(
+        now.year,
+        now.month,
+        now.day - 7 * back,
+        now.hour,
+        now.minute,
+        now.second,
+        now.millisecond,
+        now.microsecond,
+      ).subtract(const Duration(microseconds: 1));
+    case ReportPeriod.monthly:
+      return DateTime(now.year, now.month - back, 1);
+    case ReportPeriod.quarterly:
+      return DateTime(now.year, now.month - 3 * back, 1);
+    case ReportPeriod.semiAnnually:
+      return DateTime(now.year, now.month - 6 * back, 1);
+    case ReportPeriod.annually:
+      return DateTime(now.year - back, 1, 1);
+  }
+}
+
+const List<String> _monthNames = <String>[
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+const List<String> _dayNames = <String>[
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+];
+
+/// What the stepper says: "This month" now, "Sep 2026" for a past one.
+String periodLabel(ReportPeriod period, DateTime now, int back) {
+  if (back <= 0) {
+    return switch (period) {
+      ReportPeriod.daily => 'Today',
+      // The week is the last seven days, not a calendar week, and the label
+      // says so rather than letting "this week" imply Monday to Sunday.
+      ReportPeriod.weekly => 'Last 7 days',
+      ReportPeriod.monthly => 'This month',
+      ReportPeriod.quarterly => 'This quarter',
+      ReportPeriod.semiAnnually => 'This half year',
+      ReportPeriod.annually => 'This year',
+    };
+  }
+  final DateTime a = periodAnchor(period, now, back);
+  String md(DateTime d) => '${_monthNames[d.month - 1]} ${d.day}';
+  switch (period) {
+    case ReportPeriod.daily:
+      if (back == 1) return 'Yesterday';
+      return '${_dayNames[a.weekday - 1]}, ${md(a)}';
+    case ReportPeriod.weekly:
+      // The same dates filterByPeriod reads, from [periodStart], so the
+      // label cannot drift from the window it names.
+      final DateTime start = periodStart(period, a);
+      return '${md(start)} to ${md(a)}';
+    case ReportPeriod.monthly:
+      return '${_monthNames[a.month - 1]} ${a.year}';
+    case ReportPeriod.quarterly:
+      final int first = ((a.month - 1) ~/ 3) * 3;
+      return '${_monthNames[first]} to ${_monthNames[first + 2]} ${a.year}';
+    case ReportPeriod.semiAnnually:
+      return a.month <= 6 ? 'Jan to Jun ${a.year}' : 'Jul to Dec ${a.year}';
+    case ReportPeriod.annually:
+      return '${a.year}';
+  }
+}
+
+/// Whether there is anything to step back TO: an entry dated before the
+/// first day of the period [back] steps ago. Null [oldest] (no dated
+/// entries) allows no stepping at all, because every earlier period would be
+/// empty.
+bool canStepBack(
+  ReportPeriod period,
+  DateTime now,
+  int back,
+  DateTime? oldest,
+) {
+  if (oldest == null) return false;
+  final DateTime o = DateTime(oldest.year, oldest.month, oldest.day);
+  return o.isBefore(periodStart(period, periodAnchor(period, now, back)));
+}
+
+/// The first DATE [filterByPeriod] includes for a report read at [anchor].
+DateTime periodStart(ReportPeriod period, DateTime anchor) {
+  switch (period) {
+    case ReportPeriod.daily:
+      return DateTime(anchor.year, anchor.month, anchor.day);
+    case ReportPeriod.weekly:
+      // An entry's date parses to midnight and must not be before the
+      // cutoff, so the cutoff's own date counts only when the cutoff IS
+      // midnight.
+      final DateTime cut = anchor.subtract(const Duration(days: 7));
+      final DateTime day = DateTime(cut.year, cut.month, cut.day);
+      return day == cut ? day : DateTime(cut.year, cut.month, cut.day + 1);
+    case ReportPeriod.monthly:
+      return DateTime(anchor.year, anchor.month);
+    case ReportPeriod.quarterly:
+      return DateTime(anchor.year, _quarterOf(anchor.month) * 3 + 1);
+    case ReportPeriod.semiAnnually:
+      return DateTime(anchor.year, anchor.month <= 6 ? 1 : 7);
+    case ReportPeriod.annually:
+      return DateTime(anchor.year);
+  }
 }
 
 /// Which accounts count as things you OWN, from the prototype's own list.
@@ -899,6 +1052,32 @@ CashFlow computeCashFlow(List<Transaction> scoped) {
 
 /// Groups one side of the ledger by category and then by sub-category,
 /// biggest first.
+/// Which breakdown row an entry belongs to, stated ONCE, so the drill-down
+/// list ([entriesInCategory]) and the bar it opens from can never disagree
+/// about an entry with no category.
+String categoryKeyOf(Transaction t) => t.category.isEmpty
+    ? (t.type == TransactionType.income ? 'Income' : 'Uncategorized')
+    : t.category;
+
+/// The entries behind one breakdown row, newest first, from the SAME scoped
+/// list the breakdown summed. Their total and count equal that row's, which
+/// is what lets the sheet that lists them be trusted.
+List<Transaction> entriesInCategory(
+  List<Transaction> scoped,
+  TransactionType type,
+  String category,
+) {
+  final List<Transaction> out = <Transaction>[
+    for (final Transaction t in scoped)
+      if (t.type == type && categoryKeyOf(t) == category) t,
+  ];
+  out.sort((Transaction a, Transaction b) {
+    final int byDate = b.date.compareTo(a.date);
+    return byDate != 0 ? byDate : b.createdAt.compareTo(a.createdAt);
+  });
+  return out;
+}
+
 List<CategoryBreakdown> computeCategoryBreakdown(
   List<Transaction> scoped,
   TransactionType type,
@@ -917,9 +1096,7 @@ List<CategoryBreakdown> computeCategoryBreakdown(
       <String, _CategoryAccumulator>{};
 
   for (final Transaction t in txs) {
-    final String category = t.category.isEmpty
-        ? (type == TransactionType.income ? 'Income' : 'Uncategorized')
-        : t.category;
+    final String category = categoryKeyOf(t);
     final String sub = (t.subcategory == null || t.subcategory!.isEmpty)
         ? (type == TransactionType.income ? 'Regular' : 'General')
         : t.subcategory!;

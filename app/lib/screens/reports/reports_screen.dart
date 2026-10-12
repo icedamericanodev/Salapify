@@ -18,6 +18,7 @@ import '../../models/models.dart';
 import '../../state/financial_state.dart';
 import 'bir_claims_card.dart';
 import 'category_bar.dart';
+import 'category_entries_sheet.dart';
 import 'reconciliation_view.dart';
 import 'report_charts.dart';
 import 'trend_charts.dart';
@@ -101,6 +102,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
   _ReportTab _tab = _ReportTab.position;
   ReportPeriod _period = ReportPeriod.monthly;
 
+  /// How many periods back the report is stepped (D31, previous period).
+  /// 0 is the current one. Reset whenever a period chip is tapped, so a chip
+  /// always lands on now.
+  int _back = 0;
+
+  /// The oldest readable entry date, which is as far back as stepping goes.
+  DateTime? _oldestDated() {
+    DateTime? oldest;
+    for (final Transaction t in widget.state.transactions) {
+      final DateTime? d = DateTime.tryParse(t.date);
+      if (d == null) continue;
+      if (oldest == null || d.isBefore(oldest)) oldest = d;
+    }
+    return oldest;
+  }
+
   @override
   Widget build(BuildContext context) {
     final Palette p = Palette.of(widget.state.theme);
@@ -113,7 +130,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       transactions: widget.state.transactions,
       accounts: widget.state.accounts,
       period: _period,
-      now: widget.state.now,
+      // The stepped-back period is read from an earlier date; nothing else
+      // about the report changes (periodAnchor says why that is enough).
+      now: periodAnchor(_period, widget.state.now, _back),
       profile: widget.state.activeProfile,
       // What a person entered on the Debt and Plans screens is money they
       // owe, and until 2026-10-05 the balance sheet could not see it. A
@@ -150,7 +169,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _PeriodPicker(
                   palette: p,
                   current: _period,
-                  onSelect: (ReportPeriod v) => setState(() => _period = v),
+                  onSelect: (ReportPeriod v) => setState(() {
+                    _period = v;
+                    _back = 0;
+                  }),
+                ),
+                const SizedBox(height: Spacing.sm),
+                _PeriodStepper(
+                  palette: p,
+                  label: periodLabel(_period, widget.state.now, _back),
+                  unit: _period.label.toLowerCase(),
+                  onBack:
+                      canStepBack(
+                        _period,
+                        widget.state.now,
+                        _back,
+                        _oldestDated(),
+                      )
+                      ? () => setState(() => _back++)
+                      : null,
+                  onForward: _back > 0 ? () => setState(() => _back--) : null,
                 ),
                 const SizedBox(height: Spacing.md),
                 // A BOOK WITH NO ENTRIES AT ALL gets Pan thinking in place of
@@ -168,7 +206,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         'which way your money is moving.',
                   )
                 else
-                  _ScopeNote(palette: p, count: r.transactions.length),
+                  _ScopeNote(
+                    palette: p,
+                    count: r.transactions.length,
+                    pastLabel: _back > 0
+                        ? periodLabel(_period, widget.state.now, _back)
+                        : null,
+                  ),
                 const SizedBox(height: Spacing.lg),
               ],
               switch (_tab) {
@@ -194,6 +238,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   palette: p,
                   report: r,
                   period: _period,
+                  back: _back,
+                  onOpenCategory:
+                      (
+                        TransactionType type,
+                        String category, {
+                        bool claimableOnly = false,
+                      }) => CategoryEntriesSheet.show(
+                        context,
+                        state: widget.state,
+                        period: _period,
+                        back: _back,
+                        type: type,
+                        category: category,
+                        claimableOnly: claimableOnly,
+                      ),
                   // Built only when this tab shows: six engine runs are cheap,
                   // but not free, and Position and Cash flow never read them.
                   trends: buildTrends(
@@ -425,16 +484,71 @@ class _PeriodPicker extends StatelessWidget {
   }
 }
 
+/// "< Sep 2026 >" under the period chips (D31). The arrows are full 48dp
+/// targets and say which way in words for a screen reader; the forward one
+/// stops at now and the back one at the oldest dated entry.
+class _PeriodStepper extends StatelessWidget {
+  const _PeriodStepper({
+    required this.palette,
+    required this.label,
+    required this.unit,
+    required this.onBack,
+    required this.onForward,
+  });
+
+  final Palette palette;
+  final String label;
+  final String unit;
+  final VoidCallback? onBack;
+  final VoidCallback? onForward;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget arrow(IconData icon, String words, VoidCallback? onTap) =>
+        IconButton(
+          tooltip: words,
+          onPressed: onTap,
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          icon: Icon(
+            icon,
+            color: onTap == null ? palette.border : palette.accent,
+          ),
+        );
+    return Row(
+      children: <Widget>[
+        arrow(Icons.chevron_left, 'Previous $unit', onBack),
+        Expanded(
+          child: Text(
+            label,
+            key: const Key('report-period-label'),
+            textAlign: TextAlign.center,
+            style: AppType.rowTitle(palette),
+          ),
+        ),
+        arrow(Icons.chevron_right, 'Next $unit', onForward),
+      ],
+    );
+  }
+}
+
 /// Says how many entries the figures below were computed from.
 ///
 /// This is not decoration. Every total on this screen is a sum over a set the
 /// person cannot see, and "0 entries" is the difference between "I earned
 /// nothing this week" and "the filter is wrong".
 class _ScopeNote extends StatelessWidget {
-  const _ScopeNote({required this.palette, required this.count});
+  const _ScopeNote({
+    required this.palette,
+    required this.count,
+    this.pastLabel,
+  });
 
   final Palette palette;
   final int count;
+
+  /// The stepped-back period's name, or null for the current one. "Nothing
+  /// to report YET" is false about a period that is over.
+  final String? pastLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +562,9 @@ class _ScopeNote extends StatelessWidget {
             // case is now three words instead of a sentence about excluded
             // entries, which is in the explainer.
             count == 0
-                ? 'No entries in this period, so nothing to report yet.'
+                ? (pastLabel == null
+                      ? 'No entries in this period, so nothing to report yet.'
+                      : 'No entries in $pastLabel.')
                 : 'From $entries',
             style: AppType.caption(palette),
           ),
@@ -728,12 +844,26 @@ class _PerformanceView extends StatefulWidget {
     required this.report,
     required this.period,
     required this.trends,
+    this.back = 0,
+    this.onOpenCategory,
   });
 
   final Palette palette;
   final ReportSet report;
   final ReportPeriod period;
   final TrendSet trends;
+
+  /// Periods stepped back; the "This month vs last month" card reads today's
+  /// date, so it only shows on the current period.
+  final int back;
+
+  /// Opens the entries behind a breakdown bar (D31).
+  final void Function(
+    TransactionType type,
+    String category, {
+    bool claimableOnly,
+  })?
+  onOpenCategory;
 
   @override
   State<_PerformanceView> createState() => _PerformanceViewState();
@@ -795,6 +925,7 @@ class _PerformanceViewState extends State<_PerformanceView> {
         // The pace line is a THIS MONTH chart, so it shows on the monthly
         // view only, and only once there is something to draw.
         if (widget.period == ReportPeriod.monthly &&
+            widget.back == 0 &&
             (trends.pace.spentSoFar > 0 ||
                 trends.pace.hasLastMonth)) ...<Widget>[
           const SizedBox(height: Spacing.md),
@@ -1114,6 +1245,13 @@ class _PerformanceViewState extends State<_PerformanceView> {
                 )
               : report.expenseByCategory,
           barColor: palette.negative,
+          onOpen: widget.onOpenCategory == null
+              ? null
+              : (String c) => widget.onOpenCategory!(
+                  TransactionType.expense,
+                  c,
+                  claimableOnly: _claimableOnly,
+                ),
         ),
         const SizedBox(height: Spacing.md),
         _BreakdownSection(
@@ -1122,6 +1260,9 @@ class _PerformanceViewState extends State<_PerformanceView> {
           emptyNote: 'Nothing received in this period.',
           rows: report.incomeByCategory,
           barColor: palette.positive,
+          onOpen: widget.onOpenCategory == null
+              ? null
+              : (String c) => widget.onOpenCategory!(TransactionType.income, c),
         ),
       ],
     );
@@ -1389,6 +1530,7 @@ class _BreakdownSection extends StatelessWidget {
     required this.emptyNote,
     required this.rows,
     required this.barColor,
+    this.onOpen,
   });
 
   final Palette palette;
@@ -1396,6 +1538,7 @@ class _BreakdownSection extends StatelessWidget {
   final String emptyNote;
   final List<CategoryBreakdown> rows;
   final Color barColor;
+  final ValueChanged<String>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -1407,7 +1550,12 @@ class _BreakdownSection extends StatelessWidget {
           : Column(
               children: <Widget>[
                 for (final CategoryBreakdown c in rows)
-                  CategoryBar(palette: palette, row: c, barColor: barColor),
+                  CategoryBar(
+                    palette: palette,
+                    row: c,
+                    barColor: barColor,
+                    onTap: onOpen == null ? null : () => onOpen!(c.category),
+                  ),
               ],
             ),
     );

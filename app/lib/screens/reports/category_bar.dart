@@ -19,18 +19,40 @@ class CategoryBar extends StatelessWidget {
     required this.palette,
     required this.row,
     required this.barColor,
+    this.onTap,
   });
 
   final Palette palette;
   final CategoryBreakdown row;
   final Color barColor;
 
+  /// Opens the entries behind this bar (D31). Null draws no chevron and
+  /// takes no tap.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     // Only worth listing sub-categories when they say something the category
     // line does not. One sub-category is always 100% of its parent.
     final bool showSubs = row.subcategories.length > 1;
+    final VoidCallback? tap = onTap;
+    final String count = row.count == 1 ? '1 entry' : '${row.count} entries';
+    final Widget body = _body(showSubs, tap != null);
+    if (tap == null) return body;
+    return Semantics(
+      button: true,
+      label:
+          '${row.category}, ${formatPeso(row.total)}, $count. Opens the list.',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: tap,
+        borderRadius: BorderRadius.circular(Radii.tile),
+        child: body,
+      ),
+    );
+  }
 
+  Widget _body(bool showSubs, bool tappable) {
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.md),
       child: Column(
@@ -48,6 +70,8 @@ class CategoryBar extends StatelessWidget {
               ),
               const SizedBox(width: Spacing.sm),
               Text(formatPeso(row.total), style: AppType.amountSmall(palette)),
+              if (tappable)
+                Icon(Icons.chevron_right, size: 16, color: palette.textMuted),
             ],
           ),
           const SizedBox(height: 4),
