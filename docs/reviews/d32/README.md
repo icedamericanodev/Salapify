@@ -136,3 +136,46 @@ How the figures tie:
   so rent three weeks away is not offered as spending money.
 - Fixed on the way: Health Check now counts two paydays a month for a
   twice-a-month payday set in the app (it showed "promised" doubled).
+
+## D38: the three habit features
+
+### Backup reminder
+
+![Home asks for a backup](home_backup_card.png)
+
+- Home asks only after 30 or more of your own entries AND 14 days since the
+  last backup. "Not now" hides it for 14 days. Never a phone buzz.
+- Settings' export row now says "Last backup: 3 days ago." or "No backup
+  yet." Restoring a backup counts as backed up.
+
+### Money owed to you
+
+| The reminder, with Send a reminder | Its own switch |
+| --- | --- |
+| ![Owed to you](sheet_reminders_owed.png) | ![Rules](sheet_reminders_rules_owed.png) |
+
+- On the due date, then once a week for up to eight weeks. No due date (or
+  one Salapify cannot read, like "payday"): the last day of the month.
+- "Send a reminder" opens your share sheet with a friendly message.
+  Salapify never sends anything itself.
+
+### Park it for 48 hours
+
+| On the Log sheet | Two days later, on Home | On Plan, Goals |
+| --- | --- | --- |
+| ![Park it](park_it_log.png) | ![Still want it?](park_it_home.png) | ![Parked](park_it_plan.png) |
+
+- Parking spends nothing. After 48 hours Home asks "Still want it?":
+  I bought it (Log opens filled in), Save up for it (a goal, filled in),
+  or Let it go (with Undo).
+
+## Reports: earlier periods and category entries
+
+| Stepped back to August | Tap a category |
+| --- | --- |
+| ![Stepper](reports_stepper.png) | ![Food & Dining](reports_category.png) |
+
+- The chips name the unit (Day, Week, Month...) and the arrows step back to
+  earlier periods, stopping at your oldest entry.
+- Tapping a category lists its entries; the total on the sheet is the same
+  figure as the bar, to the centavo.
