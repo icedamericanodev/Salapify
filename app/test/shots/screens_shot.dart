@@ -666,6 +666,35 @@ void main() {
     });
   }
 
+  // D31: the Sweldo Day card, on the example payday (the 15th).
+  testWidgets('home sweldo day renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 3400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 15, 9),
+    );
+    final Palette palette = Palette.of(state.theme);
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_sweldo_day.png'),
+    );
+  });
+
   // D31: Reports stepped to a past month, and the entries behind a category.
   for (final String which in <String>['stepper', 'category']) {
     testWidgets('reports $which renders', (WidgetTester tester) async {

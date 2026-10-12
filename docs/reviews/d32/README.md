@@ -179,3 +179,15 @@ How the figures tie:
   earlier periods, stopping at your oldest entry.
 - Tapping a category lists its entries; the total on the sheet is the same
   figure as the bar, to the centavo.
+
+## Sweldo Day card
+
+![Pay yourself first, on payday](home_sweldo_day.png)
+
+- On payday and the day after (weekly pay: payday only), under Debts.
+- Every figure is one the app already shows elsewhere: Safe to Save, the
+  bills held back, and the daily figure.
+- One button, "Move to savings", into an account marked Set aside (the only
+  kind of saving that lowers Safe to Spend). No Set aside account yet: the
+  button says "Choose a savings account" and opens Accounts.
+- It goes away on its own once money moves into a Set aside account.

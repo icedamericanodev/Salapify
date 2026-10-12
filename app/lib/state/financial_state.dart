@@ -24,6 +24,7 @@ import '../core/money/reconciliation.dart';
 import '../core/money/reminders.dart';
 import '../core/money/daily_projection.dart';
 import '../core/money/safe_to_spend.dart';
+import '../core/money/sweldo_day.dart';
 import '../models/models.dart';
 import '../core/money/money.dart';
 import '../core/money/net_worth_history.dart';
@@ -3480,6 +3481,19 @@ class FinancialState extends ChangeNotifier {
   void _restoredFromFile() {
     _lastBackupAt = backupStamp(now);
     _backupSnoozedUntil = null;
+  }
+
+  /// The payday the Sweldo Day card is about, or null when Home should not
+  /// show it ([sweldoDayFor]). Quiet while the file is unreadable, where the
+  /// figures on the card would be somebody else's.
+  DateTime? get sweldoDay {
+    if (_loadStatus == LoadStatus.unreadable) return null;
+    return sweldoDayFor(
+      schedule: paydaySchedule,
+      now: now,
+      transactions: _transactions,
+      accounts: _accounts,
+    );
   }
 
   /// "Not now" on the Home card: quiet for [daysBetweenAsks] days.

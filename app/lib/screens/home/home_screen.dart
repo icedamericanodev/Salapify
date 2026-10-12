@@ -37,6 +37,7 @@ import 'latest_transactions.dart';
 import 'quick_actions.dart';
 import 'backup_card.dart';
 import 'parked_card.dart';
+import 'sweldo_day_card.dart';
 import 'reminders_banner.dart';
 import 'runway_row.dart';
 
@@ -55,6 +56,7 @@ import 'runway_row.dart';
 /// enum, so the two cannot drift apart silently.
 const int kActivityTab = 1;
 const int kPlanTab = 3;
+const int kAccountsTab = 4;
 
 /// by guesswork and the founder spotted it against the real screens.
 class HomeScreen extends StatelessWidget {
@@ -175,6 +177,19 @@ class HomeScreen extends StatelessWidget {
               onInfo: () =>
                   InfoSheet.show(context, palette, InfoTopic.debtBothWays),
             ),
+
+            // SWELDO DAY (D31), above Today for the day or two after payday
+            // and gone the rest of the month, so it can take this spot for
+            // the few days it is about the most important money decision of
+            // the cycle.
+            if (state.sweldoDay != null) ...<Widget>[
+              const SizedBox(height: Spacing.md),
+              SweldoDayCard(
+                state: state,
+                onMove: () => _moveMoney(context, palette),
+                onChooseSavings: () => onOpenTab(kAccountsTab),
+              ),
+            ],
 
             // TODAY, directly under the hero, and it is the door into the one
             // action that matters in a first session.

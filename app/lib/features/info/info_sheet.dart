@@ -171,6 +171,7 @@ enum InfoTopic {
   monthByMonth,
   cashByMonth,
   netWorthByMonth,
+  sweldoDay,
 }
 
 class InfoPoint {
@@ -667,6 +668,34 @@ const Map<InfoTopic, InfoContent> infoContent = <InfoTopic, InfoContent>{
     ],
   ),
 
+  InfoTopic.sweldoDay: InfoContent(
+    title: 'Pay yourself first',
+    subtitle: 'Why the Sweldo Day card asks on payday',
+    points: <InfoPoint>[
+      InfoPoint(
+        icon: Icons.savings_outlined,
+        title: 'Saving first is what makes it happen',
+        body:
+            'Money saved on payday is money that was never there to spend. '
+            'What is left at the end of a cycle is usually nothing.',
+      ),
+      InfoPoint(
+        icon: Icons.calculate_outlined,
+        title: 'What Safe to Save is',
+        body:
+            '15% of what is free after the bills and debt payments Safe to '
+            'Spend holds back. It is not 15% of your pay.',
+      ),
+      InfoPoint(
+        icon: Icons.shield_outlined,
+        title: 'Why it has to be a Set aside account',
+        body:
+            'Money in an account marked Set aside stays out of Safe to Spend, '
+            'so moving it there lowers what you see as yours to spend. A goal '
+            'alone moves no money.',
+      ),
+    ],
+  ),
   InfoTopic.comingUp: InfoContent(
     title: 'Coming up',
     subtitle: 'Money that is already spoken for',
