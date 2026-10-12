@@ -283,8 +283,9 @@ class _BillsSheetState extends State<BillsSheet> {
               label: 'Going out',
               value: formatPeso(t.totalOut.pesos),
               caption: t.billCount == 1
-                  ? '1 bill due by payday'
-                  : '${t.billCount} bills due by payday',
+                  ? '1 bill due ${widget.state.billWindowPhrase}'
+                  : '${t.billCount} bills due '
+                        '${widget.state.billWindowPhrase}',
               valueColor: p.negative,
             ),
             right: StatCard(

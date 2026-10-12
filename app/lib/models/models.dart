@@ -1158,6 +1158,10 @@ class PaydayCycle {
   /// It does not repeat; once it passes the app asks for the next. D37.
   final String? lastUntil;
 
+  /// True for "no fixed payday" (D37.2): the date is when the money has to
+  /// last until, not a payday, and screens must not call it one.
+  bool get noFixedPayday => lastUntil != null;
+
   /// True when the countdown can be worked out fresh rather than recalled.
   ///
   /// At most one of the four rule fields is ever set: the store's setter

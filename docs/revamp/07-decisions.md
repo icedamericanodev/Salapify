@@ -1574,3 +1574,9 @@ FOUND ON THE WAY, fixed with it: the Health Check read "twice a month" only
 from the example data's label (`15_30`), while setting a payday in the app
 saves `semi_monthly`, so anyone who set their own twice-a-month payday had
 "how much of my pay is promised" doubled (measured 10% shown as 20%).
+
+5. **No fixed payday holds back bills due in the next 30 days too.** Added
+   2026-10-12 after the qa-tester review measured a "last until" date of
+   tomorrow offering rent due in three days as today's spending money. No
+   income is promised on that date, so the same 30 day window as weekly pay
+   applies. Recommended option, chosen by the founder.

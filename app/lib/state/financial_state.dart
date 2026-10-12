@@ -3083,6 +3083,17 @@ class FinancialState extends ChangeNotifier {
   /// due by payday, but never fewer than the rule's floor: a weekly or
   /// two-weekly payday comes round before rent does, so those hold back the
   /// next 30 days. With no payday at all, the next 30 days too.
+  /// How the bill window reads in a caption: "by payday" when it IS the
+  /// countdown, otherwise "in the next 30 days". A weekly earner's rent due
+  /// in three weeks is counted (D37.3), and "1 bill due by payday" would be
+  /// false three paydays early (qa-tester, 2026-10-12).
+  String get billWindowPhrase {
+    final PaydayCycle p = payday;
+    return p.isSet && _billWindowDays == p.daysToPayday
+        ? 'by payday'
+        : 'in the next $_billWindowDays days';
+  }
+
   int get _billWindowDays {
     final PaydayCycle p = payday;
     if (!p.isSet) return _noPaydayWindowDays;

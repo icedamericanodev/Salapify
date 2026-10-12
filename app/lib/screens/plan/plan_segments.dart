@@ -347,8 +347,8 @@ class BillsSegment extends StatelessWidget {
             label: 'Going out',
             value: formatPeso(t.totalOut.pesos),
             caption: t.billCount == 1
-                ? '1 bill due by payday'
-                : '${t.billCount} bills due by payday',
+                ? '1 bill due ${state.billWindowPhrase}'
+                : '${t.billCount} bills due ${state.billWindowPhrase}',
             valueColor: palette.negative,
           ),
           right: StatCard(

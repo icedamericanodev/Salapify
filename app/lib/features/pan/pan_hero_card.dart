@@ -161,7 +161,8 @@ _Teaser _teaserFor(PanFacts facts) {
     return _Teaser(
       '${formatPeso(facts.safeToSpendUntilPayday)} safe to spend, '
       '${facts.payday.daysToPayday} '
-      '${facts.payday.daysToPayday == 1 ? 'day' : 'days'} to payday',
+      '${facts.payday.daysToPayday == 1 ? 'day' : 'days'} '
+      '${facts.payday.noFixedPayday ? 'to go' : 'to payday'}',
       const <String>[
         'What is safe to spend?',
         'How am I doing?',

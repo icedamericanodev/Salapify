@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salapify/core/money/health_check.dart';
 import 'package:salapify/core/money/money.dart';
+import 'package:salapify/core/money/pan/pan_engine.dart';
 import 'package:salapify/core/money/payday_schedule.dart';
 import 'package:salapify/data/store.dart';
 import 'package:salapify/models/models.dart';
@@ -133,5 +134,54 @@ void main() {
     );
     expect(s.payday.cycleType, 'semi_monthly');
     expect(promised(s), fromExample);
+  });
+
+  group('QA fixes (2026-10-12)', () {
+    test('no fixed payday with a date of tomorrow still holds back rent due '
+        'in three days (D37.5)', () async {
+      final FinancialState s = await fresh();
+      s.addUpcoming(
+        const UpcomingItem(
+          id: 'up_rent_soon',
+          name: 'Rent D37',
+          amount: Money.pesos(15000),
+          dueDate: '2026-10-15',
+          type: UpcomingItemType.rent,
+        ),
+      );
+      s.setPaydayRule(lastUntil: DateTime(2026, 10, 13));
+      expect(s.payday.daysToPayday, 1);
+      expect(holdsRent(s), isTrue, reason: 'rent offered as spending money');
+    });
+
+    test('the bill caption says what the window is', () async {
+      final FinancialState twice = await fresh();
+      twice.setPaydayRule(daysOfMonth: <int>[15, 30]);
+      expect(twice.billWindowPhrase, 'by payday');
+
+      final FinancialState weekly = await fresh();
+      weekly.setPaydayRule(weekday: DateTime.friday);
+      expect(weekly.billWindowPhrase, 'in the next 30 days');
+    });
+
+    test('Health Check: no fixed payday says why "promised" is not measured, '
+        'with no button back to an editor that cannot answer it', () async {
+      final FinancialState s = await fresh();
+      s.setPaydayRule(lastUntil: DateTime(2026, 10, 20));
+      final HealthIndicator promised = s.healthReport.indicators.firstWhere(
+        (HealthIndicator i) => i.id == 'promised',
+      );
+      expect(promised.measured, isFalse);
+      expect(promised.need, isNull);
+      expect(promised.missing, contains('no fixed payday'));
+    });
+
+    test('Pan calls the date what it is, not a payday', () async {
+      final FinancialState s = await fresh();
+      s.setPaydayRule(lastUntil: DateTime(2026, 10, 20));
+      final String text = askPan('When is my payday?', s.panFacts).text;
+      expect(text, contains('last until'));
+      expect(text, isNot(contains('next payday')));
+    });
   });
 }

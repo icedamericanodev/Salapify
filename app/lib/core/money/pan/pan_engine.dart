@@ -1078,6 +1078,32 @@ PanAnswer _goals(PanFacts facts) {
 }
 
 PanAnswer _payday(PanFacts facts) {
+  // NO FIXED PAYDAY (D37.2). The date is when the money has to last until,
+  // not a payday, and once it has come the daily figure is hidden rather
+  // than spread over a single day (qa-tester, 2026-10-12).
+  if (facts.payday.noFixedPayday) {
+    if (!facts.payday.isSet) {
+      return const PanAnswer(
+        topic: 'payday',
+        text:
+            'The date your money had to last until has come, so there is no '
+            'daily figure for now. If money came in, set the next date it '
+            'has to last until and the daily figure comes back.',
+        followUps: <String>['What is safe to spend?'],
+      );
+    }
+    final int days = facts.payday.daysToPayday;
+    return PanAnswer(
+      topic: 'payday',
+      text:
+          'You have no fixed payday, and your money has to last until '
+          '${facts.payday.nextPayday}, $days ${days == 1 ? 'day' : 'days'} '
+          'away. Safe to Spend divides by those days, and counts no income '
+          'until something actually comes in.',
+      figures: <PanFigure>[PanFigure(label: 'Days to go', value: '$days')],
+      followUps: <String>['What is safe to spend?'],
+    );
+  }
   if (!facts.payday.isSet) {
     return const PanAnswer(
       topic: 'payday',

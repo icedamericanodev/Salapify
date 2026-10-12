@@ -83,7 +83,9 @@ class HealthIndicator {
     required String id,
     required String question,
     required String missing,
-    required HealthNeed need,
+    // Optional since D37: some readings are missing for a reason no button
+    // can fix, and a button that leads straight back here is a loop.
+    HealthNeed? need,
   }) => HealthIndicator._(
     id: id,
     question: question,
@@ -436,6 +438,19 @@ HealthIndicator _promised(
   final double monthly = payday.isSet && payday.expectedIncome.isPositive
       ? payday.expectedIncome.pesos * perMonth
       : 0;
+
+  // NO FIXED PAYDAY (D37.2): there is no monthly take-home to measure
+  // against, and "add your take-home each payday" would send the person to
+  // an editor that, for this choice, has no such field: a loop.
+  if (payday.noFixedPayday) {
+    return HealthIndicator.unmeasured(
+      id: id,
+      question: question,
+      missing:
+          'With no fixed payday there is no monthly pay to measure this '
+          'against.',
+    );
+  }
 
   if (monthly <= 0) {
     return HealthIndicator.unmeasured(

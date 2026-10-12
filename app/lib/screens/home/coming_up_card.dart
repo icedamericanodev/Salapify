@@ -171,8 +171,14 @@ class ComingUpCard extends StatelessWidget {
                 child: Text(
                   // An unset cycle has no date. "Next Payday: " with nothing
                   // after the colon reads as a value the app lost.
+                  // No fixed payday (D37.2): the date is when the money has
+                  // to last until, never a payday.
                   state.payday.isSet
-                      ? 'Next Payday: ${state.payday.nextPayday}'
+                      ? state.payday.noFixedPayday
+                            ? 'Money lasts until: ${state.payday.nextPayday}'
+                            : 'Next Payday: ${state.payday.nextPayday}'
+                      : state.paydayDatePassed
+                      ? 'Money in yet? Set your next date'
                       : 'Payday not set yet',
                   // Two lines, because the date is the point. At 1.5x this
                   // row has an icon on one side and a countdown badge on the

@@ -221,8 +221,8 @@ class HeroPanel extends StatelessWidget {
                               payday.isSet
                                   ? (state.paydaySchedule?.kind ==
                                             PaydayKind.lastUntil
-                                        ? '${payday.daysToPayday} days to go'
-                                        : '${payday.daysToPayday} days to payday')
+                                        ? '${_days(payday.daysToPayday)} to go'
+                                        : '${_days(payday.daysToPayday)} to payday')
                                   : state.paydayDatePassed
                                   ? 'Money in yet? Set your next date'
                                   : 'Payday not set',
@@ -284,6 +284,10 @@ class HeroPanel extends StatelessWidget {
   /// the Safe to Spend sheet still shows it, captioned with which of the two
   /// burn rates it used. What changes is only whether the hero states it
   /// flatly, with no room for the caption that makes it honest.
+  /// "1 day", "7 days". A weekly earner sees a one every week, and "1 days"
+  /// every Thursday is a typo they would see fifty times a year.
+  static String _days(int n) => n == 1 ? '1 day' : '$n days';
+
   String _subtitle(SafeToSpendAnalysis analysis) {
     final bool lastUntil = state.paydaySchedule?.kind == PaydayKind.lastUntil;
     final String pace = state.payday.isSet

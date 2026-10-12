@@ -145,9 +145,14 @@ class PaydaySchedule {
   /// before rent does, so "bills due by payday" would offer the rent as
   /// spending money until the week it fell due. Monthly cycles keep D33's
   /// "due by payday", which a floor of zero leaves exactly as it was.
+  ///
+  /// No fixed payday holds back 30 days too (D37.5, founder, 2026-10-12): no
+  /// income is promised on its date, so a "last until" of tomorrow must not
+  /// offer the rent due in three days as today's spending money (qa-tester
+  /// measured exactly that).
   int get billWindowFloor => switch (kind) {
-    PaydayKind.weekly || PaydayKind.everyTwoWeeks => 30,
-    PaydayKind.daysOfMonth || PaydayKind.lastUntil => 0,
+    PaydayKind.weekly || PaydayKind.everyTwoWeeks || PaydayKind.lastUntil => 30,
+    PaydayKind.daysOfMonth => 0,
   };
 
   /// Every payday in a given month, as real dates, shortest month included.

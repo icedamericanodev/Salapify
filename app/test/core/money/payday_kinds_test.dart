@@ -99,6 +99,11 @@ void main() {
       30,
     );
     expect(PaydaySchedule(<int>[15, 30]).billWindowFloor, 0);
+    // D37.5: no income is promised on a last-until date.
+    expect(
+      PaydaySchedule.lastUntil(DateTime(2026, 10, 20)).billWindowFloor,
+      30,
+    );
   });
 
   group('stored and read back', () {

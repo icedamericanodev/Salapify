@@ -79,13 +79,16 @@ class _PaydaySheetState extends State<PaydaySheet> {
     _first = days.isNotEmpty ? days.first : 15;
     _second = days.length > 1 ? days[1] : 30;
     _weekday = s?.weekday ?? DateTime.friday;
-    _anchor = s?.kind == PaydayKind.everyTwoWeeks ? s!.date! : _today;
+    // The LAST payday, not the stored anchor: an anchor saved in August is
+    // still a valid rule in October but is not "your last payday", and the
+    // picker only reaches back a month (qa-tester, 2026-10-12).
+    _anchor = s?.kind == PaydayKind.everyTwoWeeks
+        ? s!.pointsFrom(widget.state.now)?.last ?? s.date!
+        : _today;
     // A week from today, so nobody faces a blank picker (financial-coach,
     // 2026-10-12). A date that has passed is replaced, never shown again.
     final DateTime? until = s?.kind == PaydayKind.lastUntil ? s!.date : null;
-    _until = until != null && until.isAfter(_today)
-        ? until
-        : _today.add(const Duration(days: 7));
+    _until = until != null && until.isAfter(_today) ? until : _plus(_today, 7);
 
     _pay = TextEditingController(
       // Whole pesos with no ".00", centavos with two places. The rule used to
@@ -218,7 +221,7 @@ class _PaydaySheetState extends State<PaydaySheet> {
                 now: _today,
                 onTap: () => _pick(
                   initial: _anchor,
-                  first: _today.subtract(const Duration(days: 31)),
+                  first: _plus(_today, -31),
                   last: _today,
                   help: 'Your last payday',
                   onPicked: (DateTime d) => _anchor = d,
@@ -234,8 +237,8 @@ class _PaydaySheetState extends State<PaydaySheet> {
                 now: _today,
                 onTap: () => _pick(
                   initial: _until,
-                  first: _today.add(const Duration(days: 1)),
-                  last: _today.add(const Duration(days: 90)),
+                  first: _plus(_today, 1),
+                  last: _plus(_today, 90),
                   help: 'Make my money last until',
                   onPicked: (DateTime d) => _until = d,
                 ),
@@ -372,6 +375,10 @@ class _PaydaySheetState extends State<PaydaySheet> {
   }
 }
 
+/// Calendar days, by the date's own fields: `add(Duration(days: n))` is a
+/// day short where a clock goes back an hour (qa-tester, 2026-10-12).
+DateTime _plus(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
+
 const List<String> _weekdayNames = <String>[
   'Mon',
   'Tue',
@@ -414,7 +421,7 @@ class _Preview extends StatelessWidget {
       // dates fourteen days apart and notices (financial-coach, 2026-10-12).
       PaydayKind.everyTwoWeeks =>
         '$_days, then '
-            '${formatPaydayLabel(points.next.add(const Duration(days: 14)))}. '
+            '${formatPaydayLabel(_plus(points.next, 14))}. '
             'Last one was ${formatPaydayLabel(points.last)}.',
       _ => '$_days. Last one was ${formatPaydayLabel(points.last)}.',
     };

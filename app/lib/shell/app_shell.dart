@@ -259,7 +259,10 @@ class _AppShellState extends State<AppShell> {
     final String pace =
         logged.type == TransactionType.expense && widget.state.payday.isSet
         ? ' ${formatPeso(widget.state.safeToSpendPerDay.pesos, showDecimals: false)}'
-              ' a day until payday now.'
+              ' a day until '
+              // No fixed payday (D37.2): the date, not "payday".
+              '${widget.state.payday.noFixedPayday ? widget.state.payday.nextPayday : 'payday'}'
+              ' now.'
         : '';
     messenger
       ..hideCurrentSnackBar()
@@ -367,6 +370,14 @@ class _AppShellState extends State<AppShell> {
         !_askedPayday &&
         !s.payday.isSet) {
       _askedPayday = true;
+      // Money came in after a "last until" date passed (D37.2): that is the
+      // moment to ask for the NEXT date, in the person's own rule. The
+      // usual "15th and 30th?" question would replace their rule with
+      // somebody else's in one tap (qa-tester, 2026-10-12).
+      if (s.paydayDatePassed) {
+        await PaydaySheet.show(context, s);
+        return;
+      }
       await _askPayday(context, palette);
     }
   }
