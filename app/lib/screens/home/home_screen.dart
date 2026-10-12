@@ -35,6 +35,7 @@ import 'hero_panel.dart';
 import 'home_header.dart';
 import 'latest_transactions.dart';
 import 'quick_actions.dart';
+import 'backup_card.dart';
 import 'reminders_banner.dart';
 import 'runway_row.dart';
 
@@ -298,6 +299,13 @@ class HomeScreen extends StatelessWidget {
                 history: FilePanHistoryStore(),
               ),
             ),
+            // THE BACKUP ASK (D38.3), beside the other housekeeping rather
+            // than up among the hero, today and runway, which read as one
+            // sentence about money and would be interrupted by a chore.
+            if (state.backupNudge case final int n) ...<Widget>[
+              const SizedBox(height: Spacing.lg),
+              BackupCard(state: state, count: n),
+            ],
             const SizedBox(height: Spacing.lg),
             RemindersBanner(
               state: state,

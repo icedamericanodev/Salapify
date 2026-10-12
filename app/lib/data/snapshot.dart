@@ -48,6 +48,8 @@ class Snapshot {
     this.sampleDataRemovedAt,
     this.setAsideReviewedAt,
     this.onboardedAt,
+    this.lastBackupAt,
+    this.backupNudgeSnoozedUntil,
     required this.theme,
     required this.scenario,
     this.activeProfile,
@@ -135,6 +137,22 @@ class Snapshot {
   /// a second stored field that can disagree with the first is a defect
   /// waiting to be written.
   final String? onboardedAt;
+
+  /// When a backup file last left the phone, as `2026-10-12T09:30`, or null
+  /// if it never has (D38.3).
+  ///
+  /// Same shape as [onboardedAt] and for the same reasons: a nullable scalar
+  /// beside the collections, absent from a file written before it existed,
+  /// and read back as null rather than as a default that pretends to know.
+  ///
+  /// Set only when the share sheet did NOT come back dismissed. The clipboard
+  /// fallback does not count: a backup on the clipboard is gone the next time
+  /// somebody copies a phone number.
+  final String? lastBackupAt;
+
+  /// The day the Home backup card may come back after "Not now", as
+  /// `2026-10-26`, or null. Fourteen days from the tap.
+  final String? backupNudgeSnoozedUntil;
 
   final ThemeMode2 theme;
   final DecisionScenario scenario;
@@ -261,6 +279,8 @@ class Snapshot {
     'sampleDataRemovedAt',
     'setAsideReviewedAt',
     'onboardedAt',
+    'lastBackupAt',
+    'backupNudgeSnoozedUntil',
     kGuideSteps,
     kNetWorthHistory,
   };
@@ -350,6 +370,9 @@ class Snapshot {
         'sampleDataRemovedAt': sampleDataRemovedAt,
       if (setAsideReviewedAt != null) 'setAsideReviewedAt': setAsideReviewedAt,
       if (onboardedAt != null) 'onboardedAt': onboardedAt,
+      if (lastBackupAt != null) 'lastBackupAt': lastBackupAt,
+      if (backupNudgeSnoozedUntil != null)
+        'backupNudgeSnoozedUntil': backupNudgeSnoozedUntil,
       // SORTED, so that ticking the same two boxes always produces the same
       // bytes. A Set's iteration order is its insertion order, which would
       // make two identical checklists encode differently and every diff of a
@@ -785,6 +808,12 @@ class Snapshot {
           : null,
       onboardedAt: m['onboardedAt'] is String
           ? m['onboardedAt'] as String
+          : null,
+      lastBackupAt: m['lastBackupAt'] is String
+          ? m['lastBackupAt'] as String
+          : null,
+      backupNudgeSnoozedUntil: m['backupNudgeSnoozedUntil'] is String
+          ? m['backupNudgeSnoozedUntil'] as String
           : null,
       theme:
           themeWire.decodeOptional(m, 'themeMode', 'snapshot') ??

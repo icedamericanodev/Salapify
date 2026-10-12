@@ -10,6 +10,7 @@ import '../../data/store.dart';
 import '../../main.dart' show updateStamp;
 import '../../design/tokens.dart';
 import '../../design/type.dart';
+import '../../core/money/format.dart';
 import '../../state/financial_state.dart';
 import '../categories/category_manager_sheet.dart';
 import '../shared/sheet_scaffold.dart';
@@ -161,8 +162,10 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         'cannot build a normal backup. This sends the file '
                         'exactly as it is. Keep it. It still holds your '
                         'records, and it is plain text.'
+                  // The last backup's age, because "is my backup recent" is
+                  // the question somebody opening this row is asking (D38.3).
                   : 'One file holding everything on this phone. Keep it '
-                        'somewhere you trust.',
+                        'somewhere you trust. ${_lastBackupLine()}',
               onTap: _busy ? null : (cannotExport ? _exportRaw : _export),
             ),
             _Row(
@@ -358,6 +361,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _lastBackupLine() {
+    final DateTime? last = state.lastBackupAt;
+    if (last == null) return 'No backup yet.';
+    return 'Last backup: ${formatAge(last.toIso8601String(), now: state.now)}.';
   }
 
   Future<void> _export() async {

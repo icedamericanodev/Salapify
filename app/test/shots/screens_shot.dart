@@ -666,6 +666,51 @@ void main() {
     });
   }
 
+  // D38.3: the backup card, on the lived-in example ledger plus 32 of the
+  // person's own entries. Tall, because the card sits below the fold on
+  // purpose and a phone-height shot would prove nothing about it.
+  testWidgets('home backup card renders', (WidgetTester tester) async {
+    await tester.runAsync(loadRealFonts);
+    tester.view.physicalSize = const Size(1170, 7200);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final FinancialState state = FinancialState(
+      clock: DateTime(2026, 9, 21, 9),
+    );
+    for (int i = 0; i < 32; i++) {
+      state.logTransaction(
+        Transaction(
+          id: 'tx_shot_$i',
+          type: TransactionType.expense,
+          amount: const Money.pesos(75),
+          category: 'Food & Dining',
+          accountId: 'acc_cash',
+          date: '2026-09-20',
+          createdAt: 1000 + i,
+        ),
+      );
+    }
+    final Palette palette = Palette.of(state.theme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const SalapifyScrollBehavior(),
+        theme: salapifyTheme(palette, state.theme),
+        home: AppShell(state: state),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleImages(tester);
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('out/home_backup_card.png'),
+    );
+  });
+
   // D37: Home after a "last until" date has come. Saved on one day and
   // opened two days later, the way a phone reads it.
   testWidgets('home payday passed renders', (WidgetTester tester) async {

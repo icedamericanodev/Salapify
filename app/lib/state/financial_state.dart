@@ -10,6 +10,7 @@ import '../data/store.dart';
 import '../design/tokens.dart';
 import '../core/money/accounts.dart';
 import '../core/money/bills.dart';
+import '../core/money/backup_nudge.dart';
 import '../core/money/bills_to_reserve.dart';
 import '../core/money/debt.dart';
 import '../core/money/edit_accounts.dart';
@@ -303,6 +304,8 @@ class FinancialState extends ChangeNotifier {
     _sampleRemovedAt = s.sampleDataRemovedAt;
     _onboardedAt = s.onboardedAt;
     _setAsideReviewedAt = s.setAsideReviewedAt;
+    _lastBackupAt = s.lastBackupAt;
+    _backupSnoozedUntil = s.backupNudgeSnoozedUntil;
     _theme = s.theme;
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
@@ -330,6 +333,8 @@ class FinancialState extends ChangeNotifier {
     sampleDataRemovedAt: _sampleRemovedAt,
     onboardedAt: _onboardedAt,
     setAsideReviewedAt: _setAsideReviewedAt,
+    lastBackupAt: _lastBackupAt,
+    backupNudgeSnoozedUntil: _backupSnoozedUntil,
     theme: _theme,
     scenario: _scenario,
     activeProfile: _activeProfile,
@@ -934,6 +939,11 @@ class FinancialState extends ChangeNotifier {
     // from it, which is also the only honest way to offer the example data
     // back to somebody who chose their own money and later wants to look.
     _onboardedAt = null;
+
+    // A wiped phone holds nothing a backup could have, so "last backed up"
+    // would describe records that no longer exist on it.
+    _lastBackupAt = null;
+    _backupSnoozedUntil = null;
 
     // Extras ARE cleared, and that is deliberate the other way. They hold keys
     // from the person's own file that this build cannot read, so carrying them
@@ -3341,6 +3351,50 @@ class FinancialState extends ChangeNotifier {
   String? _onboardedAt;
 
   String? _setAsideReviewedAt;
+
+  String? _lastBackupAt;
+
+  String? _backupSnoozedUntil;
+
+  // -------------------------------------------------------------------------
+  // D38.3, the backup reminder
+  // -------------------------------------------------------------------------
+
+  /// How many of the person's own entries the last backup lacks, when Home
+  /// should ask for a backup, or null when it should not. The rule is
+  /// [backupNudgeCount]; this only feeds it the store.
+  ///
+  /// Quiet while the file is unreadable, where nothing can be saved and a
+  /// backup taken now would hold only what was readable.
+  int? get backupNudge {
+    if (_loadStatus == LoadStatus.unreadable) return null;
+    return backupNudgeCount(
+      transactions: _transactions,
+      now: now,
+      lastBackupAt: _lastBackupAt,
+      snoozedUntil: _backupSnoozedUntil,
+    );
+  }
+
+  /// When a backup last left the phone, or null if it never has.
+  DateTime? get lastBackupAt =>
+      _lastBackupAt == null ? null : DateTime.tryParse(_lastBackupAt!);
+
+  /// Record that a backup file left the phone. Clears any "Not now", since
+  /// the reason for it is gone.
+  void markBackedUp() {
+    _lastBackupAt = backupStamp(now);
+    _backupSnoozedUntil = null;
+    notifyListeners();
+  }
+
+  /// "Not now" on the Home card: quiet for [daysBetweenAsks] days.
+  void snoozeBackupNudge() {
+    _backupSnoozedUntil = isoDate(
+      DateTime(now.year, now.month, now.day + daysBetweenAsks),
+    );
+    notifyListeners();
+  }
 
   // -------------------------------------------------------------------------
   // P2.3, the one-time "which of these is set aside" card

@@ -54,6 +54,9 @@ void main() {
     final FinancialState state = FinancialState(clock: DateTime(2026, 9, 18));
     state.startWithExampleData();
     final List<String> said = <String>[];
+    // Taken BEFORE the export: a backup that leaves the phone now stamps
+    // `lastBackupAt` into the store (D38.3), which the file sent cannot hold.
+    final String ledger = state.snapshot().encode(at: state.now);
 
     await exportBackup(state: state, say: said.add);
 
@@ -68,7 +71,7 @@ void main() {
       contains('salapify3-backup-2026-09-18-'),
     );
     // The file the phone received IS the ledger, byte for byte.
-    expect(received.single, state.snapshot().encode(at: state.now));
+    expect(received.single, ledger);
     // No clipboard fallback was needed.
     expect(said, isEmpty);
     // The staging copy is removed once the share sheet has it.

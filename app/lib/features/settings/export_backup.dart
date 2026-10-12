@@ -31,7 +31,17 @@ import '../../state/financial_state.dart';
 /// that evaporates because a plugin was missing is the thing this function
 /// exists to prevent. [say] reports what happened, and the caller decides
 /// whether that is a snackbar or something else.
-Future<void> exportBackup({
+///
+/// ## It records the backup, and says whether one happened
+///
+/// Returns true, and stamps [FinancialState.markBackedUp], when the share
+/// sheet did not come back DISMISSED (D38.3). "Unavailable" counts as done:
+/// Android reports it whenever the receiving app cannot say what happened,
+/// and the file was handed over. The clipboard fallback does not count,
+/// because a backup on the clipboard is gone the next time somebody copies a
+/// phone number, and the Home card would otherwise stop asking about records
+/// that are not safe anywhere.
+Future<bool> exportBackup({
   required FinancialState state,
   required void Function(String message) say,
 }) async {
@@ -66,12 +76,15 @@ Future<void> exportBackup({
       // and its copies still go in the cache's `share_plus` folder
       // (android/.../Share.kt, read at 13.3.1), which is the folder
       // `clearExportCopies` below sweeps.
-      await SharePlus.instance.share(
+      final ShareResult result = await SharePlus.instance.share(
         ShareParams(
           files: <XFile>[XFile(file.path, mimeType: 'application/json')],
           subject: 'Salapify backup $stamp',
         ),
       );
+      if (result.status == ShareResultStatus.dismissed) return false;
+      state.markBackedUp();
+      return true;
     } finally {
       // The staging copy goes once the share sheet has it. share_plus hands
       // the receiving app its OWN copy, so nothing waits on this one, and
@@ -89,9 +102,11 @@ Future<void> exportBackup({
       'This build cannot open the share sheet yet, so your backup is on the '
       'clipboard instead. A full rebuild fixes it.',
     );
+    return false;
   } on Object catch (e) {
     await Clipboard.setData(ClipboardData(text: json));
     say('Could not share the file, so it is on your clipboard instead. $e');
+    return false;
   }
 }
 
