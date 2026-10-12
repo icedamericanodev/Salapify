@@ -1,0 +1,219 @@
+{
+  "transactions": [
+    {
+      "id": "tx_pending_card",
+      "date": "2026-09-17"
+    },
+    {
+      "id": "tx_excluded_double",
+      "date": "2026-09-15"
+    },
+    {
+      "id": "tx_transfer_1",
+      "date": "2026-09-16"
+    },
+    {
+      "id": "tx_salary_1",
+      "date": "2026-09-01"
+    },
+    {
+      "id": "tx_freelance_1",
+      "date": "2026-09-08"
+    },
+    {
+      "id": "tx_meralco",
+      "date": "2026-09-15"
+    },
+    {
+      "id": "tx_groceries",
+      "date": "2026-09-14"
+    },
+    {
+      "id": "tx_jollibee",
+      "date": "2026-09-17"
+    },
+    {
+      "id": "tx_grab",
+      "date": "2026-09-17"
+    },
+    {
+      "id": "tx_padala",
+      "date": "2026-09-16"
+    },
+    {
+      "id": "tx_coffee",
+      "date": "2026-09-18"
+    },
+    {
+      "id": "tx_homecredit_loan",
+      "date": "2026-09-04"
+    },
+    {
+      "id": "tx_mp2_contribution",
+      "date": "2026-09-05"
+    },
+    {
+      "id": "tx_saas",
+      "date": "2026-09-10"
+    },
+    {
+      "id": "tx_cc_payment",
+      "date": "2026-09-12"
+    },
+    {
+      "id": "tx_condo_repair",
+      "date": "2026-09-15"
+    }
+  ],
+  "upcoming": [
+    {
+      "id": "up_meralco",
+      "dueDate": "Today"
+    },
+    {
+      "id": "up_spotify",
+      "dueDate": "Sunday"
+    },
+    {
+      "id": "up_homecredit",
+      "dueDate": "Sep 18"
+    },
+    {
+      "id": "up_payday",
+      "dueDate": "Monday, Sep 15"
+    }
+  ],
+  "bills": [
+    {
+      "id": "bill_meralco",
+      "dueDate": "2026-09-15"
+    },
+    {
+      "id": "bill_water",
+      "dueDate": "2026-09-18"
+    },
+    {
+      "id": "bill_internet",
+      "dueDate": "2026-09-20"
+    },
+    {
+      "id": "bill_spotify",
+      "dueDate": "2026-09-14"
+    },
+    {
+      "id": "bill_rent",
+      "dueDate": "2026-09-30"
+    },
+    {
+      "id": "bill_insurance",
+      "dueDate": "2026-09-25"
+    },
+    {
+      "id": "bill_tuition",
+      "dueDate": "2026-10-05"
+    },
+    {
+      "id": "bill_sss",
+      "dueDate": "2026-09-30"
+    },
+    {
+      "id": "bill_philhealth",
+      "dueDate": "2026-09-30"
+    },
+    {
+      "id": "bill_remittance",
+      "dueDate": "2026-09-16"
+    }
+  ],
+  "debts": [
+    {
+      "id": "debt_homecredit",
+      "dueDate": "Sep 18",
+      "settled": null
+    },
+    {
+      "id": "debt_bpi_loan",
+      "dueDate": "Sep 25",
+      "settled": null
+    },
+    {
+      "id": "debt_kuya_mark",
+      "dueDate": "Sep 30",
+      "settled": null
+    },
+    {
+      "id": "debt_sarah",
+      "dueDate": "Sep 16",
+      "settled": null
+    },
+    {
+      "id": "debt_mom_settled",
+      "dueDate": null,
+      "settled": "Sep 3"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "acc_cash",
+      "dueDate": null
+    },
+    {
+      "id": "acc_gcash",
+      "dueDate": null
+    },
+    {
+      "id": "acc_maya",
+      "dueDate": null
+    },
+    {
+      "id": "acc_bpi",
+      "dueDate": null
+    },
+    {
+      "id": "acc_seabank",
+      "dueDate": null
+    },
+    {
+      "id": "acc_ub_debit",
+      "dueDate": null
+    },
+    {
+      "id": "acc_mp2",
+      "dueDate": null
+    },
+    {
+      "id": "acc_receivables",
+      "dueDate": null
+    },
+    {
+      "id": "acc_bpi_cc",
+      "dueDate": "Oct 3"
+    },
+    {
+      "id": "acc_personal_loan",
+      "dueDate": "Sep 25"
+    },
+    {
+      "id": "acc_pagibig_mortgage",
+      "dueDate": "Sep 28"
+    }
+  ],
+  "payday": {
+    "last": "Sep 1",
+    "next": "Sep 15"
+  },
+  "installments": [
+    {
+      "id": "inst_home_credit",
+      "start": "2026-04-18"
+    },
+    {
+      "id": "inst_bpi_sip",
+      "start": "2025-11-25"
+    },
+    {
+      "id": "inst_spaylater",
+      "start": "2026-07-05"
+    }
+  ]
+}

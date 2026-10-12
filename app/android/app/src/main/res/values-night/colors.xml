@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Gabi, the night theme's background. Matching the app means no bright
+         flash before the first frame for somebody opening this at night, which
+         is when the founder actually uses it. -->
+    <color name="salapify_launch_background">#14100D</color>
+</resources>

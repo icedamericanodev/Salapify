@@ -1,0 +1,1297 @@
+import '../models/models.dart';
+import '../core/money/money.dart';
+
+/// The starting ledger, ported from the prototype's archive/prototype-google-ai-studio/src/data/initialData.ts.
+///
+/// It is deliberately LIVED IN. An empty fixture makes every screen look like
+/// a first run, which is exactly the state that hides money defects: a peso
+/// figure cannot be wrong if no screen ever draws one.
+class SeedData {
+  const SeedData._();
+
+  /// EVERYTHING DATED IN HERE IS AN OFFSET FROM TODAY, in days.
+  ///
+  /// It did not used to be, and the half-measure was worse than either whole
+  /// one. `createdAt` was anchored to `DateTime.now()` so the 30-day windows
+  /// kept their signal, while the calendar `date` beside it stayed frozen at
+  /// the day the seed was written. The two fields described different days
+  /// about the same transaction.
+  ///
+  /// What that looked like, and it is the reason this changed: on 1 October a
+  /// brand new install showed a Log full of entries from "yesterday" sitting
+  /// above a Budgets screen reporting that nothing at all had been spent this
+  /// month. Both were reading the sample data correctly. Salapify 3 is built
+  /// for the public (D19), so that is the first screen a stranger meets.
+  ///
+  /// ## The anchor, and why the offsets are the numbers they are
+  ///
+  /// Every literal in this file used to be measured against 18 September 2026,
+  /// the day the seed was written: `date: '2026-09-17'` always sat beside
+  /// `createdAt: _daysAgo(1)`, `'2026-09-01'` beside `_daysAgo(17)`, and so on
+  /// without exception. The offsets below are exactly those numbers, so with
+  /// the clock at that anchor this file still produces what it always did.
+  /// `seed_dates_test.dart` holds the whole set and asserts it.
+  ///
+  /// ## What a day shift does at a month boundary
+  ///
+  /// The sample ledger spans eighteen days, so early in a month some of it
+  /// falls in the previous one and "spent this month" is smaller. That is not
+  /// a defect being accepted quietly, it is what the first week of a real
+  /// month looks like, and a demo that pretended otherwise would be teaching
+  /// somebody to expect a figure their own ledger will never show.
+  static DateTime _midnight(DateTime now) =>
+      DateTime(now.year, now.month, now.day);
+
+  /// `offset` is NEGATIVE for the past, so it reads like a number line rather
+  /// than like `_daysAgo`, whose sign had to be remembered.
+  static DateTime _day(DateTime now, int offset) =>
+      _midnight(now).add(Duration(days: offset));
+
+  /// The stored form, which is what every date helper in core/money parses.
+  static String _iso(DateTime now, int offset) {
+    final DateTime d = _day(now, offset);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// A timestamp, kept separate from [_iso] because the two answer different
+  /// questions: when it happened, and when it was written down.
+  static int _epoch(DateTime now, int offset) =>
+      _day(now, offset).millisecondsSinceEpoch;
+
+  static const List<String> _months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static const List<String> _weekdays = <String>[
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  /// The short label a due date is shown as, such as "Sep 25".
+  static String _short(DateTime now, int offset) {
+    final DateTime d = _day(now, offset);
+    return '${_months[d.month - 1]} ${d.day}';
+  }
+
+  /// How the Coming Up card words a date.
+  ///
+  /// Today is "Today", the next few days are named by weekday, and anything
+  /// further out gets the short date. This is a small IMPROVEMENT on what the
+  /// seed said rather than a reproduction of it: one row read "Sep 18" on the
+  /// very day it was due, where "Today" is what a person would say, and
+  /// another read "Monday, Sep 15" when 15 September 2026 was a Tuesday. A
+  /// weekday worked out from the date cannot be wrong.
+  static String _due(DateTime now, int offset) {
+    if (offset == 0) return 'Today';
+    if (offset == 1) return 'Tomorrow';
+    if (offset > 1 && offset < 7) {
+      return _weekdays[_day(now, offset).weekday - 1];
+    }
+    return _short(now, offset);
+  }
+
+  static List<Account> accounts(DateTime now) => <Account>[
+    Account(
+      id: 'acc_cash',
+      profile: ProfileEntity.personal,
+      name: 'Cash on Hand (Pitaka)',
+      kind: AccountKind.cash,
+      institution: 'Cash',
+      balance: Money.fromDouble(1850.00),
+      monogram: '₱',
+      notes: 'Physical cash for jeepneys, trike, and street food',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_gcash',
+      profile: ProfileEntity.personal,
+      name: 'GCash Wallet',
+      kind: AccountKind.gcash,
+      institution: 'GCash',
+      balance: Money.fromDouble(8420.50),
+      monogram: 'GC',
+      accountNumber: '0917-***-4821',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_maya',
+      profile: ProfileEntity.household,
+      name: 'Maya Savings',
+      kind: AccountKind.maya,
+      institution: 'Maya',
+      balance: Money.fromDouble(15300.00),
+      monogram: 'MY',
+      interestRate: 6.0,
+      isSample: true,
+      // THE ONE PROTECTED ACCOUNT IN THE DEMO, and one is deliberate.
+      //
+      // The sample ledger has two savings-named accounts. Protecting both
+      // takes Safe to Spend until payday from 38,414 to 9,838, a 74 percent
+      // fall, which to somebody who installed the app ten seconds ago reads
+      // as a broken app rather than as a lesson. This one alone teaches the
+      // idea at 29 percent.
+      //
+      // MariBank Digital Savings below is left spendable ON PURPOSE, as a
+      // live example that Salapify does not guess this for you: two accounts
+      // with Savings in the name, sitting side by side, one set aside and one
+      // not, because the person decides and not the app.
+      purpose: AccountPurpose.protected,
+    ),
+    Account(
+      id: 'acc_bpi',
+      profile: ProfileEntity.personal,
+      name: 'BPI Preferred Payroll',
+      kind: AccountKind.bank,
+      institution: 'BPI',
+      balance: Money.fromDouble(48500.00),
+      monogram: 'BPI',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_seabank',
+      profile: ProfileEntity.sideHustle,
+      name: 'MariBank Digital Savings',
+      kind: AccountKind.bank,
+      institution: 'MariBank',
+      balance: Money.fromDouble(24250.00),
+      // MB, not the SB the prototype's seed carries. SeaBank was renamed
+      // MariBank in 2024, the id still says seabank, and the monogram was
+      // never updated with the name. The prototype's OWN computeMonogram
+      // returns MB for MariBank, so its seed disagrees with its own function.
+      // Caught by accounts_test's "every seeded account still computes the
+      // monogram it was given", which is the whole reason that test compares
+      // the map against the data instead of trusting either one.
+      monogram: 'MB',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_ub_debit',
+      profile: ProfileEntity.business,
+      name: 'UnionBank Debit Card',
+      kind: AccountKind.debit,
+      institution: 'UnionBank',
+      balance: Money.fromDouble(12400.00),
+      monogram: 'UB',
+      // From the prototype's own seed. Carried over 2026-09-18 with the
+      // Accounts tab, because a debit account is DRAWN AS A CARD there and a
+      // card with no digits on it is a picture of a defect.
+      accountNumber: '1029-****-6789',
+      cardNetwork: CardNetwork.mastercard,
+      notes: 'Operating account for business transactions and SaaS',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_mp2',
+      profile: ProfileEntity.personal,
+      name: 'Pag-IBIG MP2 Fund',
+      kind: AccountKind.investment,
+      institution: 'Pag-IBIG',
+      balance: Money.fromDouble(65000.00),
+      monogram: 'MP2',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_receivables',
+      profile: ProfileEntity.personal,
+      name: 'Accounts Receivable (Pahiram & Split)',
+      kind: AccountKind.receivable,
+      institution: 'Internal Ledger',
+      balance: Money.fromDouble(6250.00),
+      monogram: 'AR',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_bpi_cc',
+      profile: ProfileEntity.personal,
+      name: 'BPI Rewards Card',
+      kind: AccountKind.credit,
+      institution: 'BPI',
+      balance: Money.fromDouble(4200.00),
+      creditLimit: Money.pesos(40000),
+      monogram: 'BPI',
+      accountNumber: '5424-****-****-8819',
+      dueDate: _short(now, 15),
+      statementDate: '10th of the month',
+      cardNetwork: CardNetwork.visa,
+      notes: 'Kept below 30% utilization threshold for credit score health',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_personal_loan',
+      profile: ProfileEntity.personal,
+      name: 'BPI Gadget Loan',
+      kind: AccountKind.loan,
+      institution: 'BPI',
+      balance: Money.fromDouble(10000.00),
+      monogram: 'LOAN',
+      dueDate: _short(now, 7),
+      notes: 'Remaining gadget upgrade principal balance',
+      isSample: true,
+    ),
+    Account(
+      id: 'acc_pagibig_mortgage',
+      profile: ProfileEntity.household,
+      name: 'Pag-IBIG Housing Loan',
+      kind: AccountKind.mortgage,
+      institution: 'Pag-IBIG',
+      balance: Money.fromDouble(385000.00),
+      monogram: 'MTG',
+      dueDate: _short(now, 10),
+      notes: '30-year residential housing mortgage',
+      isSample: true,
+    ),
+  ];
+
+  static List<Transaction> transactions(DateTime now) => <Transaction>[
+    // Three rows that exist so the Activity screen can be REVIEWED rather
+    // than merely rendered. Without them every entry is a plain confirmed
+    // expense, so the status chips, the struck-through amount and the
+    // rule that keeps excluded money out of the totals are all invisible
+    // in a screenshot, and a picture that cannot show the defect proves
+    // nothing. See the fixture note in CLAUDE.md.
+    Transaction(
+      id: 'tx_pending_card',
+      profile: ProfileEntity.business,
+      subcategory: 'E-commerce (Shopee/Lazada)',
+      type: TransactionType.expense,
+      amount: Money.pesos(1899),
+      category: 'Shopping & Personal',
+      accountId: 'acc_ub_debit',
+      merchant: 'Lazada Order',
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
+      status: TransactionStatus.pending,
+      note: 'Card authorisation, not posted yet',
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_excluded_double',
+      profile: ProfileEntity.household,
+      subcategory: 'Electricity (Meralco)',
+      type: TransactionType.expense,
+      amount: Money.pesos(2840),
+      category: 'Bills & Utilities',
+      accountId: 'acc_maya',
+      merchant: 'Meralco',
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
+      status: TransactionStatus.excluded,
+      note: 'Charged twice, this one is not mine to pay',
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_transfer_1',
+      profile: ProfileEntity.personal,
+      subcategory: 'Savings Allocation',
+      type: TransactionType.transfer,
+      amount: Money.pesos(5000),
+      category: 'Transfer',
+      accountId: 'acc_bpi',
+      toAccountId: 'acc_gcash',
+      merchant: 'Top up GCash',
+      date: _iso(now, -2),
+      createdAt: _epoch(now, -2),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_salary_1',
+      profile: ProfileEntity.personal,
+      subcategory: '15th Sweldo Cutoff',
+      type: TransactionType.income,
+      amount: Money.pesos(32500),
+      category: 'Salary & Compensation',
+      accountId: 'acc_bpi',
+      merchant: 'Corporate Payroll Direct Deposit',
+      date: _iso(now, -17),
+      createdAt: _epoch(now, -17),
+      note: 'First cutoff net pay after SSS, PhilHealth, and Pag-IBIG',
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_freelance_1',
+      profile: ProfileEntity.business,
+      subcategory: 'Client Service Retainers',
+      type: TransactionType.income,
+      amount: Money.pesos(18500),
+      category: 'Business Revenue',
+      accountId: 'acc_seabank',
+      merchant: 'Apex Retainer Invoice #104',
+      date: _iso(now, -10),
+      createdAt: _epoch(now, -10),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_meralco',
+      profile: ProfileEntity.household,
+      subcategory: 'Electricity (Meralco)',
+      type: TransactionType.expense,
+      amount: Money.pesos(2840),
+      category: 'Bills & Utilities',
+      accountId: 'acc_maya',
+      merchant: 'Meralco',
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_groceries',
+      profile: ProfileEntity.household,
+      subcategory: 'Supermarket (SM/Puregold/Robinsons)',
+      type: TransactionType.expense,
+      amount: Money.of(3250, 75),
+      category: 'Groceries',
+      accountId: 'acc_ub_debit',
+      merchant: 'S&R Membership Shopping',
+      date: _iso(now, -4),
+      createdAt: _epoch(now, -4),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_jollibee',
+      profile: ProfileEntity.personal,
+      subcategory: 'Fast Food & Karinderya',
+      type: TransactionType.expense,
+      amount: Money.pesos(285),
+      category: 'Food & Dining',
+      accountId: 'acc_gcash',
+      merchant: 'Jollibee',
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_grab',
+      profile: ProfileEntity.personal,
+      subcategory: 'Ride Hailing (Grab/Angkas/Joyride)',
+      type: TransactionType.expense,
+      amount: Money.pesos(420),
+      category: 'Transport & Commute',
+      accountId: 'acc_gcash',
+      merchant: 'Grab',
+      date: _iso(now, -1),
+      createdAt: _epoch(now, -1),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_padala',
+      profile: ProfileEntity.personal,
+      subcategory: 'Parents & Sibling Support',
+      type: TransactionType.expense,
+      amount: Money.pesos(6000),
+      category: 'Family Support & Remittance',
+      accountId: 'acc_bpi',
+      merchant: 'Nanay Monthly Padala',
+      date: _iso(now, -2),
+      createdAt: _epoch(now, -2),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_coffee',
+      profile: ProfileEntity.personal,
+      subcategory: 'Coffee & Milk Tea',
+      type: TransactionType.expense,
+      amount: Money.pesos(180),
+      category: 'Food & Dining',
+      accountId: 'acc_cash',
+      merchant: 'Local Kape Shop',
+      date: _iso(now, 0),
+      createdAt: _epoch(now, 0),
+      isSample: true,
+    ),
+
+    // Four entries restored from the prototype's own fixture for the Reports
+    // tab. Without them three whole sections of that screen are structurally
+    // empty: FINANCING has no debt repayment to report, the debt service
+    // ratio is 0%, the business segment has one expense, and household
+    // spending is a single utility bill. A report whose sections are all
+    // zero cannot be reviewed, and the empty-fixture trap is exactly what
+    // put a crossed-out peso sign on the founder's phone once already.
+    //
+    // Amounts, dates, categories, sub-categories and accounts are the
+    // prototype's, not invented. Note that adding these does NOT move any
+    // balance: seed balances are stated on the accounts rather than derived
+    // from the ledger, which is the prototype's shape too.
+    Transaction(
+      id: 'tx_homecredit_loan',
+      profile: ProfileEntity.personal,
+      subcategory: 'Gadget Loan (Home Credit/SpayLater/LazPay)',
+      type: TransactionType.expense,
+      amount: Money.pesos(2450),
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_gcash',
+      merchant: 'Home Credit Philippines',
+      date: _iso(now, -14),
+      createdAt: _epoch(now, -14),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_mp2_contribution',
+      profile: ProfileEntity.personal,
+      subcategory: 'Pag-IBIG / SSS Salary Loan Repayment',
+      type: TransactionType.expense,
+      amount: Money.pesos(2500),
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_bpi',
+      merchant: 'Pag-IBIG MP2 Top-up',
+      date: _iso(now, -13),
+      createdAt: _epoch(now, -13),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_saas',
+      profile: ProfileEntity.business,
+      subcategory: 'Software & SaaS Subscriptions',
+      type: TransactionType.expense,
+      amount: Money.pesos(1250),
+      category: 'Business & Freelance Ops',
+      accountId: 'acc_ub_debit',
+      merchant: 'Figma Professional & GitHub Copilot',
+      date: _iso(now, -8),
+      createdAt: _epoch(now, -8),
+      isSample: true,
+    ),
+    // Pushes Debt & Loan Servicing PAST its 6,000 limit, on purpose. Without
+    // it no budget in the fixture is over, so the over-budget state, the red
+    // bar and the negative remaining, could not be reviewed in a render or
+    // caught in one. A tidy fixture where nothing ever goes wrong is the same
+    // trap as the empty one: it cannot show the defect.
+    //
+    // Realistic rather than contrived: paying down a card in the same month as
+    // two loan instalments is an ordinary thing to do, and it is the month
+    // that tips somebody over.
+    Transaction(
+      id: 'tx_cc_payment',
+      profile: ProfileEntity.personal,
+      subcategory: 'Credit Card Balance Payment',
+      type: TransactionType.expense,
+      amount: Money.pesos(1500),
+      category: 'Debt & Loan Servicing',
+      accountId: 'acc_bpi',
+      merchant: 'BPI Rewards Card Payment',
+      date: _iso(now, -6),
+      createdAt: _epoch(now, -6),
+      isSample: true,
+    ),
+    Transaction(
+      id: 'tx_condo_repair',
+      profile: ProfileEntity.household,
+      subcategory: 'Home Repairs & Maintenance',
+      type: TransactionType.expense,
+      amount: Money.pesos(3200),
+      category: 'Housing & Rent',
+      accountId: 'acc_maya',
+      merchant: 'Handyman Hardware BGC',
+      date: _iso(now, -3),
+      createdAt: _epoch(now, -3),
+      status: TransactionStatus.pending,
+      isSample: true,
+    ),
+  ];
+
+  static List<Debt> debts(DateTime now) => <Debt>[
+    // The instalment counts, the schedule type, the settled date and the notes
+    // are all from the prototype's own seed. They were dropped when this list
+    // was first ported because no screen read them; the Debt screen does, and
+    // a debt with no "3 of 6" on it is a phone plan that looks like a mystery
+    // balance.
+    Debt(
+      id: 'debt_homecredit',
+      person: 'Home Credit (Phone)',
+      direction: DebtDirection.iOwe,
+      totalAmount: Money.pesos(14700),
+      paidAmount: Money.pesos(7350),
+      dueDate: _short(now, 0),
+      isSettled: false,
+      schedule: DebtSchedule.scheduled,
+      installmentCurrent: 3,
+      installmentTotal: 6,
+      notes: 'Monthly phone installment, auto-debit or pay via GCash',
+      isSample: true,
+    ),
+    Debt(
+      id: 'debt_bpi_loan',
+      person: 'BPI Personal Loan',
+      direction: DebtDirection.iOwe,
+      totalAmount: Money.pesos(15000),
+      paidAmount: Money.pesos(5000),
+      dueDate: _short(now, 7),
+      isSettled: false,
+      schedule: DebtSchedule.scheduled,
+      installmentCurrent: 2,
+      installmentTotal: 6,
+      notes: 'Gadget upgrade loan',
+      isSample: true,
+    ),
+    Debt(
+      id: 'debt_kuya_mark',
+      person: 'Kuya Mark',
+      direction: DebtDirection.owedToMe,
+      totalAmount: Money.pesos(5000),
+      paidAmount: Money.pesos(0),
+      dueDate: _short(now, 12),
+      isSettled: false,
+      notes: 'Concert tickets advance for Olivia Rodrigo',
+      isSample: true,
+    ),
+    Debt(
+      id: 'debt_sarah',
+      person: 'Sarah (Office lunch)',
+      direction: DebtDirection.owedToMe,
+      totalAmount: Money.pesos(1250),
+      paidAmount: Money.pesos(0),
+      dueDate: _short(now, -2),
+      isSettled: false,
+      notes: 'Hotpot dinner share at Robinson Galleria',
+      isSample: true,
+    ),
+    Debt(
+      id: 'debt_mom_settled',
+      person: 'Mom',
+      direction: DebtDirection.iOwe,
+      totalAmount: Money.pesos(2000),
+      paidAmount: Money.pesos(2000),
+      isSettled: true,
+      settledDate: _short(now, -15),
+      notes: 'Pahiram for groceries last month, all paid',
+      isSample: true,
+    ),
+  ];
+
+  /// The starting category tree, from archive/prototype-google-ai-studio/src/data/initialData.ts. The emojis are
+  /// USER data: they live in the backup file and are never replaced by
+  /// Salapify's own icon set.
+  /// The 21 categories from archive/prototype-google-ai-studio/src/data/categories.ts, names and all.
+  ///
+  /// The NAMES are load bearing, not decoration. A transaction stores its
+  /// category as a STRING, the fast-log parser returns one of these strings,
+  /// and the Category manager counts usage by matching them. An earlier
+  /// version of this list paraphrased five of them (Health & Meds for Health
+  /// & Medical, Family Support for Family Support & Remittance) and dropped
+  /// Entertainment & Leisure entirely, which meant two seeded transactions
+  /// were tagged with categories that did not exist and their spending was
+  /// counted against nothing.
+  static const List<CategoryInfo> categories = <CategoryInfo>[
+    CategoryInfo(
+      id: 'food',
+      name: 'Food & Dining',
+      emoji: '🍔',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Fast Food & Karinderya',
+        'Sit-down Restaurants',
+        'Coffee & Milk Tea',
+        'Food Delivery (Grab/Foodpanda)',
+        'Office Lunch & Snacks',
+      ],
+    ),
+    CategoryInfo(
+      id: 'groceries',
+      name: 'Groceries',
+      emoji: '🛒',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Supermarket (SM/Puregold/Robinsons)',
+        'Wet Market (Palengke)',
+        'Pantry & Staples',
+        'Toiletries & Household Supplies',
+      ],
+    ),
+    CategoryInfo(
+      id: 'transport',
+      name: 'Transport & Commute',
+      emoji: '🛵',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Ride Hailing (Grab/Angkas/Joyride)',
+        'Public Transit (Jeep/Bus/MRT/LRT)',
+        'Fuel & Gas',
+        'Tolls & RFID (Easytrip/Autosweep)',
+        'Parking & Vehicle Maintenance',
+      ],
+    ),
+    CategoryInfo(
+      id: 'bills',
+      name: 'Bills & Utilities',
+      emoji: '⚡',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Electricity (Meralco)',
+        'Water (Maynilad/Manila Water)',
+        'Home Internet (PLDT/Converge/Globe)',
+        'Mobile Postpaid/Prepaid Load',
+        'Digital Subscriptions (Spotify/Netflix/iCloud)',
+      ],
+    ),
+    CategoryInfo(
+      id: 'housing',
+      name: 'Housing & Rent',
+      emoji: '🏠',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Apartment / House Rent',
+        'Condo / HOA Dues',
+        'Home Repairs & Maintenance',
+        'Furniture & Appliance Repair',
+      ],
+    ),
+    CategoryInfo(
+      id: 'health',
+      name: 'Health & Medical',
+      emoji: '💊',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Pharmacy & Maintenance Meds',
+        'Doctor Consultation & Clinic',
+        'Dental Care',
+        'HMO Co-pay & Diagnostics',
+        'Fitness & Gym Membership',
+      ],
+    ),
+    CategoryInfo(
+      id: 'shopping',
+      name: 'Shopping & Personal',
+      emoji: '🛍️',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Clothing & Footwear',
+        'Gadgets & Tech Accessories',
+        'E-commerce (Shopee/Lazada)',
+        'Personal Grooming & Salon',
+      ],
+    ),
+    CategoryInfo(
+      id: 'debt_servicing',
+      name: 'Debt & Loan Servicing',
+      emoji: '🤝',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Credit Card Balance Payment',
+        'Personal Loan Installment',
+        'Gadget Loan (Home Credit/SpayLater/LazPay)',
+        'Mortgage Monthly Amortization',
+        'Pag-IBIG / SSS Salary Loan Repayment',
+      ],
+    ),
+    CategoryInfo(
+      id: 'family_support',
+      name: 'Family Support & Remittance',
+      emoji: '❤️',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Monthly Family Allowance',
+        'Parents & Sibling Support',
+        'School Tuition / Baon',
+        'Family Gifts & Celebrations',
+      ],
+    ),
+    CategoryInfo(
+      id: 'business_expense',
+      name: 'Business & Freelance Ops',
+      emoji: '💼',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Software & SaaS Subscriptions',
+        'Subcontractor & Freelancer Fees',
+        'Client Entertainment & Meetings',
+        'Marketing & Ads (Meta/Google)',
+        'Office Supplies & Shipping',
+        'Professional Licenses & BIR Taxes',
+      ],
+    ),
+    CategoryInfo(
+      id: 'entertainment',
+      name: 'Entertainment & Leisure',
+      emoji: '🎬',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Cinema & Concerts',
+        'Gaming & In-app Purchases',
+        'Weekend Trips & Staycations',
+        'Hobbies & Leisure',
+      ],
+    ),
+    CategoryInfo(
+      id: 'adjustments_expense',
+      name: 'Adjustments & Write-offs',
+      emoji: '⚖️',
+      kind: CategoryKind.expense,
+      subcategories: <String>[
+        'Reconciliation Discrepancy Write-down',
+        'Bank Service Fees & Penalties',
+        'Unresolved Ledger Variance',
+      ],
+    ),
+    CategoryInfo(
+      id: 'other_expense',
+      name: 'Other Expenses',
+      emoji: '📦',
+      kind: CategoryKind.expense,
+      subcategories: <String>['Miscellaneous Expense', 'Donations & Tithes'],
+    ),
+    CategoryInfo(
+      id: 'salary',
+      name: 'Salary & Compensation',
+      emoji: '💰',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        '15th Sweldo Cutoff',
+        '30th Sweldo Cutoff',
+        '13th Month Pay (Tax-exempt under 90k)',
+        'Overtime & Holiday Pay',
+        'De Minimis Benefits & Allowance',
+        'Performance Bonus',
+      ],
+    ),
+    CategoryInfo(
+      id: 'business_revenue',
+      name: 'Business Revenue',
+      emoji: '🏢',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        'Client Service Retainers',
+        'Product Sales Revenue',
+        'Consulting Fees',
+        'Project Milestone Payments',
+      ],
+    ),
+    CategoryInfo(
+      id: 'side_hustle_income',
+      name: 'Side-hustle & Gig Income',
+      emoji: '✨',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        'Freelance Writing/Design/Dev',
+        'Online Store / Reselling',
+        'Affiliate & Content Creator Payouts',
+        'Baking / Food Selling',
+      ],
+    ),
+    CategoryInfo(
+      id: 'investment_income',
+      name: 'Investment & Passive Income',
+      emoji: '📈',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        'Digital Bank High-Yield Interest',
+        'Pag-IBIG MP2 Dividends',
+        'Stock / Mutual Fund Dividends',
+        'Rental Property Income',
+      ],
+    ),
+    CategoryInfo(
+      id: 'receivables_collected',
+      name: 'Receivables & Repayments',
+      emoji: '💸',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        'Pahiram Repayment Collected',
+        'Split Bill Reimbursement',
+        'Company Expense Reimbursement',
+      ],
+    ),
+    CategoryInfo(
+      id: 'adjustments_income',
+      name: 'Adjustments & Found Cash',
+      emoji: '⚖️',
+      kind: CategoryKind.income,
+      subcategories: <String>[
+        'Reconciliation Upward Adjustment',
+        'Cashback & Merchant Rebates',
+        'Found Money / Windfall',
+      ],
+    ),
+    CategoryInfo(
+      id: 'other_income',
+      name: 'Other Income',
+      emoji: '🪙',
+      kind: CategoryKind.income,
+      subcategories: <String>['Gift Money / Pamasko', 'Miscellaneous Inflow'],
+    ),
+    CategoryInfo(
+      id: 'transfer',
+      name: 'Transfer',
+      emoji: '🔄',
+      kind: CategoryKind.both,
+      subcategories: <String>[
+        'Bank to E-Wallet Transfer',
+        'E-Wallet to Bank Transfer',
+        'ATM Cash Withdrawal',
+        'Savings Allocation',
+      ],
+    ),
+  ];
+
+  static const List<Budget> budgets = <Budget>[
+    Budget(
+      category: 'Food & Dining',
+      limit: Money.pesos(9000),
+      emoji: '\u{1F354}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Transport & Commute',
+      limit: Money.pesos(3500),
+      emoji: '\u{1F6F5}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Bills & Utilities',
+      limit: Money.pesos(6500),
+      emoji: '⚡',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Groceries',
+      limit: Money.pesos(8000),
+      emoji: '\u{1F6D2}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Shopping & Personal',
+      limit: Money.pesos(4000),
+      emoji: '\u{1F6CD}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Business & Freelance Ops',
+      limit: Money.pesos(5000),
+      emoji: '\u{1F4BC}',
+      isSample: true,
+    ),
+    Budget(
+      category: 'Debt & Loan Servicing',
+      limit: Money.pesos(6000),
+      emoji: '\u{1F91D}',
+      isSample: true,
+    ),
+  ];
+
+  static List<UpcomingItem> upcoming(DateTime now) => <UpcomingItem>[
+    UpcomingItem(
+      id: 'up_meralco',
+      name: 'Meralco Electric Bill',
+      amount: Money.pesos(2840),
+      dueDate: _due(now, 0),
+      type: UpcomingItemType.bill,
+      isSample: true,
+    ),
+    UpcomingItem(
+      id: 'up_spotify',
+      name: 'Spotify Premium Family',
+      amount: Money.pesos(239),
+      dueDate: _due(now, 2),
+      type: UpcomingItemType.subscription,
+      isSample: true,
+    ),
+    UpcomingItem(
+      id: 'up_homecredit',
+      name: 'Home Credit Installment',
+      amount: Money.pesos(2450),
+      dueDate: _due(now, 0),
+      type: UpcomingItemType.debt,
+      isSample: true,
+    ),
+    // THE SWELDO, DELIBERATELY RECORDED TWICE, and dated so the app can say
+    // so. Founder decision, 2026-10-04, following D27 and D28.
+    //
+    // This was `_due(now, -3)`, three days in the PAST on every clock. That
+    // put it in the overdue-income bucket, which the projection excludes from
+    // the grid, so the D27 scan, which only walks future days, could never
+    // reach it. Swept across all thirty days of October: the "counted once"
+    // notice fired on NONE of them. The one money decision the founder took
+    // that day was invisible in the ledger a stranger meets.
+    //
+    // `'15'` rather than an offset, for three reasons that all point the same
+    // way. `_due` returns a WEEKDAY NAME for offsets two to six, and
+    // `daysUntil` cannot read a weekday, so the obvious "move it forward a
+    // few days" would have landed it in the undated bucket instead and looked
+    // like the same bug wearing a different hat. A day of the month is what a
+    // person actually types. And it matches the stored payday rule exactly,
+    // which is the whole point: the rule says the 15th, this says the 15th,
+    // one sweldo described twice.
+    UpcomingItem(
+      id: 'up_payday',
+      name: 'Sweldo Payday (15th Cutoff)',
+      amount: Money.pesos(32500),
+      dueDate: '15',
+      type: UpcomingItemType.payday,
+      isIncome: true,
+      isSample: true,
+    ),
+  ];
+
+  static const List<Goal> goals = <Goal>[
+    Goal(
+      id: 'goal_emergency',
+      name: 'Emergency Fund (6 Mos)',
+      emoji: '\u{1F6E1}',
+      targetAmount: Money.pesos(60000),
+      currentAmount: Money.pesos(42500),
+      targetDate: 'Dec 2026',
+      monthlyTarget: Money.pesos(5000),
+      isSample: true,
+    ),
+    Goal(
+      id: 'goal_japan',
+      name: 'Japan Autumn Trip',
+      emoji: '✈',
+      targetAmount: Money.pesos(75000),
+      currentAmount: Money.pesos(28000),
+      targetDate: 'Nov 2027',
+      monthlyTarget: Money.pesos(4500),
+      isSample: true,
+    ),
+    Goal(
+      id: 'goal_phone',
+      name: 'New Work Station Setup',
+      emoji: '\u{1F4BB}',
+      targetAmount: Money.pesos(35000),
+      currentAmount: Money.pesos(35000),
+      targetDate: 'Aug 2026',
+      monthlyTarget: Money.pesos(0),
+      isSample: true,
+    ),
+  ];
+
+  // The header badge counts are GONE, both of them, and this note is here so
+  // nobody puts one back.
+  //
+  // `unreadNotifications = 12` fed the bell, and `memberCount = 5` fed the
+  // collaboration button. Both were placeholders "so the header is the real
+  // one", and both shipped as numbers on a brand new phone that had never had
+  // a notification or a second person. The collaboration button was removed;
+  // the bell counts its own tray now. A placeholder that renders is not a
+  // placeholder, it is a claim.
+
+  /// The sample pay cycle, WITH the rule its own cycle type always claimed.
+  ///
+  /// Founder decision D26, 2026-10-04. `paydayDays` was empty here, and it is
+  /// only ever written when somebody sets their payday inside the app
+  /// (`financial_state.dart:515`), so the sample ledger never had one. Without
+  /// it the cycle cannot recompute, so it claimed four days to a payday on 15
+  /// September while anchored to 18 September, three days PAST it, and said
+  /// exactly that on every date forever.
+  ///
+  /// That was not a quiet defect. Since 2026-10-03 the welcome offers "Look
+  /// around with example data" to everybody on first launch, so a wrong payday
+  /// date was a first impression for a public app on most days of the year.
+  ///
+  /// The three fields under the rule are a SNAPSHOT OF A MOMENT and are now
+  /// overridden on every read: `FinancialState.payday` recomputes the
+  /// countdown and both labels from the rule whenever `hasRule` is true. They
+  /// stay because the constructor requires them and because a cycle restored
+  /// from an older backup still arrives with no rule and keeps whatever it
+  /// had, rather than having one guessed for it.
+  static const PaydayCycle payday = PaydayCycle(
+    cycleType: '15_30',
+    lastPayday: 'Sep 1',
+    nextPayday: 'Sep 15',
+    daysToPayday: 4,
+    expectedIncome: Money.pesos(32500),
+    paydayDays: <int>[15, 30],
+  );
+
+  static List<BillItem> bills(DateTime now) => <BillItem>[
+    BillItem(
+      id: 'bill_meralco',
+      name: 'Meralco Electricity',
+      amount: Money.pesos(2840),
+      dueDate: _iso(now, -3),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_water',
+      name: 'Manila Water',
+      amount: Money.pesos(480),
+      dueDate: _iso(now, 0),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_internet',
+      name: 'Converge FiberX 1500',
+      amount: Money.pesos(1500),
+      dueDate: _iso(now, 2),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_spotify',
+      name: 'Spotify Family Plan',
+      amount: Money.pesos(239),
+      dueDate: _iso(now, -4),
+      isPaid: true,
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_rent',
+      name: 'Condo Unit Rental',
+      amount: Money.pesos(14000),
+      dueDate: _iso(now, 12),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_insurance',
+      name: 'Pru Life UK VUL Insurance',
+      amount: Money.pesos(2500),
+      dueDate: _iso(now, 7),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_tuition',
+      name: 'Sibling College Tuition (2nd Tranche)',
+      amount: Money.pesos(8500),
+      dueDate: _iso(now, 17),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_sss',
+      name: 'SSS Voluntary Contribution',
+      amount: Money.pesos(1120),
+      dueDate: _iso(now, 12),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_philhealth',
+      name: 'PhilHealth Contribution',
+      amount: Money.pesos(500),
+      dueDate: _iso(now, 12),
+      isSample: true,
+    ),
+    BillItem(
+      id: 'bill_remittance',
+      name: 'Nanay Monthly Padala & Groceries',
+      amount: Money.pesos(6000),
+      dueDate: _iso(now, -2),
+      isSample: true,
+    ),
+  ];
+
+  /// The prototype's three plans, in full.
+  ///
+  /// These were three name-and-amount stubs until 2026-09-18, because Safe to
+  /// Spend was the only thing reading them and an amount was all it needed.
+  /// Every other field here is transcribed from archive/prototype-google-ai-studio/src/data/initialData.ts. The
+  /// three deliberately differ in shape: one with a monthly add-on rate, one
+  /// genuine 0 percent promo with an extra payment against it, and one
+  /// e-commerce plan at 2.95 a month, so the Installments screen can be
+  /// REVIEWED rather than merely rendered.
+  static List<InstallmentPlan> installments(DateTime now) => <InstallmentPlan>[
+    InstallmentPlan(
+      id: 'inst_home_credit',
+      name: 'Inverter Refrigerator (Abenson)',
+      provider: 'Home Credit',
+      principal: Money.pesos(24500),
+      interestRate: 1.5,
+      interestRateType: InterestRateType.monthly,
+      totalInterest: Money.pesos(4410),
+      totalPayable: Money.pesos(28910),
+      termMonths: 12,
+      startDate: _iso(now, -153),
+      maturityDate: '2027-04-18',
+      installmentAmount: Money.of(2409, 17),
+      paidInstallments: 5,
+      totalInstallments: 12,
+      runningBalance: Money.of(16864, 15),
+      principalRemaining: Money.of(14291, 65),
+      interestRemaining: Money.of(2572, 50),
+      notes: '0% downpayment promo, auto-debited on the 18th of each month',
+      isSample: true,
+    ),
+    InstallmentPlan(
+      id: 'inst_bpi_sip',
+      name: 'MacBook Air M2 Work Setup',
+      provider: 'BPI Special Installment Plan (SIP)',
+      principal: Money.pesos(54990),
+      interestRate: 0.0,
+      interestRateType: InterestRateType.fixed,
+      totalInterest: Money.pesos(0),
+      totalPayable: Money.pesos(54990),
+      termMonths: 24,
+      startDate: _iso(now, -297),
+      maturityDate: '2027-11-25',
+      installmentAmount: Money.of(2291, 25),
+      paidInstallments: 10,
+      totalInstallments: 24,
+      runningBalance: Money.pesos(27495),
+      principalRemaining: Money.pesos(27495),
+      interestRemaining: Money.pesos(0),
+      extraPayments: <ExtraPayment>[
+        ExtraPayment(
+          id: 'ext_1',
+          date: '2026-06-15',
+          amount: Money.of(4582, 50),
+          note: 'Mid-year bonus prepayment',
+        ),
+      ],
+      notes: '24-month real 0% installment on BPI Rewards Credit Card',
+      isSample: true,
+    ),
+    InstallmentPlan(
+      id: 'inst_spaylater',
+      name: 'Ergonomic Desk & Chair',
+      provider: 'SPayLater',
+      principal: Money.pesos(8400),
+      interestRate: 2.95,
+      interestRateType: InterestRateType.monthly,
+      totalInterest: Money.of(1486, 80),
+      totalPayable: Money.of(9886, 80),
+      termMonths: 6,
+      startDate: _iso(now, -75),
+      maturityDate: '2027-01-05',
+      installmentAmount: Money.of(1647, 80),
+      paidInstallments: 2,
+      totalInstallments: 6,
+      runningBalance: Money.of(6591, 20),
+      principalRemaining: Money.pesos(5600),
+      interestRemaining: Money.of(991, 20),
+      notes: 'E-commerce installment via Shopee SPayLater',
+      isSample: true,
+    ),
+  ];
+
+  static const List<IncomeStream> incomeStreams = <IncomeStream>[
+    IncomeStream(
+      id: 'stream_salary',
+      name: 'Corporate Employment Salary',
+      type: IncomeStreamType.semimonthlySalary,
+      expectedAmount: Money.pesos(32500),
+      isSample: true,
+    ),
+    IncomeStream(
+      id: 'stream_freelance',
+      name: 'UI/UX Design Retainer (Apex Digital)',
+      type: IncomeStreamType.freelance,
+      expectedAmount: Money.pesos(18500),
+      isSample: true,
+    ),
+    IncomeStream(
+      id: 'stream_13th_month',
+      name: '13th-Month Pay Projection',
+      type: IncomeStreamType.thirteenthMonth,
+      expectedAmount: Money.pesos(65000),
+      isSample: true,
+    ),
+    IncomeStream(
+      id: 'stream_remittance',
+      name: 'OFW Sibling Support / Padala',
+      type: IncomeStreamType.remittance,
+      expectedAmount: Money.pesos(5000),
+      isSample: true,
+    ),
+  ];
+
+  /// The Habits tracker's rows, from archive/prototype-google-ai-studio/src/components/HabitTrackerView.tsx,
+  /// where they are hardcoded inside the component.
+  static const List<HabitItem> habits = <HabitItem>[
+    HabitItem(
+      id: 'habit_log',
+      name: 'Log every expense',
+      streak: 12,
+      doneToday: true,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_nospend',
+      name: 'No-spend day',
+      streak: 2,
+      doneToday: false,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_review',
+      name: 'Weekly review',
+      streak: 4,
+      doneToday: true,
+      isDaily: false,
+    ),
+    HabitItem(
+      id: 'habit_receipt',
+      name: 'Capture receipts',
+      streak: 5,
+      doneToday: true,
+      isDaily: true,
+    ),
+    HabitItem(
+      id: 'habit_reconcile',
+      name: 'Reconcile accounts',
+      streak: 1,
+      doneToday: false,
+      isDaily: false,
+    ),
+    HabitItem(
+      id: 'habit_budget',
+      name: 'Budget review',
+      streak: 8,
+      doneToday: true,
+      isDaily: false,
+    ),
+  ];
+
+  /// The Subscriptions tracker's rows, from
+  /// archive/prototype-google-ai-studio/src/components/SubscriptionTrackerView.tsx.
+  ///
+  /// The prototype prints a hardcoded monthly total of 3,288 beside this list,
+  /// and the list does not add up to that under any reading. app/ computes it
+  /// from the rows instead, which is why SubscriptionItem carries monthlyCost.
+  static const List<SubscriptionItem> subscriptions = <SubscriptionItem>[
+    SubscriptionItem(
+      id: 'sub_netflix',
+      name: 'Netflix Premium',
+      amount: Money.pesos(549),
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-05',
+      state: SubscriptionState.active,
+    ),
+    SubscriptionItem(
+      id: 'sub_spotify',
+      name: 'Spotify Duo',
+      amount: Money.pesos(239),
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-12',
+      state: SubscriptionState.active,
+    ),
+    SubscriptionItem(
+      id: 'sub_google',
+      name: 'Google One 2TB',
+      amount: Money.pesos(4790),
+      cycle: BillingCycle.annual,
+      nextBilling: '2027-04-15',
+      state: SubscriptionState.active,
+      unusedAlert: true,
+    ),
+    SubscriptionItem(
+      id: 'sub_gym',
+      name: 'Gym Membership',
+      amount: Money.pesos(2500),
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-01',
+      state: SubscriptionState.active,
+      duplicateAlert: true,
+    ),
+    SubscriptionItem(
+      id: 'sub_adobe',
+      name: 'Adobe Creative Cloud',
+      amount: Money.pesos(1549),
+      cycle: BillingCycle.monthly,
+      nextBilling: '2026-10-22',
+      state: SubscriptionState.trial,
+      trialEnds: '2026-09-22',
+    ),
+  ];
+}

@@ -1,0 +1,307 @@
+import 'package:salapify/core/money/money.dart';
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/net_worth_history.dart';
+import 'package:salapify/core/money/reconciliation.dart';
+import 'package:salapify/core/money/reports.dart';
+import 'package:salapify/data/snapshot.dart';
+import 'package:salapify/data/store.dart';
+import 'package:salapify/design/tokens.dart';
+import 'package:salapify/models/models.dart';
+import 'package:salapify/state/financial_state.dart';
+
+/// Restoring a backup REPLACES the whole ledger, which makes this the single
+/// most destructive thing Salapify can do: no server, no account, no second
+/// copy. Everything here exists to prove the way back is real.
+void main() {
+  Snapshot ledgerOf(List<Account> accounts, {List<Transaction>? txs}) =>
+      Snapshot(
+        accounts: accounts,
+        transactions: txs ?? const <Transaction>[],
+        debts: const <Debt>[],
+        budgets: const <Budget>[],
+        goals: const <Goal>[],
+        upcoming: const <UpcomingItem>[],
+        incomeStreams: const <IncomeStream>[],
+        installments: const <InstallmentPlan>[],
+        reconciliations: const <ReconciliationRecord>[],
+        bills: const <BillItem>[],
+        payday: PaydayCycle.unset,
+        theme: ThemeMode2.gabi,
+        scenario: DecisionScenario.conservative,
+      );
+
+  const Account mine = Account(
+    id: 'acc_mine',
+    name: 'My GCash',
+    kind: AccountKind.gcash,
+    institution: 'GCash',
+    balance: Money.pesos(52300),
+    monogram: 'GC',
+  );
+  const Account theirs = Account(
+    id: 'acc_theirs',
+    name: 'Their BPI',
+    kind: AccountKind.bank,
+    institution: 'BPI',
+    balance: Money.pesos(71940),
+    monogram: 'BPI',
+  );
+
+  Future<FinancialState> loaded(MemorySnapshotStore store) async {
+    await store.write(
+      ledgerOf(const <Account>[mine]).encode(at: DateTime.utc(2026, 9, 19)),
+    );
+    final FinancialState s = FinancialState(
+      clock: DateTime.utc(2026, 9, 19),
+      store: store,
+    );
+    await s.restore();
+    return s;
+  }
+
+  group('the copy that makes it reversible', () {
+    test('an import keeps the ledger it replaced', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+
+      expect(await s.importSnapshot(ledgerOf(const <Account>[theirs])), isTrue);
+
+      // The copy holds what was here.
+      final Snapshot kept = Snapshot.decode(store.preImport!);
+      expect(kept.accounts.single.id, 'acc_mine');
+      expect(kept.accounts.single.balance, const Money.pesos(52300));
+
+      // DIRECTIONAL COMPANION. Without this the test passes when the import
+      // silently did nothing at all.
+      expect(s.accounts.single.id, 'acc_theirs');
+      expect(store.contents, contains('acc_theirs'));
+      expect(store.contents, isNot(contains('acc_mine')));
+    });
+
+    test('the copy is written BEFORE the new ledger', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+      store.order.clear();
+
+      await s.importSnapshot(ledgerOf(const <Account>[theirs]));
+
+      expect(
+        store.order.first,
+        'preimport',
+        reason:
+            'the new ledger landed first, so a phone that died in between '
+            'would have the new ledger and no way back to the old one',
+      );
+    });
+
+    test('an import that cannot keep a copy does not happen at all', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+      final int before = store.writes;
+      store.failPreImportWith = Exception('No space left on device');
+
+      expect(
+        await s.importSnapshot(ledgerOf(const <Account>[theirs])),
+        isFalse,
+      );
+
+      expect(s.accounts.single.id, 'acc_mine');
+      expect(store.writes, before, reason: 'something was written anyway');
+      expect(s.saveProblem, isNotNull);
+    });
+
+    test('import is ALLOWED while the data file is unreadable', () async {
+      // This asserted a refusal until the recovery work, and the refusal was
+      // the defect. Somebody whose file will not decode, holding a good backup
+      // in their email, had exactly one move left: uninstall, which destroys
+      // the very file that might still have been rescued by hand.
+      //
+      // What made the refusal look right was the copy promise: a pre-import
+      // copy taken from state.snapshot() in this state holds the SEED, so
+      // importing would have thrown the person's records away while reporting
+      // that it had kept them. The fix is to copy the RAW BYTES, which is
+      // asserted below, not to block the one route out.
+      final MemorySnapshotStore store = MemorySnapshotStore('{ not json');
+      final FinancialState s = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+        store: store,
+      );
+      await s.restore();
+      expect(s.loadStatus, LoadStatus.unreadable);
+
+      expect(await s.importSnapshot(ledgerOf(const <Account>[theirs])), isTrue);
+      // The directional half. `isTrue` alone would pass on a method that
+      // returned early having written nothing.
+      expect(s.accounts.single.id, theirs.id);
+      expect(store.writes, greaterThan(0));
+      // And the copy promise, kept literally: the unreadable bytes themselves,
+      // not a snapshot of the sample ledger that was on screen.
+      expect(store.preImport, '{ not json');
+    });
+  });
+
+  group('undo', () {
+    test('it puts the exact ledger back, field for field', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+      final String before = store.contents!;
+
+      await s.importSnapshot(ledgerOf(const <Account>[theirs]));
+      expect(await s.undoLastImport(), isTrue);
+
+      // The whole document, minus the timestamp, which moves on every write,
+      // and minus the net worth records, which every save now refreshes for
+      // the current month, checked on their own below.
+      Map<String, dynamic> stripped(String raw) {
+        final Map<String, dynamic> m = Map<String, dynamic>.from(
+          jsonDecode(raw) as Map,
+        );
+        m.remove('timestamp');
+        // ONLY this month's net worth row: every save refreshes it from the
+        // book on screen. Every EARLIER month must come back identical, so
+        // an undo that dropped the history cannot pass. An emptied list is
+        // removed so a file that had no history still compares equal.
+        final Object? h = m[Snapshot.kNetWorthHistory];
+        if (h is List) {
+          final List<Object?> kept = <Object?>[
+            for (final Object? r in h)
+              if (!(r is Map && r['month'] == '2026-09')) r,
+          ];
+          if (kept.isEmpty) {
+            m.remove(Snapshot.kNetWorthHistory);
+          } else {
+            m[Snapshot.kNetWorthHistory] = kept;
+          }
+        }
+        return m;
+      }
+
+      expect(
+        stripped(store.contents!),
+        stripped(before),
+        reason:
+            'a field _apply forgot to carry would survive a field by field '
+            'assertion and not this one',
+      );
+
+      // THE REAL RISK THE RECORDS ADD: the imported book's figures leaking
+      // into this person's history. After the undo, this month's record must
+      // be the RESTORED book, never the one that was imported and taken back.
+      final FinancialPosition restored = computePosition(
+        s.accounts,
+        null,
+        debts: s.debts,
+        plans: s.installments,
+      );
+      // DIRECTIONAL: there is a record to check, or the loop below proves
+      // nothing.
+      expect(s.netWorthHistory, isNotEmpty);
+      for (final NetWorthPoint p in s.netWorthHistory) {
+        expect(
+          p.netWorth,
+          restored.netWorth,
+          reason: 'the imported ledger leaked into the net worth history',
+        );
+      }
+    });
+
+    test('it survives the app being killed in between', () async {
+      // THE test that proves the undo is a file and not a snackbar.
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState first = await loaded(store);
+      await first.importSnapshot(ledgerOf(const <Account>[theirs]));
+      await first.flushWrites();
+
+      // A whole new app, on the same storage.
+      final FinancialState second = FinancialState(
+        clock: DateTime.utc(2026, 9, 19),
+        store: store,
+      );
+      await second.restore();
+
+      expect(await second.previousLedger(), isNotNull);
+      expect(await second.undoLastImport(), isTrue);
+      expect(second.accounts.single.id, 'acc_mine');
+    });
+
+    test('the undo is itself undoable, so nobody is trapped', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+
+      await s.importSnapshot(ledgerOf(const <Account>[theirs]));
+      await s.undoLastImport();
+      expect(s.accounts.single.id, 'acc_mine');
+
+      await s.undoLastImport();
+      expect(
+        s.accounts.single.id,
+        'acc_theirs',
+        reason: 'undoing the undo left the person stuck on one side',
+      );
+    });
+
+    test('there is nothing to put back before the first import', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+      expect(await s.previousLedger(), isNull);
+      expect(await s.undoLastImport(), isFalse);
+    });
+  });
+
+  group('what comes from the file, and what does not', () {
+    test(
+      'the sample marker comes from the FILE, never from this phone',
+      () async {
+        // The dangerous case, spelled out: keep this phone's marker, import a
+        // ledger with none and no sample rows, and the put-the-samples-back
+        // button appears over somebody else's real book. One tap would inject
+        // the demo mortgage into it.
+        final MemorySnapshotStore store = MemorySnapshotStore();
+        final FinancialState s = FinancialState(
+          clock: DateTime.utc(2026, 9, 19),
+          store: store,
+        );
+        await s.restore();
+        s.removeSampleData();
+        await s.flushWrites();
+        expect(s.canRestoreSampleData, isTrue);
+
+        await s.importSnapshot(ledgerOf(const <Account>[theirs]));
+
+        expect(
+          s.canRestoreSampleData,
+          isFalse,
+          reason:
+              'this phone\'s removal marker survived an import and now offers '
+              'to inject demo money into a ledger that never had any',
+        );
+      },
+    );
+
+    test('sample flags in the file are kept, not cleared', () async {
+      final MemorySnapshotStore store = MemorySnapshotStore();
+      final FinancialState s = await loaded(store);
+
+      const Account sample = Account(
+        id: 'acc_demo',
+        name: 'Demo',
+        kind: AccountKind.cash,
+        institution: 'Cash',
+        balance: Money.pesos(100),
+        monogram: 'D',
+        isSample: true,
+      );
+      await s.importSnapshot(ledgerOf(const <Account>[sample]));
+
+      expect(
+        s.hasSampleData,
+        isTrue,
+        reason:
+            'clearing the flags on import permanently adopts demo money as '
+            'the person\'s own, with nothing left to identify it by',
+      );
+    });
+  });
+}

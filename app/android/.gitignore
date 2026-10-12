@@ -12,3 +12,19 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# ONE EXCEPTION, and it is deliberately spelled out in full rather than
+# loosened above.
+#
+# app/preview-keystore.jks is the committed PREVIEW key. It has to be in the
+# repository, because Android only installs an update over an existing app
+# when both carry the same signature, and a key that lives on one machine
+# cannot sign builds made on a CI runner. build.gradle.kts explains the whole
+# reasoning where the config lives.
+#
+# The ban above stays exactly as it is. It is what stops a REAL Play upload
+# key, or a key.properties holding real passwords, from being committed by
+# somebody in a hurry, and that ban is worth more than the small awkwardness
+# of naming the one file that is allowed through. Never widen this to a
+# pattern: a second .jks appearing here unannounced is the thing to catch.
+!app/preview-keystore.jks

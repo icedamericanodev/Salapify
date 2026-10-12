@@ -1,0 +1,468 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:salapify/core/money/debt.dart';
+import 'package:salapify/data/seed_data.dart';
+import 'package:salapify/models/models.dart';
+
+import '../../support/test_clock.dart';
+import 'package:salapify/core/money/money.dart';
+
+/// Golden vectors for the debt payment port.
+///
+/// Every figure below was PRINTED by running the prototype's own reducers
+/// over the prototype's own seeded debts, via app/tool/gen_debt_vectors.ts
+/// under bun. None of it was worked out by hand.
+///
+/// ONE DIVERGENCE is asserted rather than hidden, and it is marked where it
+/// occurs: see "an already settled debt keeps the day it was settled".
+void main() {
+  final DateTime today = DateTime(2026, 9, 18);
+
+  Debt of(List<Debt> list, String id) =>
+      list.firstWhere((Debt d) => d.id == id);
+
+  List<Debt> pay(String id, double amount) => applyDebtPayment(
+    SeedData.debts(testToday),
+    id,
+    Money.fromDouble(amount),
+    today: today,
+  );
+
+  group('applyDebtPayment matches the prototype', () {
+    test('a part payment on an instalment debt advances the counter', () {
+      final Debt d = of(pay('debt_homecredit', 2450), 'debt_homecredit');
+      expect(d.paidAmount, const Money.pesos(9800));
+      expect(d.isSettled, isFalse);
+      expect(d.settledDate, isNull);
+      expect(
+        d.installmentCurrent,
+        4,
+        reason: 'it was 3 of 6, and a payment is a payment',
+      );
+    });
+
+    test('paying exactly what is left settles it and stamps the day', () {
+      final Debt d = of(pay('debt_homecredit', 7350), 'debt_homecredit');
+      expect(d.paidAmount, const Money.pesos(14700));
+      expect(d.isSettled, isTrue);
+      expect(d.settledDate, '2026-09-18');
+    });
+
+    test('an overpayment is NOT capped, so it stays visible', () {
+      final Debt d = of(pay('debt_homecredit', 10000), 'debt_homecredit');
+      expect(
+        d.paidAmount,
+        const Money.pesos(17350),
+        reason:
+            'The prototype does not clamp this, and neither do we. '
+            'Swallowing 2,650 to make the row look tidy hides a real '
+            'overpayment from the only person who could correct it.',
+      );
+      expect(d.isSettled, isTrue);
+      // But the PROGRESS bar is clamped, or it would draw past its own track.
+      expect(d.progress, 1.0);
+    });
+
+    test('a flexible receivable has no counter to advance', () {
+      final Debt d = of(pay('debt_kuya_mark', 1500), 'debt_kuya_mark');
+      expect(d.paidAmount, const Money.pesos(1500));
+      expect(d.isSettled, isFalse);
+      expect(
+        d.installmentCurrent,
+        isNull,
+        reason:
+            'null must stay null. The prototype only increments a counter '
+            'that already exists, and inventing "1 of 12" for a pahiram from '
+            'a friend would put a schedule on a favour.',
+      );
+    });
+
+    test('collecting a receivable in full settles it', () {
+      final Debt d = of(pay('debt_sarah', 1250), 'debt_sarah');
+      expect(d.paidAmount, const Money.pesos(1250));
+      expect(d.isSettled, isTrue);
+      expect(d.settledDate, '2026-09-18');
+    });
+
+    test('the instalment counter never passes its total', () {
+      final Debt d = of(pay('debt_bpi_loan', 10000), 'debt_bpi_loan');
+      expect(d.installmentCurrent, 3);
+      expect(d.installmentTotal, 6);
+      expect(d.installmentCurrent!, lessThanOrEqualTo(d.installmentTotal!));
+    });
+
+    test('a zero or negative payment changes nothing at all', () {
+      // Compares against the SAME list that went in, not against a fresh
+      // SeedData call. This used to read
+      // `identical(pay(...), SeedData.debts)` and passed only because the
+      // seed was a `const` list, so every reference was one object. The seed
+      // is built from a clock now and hands back a new list each call, which
+      // made the identity check false while the behaviour it describes was
+      // unchanged. Capturing the input is what the assertion always meant.
+      final List<Debt> input = SeedData.debts(testToday);
+      expect(
+        identical(
+          applyDebtPayment(
+            input,
+            'debt_homecredit',
+            Money.pesos(0),
+            today: today,
+          ),
+          input,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          applyDebtPayment(
+            input,
+            'debt_homecredit',
+            Money.pesos(-500),
+            today: today,
+          ),
+          input,
+        ),
+        isTrue,
+      );
+    });
+
+    test('no other debt is touched', () {
+      final List<Debt> after = pay('debt_homecredit', 2450);
+      for (final Debt d in SeedData.debts(testToday)) {
+        if (d.id == 'debt_homecredit') continue;
+        final Debt now = of(after, d.id);
+        expect(now.paidAmount, d.paidAmount, reason: '${d.id} moved');
+        expect(now.isSettled, d.isSettled, reason: '${d.id} changed status');
+      }
+    });
+
+    // THE ONE DIVERGENCE FROM THE PROTOTYPE, asserted here so it is a measured
+    // difference rather than an accident.
+    //
+    // The prototype writes `settledDate: isSettled ? TODAY : d.settledDate`.
+    // On a debt that is ALREADY settled, isSettled stays true, so a stray
+    // payment restamps the date: the generator printed 2026-09-18 for a debt
+    // the seed says was settled on Sep 3.
+    //
+    // That is a loss of history on a row whose entire job is to record when
+    // something was cleared. Salapify keeps the original date. No live figure
+    // moves either way, and the debt's money behaviour is identical; only the
+    // date differs, and only on a debt that was already at zero.
+    test('an already settled debt keeps the day it was settled', () {
+      final Debt d = of(pay('debt_mom_settled', 500), 'debt_mom_settled');
+      expect(
+        d.paidAmount,
+        const Money.pesos(2500),
+        reason: 'the money still moves, as it must',
+      );
+      expect(d.isSettled, isTrue);
+      expect(
+        d.settledDate,
+        'Sep 3',
+        reason:
+            'The prototype would rewrite this to 2026-09-18. A debt '
+            'cleared in September did not become cleared today because a '
+            'stray payment landed on it.',
+      );
+    });
+  });
+
+  group('toggleDebtSettled matches the prototype', () {
+    test('settling fills the paid amount to the total', () {
+      final Debt d = of(
+        toggleDebtSettled(
+          SeedData.debts(testToday),
+          'debt_homecredit',
+          today: today,
+        ),
+        'debt_homecredit',
+      );
+      expect(
+        d.paidAmount,
+        const Money.pesos(14700),
+        reason:
+            'otherwise the row reads "settled" and "still owes 7,350" at '
+            'the same time, and one of them is a lie',
+      );
+      expect(d.isSettled, isTrue);
+      expect(d.settledDate, '2026-09-18');
+    });
+
+    test('un-settling clears the flag and the date', () {
+      final Debt d = of(
+        toggleDebtSettled(
+          SeedData.debts(testToday),
+          'debt_mom_settled',
+          today: today,
+        ),
+        'debt_mom_settled',
+      );
+      expect(d.isSettled, isFalse);
+      expect(d.settledDate, isNull);
+      expect(d.paidAmount, const Money.pesos(2000));
+    });
+
+    test('settling then un-settling PUTS THE REAL FIGURE BACK', () {
+      // A DELIBERATE DIVERGENCE FROM THE PROTOTYPE, founder direction
+      // 2026-10-01, and this test used to assert the prototype's answer with
+      // a confident reason: winding back to 7,350 "would invent a figure
+      // nobody paid".
+      //
+      // That reasoning is sound for a debt settled by REAL PAYMENTS, and the
+      // case below this one still asserts it. It is wrong here, because 7,350
+      // is not invented: it is what the debt actually said before the button
+      // FILLED it to 14,700. Leaving the fill in place is what invents a
+      // figure, and it invents the larger one.
+      //
+      // What the old behaviour cost, with no confirmation on either tap:
+      // 7,350 of 14,700 becomes 14,700 of 14,700, permanently, because a debt
+      // keeps no payment history and the app has no edit or delete for one.
+      // "Not settled after all" is the button somebody taps believing it is
+      // the way back.
+      final List<Debt> once = toggleDebtSettled(
+        SeedData.debts(testToday),
+        'debt_homecredit',
+        today: today,
+      );
+      expect(
+        of(once, 'debt_homecredit').paidAmount,
+        const Money.pesos(14700),
+        reason: 'the fill',
+      );
+
+      final Debt d = of(
+        toggleDebtSettled(once, 'debt_homecredit', today: today),
+        'debt_homecredit',
+      );
+      expect(d.isSettled, isFalse);
+      expect(d.settledDate, isNull);
+      expect(
+        d.paidAmount,
+        const Money.pesos(7350),
+        reason:
+            '7,350 is gone and 7,350 that nobody paid is recorded as paid, '
+            'with no screen in the app able to put it right',
+      );
+    });
+  });
+
+  group('the ledger entry a payment writes', () {
+    test('paying somebody is an expense, filed where Budgets can see it', () {
+      final Transaction? t = paymentEntry(
+        debt: of(SeedData.debts(testToday), 'debt_homecredit'),
+        amount: 2450,
+        accountId: 'acc_gcash',
+        today: today,
+        id: 'tx_test',
+      );
+
+      expect(t, isNotNull);
+      expect(t!.type, TransactionType.expense);
+      expect(t.amount, Money.pesos(2450));
+      expect(t.category, 'Debt & Loan Servicing');
+      expect(t.subcategory, 'Personal Loan Installment');
+      expect(t.accountId, 'acc_gcash');
+      expect(t.date, '2026-09-18');
+      expect(t.merchant, 'Repayment to Home Credit (Phone)');
+      expect(t.tags, contains('#debt-payment'));
+
+      // The category has to EXIST, or the entry files itself under a name
+      // Budgets and Reports do not recognise and the money vanishes from
+      // every summary while sitting perfectly in the ledger.
+      expect(
+        SeedData.categories.map((CategoryInfo c) => c.name),
+        contains(t.category),
+      );
+    });
+
+    test('being repaid is income, with its own category', () {
+      final Transaction? t = paymentEntry(
+        debt: of(SeedData.debts(testToday), 'debt_kuya_mark'),
+        amount: 1500,
+        accountId: 'acc_gcash',
+        today: today,
+        id: 'tx_test',
+      );
+
+      expect(t!.type, TransactionType.income);
+      expect(t.category, 'Receivables & Repayments');
+      expect(t.subcategory, 'Pahiram Repayment Collected');
+      expect(t.merchant, 'Repayment from Kuya Mark');
+      expect(
+        SeedData.categories.map((CategoryInfo c) => c.name),
+        contains(t.category),
+      );
+    });
+
+    test('no account means no entry, rather than an entry from nowhere', () {
+      expect(
+        paymentEntry(
+          debt: of(SeedData.debts(testToday), 'debt_kuya_mark'),
+          amount: 1500,
+          accountId: null,
+          today: today,
+          id: 'tx_test',
+        ),
+        isNull,
+        reason:
+            'An entry with no account cannot move a balance and cannot be '
+            'reconciled. Recording the debt alone is the honest outcome.',
+      );
+    });
+  });
+
+  group('the register totals', () {
+    test('outstanding counts only open debts, in one direction', () {
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.iOwe),
+        const Money.pesos(17350),
+      );
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.owedToMe),
+        const Money.pesos(6250),
+      );
+    });
+
+    test('the settled Mom debt is excluded from what you owe', () {
+      // 14,700 - 7,350 plus 15,000 - 5,000 is 17,350. Mom's 2,000 is settled
+      // and must not be in there.
+      expect(
+        outstanding(SeedData.debts(testToday), DebtDirection.iOwe),
+        isNot(19350),
+      );
+    });
+
+    test('the beam splits the way the prototype splits it', () {
+      final ({double owedToMe, double youOwe}) b = beamSplit(
+        SeedData.debts(testToday),
+      );
+      expect(b.owedToMe, closeTo(26.48305084745763, 1e-9));
+      expect(b.youOwe, closeTo(73.51694915254237, 1e-9));
+    });
+
+    test('the beam never lets either side vanish', () {
+      final List<Debt> lopsided = <Debt>[
+        const Debt(
+          id: 'a',
+          person: 'Bank',
+          direction: DebtDirection.iOwe,
+          totalAmount: Money.pesos(1000000),
+          paidAmount: Money.pesos(0),
+          isSettled: false,
+        ),
+        const Debt(
+          id: 'b',
+          person: 'Friend',
+          direction: DebtDirection.owedToMe,
+          totalAmount: Money.pesos(50),
+          paidAmount: Money.pesos(0),
+          isSettled: false,
+        ),
+      ];
+      final ({double owedToMe, double youOwe}) b = beamSplit(lopsided);
+      expect(b.owedToMe, 10);
+      expect(
+        b.youOwe,
+        90,
+        reason:
+            'Clamped at 10 and 90, the prototype\'s own rule, so the beam '
+            'is an illustration and the figures beside it are the truth.',
+      );
+    });
+
+    test('an empty register splits evenly rather than dividing by zero', () {
+      final ({double owedToMe, double youOwe}) b = beamSplit(<Debt>[]);
+      expect(b.owedToMe, 50);
+      expect(b.youOwe, 50);
+    });
+  });
+
+  group('splitting by status', () {
+    test('open first, settled kept rather than hidden', () {
+      final ({List<Debt> open, List<Debt> settled}) s = splitByStatus(
+        SeedData.debts(testToday),
+        DebtDirection.iOwe,
+      );
+      expect(s.open.map((Debt d) => d.id), <String>[
+        'debt_homecredit',
+        'debt_bpi_loan',
+      ]);
+      expect(
+        s.settled.map((Debt d) => d.id),
+        <String>['debt_mom_settled'],
+        reason:
+            'A cleared debt is the only evidence a person has that they '
+            'cleared it. A register that forgets is one nobody trusts.',
+      );
+    });
+  });
+
+  group('reading an amount', () {
+    test('accepts what a person actually types', () {
+      expect(parseDebtAmount('1,500'), 1500);
+      expect(parseDebtAmount(' 250.75 '), 250.75);
+    });
+
+    test('refuses nothing, zero and negatives', () {
+      expect(parseDebtAmount(''), isNull);
+      expect(parseDebtAmount('0'), isNull);
+      expect(parseDebtAmount('-100'), isNull);
+      expect(parseDebtAmount('abc'), isNull);
+    });
+  });
+
+  group('the next payment due', () {
+    Debt owing(String person, String due, DebtDirection dir) => Debt(
+      id: person,
+      person: person,
+      direction: dir,
+      totalAmount: const Money.pesos(10000),
+      paidAmount: Money.zero,
+      isSettled: false,
+      dueDate: due,
+    );
+
+    final DateTime now = DateTime.utc(2026, 10, 4);
+
+    test('a free-text date is read as a DATE, never sorted as text', () {
+      // The defect this closes, measured on the sample ledger before the fix:
+      // Home named "BPI Personal Loan, Oct 11, 10,000 remaining" while the
+      // real next payment was Home Credit, due THAT DAY, at 2,450. The old
+      // getter compared the strings, and "Oct 11" sorts before "Oct 16",
+      // "Oct 2" and "Oct 4". Wrong debt, seven days late, four times the
+      // figure, on a card the founder reads every day.
+      final List<Debt> debts = <Debt>[
+        owing('BPI', 'Oct 11', DebtDirection.iOwe),
+        owing('Home Credit', 'Oct 4', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Home Credit');
+    });
+
+    test('an OVERDUE payment sorts first, not last', () {
+      // More urgent, not less. A sort that puts a negative day count at the
+      // end announces the payment somebody has not missed yet.
+      final List<Debt> debts = <Debt>[
+        owing('Later', 'Oct 20', DebtDirection.iOwe),
+        owing('Missed', 'Oct 1', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Missed');
+    });
+
+    test('money owed TO you is never announced as your next payment', () {
+      // The string sort hid this on the shipped ledger. With ISO dates it
+      // surfaces at once, and it is the same direction defect that once let
+      // a receivable reduce somebody's own runway.
+      final List<Debt> debts = <Debt>[
+        owing('Kuya Mark', '2026-10-05', DebtDirection.owedToMe),
+        owing('Home Credit', '2026-10-20', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now)?.person, 'Home Credit');
+    });
+
+    test('a date nobody can read is not guessed at', () {
+      final List<Debt> debts = <Debt>[
+        owing('Mystery', 'sometime', DebtDirection.iOwe),
+      ];
+      expect(nextPaymentDue(debts, now), isNull);
+    });
+  });
+}

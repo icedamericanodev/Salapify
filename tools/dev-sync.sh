@@ -412,14 +412,29 @@ trap 'cleanup; exit 0' INT TERM
     # stray file anywhere in the repo made it refuse to help. Untracked files
     # do not block a fast forward in the first place. Caught by testing the
     # check rather than reading it.
+    #
+    # THE ARCHIVED APP'S PAIR COUNTS TOO, found 2026-10-07. VS Code's Dart
+    # extension runs `pub get` on EVERY pubspec it finds when the folder is
+    # opened at the repository root, archive included, so the archive's
+    # pubspec.lock and analysis_options.yaml get rewritten exactly like the
+    # app's. Listing only the app's pair made a dirty archive file count as
+    # "anything else", and the script refused to put back even the app's
+    # lock: the founder's emulator stopped two commits short with the terminal
+    # saying "Could not fast forward". All four are generated; nothing in the
+    # archive is edited by hand.
+    ARCHIVE_DIR="archive/salapify-2-flutter"
     GENERATED="$APP_DIR/pubspec.lock $APP_DIR/analysis_options.yaml"
+    GENERATED="$GENERATED $ARCHIVE_DIR/pubspec.lock"
+    GENERATED="$GENERATED $ARCHIVE_DIR/analysis_options.yaml"
     if ! git diff --quiet -- $GENERATED; then
       OTHER="$( { git diff --name-only; git diff --cached --name-only; } |
         grep -v -e "^$APP_DIR/pubspec.lock$" \
-          -e "^$APP_DIR/analysis_options.yaml$" | head -1 )"
+          -e "^$APP_DIR/analysis_options.yaml$" \
+          -e "^$ARCHIVE_DIR/pubspec.lock$" \
+          -e "^$ARCHIVE_DIR/analysis_options.yaml$" | head -1 )"
       if [ -z "$OTHER" ]; then
-        echo "  Your Flutter rewrote pubspec.lock / analysis_options.yaml."
-        echo "  Both are generated, so putting them back to let the pull through."
+        echo "  Your Flutter rewrote pubspec.lock / analysis_options.yaml files."
+        echo "  They are generated, so putting them back to let the pull through."
         git checkout -- $GENERATED 2>/dev/null
       else
         echo "  Generated files are dirty, but so is $OTHER, so nothing is"

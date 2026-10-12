@@ -1,0 +1,1171 @@
+import '../../features/shared/pan_empty_card.dart';
+import '../../design/pan_art.dart';
+import '../../core/money/money.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/money/accounts.dart';
+import '../../core/money/currencies.dart';
+import '../../core/money/format.dart';
+import '../../design/institution_brand.dart';
+import '../../design/institution_mark.dart';
+import '../../design/settle_figure.dart';
+import '../../design/tokens.dart';
+import '../../design/type.dart';
+import '../../features/accounts/account_sheet.dart';
+import '../../features/info/info_dot.dart';
+import '../../features/info/info_sheet.dart';
+import '../../models/models.dart';
+import '../../state/financial_state.dart';
+import 'bank_card.dart';
+
+/// Accounts, the prototype's fifth tab, from archive/prototype-google-ai-studio/src/components/AccountsScreen.tsx.
+///
+/// Every figure comes out of core/money/accounts.dart, which is tested against
+/// the same accounts Reports reads, so the net worth here and the net worth on
+/// Reports cannot drift apart. This file decides what the screen looks like
+/// and nothing about what it says.
+///
+/// SCOPE, named rather than implied. The prototype's fourth filter,
+/// Investments, opens a whole holdings tracker (InvestmentsView.tsx, 1,114
+/// lines: units, cost basis, valuations, market data adapters). That is its
+/// own batch. The filter still works here and shows the investment ACCOUNTS,
+/// which is real content rather than a dead pill, and says in one line what
+/// the tracker will add.
+class AccountsScreen extends StatefulWidget {
+  const AccountsScreen({super.key, required this.state, this.onOpenDebt});
+
+  final FinancialState state;
+  final VoidCallback? onOpenDebt;
+
+  @override
+  State<AccountsScreen> createState() => _AccountsScreenState();
+}
+
+class _AccountsScreenState extends State<AccountsScreen> {
+  AccountView _view = AccountView.all;
+
+  /// Which groups are open. Everything starts open, the prototype's own
+  /// default: a first-time visitor should see their money, not eight closed
+  /// drawers they have to discover are drawers.
+  final Set<String> _collapsed = <String>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = Palette.of(widget.state.theme);
+    final ProfileEntity? profile = widget.state.activeProfile;
+
+    final List<Account> scoped = filterAccounts(
+      widget.state.accounts,
+      profile: profile,
+    );
+    final AccountsSummary summary = summarize(scoped);
+    final List<Account> shown = filterAccounts(
+      widget.state.accounts,
+      profile: profile,
+      view: _view == AccountView.investments ? AccountView.all : _view,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _Header(palette: p, onAdd: () => _openSheet(context, p, null)),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.sm,
+              Spacing.lg,
+              Spacing.xl,
+            ),
+            children: <Widget>[
+              // NO ACCOUNTS AT ALL, in the whole book, gets Pan with a coin
+              // in place of the net worth card (D30). A net worth of zero
+              // built from nothing tells nobody anything; the way in does.
+              if (widget.state.accounts.isEmpty)
+                PanEmptyCard(
+                  palette: p,
+                  mood: PanMood.coin,
+                  title: 'No accounts yet',
+                  body:
+                      'Add where your money actually sits and this screen '
+                      'leads with your net worth.',
+                  actionLabel: 'Add your first account',
+                  onAction: () => _openSheet(context, p, null),
+                )
+              else
+                _NetWorthCard(palette: p, summary: summary, profile: profile),
+              const SizedBox(height: Spacing.md),
+              // ASKED ONCE, EVER, and never on a brand new phone. The rule
+              // for when it appears lives in the store, as
+              // `shouldOfferSetAsideReview`, because it reads the ledger and
+              // a screen should not be the thing that decides.
+              if (widget.state.shouldOfferSetAsideReview) ...<Widget>[
+                _SetAsideReviewCard(
+                  palette: p,
+                  state: widget.state,
+                  onDone: () => setState(() {}),
+                ),
+                const SizedBox(height: Spacing.md),
+              ],
+              // With NO accounts the Pan card above already says so, and the
+              // picker plus two section notes beneath it said it three more
+              // times. The debt register below stays: it reads debts, which
+              // can exist with no account at all.
+              if (widget.state.accounts.isEmpty)
+                const SizedBox.shrink()
+              else ...<Widget>[
+                _ViewPicker(
+                  palette: p,
+                  current: _view,
+                  allCount: scoped.length,
+                  assetCount: summary.assetCount,
+                  liabilityCount: summary.liabilityCount,
+                  onSelect: (AccountView v) => setState(() => _view = v),
+                ),
+                const SizedBox(height: Spacing.lg),
+                if (_view == AccountView.investments)
+                  _InvestmentsView(palette: p, accounts: shown)
+                else ...<Widget>[
+                  if (_view != AccountView.liabilities)
+                    _GroupedSection(
+                      palette: p,
+                      heading: 'Assets',
+                      tint: p.positive,
+                      groups: groupAssets(shown),
+                      emptyNote: 'No asset accounts under this entity.',
+                      collapsed: _collapsed,
+                      onToggle: _toggle,
+                      onEdit: (Account a) => _openSheet(context, p, a),
+                    ),
+                  if (_view == AccountView.all)
+                    const SizedBox(height: Spacing.lg),
+                  if (_view != AccountView.assets)
+                    _GroupedSection(
+                      palette: p,
+                      heading: 'Liabilities and obligations',
+                      tint: p.negative,
+                      groups: groupLiabilities(shown),
+                      emptyNote: 'No liability accounts recorded.',
+                      collapsed: _collapsed,
+                      onToggle: _toggle,
+                      onEdit: (Account a) => _openSheet(context, p, a),
+                    ),
+                ],
+              ],
+              const SizedBox(height: Spacing.lg),
+              _DebtRegisterCard(
+                palette: p,
+                state: widget.state,
+                onOpen: widget.onOpenDebt,
+              ),
+              const SizedBox(height: Spacing.lg),
+              // Not decoration, and not behind the info dot either. Using a
+              // bank's own mark to label an account is fair use; letting a
+              // reader infer a relationship that does not exist is not, and
+              // silence here would mislead. The prototype carries the same
+              // sentence at the foot of its own Accounts screen.
+              Text(brandDisclaimer, style: AppType.caption(p)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _toggle(String id) => setState(() {
+    if (!_collapsed.remove(id)) _collapsed.add(id);
+  });
+
+  Future<void> _openSheet(
+    BuildContext context,
+    Palette palette,
+    Account? existing,
+  ) async {
+    await AccountSheet.show(
+      context,
+      palette: palette,
+      state: widget.state,
+      existing: existing,
+    );
+    if (mounted) setState(() {});
+  }
+}
+
+/// The one-time card that asks which accounts hold money set aside.
+///
+/// This exists because the fix it belongs to is SILENT. `Account.purpose`
+/// defaults to spendable and the app never infers it, which is the right call
+/// (see the note on that field), but the consequence is that an existing
+/// ledger goes on counting somebody's ipon as this fortnight's pocket money
+/// until they say otherwise, and nobody goes hunting for a setting whose
+/// absence they cannot see.
+///
+/// Three things it deliberately is NOT:
+///
+///   - It does not pre-tick anything. Every account starts off exactly as it
+///     is today, and the person ticks what they want. A card that arrives
+///     with guesses already applied is the silent reclassification this whole
+///     design refused.
+///   - It does not block. There is no modal, no overlay, and both buttons
+///     leave. It sits in the list and can be ignored forever.
+///   - It does not come back. "Not now" and "none of them" are the same
+///     instruction, and the flag that records it is stored in the backup, not
+///     held in memory, so reinstalling from a backup does not re-ask.
+class _SetAsideReviewCard extends StatefulWidget {
+  const _SetAsideReviewCard({
+    required this.palette,
+    required this.state,
+    required this.onDone,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final VoidCallback onDone;
+
+  @override
+  State<_SetAsideReviewCard> createState() => _SetAsideReviewCardState();
+}
+
+class _SetAsideReviewCardState extends State<_SetAsideReviewCard> {
+  /// Ticked here, written on Save. Nothing moves while the person is still
+  /// deciding, so backing out really does change nothing.
+  final Set<String> _picked = <String>{};
+
+  void _save() {
+    for (final String id in _picked) {
+      widget.state.setAccountPurpose(id, AccountPurpose.protected);
+    }
+    widget.state.markSetAsideReviewed();
+    widget.onDone();
+  }
+
+  void _notNow() {
+    widget.state.markSetAsideReviewed();
+    widget.onDone();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Palette p = widget.palette;
+    final List<Account> liquid = widget.state.accounts
+        .where((Account a) => a.isLiquid)
+        .toList();
+
+    return Container(
+      key: const Key('set-aside-review'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.lg),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: p.accent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Any of these money set aside?',
+                  style: AppType.section(p),
+                ),
+              ),
+              InfoDot(
+                color: p.textMuted,
+                semanticLabel: 'What money set aside means',
+                onTap: () => InfoSheet.show(context, p, InfoTopic.accounts),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          Text(
+            'Salapify counts all of these as money you can spend. Tick '
+            'anything that is really an emergency fund or ipon, and it will '
+            'stop counting toward Safe to Spend. It stays in your net worth '
+            'and you can still pay from it.',
+            style: AppType.caption(p),
+          ),
+          const SizedBox(height: Spacing.md),
+          // EACH TILE IN ITS OWN TRANSPARENT MATERIAL. A ListTile paints its
+          // background and ink splash on the nearest Material ancestor, and
+          // this card is a DecoratedBox with a colour, so without this the
+          // taps have no visible ripple and Flutter asserts about it in
+          // debug. Found by the journey test rather than by eye.
+          ...liquid.map(
+            (Account a) => Material(
+              type: MaterialType.transparency,
+              child: CheckboxListTile(
+                key: Key('set-aside-${a.id}'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                dense: true,
+                value: _picked.contains(a.id),
+                onChanged: (bool? on) => setState(() {
+                  if (on ?? false) {
+                    _picked.add(a.id);
+                  } else {
+                    _picked.remove(a.id);
+                  }
+                }),
+                title: Text(a.name, style: AppType.body(p)),
+                subtitle: Text(
+                  formatPeso(a.balanceInPhp.pesos),
+                  style: AppType.caption(p),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Row(
+            children: <Widget>[
+              TextButton(
+                key: const Key('set-aside-not-now'),
+                onPressed: _notNow,
+                child: Text(
+                  'Not now',
+                  style: AppType.button(p, color: p.textMuted),
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                key: const Key('set-aside-save'),
+                onPressed: _save,
+                child: Text(
+                  // Says what it will do, not "OK". The person is about to
+                  // change a figure on another tab and should know it.
+                  _picked.isEmpty ? 'None of these' : 'Set aside',
+                  style: AppType.button(p, color: p.accent),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.palette, required this.onAdd});
+
+  final Palette palette;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.sm, 0),
+      child: Row(
+        children: <Widget>[
+          Text('Accounts', style: AppType.screenTitle(palette)),
+          InfoDot(
+            color: palette.textMuted,
+            semanticLabel: 'What counts as an account',
+            onTap: () => InfoSheet.show(context, palette, InfoTopic.accounts),
+          ),
+          const Spacer(),
+          Semantics(
+            button: true,
+            label: 'Add an account',
+            child: InkWell(
+              onTap: onAdd,
+              borderRadius: BorderRadius.circular(Radii.pill),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(Icons.add, size: 16, color: palette.accent),
+                    const SizedBox(width: Spacing.xs),
+                    Text(
+                      'Add',
+                      style: AppType.button(palette, color: palette.accent),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The hero. Net worth from ACCOUNTS, with the two halves that make it up.
+class _NetWorthCard extends StatelessWidget {
+  const _NetWorthCard({
+    required this.palette,
+    required this.summary,
+    required this.profile,
+  });
+
+  final Palette palette;
+  final AccountsSummary summary;
+  final ProfileEntity? profile;
+
+  static String _entityLabel(ProfileEntity? e) => switch (e) {
+    null => 'Consolidated',
+    ProfileEntity.personal => 'Personal',
+    ProfileEntity.household => 'Household',
+    ProfileEntity.business => 'Business',
+    ProfileEntity.sideHustle => 'Side hustle',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final double net = summary.netWorth;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Spacing.xl),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'NET WORTH, ${_entityLabel(profile).toUpperCase()}',
+            style: AppType.kicker(palette),
+          ),
+          const SizedBox(height: Spacing.xs),
+          // ONE LINE, always, shrinking rather than wrapping.
+          //
+          // Found by eye in the 1.5x render on 2026-09-22, and by eye is the
+          // only way it could have been: no measurement in the suite calls
+          // this a defect, because the text wraps rather than truncating and
+          // wrapping is usually the correct answer. Here it is not.
+          //
+          // At 1.5x "-P217,229.50" broke after the minus sign, so the card
+          // read as a lone dash on one line, then "P217,229.5", then a "0" on
+          // a third. A minus sign separated from its figure is not a cosmetic
+          // problem in an app about money: the comment below explains that
+          // the sign is drawn rather than implied by colour precisely so a
+          // debt cannot be mistaken for savings, and a line break undoes that
+          // on the one screen where the figure is largest.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            // Settles after a log or a payment changes it. See
+            // design/settle_figure.dart.
+            child: SettleFigure(
+              // The sign is drawn, never left to colour. formatPeso returns
+              // the absolute value on purpose, so a debt of 217,229.50 would
+              // otherwise render character for character like savings of the
+              // same amount.
+              net < 0 ? '-${formatPeso(net)}' : formatPeso(net),
+              maxLines: 1,
+              style: AppType.hero(palette),
+            ),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Wrap(
+            spacing: Spacing.md,
+            runSpacing: Spacing.xs,
+            children: <Widget>[
+              _Half(
+                palette: palette,
+                label: 'You own',
+                amount: summary.totalAssets,
+                color: palette.positive,
+              ),
+              _Half(
+                palette: palette,
+                label: 'You owe',
+                amount: summary.totalLiabilities,
+                color: palette.negative,
+              ),
+            ],
+          ),
+          if (net < 0) ...<Widget>[
+            const SizedBox(height: Spacing.sm),
+            // Stays on the screen rather than behind the dot. Somebody seeing
+            // a large negative number for the first time needs the reassurance
+            // at the moment of alarm, not one tap away.
+            Text(
+              'A housing loan alone can do this.',
+              style: AppType.caption(palette),
+            ),
+          ],
+          const SizedBox(height: Spacing.sm),
+          Text(
+            'Debts you have logged are counted separately, below.',
+            style: AppType.caption(palette),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Half extends StatelessWidget {
+  const _Half({
+    required this.palette,
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
+
+  final Palette palette;
+  final String label;
+  final double amount;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    // Text.rich, NOT RichText. RichText takes the style it is given and
+    // nothing else, so a style with no fontFamily falls back to the platform
+    // default instead of Plus Jakarta Sans; in the render harness, which has
+    // only the app's own fonts loaded, that came out as a row of empty boxes.
+    // Text.rich resolves against DefaultTextStyle first, like every other
+    // Text on the screen. Caught by looking at the picture, and by nothing
+    // else: fifteen assertions about this screen were green at the time.
+    return Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(text: '$label '),
+          TextSpan(
+            text: formatPeso(amount),
+            style: TextStyle(fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
+      style: AppType.caption(palette),
+    );
+  }
+}
+
+/// All, Assets, Liabilities, Investments.
+class _ViewPicker extends StatelessWidget {
+  const _ViewPicker({
+    required this.palette,
+    required this.current,
+    required this.allCount,
+    required this.assetCount,
+    required this.liabilityCount,
+    required this.onSelect,
+  });
+
+  final Palette palette;
+  final AccountView current;
+  final int allCount;
+  final int assetCount;
+  final int liabilityCount;
+  final ValueChanged<AccountView> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final Map<AccountView, String> labels = <AccountView, String>{
+      AccountView.all: 'All $allCount',
+      AccountView.assets: 'Own $assetCount',
+      AccountView.liabilities: 'Owe $liabilityCount',
+      AccountView.investments: 'Invested',
+    };
+
+    // Wrap, not Row. Four pills with counts in them do not fit one line at
+    // 320dp with large text, and a Row would simply clip the last one off the
+    // edge of the phone.
+    return Wrap(
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
+      children: <Widget>[
+        for (final MapEntry<AccountView, String> e in labels.entries)
+          _Pill(
+            palette: palette,
+            label: e.value,
+            selected: current == e.key,
+            onTap: () => onSelect(e.key),
+          ),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.palette,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.pill),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? palette.accent : palette.surface,
+            borderRadius: BorderRadius.circular(Radii.pill),
+            border: Border.all(
+              color: selected ? palette.accent : palette.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: selected ? palette.onAccent : palette.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One half of the list: the heading with its total, then the groups.
+class _GroupedSection extends StatelessWidget {
+  const _GroupedSection({
+    required this.palette,
+    required this.heading,
+    required this.tint,
+    required this.groups,
+    required this.emptyNote,
+    required this.collapsed,
+    required this.onToggle,
+    required this.onEdit,
+  });
+
+  final Palette palette;
+  final String heading;
+  final Color tint;
+  final List<AccountGroup> groups;
+  final String emptyNote;
+  final Set<String> collapsed;
+  final ValueChanged<String> onToggle;
+  final ValueChanged<Account> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final double total = groups.fold<double>(
+      0,
+      (double s, AccountGroup g) => s + g.totalPhp,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                heading.toUpperCase(),
+                style: AppType.kicker(palette).copyWith(color: tint),
+              ),
+            ),
+            Text(
+              formatPeso(total),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: tint,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.sm),
+        if (groups.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Spacing.lg),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: palette.border),
+            ),
+            child: Text(
+              emptyNote,
+              textAlign: TextAlign.center,
+              style: AppType.caption(palette),
+            ),
+          )
+        else
+          for (final AccountGroup g in groups) ...<Widget>[
+            _Group(
+              palette: palette,
+              group: g,
+              open: !collapsed.contains(g.id),
+              onToggle: () => onToggle(g.id),
+              onEdit: onEdit,
+            ),
+            const SizedBox(height: Spacing.sm),
+          ],
+      ],
+    );
+  }
+}
+
+class _Group extends StatelessWidget {
+  const _Group({
+    required this.palette,
+    required this.group,
+    required this.open,
+    required this.onToggle,
+    required this.onEdit,
+  });
+
+  final Palette palette;
+  final AccountGroup group;
+  final bool open;
+  final VoidCallback onToggle;
+  final ValueChanged<Account> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        children: <Widget>[
+          Semantics(
+            button: true,
+            expanded: open,
+            label: '${group.title}, ${group.accounts.length} accounts',
+            child: InkWell(
+              onTap: onToggle,
+              borderRadius: BorderRadius.circular(Radii.card),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg,
+                  vertical: Spacing.md,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        '${group.title} (${group.accounts.length})',
+                        style: AppType.section(palette),
+                      ),
+                    ),
+                    Text(
+                      formatPeso(group.totalPhp),
+                      style: AppType.rowMeta(palette),
+                    ),
+                    const SizedBox(width: Spacing.sm),
+                    Icon(
+                      open ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: palette.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (open)
+            for (final Account a in group.accounts)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.md,
+                  0,
+                  Spacing.md,
+                  Spacing.md,
+                ),
+                child:
+                    a.kind == AccountKind.debit || a.kind == AccountKind.credit
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          BankCard(
+                            account: a,
+                            palette: palette,
+                            onTap: () => onEdit(a),
+                          ),
+                          // A card has no meta line to carry the marking, so
+                          // two sample accounts were the only unmarked ones on
+                          // the screen, and they are the two that look MOST
+                          // real. It sits under the plastic rather than on it,
+                          // the same place the utilisation bar goes, because a
+                          // real card does not have one printed on it.
+                          if (a.isSample)
+                            Padding(
+                              padding: const EdgeInsets.only(top: Spacing.xs),
+                              child: Text(
+                                'Sample card, not yours',
+                                style: AppType.caption(palette),
+                              ),
+                            ),
+                        ],
+                      )
+                    : _AccountRow(
+                        palette: palette,
+                        account: a,
+                        onTap: () => onEdit(a),
+                      ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Everything that is not plastic: cash, e-wallets, savings, investments,
+/// receivables, loans and mortgages.
+class _AccountRow extends StatelessWidget {
+  const _AccountRow({
+    required this.palette,
+    required this.account,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final Account account;
+  final VoidCallback onTap;
+
+  static String _kindLabel(AccountKind k) => switch (k) {
+    AccountKind.cash => 'Cash',
+    AccountKind.bank => 'Bank',
+    AccountKind.gcash => 'GCash',
+    AccountKind.maya => 'Maya',
+    AccountKind.debit => 'Debit',
+    AccountKind.credit => 'Credit card',
+    AccountKind.loan => 'Loan',
+    AccountKind.mortgage => 'Mortgage',
+    AccountKind.investment => 'Investment',
+    AccountKind.receivable => 'Receivable',
+    // "Own it", not "Property", which in English reads as real estate only
+    // and would not fit a car. This label has to cover a house, a lot and a
+    // vehicle without implying any one of them.
+    AccountKind.property => 'Own it',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final bool owed = liabilitiesOf(<Account>[account]).isNotEmpty;
+
+    // A CARD CAN NOW GO INTO CREDIT, since Move Money started accepting
+    // liabilities on 2026-10-05, and overpaying one is an ordinary mistake:
+    // somebody pays the statement total after already paying part of it.
+    //
+    // `formatPeso` returns the ABSOLUTE value by design, so a card at minus
+    // 500 drew as "₱500.00" in the alarm colour, which reads as five hundred
+    // owed when the bank is actually holding five hundred FOR you. The figure
+    // and the colour were both wrong, in the same direction, and the row gave
+    // no hint of it.
+    final bool inCredit = owed && account.balance.centavos < 0;
+    final Color amountColor = inCredit
+        ? palette.positive
+        : (owed ? palette.negative : palette.positive);
+
+    final List<String> meta = <String>[
+      // FIRST, before anything else on the line. A banner is read once and
+      // scrolled past; this is present at the moment somebody reads the
+      // balance, which is where the three week trap actually springs.
+      if (account.isSample) 'Sample',
+      // Right after Sample and before the kind, because this is the fact
+      // that explains why the Safe to Spend figure does not match what the
+      // person can see sitting in their accounts. Without it, the only place
+      // the setting is visible is inside the edit sheet, and somebody
+      // comparing two numbers does not think to go looking there.
+      if (account.purpose == AccountPurpose.protected) 'Set aside',
+      _kindLabel(account.kind),
+      account.institution,
+      if (account.interestRate != null) '${account.interestRate}% a year',
+      if (account.dueDate != null) 'Due ${account.dueDate}',
+    ];
+
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.all(Spacing.md),
+          child: Row(
+            children: <Widget>[
+              // The institution's own mark where Salapify ships one, and the
+              // account's monogram where it does not. Both are drawn from the
+              // device: see design/institution_brand.dart for why this is not
+              // the prototype's remote favicon lookup.
+              InstitutionMark(
+                institution: account.institution,
+                monogram: account.monogram,
+                palette: palette,
+                size: 38,
+              ),
+              const SizedBox(width: Spacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      account.name,
+                      maxLines: 2,
+                      style: AppType.rowTitle(palette),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      meta.join(' · '),
+                      // Three, raised from two on 2026-09-22. This line is
+                      // built by joining up to five facts, and the first of
+                      // them is the word "Sample", which exists to stop
+                      // somebody mistaking demonstration data for their own
+                      // money. At 1.5x "Sample · Loan · BPI · Due Sep 25"
+                      // lost its tail, and a warning that only fits at the
+                      // default font size is not a warning.
+                      maxLines: 3,
+                      style: AppType.rowMeta(palette),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Text(
+                    account.isForeign
+                        ? formatCurrency(
+                            account.balance.pesos,
+                            account.currency,
+                          )
+                        : formatPeso(account.balance.pesos),
+                    style: AppType.amountSmall(
+                      palette,
+                    ).copyWith(color: amountColor),
+                  ),
+                  // THE ONE CASE THE FIGURE ALONE CANNOT SAY, so it is said in
+                  // words. Every other row on this screen means "owed" by
+                  // being on a liability account, and this row means the
+                  // opposite while looking identical.
+                  if (inCredit)
+                    Text(
+                      'You are ${formatPeso(account.balance.pesos)} ahead',
+                      style: AppType.rowMeta(
+                        palette,
+                      ).copyWith(color: palette.positive),
+                    ),
+                  // WHOSE FIGURE IT IS, AND HOW OLD, beside the figure rather
+                  // than behind the dot. Every other number on this screen
+                  // came from a bank or from something the person logged;
+                  // this one they asserted, and nothing will ever move it
+                  // again, because property is excluded from every flow that
+                  // writes a transaction. Silence here would let an estimate
+                  // from three years ago sit among live balances looking
+                  // exactly as authoritative as the rest.
+                  //
+                  // AGE, NEVER THE RAW DATE. `screen_readability_test` fails
+                  // on a stored date reaching a screen, and "about 3 years
+                  // ago" is the thing somebody can act on anyway: a date asks
+                  // them to do the subtraction themselves.
+                  if (account.kind == AccountKind.property)
+                    Text(
+                      account.valuedOn == null
+                          ? 'Your own estimate'
+                          : 'Your estimate, ${formatAge(account.valuedOn!)}',
+                      style: AppType.rowMeta(palette),
+                    ),
+                  if (account.isForeign)
+                    Text(
+                      // "About", because the rate is fixed and offline. A
+                      // converted figure is an estimate and the screen has to
+                      // say so wherever it shows one.
+                      'about ${formatPeso(account.balanceInPhp.pesos)}',
+                      style: AppType.caption(palette),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The Investments filter. Shows the investment ACCOUNTS, which the app really
+/// has, and says in one line what the holdings tracker will add on top.
+class _InvestmentsView extends StatelessWidget {
+  const _InvestmentsView({required this.palette, required this.accounts});
+
+  final Palette palette;
+  final List<Account> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Account> invested = accounts
+        .where((Account a) => a.kind == AccountKind.investment)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _GroupedSection(
+          palette: palette,
+          heading: 'What you have invested',
+          tint: palette.positive,
+          groups: <AccountGroup>[
+            if (invested.isNotEmpty)
+              AccountGroup(
+                id: 'investment',
+                title: 'Investments',
+                accounts: invested,
+              ),
+          ],
+          emptyNote:
+              'No investment accounts yet. Add one to track MP2, WISP, '
+              'a UITF or stocks alongside everything else.',
+          collapsed: const <String>{},
+          onToggle: (_) {},
+          onEdit: (_) {},
+        ),
+        const SizedBox(height: Spacing.md),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(Spacing.lg),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: Border.all(color: palette.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Holdings come next', style: AppType.section(palette)),
+              const SizedBox(height: Spacing.xs),
+              Text(
+                'Right now an investment is one balance you keep up to date '
+                'yourself. Units, what you paid, and what it is worth today '
+                'are the next step.',
+                style: AppType.body(palette),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The both-ways debt register, which is a link rather than a list: debts are
+/// their own screen, and this card exists so the two figures are visible from
+/// the place people come to count what they have.
+class _DebtRegisterCard extends StatelessWidget {
+  const _DebtRegisterCard({
+    required this.palette,
+    required this.state,
+    required this.onOpen,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    double outstanding(DebtDirection d) => sumMoney(
+      state.debts
+          .where((Debt x) => !x.isSettled && x.direction == d)
+          .map((Debt x) => maxMoney(Money.zero, x.totalAmount - x.paidAmount)),
+    ).pesos;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'DEBT REGISTER, BOTH WAYS',
+                style: AppType.kicker(palette),
+              ),
+            ),
+            InfoDot(
+              color: palette.textMuted,
+              semanticLabel: 'Why debts are counted separately',
+              onTap: () =>
+                  InfoSheet.show(context, palette, InfoTopic.debtBothWays),
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.sm),
+        Semantics(
+          button: onOpen != null,
+          child: InkWell(
+            onTap: onOpen,
+            borderRadius: BorderRadius.circular(Radii.card),
+            child: Container(
+              padding: const EdgeInsets.all(Spacing.lg),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(Radii.card),
+                border: Border.all(color: palette.border),
+              ),
+              child: Column(
+                children: <Widget>[
+                  _DebtRow(
+                    palette: palette,
+                    label: 'You owe people and lenders',
+                    amount: outstanding(DebtDirection.iOwe),
+                    color: palette.negative,
+                  ),
+                  Divider(color: palette.border, height: Spacing.xl),
+                  _DebtRow(
+                    palette: palette,
+                    label: 'People owe you',
+                    amount: outstanding(DebtDirection.owedToMe),
+                    color: palette.positive,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DebtRow extends StatelessWidget {
+  const _DebtRow({
+    required this.palette,
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
+
+  final Palette palette;
+  final String label;
+  final double amount;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(child: Text(label, style: AppType.rowTitle(palette))),
+        const SizedBox(width: Spacing.sm),
+        Text(
+          formatPeso(amount),
+          style: AppType.amountSmall(palette).copyWith(color: color),
+        ),
+      ],
+    );
+  }
+}
