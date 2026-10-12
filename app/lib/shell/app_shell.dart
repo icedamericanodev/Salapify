@@ -126,6 +126,8 @@ class _AppShellState extends State<AppShell> {
         return HomeScreen(
           state: widget.state,
           onOpenLog: () => _openLog(context, palette),
+          onBoughtParked: (ParkedItem p) =>
+              _openLog(context, palette, parked: p),
           onOpenDebt: () => _openDebt(context, palette),
           onOpenTab: (int index) =>
               setState(() => _current = SalapifyTab.values[index]),
@@ -213,12 +215,23 @@ class _AppShellState extends State<AppShell> {
   /// The messenger is captured BEFORE the await: the sheet can be dismissed
   /// long after this context is gone, and reaching for ScaffoldMessenger.of on
   /// the far side of an await is the usual way that becomes a crash.
-  Future<void> _openLog(BuildContext context, Palette palette) async {
+  Future<void> _openLog(
+    BuildContext context,
+    Palette palette, {
+    ParkedItem? parked,
+  }) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    final Transaction? logged = await LogSheet.show(context, widget.state);
+    final Transaction? logged = await LogSheet.show(
+      context,
+      widget.state,
+      fromParked: parked,
+    );
     if (logged == null) return;
 
     widget.state.logTransaction(logged);
+    // "I bought it" (D38.2): off the parked list only now, once the entry
+    // is actually saved. Cancel kept it parked; Undo below puts it back.
+    if (parked != null) widget.state.unpark(parked.id);
     // A light tap you can feel: the entry landed. Day to day actions get a
     // light haptic; milestones (a debt settled) get a stronger one.
     saveHaptic();
@@ -293,6 +306,7 @@ class _AppShellState extends State<AppShell> {
             textColor: palette.onAccent,
             onPressed: () {
               widget.state.undoLoggedTransaction(logged);
+              if (parked != null) widget.state.restoreParked(parked);
               messenger
                 ..hideCurrentSnackBar()
                 ..showSnackBar(

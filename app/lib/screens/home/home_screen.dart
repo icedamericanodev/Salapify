@@ -36,6 +36,7 @@ import 'home_header.dart';
 import 'latest_transactions.dart';
 import 'quick_actions.dart';
 import 'backup_card.dart';
+import 'parked_card.dart';
 import 'reminders_banner.dart';
 import 'runway_row.dart';
 
@@ -63,7 +64,12 @@ class HomeScreen extends StatelessWidget {
     required this.onOpenLog,
     required this.onOpenDebt,
     required this.onOpenTab,
+    this.onBoughtParked,
   });
+
+  /// "I bought it" on a parked wish (D38.2). The shell's, for the same
+  /// reason as [onOpenLog]: it owns the store write and the landing.
+  final ValueChanged<ParkedItem>? onBoughtParked;
 
   final FinancialState state;
 
@@ -227,6 +233,18 @@ class HomeScreen extends StatelessWidget {
               onMove: () => _moveMoney(context, palette),
               onSplit: () => _splitBill(context, palette),
             ),
+
+            // A PARKED WISH WHOSE 48 HOURS ARE UP (D38.2). Up here, under the
+            // shortcuts rather than among the housekeeping below, because it
+            // is a question about money the person was about to spend.
+            if (state.parkedReady case final ParkedItem ready) ...<Widget>[
+              const SizedBox(height: Spacing.md),
+              ParkedCard(
+                state: state,
+                item: ready,
+                onBought: () => onBoughtParked?.call(ready),
+              ),
+            ],
 
             // THE RUNWAY, and it sits HERE for a reason. The reading order
             // becomes hero (how much), Today (what has gone today), Runway

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/money/edit_accounts.dart';
 import '../../core/money/fast_log.dart';
@@ -29,7 +30,12 @@ import 'package:salapify/core/money/money.dart';
 /// date, and for a transfer a destination. Everything the ledger needs to be
 /// correct.
 class LogSheet extends StatefulWidget {
-  const LogSheet({super.key, required this.state, this.editing});
+  const LogSheet({
+    super.key,
+    required this.state,
+    this.editing,
+    this.fromParked,
+  });
 
   final FinancialState state;
 
@@ -46,16 +52,22 @@ class LogSheet extends StatefulWidget {
   /// ([FinancialState.editTransaction]).
   final Transaction? editing;
 
+  /// A parked wish the person has now bought (D38.2): a NEW entry, filled
+  /// in from it. The caller takes it off the parked list only when Save
+  /// returns an entry, so Cancel leaves it parked.
+  final ParkedItem? fromParked;
+
   static Future<Transaction?> show(
     BuildContext context,
     FinancialState state, {
     Transaction? editing,
+    ParkedItem? fromParked,
   }) {
     return SheetScaffold.show<Transaction>(
       context: context,
       palette: Palette.of(state.theme),
       builder: (BuildContext context) =>
-          LogSheet(state: state, editing: editing),
+          LogSheet(state: state, editing: editing, fromParked: fromParked),
     );
   }
 
@@ -142,6 +154,56 @@ class _LogSheetState extends State<LogSheet> {
 
     final Transaction? e = widget.editing;
     if (e != null) _prefill(e);
+
+    final ParkedItem? parked = widget.fromParked;
+    if (parked != null) {
+      _type = TransactionType.expense;
+      final double a = parked.amount.pesos;
+      _amount.text = a == a.roundToDouble()
+          ? a.toStringAsFixed(0)
+          : a.toStringAsFixed(2);
+      _merchant.text = parked.name;
+      final String? c = parked.category;
+      if (c != null &&
+          _categoriesFor(
+            TransactionType.expense,
+          ).any((CategoryInfo x) => x.name == c)) {
+        _category = c;
+      }
+    }
+  }
+
+  /// "Park it for 48 hours" (D38.2): keep the wish, spend nothing.
+  ///
+  /// Offered only on a NEW expense, because only spending can be parked, and
+  /// uses what is already typed so parking costs no extra work. The name is
+  /// the title they gave, else the note, else the category.
+  void _park() {
+    final double? amount = _amountValue;
+    if (amount == null || amount <= 0) return;
+    final String title = _merchant.text.trim();
+    final String note = _note.text.trim();
+    final ParkedItem p = widget.state.parkItem(
+      name: title.isNotEmpty
+          ? title
+          : note.isNotEmpty
+          ? note
+          : _category,
+      amount: Money.fromDouble(amount),
+      category: _category,
+    );
+    final DateTime until = widget.state.parkedUntil(p);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Parked until ${DateFormat('EEE h:mm a').format(until)}. '
+            'Salapify will ask you then.',
+          ),
+        ),
+      );
+    Navigator.of(context).pop();
   }
 
   /// Fills the form from the entry being corrected, so the person changes
@@ -514,11 +576,35 @@ class _LogSheetState extends State<LogSheet> {
       subtitle: editing
           ? 'Change what is wrong, the balance follows'
           : 'What moved, out of which account',
-      footer: PrimaryButton(
-        palette: p,
-        label: editing ? 'Save changes' : 'Save entry',
-        icon: Icons.check,
-        onTap: _canSave ? _save : null,
+      footer: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          PrimaryButton(
+            palette: p,
+            label: editing ? 'Save changes' : 'Save entry',
+            icon: Icons.check,
+            onTap: _canSave ? _save : null,
+          ),
+          // Under Save, quieter, and only where it means something: a new
+          // expense with an amount. A wish already being bought from the
+          // parked list is past this question.
+          if (!editing &&
+              widget.fromParked == null &&
+              _type == TransactionType.expense &&
+              _canSave)
+            TextButton(
+              key: const Key('log-park'),
+              onPressed: _park,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                alignment: Alignment.center,
+                child: Text(
+                  'Park it for 48 hours',
+                  style: AppType.button(p, color: p.textSecondary),
+                ),
+              ),
+            ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

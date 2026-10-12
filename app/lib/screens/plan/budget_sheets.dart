@@ -444,7 +444,13 @@ class _CategoryChip extends StatelessWidget {
 // ---------------------------------------------------------------- add a goal
 
 class AddGoalSheet extends StatefulWidget {
-  const AddGoalSheet({super.key, required this.state, this.existing});
+  const AddGoalSheet({
+    super.key,
+    required this.state,
+    this.existing,
+    this.startName,
+    this.startTarget,
+  });
 
   final FinancialState state;
 
@@ -452,16 +458,29 @@ class AddGoalSheet extends StatefulWidget {
   /// same goal, and offers a way to remove it. Null when adding.
   final Goal? existing;
 
-  static Future<void> show(
+  /// A NEW goal's name and target, filled in for "Save up for it" on a
+  /// parked wish (D38.2). Ignored when [existing] is set.
+  final String? startName;
+  final Money? startTarget;
+
+  /// Resolves true when a goal was saved, so a caller can tell Save from a
+  /// sheet swiped away.
+  static Future<bool?> show(
     BuildContext context,
     FinancialState state, {
     Goal? existing,
+    String? startName,
+    Money? startTarget,
   }) {
-    return SheetScaffold.show<void>(
+    return SheetScaffold.show<bool>(
       context: context,
       palette: Palette.of(state.theme),
-      builder: (BuildContext context) =>
-          AddGoalSheet(state: state, existing: existing),
+      builder: (BuildContext context) => AddGoalSheet(
+        state: state,
+        existing: existing,
+        startName: startName,
+        startTarget: startTarget,
+      ),
     );
   }
 
@@ -471,12 +490,13 @@ class AddGoalSheet extends StatefulWidget {
 
 class _AddGoalSheetState extends State<AddGoalSheet> {
   late final TextEditingController _name = TextEditingController(
-    text: widget.existing?.name ?? '',
+    text: widget.existing?.name ?? widget.startName ?? '',
   );
   // `plain`, so a stored 3,500.55 opens as 3500.55 and saving untouched
   // writes back exactly what was there (the budget sheet's lesson).
   late final TextEditingController _target = TextEditingController(
-    text: widget.existing?.targetAmount.plain ?? '',
+    text:
+        widget.existing?.targetAmount.plain ?? widget.startTarget?.plain ?? '',
   );
   late final TextEditingController _monthly = TextEditingController(
     text: widget.existing?.monthlyTarget.plain ?? '',
@@ -518,7 +538,7 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
           monthlyTarget: Money.fromDouble(_monthlyValue.roundToDouble()),
         ),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
       return;
     }
     widget.state.addGoal(
@@ -533,7 +553,7 @@ class _AddGoalSheetState extends State<AddGoalSheet> {
         monthlyTarget: Money.fromDouble(_monthlyValue.roundToDouble()),
       ),
     );
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(true);
   }
 
   @override

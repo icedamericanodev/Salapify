@@ -1100,6 +1100,32 @@ BillItem billFromJson(Map<String, dynamic> m) => BillItem(
   isSample: _optBool(m, 'isSample'),
 );
 
+/// A parked wish (D38.2). Pesos like every amount in the file; `parkedAt` in
+/// milliseconds like a transaction's `createdAt`.
+const Set<String> parkedItemKeys = <String>{
+  'id',
+  'name',
+  'amount',
+  'parkedAt',
+  'category',
+};
+
+Map<String, dynamic> parkedItemToJson(ParkedItem p) => <String, dynamic>{
+  'id': p.id,
+  'name': p.name,
+  'amount': p.amount.pesos,
+  'parkedAt': p.parkedAt,
+  if (p.category != null) 'category': p.category,
+};
+
+ParkedItem parkedItemFromJson(Map<String, dynamic> m) => ParkedItem(
+  id: _reqStr(m, 'id', 'parked item'),
+  name: _reqStr(m, 'name', 'parked item'),
+  amount: Money.fromDouble(_reqNum(m, 'amount', 'parked item')),
+  parkedAt: _optInt(m, 'parkedAt') ?? 0,
+  category: _optStr(m, 'category'),
+);
+
 /// The payday cycle, which was a compile time constant read straight off the
 /// seed. It said "4 days to payday, Sep 15" on a ledger with nothing in it,
 /// and it would have said the same in December, because nothing ever

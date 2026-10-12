@@ -666,6 +666,88 @@ void main() {
     });
   }
 
+  // D38.2: park it. The Log sheet with a purchase typed, so the Park button
+  // shows; Home two days later asking "Still want it?"; and Plan's list.
+  for (final String which in <String>['log', 'home', 'plan']) {
+    testWidgets('park it $which renders', (WidgetTester tester) async {
+      await tester.runAsync(loadRealFonts);
+      tester.view.physicalSize = Size(1170, which == 'home' ? 4200 : 3000);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final DateTime parkedOn = DateTime(2026, 9, 18, 20, 40);
+      final FinancialState earlier = FinancialState(clock: parkedOn);
+      earlier.parkItem(
+        name: 'Running shoes',
+        amount: const Money.pesos(4500),
+        category: 'Shopping & Personal',
+      );
+      final FinancialState state = which == 'log'
+          ? FinancialState(clock: parkedOn)
+          : FinancialState(
+              clock: which == 'home'
+                  ? parkedOn.add(const Duration(hours: 49))
+                  : parkedOn.add(const Duration(hours: 3)),
+              store: MemorySnapshotStore(
+                earlier.snapshot().encode(at: parkedOn),
+              ),
+            );
+      earlier.dispose();
+      if (which != 'log') await state.restore();
+      final Palette palette = Palette.of(state.theme);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const SalapifyScrollBehavior(),
+          theme: salapifyTheme(palette, state.theme),
+          home: AppShell(state: state),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleImages(tester);
+
+      if (which == 'log') {
+        LogSheet.show(tester.element(find.byType(AppShell)), state);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(const Key('log-amount')),
+            matching: find.byType(TextField),
+          ),
+          '4500',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(const Key('log-merchant')),
+            matching: find.byType(TextField),
+          ),
+          'Running shoes',
+        );
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+      }
+      if (which == 'plan') {
+        await tester.tap(find.text('Plan').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Goals').first);
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('PARKED'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('out/park_it_$which.png'),
+      );
+    });
+  }
+
   // D38.3: the backup card, on the lived-in example ledger plus 32 of the
   // person's own entries. Tall, because the card sits below the fold on
   // purpose and a phone-height shot would prove nothing about it.

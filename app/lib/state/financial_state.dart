@@ -310,6 +310,7 @@ class FinancialState extends ChangeNotifier {
     _scenario = s.scenario;
     _activeProfile = s.activeProfile;
     _guideSteps = Set<String>.of(s.guideSteps);
+    _parked = List<ParkedItem>.of(s.parkedItems);
     _netWorthHistory = List<NetWorthPoint>.of(s.netWorthHistory);
     _netWorthUnread = List<Object?>.of(s.netWorthUnread);
     _extras = s.extras;
@@ -339,6 +340,7 @@ class FinancialState extends ChangeNotifier {
     scenario: _scenario,
     activeProfile: _activeProfile,
     guideSteps: _guideSteps,
+    parkedItems: _parked,
     netWorthHistory: _netWorthHistory,
     netWorthUnread: _netWorthUnread,
     extras: _extras,
@@ -944,6 +946,10 @@ class FinancialState extends ChangeNotifier {
     // would describe records that no longer exist on it.
     _lastBackupAt = null;
     _backupSnoozedUntil = null;
+
+    // The parked wishes are the person's own words, so they go with
+    // everything else.
+    _parked = const <ParkedItem>[];
 
     // Extras ARE cleared, and that is deliberate the other way. They hold keys
     // from the person's own file that this build cannot read, so carrying them
@@ -3354,6 +3360,81 @@ class FinancialState extends ChangeNotifier {
   String? _setAsideReviewedAt;
 
   String? _lastBackupAt;
+
+  // -------------------------------------------------------------------------
+  // D38.2, park it for 48 hours
+  // -------------------------------------------------------------------------
+
+  List<ParkedItem> _parked = const <ParkedItem>[];
+
+  /// Hours an item stays parked before Home asks about it.
+  static const int parkHours = 48;
+
+  /// Everything parked, oldest first.
+  List<ParkedItem> get parkedItems => List<ParkedItem>.unmodifiable(
+    List<ParkedItem>.of(_parked)
+      ..sort((ParkedItem a, ParkedItem b) => a.parkedAt.compareTo(b.parkedAt)),
+  );
+
+  /// The oldest item whose 48 hours are up, which Home asks about, or null.
+  /// One at a time on purpose: three "Still want it?" cards at once is a
+  /// chore list, and the question works because it is about one thing.
+  ParkedItem? get parkedReady {
+    final int cutoff =
+        now.millisecondsSinceEpoch - parkHours * Duration.millisecondsPerHour;
+    for (final ParkedItem p in parkedItems) {
+      if (p.parkedAt <= cutoff) return p;
+    }
+    return null;
+  }
+
+  /// When Home will ask about [p].
+  DateTime parkedUntil(ParkedItem p) => DateTime.fromMillisecondsSinceEpoch(
+    p.parkedAt,
+  ).add(const Duration(hours: parkHours));
+
+  /// Park a wish instead of buying it now. Nothing is spent and no balance
+  /// moves; the Log sheet's own Save is the only way money leaves.
+  ParkedItem parkItem({
+    required String name,
+    required Money amount,
+    String? category,
+  }) {
+    final int at = now.millisecondsSinceEpoch;
+    final ParkedItem p = ParkedItem(
+      id: 'park_${at}_${_parked.length}',
+      name: name,
+      amount: amount,
+      parkedAt: at,
+      category: category,
+    );
+    _parked = <ParkedItem>[..._parked, p];
+    notifyListeners();
+    return p;
+  }
+
+  /// Takes an item off the list, for any of the three answers, and returns
+  /// it so "Let it go" can offer an Undo. Null when it is already gone.
+  ParkedItem? unpark(String id) {
+    ParkedItem? gone;
+    for (final ParkedItem p in _parked) {
+      if (p.id == id) gone = p;
+    }
+    if (gone == null) return null;
+    _parked = <ParkedItem>[
+      for (final ParkedItem p in _parked)
+        if (p.id != id) p,
+    ];
+    notifyListeners();
+    return gone;
+  }
+
+  /// Puts back an item [unpark] took, exactly as it was, for the Undo.
+  void restoreParked(ParkedItem p) {
+    if (_parked.any((ParkedItem x) => x.id == p.id)) return;
+    _parked = <ParkedItem>[..._parked, p];
+    notifyListeners();
+  }
 
   String? _backupSnoozedUntil;
 

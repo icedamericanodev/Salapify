@@ -1215,6 +1215,37 @@ class PaydayCycle {
   );
 }
 
+/// Something the person wanted to buy and parked for 48 hours instead
+/// (D38.2), so the wanting can pass or be confirmed before the money goes.
+///
+/// Not a ledger record: nothing has been spent, no balance moves, and no
+/// report reads it. It is a note to the person's future self, kept in the
+/// backup because a restored phone that forgot what was parked would break
+/// the one promise the feature makes ("Salapify will ask you then").
+class ParkedItem {
+  const ParkedItem({
+    required this.id,
+    required this.name,
+    required this.amount,
+    required this.parkedAt,
+    this.category,
+  });
+
+  final String id;
+
+  /// What it is, in the person's words, or the category when they gave none.
+  final String name;
+  final Money amount;
+
+  /// When it was parked, milliseconds since the epoch, the same unit as
+  /// [Transaction.createdAt]. The 48 hours run from here.
+  final int parkedAt;
+
+  /// The expense category it was typed under, so "I bought it" opens the
+  /// Log sheet where it started.
+  final String? category;
+}
+
 class BillItem {
   const BillItem({
     required this.id,

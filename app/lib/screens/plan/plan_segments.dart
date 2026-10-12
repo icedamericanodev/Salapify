@@ -498,7 +498,96 @@ class GoalsSegment extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
         ],
+        // PARKED (D38.2), beside the goals because both are money not spent
+        // yet. Only once something is parked: an empty "Parked" heading
+        // would be a feature advertising itself.
+        if (state.parkedItems.isNotEmpty) ...<Widget>[
+          const SizedBox(height: Spacing.md),
+          Text('PARKED', style: AppType.kicker(palette)),
+          const SizedBox(height: Spacing.sm),
+          for (final ParkedItem item in state.parkedItems) ...<Widget>[
+            _ParkedRow(palette: palette, state: state, item: item),
+            const SizedBox(height: Spacing.sm),
+          ],
+        ],
       ],
+    );
+  }
+}
+
+/// One parked wish: what, how much, and when Home will ask. Letting it go
+/// early is the one action here; the other two answers belong to the moment
+/// the 48 hours are up.
+class _ParkedRow extends StatelessWidget {
+  const _ParkedRow({
+    required this.palette,
+    required this.state,
+    required this.item,
+  });
+
+  final Palette palette;
+  final FinancialState state;
+  final ParkedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final DateTime until = state.parkedUntil(item);
+    final bool ready = !until.isAfter(state.now);
+    return Container(
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(Radii.control),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(item.name, style: AppType.rowTitle(palette)),
+                const SizedBox(height: 2),
+                Text(
+                  ready
+                      ? 'Ready to decide, on Home'
+                      : 'Asks you ${formatDayAndDate(until, now: state.now)}',
+                  style: AppType.caption(palette),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            formatPeso(item.amount.pesos),
+            style: AppType.amountSmall(palette),
+          ),
+          IconButton(
+            tooltip: 'Let it go',
+            icon: Icon(Icons.close, color: palette.textMuted, size: 20),
+            onPressed: () {
+              final ScaffoldMessengerState messenger = ScaffoldMessenger.of(
+                context,
+              );
+              final ParkedItem? gone = state.unpark(item.id);
+              if (gone == null) return;
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${formatPeso(gone.amount.pesos)} stays with you.',
+                    ),
+                    persist: false,
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      onPressed: () => state.restoreParked(gone),
+                    ),
+                  ),
+                );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

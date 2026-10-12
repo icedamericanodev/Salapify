@@ -54,6 +54,7 @@ class Snapshot {
     required this.scenario,
     this.activeProfile,
     this.guideSteps = const <String>{},
+    this.parkedItems = const <ParkedItem>[],
     this.netWorthHistory = const <NetWorthPoint>[],
     this.netWorthUnread = const <Object?>[],
     this.extras = const Extras.empty(),
@@ -183,6 +184,9 @@ class Snapshot {
   /// discarding it would untick somebody's checklist on the next save.
   final Set<String> guideSteps;
 
+  /// The parked wish list (D38.2). See [kParked].
+  final List<ParkedItem> parkedItems;
+
   /// One balance sheet per calendar month, so Position can draw net worth
   /// over time. See net_worth_history.dart for what a point means.
   ///
@@ -282,8 +286,15 @@ class Snapshot {
     'lastBackupAt',
     'backupNudgeSnoozedUntil',
     kGuideSteps,
+    kParked,
     kNetWorthHistory,
   };
+
+  /// The parked wish list (D38.2). NOT in [collectionKeys], deliberately, the
+  /// same as [kGuideSteps]: it is not a ledger, so a file holding only parked
+  /// items is not a Salapify book, and an older backup without the key is
+  /// not "missing" anything an import should warn about.
+  static const String kParked = 'parkedItems';
 
   /// The ticked guide steps. Not a collection, so it is named here rather
   /// than beside the ledger keys above.
@@ -382,6 +393,13 @@ class Snapshot {
       // who has never opened a guide gets no key at all and their file stays
       // exactly as small as it was before this feature existed.
       if (guideSteps.isNotEmpty) kGuideSteps: (guideSteps.toList()..sort()),
+      // Omitted when empty, like the guide steps, so a file from somebody who
+      // never parked anything stays byte for byte what it was.
+      if (parkedItems.isNotEmpty)
+        kParked: <Map<String, dynamic>>[
+          for (final ParkedItem p in parkedItems)
+            merged(kParked, p.id, parkedItemToJson(p)),
+        ],
       // Omitted when empty, like the guide steps, so a file is byte for byte
       // what it was until the first month is recorded. Oldest first, and a
       // readable row's unknown keys merged back, as every record does.
@@ -823,6 +841,12 @@ class Snapshot {
           DecisionScenario.conservative,
       activeProfile: profileWire.decodeOptional(m, 'activeProfile', 'snapshot'),
       guideSteps: _readGuideSteps(m[kGuideSteps]),
+      parkedItems: read<ParkedItem>(
+        kParked,
+        parkedItemKeys,
+        parkedItemFromJson,
+        (ParkedItem p) => p.id,
+      ),
       netWorthHistory: history.points,
       netWorthUnread: history.unread,
       extras: extras.build(),
