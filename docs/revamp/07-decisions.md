@@ -1580,3 +1580,26 @@ saves `semi_monthly`, so anyone who set their own twice-a-month payday had
    tomorrow offering rent due in three days as today's spending money. No
    income is promised on that date, so the same 30 day window as weekly pay
    applies. Recommended option, chosen by the founder.
+
+## D38. Saved data for the three habit features. ANSWERED 2026-10-12
+
+THE QUESTION. D31 point 4 approved collection reminders, a 48 hour "park it"
+list and a backup reminder. Each needs something saved on the phone, so each
+went to the founder before building (STOP condition 2). The behavior-scientist
+designed all three; all three answers were the recommended option.
+
+1. **Reminders for money owed to you get their own switch and their own
+   reminder type.** "Money owed to you" sits beside "Payments you owe", on by
+   default. With a due date it reminds on the day, then weekly for up to
+   eight weeks. With no due date it reminds once a month, on the last day.
+   Each reminder offers the existing friendly message. Saved: a
+   `collectionReminderEnabled` setting and a `collection` reminder type. A
+   backup written after this is refused by an older build (safely, nothing is
+   lost); the founder accepted that.
+2. **Park it saves a wish list item** (name, price, category, when parked)
+   on the phone and in the backup. After 48 hours Home asks "Still want it?"
+   with three answers: I bought it (opens Log filled in), Save up for it
+   (opens a goal), Let it go. No running total of money kept (D30).
+3. **The backup reminder saves two dates**: the last backup and the last
+   "Not now". The Home card shows only after 30 or more new entries AND 14 or
+   more days since the last backup. Never a phone notification.
