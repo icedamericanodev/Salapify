@@ -55,11 +55,26 @@ void main() {
 
     expect(find.text('What stays on this phone'), findsOneWidget);
     expect(
-      find.textContaining('One thing does leave this phone'),
+      find.textContaining('Leaves this phone: the converter asks for rates'),
       findsOneWidget,
       reason:
-          'the receipt omits the exchange rate request, which is the one line '
-          'item a receipt exists to disclose',
+          'the receipt omits the exchange rate request, which is the kind of '
+          'line item a receipt exists to disclose',
+    );
+    // The second request, found 2026-10-10 after this screen had said "one
+    // thing leaves" and "no analytics" for weeks: Google's receipt reader
+    // uploads a usage report after every scan. docs/reviews/mlkit-telemetry.md.
+    expect(
+      find.textContaining('Leaves this phone: a usage report when you scan'),
+      findsOneWidget,
+      reason: 'the receipt omits the ML Kit usage report sent to Google',
+    );
+    expect(
+      find.textContaining('No analytics'),
+      findsNothing,
+      reason:
+          'ML Kit sends Google usage analytics in Google\'s own words, so an '
+          'unqualified "no analytics" is false',
     );
     expect(
       find.textContaining('not encrypted'),
@@ -68,6 +83,31 @@ void main() {
           'a person emailing themselves a backup they believe is protected is '
           'the harm a false security claim causes',
     );
+  });
+
+  test('a package that phones home is named in the privacy policy', () {
+    // pubspec.yaml said "exactly ONE network request" and privacy.html said
+    // "What we collect: Nothing" while ML Kit uploaded a usage report after
+    // every receipt scan. A dependency's network traffic is invisible to
+    // every widget test, so the link between the two files is checked here.
+    // Key: a pubspec package name prefix. Value: the words privacy.html must
+    // contain while that package is a dependency.
+    const Map<String, String> mustDisclose = <String, String>{
+      'google_mlkit': 'ML Kit',
+    };
+    final String pubspec = File('pubspec.yaml').readAsStringSync();
+    final String policy = File('../privacy.html').readAsStringSync();
+    for (final MapEntry<String, String> e in mustDisclose.entries) {
+      if (!RegExp('^  ${e.key}', multiLine: true).hasMatch(pubspec)) continue;
+      expect(
+        policy.contains(e.value),
+        isTrue,
+        reason:
+            '${e.key} is a dependency and sends data off the phone, but '
+            'privacy.html never mentions "${e.value}". Update the policy and '
+            'docs/play-data-safety.md together.',
+      );
+    }
   });
 
   test('no screen claims a regulator blessed the figure', () {

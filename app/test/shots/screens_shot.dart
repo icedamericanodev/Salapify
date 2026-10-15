@@ -1420,6 +1420,10 @@ void main() {
         (name: 'reminders', openWith: 'reminders'),
         (name: 'reminders_rules', openWith: 'remindersRules'),
         (name: 'privacy', openWith: 'privacy'),
+        // The same sheet scrolled to what LEAVES the phone. The receipt runs
+        // past the bottom of even this tall render, and the first shot ends
+        // before those lines, which are the ones a privacy review is about.
+        (name: 'privacy_leaves', openWith: 'privacyLeaves'),
         (name: 'pan', openWith: 'pan'),
         // The cash answer was reviewed only from a founder's phone
         // screenshot, which is how "across 11 accounts" survived: the count
@@ -1480,6 +1484,7 @@ void main() {
         case 'remindersRules':
           RemindersSheet.show(context, state);
         case 'privacy':
+        case 'privacyLeaves':
           PrivacySheet.show(context, palette);
         case 'pan':
         case 'panCash':
@@ -1497,6 +1502,15 @@ void main() {
       // tray above it is the half they review for whether the words do.
       if (sheet.openWith == 'remindersRules') {
         await tester.tap(find.text('Rules'));
+        await tester.pumpAndSettle();
+      }
+
+      if (sheet.openWith == 'privacyLeaves') {
+        await tester.scrollUntilVisible(
+          find.textContaining('Names you type belong to other people'),
+          300,
+          scrollable: find.byType(Scrollable).last,
+        );
         await tester.pumpAndSettle();
       }
 

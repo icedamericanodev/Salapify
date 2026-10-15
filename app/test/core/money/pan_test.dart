@@ -283,6 +283,14 @@ void main() {
             'Pan claimed nothing leaves the phone, which is the same false '
             'absolute the header badge carried for weeks',
       );
+      expect(
+        a.text,
+        contains('usage report'),
+        reason:
+            'Pan named the converter as the only thing that leaves, while '
+            'Google\'s receipt reader uploads a usage report after each scan',
+      );
+      expect(a.text, isNot(contains('no analytics')));
     });
 
     test('every starter question is genuinely answerable', () {
